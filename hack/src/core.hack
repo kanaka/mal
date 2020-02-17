@@ -1,6 +1,5 @@
 namespace Mal;
 
-
 function ns(Environment $environment): Environment {
   $functions = vec[
     binary_numerical_function('+', ($a, $b) ==> $a + $b),
@@ -15,9 +14,17 @@ function ns(Environment $environment): Environment {
     str_function(),
     prn_function(),
     println_function(),
+    symbol_function(),
+    keyword_function(),
     list_function(),
-    is_list_function(),
-    is_sequential_function(),
+    vector_function(),
+    hashmap_function(),
+    assoc_function(),
+    dissoc_function(),
+    get_function(),
+    contains_function(),
+    keys_function(),
+    vals_function(),
     is_empty_function(),
     count_function(),
     equals_function(),
@@ -37,7 +44,12 @@ function ns(Environment $environment): Environment {
     is_nil_function(),
     is_true_function(),
     is_false_function(),
+    is_keyword_function(),
     is_symbol_function(),
+    is_list_function(),
+    is_vector_function(),
+    is_sequential_function(),
+    is_map_function(),
   ];
   foreach ($functions as $name_function_pair) {
     list($name, $function) = $name_function_pair;
@@ -126,6 +138,37 @@ function pr_str_arguments(
     |> Str\join($$, $delimiter);
 }
 
+function symbol_function(): (Symbol, FunctionDefinition) {
+  $name = 'symbol';
+  return named_function(
+    $name,
+    $arguments ==> {
+      $string = idx($arguments, 1);
+      if (!$string is StringAtom) {
+        throw new TypedArgumentException($name, 1, StringAtom::class, $string);
+      }
+      return new Symbol($string->value);
+    },
+  );
+}
+
+function keyword_function(): (Symbol, FunctionDefinition) {
+  $name = 'keyword';
+  return named_function(
+    $name,
+    $arguments ==> {
+      $string = idx($arguments, 1);
+      if ($string is Keyword) {
+        return $string;
+      }
+      if (!$string is StringAtom) {
+        throw new TypedArgumentException($name, 1, StringAtom::class, $string);
+      }
+      return new Keyword($string->value);
+    },
+  );
+}
+
 function list_function(): (Symbol, FunctionDefinition) {
   return named_function(
     'list',
@@ -134,32 +177,169 @@ function list_function(): (Symbol, FunctionDefinition) {
   );
 }
 
-function is_list_function(): (Symbol, FunctionDefinition) {
-  $name = 'list?';
+function vector_function(): (Symbol, FunctionDefinition) {
+  return named_function(
+    'vector',
+    $arguments ==> Vec\drop($arguments, 1)
+      |> new VectorForm($$),
+  );
+}
+
+function hashmap_function(): (Symbol, FunctionDefinition) {
+  $name = 'hash-map';
+  return named_function(
+    $name,
+    $arguments ==> Vec\drop($arguments, 1)
+      |> read_map_pairs($name, $$)
+      |> pairs_to_map($$),
+  );
+}
+
+function assoc_function(): (Symbol, FunctionDefinition) {
+  $name = 'assoc';
   return named_function(
     $name,
     $arguments ==> {
-      $maybe_list = idx($arguments, 1);
-      if ($maybe_list is null) {
-        throw new EvalException("Expected one argument to `$name`");
+      $map = idx($arguments, 1);
+      if (!$map is HashMapForm) {
+        throw new TypedArgumentException($name, 1, HashMapForm::class, $map);
       }
-      enforce_arity($name, 1, $arguments);
-      return new BoolAtom($maybe_list is ListForm);
+      return Vec\drop($arguments, 2)
+        |> read_map_pairs($name, $$)
+        |> Vec\concat(children_pairs($map), $$)
+        |> pairs_to_map($$);
     },
   );
 }
 
-function is_sequential_function(): (Symbol, FunctionDefinition) {
-  $name = 'sequential?';
+function dissoc_function(): (Symbol, FunctionDefinition) {
+  $name = 'dissoc';
   return named_function(
     $name,
     $arguments ==> {
-      $maybe_list = idx($arguments, 1);
-      if ($maybe_list is null) {
-        throw new EvalException("Expected one argument to `$name`");
+      $map = idx($arguments, 1);
+      if (!$map is HashMapForm) {
+        throw new TypedArgumentException($name, 1, HashMapForm::class, $map);
+      }
+      $keys_to_remove = Vec\drop($arguments, 2)
+        |> Vec\map_with_key(
+          $$,
+          ($index, $key) ==> {
+            if (!$key is Key) {
+              throw new TypeException($name, Key::class, $key);
+            }
+            return key_to_string($key);
+          },
+        )
+        |> keyset($$);
+      if (C\is_empty($keys_to_remove)) {
+        throw new MissingArgumentException($name, 2, 'a key to remove');
+      }
+      return new HashMapForm(
+        Dict\filter_keys(
+          $map->map,
+          $key ==> !C\contains($keys_to_remove, $key),
+        ),
+      );
+    },
+  );
+}
+
+function read_map_pairs(string $name, vec<Form> $arguments): vec<(Key, Form)> {
+  return read_pairs(
+    $arguments,
+    $key ==> {
+      if (!$key is Key) {
+        throw new EvalException(
+          Str\format(
+            '`%s` expected a key, but got `%s`',
+            $name,
+            pr_str($key, true),
+          ),
+        );
+      }
+      return $key;
+    },
+    $key ==> new EvalException(
+      Str\format(
+        '`%s` expected a value for key `%s`',
+        $name,
+        pr_str($key, true),
+      ),
+    ),
+  );
+}
+
+function get_function(): (Symbol, FunctionDefinition) {
+  return map_access_function('get', ($map, $key) ==> {
+    $value = idx($map->map, $key);
+    if ($value is null) {
+      return new GlobalNil();
+    }
+    return $value;
+  });
+}
+
+function contains_function(): (Symbol, FunctionDefinition) {
+  return map_access_function(
+    'contains?',
+    ($map, $key) ==> new BoolAtom(C\contains_key($map->map, $key)),
+  );
+}
+
+function map_access_function(
+  string $name,
+  (function(HashMapForm, string): Form) $access,
+): (Symbol, FunctionDefinition) {
+  return named_function(
+    $name,
+    $arguments ==> {
+      $map = idx($arguments, 1);
+      if ($map is GlobalNil) {
+        return new GlobalNil();
+      }
+      if (!$map is HashMapForm) {
+        throw new TypedArgumentException($name, 1, HashMapForm::class, $map);
+      }
+      $key = idx($arguments, 2);
+      if (!$key is Key) {
+        throw new TypedArgumentException($name, 2, Key::class, $key);
+      }
+      enforce_arity($name, 2, $arguments);
+      $key_string = key_to_string($key);
+      return $access($map, $key_string);
+    },
+  );
+}
+
+function keys_function(): (Symbol, FunctionDefinition) {
+  $name = 'keys';
+  return named_function(
+    $name,
+    $arguments ==> {
+      $map = idx($arguments, 1);
+      if (!$map is HashMapForm) {
+        throw new TypedArgumentException($name, 1, HashMapForm::class, $map);
       }
       enforce_arity($name, 1, $arguments);
-      return new BoolAtom($maybe_list is ListLikeForm);
+      return Vec\keys($map->map)
+        |> Vec\map($$, $key ==> string_to_key($key))
+        |> new ListForm($$);
+    },
+  );
+}
+
+function vals_function(): (Symbol, FunctionDefinition) {
+  $name = 'vals';
+  return named_function(
+    $name,
+    $arguments ==> {
+      $map = idx($arguments, 1);
+      if (!$map is HashMapForm) {
+        throw new TypedArgumentException($name, 1, HashMapForm::class, $map);
+      }
+      enforce_arity($name, 1, $arguments);
+      return new ListForm(vec($map->map));
     },
   );
 }
@@ -240,14 +420,11 @@ function equals_impl(Form $a, Form $b): bool {
     }
   } else if ($a is ListLikeForm) {
     if ($b is ListLikeForm) {
-      return equals_children($a->children, $b->children);
+      return equals_children_pairs($a->children, $b->children);
     }
   } else if ($a is HashMapForm) {
     if ($b is HashMapForm) {
-      return equals_children(
-        join_pairs(children_pairs($a)),
-        join_pairs(children_pairs($b)),
-      );
+      return equals_children_pairs($a->map, $b->map);
     }
   } else if ($a is FunctionDefinition) {
     if ($b is FunctionDefinition) {
@@ -258,14 +435,19 @@ function equals_impl(Form $a, Form $b): bool {
   return false;
 }
 
-function equals_children(vec<Form> $children_a, vec<Form> $children_b): bool {
-  if (C\count($children_a) !== C\count($children_b)) {
+function equals_children_pairs<TKey as arraykey>(
+  KeyedContainer<TKey, Form> $children_pairs_a,
+  KeyedContainer<TKey, Form> $children_pairs_b,
+): bool {
+  if (C\count($children_pairs_a) !== C\count($children_pairs_b)) {
     return false;
   }
-  return C\every(zip_map(
-    $children_a,
-    $children_b,
-    ($a_child, $b_child) ==> equals_impl($a_child, $b_child),
+  return C\every(Vec\map_with_key(
+    $children_pairs_a,
+    ($key_a, $value_a) ==> {
+      $value_b = idx($children_pairs_b, $key_a);
+      return $value_b is nonnull && equals_impl($value_a, $value_b);
+    },
   ));
 }
 
@@ -278,6 +460,7 @@ function read_string_function(): (Symbol, FunctionDefinition) {
       if (!$string is StringAtom) {
         throw new TypedArgumentException($name, 1, StringAtom::class, $string);
       }
+      enforce_arity($name, 1, $arguments);
       return read_str($string->value);
     },
   );
@@ -292,6 +475,7 @@ function slurp(): (Symbol, FunctionDefinition) {
       if (!$string is StringAtom) {
         throw new TypedArgumentException($name, 1, StringAtom::class, $string);
       }
+      enforce_arity($name, 1, $arguments);
       try {
         return \HH\Asio\join(
           async {
@@ -315,6 +499,7 @@ function eval_function(Environment $environment): (Symbol, FunctionDefinition) {
       if ($ast is null) {
         throw new MissingArgumentException($name, 1);
       }
+      enforce_arity($name, 1, $arguments);
       return evaluate($ast, $environment);
     },
   );
@@ -329,21 +514,8 @@ function atom_function(): (Symbol, FunctionDefinition) {
       if ($value is null) {
         throw new MissingArgumentException($name, 1);
       }
+      enforce_arity($name, 1, $arguments);
       return new MutableAtom($value);
-    },
-  );
-}
-
-function is_atom_function(): (Symbol, FunctionDefinition) {
-  $name = 'atom?';
-  return named_function(
-    $name,
-    $arguments ==> {
-      $maybe_atom = idx($arguments, 1);
-      if ($maybe_atom is null) {
-        throw new MissingArgumentException($name, 1);
-      }
-      return new BoolAtom($maybe_atom is MutableAtom);
     },
   );
 }
@@ -357,6 +529,7 @@ function deref_function(): (Symbol, FunctionDefinition) {
       if (!$atom is MutableAtom) {
         throw new TypedArgumentException($name, 1, MutableAtom::class, $atom);
       }
+      enforce_arity($name, 1, $arguments);
       return $atom->value;
     },
   );
@@ -375,6 +548,7 @@ function reset_function(): (Symbol, FunctionDefinition) {
       if ($new_value is null) {
         throw new MissingArgumentException($name, 2);
       }
+      enforce_arity($name, 2, $arguments);
       return $atom->reset($new_value);
     },
   );
@@ -393,6 +567,7 @@ function cons_function(): (Symbol, FunctionDefinition) {
       if (!$list is ListLikeForm) {
         throw new TypedArgumentException($name, 2, ListLikeForm::class, $list);
       }
+      enforce_arity($name, 2, $arguments);
       return new ListForm(Vec\concat(vec[$prepended_item], $list->children));
     },
   );
@@ -417,7 +592,6 @@ function concat_function(): (Symbol, FunctionDefinition) {
           return $list->children;
         },
       ));
-      $list = idx($arguments, 2);
       return new ListForm($concatted);
     },
   );
@@ -436,6 +610,7 @@ function nth_function(): (Symbol, FunctionDefinition) {
       if (!$index is Number) {
         throw new TypedArgumentException($name, 2, Number::class, $index);
       }
+      enforce_arity($name, 2, $arguments);
       $value = idx($list->children, $index->value);
       if ($value is null) {
         throw new EvalException(
@@ -459,6 +634,7 @@ function rest_function(): (Symbol, FunctionDefinition) {
       if (!$list is ListLikeForm) {
         throw new TypedArgumentException($name, 1, ListLikeForm::class, $list);
       }
+      enforce_arity($name, 1, $arguments);
       return new ListForm(Vec\drop($list->children, 1));
     },
   );
@@ -473,6 +649,8 @@ function throw_function(): (Symbol, FunctionDefinition) {
       if ($thrown is null) {
         throw new MissingArgumentException($name, 1);
       }
+
+      enforce_arity($name, 1, $arguments);
       throw new ThrownException($thrown);
     },
   );
@@ -496,6 +674,7 @@ function map_function(): (Symbol, FunctionDefinition) {
       if (!$list is ListLikeForm) {
         throw new TypedArgumentException($name, 2, ListLikeForm::class, $list);
       }
+      enforce_arity($name, 2, $arguments);
       $callable = unwrap_tco($function)->function;
       return new ListForm(
         Vec\map($list->children, $item ==> $callable(vec[$function, $item])),
@@ -508,20 +687,50 @@ function map_function(): (Symbol, FunctionDefinition) {
 function is_nil_function(): (Symbol, FunctionDefinition) {
   return type_predicate_function('nil?', $value ==> $value is GlobalNil);
 }
+
 function is_true_function(): (Symbol, FunctionDefinition) {
   return type_predicate_function(
     'true?',
     $value ==> $value is BoolAtom && $value->value,
   );
 }
+
 function is_false_function(): (Symbol, FunctionDefinition) {
   return type_predicate_function(
     'false?',
     $value ==> $value is BoolAtom && !$value->value,
   );
 }
+
 function is_symbol_function(): (Symbol, FunctionDefinition) {
   return type_predicate_function('symbol?', $value ==> $value is Symbol);
+}
+
+function is_keyword_function(): (Symbol, FunctionDefinition) {
+  return type_predicate_function('keyword?', $value ==> $value is Keyword);
+}
+
+function is_list_function(): (Symbol, FunctionDefinition) {
+  return type_predicate_function('list?', $value ==> $value is ListForm);
+}
+
+function is_vector_function(): (Symbol, FunctionDefinition) {
+  return type_predicate_function('vector?', $value ==> $value is VectorForm);
+}
+
+function is_sequential_function(): (Symbol, FunctionDefinition) {
+  return type_predicate_function(
+    'sequential?',
+    $value ==> $value is ListLikeForm,
+  );
+}
+
+function is_map_function(): (Symbol, FunctionDefinition) {
+  return type_predicate_function('map?', $value ==> $value is HashMapForm);
+}
+
+function is_atom_function(): (Symbol, FunctionDefinition) {
+  return type_predicate_function('atom?', $value ==> $value is MutableAtom);
 }
 
 function type_predicate_function(
@@ -535,6 +744,7 @@ function type_predicate_function(
       if ($value is null) {
         throw new MissingArgumentException($name, 1);
       }
+      enforce_arity($name, 1, $arguments);
       return new BoolAtom($check($value));
     },
   );
@@ -555,18 +765,6 @@ function named_function(
   (function(vec<Form>): Form) $definition,
 ): (Symbol, FunctionDefinition) {
   return tuple(new Symbol($name), new FunctionDefinition($definition));
-}
-
-function zip_map<Ta, Tb, Tc>(
-  vec<Ta> $list_a,
-  vec<Tb> $list_b,
-  (function(Ta, Tb): Tc) $map,
-): vec<Tc> {
-  $result = vec[];
-  foreach ($list_a as $i => $a) {
-    $result[] = $map($a, $list_b[$i]);
-  }
-  return $result;
 }
 
 function enforce_arity(

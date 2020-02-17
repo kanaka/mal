@@ -483,6 +483,9 @@ function try_catch(Form $ast, Environment $environment): ?EvalResult {
     throw new MissingArgumentException($try_name, 1);
   }
   $catch = idx($arguments, 2);
+  if ($catch is null) {
+    return eval_tco($tried, $environment);
+  }
   if (!$catch is ListForm) {
     throw new TypedArgumentException(
       $try_name,
