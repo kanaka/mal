@@ -30,6 +30,16 @@
         </xsl:choose>
     </xsl:function>
 
+    <xsl:function name="env:get-noerror">
+        <xsl:param name="env"/>
+        <xsl:param name="name"/>
+        <xsl:variable name="value" select="let $venv := env:find($env, $name) return if (empty($venv)) then () else $venv('data')($name)"></xsl:variable>
+        <xsl:choose>
+            <xsl:when test="empty($value)"></xsl:when>
+            <xsl:otherwise><xsl:sequence select="parse-xml($value)"/></xsl:otherwise>
+        </xsl:choose>
+    </xsl:function>
+
     <xsl:function name="env:base" as="xs:string">
         <xsl:variable name="plus"><malval kind="function" name="+"></malval></xsl:variable>
         <xsl:variable name="minus"><malval kind="function" name="-"></malval></xsl:variable>

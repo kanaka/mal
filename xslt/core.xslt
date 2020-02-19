@@ -29,6 +29,9 @@
             <malval kind="function" name="reset!"/> <!-- defined in the step files -->
             <malval kind="function" name="cons"/>
             <malval kind="function" name="concat"/>
+            <malval kind="function" name="nth"/>
+            <malval kind="function" name="first"/>
+            <malval kind="function" name="rest"/>
         </xsl:sequence>
     </xsl:function>
 
@@ -199,6 +202,39 @@
                 </value>
               </xsl:variable>
               <xsl:sequence select="$result"/>
+            </xsl:when>
+            <xsl:when test="$func/malval/@name = 'nth'">
+              <value>
+                <xsl:variable name="res" select="$args/value/malval/lvalue/malval[1]/lvalue/malval[position() = (number($args/value/malval/lvalue/malval[2]/@value) + 1)]"/>
+                <xsl:if test="empty($res)">
+                  <xsl:message terminate="yes">
+                    <xsl:sequence select="'Index out of bounds'"/>
+                  </xsl:message>
+                </xsl:if>
+                <xsl:sequence select="$res"/>
+              </value>
+            </xsl:when>
+            <xsl:when test="$func/malval/@name = 'first'">
+              <value>
+                <xsl:variable name="res" select="$args/value/malval/lvalue/malval[1]/lvalue/malval[1]"/>
+                <xsl:choose>
+                  <xsl:when test="empty($res)">
+                    <malval kind="nil" />
+                  </xsl:when>
+                  <xsl:otherwise>
+                    <xsl:sequence select="$res"/>
+                  </xsl:otherwise>
+                </xsl:choose>
+              </value>
+            </xsl:when>
+            <xsl:when test="$func/malval/@name = 'rest'">
+              <value>
+                <malval kind="list">
+                  <lvalue>
+                    <xsl:sequence select="$args/value/malval/lvalue/malval[1]/lvalue/malval[position() > 1]"/>
+                  </lvalue>
+                </malval>
+              </value>
             </xsl:when>
             <xsl:otherwise>
               <xsl:message terminate="yes">Invalid function <xsl:sequence select="$func"/> </xsl:message>
