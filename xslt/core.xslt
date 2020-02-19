@@ -27,6 +27,8 @@
             <malval kind="function" name="deref"/> <!-- defined in the step files -->
             <malval kind="function" name="swap!"/> <!-- defined in the step files -->
             <malval kind="function" name="reset!"/> <!-- defined in the step files -->
+            <malval kind="function" name="cons"/>
+            <malval kind="function" name="concat"/>
         </xsl:sequence>
     </xsl:function>
 
@@ -172,6 +174,31 @@
             </xsl:when>
             <xsl:when test="$func/malval/@name = 'atom?'">
                 <xsl:sequence select="core:makeMALType((), if ($args/value/malval/lvalue/malval[1]/@kind = 'atom') then 'true' else 'false')"/>
+            </xsl:when>
+            <xsl:when test="$func/malval/@name = 'cons'">
+              <xsl:variable name="result">
+                <value>
+                  <malval kind="list">
+                    <lvalue>
+                      <xsl:sequence select="$args/value/malval/lvalue/malval[1]"/>
+                      <xsl:sequence select="$args/value/malval/lvalue/malval[2]/lvalue/malval" />
+                    </lvalue>
+                  </malval>
+                </value>
+              </xsl:variable>
+              <xsl:sequence select="$result"/>
+            </xsl:when>
+            <xsl:when test="$func/malval/@name = 'concat'">
+              <xsl:variable name="result">
+                <value>
+                  <malval kind="list">
+                    <lvalue>
+                      <xsl:sequence select="$args/value/malval/lvalue/malval/lvalue/malval"/>
+                    </lvalue>
+                  </malval>
+                </value>
+              </xsl:variable>
+              <xsl:sequence select="$result"/>
             </xsl:when>
             <xsl:otherwise>
               <xsl:message terminate="yes">Invalid function <xsl:sequence select="$func"/> </xsl:message>
