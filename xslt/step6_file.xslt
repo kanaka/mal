@@ -423,17 +423,6 @@
                         </xsl:when>
                         <xsl:otherwise>
                           <xsl:choose>
-                            <xsl:when test="$func/malval/@name = 'env??'"> <!-- needs access to env -->
-                              <xsl:variable name="nev" select="env:dump($env)"></xsl:variable>
-                              <xsl:variable name="value">
-                                <malval kind="string" value="{$env => serialize(map{'method':'json'})}"/>
-                              </xsl:variable>
-                              <value>
-                                <xsl:sequence select="$value"/>
-                              </value>
-                              <env data="{env:serialise($env)}"/>
-                              <xsl:sequence select="$value/atoms"/>
-                            </xsl:when>
                             <xsl:when test="$func/malval/@name = 'eval'"> <!-- needs access to env -->
                               <xsl:variable name="venv" select="env:replEnv($env)"></xsl:variable>
                               <xsl:variable name="form">

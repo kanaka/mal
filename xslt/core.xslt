@@ -21,7 +21,6 @@
             <malval kind="function" name="&gt;="/>
             <malval kind="function" name="read-string"/>
             <malval kind="function" name="slurp"/>
-            <malval kind="function" name="env??"/> <!-- defined in the step files -->
             <malval kind="function" name="eval"/> <!-- defined in the step files -->
             <malval kind="function" name="atom"/> <!-- defined in the step files -->
             <malval kind="function" name="atom?"/>
