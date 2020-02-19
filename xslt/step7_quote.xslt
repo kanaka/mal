@@ -651,9 +651,7 @@
       </xsl:variable>
       <xsl:for-each select="$form">
         <xsl:if test="error">
-          <xsl:message terminate="yes">
-            <xsl:value-of select="error" />
-          </xsl:message>
+          <xsl:value-of select="error(QName('MAL', 'Error'), string(error))" />
         </xsl:if>
         <xsl:sequence select="." />
       </xsl:for-each>

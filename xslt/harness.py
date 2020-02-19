@@ -29,7 +29,7 @@ def transform(do_print=True):
     tree.write('xslt_input.xml')
     if os.system(f'saxon -xsl:"{fname}" -s:xslt_input.xml > xslt_output.xml 2> xsl_error.xml'):
         with open('xsl_error.xml', 'r') as f:
-            print(f.readlines()[0])
+            print('Error:', [x for x in f.readlines() if x.strip() != ''][-1], end='')
         return
     else:
         with open('xsl_error.xml', 'r') as f:

@@ -162,7 +162,7 @@
               <xsl:sequence select="fn:makeMALType($result, 'number')"/>
             </xsl:when>
             <xsl:otherwise>
-              <xsl:message terminate="yes">Invalid function <xsl:sequence select="$func"/> </xsl:message>
+              <xsl:value-of select="error(QName('MAL', 'Error'), concat('Invalid function ', $func))" />
             </xsl:otherwise>
           </xsl:choose>
         </xsl:when>
@@ -293,9 +293,7 @@
       </xsl:variable>
       <xsl:for-each select="$form">
         <xsl:if test="error">
-          <xsl:message terminate="yes">
-            <xsl:value-of select="error" />
-          </xsl:message>
+          <xsl:value-of select="error(QName('MAL', 'Error'), string(error))" />
         </xsl:if>
         <xsl:copy-of select="." />
       </xsl:for-each>

@@ -32,6 +32,28 @@
             <malval kind="function" name="nth"/>
             <malval kind="function" name="first"/>
             <malval kind="function" name="rest"/>
+            <malval kind="function" name="throw"/>
+            <malval kind="function" name="apply"/> <!-- defined in the step files -->
+            <malval kind="function" name="map"/> <!-- defined in the step files -->
+            <malval kind="function" name="nil?"/>
+            <malval kind="function" name="true?"/>
+            <malval kind="function" name="false?"/>
+            <malval kind="function" name="symbol?"/>
+            <malval kind="function" name="symbol"/>
+            <malval kind="function" name="keyword"/>
+            <malval kind="function" name="keyword?"/>
+            <malval kind="function" name="vector"/>
+            <malval kind="function" name="vector?"/>
+            <malval kind="function" name="sequential?"/>
+            <malval kind="function" name="hash-map"/>
+            <malval kind="function" name="map?"/>
+            <malval kind="function" name="assoc"/>
+            <malval kind="function" name="dissoc"/>
+            <malval kind="function" name="get"/>
+            <malval kind="function" name="contains?"/>
+            <malval kind="function" name="keys"/>
+            <malval kind="function" name="vals"/>
+            <malval kind="function" name="vals"/>
         </xsl:sequence>
     </xsl:function>
 
@@ -145,7 +167,14 @@
                 <xsl:sequence select="core:makeMALType((), if (count($args/value/malval/lvalue/malval[1]/lvalue/malval) = 0) then 'true' else 'false')"/>
             </xsl:when>
             <xsl:when test="$func/malval/@name = 'count'">
-                <xsl:sequence select="core:makeMALType(count($args/value/malval/lvalue/malval[1]/lvalue/malval), 'number')"/>
+              <xsl:choose>
+                <xsl:when test="$args/value/malval/lvalue/malval[1]/@kind = 'hash'">
+                  <xsl:sequence select="core:makeMALType(count($args/value/malval/lvalue/malval[1]/lvalue/malval) div 2, 'number')"/>
+                </xsl:when>
+                <xsl:otherwise>
+                  <xsl:sequence select="core:makeMALType(count($args/value/malval/lvalue/malval[1]/lvalue/malval), 'number')"/>
+                </xsl:otherwise>
+              </xsl:choose>
             </xsl:when>
             <xsl:when test="$func/malval/@name = '='">
                 <xsl:sequence select="core:makeMALType((), if (core:equal($args/value/malval/lvalue/malval[1], $args/value/malval/lvalue/malval[2])) then 'true' else 'false')"/>
@@ -207,9 +236,7 @@
               <value>
                 <xsl:variable name="res" select="$args/value/malval/lvalue/malval[1]/lvalue/malval[position() = (number($args/value/malval/lvalue/malval[2]/@value) + 1)]"/>
                 <xsl:if test="empty($res)">
-                  <xsl:message terminate="yes">
-                    <xsl:sequence select="'Index out of bounds'"/>
-                  </xsl:message>
+                  <xsl:value-of select="error(QName('MAL', 'Error'), 'Index out of bounds', core:makeMALValue('Index out of bounds', 'string'))"/>
                 </xsl:if>
                 <xsl:sequence select="$res"/>
               </value>
@@ -236,8 +263,87 @@
                 </malval>
               </value>
             </xsl:when>
+            <xsl:when test="$func/malval/@name = 'throw'">
+              <xsl:variable name="err" select="$args/value/malval/lvalue/malval[1]"></xsl:variable>
+              <xsl:value-of select="error(QName('MAL', 'Error'), core:pr-str($err), $err)"></xsl:value-of>
+            </xsl:when>
+            <xsl:when test="$func/malval/@name = 'nil?'">
+                <xsl:sequence select="core:makeMALType((), if ($args/value/malval/lvalue/malval[1]/@kind = 'nil') then 'true' else 'false')"/>
+            </xsl:when>
+            <xsl:when test="$func/malval/@name = 'true?'">
+                <xsl:sequence select="core:makeMALType((), if ($args/value/malval/lvalue/malval[1]/@kind = 'true') then 'true' else 'false')"/>
+            </xsl:when>
+            <xsl:when test="$func/malval/@name = 'false?'">
+                <xsl:sequence select="core:makeMALType((), if ($args/value/malval/lvalue/malval[1]/@kind = 'false') then 'true' else 'false')"/>
+            </xsl:when>
+            <xsl:when test="$func/malval/@name = 'symbol?'">
+                <xsl:sequence select="core:makeMALType((), if ($args/value/malval/lvalue/malval[1]/@kind = 'symbol') then 'true' else 'false')"/>
+            </xsl:when>
+            <xsl:when test="$func/malval/@name = 'symbol'">
+                <xsl:sequence select="core:makeMALType($args/value/malval/lvalue/malval[1]/@value, 'symbol')"/>
+            </xsl:when>
+            <xsl:when test="$func/malval/@name = 'keyword'">
+                <xsl:sequence select="core:makeMALType($args/value/malval/lvalue/malval[1]/@value, 'keyword')"/>
+            </xsl:when>
+            <xsl:when test="$func/malval/@name = 'keyword?'">
+                <xsl:sequence select="core:makeMALType((), if ($args/value/malval/lvalue/malval[1]/@kind = 'keyword') then 'true' else 'false')"/>
+            </xsl:when>
+            <xsl:when test="$func/malval/@name = 'vector'">
+              <value>
+                <malval kind="vector">
+                  <xsl:sequence select="$args/value/malval/lvalue"/>
+                </malval>
+              </value>
+            </xsl:when>
+            <xsl:when test="$func/malval/@name = 'vector?'">
+                <xsl:sequence select="core:makeMALType((), if ($args/value/malval/lvalue/malval[1]/@kind = 'vector') then 'true' else 'false')"/>
+            </xsl:when>
+            <xsl:when test="$func/malval/@name = 'sequential?'">
+                <xsl:sequence select="core:makeMALType((), if (let $kind := $args/value/malval/lvalue/malval[1]/@kind return $kind = 'vector' or $kind = 'list') then 'true' else 'false')"/>
+            </xsl:when>
+            <xsl:when test="$func/malval/@name = 'hash-map'">
+              <xsl:if test="count($args/value/malval/lvalue/malval) mod 2 = 1">
+                <xsl:value-of select="error(QName('MAL', 'Error'), 'Odd number of args to assoc', core:makeMALValue('Odd number of args to assoc', 'string'))"></xsl:value-of>              
+              </xsl:if>
+              <value>
+                <malval kind="hash">
+                  <xsl:sequence select="$args/value/malval/lvalue"/>
+                </malval>
+              </value>
+            </xsl:when>
+            <xsl:when test="$func/malval/@name = 'map?'">
+                <xsl:sequence select="core:makeMALType((), if ($args/value/malval/lvalue/malval[1]/@kind = 'hash') then 'true' else 'false')"/>
+            </xsl:when>
+            <xsl:when test="$func/malval/@name = 'assoc'">
+              <xsl:if test="count($args/value/malval/lvalue/malval) mod 2 = 0">
+                <xsl:value-of select="error(QName('MAL', 'Error'), 'Odd number of args to assoc', core:makeMALValue('Odd number of args to assoc', 'string'))"></xsl:value-of>              
+              </xsl:if>
+              <xsl:variable name="names" select="$args/value/malval/lvalue/malval[(position() gt 1) and (position() mod 2 = 0)]"></xsl:variable>
+              <xsl:variable name="values" select="$args/value/malval/lvalue/malval[(position() gt 2) and (position() mod 2 = 1)]"></xsl:variable>
+              <xsl:sequence select="let $hash := $args/value/malval/lvalue/malval[1] return core:map-dissoc($hash/lvalue/malval, $names) => core:map-assoc($names, $values) => core:makeMALList('hash')"/>
+            </xsl:when>
+            <xsl:when test="$func/malval/@name = 'dissoc'">
+              <xsl:variable name="names" select="$args/value/malval/lvalue/malval[position() gt 1]"></xsl:variable>
+              <xsl:sequence select="let $hash := $args/value/malval/lvalue/malval[1] return core:map-dissoc($hash/lvalue/malval, $names) => core:makeMALList('hash')"/>
+            </xsl:when>
+            <xsl:when test="$func/malval/@name = 'get'">
+              <xsl:variable name="name" select="$args/value/malval/lvalue/malval[2]"></xsl:variable>
+              <value>
+                <xsl:sequence select="let $hash := $args/value/malval/lvalue/malval[1] return (core:map-get($hash/lvalue/malval, $name), core:makeMALValue((), 'nil'))[1]"/>
+              </value>
+            </xsl:when>
+            <xsl:when test="$func/malval/@name = 'contains?'">
+              <xsl:variable name="name" select="$args/value/malval/lvalue/malval[2]"></xsl:variable>
+              <xsl:sequence select="let $hash := $args/value/malval/lvalue/malval[1] return core:makeMALType((), if (empty(core:map-get($hash/lvalue/malval, $name))) then 'false' else 'true')"/>
+            </xsl:when>
+            <xsl:when test="$func/malval/@name = 'keys'">
+              <xsl:sequence select="let $hash := $args/value/malval/lvalue/malval[1] return ($hash/lvalue/malval[position() mod 2 = 1]) => core:makeMALList('list')"/>
+            </xsl:when>
+            <xsl:when test="$func/malval/@name = 'vals'">
+              <xsl:sequence select="let $hash := $args/value/malval/lvalue/malval[1] return ($hash/lvalue/malval[position() mod 2 = 0]) => core:makeMALList('list')"/>
+            </xsl:when>
             <xsl:otherwise>
-              <xsl:message terminate="yes">Invalid function <xsl:sequence select="$func"/> </xsl:message>
+              <xsl:value-of select="error(QName('MAL', 'Error'), concat('Invalid function ', $func), core:makeMALValue(concat('Invalid function ', $func), 'string'))" />
             </xsl:otherwise>
           </xsl:choose>
         </xsl:when>
@@ -245,12 +351,45 @@
       </xsl:choose>
     </xsl:template>
 
+    <xsl:function name="core:makeMALList">
+      <xsl:param name="values" />
+      <xsl:param name="kind" />
+      <value>
+        <malval kind="{$kind}">
+          <lvalue>
+            <xsl:sequence select="$values"/>
+          </lvalue>
+        </malval>
+      </value>
+    </xsl:function>
+
     <xsl:function name="core:makeMALType">
       <xsl:param name="value" />
       <xsl:param name="kind" />
       <value>
         <malval kind="{$kind}" value="{$value}"/>
       </value>
+    </xsl:function>
+
+    <xsl:function name="core:makeMALValue">
+      <xsl:param name="value" />
+      <xsl:param name="kind" />
+      <malval kind="{$kind}" value="{$value}"/>
+    </xsl:function>
+
+    <xsl:function name="core:pr-str">
+      <xsl:param name="value" />
+      <xsl:variable name="ctx">
+        <value>
+          <xsl:sequence select="$value"/>
+        </value>
+      </xsl:variable>
+      <xsl:variable name="res">
+        <xsl:for-each select="$ctx">
+          <xsl:call-template name="malprinter-pr_str"><xsl:with-param name="readably" select="false()"/></xsl:call-template>
+        </xsl:for-each>
+      </xsl:variable>
+      <xsl:sequence select="$res"/>
     </xsl:function>
 
     <xsl:function name="core:all-equal">
@@ -274,6 +413,35 @@
         </xsl:choose>
     </xsl:function>
 
+    <xsl:function name="core:any-equal">
+      <xsl:param name="comps"/>
+      <xsl:param name="value"/>
+      <xsl:choose>
+        <xsl:when test="empty($comps)">
+          <xsl:sequence select="false()"/>
+        </xsl:when>
+        <xsl:when test="core:equal($value, head($comps))">
+          <xsl:sequence select="true()"/>
+        </xsl:when>
+        <xsl:otherwise>
+          <xsl:sequence select="core:any-equal(tail($comps), $value)"/>
+        </xsl:otherwise>
+      </xsl:choose>
+    </xsl:function>
+
+    <xsl:function name="core:map-values-equal">
+      <xsl:param name="ma"/>
+      <xsl:param name="mb"/>
+      <xsl:choose>
+        <xsl:when test="empty($ma)">
+          <xsl:sequence select="true()"/>
+        </xsl:when>
+        <xsl:otherwise>
+          <xsl:sequence select="core:equal($ma[2], core:map-get($mb, $ma[1])) and core:map-values-equal($ma[position() gt 2], $mb)"/>
+        </xsl:otherwise>
+      </xsl:choose>
+    </xsl:function>
+
     <xsl:function name="core:equal">
         <xsl:param name="left"/>
         <xsl:param name="right"/>
@@ -281,6 +449,10 @@
             <!-- equal kinds -->
             <xsl:when test="$left/@kind = $right/@kind">
               <xsl:choose>
+                <xsl:when test="$left/@kind = 'hash' and $right/@kind = 'hash'">
+                  <!-- counts are equal, check if all keys share the same value -->
+                  <xsl:sequence select="core:map-values-equal($left/lvalue/malval, $right/lvalue/malval)"/>
+                </xsl:when>
                 <!-- sequence? -->
                 <xsl:when test="$left/@kind = 'list' or $left/@kind = 'vector' or $left/@kind = 'hash'">
                   <xsl:choose>
@@ -329,5 +501,32 @@
         <xsl:param name="v"/>
 
         <xsl:sequence select="core:equal($l/lvalue/malval[$v], $r/lvalue/malval[$v])"/>
+    </xsl:function>
+
+    <xsl:function name="core:map-assoc">
+        <xsl:param name="map"/>
+        <xsl:param name="names"/>
+        <xsl:param name="values"/>
+
+        <xsl:sequence select="$map"/>
+        <xsl:for-each select="1 to count($names)">
+          <xsl:variable name="idx" select="position()"></xsl:variable>
+          <xsl:sequence select="$names[position() = $idx]"/>
+          <xsl:sequence select="$values[position() = $idx]"/>
+        </xsl:for-each>
+    </xsl:function>
+
+    <xsl:function name="core:map-dissoc">
+        <xsl:param name="map"/>
+        <xsl:param name="names"/>
+
+        <xsl:sequence select="$map[let $pos := position() return not(($pos mod 2 = 1 and core:any-equal($names, .)) or ($pos mod 2 = 0 and core:any-equal($names, ../malval[$pos - 1])))]"/>
+    </xsl:function>
+
+    <xsl:function name="core:map-get">
+        <xsl:param name="map"/>
+        <xsl:param name="name"/>
+
+        <xsl:sequence select="$map[let $pos := position() return $pos mod 2 = 0 and core:equal($name, ../malval[$pos - 1])]"/>
     </xsl:function>
 </xsl:stylesheet>

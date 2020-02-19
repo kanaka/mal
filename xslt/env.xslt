@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<xsl:stylesheet version="3.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:fn="http://www.w3.org/2005/02/xpath-functions"  xmlns:xs="http://www.w3.org/2001/XMLSchema"  xmlns:map="http://www.w3.org/2005/xpath-functions/map" xmlns:env="ENV">
+<xsl:stylesheet version="3.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:fn="http://www.w3.org/2005/02/xpath-functions"  xmlns:xs="http://www.w3.org/2001/XMLSchema"  xmlns:map="http://www.w3.org/2005/xpath-functions/map" xmlns:env="ENV" xmlns:core="CORE">
     <!-- since I can not, for the life of me, figure out how to (de-)serialise maps from/to xml, we're gonna be storing the env as a json string -->
     
     <xsl:function name="env:noReplEnv">
@@ -25,7 +25,10 @@
         <xsl:param name="name"/>
         <xsl:variable name="value" select="let $venv := env:find($env, $name) return if (empty($venv)) then () else $venv('data')($name)"></xsl:variable>
         <xsl:choose>
-            <xsl:when test="empty($value)"><xsl:message terminate="yes">Symbol <xsl:value-of select="$name" /> not found</xsl:message></xsl:when>
+            <xsl:when test="empty($value)">
+                <xsl:variable name="apos" select='"&apos;"'></xsl:variable>
+                <xsl:value-of select="error(QName('MAL', 'Error'), concat($apos, $name, $apos, ' not found'), core:makeMALValue(concat($apos, $name, $apos, ' not found'), 'string'))" />
+            </xsl:when>
             <xsl:otherwise><xsl:sequence select="parse-xml($value)"/></xsl:otherwise>
         </xsl:choose>
     </xsl:function>
