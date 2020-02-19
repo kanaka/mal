@@ -19,6 +19,15 @@
             <malval kind="function" name="&lt;="/>
             <malval kind="function" name="&gt;"/>
             <malval kind="function" name="&gt;="/>
+            <malval kind="function" name="read-string"/>
+            <malval kind="function" name="slurp"/>
+            <malval kind="function" name="env??"/> <!-- defined in the step files -->
+            <malval kind="function" name="eval"/> <!-- defined in the step files -->
+            <malval kind="function" name="atom"/> <!-- defined in the step files -->
+            <malval kind="function" name="atom?"/>
+            <malval kind="function" name="deref"/> <!-- defined in the step files -->
+            <malval kind="function" name="swap!"/> <!-- defined in the step files -->
+            <malval kind="function" name="reset!"/> <!-- defined in the step files -->
         </xsl:sequence>
     </xsl:function>
 
@@ -148,6 +157,22 @@
             </xsl:when>
             <xsl:when test="$func/malval/@name = '&gt;='">
                 <xsl:sequence select="core:makeMALType((), if (number($args/value/malval/lvalue/malval[1]/@value) ge number($args/value/malval/lvalue/malval[2]/@value)) then 'true' else 'false')"/>
+            </xsl:when>
+            <xsl:when test="$func/malval/@name = 'read-string'">
+              <xsl:variable name="read-string-context">
+                <str>
+                  <xsl:value-of select="$args/value/malval/lvalue/malval[1]/@value"></xsl:value-of>
+                </str>
+              </xsl:variable>
+              <xsl:for-each select="$read-string-context">
+                <xsl:call-template name="malreader-read_str"></xsl:call-template>
+              </xsl:for-each>
+            </xsl:when>
+            <xsl:when test="$func/malval/@name = 'slurp'">
+                <xsl:sequence select="core:makeMALType(unparsed-text($args/value/malval/lvalue/malval[1]/@value), 'string')"/>
+            </xsl:when>
+            <xsl:when test="$func/malval/@name = 'atom?'">
+                <xsl:sequence select="core:makeMALType((), if ($args/value/malval/lvalue/malval[1]/@kind = 'atom') then 'true' else 'false')"/>
             </xsl:when>
             <xsl:otherwise>
               <xsl:message terminate="yes">Invalid function <xsl:sequence select="$func"/> </xsl:message>

@@ -74,7 +74,7 @@
                                     <token type="error" text="EOF while reading string or invalid escape in string"></token>
                                 </xsl:when>
                                 <xsl:when test="ends-with($match, '&quot;')">
-                                    <token type="string" text="{fn:process-string(replace($match, '&quot;(.*)&quot;', '$1'))}"> </token>
+                                    <token type="string" text="{fn:process-string(replace($match, '&quot;((.|\s)*)&quot;', '$1'))}"> </token>
                                 </xsl:when>
                                 <xsl:otherwise>
                                     <token type="error" text="EOF while reading string"></token>

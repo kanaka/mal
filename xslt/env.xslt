@@ -2,17 +2,22 @@
 <xsl:stylesheet version="3.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:fn="http://www.w3.org/2005/02/xpath-functions"  xmlns:xs="http://www.w3.org/2001/XMLSchema"  xmlns:map="http://www.w3.org/2005/xpath-functions/map" xmlns:env="ENV">
     <!-- since I can not, for the life of me, figure out how to (de-)serialise maps from/to xml, we're gonna be storing the env as a json string -->
     
+    <xsl:function name="env:noReplEnv">
+        <xsl:param name="env"/>
+        <xsl:sequence select="map {'outer': $env('outer'), 'isReplEnv': false(), 'data': $env('data') }"/>
+    </xsl:function>
+
     <xsl:function name="env:set">
         <xsl:param name="env"/>
         <xsl:param name="name"/>
         <xsl:param name="value"/>
-        <xsl:sequence select="map { 'outer': $env('outer'), 'data': map:put(map:merge($env('data')), $name, $value => serialize(map{})) }"/>
+        <xsl:sequence select="if ($env('isReplEnv')) then map { 'outer': $env('outer'), 'replEnv': env:set($env('replEnv'), $name, $value), 'isReplEnv': true(), 'data': $env('data') } else map { 'outer': $env('outer'), 'replEnv': $env('replEnv'), 'isReplEnv': false(), 'data': map:put($env('data'), $name, $value => serialize(map{})) }"/>
     </xsl:function>
 
     <xsl:function name="env:find">
         <xsl:param name="env"/>
         <xsl:param name="name"/>
-        <xsl:sequence select="if (empty($env)) then () else if (map:contains($env('data'), $name)) then $env else env:find($env('outer'), $name)"/>
+        <xsl:sequence select="if (empty($env)) then () else if (map:contains($env('data'), $name)) then $env else (env:find($env('outer'), $name), env:find($env('replEnv'), $name))[1]"/>
     </xsl:function>
 
     <xsl:function name="env:get">
@@ -30,11 +35,28 @@
         <xsl:variable name="minus"><malval kind="function" name="-"></malval></xsl:variable>
         <xsl:variable name="mult"><malval kind="function" name="*"></malval></xsl:variable>
         <xsl:variable name="div"><malval kind="function" name="/"></malval></xsl:variable>
-        <xsl:sequence select="env:serialise(env:set(env:set(env:set(env:set(map{'outer':(), 'data':map{}}, '+', $plus), '-', $minus), '*', $mult), '/', $div))"/>
+        <xsl:sequence select="env:serialise(env:set(env:set(env:set(env:set(map{'outer':(), 'data':map{}, 'isReplEnv': false()}, '+', $plus), '-', $minus), '*', $mult), '/', $div))"/>
+    </xsl:function>
+
+    <xsl:function name="env:swap-replEnv">
+        <xsl:param name="env"></xsl:param>
+        <xsl:param name="toRepl"></xsl:param>
+        <xsl:sequence select="if (not(empty($toRepl))) then map:put($env, 'replEnv', $toRepl) else $env"/>
+    </xsl:function>
+
+    <xsl:function name="env:replEnv">
+        <xsl:param name="env"/>
+        <xsl:sequence select="$env('replEnv')"/>
+    </xsl:function>
+
+    <xsl:function name="env:toReplEnv">
+        <xsl:param name="env"/>
+        <xsl:variable name='renv' select="map{'outer':(), 'data': map{}, 'replEnv': map{'data':env:dump($env), 'outer':(), 'isReplEnv': false()}, 'isReplEnv': true()}"/>
+        <xsl:sequence select="$renv"/>
     </xsl:function>
 
     <xsl:function name="env:empty">
-        <xsl:sequence select="map{'outer':(), 'data':map{}}"/>
+        <xsl:sequence select="map{'outer':(), 'data':map{}, 'isReplEnv': false()}"/>
     </xsl:function>
 
     <xsl:function name="env:serialise">
@@ -44,7 +66,7 @@
 
     <xsl:function name="env:close">
         <xsl:param name="env"/>
-        <xsl:sequence select="map {'outer': $env, 'data': map{}}"/>
+        <xsl:sequence select="map{'outer': env:noReplEnv($env), 'data': map{}, 'isReplEnv': false(), 'replEnv': $env('replEnv')}"/>
     </xsl:function>
 
     <xsl:function name="env:close-with-binds">
@@ -52,7 +74,7 @@
         <xsl:param name="binds" />
         <xsl:param name="exprs" />
 
-        <xsl:variable name="new-env" select="map {'outer': $env, 'data': map{}}"/>
+        <xsl:variable name="new-env" select="map {'outer': env:noReplEnv($env), 'replEnv': $env('replEnv'), 'data': map{}, 'isReplEnv': false()}"/>
         <xsl:sequence select="$new-env => env:bind-all($binds, $exprs)"/>
     </xsl:function>
     
@@ -67,14 +89,15 @@
 
         <xsl:variable name="env-items" select="env:dump($env)"></xsl:variable>
         <xsl:variable name="second-items" select="env:dump($second)"></xsl:variable>
-        <xsl:variable name="new-env" select="map {'outer': (), 'data': map:merge(($env-items, $second-items))}"></xsl:variable>
+        <xsl:variable name="new-env" select="if (empty($env)) then $second else if (empty($second)) then $env else map {'outer': $env('outer'), 'data': map:merge(($env-items, $second-items)), 'isReplEnv': false(), 'replEnv': env:merge($second('replEnv'), $env('replEnv'))}"></xsl:variable>
         <xsl:sequence select="$new-env"/> 
     </xsl:function>
 
     <xsl:function name="env:hier">
         <xsl:param name="env"/>
         <xsl:param name="over"/>
-        <xsl:sequence select="map{'outer': env:merge($over, $env), 'data': map{}}"/>
+        <xsl:variable name="newEnv" select="env:merge($over, $env)"></xsl:variable>
+        <xsl:sequence select="map{'outer': env:noReplEnv($newEnv), 'data': map{}, 'isReplEnv': false(), 'replEnv': $newEnv('replEnv')}"/>
     </xsl:function>
 
     <xsl:function name="env:bind-all">

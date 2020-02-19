@@ -6,7 +6,8 @@
         <xsl:param name="readably" as="xs:boolean" />
 
         <xsl:variable name="value">
-            <xsl:copy-of select="value/malval" />
+            <xsl:sequence select="value/malval" />
+            <xsl:sequence select="atoms"/>
         </xsl:variable> 
         <xsl:for-each select="$value">
             <xsl:choose>
@@ -102,6 +103,22 @@
                     <xsl:variable name="gt">&gt;</xsl:variable>
                     <xsl:variable name="lt">&lt;</xsl:variable>
                     <xsl:value-of select="concat('#', $lt, 'function', $gt)" />
+                </value>
+            </xsl:when>
+            <xsl:when test="malval/@kind = 'atom'">
+                <xsl:variable name="val" select="malval"></xsl:variable>
+                <xsl:variable name="inner">
+                  <xsl:variable name="ctx">
+                    <value>
+                        <xsl:sequence select="atoms/atom[@identity = $val/@value]/malval"/>
+                    </value>
+                  </xsl:variable>
+                  <xsl:for-each select="$ctx">
+                    <xsl:call-template name="malprinter-pr_str"><xsl:with-param name="readably" select="$readably"/></xsl:call-template>
+                  </xsl:for-each>
+                </xsl:variable>
+                <value>
+                    <xsl:value-of select="concat('(atom ', $inner/value, ')')" />
                 </value>
             </xsl:when>
             <xsl:otherwise>
