@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Step 6: File -->
+<!-- Step 7: Quoting -->
 <!-- input document must be in the following format -->
 <!--
 <mal>
