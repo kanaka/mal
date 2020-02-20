@@ -2,68 +2,68 @@
 <xsl:stylesheet version="3.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:fn="http://www.w3.org/2005/02/xpath-functions" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:core="CORE" exclude-result-prefixes="core fn xsl xs">
     <xsl:function name="core:ns">
         <xsl:sequence>
-            <malval kind="function" name="+" />
-            <malval kind="function" name="-" />
-            <malval kind="function" name="*" />
-            <malval kind="function" name="/" />
-            <malval kind="function" name="prn"/>
-            <malval kind="function" name="pr-str"/>
-            <malval kind="function" name="str"/>
-            <malval kind="function" name="println"/>
-            <malval kind="function" name="list"/>
-            <malval kind="function" name="list?"/>
-            <malval kind="function" name="empty?"/>
-            <malval kind="function" name="count"/>
-            <malval kind="function" name="="/>
-            <malval kind="function" name="&lt;"/>
-            <malval kind="function" name="&lt;="/>
-            <malval kind="function" name="&gt;"/>
-            <malval kind="function" name="&gt;="/>
-            <malval kind="function" name="read-string"/>
-            <malval kind="function" name="slurp"/>
-            <malval kind="function" name="eval"/> <!-- defined in the step files -->
-            <malval kind="function" name="atom"/> <!-- defined in the step files -->
-            <malval kind="function" name="atom?"/>
-            <malval kind="function" name="deref"/> <!-- defined in the step files -->
-            <malval kind="function" name="swap!"/> <!-- defined in the step files -->
-            <malval kind="function" name="reset!"/> <!-- defined in the step files -->
-            <malval kind="function" name="cons"/>
-            <malval kind="function" name="concat"/>
-            <malval kind="function" name="nth"/>
-            <malval kind="function" name="first"/>
-            <malval kind="function" name="rest"/>
-            <malval kind="function" name="throw"/>
-            <malval kind="function" name="apply"/> <!-- defined in the step files -->
-            <malval kind="function" name="map"/> <!-- defined in the step files -->
-            <malval kind="function" name="nil?"/>
-            <malval kind="function" name="true?"/>
-            <malval kind="function" name="false?"/>
-            <malval kind="function" name="symbol?"/>
-            <malval kind="function" name="symbol"/>
-            <malval kind="function" name="keyword"/>
-            <malval kind="function" name="keyword?"/>
-            <malval kind="function" name="vector"/>
-            <malval kind="function" name="vector?"/>
-            <malval kind="function" name="sequential?"/>
-            <malval kind="function" name="hash-map"/>
-            <malval kind="function" name="map?"/>
-            <malval kind="function" name="assoc"/>
-            <malval kind="function" name="dissoc"/>
-            <malval kind="function" name="get"/>
-            <malval kind="function" name="contains?"/>
-            <malval kind="function" name="keys"/>
-            <malval kind="function" name="vals"/>
-            <malval kind="function" name="readline"/> <!-- defined in step file -->
-            <malval kind="function" name="meta"/>
-            <malval kind="function" name="with-meta"/>
-            <malval kind="function" name="time-ms"/>
-            <malval kind="function" name="conj"/>
-            <malval kind="function" name="string?"/>
-            <malval kind="function" name="number?"/>
-            <malval kind="function" name="fn?"/>
-            <malval kind="function" name="macro?"/>
-            <malval kind="function" name="seq"/>
-            <malval kind="function" name="xpath-eval"/> <!-- evaluate xpath, no context node | requires Saxon PE/EE [paywalls piss me off] -->
+            <malval kind="function" name="+" ><is_macro>false</is_macro></malval>
+            <malval kind="function" name="-" ><is_macro>false</is_macro></malval>
+            <malval kind="function" name="*" ><is_macro>false</is_macro></malval>
+            <malval kind="function" name="/" ><is_macro>false</is_macro></malval>
+            <malval kind="function" name="prn"><is_macro>false</is_macro></malval>
+            <malval kind="function" name="pr-str"><is_macro>false</is_macro></malval>
+            <malval kind="function" name="str"><is_macro>false</is_macro></malval>
+            <malval kind="function" name="println"><is_macro>false</is_macro></malval>
+            <malval kind="function" name="list"><is_macro>false</is_macro></malval>
+            <malval kind="function" name="list?"><is_macro>false</is_macro></malval>
+            <malval kind="function" name="empty?"><is_macro>false</is_macro></malval>
+            <malval kind="function" name="count"><is_macro>false</is_macro></malval>
+            <malval kind="function" name="="><is_macro>false</is_macro></malval>
+            <malval kind="function" name="&lt;"><is_macro>false</is_macro></malval>
+            <malval kind="function" name="&lt;="><is_macro>false</is_macro></malval>
+            <malval kind="function" name="&gt;"><is_macro>false</is_macro></malval>
+            <malval kind="function" name="&gt;="><is_macro>false</is_macro></malval>
+            <malval kind="function" name="read-string"><is_macro>false</is_macro></malval>
+            <malval kind="function" name="slurp"><is_macro>false</is_macro></malval>
+            <malval kind="function" name="eval"><is_macro>false</is_macro></malval> <!-- defined in the step files -->
+            <malval kind="function" name="atom"><is_macro>false</is_macro></malval> <!-- defined in the step files -->
+            <malval kind="function" name="atom?"><is_macro>false</is_macro></malval>
+            <malval kind="function" name="deref"><is_macro>false</is_macro></malval> <!-- defined in the step files -->
+            <malval kind="function" name="swap!"><is_macro>false</is_macro></malval> <!-- defined in the step files -->
+            <malval kind="function" name="reset!"><is_macro>false</is_macro></malval> <!-- defined in the step files -->
+            <malval kind="function" name="cons"><is_macro>false</is_macro></malval>
+            <malval kind="function" name="concat"><is_macro>false</is_macro></malval>
+            <malval kind="function" name="nth"><is_macro>false</is_macro></malval>
+            <malval kind="function" name="first"><is_macro>false</is_macro></malval>
+            <malval kind="function" name="rest"><is_macro>false</is_macro></malval>
+            <malval kind="function" name="throw"><is_macro>false</is_macro></malval>
+            <malval kind="function" name="apply"><is_macro>false</is_macro></malval> <!-- defined in the step files -->
+            <malval kind="function" name="map"><is_macro>false</is_macro></malval> <!-- defined in the step files -->
+            <malval kind="function" name="nil?"><is_macro>false</is_macro></malval>
+            <malval kind="function" name="true?"><is_macro>false</is_macro></malval>
+            <malval kind="function" name="false?"><is_macro>false</is_macro></malval>
+            <malval kind="function" name="symbol?"><is_macro>false</is_macro></malval>
+            <malval kind="function" name="symbol"><is_macro>false</is_macro></malval>
+            <malval kind="function" name="keyword"><is_macro>false</is_macro></malval>
+            <malval kind="function" name="keyword?"><is_macro>false</is_macro></malval>
+            <malval kind="function" name="vector"><is_macro>false</is_macro></malval>
+            <malval kind="function" name="vector?"><is_macro>false</is_macro></malval>
+            <malval kind="function" name="sequential?"><is_macro>false</is_macro></malval>
+            <malval kind="function" name="hash-map"><is_macro>false</is_macro></malval>
+            <malval kind="function" name="map?"><is_macro>false</is_macro></malval>
+            <malval kind="function" name="assoc"><is_macro>false</is_macro></malval>
+            <malval kind="function" name="dissoc"><is_macro>false</is_macro></malval>
+            <malval kind="function" name="get"><is_macro>false</is_macro></malval>
+            <malval kind="function" name="contains?"><is_macro>false</is_macro></malval>
+            <malval kind="function" name="keys"><is_macro>false</is_macro></malval>
+            <malval kind="function" name="vals"><is_macro>false</is_macro></malval>
+            <malval kind="function" name="readline"><is_macro>false</is_macro></malval> <!-- defined in step file -->
+            <malval kind="function" name="meta"><is_macro>false</is_macro></malval>
+            <malval kind="function" name="with-meta"><is_macro>false</is_macro></malval>
+            <malval kind="function" name="time-ms"><is_macro>false</is_macro></malval>
+            <malval kind="function" name="conj"><is_macro>false</is_macro></malval>
+            <malval kind="function" name="string?"><is_macro>false</is_macro></malval>
+            <malval kind="function" name="number?"><is_macro>false</is_macro></malval>
+            <malval kind="function" name="fn?"><is_macro>false</is_macro></malval>
+            <malval kind="function" name="macro?"><is_macro>false</is_macro></malval>
+            <malval kind="function" name="seq"><is_macro>false</is_macro></malval>
+            <malval kind="function" name="xpath-eval"><is_macro>false</is_macro></malval> <!-- evaluate xpath, no context node | requires Saxon PE/EE [paywalls piss me off] -->
         </xsl:sequence>
     </xsl:function>
 
@@ -403,7 +403,7 @@
                 <xsl:sequence select="core:makeMALType((), if ($args/value/malval/lvalue/malval[1]/@kind = 'number') then 'true' else 'false')"/>
             </xsl:when>
             <xsl:when test="$func/malval/@name = 'fn?'" >
-                <xsl:sequence select="core:makeMALType((), if (let $f := $args/value/malval/lvalue/malval[1] return ($f/@kind = 'userfunction' or $f/@kind = 'function') and $f/is_macro/text() = 'false') then 'true' else 'false')"/>
+                <xsl:sequence select="core:makeMALType((), if (let $f := $args/value/malval/lvalue/malval[1] return ($f/@kind = 'userfunction' or $f/@kind = 'function') and $f/is_macro/text() != 'true') then 'true' else 'false')"/>
             </xsl:when>
             <xsl:when test="$func/malval/@name = 'macro?'" >
                 <xsl:sequence select="core:makeMALType((), if (let $f := $args/value/malval/lvalue/malval[1] return ($f/@kind = 'userfunction' or $f/@kind = 'function') and $f/is_macro/text() = 'true') then 'true' else 'false')"/>
