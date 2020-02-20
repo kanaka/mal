@@ -446,7 +446,12 @@
               </xsl:choose>
             </xsl:when>
             <xsl:when test="$func/malval/@name = 'xpath-eval'" >
-
+              <xsl:message>
+                <request kind="xpath-eval" value="{$args/value/malval/lvalue/malval[1]/@value}" context="{$args/value/malval/lvalue/malval[2] => serialize()}"/>
+              </xsl:message>
+              <value>
+                <xsl:sequence select="document('xsl_input-string')"/>
+              </value>
             </xsl:when>
             <xsl:otherwise>
               <xsl:value-of select="error(QName('MAL', 'Error'), concat('Invalid function ', $func), core:makeMALValue(concat('Invalid function ', $func), 'string'))" />

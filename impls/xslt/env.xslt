@@ -27,7 +27,7 @@
         <xsl:choose>
             <xsl:when test="empty($value)">
                 <xsl:variable name="apos" select='"&apos;"'></xsl:variable>
-                <xsl:value-of select="error(QName('MAL', 'Error'), concat($apos, $name, $apos, ' not found'), core:makeMALValue(concat($apos, $name, $apos, ' not found'), 'string'))" />
+                <xsl:value-of select="error(QName('MAL', 'Error'), concat($apos, $name, $apos, ' not found'), fn:makeMALValue(concat($apos, $name, $apos, ' not found'), 'string'))" />
             </xsl:when>
             <xsl:otherwise><xsl:sequence select="parse-xml($value)"/></xsl:otherwise>
         </xsl:choose>
@@ -187,6 +187,12 @@
     <xsl:function name="env:deserialise">
         <xsl:param name="env"/>
         <xsl:sequence select="parse-json($env)"/>
+    </xsl:function>
+
+    <xsl:function name="fn:makeMALValue">
+        <xsl:param name="value"/>
+        <xsl:param name="kind"/>
+        <malval kind="{$kind}" value="{$value}"/>
     </xsl:function>
 
 </xsl:stylesheet>

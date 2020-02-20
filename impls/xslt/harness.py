@@ -56,6 +56,21 @@ def serve_one_request():
                     with open('xsl_input-string', 'w') as fx:
                         fx.write(str(int(x)))
                 # stdout.write('\n')
+                elif req.attrib['kind'] == 'xpath-eval':
+                    xpath = req.attrib['value']
+                    with open('xsl-eval.xslt', 'w') as f:
+                        f.write(f'<?xml version="1.0" encoding="UTF-8"?><xsl:stylesheet version="3.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:fn="http://www.w3.org/2005/02/xpath-functions"  xmlns:xs="http://www.w3.org/2001/XMLSchema"  xmlns:map="http://www.w3.org/2005/xpath-functions/map" xmlns:env="ENV" xmlns:core="CORE" exclude-result-prefixes="env core xs xsl map fn"><xsl:output omit-xml-declaration="yes"/><xsl:template match="/"><xsl:sequence select="{xpath}" /></xsl:template></xsl:stylesheet>')
+                    with open('xsl-null.xml', 'w') as f:
+                        f.write(req.attrib['context'])
+
+                    if os.system(f'saxon -xsl:xsl-eval.xslt -s:xsl-null.xml > xsl-eval_output.xml'):
+                        x = ''
+                    else:
+                        with open('xsl-eval_output.xml', 'r') as f:
+                            x = f.read()
+                    with open('xsl_input-string', 'w') as fx:
+                        fx.write(x)
+                # stdout.write('\n')
         except Exception as e:
             # if str(e) != 'no element found: line 1, column 0':
             #     f.seek(0)

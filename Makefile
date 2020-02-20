@@ -135,6 +135,7 @@ step5_EXCLUDES += plpgsql     # too slow for 10,000
 step5_EXCLUDES += plsql       # too slow for 10,000
 step5_EXCLUDES += powershell  # too slow for 10,000
 step5_EXCLUDES += $(if $(filter cpp,$(haxe_MODE)),haxe,) # cpp finishes 10,000, segfaults at 100,000
+step5_EXCLUDES += xslt		  # iteration cannot be expressed
 
 dist_EXCLUDES += mal
 # TODO: still need to implement dist
@@ -157,6 +158,7 @@ mal_TEST_OPTS = --start-timeout 60 --test-timeout 180
 else ifeq ($(MAL_IMPL),powershell)
 mal_TEST_OPTS = --start-timeout 60 --test-timeout 180
 endif
+xslt_TEST_OPTS = --test-timeout 120
 
 
 #
