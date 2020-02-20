@@ -94,6 +94,7 @@
 
     <xsl:template name="eval_ast">
       <xsl:param name="env" />
+      <xsl:param name="atoms" />
       <xsl:choose>
         <xsl:when test="value/malval/@kind = 'symbol'">
           <xsl:variable name="val">
@@ -112,6 +113,7 @@
                     <value>
                       <xsl:sequence select="."/>
                     </value>
+                    <xsl:sequence select="$atoms"/>
                   </xsl:variable>
                   <xsl:variable name="xctx">
                     <xsl:for-each select="$ctx">
@@ -136,6 +138,7 @@
                     <value>
                       <xsl:sequence select="."/>
                     </value>
+                    <xsl:sequence select="$atoms"/>
                   </xsl:variable>
                   <xsl:variable name="xctx">
                     <xsl:for-each select="$ctx">
@@ -160,6 +163,7 @@
                     <value>
                       <xsl:sequence select="."/>
                     </value>
+                    <xsl:sequence select="$atoms"/>
                   </xsl:variable>
                   <xsl:variable name="xctx">
                     <xsl:for-each select="$ctx">
@@ -395,7 +399,7 @@
                   </xsl:when>
                   <xsl:otherwise>
                     <xsl:variable name="new_list">
-                      <xsl:call-template name="eval_ast"><xsl:with-param name="env" select="$env"/></xsl:call-template>
+                      <xsl:call-template name="eval_ast"><xsl:with-param name="atoms" select="$atoms"/><xsl:with-param name="env" select="$env"/></xsl:call-template>
                     </xsl:variable>
                     <xsl:variable name="func">
                       <xsl:for-each select="$new_list">
@@ -533,7 +537,7 @@
             </xsl:choose>
           </xsl:when>
           <xsl:otherwise>
-            <xsl:call-template name="eval_ast"><xsl:with-param name="env" select="$env"/></xsl:call-template>
+            <xsl:call-template name="eval_ast"><xsl:with-param name="atoms" select="$atoms"/><xsl:with-param name="env" select="$env"/></xsl:call-template>
             <env data="{env:serialise($env)}" />
             <xsl:sequence select="$atoms"/>
           </xsl:otherwise>

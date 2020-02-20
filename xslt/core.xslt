@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<xsl:stylesheet version="3.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:fn="http://www.w3.org/2005/02/xpath-functions" xmlns:core="CORE" exclude-result-prefixes="core fn xsl">
+<xsl:stylesheet version="3.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:fn="http://www.w3.org/2005/02/xpath-functions" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:core="CORE" exclude-result-prefixes="core fn xsl xs">
     <xsl:function name="core:ns">
         <xsl:sequence>
             <malval kind="function" name="+" />
@@ -53,7 +53,17 @@
             <malval kind="function" name="contains?"/>
             <malval kind="function" name="keys"/>
             <malval kind="function" name="vals"/>
-            <malval kind="function" name="vals"/>
+            <malval kind="function" name="readline"/> <!-- defined in step file -->
+            <malval kind="function" name="meta"/>
+            <malval kind="function" name="with-meta"/>
+            <malval kind="function" name="time-ms"/>
+            <malval kind="function" name="conj"/>
+            <malval kind="function" name="string?"/>
+            <malval kind="function" name="number?"/>
+            <malval kind="function" name="fn?"/>
+            <malval kind="function" name="macro?"/>
+            <malval kind="function" name="seq"/>
+            <malval kind="function" name="xpath-eval"/> <!-- evaluate xpath, no context node | requires Saxon PE/EE [paywalls piss me off] -->
         </xsl:sequence>
     </xsl:function>
 
@@ -303,7 +313,7 @@
             </xsl:when>
             <xsl:when test="$func/malval/@name = 'hash-map'">
               <xsl:if test="count($args/value/malval/lvalue/malval) mod 2 = 1">
-                <xsl:value-of select="error(QName('MAL', 'Error'), 'Odd number of args to assoc', core:makeMALValue('Odd number of args to assoc', 'string'))"></xsl:value-of>              
+                <xsl:value-of select="error(QName('MAL', 'Error'), 'Odd number of args to hash-map', core:makeMALValue('Odd number of args to assoc', 'string'))"></xsl:value-of>              
               </xsl:if>
               <value>
                 <malval kind="hash">
@@ -341,6 +351,102 @@
             </xsl:when>
             <xsl:when test="$func/malval/@name = 'vals'">
               <xsl:sequence select="let $hash := $args/value/malval/lvalue/malval[1] return ($hash/lvalue/malval[position() mod 2 = 0]) => core:makeMALList('list')"/>
+            </xsl:when>
+            <xsl:when test="$func/malval/@name = 'meta'" >
+              <value>
+                <xsl:sequence select="($args/value/malval/lvalue/malval[1]/meta/malval, core:makeMALValue((), 'nil'))[1]"/>
+              </value>
+            </xsl:when>
+            <xsl:when test="$func/malval/@name = 'with-meta'" >
+              <value>
+                <malval>
+                  <xsl:sequence select="$args/value/malval/lvalue/malval[1]/(*[name() != 'meta']|@*)" />
+                  <meta>
+                    <xsl:sequence select="$args/value/malval/lvalue/malval[2]"/>
+                  </meta>
+                </malval>
+              </value>
+            </xsl:when>
+            <xsl:when test="$func/malval/@name = 'time-ms'" >
+              <xsl:sequence select="core:makeMALType(core:mstime(), 'number')"/>
+            </xsl:when>
+            <xsl:when test="$func/malval/@name = 'conj'" >
+              <xsl:variable name="xargs" select="$args/value/malval/lvalue/malval[position() > 1]"></xsl:variable>
+              <xsl:variable name="coll">
+                <xsl:sequence select="$args/value/malval/lvalue/malval[1]"/>
+              </xsl:variable>
+              <value>
+                <xsl:choose>
+                  <xsl:when test="$coll/malval/@kind = 'list'">
+                    <malval kind="list">
+                      <lvalue>
+                        <xsl:sequence select="reverse($xargs)"/>
+                        <xsl:sequence select="$coll/malval/lvalue/malval"/>
+                      </lvalue>
+                    </malval>
+                  </xsl:when>
+                  <xsl:otherwise>
+                    <malval kind="vector">
+                      <lvalue>
+                        <xsl:sequence select="$coll/malval/lvalue/malval"/>
+                        <xsl:sequence select="$xargs"/>
+                      </lvalue>
+                    </malval>
+                  </xsl:otherwise>
+                </xsl:choose>
+              </value>
+            </xsl:when>
+            <xsl:when test="$func/malval/@name = 'string?'" >
+                <xsl:sequence select="core:makeMALType((), if ($args/value/malval/lvalue/malval[1]/@kind = 'string') then 'true' else 'false')"/>
+            </xsl:when>
+            <xsl:when test="$func/malval/@name = 'number?'" >
+                <xsl:sequence select="core:makeMALType((), if ($args/value/malval/lvalue/malval[1]/@kind = 'number') then 'true' else 'false')"/>
+            </xsl:when>
+            <xsl:when test="$func/malval/@name = 'fn?'" >
+                <xsl:sequence select="core:makeMALType((), if (let $f := $args/value/malval/lvalue/malval[1] return ($f/@kind = 'userfunction' or $f/@kind = 'function') and $f/is_macro/text() = 'false') then 'true' else 'false')"/>
+            </xsl:when>
+            <xsl:when test="$func/malval/@name = 'macro?'" >
+                <xsl:sequence select="core:makeMALType((), if (let $f := $args/value/malval/lvalue/malval[1] return ($f/@kind = 'userfunction' or $f/@kind = 'function') and $f/is_macro/text() = 'true') then 'true' else 'false')"/>
+            </xsl:when>
+            <xsl:when test="$func/malval/@name = 'seq'" >
+              <xsl:variable name="arg" select="$args/value/malval/lvalue/malval[1]"></xsl:variable>
+              <xsl:choose>
+                <xsl:when test="$arg/@kind = 'string'">
+                  <xsl:choose>
+                    <xsl:when test="string-length($arg/@value) = 0">
+                      <xsl:sequence select="core:makeMALType((), 'nil')"/>
+                    </xsl:when>
+                    <xsl:otherwise>
+                      <value>
+                        <malval kind="list">
+                          <lvalue>
+                            <xsl:for-each select="string-to-codepoints($arg/@value)">
+                              <xsl:sequence select="core:makeMALValue(codepoints-to-string(.), 'string')" />
+                            </xsl:for-each>
+                          </lvalue>
+                        </malval>
+                      </value>
+                    </xsl:otherwise>
+                  </xsl:choose>
+                </xsl:when>
+                <xsl:otherwise>
+                  <xsl:choose>
+                    <xsl:when test="count($arg/lvalue/malval) = 0">
+                      <xsl:sequence select="core:makeMALType((), 'nil')"/>
+                    </xsl:when>
+                    <xsl:otherwise>
+                      <value>
+                        <malval kind="list">
+                          <xsl:sequence select="$arg/lvalue"/>
+                        </malval>
+                      </value>
+                    </xsl:otherwise>
+                  </xsl:choose>
+                </xsl:otherwise>
+              </xsl:choose>
+            </xsl:when>
+            <xsl:when test="$func/malval/@name = 'xpath-eval'" >
+
             </xsl:when>
             <xsl:otherwise>
               <xsl:value-of select="error(QName('MAL', 'Error'), concat('Invalid function ', $func), core:makeMALValue(concat('Invalid function ', $func), 'string'))" />
@@ -386,7 +492,7 @@
       </xsl:variable>
       <xsl:variable name="res">
         <xsl:for-each select="$ctx">
-          <xsl:call-template name="malprinter-pr_str"><xsl:with-param name="readably" select="false()"/></xsl:call-template>
+          <xsl:call-template name="malprinter-pr_str"><xsl:with-param name="readably" select="true()"/></xsl:call-template>
         </xsl:for-each>
       </xsl:variable>
       <xsl:sequence select="$res"/>
@@ -528,5 +634,9 @@
         <xsl:param name="name"/>
 
         <xsl:sequence select="$map[let $pos := position() return $pos mod 2 = 0 and core:equal($name, ../malval[$pos - 1])]"/>
+    </xsl:function>
+
+    <xsl:function name="core:mstime">
+      <xsl:sequence select="(current-dateTime() - xs:dateTime('1970-01-01T00:00:00-00:00')) div xs:dayTimeDuration('PT0.001S')"/>
     </xsl:function>
 </xsl:stylesheet>
