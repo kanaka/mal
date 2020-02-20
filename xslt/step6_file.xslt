@@ -445,7 +445,7 @@
                               <xsl:sequence select="$value/atoms"/>
                             </xsl:when>
                             <xsl:when test="$func/malval/@name = 'atom'"> <!-- needs access to atoms -->
-                              <xsl:variable name="atom-ident" select="current-dateTime()"></xsl:variable>
+                              <xsl:variable name="atom-ident" select="count($atoms/atom)"></xsl:variable>
                               <value>
                                 <malval kind="atom" value="{$atom-ident}"/>
                               </value>

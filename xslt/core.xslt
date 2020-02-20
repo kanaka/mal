@@ -106,7 +106,7 @@
                   </xsl:for-each>
                 </xsl:variable>
                 <xsl:message>
-                    <xsl:sequence select="string-join($sargs/str, ' ')"/>
+                  <request kind="display" value="{string-join($sargs/str, ' ')}" />
                 </xsl:message>
                 <xsl:sequence select="core:makeMALType((), 'nil')"/>
             </xsl:when>
@@ -163,7 +163,7 @@
                   </xsl:for-each>
                 </xsl:variable>
                 <xsl:message>
-                    <xsl:sequence select="string-join($sargs/str, ' ')"/>
+                  <request kind="display" value="{string-join($sargs/str, ' ')}" />
                 </xsl:message>
                 <xsl:sequence select="core:makeMALType((), 'nil')"/>
             </xsl:when>
@@ -313,7 +313,7 @@
             </xsl:when>
             <xsl:when test="$func/malval/@name = 'hash-map'">
               <xsl:if test="count($args/value/malval/lvalue/malval) mod 2 = 1">
-                <xsl:value-of select="error(QName('MAL', 'Error'), 'Odd number of args to hash-map', core:makeMALValue('Odd number of args to assoc', 'string'))"></xsl:value-of>              
+                <xsl:value-of select="error(QName('MAL', 'Error'), 'Odd number of args to hash-map', core:makeMALValue('Odd number of args to hash-map', 'string'))"></xsl:value-of>              
               </xsl:if>
               <value>
                 <malval kind="hash">
@@ -367,7 +367,7 @@
                 </malval>
               </value>
             </xsl:when>
-            <xsl:when test="$func/malval/@name = 'time-ms'" >
+            <xsl:when test="$func/malval/@name = 'time-ms'" > <!-- current-dateTime() does not change while transforming :( -->
               <xsl:sequence select="core:makeMALType(core:mstime(), 'number')"/>
             </xsl:when>
             <xsl:when test="$func/malval/@name = 'conj'" >
@@ -637,6 +637,9 @@
     </xsl:function>
 
     <xsl:function name="core:mstime">
-      <xsl:sequence select="(current-dateTime() - xs:dateTime('1970-01-01T00:00:00-00:00')) div xs:dayTimeDuration('PT0.001S')"/>
+      <xsl:message>
+        <request kind="time" value="now"/>
+      </xsl:message>
+      <xsl:sequence select="unparsed-text('xsl_input-string')"/>
     </xsl:function>
 </xsl:stylesheet>
