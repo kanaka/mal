@@ -81,7 +81,7 @@ def transform(do_print=True):
     global tree
 
     tree.write('xslt_input.xml')
-    if os.system(f'saxon -xsl:"{fname}" -s:xslt_input.xml > xslt_output.xml 2> xsl_error.xml'):
+    if os.system(f'saxon -xsl:"{fname}" -s:xslt_input.xml -TP:perf.html > xslt_output.xml 2> xsl_error.xml'):
         with open('xsl_error.xml', 'r') as f:
             lines = f.readlines()
             if len(lines):

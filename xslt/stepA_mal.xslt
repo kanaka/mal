@@ -6,7 +6,6 @@
     <stdin>...stdin text...</stdin>
     <stdout> ... ignored, omitted ... </stdout>
     <state> contains env and atoms </state>
-    <response> result of previous request from harness </response>
 </mal>
 -->
 <xsl:stylesheet
