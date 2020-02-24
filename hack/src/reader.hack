@@ -177,7 +177,7 @@ function atom_node(string $token, Reader $token_reader): Atom {
   } else if (Str\starts_with($token, ':')) {
     return new Keyword(Str\slice($token, 1));
   } else if (Str\starts_with($token, '"')) {
-    if (!Str\ends_with($token, '"')) {
+    if (!Regex\matches($token, re"/^\"(?:\\\\.|[^\\\\\"])*\"$/")) {
       throw $token_reader->exception('Unexpected end of input, expected `"`');
     }
     return new StringAtom(read_string($token));

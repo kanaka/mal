@@ -8,8 +8,7 @@ type EvalResult = (bool, Form, Environment);
 
 function evaluate(Form $ast, Environment $environment): Form {
   while (true) {
-    $eval_result = apply($ast, $environment) ??
-      define($ast, $environment) ??
+    $eval_result = define($ast, $environment) ??
       define_macro($ast, $environment) ??
       let($ast, $environment) ??
       do_all($ast, $environment) ??
@@ -110,44 +109,6 @@ function macroexpand(Form $ast, Environment $environment): ?EvalResult {
   }
   list($_, $expanded, $environment) = $result;
   return eval_done($expanded, $environment);
-}
-
-function apply(Form $ast, Environment $environment): ?EvalResult {
-  $macro_name = 'apply';
-  $arguments = arguments_if_macro_call($ast, $macro_name);
-  if ($arguments is null) {
-    return null;
-  }
-  $evaluated = Vec\concat(
-    vec[$arguments[0]],
-    evaluate_all(Vec\drop($arguments, 1), $environment),
-  );
-
-  $function = idx($evaluated, 1);
-  if (!$function is FunctionLike) {
-    throw new TypedArgumentException(
-      $macro_name,
-      1,
-      FunctionLike::class,
-      $function,
-    );
-  }
-  $last_index = C\count($evaluated) - 1;
-  $list_argument = idx($evaluated, $last_index);
-  if (!$list_argument is ListLikeForm) {
-    throw new TypedArgumentException(
-      $macro_name,
-      $last_index,
-      ListLikeForm::class,
-      $list_argument,
-    );
-  }
-  $prepend_arguments = Vec\slice($evaluated, 1, C\count($evaluated) - 2);
-  return function_call_impl(
-    $function,
-    Vec\concat($prepend_arguments, $list_argument->children),
-    $environment,
-  );
 }
 
 function function_call_impl(

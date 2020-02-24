@@ -30,11 +30,13 @@ function ns(Environment $environment): Environment {
     equals_function(),
     read_string_function(),
     slurp(),
+    readline_function(),
     eval_function($environment),
     atom_function(),
     is_atom_function(),
     deref_function(),
     reset_function(),
+    apply_function(),
     cons_function(),
     concat_function(),
     nth_function(),
@@ -490,6 +492,30 @@ function slurp(): (Symbol, FunctionDefinition) {
   );
 }
 
+function readline_function(): (Symbol, FunctionDefinition) {
+  $name = 'readline';
+  return named_function(
+    $name,
+    $arguments ==> {
+      $prompt = idx($arguments, 1);
+      if (!$prompt is StringAtom) {
+        throw new TypedArgumentException($name, 1, StringAtom::class, $prompt);
+      }
+      return \HH\Asio\join(
+        async {
+          echo $prompt->value;
+          $cli_input = IO\request_input();
+          $read_input = await $cli_input->readLineAsync();
+          if ($cli_input->isEndOfFile()) {
+            return new GlobalNil();
+          }
+          return new StringAtom(Regex\replace($read_input, re"/\r?\n$/", ''));
+        },
+      );
+    },
+  );
+}
+
 function eval_function(Environment $environment): (Symbol, FunctionDefinition) {
   $name = 'eval';
   return named_function(
@@ -550,6 +576,39 @@ function reset_function(): (Symbol, FunctionDefinition) {
       }
       enforce_arity($name, 2, $arguments);
       return $atom->reset($new_value);
+    },
+  );
+}
+
+function apply_function(): (Symbol, FunctionDefinition) {
+  $name = 'apply';
+  return named_function(
+    $name,
+    $arguments ==> {
+      $function = idx($arguments, 1);
+      if (!$function is FunctionLike) {
+        throw new TypedArgumentException(
+          $name,
+          1,
+          FunctionLike::class,
+          $function,
+        );
+      }
+      $last_index = C\count($arguments) - 1;
+      $list_argument = idx($arguments, $last_index);
+      if (!$list_argument is ListLikeForm) {
+        throw new TypedArgumentException(
+          $name,
+          $last_index,
+          ListLikeForm::class,
+          $list_argument,
+        );
+      }
+      $prepend_arguments = Vec\slice($arguments, 1, C\count($arguments) - 2);
+      $callable = unwrap_tco($function)->function;
+      return $callable(
+        Vec\concat($prepend_arguments, $list_argument->children),
+      );
     },
   );
 }
