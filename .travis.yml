@@ -115,6 +115,7 @@ matrix:
     - {env: IMPL=wasm wasm_MODE=warpy     NO_SELF_HOST_PERF=1, services: [docker]}
     - {env: IMPL=wasm wasm_MODE=wace_libc NO_SELF_HOST_PERF=1, services: [docker]}
     - {env: IMPL=wren,                        services: [docker]}
+    - {env: IMPL=xslt,                        services: [docker]}
     - {env: IMPL=yorick,                      services: [docker]}
     - {env: IMPL=zig,                         services: [docker]}
 
