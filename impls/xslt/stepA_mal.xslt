@@ -836,7 +836,8 @@ ENV IS <xsl:sequence select="$value/env/@data => env:deserialise()"/>
                                 <xsl:message>
                                   <request kind="readline" value="{$args/value/malval/lvalue/malval[1]/@value}"/>
                                 </xsl:message>
-                                <xsl:sequence select="core:makeMALType(unparsed-text('xsl_input-string'), 'string')"/>
+                                <xsl:variable name="str" select="unparsed-text('xsl_input-string')"></xsl:variable>
+                                <xsl:sequence select="core:makeMALType($str, if (string-length($str) = 0) then 'nil' else 'string')"/>
                                 <xsl:sequence select="env"/>
                                 <xsl:sequence select="$atoms"/>
                               </xsl:when>
