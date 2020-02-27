@@ -1,0 +1,78 @@
+(load-file "../mal/env.mal")
+
+;; read
+(def! READ read-string)
+
+
+;; eval
+(def! eval-ast (fn* [ast env]
+  ;; (do (prn "eval-ast" ast "/" (keys env)) )
+  (cond
+    (symbol? ast) (env-get env ast)
+
+    (list? ast)   (map (fn* [exp] (EVAL exp env)) ast)
+
+    (vector? ast) (apply vector (map (fn* [exp] (EVAL exp env)) ast))
+
+    (map? ast)    (apply hash-map
+                    (apply concat
+                      (map (fn* [k] [k (EVAL (get ast k) env)])
+                           (keys ast))))
+
+    "else"        ast)))
+
+(def! LET (fn* [env binds form]
+  (if (empty? binds)
+    (EVAL form env)
+    (do
+      (env-set env (first binds) (EVAL (nth binds 1) env))
+      (LET env (rest (rest binds)) form)))))
+
+(def! EVAL (fn* [ast env]
+  ;; (do (prn "EVAL" ast "/" (keys @env)) )
+  (if (not (list? ast))
+    (eval-ast ast env)
+
+    ;; apply list
+    (let* [a0 (first ast)]
+      (cond
+        (empty? ast)
+        ast
+
+        (= 'def! a0)
+        (env-set env (nth ast 1) (EVAL (nth ast 2) env))
+
+        (= 'let* a0)
+        (LET (new-env env) (nth ast 1) (nth ast 2))
+
+        "else"
+        (let* [el (eval-ast ast env)]
+          (apply (first el) (rest el))))))))
+
+
+;; print
+(def! PRINT pr-str)
+
+;; repl
+(def! repl-env (new-env))
+(def! rep (fn* [strng]
+  (PRINT (EVAL (READ strng) repl-env))))
+
+(env-set repl-env "+" +)
+(env-set repl-env "-" -)
+(env-set repl-env "*" *)
+(env-set repl-env "/" /)
+
+;; repl loop
+(def! repl-loop (fn* [line]
+  (if line
+    (do
+      (if (not (= "" line))
+        (try*
+          (println (rep line))
+          (catch* exc
+            (println "Uncaught exception:" exc))))
+      (repl-loop (readline "mal-user> "))))))
+
+;; main
+(repl-loop "")

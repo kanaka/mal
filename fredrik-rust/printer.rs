@@ -37,6 +37,11 @@ pub fn pr_str(val: &MalType, print_readably: bool) -> String {
         MalType::Nil => "nil".to_owned(),
         MalType::String(s) => print_string(s, print_readably),
         MalType::Fn(_) => "#".to_owned(),
+        MalType::MalFunc(_ast, params, _, fun) => format!(
+            "fn ({}) {}",
+            pr_str(&MalType::List(params.to_vec()), print_readably),
+            pr_str(fun, print_readably)
+        ),
     }
 }
 

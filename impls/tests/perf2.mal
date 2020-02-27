@@ -1,0 +1,11 @@
+(load-file      "../lib/load-file-once.mal")
+(load-file-once "../tests/computations.mal") ; fib sumdown
+(load-file-once "../lib/perf.mal")           ; time
+
+;;(prn "Start: basic math/recursion test")
+
+(time (do
+  (sumdown 10)
+  (fib 12)))
+
+;;(prn "Done: basic math/recursion test")

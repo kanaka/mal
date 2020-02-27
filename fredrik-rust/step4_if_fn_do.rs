@@ -20,7 +20,7 @@ pub fn main() -> Result<(), Box<std::error::Error>> {
 
     let mut env = Env::new(None);
 
-    for (k, v) in core::core() {
+    for (k, v) in core::ns() {
         env.set(k, &v);
     }
 
@@ -88,14 +88,31 @@ impl fmt::Display for EvalError {
     }
 }
 
-fn eval_ast(v: &MalType, env: &mut Env) -> types::Result {
-    match v {
+fn eval_ast(ast: &MalType, env: &mut Env) -> types::Result {
+    match ast {
         MalType::Symbol(s) => env.get(s),
         MalType::List(lst) => match lst.iter().map(|item| eval(item, env)).collect() {
             Ok(res) => Ok(MalType::List(res)),
             Err(err) => Err(err),
         },
-        _ => Ok((*v).clone()),
+        MalType::Vector(l) => match l.iter().map(|i| eval(i, env)).collect() {
+            Ok(res) => Ok(MalType::Vector(res)),
+            Err(err) => Err(err),
+        },
+        MalType::HashMap(hm) => {
+            let mut new = Vec::new();
+            for i in (0..hm.len()).step_by(2) {
+                new.push(hm[i].clone());
+                match eval(&hm[i + 1], env) {
+                    Ok(v) => new.push(v),
+                    Err(err) => {
+                        return Err(err);
+                    }
+                }
+            }
+            Ok(MalType::HashMap(new))
+        }
+        _ => Ok(ast.clone()),
     }
 }
 
@@ -200,47 +217,25 @@ fn eval_fn(l: &[MalType], env: &mut Env) -> types::Result {
     }
 }
 
-fn eval(v: &MalType, env: &mut Env) -> types::Result {
-    match v {
-        MalType::List(l) => {
-            if l.len() == 0 {
-                Ok((*v).clone())
-            } else {
-                match &l[0] {
-                    MalType::Symbol(ref s) if s == "def!" => eval_def(&l[1..], env),
-                    MalType::Symbol(ref s) if s == "let*" => eval_let(&l[1..], env),
-                    MalType::Symbol(ref s) if s == "do" => eval_do(&l[1..], env),
-                    MalType::Symbol(ref s) if s == "if" => eval_if(&l[1..], env),
-                    MalType::Symbol(ref s) if s == "fn*" => eval_fn(&l[1..], env),
-                    _ => match eval_ast(v, env) {
-                        Ok(MalType::List(elist)) => match &elist[0] {
-                            MalType::Fn(f) => f(&elist[1..], env),
-                            _ => EvalError::new("Missing function when evaluating list"),
-                        },
-                        Ok(_) => EvalError::new("Unknown error when evaluating list"),
-                        err => err,
-                    },
-                }
-            }
-        }
-        MalType::Vector(l) => match l.iter().map(|i| eval(i, env)).collect() {
-            Ok(res) => Ok(MalType::Vector(res)),
-            Err(err) => Err(err),
+fn eval(ast: &MalType, env: &mut Env) -> types::Result {
+    match ast {
+        MalType::List(l) if l.len() == 0 => Ok(ast.clone()),
+        MalType::List(l) => match &l[0] {
+            MalType::Symbol(ref s) if s == "def!" => eval_def(&l[1..], env),
+            MalType::Symbol(ref s) if s == "let*" => eval_let(&l[1..], env),
+            MalType::Symbol(ref s) if s == "do" => eval_do(&l[1..], env),
+            MalType::Symbol(ref s) if s == "if" => eval_if(&l[1..], env),
+            MalType::Symbol(ref s) if s == "fn*" => eval_fn(&l[1..], env),
+            _ => match eval_ast(ast, env) {
+                Ok(MalType::List(elist)) => match &elist[0] {
+                    MalType::Fn(f) => f(&elist[1..], env),
+                    _ => EvalError::new("Missing function when evaluating list"),
+                },
+                Ok(_) => EvalError::new("Unknown error when evaluating list"),
+                err => err,
+            },
         },
-        MalType::HashMap(hm) => {
-            let mut new = Vec::new();
-            for i in (0..hm.len()).step_by(2) {
-                new.push(hm[i].clone());
-                match eval(&hm[i + 1], env) {
-                    Ok(v) => new.push(v),
-                    Err(err) => {
-                        return Err(err);
-                    }
-                }
-            }
-            Ok(MalType::HashMap(new))
-        }
-        _ => eval_ast(v, env),
+        _ => eval_ast(ast, env),
     }
 }
 

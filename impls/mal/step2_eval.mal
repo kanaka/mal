@@ -1,0 +1,59 @@
+;; read
+(def! READ read-string)
+
+
+;; eval
+(def! eval-ast (fn* [ast env]
+  ;; (do (prn "eval-ast" ast "/" (keys env)) )
+  (cond
+    (symbol? ast) (let* [res (get env (str ast))]
+                    (if res res (throw (str ast " not found"))))
+
+    (list? ast)   (map (fn* [exp] (EVAL exp env)) ast)
+
+    (vector? ast) (apply vector (map (fn* [exp] (EVAL exp env)) ast))
+
+    (map? ast)    (apply hash-map
+                    (apply concat
+                      (map (fn* [k] [k (EVAL (get ast k) env)])
+                           (keys ast))))
+
+    "else"        ast)))
+
+
+(def! EVAL (fn* [ast env]
+  ;; (do (prn "EVAL" ast) )
+  (if (not (list? ast))
+    (eval-ast ast env)
+
+    ;; apply list
+    (if (empty? ast)
+      ast
+      (let* [el (eval-ast ast env)]
+        (apply (first el) (rest el)))))))
+
+
+;; print
+(def! PRINT pr-str)
+
+;; repl
+(def! repl-env {"+" +
+                "-" -
+                "*" * 
+                "/" /})
+(def! rep (fn* [strng]
+  (PRINT (EVAL (READ strng) repl-env))))
+
+;; repl loop
+(def! repl-loop (fn* [line]
+  (if line
+    (do
+      (if (not (= "" line))
+        (try*
+          (println (rep line))
+          (catch* exc
+            (println "Uncaught exception:" exc))))
+      (repl-loop (readline "mal-user> "))))))
+
+;; main
+(repl-loop "")

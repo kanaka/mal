@@ -21,6 +21,7 @@ pub enum MalType {
     WithMeta(Box<MalType>, Box<MalType>),
     Deref(String),
     Fn(std::sync::Arc<Fn(&[MalType], &mut Env) -> Result>),
+    MalFunc(Box<MalType>, Vec<MalType>, Env, Box<MalType>),
 }
 
 impl fmt::Debug for MalType {
@@ -42,6 +43,9 @@ impl fmt::Debug for MalType {
             MalType::WithMeta(a, b) => write!(f, "WithMeta({:?}, {:?})", a, b),
             MalType::Deref(v) => write!(f, "Deref({})", v),
             MalType::Fn(_) => write!(f, "Fn"),
+            MalType::MalFunc(ast, params, env, fun) => {
+                write!(f, "fn {:?} {:?} {:?}", ast, params, fun)
+            }
         }
     }
 }

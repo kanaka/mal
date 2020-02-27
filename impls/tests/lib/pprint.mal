@@ -1,0 +1,39 @@
+(load-file      "../lib/load-file-once.mal")
+(load-file-once "../lib/pprint.mal")
+;=>nil
+
+(pprint '(7 8 9 "ten" [11 12 [13 14]] 15 16))
+;/\(7
+;/ 8
+;/ 9
+;/ "ten"
+;/ \[11
+;/  12
+;/  \[13
+;/   14\]\]
+;/ 15
+;/ 16\)
+;=>nil
+
+(pprint '{:abc 123 :def {:ghi 456 :jkl [789 "ten eleven twelve"]}})
+;/\{:abc 123
+;/ :def \{:ghi 456
+;/       :jkl \[789
+;/             "ten eleven twelve"\]\}\}
+;=>nil
+
+(pprint '(7 8 {:abc 123 :def {:ghi 456 :jkl 789}} 9 10 [11 12 [13 14]] 15 16))
+;/\(7
+;/ 8
+;/ \{:abc 123
+;/  :def \{:ghi 456
+;/        :jkl 789\}\}
+;/ 9
+;/ 10
+;/ \[11
+;/  12
+;/  \[13
+;/   14\]\]
+;/ 15
+;/ 16\)
+;=>nil

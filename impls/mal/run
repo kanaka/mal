@@ -1,0 +1,9 @@
+#!/bin/bash
+MAL_FILE=../mal/${STEP:-stepA_mal}.mal
+export STEP=stepA_mal # force MAL_IMPL to use stepA
+case ${MAL_IMPL} in
+*-mal)
+    MAL_IMPL=${MAL_IMPL%%-mal}
+    MAL_FILE="../mal/stepA_mal.mal ${MAL_FILE}" ;;
+esac
+exec ./../${MAL_IMPL:-js}/run ${MAL_FILE} "${@}"

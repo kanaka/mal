@@ -142,6 +142,23 @@ fn eval_ast(v: &MalType, env: &mut Env) -> types::Result {
             Ok(res) => Ok(MalType::List(res)),
             Err(err) => Err(err),
         },
+        MalType::Vector(l) => match l.iter().map(|i| eval(i, env)).collect() {
+            Ok(res) => Ok(MalType::Vector(res)),
+            Err(err) => Err(err),
+        },
+        MalType::HashMap(hm) => {
+            let mut new = Vec::new();
+            for i in (0..hm.len()).step_by(2) {
+                new.push(hm[i].clone());
+                match eval(&hm[i + 1], env) {
+                    Ok(v) => new.push(v),
+                    Err(err) => {
+                        return Err(err);
+                    }
+                }
+            }
+            Ok(MalType::HashMap(new))
+        }
         _ => Ok((*v).clone()),
     }
 }
@@ -218,23 +235,6 @@ fn eval(v: &MalType, env: &mut Env) -> types::Result {
                     _ => EvalError::new("Unknow first lsit elemenet"),
                 }
             }
-        }
-        MalType::Vector(l) => match l.iter().map(|i| eval(i, env)).collect() {
-            Ok(res) => Ok(MalType::Vector(res)),
-            Err(err) => Err(err),
-        },
-        MalType::HashMap(hm) => {
-            let mut new = Vec::new();
-            for i in (0..hm.len()).step_by(2) {
-                new.push(hm[i].clone());
-                match eval(&hm[i + 1], env) {
-                    Ok(v) => new.push(v),
-                    Err(err) => {
-                        return Err(err);
-                    }
-                }
-            }
-            Ok(MalType::HashMap(new))
         }
         _ => eval_ast(v, env),
     }

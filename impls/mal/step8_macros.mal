@@ -1,0 +1,139 @@
+(load-file "../mal/env.mal")
+(load-file "../mal/core.mal")
+
+;; read
+(def! READ read-string)
+
+
+;; eval
+(def! is-pair (fn* [x]
+  (if (sequential? x)
+    (not (empty? x)))))
+
+(def! QUASIQUOTE (fn* [ast]
+  (if (not (is-pair ast))
+    (list 'quote ast)
+    (let* [a0 (first ast)]
+      (cond
+       (= 'unquote a0)
+       (nth ast 1)
+
+       (if (is-pair a0) (= 'splice-unquote (first a0))) ; `if` means `and`
+       (list 'concat (nth a0 1) (QUASIQUOTE (rest ast)))
+
+       "else"
+       (list 'cons (QUASIQUOTE a0) (QUASIQUOTE (rest ast))))))))
+
+(def! MACROEXPAND (fn* [ast env]
+  (let* [a0 (if (list? ast) (first ast))
+         e  (if (symbol? a0) (env-find env a0))
+         m  (if e (env-get e a0))]
+    (if (_macro? m)
+      (MACROEXPAND (apply (get m :__MAL_MACRO__) (rest ast)) env)
+      ast))))
+
+(def! eval-ast (fn* [ast env]
+  ;; (do (prn "eval-ast" ast "/" (keys env)) )
+  (cond
+    (symbol? ast) (env-get env ast)
+
+    (list? ast)   (map (fn* [exp] (EVAL exp env)) ast)
+
+    (vector? ast) (apply vector (map (fn* [exp] (EVAL exp env)) ast))
+
+    (map? ast)    (apply hash-map
+                    (apply concat
+                      (map (fn* [k] [k (EVAL (get ast k) env)])
+                           (keys ast))))
+
+    "else"        ast)))
+
+(def! LET (fn* [env binds form]
+  (if (empty? binds)
+    (EVAL form env)
+    (do
+      (env-set env (first binds) (EVAL (nth binds 1) env))
+      (LET env (rest (rest binds)) form)))))
+
+(def! EVAL (fn* [ast env]
+  ;; (do (prn "EVAL" ast "/" (keys @env)) )
+  (let* [ast (MACROEXPAND ast env)]
+    (if (not (list? ast))
+      (eval-ast ast env)
+
+      ;; apply list
+      (let* [a0 (first ast)]
+        (cond
+          (empty? ast)
+          ast
+
+          (= 'def! a0)
+          (env-set env (nth ast 1) (EVAL (nth ast 2) env))
+
+          (= 'let* a0)
+          (LET (new-env env) (nth ast 1) (nth ast 2))
+
+          (= 'quote a0)
+          (nth ast 1)
+
+          (= 'quasiquote a0)
+          (EVAL (QUASIQUOTE (nth ast 1)) env)
+
+          (= 'defmacro! a0)
+          (env-set env (nth ast 1) (hash-map :__MAL_MACRO__
+                                             (EVAL (nth ast 2) env)))
+
+          (= 'macroexpand a0)
+          (MACROEXPAND (nth ast 1) env)
+
+          (= 'do a0)
+          (let* [el (eval-ast (rest ast) env)]
+            (nth el (- (count el) 1)))
+
+          (= 'if a0)
+          (if (EVAL (nth ast 1) env)
+            (EVAL (nth ast 2) env)
+            (if (> (count ast) 3)
+              (EVAL (nth ast 3) env)))
+
+          (= 'fn* a0)
+          (fn* [& args] (EVAL (nth ast 2) (new-env env (nth ast 1) args)))
+
+          "else"
+          (let* [el (eval-ast ast env)]
+            (apply (first el) (rest el)))))))))
+
+
+;; print
+(def! PRINT pr-str)
+
+;; repl
+(def! repl-env (new-env))
+(def! rep (fn* [strng]
+  (PRINT (EVAL (READ strng) repl-env))))
+
+;; core.mal: defined directly using mal
+(map (fn* [data] (apply env-set repl-env data)) core_ns)
+(env-set repl-env 'eval (fn* [ast] (EVAL ast repl-env)))
+(env-set repl-env '*ARGV* (rest *ARGV*))
+
+;; core.mal: defined using the new language itself
+(rep "(def! not (fn* [a] (if a false true)))")
+(rep "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \"\nnil)\")))))")
+(rep "(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))")
+
+;; repl loop
+(def! repl-loop (fn* [line]
+  (if line
+    (do
+      (if (not (= "" line))
+        (try*
+          (println (rep line))
+          (catch* exc
+            (println "Uncaught exception:" exc))))
+      (repl-loop (readline "mal-user> "))))))
+
+;; main
+(if (empty? *ARGV*)
+  (repl-loop "")
+  (rep (str "(load-file \"" (first *ARGV*) "\")")))

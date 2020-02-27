@@ -1,0 +1,66 @@
+;; Testing basic string
+abcABC123
+;=>abcABC123
+
+;; Testing string containing spaces
+hello mal world
+;=>hello mal world
+
+;; Testing string containing symbols
+[]{}"'* ;:()
+;=>[]{}"'* ;:()
+
+
+;; Test long string
+hello world abcdefghijklmnopqrstuvwxyz ABCDEFGHIJKLMNOPQRSTUVWXYZ 0123456789 (;:() []{}"'* ;:() []{}"'* ;:() []{}"'*)
+;=>hello world abcdefghijklmnopqrstuvwxyz ABCDEFGHIJKLMNOPQRSTUVWXYZ 0123456789 (;:() []{}"'* ;:() []{}"'* ;:() []{}"'*)
+
+;; Non alphanumeric characters
+!
+;=>!
+&
+;=>&
++
+;=>+
+,
+;=>,
+-
+;=>-
+/
+;=>/
+<
+;=><
+=
+;=>=
+>
+;=>>
+?
+;=>?
+@
+;=>@
+;;; Behaviour of backslash is not specified enough to test anything in step0.
+^
+;=>^
+_
+;=>_
+`
+;=>`
+~
+;=>~
+
+;>>> soft=True
+;>>> optional=True
+;; ------- Optional Functionality --------------
+;; ------- (Not needed for self-hosting) -------
+
+;; Non alphanumeric characters
+#
+;=>#
+$
+;=>$
+%
+;=>%
+.
+;=>.
+|
+;=>|

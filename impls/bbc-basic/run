@@ -1,0 +1,3 @@
+#! /bin/bash
+exec "${BRANDY:-sbrandy}" -size 1024k \
+    -path ../bbc-basic -quit $(dirname $0)/${STEP:-stepA_mal}.bas "${@}"

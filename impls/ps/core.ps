@@ -1,0 +1,345 @@
+% requires types.ps
+
+% Errors/Exceptions
+
+% data -> throw ->
+% Takes arbitrary data and throws it as an exception.
+/throw { 0 _nth _throw } def
+
+% Predicates
+
+/fn? {
+  0 _nth
+  dup _mal_function? { %if mal_function
+    /macro? get true eq not %if not marked as macro
+  }{
+   _function? %if function
+  } ifelse
+} def
+
+/macro? {
+  0 _nth
+  dup _mal_function? { %if user defined function
+    /macro? get true eq %if marked as macro
+  }{ false } ifelse
+} def
+
+% Hash Map functions
+
+% [hashmap key val ...] -> assoc -> new_hashmap
+/assoc { 4 dict begin
+    /args exch def
+    /src_dict args 0 _nth /data get def
+    /new_dict src_dict
+              dup length args _count 1 sub 2 idiv add % new length
+              dict % new dict of that length
+              copy def
+    1 2 args _count 1 sub { %for each key idx
+        /idx exch def
+        new_dict  args idx _nth  args idx 1 add _nth  put
+    } for
+    new_dict _hash_map_from_dict
+end } def
+
+% [hashmap key...] -> dissoc -> new_hashmap
+/dissoc { 4 dict begin
+    /args exch def
+    /src_dict args 0 _nth /data get def
+    /new_dict src_dict dup length dict copy def
+    1 1 args _count 1 sub { %for each key idx
+        /idx exch def
+        new_dict  args idx _nth  undef
+    } for
+    new_dict _hash_map_from_dict
+end } def
+
+% [hashmap key] -> hash_map_get -> value
+/hash_map_get {
+    dup 0 _nth % stack: args hash_map
+    dup null eq { %if hash_map is a nil
+        pop pop null
+    }{ %else hash_map is not a nil
+        exch 1 _nth % stack: hash_map key
+        _hash_map_get
+    } ifelse
+} def
+
+% [hashmap key] -> contains? -> bool
+/contains? {
+    dup 0 _nth /data get % stack: args dict
+    exch 1 _nth % stack: dict key
+    known
+} def
+
+% [hashmap] -> vals -> val_list
+/vals {
+    0 _nth /data get
+    [ exch { exch pop } forall ]
+    _list_from_array
+} def
+
+
+% sequence functions
+
+% [obj list] -> cons -> new_list
+/cons { 3 dict begin
+    /args exch def
+    /elem args 0 _nth def
+    /lst args 1 _nth def
+    lst _count 1 add array
+    dup 0 elem put % first element
+    dup 1 lst /data get putinterval % rest of the elements
+    _list_from_array
+end } def
+
+% [listA listB] -> do_concat -> [listA... listB...]
+/do_concat {
+    dup _count 0 eq { %if just concat
+        pop 0 _list
+    }{ dup _count 1 eq { %elseif concat of single item
+        0 _nth dup _vector? { %if vector
+	    /data get _list_from_array
+	} if
+    }{ % else
+        [] exch
+        /data get {
+            /data get concatenate
+        } forall
+        _list_from_array
+    } ifelse } ifelse
+} def
+
+% [seq idx] -> nth -> obj
+/nth { 3 dict begin
+    /args exch def
+    /seq args 0 _nth /data get def
+    /idx args 1 _nth def
+    idx seq length lt {
+        seq idx get
+    }{
+        (nth: index out of range) _throw
+    } ifelse
+end } def
+
+
+% [obj] -> do_count -> number
+/do_count {
+    0 _nth dup _nil? {
+        pop 0
+    }{
+        _count
+    } ifelse
+} def
+
+% [obj ...] -> first -> obj
+/first {
+    0 _nth dup _nil? {
+        pop null
+    }{
+        _first
+    } ifelse
+} def
+
+% [obj objs...] -> first -> [objs..]
+/rest {
+    0 _nth dup _nil? {
+        pop 0 _list
+    }{
+        _rest
+    } ifelse
+} def
+
+% [function args... arg_list] -> apply -> result
+/apply { 1 dict begin
+    /args exch def
+    args 0 _nth callable % make sure function is callable
+    args /data get 1 args _count 2 sub getinterval % get args slice
+    args args _count 1 sub _nth /data get % get arg_list array
+    concatenate _list_from_array exch % stack: args function
+    exec
+end } def
+
+% [function list] -> _map -> new_list
+/map { 1 dict begin
+    dup 0 _nth exch 1 _nth % stack: function list
+    /args exch def
+    callable % make sure function is callable
+    %/new_list args length array def
+    args /data get { %foreach arg
+        1 array astore _list_from_array % stack: fn arglist
+        exch dup 3 1 roll               % stack: fn arglist fn
+        exec exch % stack: result fn
+    } forall 
+    pop % remove the function
+    args _count array astore
+    _list_from_array
+end } def
+
+% [vect elem...] -> conj -> new_vect
+% [list elem...] -> conj -> new_list
+/conj { 5 dict begin
+    /args exch def
+    /src_arr args 0 _nth /data get def
+    /new_len src_arr length   args _count 1 sub   add def
+    /new_arr new_len array def
+    args 0 _nth _list? { %if list
+        new_arr   new_len src_arr length sub   src_arr putinterval
+        args _count 1 sub -1 1 {
+            /idx exch def
+            new_arr   args _count idx sub 1 sub   args idx _nth   put
+        } for
+        new_arr _list_from_array
+    }{ %else vector
+        src_arr new_arr copy pop
+        1 1 args _count 1 sub {
+            /idx exch def
+            new_arr   src_arr length idx add 1 sub   args idx _nth   put
+        } for
+        new_arr _vector_from_array
+    } ifelse
+end } def
+
+% [obj] -> seq -> new_list/nil/error
+/seq { 1 dict begin
+    0 _nth /obj exch def
+    obj _list? { % if list
+        obj _count 0 eq { null }{ obj } ifelse
+    }{ obj _vector? { % if vector
+        obj _count 0 eq { null }{ obj /data get _list_from_array } ifelse
+    }{ obj _string? { % if string
+        obj length 0 eq {
+            null
+        }{
+            % convert string to 1 character strings
+            obj {
+                1 string dup 0 % chr string string 0
+                4 -1 roll % string string 0 chr
+                put
+            } forall
+            obj length _list
+        } ifelse
+    }{ null obj eq { % if nil
+        null
+    }{ % invalid seq argument
+        (seq: called on non-sequence) _throw
+    } ifelse } ifelse } ifelse } ifelse
+end } def
+
+
+% Metadata functions
+
+% [obj meta] -> with_meta -> new_obj
+/with_meta {
+    dup 1 _nth exch 0 _nth % stack: meta obj
+    dup length dict copy   % stack: meta new_obj
+    dup 3 -1 roll          % stack: new_obj new_obj meta
+    /meta exch put
+} def
+
+% [obj] -> meta -> meta
+/meta {
+    0 _nth % stack: obj
+    dup type /dicttype eq { %if dictionary
+        dup /meta known { /meta get }{ pop null } ifelse
+    }{ %else
+        pop null % no meta on non-collections
+    } ifelse
+} def
+
+
+% Atom functions
+
+/deref {
+    0 _nth /data get
+} def
+
+% [atm val] -> reset! -> val
+/reset! {
+    dup 0 _nth exch 1 _nth % stack: atm val
+    dup 3 1 roll           % stack: val atm val
+    /data exch put
+} def
+
+% [atm f args...] -> swap! -> new_val
+/swap! { 3 dict begin
+    /args exch def
+    /atm args 0 _nth def
+    [ atm /data get ] 
+    args 2 args _count 2 sub _slice /data get
+    concatenate _list_from_array
+    args 1 _nth callable % extract proc
+    exec
+    /new_val exch def
+    atm /data new_val put
+    new_val
+end } def
+
+% core_ns is namespace of core functions
+
+/core_ns <<
+    (=)       { dup 0 _nth exch 1 _nth _equal? }
+    (throw)   { throw }
+    (nil?)    { 0 _nth _nil? }
+    (true?)   { 0 _nth _true? }
+    (false?)  { 0 _nth _false? }
+    (string?) { 0 _nth _string? }
+    (symbol)  { 0 _nth _symbol }
+    (symbol?) { 0 _nth _symbol? }
+    (keyword) { 0 _nth _keyword }
+    (keyword?) { 0 _nth _keyword? }
+    (number?) { 0 _nth type /integertype eq }
+    (fn?)     { fn? }
+    (macro?)  { macro? }
+
+    (pr-str)  { /data get ( ) true _pr_str_args }
+    (str)     { /data get () false _pr_str_args }
+    (prn)     { /data get ( ) true _pr_str_args print (\n) print null }
+    (println) { /data get ( ) false _pr_str_args print (\n) print null }
+    (readline) { 0 _nth _readline not { pop null } if }
+    (read-string) { 0 _nth read_str }
+    (slurp)   { 0 _nth (r) file dup bytesavailable string readstring pop }
+    (<)       { dup 0 _nth exch 1 _nth lt }
+    (<=)      { dup 0 _nth exch 1 _nth le }
+    (>)       { dup 0 _nth exch 1 _nth gt }
+    (>=)      { dup 0 _nth exch 1 _nth ge }
+    (+)       { dup 0 _nth exch 1 _nth add }
+    (-)       { dup 0 _nth exch 1 _nth sub }
+    (*)       { dup 0 _nth exch 1 _nth mul }
+    (/)       { dup 0 _nth exch 1 _nth idiv }
+    (time-ms) { pop realtime }
+
+    (list)    { /data get _list_from_array }
+    (list?)   { 0 _nth _list? }
+    (vector)  { /data get _vector_from_array }
+    (vector?) { 0 _nth _vector? }
+    (hash-map) { /data get _hash_map_from_array }
+    (map?)    { 0 _nth _hash_map? }
+    (assoc)   { assoc }
+    (dissoc)  { dissoc }
+    (get)     { hash_map_get }
+    (contains?) { contains? }
+    (keys)    { 0 _nth _keys }
+    (vals)    { vals }
+
+    (sequential?) { 0 _nth _sequential? }
+    (cons)    { cons }
+    (concat)  { do_concat }
+    (nth)     { nth }
+    (first)   { first }
+    (rest)    { rest }
+    (empty?)  { 0 _nth _count 0 eq }
+    (count)   { do_count }
+    (apply)   { apply }
+    (map)     { map }
+
+    (conj)    { conj }
+    (seq)     { seq }
+
+    (with-meta) { with_meta }
+    (meta)    { meta }
+    (atom)    { 0 _nth _atom }
+    (atom?)   { 0 _nth _atom? }
+    (deref)   { deref }
+    (reset!)  { reset! }
+    (swap!)   { swap! }
+>> def

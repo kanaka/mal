@@ -1,0 +1,46 @@
+Comparison with the first Ada implementation.
+--
+
+The first implementation was deliberately compatible with all Ada
+compilers, while this one illustrates various Ada 2012 features:
+assertions, preconditions, invariants, initial assignment for limited
+types, limited imports...
+
+The variant MAL type is implemented with a discriminant instead of
+object-style dispatching.  This allows more static and dynamic checks,
+but also two crucial performance improvements:
+* Nil, boolean, integers and pointers to built-in functions are passed
+  by value without dynamic allocation.
+* Lists are implemented as C-style arrays, and can often be
+  allocated on the stack.
+
+Another difference is that a minimal form of garbage collecting is
+implemented, removing objects not referenced from the main
+environment. Reference counting does not seem efficient even for symbols,
+and never deallocates cyclic structures. The implementation collects
+garbage after each Read-Eval-Print cycle. It would be much more
+difficult to collect garbage inside scripts. If this is ever done, it
+would be better to reimplement load-file in Ada and run a cycle after
+each root evaluation.
+It is possible to execute the recursion marking references in parallel
+with the recursion printing the result, which does not modify anything
+and ignores the reference marking. This works but is less performant
+than sequential execution even with Linux threads and a single task
+initialized at startup.
+Each pointer type goes on using its own memory pool, enabling better
+performance when the designated subtype has a fixed size.
+
+The eventual performances compete with C-style languages, allthough
+all user input is checked (implicit language-defined checks like array
+bounds and discriminant consistency are only enabled during tests).
+
+Debugging
+--
+
+Uncaught exceptions are reported with an execution trace (excluding
+TCO cycles).  This has become possible in step9, but has been
+backported to former steps as this is really handy for debugging.
+
+Some environment variables increase verbosity.
+# dbgread= ./stepAmal     trace reader recursion
+# dbgeval= ./stepAmal     trace eval recursion (including TCO)

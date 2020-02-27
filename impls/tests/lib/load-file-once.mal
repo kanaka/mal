@@ -1,0 +1,44 @@
+(def! counter (atom 0))
+;=>(atom 0)
+
+;; The counter is increased by each `load-file`.
+(load-file      "../tests/lib/load-file-once-inc.mal")
+;=>nil
+@counter
+;=>1
+(load-file      "../tests/lib/load-file-once-inc.mal")
+;=>nil
+@counter
+;=>2
+
+;; load-file-once is available
+(load-file      "../lib/load-file-once.mal")
+;=>nil
+
+;; First import actually calls `load-file`.
+(load-file-once "../tests/lib/load-file-once-inc.mal")
+;=>nil
+@counter
+;=>3
+
+;; Later imports do nothing.
+(load-file-once "../tests/lib/load-file-once-inc.mal")
+;=>nil
+@counter
+;=>3
+
+;; Loading the module twice does not reset its memory.
+(load-file      "../lib/load-file-once.mal")
+;=>nil
+(load-file-once "../tests/lib/load-file-once-inc.mal")
+;=>nil
+@counter
+;=>3
+
+;; even if done with itself
+(load-file-once "../lib/load-file-once.mal")
+;=>nil
+(load-file-once "../tests/lib/load-file-once-inc.mal")
+;=>nil
+@counter
+;=>3

@@ -1,0 +1,81 @@
+(load-file      "../lib/load-file-once.mal")
+(load-file-once "../lib/protocols.mal")
+;=>nil
+
+;; Testing find-type for normal objects.
+(find-type 'a)
+;=>:mal/symbol
+(find-type :a)
+;=>:mal/keyword
+(find-type (atom 0))
+;=>:mal/atom
+(find-type nil)
+;=>:mal/nil
+(find-type true)
+;=>:mal/boolean
+(find-type false)
+;=>:mal/boolean
+(find-type 0)
+;=>:mal/number
+(find-type "")
+;=>:mal/string
+(find-type (defmacro! m (fn* [] nil)))
+;=>:mal/macro
+(find-type ())
+;=>:mal/list
+(find-type [])
+;=>:mal/vector
+(find-type {})
+;=>:mal/map
+(find-type (fn* [] nil))
+;=>:mal/function
+
+;; Testing find-type for explicit type metadata.
+(find-type ^{:type :a } ())
+;=>:a
+(find-type ^{:type :a } [])
+;=>:a
+(find-type ^{:type :a } {})
+;=>:a
+(find-type ^{:type :a } (fn* [] nil))
+;=>:a
+
+;; Testing protocols.
+(def! o1 ^{:type :t1 } [1])
+(def! o2 ^{:type :t2 } [2])
+(defprotocol p1 [m0 [this]] [ma [this a]] [mb [this & b]])
+(defprotocol p2)
+(satisfies? p1 o1)
+;=>false
+(satisfies? p1 o2)
+;=>false
+(satisfies? p2 o1)
+;=>false
+(satisfies? p2 o2)
+;=>false
+(extend :t1 p1 {  :m0  (fn* [this] (str "t0" this))  :ma (fn* [this a] (str "ta" this a))  :mb (fn* [this & b] (str "tb" this b))})
+;=>nil
+(extend :t2 p1 {  :m0  (fn* [this] (str "u0" this))  :ma (fn* [this a] (str "ua" this a))  :mb (fn* [this & b] (str "ub" this b))} p2 {})
+;=>nil
+(satisfies? p1 o1)
+;=>true
+(satisfies? p1 o2)
+;=>true
+(satisfies? p2 o1)
+;=>false
+(satisfies? p2 o2)
+;=>true
+
+;; Testing dispatching.
+(m0 o1)
+;=>"t0[1]"
+(ma o1 "blue")
+;=>"ta[1]blue"
+(mb o1 1 2 3)
+;=>"tb[1](1 2 3)"
+(m0 o2)
+;=>"u0[2]"
+(ma o2 "blue")
+;=>"ua[2]blue"
+(mb o2 1 2 3)
+;=>"ub[2](1 2 3)"

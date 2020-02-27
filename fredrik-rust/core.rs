@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use std::error::Error;
 use std::fmt;
 
-pub fn core() -> HashMap<&'static str, MalType> {
+pub fn ns() -> HashMap<&'static str, MalType> {
     let mut core_fns = HashMap::new();
     core_fns.insert("+", MalType::Fn(std::sync::Arc::new(add)));
     core_fns.insert("-", MalType::Fn(std::sync::Arc::new(sub)));
@@ -24,6 +24,7 @@ pub fn core() -> HashMap<&'static str, MalType> {
     core_fns.insert("str", MalType::Fn(std::sync::Arc::new(str_fn)));
     core_fns.insert("prn", MalType::Fn(std::sync::Arc::new(prn)));
     core_fns.insert("println", MalType::Fn(std::sync::Arc::new(println)));
+    core_fns.insert("read-string", MalType::Fn(std::sync::Arc::new(read_str)));
 
     core_fns
 }
@@ -192,6 +193,13 @@ fn prn(params: &[MalType], env: &mut Env) -> types::Result {
         _ => {}
     }
     Ok(MalType::Nil)
+}
+
+fn read_str(params: &[MalType], _env: &mut Env) -> types::Result {
+    match params[0] {
+        MalType::String(ref s) => super::reader::read_str(s),
+        _ => CoreError::new("read_str has to be called with string"),
+    }
 }
 
 fn println(params: &[MalType], _: &mut Env) -> types::Result {

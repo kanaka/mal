@@ -1,0 +1,41 @@
+;; Mesure performances.
+
+(load-file      "../lib/load-file-once.mal")
+(load-file-once "../lib/trivial.mal")   ; gensym inc
+
+;; Evaluate an expression, but report the time spent
+(defmacro! time
+  (fn* (exp)
+    (let* [start (gensym)
+           ret   (gensym)]
+      `(let* (~start (time-ms)
+              ~ret   ~exp)
+        (do
+          (println "Elapsed time:" (- (time-ms) ~start) "msecs")
+          ~ret)))))
+
+;; Count evaluations of a function during a given time frame.
+(def! run-fn-for
+
+  (let* [
+    run-fn-for* (fn* [fn max-ms acc-ms last-iters]
+      (let* [start (time-ms)
+             _ (fn)
+             elapsed (- (time-ms) start)
+             iters (inc last-iters)
+             new-acc-ms (+ acc-ms elapsed)]
+        ;; (do (prn "new-acc-ms:" new-acc-ms "iters:" iters))
+        (if (>= new-acc-ms max-ms)
+          last-iters
+          (run-fn-for* fn max-ms new-acc-ms iters))))
+    ]
+
+    (fn* [fn max-secs]
+      ;; fn       : function without parameters
+      ;; max-secs : number (seconds)
+      ;; return   : number (iterations)
+      (do
+        ;; Warm it up first
+        (run-fn-for* fn 1000 0 0)
+        ;; Now do the test
+        (run-fn-for* fn (* 1000 max-secs) 0 0)))))

@@ -1,0 +1,25 @@
+;; Memoize any function.
+
+;; Implement `memoize` using an atom (`mem`) which holds the memoized results
+;; (hash-map from the arguments to the result). When the function is called,
+;; the hash-map is checked to see if the result for the given argument was already
+;; calculated and stored. If this is the case, it is returned immediately;
+;; otherwise, it is calculated and stored in `mem`.
+
+;; For recursive functions, take care to store the wrapper under the
+;; same name than the original computation with an assignment like
+;; `(def! f (memoize f))`, so that intermediate results are memorized.
+
+;; Adapted from http://clojure.org/atoms
+
+(def! memoize
+  (fn* [f]
+    (let* [mem (atom {})]
+      (fn* [& args]
+        (let* [key (str args)]
+          (if (contains? @mem key)
+            (get @mem key)
+            (let* [ret (apply f args)]
+              (do
+                (swap! mem assoc key ret)
+                ret))))))))

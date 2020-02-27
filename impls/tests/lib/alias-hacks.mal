@@ -1,0 +1,55 @@
+;; Testing alias-hacks.mal
+(load-file      "../lib/load-file-once.mal")
+(load-file-once "../lib/alias-hacks.mal")
+;=>nil
+
+;; Testing let
+(macroexpand (let binds a b))
+;=>(let* binds (do a b))
+(let [x 2] 3 x)
+;=>2
+
+;; Testing when
+(macroexpand (when condition a b))
+;=>(if condition (do a b))
+(when false (nth () 0) a)
+;=>nil
+(when true 3 2)
+;=>2
+
+;; Testing name
+(macroexpand (def name a b))
+;=>(def! name (do a b))
+(def x 1 2 3)
+;=>3
+x
+;=>3
+
+;; Testing fn
+(macroexpand (fn args a b))
+;=>(fn* args (do a b))
+((fn [x] 1 2) 3)
+;=>2
+
+;; Testing defn
+(macroexpand (defn name args b))
+;=>(def! name (fn args b))
+(defn f [x] 1 2 x)
+(f 3)
+;=>3
+
+;; Testing partial
+((partial +) 1 2)
+;=>3
+((partial + 1) 2)
+;=>3
+((partial + 1 2))
+;=>3
+((partial not) false)
+;=>true
+((partial not false))
+;=>true
+((partial (fn* [x y] (+ x y)) 1) 2)
+;=>3
+((partial str 1 2) 3 4)
+;=>"1234"

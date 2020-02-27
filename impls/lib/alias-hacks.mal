@@ -1,0 +1,22 @@
+;; aliases for common clojure names to mal builtins
+;; NOTE: this is a hack
+
+;; Origin: https://github.com/chr15m/frock
+
+; TODO: re-implement as actually useful macros:
+; destructuring, arg checking, etc.
+
+(def! _alias_add_implicit
+  (fn* [special added]
+    (fn* [x & xs]
+      (list special x (cons added xs)))))
+
+(defmacro! let  (_alias_add_implicit 'let* 'do))
+(defmacro! when (_alias_add_implicit 'if   'do))
+(defmacro! def  (_alias_add_implicit 'def! 'do))
+(defmacro! fn   (_alias_add_implicit 'fn*  'do))
+(defmacro! defn (_alias_add_implicit 'def! 'fn))
+
+(def! partial (fn* [pfn & args]
+  (fn* [& args-inner]
+    (apply pfn (concat args args-inner)))))

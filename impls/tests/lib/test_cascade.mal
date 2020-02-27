@@ -1,0 +1,46 @@
+(load-file      "../lib/load-file-once.mal")
+(load-file-once "../lib/test_cascade.mal")
+;=>nil
+
+;; Testing or
+(or)
+;=>nil
+(or 1)
+;=>1
+(or 1 2 3 4)
+;=>1
+(or false 2)
+;=>2
+(or false nil 3)
+;=>3
+(or false nil false false nil 4)
+;=>4
+(or false nil 3 false nil 4)
+;=>3
+(or (or false 4))
+;=>4
+
+;; Testing every?
+(every? first [])
+;=>true
+(every? first [[1] [2]])
+;=>true
+(every? first [[1] [nil] []])
+;=>false
+
+;; Testing some
+(some first [])
+;=>nil
+(some first [[nil] [1] []])
+;=>1
+
+(and)
+;=>true
+(and 1)
+;=>1
+(and 1 2 3 4)
+;=>4
+(and false 2)
+;=>false
+(and true 1 nil false)
+;=>nil

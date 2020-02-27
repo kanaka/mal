@@ -217,21 +217,21 @@ nv.addGraph(function() {
         const i = obj.point.impl
         return '<h3>' + i.name + '</h3>' +
             '<ul class="impl-data">' +
-            '<li><b>Syntax Style</b>: ' + i.syntax + '<br>' +
-            '<li><b>Type Discipline</b>: ' + i.type_check + '<br>' +
+            '<li><b>Syntax Style</b>: ' + i.syntax +
+            '<li><b>Type Discipline</b>: ' + i.type_check +
             '<li><b>GitHub</b>:' +
             '  <ul>' +
-            '  <li><b>PR Count</b>: ' + (i.pull_count || 'unknown') + '<br>' +
-            '  <li><b>PR Rank</b>: ' + i.pull_rank + '<br>' +
-            '  <li><b>Push Count</b>: ' + (i.push_count || 'unknown') + '<br>' +
-            '  <li><b>Push Rank</b>: ' + i.push_rank + '<br>' +
-            '  <li><b>Star Count</b>: ' + (i.star_count || 'unknown') + '<br>' +
-            '  <li><b>Star Rank</b>: ' + i.star_rank + '<br>' +
+            '  <li><b>PR Count</b>: ' + (i.pull_count || 'unknown') +
+            '  <li><b>PR Rank</b>: ' + i.pull_rank +
+            '  <li><b>Push Count</b>: ' + (i.push_count || 'unknown') +
+            '  <li><b>Push Rank</b>: ' + i.push_rank +
+            '  <li><b>Star Count</b>: ' + (i.star_count || 'unknown') +
+            '  <li><b>Star Rank</b>: ' + i.star_rank +
             '  </ul>' +
             '<li><b>StackOverflow</b>:' +
             '  <ul>' +
-            '  <li><b>Tag Count</b>: ' + (i.so_count || 'unknown') + '<br>' +
-            '  <li><b>Tag Rank</b>: ' + i.so_rank + '<br>' +
+            '  <li><b>Tag Count</b>: ' + (i.so_count || 'unknown') +
+            '  <li><b>Tag Rank</b>: ' + i.so_rank +
             '  </ul>' +
             '<li><br>' +
             '<li><b>Perf 1</b>: ' + i.perf1 + ' ms<br>' +
@@ -239,7 +239,7 @@ nv.addGraph(function() {
             '<li><b>Perf 3</b>: ' + i.perf3 + ' iters / 10 sec<br>' +
             '<li><b>SLOC</b>: ' + i.sloc + ' lines<br>' +
             '<li><b>Author</b>: ' + i.author_name + '<br>' +
-            '&nbsp; &nbsp; ' + i.author_url.replace(/https?:\/\//, '') + '<br>' +
+            '&nbsp; &nbsp; ' + i.author_url.replace(/https?:\/\//, '') +
             '</ul>'
     })
 
@@ -247,49 +247,49 @@ nv.addGraph(function() {
     d3.json("all_data.json", function (error, data) {
         allData = data
 
-	console.log(`Filling in missing data attributes`)
+        console.log(`Filling in missing data attributes`)
         const dataList = Object.values(allData)
-	// leave a gap between ranked impls and those with no rank
-	const rankGap = 10
+        // leave a gap between ranked impls and those with no rank
+        const rankGap = 10
         const maxPullRank = Math.max(...dataList.map(d => d.pull_rank))
         const maxPushRank = Math.max(...dataList.map(d => d.push_rank))
         const maxStarRank = Math.max(...dataList.map(d => d.star_rank))
         const maxSORank = Math.max(...dataList.map(d => d.so_rank))
-	const maxPerf1 = dataList.reduce((a, d) => d.perf1 > a ? d.perf1 : a, 0)
-	const maxPerf2 = dataList.reduce((a, d) => d.perf2 > a ? d.perf1 : a, 0)
-	for (let d of dataList) {
-	    if (d.pull_rank === null) {
-		d.pull_rank = maxPullRank + rankGap
-		console.log(`  set pull_rank to ${d.pull_rank} for ${d.dir}`)
-	    }
-	    if (d.push_rank === null) {
-		d.push_rank = maxPushRank + rankGap
-		console.log(`  set push_rank to ${d.push_rank} for ${d.dir}`)
-	    }
-	    if (d.star_rank === null) {
-		d.star_rank = maxStarRank + rankGap
-		console.log(`  set star_rank to ${d.star_rank} for ${d.dir}`)
-	    }
-	    if (d.so_count === 0) {
-		d.so_rank = maxSORank + rankGap
-		console.log(`  set so_rank to ${d.so_rank} for ${d.dir}`)
-	    }
-	    if (d.perf1 === null) {
-		d.perf1 = maxPerf1
-		console.log(`  set perf1 to ${maxPerf1} for ${d.dir}`)
-	    }
-	    if (d.perf2 === null) {
-		d.perf2 = maxPerf2
-		console.log(`  set perf2 to ${maxPerf2} for ${d.dir}`)
-	    }
-	}
+        const maxPerf1 = dataList.reduce((a, d) => d.perf1 > a ? d.perf1 : a, 0)
+        const maxPerf2 = dataList.reduce((a, d) => d.perf2 > a ? d.perf1 : a, 0)
+        for (let d of dataList) {
+            if (d.pull_rank === null) {
+                d.pull_rank = maxPullRank + rankGap
+                console.log(`  set pull_rank to ${d.pull_rank} for ${d.dir}`)
+            }
+            if (d.push_rank === null) {
+                d.push_rank = maxPushRank + rankGap
+                console.log(`  set push_rank to ${d.push_rank} for ${d.dir}`)
+            }
+            if (d.star_rank === null) {
+                d.star_rank = maxStarRank + rankGap
+                console.log(`  set star_rank to ${d.star_rank} for ${d.dir}`)
+            }
+            if (d.so_count === 0) {
+                d.so_rank = maxSORank + rankGap
+                console.log(`  set so_rank to ${d.so_rank} for ${d.dir}`)
+            }
+            if (d.perf1 === null) {
+                d.perf1 = maxPerf1
+                console.log(`  set perf1 to ${maxPerf1} for ${d.dir}`)
+            }
+            if (d.perf2 === null) {
+                d.perf2 = maxPerf2
+                console.log(`  set perf2 to ${maxPerf2} for ${d.dir}`)
+            }
+        }
 
-	console.log(`Adjusting perf numbers to avoid 0`)
-	for (let d of dataList) {
-	    if (d.perf1 === 0) { d.perf1 = 0.9 }
-	    if (d.perf2 === 0) { d.perf2 = 0.9 }
-	    if (d.perf3 === 0) { d.perf3 = 0.01 }
-	}
+        console.log(`Adjusting perf numbers to avoid 0`)
+        for (let d of dataList) {
+            if (d.perf1 === 0) { d.perf1 = 0.9 }
+            if (d.perf2 === 0) { d.perf2 = 0.9 }
+            if (d.perf3 === 0) { d.perf3 = 0.01 }
+        }
 
         // NOTE: TODO: major hack to workaround bug with switching
         // to/from logarithmic mode. Seems to require at least one
