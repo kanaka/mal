@@ -1,0 +1,323 @@
+(module $reader
+
+  ;; TODO: global warning
+  (global $token_buf   (mut i32) 0)
+  (global $read_index  (mut i32) 0)
+
+  (func $skip_spaces (param $str i32) (result i32)
+    (LET $found 0
+         $c (i32.load8_u (i32.add $str (global.get $read_index))))
+    (block $done
+      (loop $loop
+        ;;; while (c == ' ' || c == ',' || c == '\n')
+        (br_if $done (AND (i32.ne $c (CHR " "))
+                          (i32.ne $c (CHR ","))
+                          (i32.ne $c (CHR "\n"))))
+        (local.set $found 1)
+        ;;; c=str[++(*index)]
+        (global.set $read_index (i32.add (global.get $read_index) 1))
+        (local.set $c (i32.load8_u (i32.add $str (global.get $read_index))))
+        (br $loop)
+      )
+    )
+;;    ($debug ">>> skip_spaces:" $found)
+    $found
+  )
+
+  (func $skip_to_eol (param $str i32) (result i32)
+    (LET $found 0
+         $c (i32.load8_u (i32.add $str (global.get $read_index))))
+    (if (i32.eq $c (CHR ";"))
+      (then
+        (local.set $found 1)
+        (block $done
+          (loop $loop
+            ;;; c=str[++(*index)]
+            (global.set $read_index (i32.add (global.get $read_index) 1))
+            (local.set $c (i32.load8_u (i32.add $str
+                                                (global.get $read_index))))
+            ;;; while (c != '\0' && c != '\n')
+            (br_if $loop (AND (i32.ne $c (CHR "\x00"))
+                              (i32.ne $c (CHR "\n"))))
+          )
+        )))
+;;    ($debug ">>> skip_to_eol:" $found)
+    $found
+  )
+
+  (func $skip_spaces_comments (param $str i32)
+    (loop $loop
+      ;; skip spaces
+      (br_if $loop ($skip_spaces $str))
+      ;; skip comments
+      (br_if $loop ($skip_to_eol $str))
+    )
+  )
+
+  (func $read_token (param $str i32) (result i32)
+    (LET $token_index 0
+         $isstring    0
+         $instring    0
+         $escaped     0
+         $c           0)
+
+    ($skip_spaces_comments $str)
+
+    ;; read first character
+    ;;; c=str[++(*index)]
+    (local.set $c (i32.load8_u (i32.add $str (global.get $read_index))))
+    (global.set $read_index (i32.add (global.get $read_index) 1))
+    ;; read first character
+    ;;; token[token_index++] = c
+    (i32.store8 (i32.add (global.get $token_buf) $token_index) $c)
+    (local.set $token_index (i32.add $token_index 1))
+    ;; single/double character token
+    (if (OR (i32.eq $c (CHR "("))
+            (i32.eq $c (CHR ")"))
+            (i32.eq $c (CHR "["))
+            (i32.eq $c (CHR "]"))
+            (i32.eq $c (CHR "{"))
+            (i32.eq $c (CHR "}"))
+            (i32.eq $c (CHR "'"))
+            (i32.eq $c (CHR "`"))
+            (i32.eq $c (CHR "@"))
+            (AND (i32.eq $c (CHR "~"))
+                 (i32.ne (i32.load8_u (i32.add $str (global.get $read_index)))
+                         (CHR "@"))))
+
+      (then
+        ;; continue
+        (nop))
+      (else
+        ;;; if (c == '"') isstring = true
+        (local.set $isstring (i32.eq $c (CHR "\"")))
+        (local.set $instring $isstring)
+        (block $done
+          (loop $loop
+            ;; peek at next character
+            ;;; c = str[*index]
+            (local.set $c (i32.load8_u
+                            (i32.add $str (global.get $read_index))))
+            ;;; if (c == '\0') break
+            (br_if $done (i32.eq $c 0))
+            ;;; if (!isstring)
+            (if (i32.eqz $isstring)
+              (then
+                ;; next character is token delimiter
+                (br_if $done (OR (i32.eq $c (CHR "("))
+                                 (i32.eq $c (CHR ")"))
+                                 (i32.eq $c (CHR "["))
+                                 (i32.eq $c (CHR "]"))
+                                 (i32.eq $c (CHR "{"))
+                                 (i32.eq $c (CHR "}"))
+                                 (i32.eq $c (CHR " "))
+                                 (i32.eq $c (CHR ","))
+                                 (i32.eq $c (CHR "\n"))))))
+            ;; read next character
+            ;;; token[token_index++] = str[(*index)++]
+            (i32.store8 (i32.add (global.get $token_buf) $token_index)
+                          (i32.load8_u
+                            (i32.add $str (global.get $read_index))))
+            (local.set $token_index (i32.add $token_index 1))
+            (global.set $read_index (i32.add (global.get $read_index) 1))
+            ;;; if (token[0] == '~' && token[1] == '@') break
+            (br_if $done (AND (i32.eq (i32.load8_u
+                                        (i32.add (global.get $token_buf) 0))
+                                      (CHR "~"))
+                              (i32.eq (i32.load8_u
+                                        (i32.add (global.get $token_buf) 1))
+                                      (CHR "@"))))
+
+            ;;; if ((!isstring) || escaped)
+            (if (OR (i32.eqz $isstring) $escaped)
+              (then
+                (local.set $escaped 0)
+                (br $loop)))
+            (if (i32.eq $c (CHR "\\"))
+              (local.set $escaped 1))
+            (if (i32.eq $c (CHR "\""))
+              (then
+                (local.set $instring 0)
+                (br $done)))
+            (br $loop)
+          )
+        )
+
+        (if (AND $isstring $instring)
+          (then
+            ($THROW_STR_0 "expected '\"', got EOF")
+            (return 0)))))
+
+    ;;; token[token_index] = '\0'
+    (i32.store8 (i32.add (global.get $token_buf) $token_index) 0)
+    (global.get $token_buf)
+  )
+
+  (func $read_seq (param $str i32 $type i32 $end i32) (result i32)
+    (LET $res ($MAP_LOOP_START $type)
+         $val2 0
+         $val3 0
+         $c 0
+         ;; MAP_LOOP stack
+         $ret $res
+         $empty $res
+         $current $res)
+
+    ;; READ_SEQ_LOOP
+    (block $done
+      (loop $loop
+        ($skip_spaces_comments $str)
+
+        ;; peek at next character
+        ;;; c = str[*index]
+        (local.set $c (i32.load8_u (i32.add $str (global.get $read_index))))
+        (if (i32.eq $c (CHR "\x00"))
+          (then
+            ($THROW_STR_0 "unexpected EOF")
+            (br $done)))
+        (if (i32.eq $c $end)
+          (then
+            ;; read next character
+            ;;; c = str[(*index)++]
+            (local.set $c (i32.load8_u (i32.add $str (global.get $read_index))))
+            (global.set $read_index (i32.add (global.get $read_index) 1))
+            (br $done)))
+
+        ;; value (or key for hash-maps)
+        (local.set $val2 ($read_form $str))
+
+        ;; if error, release the unattached element
+        (if (global.get $error_type)
+          (then
+            ($RELEASE $val2)
+            (br $done)))
+
+        ;; if this is a hash-map, READ_FORM again
+        (if (i32.eq $type (global.get $HASHMAP_T))
+          (local.set $val3 ($read_form $str)))
+
+        ;; update the return sequence structure
+        ;; MAP_LOOP_UPDATE
+        (local.set $res ($MAP_LOOP_UPDATE $type $empty $current $val2 $val3))
+        (if (i32.le_u $current (global.get $EMPTY_HASHMAP))
+          ;; if first element, set return to new element
+          (local.set $ret $res))
+        ;; update current to point to new element
+        (local.set $current $res)
+
+        (br $loop)
+      )
+    )
+
+    ;; MAP_LOOP_DONE
+    $ret
+  )
+
+  (func $read_macro (param $str i32 $sym i32 $with_meta i32) (result i32)
+    (LET $first ($STRING (global.get $SYMBOL_T) $sym)
+         $second ($read_form $str)
+         $third 0
+         $res $second)
+    (if (global.get $error_type) (return $res))
+    (if (i32.eqz $with_meta)
+      (then
+        (local.set $res ($LIST2 $first $second)))
+      (else
+        (local.set $third ($read_form $str))
+        (local.set $res ($LIST3 $first $third $second))
+        ;; release values, list has ownership
+        ($RELEASE $third)))
+    ;; release values, list has ownership
+    ($RELEASE $second)
+    ($RELEASE $first)
+    $res
+  )
+
+  (func $read_form (param $str i32) (result i32)
+    (LET $tok 0 $c0 0 $c1 0 $res 0 $slen 0)
+
+    (if (global.get $error_type) (return 0))
+
+    (local.set $tok ($read_token $str))
+
+    (if (global.get $error_type) (return 0))
+    ;;($printf_1 ">>> read_form 1: %s\n" $tok)
+    ;;; c0 = token[0]
+    (local.set $c0 (i32.load8_u $tok))
+    (local.set $c1 (i32.load8_u (i32.add $tok 1)))
+
+    (if (i32.eq $c0 0)
+      (then
+        (return ($INC_REF (global.get $NIL))))
+      (else (if (OR (AND (i32.ge_u $c0 (CHR "0"))
+                         (i32.le_u $c0 (CHR "9")))
+                    (AND (i32.eq $c0 (CHR "-"))
+                         (i32.ge_u $c1 (CHR "0"))
+                         (i32.le_u $c1 (CHR "9"))))
+      (then
+        (return ($INTEGER ($atoi $tok))))
+    (else (if (i32.eq $c0 (CHR ":"))
+      (then
+        (i32.store8 $tok (CHR "\x7f"))
+        (return ($STRING (global.get $STRING_T) $tok)))
+    (else (if (i32.eq $c0 (CHR "\""))
+      (then
+        (local.set $slen ($strlen (i32.add $tok 1)))
+        (if (i32.ne (i32.load8_u (i32.add $tok $slen)) (CHR "\""))
+          (then
+            ($THROW_STR_0 "expected '\"', got EOF")
+            (return 0))
+          (else
+            ;; unescape backslashes, quotes, and newlines
+            ;; remove the trailing quote
+            (i32.store8 (i32.add $tok $slen) (CHR "\x00"))
+            (local.set $tok (i32.add $tok 1))
+            (drop ($REPLACE3 0 $tok
+                             "\\\"" "\""
+                             "\\n" "\n"
+                             "\\\\" "\\"))
+            (return ($STRING (global.get $STRING_T) $tok)))))
+    (else (if (i32.eqz ($strcmp "nil" $tok))
+      (then (return ($INC_REF (global.get $NIL))))
+    (else (if (i32.eqz ($strcmp "false" $tok))
+      (then (return ($INC_REF (global.get $FALSE))))
+    (else (if (i32.eqz ($strcmp "true" $tok))
+      (then (return ($INC_REF (global.get $TRUE))))
+    (else (if (i32.eqz ($strcmp "'" $tok))
+      (then (return ($read_macro $str "quote" 0)))
+    (else (if (i32.eqz ($strcmp "`" $tok))
+      (then (return ($read_macro $str "quasiquote" 0)))
+    (else (if (i32.eqz ($strcmp "~@" $tok))
+      (then (return ($read_macro $str "splice-unquote" 0)))
+    (else (if (i32.eqz ($strcmp "~" $tok))
+      (then (return ($read_macro $str "unquote" 0)))
+    (else (if (i32.eqz ($strcmp "^" $tok))
+      (then (return ($read_macro $str "with-meta" 1)))
+    (else (if (i32.eqz ($strcmp "@" $tok))
+      (then (return ($read_macro $str "deref" 0)))
+    (else (if (i32.eq $c0 (CHR "("))
+      (then (return ($read_seq $str (global.get $LIST_T) (CHR ")"))))
+    (else (if (i32.eq $c0 (CHR "["))
+      (then (return ($read_seq $str (global.get $VECTOR_T) (CHR "]"))))
+    (else (if (i32.eq $c0 (CHR "{"))
+      (then (return ($read_seq $str (global.get $HASHMAP_T) (CHR "}"))))
+    (else (if (OR (i32.eq $c0 (CHR ")"))
+                  (i32.eq $c0 (CHR "]"))
+                  (i32.eq $c0 (CHR "}")))
+      (then
+        ($THROW_STR_1 "unexpected '%c'" $c0)
+        (return 0))
+    (else
+      (return ($STRING (global.get $SYMBOL_T) $tok))))
+    ))))))))))))))))))))))))))))))))
+    0 ;; not reachable
+  )
+
+  (func $read_str (param $str i32) (result i32)
+    (global.set $read_index 0)
+    ($read_form $str)
+  )
+
+  (export "read_str" (func $read_str))
+
+)

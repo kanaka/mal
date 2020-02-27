@@ -1,0 +1,43 @@
+;; Pretty printer a MAL object.
+
+(def! pprint
+
+  (let* [
+
+    spaces- (fn* [indent]
+      (if (> indent 0)
+        (str " " (spaces- (- indent 1)))
+        ""))
+
+    pp-seq- (fn* [obj indent]
+      (let* [xindent (+ 1 indent)]
+        (apply str (pp- (first obj) 0)
+                   (map (fn* [x] (str "\n" (spaces- xindent)
+                                      (pp- x xindent)))
+                        (rest obj)))))
+
+    pp-map- (fn* [obj indent]
+      (let* [ks (keys obj)
+             kindent (+ 1 indent)
+             kwidth (count (seq (str (first ks))))
+             vindent (+ 1 (+ kwidth kindent))]
+        (apply str (pp- (first ks) 0)
+                   " "
+                   (pp- (get obj (first ks)) 0)
+                   (map (fn* [k] (str "\n" (spaces- kindent)
+                                      (pp- k kindent)
+                                      " "
+                                      (pp- (get obj k) vindent)))
+                        (rest (keys obj))))))
+
+    pp- (fn* [obj indent]
+      (cond
+        (list? obj)   (str "(" (pp-seq- obj indent) ")")
+        (vector? obj) (str "[" (pp-seq- obj indent) "]")
+        (map? obj)    (str "{" (pp-map- obj indent) "}")
+        :else         (pr-str obj)))
+
+    ]
+
+    (fn* [obj]
+         (println (pp- obj 0)))))

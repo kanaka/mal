@@ -1,0 +1,140 @@
+class Reader {
+  const tokens List<string>
+  var position = 0
+
+  def peek string {
+    if position >= tokens.count {
+      return null
+    }
+    return tokens[position]
+  }
+
+  def next string {
+    const token = peek
+    position++
+    return token
+  }
+}
+
+def tokenize(str string) List<string> {
+  var re = RegExp.new("[\\s,]*(~@|[\\[\\]{}()'`~^@]|\"(?:\\\\.|[^\\\\\"])*\"?|;.*|[^\\s\\[\\]{}('\"`,;)]*)", "g")
+  var tokens List<string> = []
+  var match string
+  while (match = re.exec(str)[1]) != "" {
+    if match[0] == ';' {
+      continue
+    }
+    tokens.append(match)
+  }
+  return tokens
+}
+
+def unescape(s string) string {
+  return s.replaceAll("\\\\", "\x01").replaceAll("\\\"", "\"").replaceAll("\\n", "\n").replaceAll("\x01", "\\")
+}
+
+def read_atom(rdr Reader) MalVal {
+  var sre = RegExp.new("^\"(?:\\\\.|[^\\\\\"])*\"$")
+  const token = rdr.peek
+  if token == "nil" {
+    rdr.next
+    return gNil
+  }
+  if token == "true" {
+    rdr.next
+    return gTrue
+  }
+  if token == "false" {
+    rdr.next
+    return gFalse
+  }
+  switch token[0] {
+    case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' { return MalNumber.new(stringToInt(rdr.next)) }
+    case '-' {
+      if token.count <= 1 { return MalSymbol.new(rdr.next) }
+      switch token[1] {
+        case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' { return MalNumber.new(stringToInt(rdr.next)) }
+        default { return MalSymbol.new(rdr.next) }
+      }
+    }
+    case '"' {
+      const s = rdr.next
+      if sre.exec(s) {
+        return MalString.new(unescape(s.slice(1, s.count - 1)))
+      } else {
+        throw MalError.new("expected '\"', got EOF")
+      }
+    }
+    case ':' { return MalKeyword.new(rdr.next.slice(1)) }
+    default { return MalSymbol.new(rdr.next) }
+  }
+}
+
+def read_sequence(rdr Reader, open string, close string) List<MalVal> {
+  if rdr.next != open {
+    throw MalError.new("expected '" + open + "'")
+  }
+  var token string
+  var items List<MalVal> = []
+  while (token = rdr.peek) != close {
+    if token == null {
+      throw MalError.new("expected '" + close + "', got EOF")
+    }
+    items.append(read_form(rdr))
+  }
+  rdr.next # consume the close paren/bracket/brace
+  return items
+}
+
+def read_list(rdr Reader) MalList {
+  return MalList.new(read_sequence(rdr, "(", ")"))
+}
+
+def read_vector(rdr Reader) MalVector {
+  return MalVector.new(read_sequence(rdr, "[", "]"))
+}
+
+def read_hash_map(rdr Reader) MalHashMap {
+  return MalHashMap.fromList(read_sequence(rdr, "{", "}"))
+}
+
+def reader_macro(rdr Reader, symbol_name string) MalVal {
+  rdr.next
+  return MalList.new([MalSymbol.new(symbol_name), read_form(rdr)])
+}
+
+def read_form(rdr Reader) MalVal {
+  switch rdr.peek[0] {
+    case '\'' { return reader_macro(rdr, "quote") }
+    case '`' { return reader_macro(rdr, "quasiquote") }
+    case '~' {
+      if rdr.peek == "~" { return reader_macro(rdr, "unquote") }
+      else if rdr.peek == "~@" { return reader_macro(rdr, "splice-unquote") }
+      else { return read_atom(rdr) }
+    }
+    case '^' {
+      rdr.next
+      const meta = read_form(rdr)
+      return MalList.new([MalSymbol.new("with-meta"), read_form(rdr), meta])
+    }
+    case '@' { return reader_macro(rdr, "deref") }
+    case ')' { throw MalError.new("unexpected ')'") }
+    case '(' { return read_list(rdr) }
+    case ']' { throw MalError.new("unexpected ']'") }
+    case '[' { return read_vector(rdr) }
+    case '}' { throw MalError.new("unexpected '}'") }
+    case '{' { return read_hash_map(rdr) }
+    default { return read_atom(rdr) }
+  }
+}
+
+def read_str(str string) MalVal {
+  const tokens = tokenize(str)
+  if tokens.isEmpty { return null }
+  var rdr = Reader.new(tokens)
+  return read_form(rdr)
+}
+
+@import {
+  const RegExp dynamic
+}

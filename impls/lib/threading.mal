@@ -1,0 +1,34 @@
+;; Composition of partially applied functions.
+
+(load-file      "../lib/load-file-once.mal")
+(load-file-once "../lib/reducers.mal")  ; reduce
+
+;; Rewrite x (a a1 a2) .. (b b1 b2) as
+;;   (b (.. (a x a1 a2) ..) b1 b2)
+;; If anything else than a list is found were `(a a1 a2)` is expected,
+;; replace it with a list with one element, so that `-> x a` is
+;; equivalent to `-> x (list a)`.
+(defmacro! ->
+  (fn* (x & xs)
+    (reduce _iter-> x xs)))
+
+(def! _iter->
+  (fn* [acc form]
+    (if (list? form)
+      `(~(first form) ~acc ~@(rest form))
+      (list form acc))))
+
+;; Like `->`, but the arguments describe functions that are partially
+;; applied with *left* arguments.  The previous result is inserted at
+;; the *end* of the new argument list.
+;; Rewrite x ((a a1 a2) .. (b b1 b2)) as
+;;   (b b1 b2 (.. (a a1 a2 x) ..)).
+(defmacro! ->>
+  (fn* (x & xs)
+     (reduce _iter->> x xs)))
+
+(def! _iter->>
+  (fn* [acc form]
+    (if (list? form)
+      `(~(first form) ~@(rest form) ~acc)
+      (list form acc))))

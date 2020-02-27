@@ -1,0 +1,67 @@
+;; Iteration on evaluations interpreted as boolean values.
+
+(load-file      "../lib/load-file-once.mal")
+(load-file-once "../lib/trivial.mal")   ; gensym
+
+;; `(cond test1 result1 test2 result2 .. testn resultn)`
+;; is rewritten (in the step files) as
+;; `(if test1 result1 (if test2 result2 (.. (if testn resultn nil))))`
+;; It is common that `testn` is `"else"`, `:else`, `true` or similar.
+
+;; `(or x1 x2 .. xn x)`
+;; is almost rewritten as
+;; `(if x1 x1 (if x2 x2 (.. (if xn xn x))))`
+;; except that each argument is evaluated at most once.
+;; Without arguments, returns `nil`.
+(defmacro! or (fn* [& xs]
+  (if (< (count xs) 2)
+    (first xs)
+    (let* [r (gensym)]
+      `(let* (~r ~(first xs)) (if ~r ~r (or ~@(rest xs))))))))
+
+;; Conjonction of predicate values (pred x1) and .. and (pred xn)
+;; Evaluate `pred x` for each `x` in turn. Return `false` if a result
+;; is `nil` or `false`, without evaluating the predicate for the
+;; remaining elements.  If all test pass, return `true`.
+(def! every?
+  (fn* (pred xs)
+    ;; pred   : Element -> interpreted as a logical value
+    ;; xs     : sequence of Elements x1 x2 .. xn
+    ;; return : boolean
+    (cond (empty? xs)       true
+          (pred (first xs)) (every? pred (rest xs))
+          true              false)))
+
+;; Disjonction of predicate values (pred x1) or .. (pred xn)
+;; Evaluate `(pred x)` for each `x` in turn. Return the first result
+;; that is neither `nil` nor `false`, without evaluating the predicate
+;; for the remaining elements.  If all tests fail, return nil.
+(def! some
+  (fn* (pred xs)
+    ;; pred   : Element -> interpreted as a logical value
+    ;; xs     : sequence of Elements x1 x2 .. xn
+    ;; return : boolean
+    (if (empty? xs)
+      nil
+      (or (pred (first xs))
+          (some pred (rest xs))))))
+
+;; Search for first evaluation returning `nil` or `false`.
+;; Rewrite `x1 x2 .. xn x` as
+;;   (let* [r1 x1]
+;;     (if r1 test1
+;;       (let* [r2 x2]
+;;         ..
+;;         (if rn
+;;           x
+;;           rn) ..)
+;;       r1))
+;; Without arguments, returns `true`.
+(defmacro! and
+  (fn* (& xs)
+    ;; Arguments and the result are interpreted as boolean values.
+    (cond (empty? xs)      true
+          (= 1 (count xs)) (first xs)
+          true             (let* (condvar (gensym))
+                             `(let* (~condvar ~(first xs))
+                               (if ~condvar (and ~@(rest xs)) ~condvar))))))

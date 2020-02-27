@@ -1,0 +1,33 @@
+(load-file      "../lib/load-file-once.mal")
+(load-file-once "../lib/reducers.mal")
+;=>nil
+
+;; Testing reduce
+(reduce + 7 [])
+;=>7
+(reduce + 7 [1])
+;=>8
+(reduce + 7 [1 2])
+;=>10
+(reduce * 7 [-1 2])
+;=>-14
+(reduce concat [1] [[2] [3]])
+;=>(1 2 3)
+(reduce str "a" ["b" "c"])
+;=>"abc"
+
+;; Testing foldr
+(foldr + 7 [])
+;=>7
+(foldr + 7 [1])
+;=>8
+(foldr + 7 [1 2])
+;=>10
+(reduce * 7 [-1 2])
+;=>-14
+(foldr concat [1] [[2] [3]])
+;=>(2 3 1)
+(foldr str "a" ["b" "c"])
+;=>"bca"
+(foldr cons [4 5] [2 3])
+;=>(2 3 4 5)

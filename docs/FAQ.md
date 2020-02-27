@@ -44,9 +44,8 @@ those files tend to be very small or non-existent. Examples:
 
 * the mal implementation has no types, reader, printer files and
   has a trivial core file (just to hoist underlying functions)
-* the Clojure implementation has no types file and fairly trivial
-  reader and printer files (just to modify the Clojure reader/writer
-  slightly) and a fairly trivial core file
+* the Clojure implementation has no types file and a fairly trivial
+  core file
 * ruby types and the functions that operate on them are very "Lispy"
   so the Ruby types file and core file are very small.
 
@@ -175,15 +174,14 @@ into the main repository:
   implementation (or somebody beats you to the punch while you are
   working on it), there is still a chance I will merge your
   implementation. If you can make a compelling argument that your
-  implementation is more idiomatic or significantly better than the
-  existing implementation then I may replace the existing one.
-  However, if your approach is different or unique from the existing
-  implementation, there is still a good chance I will merge your
-  implementation side-by-side with the existing one. In that case
-  I will add your github username as a suffix to the language
-  implementation directory. At the very least, even if I decide not to
-  merge your implementation, I am certainly willing to link to you
-  implementation once it is completed.
+  implementation is more idiomatic or significantly better in some way
+  than the existing implementation then I may replace the existing
+  one. However, if your approach is different or unique from the
+  existing implementation, there is still a good chance I will merge
+  your implementation side-by-side with the existing one. At the very
+  least, even if I decide not to merge your implementation, I am
+  certainly willing to link to you implementation once it is
+  completed.
 
 * You do not need to implement line editing (i.e. readline)
   functionality for your implementation, however, it is a nice
@@ -191,8 +189,17 @@ into the main repository:
   it saves a lot of time when I am creating a new implementation to
   have line edit support early in the process.
 
----
-
-**Good questions that either don't have answer or need more detail**
-
 ### Why do some mal forms end in "\*" or "!" (swap!, def!, let\*, etc)?
+
+The forms that end in a bang mutate something:
+* **def!** mutates the current environment
+* **swap!** and **reset!** mutate an atom to refer to a new value
+
+The forms that end in a star are similar to similar Clojure forms but
+are more limited in functionality:
+* **fn\*** does not do parameter destructuring and only supports
+  a single body form.
+* **let\*** does not do parameter destructuring
+* **try\*** and **catch\*** do not support type matching of
+  exceptions
+

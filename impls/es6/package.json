@@ -1,0 +1,12 @@
+{
+    "name": "mal",
+    "version": "0.0.1",
+    "description": "Make a Lisp (mal) language implemented in ES6 (ECMAScript 6 / ECMAScript 2015)",
+    "dependencies": {
+        "esm": "3.1.x",
+        "ffi-napi": "2.4.x"
+    },
+    "esm": {
+        "cjs": true
+    }
+}

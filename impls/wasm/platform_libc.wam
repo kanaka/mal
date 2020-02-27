@@ -1,0 +1,111 @@
+(module $platform_libc
+
+  (import "env" "memory" (memory 256))
+  (import "env" "memoryBase" (global $memoryBase i32))
+
+  (import "env" "exit"        (func $lib_exit (param i32)))
+  (import "env" "stdout"      (global $lib_stdout i32))
+  (import "env" "fputs"       (func $lib_fputs (param i32 i32) (result i32)))
+  (import "env" "readline"    (func $lib_readline (param i32) (result i32)))
+  (import "env" "free"        (func $lib_free (param i32)))
+  (import "env" "add_history" (func $lib_add_history (param i32)))
+
+  ;; read_file defintions / FFI information
+  (global $STAT_SIZE i32 88)
+  (global $STAT_ST_SIZE_OFFSET i32 44)
+  (global $STAT_VER_LINUX i32 3)
+  (global $O_RDONLY i32 0)
+  (import "env" "open" (func $lib_open (param i32 i32 i32) (result i32)))
+  (import "env" "read" (func $lib_read (param i32 i32 i32) (result i32)))
+  (import "env" "__fxstat" (func $lib___fxstat (param i32 i32 i32) (result i32)))
+  (global $TIMEVAL_SIZE i32 8)
+  (global $TV_SEC_OFFSET i32 0)
+  (global $TV_USEC_OFFSET i32 4)
+  (import "env" "gettimeofday" (func $lib_gettimeofday (param i32 i32) (result i32)))
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  (func $fatal (param $code i32 $msg i32)
+    ($print $msg)
+    ($lib_exit $code)
+  )
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  (func $print (param $addr i32)
+    (drop ($lib_fputs $addr (global.get $lib_stdout))))
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  (func $readline (param $prompt i32 $buf i32) (result i32)
+    (LET $line ($lib_readline $prompt)
+         $len  0)
+
+    (if $line
+      (then
+        ($lib_add_history $line)
+        (local.set $len ($strlen $line))
+        ($memmove $buf $line $len)
+        ($lib_free $line)))
+    (i32.store8 (i32.add $buf $len) (CHR "\x00"))
+    (return (if (result i32) $line 1 0))
+  )
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  ;; Returns malloc'd string. Must be free by caller
+  (func $read_file (param $path i32 $buf i32) (result i32)
+    (LET $fst     (STATIC_ARRAY 100)  ;; at least STAT_SIZE
+         $fd      ($lib_open $path (global.get $O_RDONLY) 0)
+         $st_size 0
+         $sz      0)
+
+    (if (i32.lt_s $fd 0)
+      (then
+        ($printf_1 "ERROR: slurp failed to open '%s'\n" $path)
+        (return 0)))
+    (if (i32.lt_s ($lib___fxstat (global.get $STAT_VER_LINUX) $fd $fst) 0)
+      (then
+        ($printf_1 "ERROR: slurp failed to stat '%s'\n" $path)
+        (return 0)))
+    (local.set $st_size (i32.load
+                          (i32.add $fst (global.get $STAT_ST_SIZE_OFFSET))))
+    (local.set $sz ($lib_read $fd $buf $st_size))
+    (if (i32.ne $sz $st_size)
+      (then
+        ($printf_1 "ERROR: slurp failed to stat '%s'\n" $path)
+        (return 0)))
+    ;; Add null to string
+    (i32.store8 (i32.add $buf $st_size) 0)
+    (i32.add 1 $st_size)
+  )
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+  (func $get_time_ms (result i32)
+    (LET $tv    (STATIC_ARRAY 10) ;; at least TIMEVAL_SIZE
+         $secs  0
+         $usecs 0
+         $msecs 0)
+    (drop ($lib_gettimeofday $tv 0))
+    (local.set $secs (i32.load (i32.add $tv (global.get $TV_SEC_OFFSET))))
+    ;; subtract 30 years to make sure secs is positive and can be
+    ;; multiplied by 1000
+    (local.set $secs (i32.sub $secs 0x38640900))
+    (local.set $usecs (i32.load (i32.add $tv (global.get $TV_USEC_OFFSET))))
+    (local.set $msecs (i32.add (i32.mul $secs 1000)
+                               (i32.div_u $usecs 1000)))
+    $msecs
+  )
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  (func $entry (param $argc i32 $argv i32)
+    ($init_memory)
+    ($lib_exit ($main $argc $argv))
+  )
+
+  (export "_main" (func $entry))
+
+)

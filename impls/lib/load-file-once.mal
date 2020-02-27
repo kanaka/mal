@@ -1,0 +1,16 @@
+;; Like load-file, but will never load the same path twice.
+
+;; This file is normally loaded with `load-file`, so it needs a
+;; different mechanism to neutralize multiple inclusions of
+;; itself. Moreover, the file list should never be reset.
+
+(def! load-file-once
+  (try*
+    load-file-once
+  (catch* _
+    (let* [seen (atom {"../lib/load-file-once.mal" nil})]
+      (fn* [filename]
+        (if (not (contains? @seen filename))
+          (do
+            (swap! seen assoc filename nil)
+            (load-file filename))))))))

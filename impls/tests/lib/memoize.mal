@@ -1,0 +1,18 @@
+(load-file      "../lib/load-file-once.mal")
+(load-file-once "../tests/computations.mal")
+(load-file-once "../lib/memoize.mal")
+;=>nil
+
+(def! N 32)
+
+;; Benchmark naive 'fib'
+
+(def! r1 (fib N))                       ; Should be slow
+
+;; Benchmark memoized 'fib'
+
+(def! fib (memoize fib))
+(def! r2 (fib N))                       ; Should be quick
+
+(= r1 r2)
+;=>true

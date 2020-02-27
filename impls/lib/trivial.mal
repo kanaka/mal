@@ -1,0 +1,20 @@
+;; Trivial but convenient functions.
+
+;; Integer predecessor (number -> number)
+(def! inc (fn* [a] (+ a 1)))
+
+;; Integer predecessor (number -> number)
+(def! dec (fn* (a) (- a 1)))
+
+;; Integer nullity test (number -> boolean)
+(def! zero? (fn* (n) (= 0 n)))
+
+;; Returns the unchanged argument.
+(def! identity (fn* (x) x))
+
+;; Generate a hopefully unique symbol. See section "Plugging the Leaks"
+;; of http://www.gigamonkeys.com/book/macros-defining-your-own.html
+(def! gensym
+  (let* [counter (atom 0)]
+    (fn* []
+      (symbol (str "G__" (swap! counter inc))))))

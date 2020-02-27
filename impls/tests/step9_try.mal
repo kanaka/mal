@@ -1,0 +1,382 @@
+;;
+;; Testing throw
+
+(throw "err1")
+;/.*([Ee][Rr][Rr][Oo][Rr]|[Ee]xception).*err1.*
+
+;;
+;; Testing try*/catch*
+
+(try* 123 (catch* e 456))
+;=>123
+
+(try* abc (catch* exc (prn "exc is:" exc)))
+;/"exc is:" "'abc' not found"
+;=>nil
+
+(try* (abc 1 2) (catch* exc (prn "exc is:" exc)))
+;/"exc is:" "'abc' not found"
+;=>nil
+
+;; Make sure error from core can be caught
+(try* (nth () 1) (catch* exc (prn "exc is:" exc)))
+;/"exc is:".*(length|range|[Bb]ounds|beyond).*
+;=>nil
+
+(try* (throw "my exception") (catch* exc (do (prn "exc:" exc) 7)))
+;/"exc:" "my exception"
+;=>7
+
+;;; Test that throw is a function:
+(try* (map throw (list "my err")) (catch* exc exc))
+;=>"my err"
+
+
+;;
+;; Testing builtin functions
+
+(symbol? 'abc)
+;=>true
+(symbol? "abc")
+;=>false
+
+(nil? nil)
+;=>true
+(nil? true)
+;=>false
+
+(true? true)
+;=>true
+(true? false)
+;=>false
+(true? true?)
+;=>false
+
+(false? false)
+;=>true
+(false? true)
+;=>false
+
+;; Testing apply function with core functions
+(apply + (list 2 3))
+;=>5
+(apply + 4 (list 5))
+;=>9
+(apply prn (list 1 2 "3" (list)))
+;/1 2 "3" \(\)
+;=>nil
+(apply prn 1 2 (list "3" (list)))
+;/1 2 "3" \(\)
+;=>nil
+(apply list (list))
+;=>()
+(apply symbol? (list (quote two)))
+;=>true
+
+;; Testing apply function with user functions
+(apply (fn* (a b) (+ a b)) (list 2 3))
+;=>5
+(apply (fn* (a b) (+ a b)) 4 (list 5))
+;=>9
+
+;; Testing map function
+(def! nums (list 1 2 3))
+(def! double (fn* (a) (* 2 a)))
+(double 3)
+;=>6
+(map double nums) 
+;=>(2 4 6)
+(map (fn* (x) (symbol? x)) (list 1 (quote two) "three"))
+;=>(false true false)
+
+;>>> deferrable=True
+;;
+;; ------- Deferrable Functionality ----------
+;; ------- (Needed for self-hosting) -------
+
+;; Testing throwing a hash-map
+(throw {:msg "err2"})
+;/.*([Ee][Rr][Rr][Oo][Rr]|[Ee]xception).*msg.*err2.*
+
+;; Testing symbol and keyword functions
+(symbol? :abc)
+;=>false
+(symbol? 'abc)
+;=>true
+(symbol? "abc")
+;=>false
+(symbol? (symbol "abc"))
+;=>true
+(keyword? :abc)
+;=>true
+(keyword? 'abc)
+;=>false
+(keyword? "abc")
+;=>false
+(keyword? "")
+;=>false
+(keyword? (keyword "abc"))
+;=>true
+
+(symbol "abc")
+;=>abc
+(keyword "abc")
+;=>:abc
+
+;; Testing sequential? function
+
+(sequential? (list 1 2 3))
+;=>true
+(sequential? [15])
+;=>true
+(sequential? sequential?)
+;=>false
+(sequential? nil)
+;=>false
+(sequential? "abc")
+;=>false
+
+;; Testing apply function with core functions and arguments in vector
+(apply + 4 [5])
+;=>9
+(apply prn 1 2 ["3" 4])
+;/1 2 "3" 4
+;=>nil
+(apply list [])
+;=>()
+;; Testing apply function with user functions and arguments in vector
+(apply (fn* (a b) (+ a b)) [2 3])
+;=>5
+(apply (fn* (a b) (+ a b)) 4 [5])
+;=>9
+
+
+;; Testing map function with vectors
+(map (fn* (a) (* 2 a)) [1 2 3])
+;=>(2 4 6)
+
+(map (fn* [& args] (list? args)) [1 2])
+;=>(true true)
+
+;; Testing vector functions
+
+(vector? [10 11])
+;=>true
+(vector? '(12 13))
+;=>false
+(vector 3 4 5)
+;=>[3 4 5]
+
+(map? {})
+;=>true
+(map? '())
+;=>false
+(map? [])
+;=>false
+(map? 'abc)
+;=>false
+(map? :abc)
+;=>false
+
+
+;;
+;; Testing hash-maps
+(hash-map "a" 1)
+;=>{"a" 1}
+
+{"a" 1}
+;=>{"a" 1}
+
+(assoc {} "a" 1)
+;=>{"a" 1}
+
+(get (assoc (assoc {"a" 1 } "b" 2) "c" 3) "a")
+;=>1
+
+(def! hm1 (hash-map))
+;=>{}
+
+(map? hm1)
+;=>true
+(map? 1)
+;=>false
+(map? "abc")
+;=>false
+
+(get nil "a")
+;=>nil
+
+(get hm1 "a")
+;=>nil
+
+(contains? hm1 "a")
+;=>false
+
+(def! hm2 (assoc hm1 "a" 1))
+;=>{"a" 1}
+
+(get hm1 "a")
+;=>nil
+
+(contains? hm1 "a")
+;=>false
+
+(get hm2 "a")
+;=>1
+
+(contains? hm2 "a")
+;=>true
+
+
+;;; TODO: fix. Clojure returns nil but this breaks mal impl
+(keys hm1)
+;=>()
+
+(keys hm2)
+;=>("a")
+
+(keys {"1" 1})
+;=>("1")
+
+;;; TODO: fix. Clojure returns nil but this breaks mal impl
+(vals hm1)
+;=>()
+
+(vals hm2)
+;=>(1)
+
+(count (keys (assoc hm2 "b" 2 "c" 3)))
+;=>3
+
+;; Testing keywords as hash-map keys
+(get {:abc 123} :abc)
+;=>123
+(contains? {:abc 123} :abc)
+;=>true
+(contains? {:abcd 123} :abc)
+;=>false
+(assoc {} :bcd 234)
+;=>{:bcd 234}
+(keyword? (nth (keys {:abc 123 :def 456}) 0))
+;=>true
+(keyword? (nth (vals {"a" :abc "b" :def}) 0))
+;=>true
+
+;; Testing whether assoc updates properly
+(def! hm4 (assoc {:a 1 :b 2} :a 3 :c 1))
+(get hm4 :a)
+;=>3
+(get hm4 :b)
+;=>2
+(get hm4 :c)
+;=>1
+
+;; Testing nil as hash-map values
+(contains? {:abc nil} :abc)
+;=>true
+(assoc {} :bcd nil)
+;=>{:bcd nil}
+
+;;
+;; Additional str and pr-str tests
+
+(str "A" {:abc "val"} "Z")
+;=>"A{:abc val}Z"
+
+(str true "." false "." nil "." :keyw "." 'symb)
+;=>"true.false.nil.:keyw.symb"
+
+(pr-str "A" {:abc "val"} "Z")
+;=>"\"A\" {:abc \"val\"} \"Z\""
+
+(pr-str true "." false "." nil "." :keyw "." 'symb)
+;=>"true \".\" false \".\" nil \".\" :keyw \".\" symb"
+
+(def! s (str {:abc "val1" :def "val2"}))
+(cond (= s "{:abc val1 :def val2}") true (= s "{:def val2 :abc val1}") true)
+;=>true
+
+(def! p (pr-str {:abc "val1" :def "val2"}))
+(cond (= p "{:abc \"val1\" :def \"val2\"}") true (= p "{:def \"val2\" :abc \"val1\"}") true)
+;=>true
+
+;;
+;; Test extra function arguments as Mal List (bypassing TCO with apply)
+(apply (fn* (& more) (list? more)) [1 2 3])
+;=>true
+(apply (fn* (& more) (list? more)) [])
+;=>true
+(apply (fn* (a & more) (list? more)) [1])
+;=>true
+
+;>>> soft=True
+;>>> optional=True
+;;
+;; ------- Optional Functionality --------------
+;; ------- (Not needed for self-hosting) -------
+
+
+;;;TODO: fix so long lines don't trigger ANSI escape codes ;;;(try*
+;;;(try* (throw ["data" "foo"]) (catch* exc (do (prn "exc is:" exc) 7))) ;;;;
+;;;; "exc is:" ["data" "foo"] ;;;;=>7
+;;;;=>7
+
+;;
+;; Testing try* without catch*
+(try* xyz)
+;/.*\'?xyz\'? not found.*
+
+;;
+;; Testing throwing non-strings
+(try* (throw (list 1 2 3)) (catch* exc (do (prn "err:" exc) 7)))
+;/"err:" \(1 2 3\)
+;=>7
+
+;;
+;; Testing dissoc
+(def! hm3 (assoc hm2 "b" 2))
+(count (keys hm3))
+;=>2
+(count (vals hm3))
+;=>2
+(dissoc hm3 "a")
+;=>{"b" 2}
+(dissoc hm3 "a" "b")
+;=>{}
+(dissoc hm3 "a" "b" "c")
+;=>{}
+(count (keys hm3))
+;=>2
+
+(dissoc {:cde 345 :fgh 456} :cde)
+;=>{:fgh 456}
+(dissoc {:cde nil :fgh 456} :cde)
+;=>{:fgh 456}
+
+;;
+;; Testing equality of hash-maps
+(= {} {})
+;=>true
+(= {:a 11 :b 22} (hash-map :b 22 :a 11))
+;=>true
+(= {:a 11 :b [22 33]} (hash-map :b [22 33] :a 11))
+;=>true
+(= {:a 11 :b {:c 33}} (hash-map :b {:c 33} :a 11))
+;=>true
+(= {:a 11 :b 22} (hash-map :b 23 :a 11))
+;=>false
+(= {:a 11 :b 22} (hash-map :a 11))
+;=>false
+(= {:a [11 22]} {:a (list 11 22)})
+;=>true
+(= {:a 11 :b 22} (list :a 11 :b 22))
+;=>false
+(= {} [])
+;=>false
+(= [] {})
+;=>false
+
+(keyword :abc)
+;=>:abc
+(keyword? (first (keys {":abc" 123 ":def" 456})))
+;=>false

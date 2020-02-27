@@ -1,0 +1,56 @@
+(module $platform_direct
+
+  (import "env" "memory" (memory 256))
+  (import "env" "memoryBase" (global $memoryBase i32))
+
+  (import "env" "exit"        (func $lib_exit (param i32)))
+  (import "env" "printline"   (func $lib_printline (param i32) (result i32)))
+  (import "env" "readline"    (func $lib_readline (param i32 i32 i32) (result i32)))
+  (import "env" "read_file"   (func $lib_read_file (param i32 i32) (result i32)))
+  (import "env" "get_time_ms" (func $lib_get_time_ms (result i32)))
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  (func $fatal (param $code i32 $msg i32)
+    ($print $msg)
+    ($lib_exit $code)
+  )
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  (func $print (param $addr i32)
+    (drop ($lib_printline $addr))
+  )
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  (func $readline (param $prompt i32 $buf i32) (result i32)
+    ;; TODO: don't hardcode count to 200
+    ($lib_readline $prompt $buf 200)
+  )
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  (func $read_file (param $path i32 $buf i32) (result i32)
+    (LET $size ($lib_read_file $path $buf))
+    ;; Add null to string
+    (i32.store8 (i32.add $buf $size) 0)
+    (i32.add $size 1)
+  )
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  (func $get_time_ms (result i32)
+    ($lib_get_time_ms)
+  )
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  (func $entry (param $argc i32 $argv i32)
+    ($init_memory)
+    ($lib_exit ($main $argc $argv))
+  )
+
+  (export "_main" (func $entry))
+
+)

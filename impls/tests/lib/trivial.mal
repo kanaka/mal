@@ -1,0 +1,16 @@
+(load-file      "../lib/load-file-once.mal")
+(load-file-once "../lib/trivial.mal")
+;=>nil
+
+(inc 12)
+;=>13
+(dec 12)
+;=>11
+(zero? 12)
+;=>false
+(zero? 0)
+;=>true
+(identity 12)
+;=>12
+(= (gensym) (gensym))
+;=>false

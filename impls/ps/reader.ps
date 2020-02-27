@@ -1,0 +1,280 @@
+% requires types.ps to be included first
+
+/token_delim (;,"` \n{}\(\)[]) def
+/token_number (0123456789-) def
+
+% read_number: read a single number from string/idx
+% string idx -> read_number -> number string new_idx
+/read_number { 5 dict begin
+    %(in read_number\n) print
+    /idx exch def
+    /str exch def
+    /start idx def
+    /cnt 0 def
+    { % loop
+        idx str length ge { exit } if % EOF, break loop
+        /ch str idx get def  % current character
+        ch 48 ge ch 57 le and 45 ch eq or { %if number
+            /cnt cnt 1 add def
+        }{ % else
+            exit
+        } ifelse
+        /idx idx 1 add def % increment idx
+    } loop
+
+    str start cnt getinterval cvi % the matched number
+    str idx % return: number string new_idx
+end } def
+
+
+% read_symbol: read a single symbol from string/idx
+% string idx -> read_symbol -> name string new_idx
+/read_symbol { 5 dict begin
+    %(in read_symbol\n) print
+    /idx exch def
+    /str exch def
+    /start idx def
+    /cnt 0 def
+    { % loop
+        idx str length ge { exit } if % EOF, break loop
+        /ch str idx 1 getinterval def
+        token_delim ch search { % if token delimeter
+            pop pop pop exit
+        }{ % else not a delim
+            pop
+            /cnt cnt 1 add def
+        } ifelse
+        /idx idx 1 add def % increment idx
+    } loop
+
+    str start cnt getinterval cvn % the matched symbol
+    str idx % return: symbol string new_idx
+end } def
+
+
+% read_keyword: read a single keyword from string/idx
+% string idx -> read_keyword -> name string new_idx
+/read_keyword { 5 dict begin
+    %(in read_keyword\n) print
+    /idx exch def
+    /str exch def
+    /start idx def
+    /cnt 0 def
+    { % loop
+        idx str length ge { exit } if % EOF, break loop
+        /ch str idx 1 getinterval def
+        token_delim ch search { % if token delimeter
+            pop pop pop exit
+        }{ % else not a delim
+            pop
+            /cnt cnt 1 add def
+        } ifelse
+        /idx idx 1 add def % increment idx
+    } loop
+
+    str start cnt getinterval % the matched keyword string
+    dup 0 127 put % TODO: something like (\x029e) would be better
+    str idx % return: keyword string new_idx
+end } def
+
+
+% read_string: read a single string from string/idx
+% string idx -> read_string -> new_string string new_idx
+/read_string { 5 dict begin
+    %(in read_string\n) print
+    /idx exch 1 add def
+    /str exch def
+    /start idx def
+    /cnt 0 def
+    { % loop
+        idx str length ge { %if EOF
+            (unexpected EOF reading string) _throw
+        } if
+        /ch str idx get def  % current character
+        /idx idx 1 add def
+        ch 92 eq { % if \
+            /idx idx 1 add def
+            /cnt cnt 1 add def % 1 more below
+        } if
+        ch 34 eq { exit } if % '"' is end of string
+        /cnt cnt 1 add def
+    } loop
+    str start cnt getinterval % the matched string
+    (\\\\) (\177) replace
+    (\\")  (") replace
+    (\\n)  (\n) replace
+    (\177) (\\) replace
+    str idx % return: new_string string new_idx
+end } def
+
+
+% read_atom: read a single atom from string/idx
+% string idx -> read_atom -> int string new_idx
+/read_atom { 4 dict begin
+    %(in read_atom\n) print
+    /idx exch def
+    /str exch def
+    str length idx le { % ifelse
+        exit % EOF
+    }{
+        /ch str idx get def  % current character
+        str length idx 1 add le {
+            /nextch 0 def
+        }{
+            /nextch str idx 1 add get def  % next character
+        } ifelse
+        ch 48 ge ch 57 le and { %if digit (number)
+            str idx read_number
+        }{ ch 45 eq nextch 48 ge nextch 57 le and and { %elseif minus and digit
+            str idx read_number
+        }{ ch 34 eq { %elseif double-quote (string)
+            str idx read_string
+        }{ ch 58 eq { %elseif colon (keyword)
+            str idx read_keyword
+        }{
+            str idx read_symbol
+            /idx exch def pop
+            dup /nil eq { %if nil
+                pop null str idx
+            }{ dup /true eq { %elseif true
+                pop true str idx
+            }{ dup /false eq { %elseif false
+                pop false str idx
+            }{ %else
+                str idx % return the original symbol/name
+            } ifelse } ifelse } ifelse
+        } ifelse } ifelse } ifelse } ifelse
+    }ifelse
+
+    % return: atom string new_idx
+end } def
+
+% read_until: read a list from string/idx until stopchar is found
+% string idx stopchar -> read_until -> list string new_idx
+/read_until { 3 dict begin
+    %(in read_until\n) print
+    /stopchar exch def
+    /idx exch 1 add def
+    /str exch def
+    [
+    { % loop
+        str idx read_spaces /idx exch def pop
+        str length idx le { %if EOF
+            (unexpected EOF reading list) _throw
+        } if
+        /ch str idx get def  % current character
+        ch stopchar eq { exit } if % stop at stopchar
+        str idx read_form /idx exch def pop
+    } loop
+    ]
+    str idx 1 add
+end } def
+
+% read_spaces: advance idx to the first non-whitespace
+% string idx -> read_form -> string new_idx
+/read_spaces { 3 dict begin
+    %(in read_spaces\n) print
+    /idx exch def
+    /str exch def
+    { % loop
+        str length idx le { exit } if % EOF, break loop
+        /ch str idx get def  % current character
+        %(left1.1:) print str idx str length idx sub getinterval print (\n) print
+        % eliminate comments
+        ch 59 eq { %if ';'
+            { % loop
+                /idx idx 1 add def % increment idx
+                str length idx le { exit } if % EOF, break loop
+                /ch str idx get def  % current character
+                %(left1.2:) print str idx str length idx sub getinterval print (\n) print
+                % if newline then we are done
+                ch 10 eq { exit } if
+            } loop
+            /idx idx 1 add def
+            str length idx le { exit } if % EOF, break loop
+            /ch str idx get def  % current character
+        } if
+        % if not whitespace then exit
+        ch 32 ne ch 10 ne ch 44 ne ch 59 ne and and and { exit } if
+        /idx idx 1 add def % increment idx
+    } loop
+
+    %(left1.3:) print str idx str length idx sub getinterval print (\n) print
+    str idx % return: string new_idx
+end } def
+
+% read_form: read the next form from string start at idx
+% string idx -> read_form -> ast string new_idx
+/read_form { 3 dict begin
+    %(in read_form\n) print
+    read_spaces
+    /idx exch def
+    /str exch def
+
+    %idx str length ge { (unexpected EOF) _throw } if % EOF
+    idx str length ge { null str idx }{ %if EOF
+
+    /ch str idx get def  % current character
+    %(LEFT2.1:) print str idx str length idx sub getinterval print (\n) print
+    ch 39 eq { %if '\''
+        /idx idx 1 add def
+        str idx read_form
+        3 -1 roll   /quote exch 2 _list   3 1 roll
+    }{ ch 96 eq { %if '`'
+        /idx idx 1 add def
+        str idx read_form
+        3 -1 roll   /quasiquote exch 2 _list   3 1 roll
+    }{ ch 126 eq { %if '~'
+        /idx idx 1 add def
+        /ch str idx get def  % current character
+        ch 64 eq { %if '~@'
+            /idx idx 1 add def
+            str idx read_form
+            3 -1 roll   /splice-unquote exch 2 _list   3 1 roll
+        }{ %else just '~'
+            str idx read_form
+            3 -1 roll   /unquote exch 2 _list   3 1 roll
+        } ifelse
+    }{ ch 94 eq { %if '^'
+        /idx idx 1 add def
+        str idx read_form read_form % stack: meta form str idx
+        4 2 roll exch   /with-meta 3 1 roll 3 _list   3 1 roll
+    }{ ch 64 eq { %if '@'
+        /idx idx 1 add def
+        str idx read_form
+        3 -1 roll   /deref exch 2 _list   3 1 roll
+    }{ ch 40 eq { %if '('
+        str idx 41 read_until dup /idx exch def
+        %(LEFT2.2:) print str idx str length idx sub getinterval print (\n) print
+        3 -1 roll   _list_from_array   3 1 roll
+        %(LEFT2.3:) print str idx str length idx sub getinterval print (\n) print
+    }{ ch 41 eq { %elseif ')'
+        (unexpected '\)') _throw
+    }{ ch 91 eq { %if '['
+        str idx 93 read_until dup /idx exch def
+        %(LEFT2.4:) print str idx str length idx sub getinterval print (\n) print
+        3 -1 roll   _vector_from_array   3 1 roll
+    }{ ch 93 eq { %elseif ']'
+        (unexpected ']') _throw
+    }{ ch 123 eq { %elseif '{'
+        str idx 125 read_until dup /idx exch def
+        3 -1 roll   _hash_map_from_array   3 1 roll
+    }{ ch 125 eq { %elseif '}'
+        (unexpected '}') _throw
+    }{ % else
+        str idx read_atom
+    } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse
+
+    } ifelse % not EOF
+
+    % return: ast string new_idx
+end } def
+
+% string -> read_str -> ast
+/read_str {
+    %(in read_str\n) print
+    0  % current index into the string
+    read_form
+
+    pop pop  % drop the string, idx. return: ast
+} def
