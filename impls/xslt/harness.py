@@ -42,7 +42,8 @@ def serve_one_request():
             req = xtree
             if req is not None:
                 if req.attrib['kind'] == 'readline':
-                    x = input(req.attrib['value'])
+                    stdout.write(req.attrib['value'])
+                    x = input()
                     with open('xsl_input-string', 'w') as fx:
                         fx.write(x)
                     # stdout.write(' = ' + x)

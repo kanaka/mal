@@ -190,13 +190,199 @@
       <xsl:param name="args" />
       <xsl:param name="env" />
 
+      <xsl:variable name="atoms" select="atoms"></xsl:variable>
+
       <xsl:variable name="res">
         <xsl:choose>
           <xsl:when test="$func/malval/@kind = 'userfunction'">
             <xsl:call-template name="uapply"><xsl:with-param name="func" select="$func"/><xsl:with-param name="args" select="$args"/><xsl:with-param name="env" select="$env"/></xsl:call-template>
           </xsl:when>
           <xsl:otherwise>
-            <xsl:call-template name="core-apply"><xsl:with-param name="func" select="$func"/><xsl:with-param name="args" select="$args"/></xsl:call-template>
+            <xsl:choose>
+              <xsl:when test="$func/malval/@name = 'env??'"> <!-- needs access to env -->
+                <xsl:variable name="nev" select="env:dump($env)"></xsl:variable>
+                <xsl:variable name="value">
+                  <malval kind="string" value="{$env => serialize(map{'method':'json'})}"/>
+                </xsl:variable>
+                <value>
+                  <xsl:sequence select="$value"/>
+                </value>
+                <env data="{env:serialise($env)}"/>
+                <xsl:sequence select="$value/atoms[1]"/>
+              </xsl:when>
+              <xsl:when test="$func/malval/@name = 'eval'"> <!-- needs access to env -->
+                <xsl:variable name="venv" select="env:replEnv($env) => env:wrapReplEnv()"></xsl:variable>
+                <xsl:variable name="form">
+                  <value>
+                    <xsl:sequence select="$args/value/malval/lvalue/malval[1]"/>
+                  </value>
+                  <xsl:sequence select="$atoms"/>
+                </xsl:variable>
+                <xsl:variable name="value">
+                  <xsl:for-each select="$form">
+                    <xsl:call-template name="EVAL"><xsl:with-param name="env" select="$venv"/></xsl:call-template>
+                  </xsl:for-each>
+                </xsl:variable>
+                <xsl:sequence select="$value/data/value"/>
+                <env data="{env:serialise(env:swap-replEnv($env, env:deserialise($value/env/@data) => env:collapseReplEnv()))}"/>
+                <xsl:sequence select="$value/atoms[1]"/>
+              </xsl:when>
+              <xsl:when test="$func/malval/@name = 'atom'"> <!-- needs access to atoms -->
+                <xsl:variable name="atom-ident" select="count($atoms/atom)"></xsl:variable>
+                <value>
+                  <malval kind="atom" value="{$atom-ident}"/>
+                </value>
+                <atoms>
+                  <xsl:for-each select="$atoms/atom">
+                    <xsl:sequence select="."/>
+                  </xsl:for-each>
+                  <atom identity="{$atom-ident}">
+                    <xsl:sequence select="$args/value/malval/lvalue/malval[1]"/>
+                  </atom>
+                </atoms>
+              </xsl:when>
+              <xsl:when test="$func/malval/@name = 'deref'"> <!-- needs access to atoms -->
+                <value>
+                  <xsl:sequence select="$atoms/atom[@identity = $args/value/malval/lvalue/malval[1]/@value]/malval"/>
+                </value>
+                <xsl:sequence select="$atoms"/>
+              </xsl:when>
+              <xsl:when test="$func/malval/@name = 'reset!'"> <!-- needs access to atoms -->
+                <xsl:variable name="atom-ident" select="$args/value/malval/lvalue/malval[1]/@value"></xsl:variable>
+                <xsl:variable name="newv" select="$args/value/malval/lvalue/malval[2]"></xsl:variable>
+                <value>
+                  <xsl:sequence select="$newv"/>
+                </value>
+                <atoms>
+                  <xsl:for-each select="$atoms/atom[@identity != $atom-ident]">
+                    <xsl:sequence select="."/>
+                  </xsl:for-each>
+                  <atom identity="{$atom-ident}">
+                    <xsl:sequence select="$newv"/>
+                  </atom>
+                </atoms>
+              </xsl:when>
+              <xsl:when test="$func/malval/@name = 'swap!'"> <!-- needs access to atoms -->
+                <xsl:variable name="atom-ident" select="$args/value/malval/lvalue/malval[1]/@value"></xsl:variable>
+                <xsl:variable name="atom-value" select="$atoms/atom[@identity = $atom-ident]/malval"></xsl:variable>
+                <xsl:variable name="fn">
+                  <xsl:sequence select="$args/value/malval/lvalue/malval[2]" />
+                </xsl:variable>
+                <xsl:variable name="cargs">
+                  <value>
+                    <malval kind="list">
+                      <lvalue>
+                        <xsl:sequence select="$atom-value"/>
+                        <xsl:sequence select="$args/value/malval/lvalue/malval[position() > 2]"/>
+                      </lvalue>
+                    </malval>
+                  </value>
+                </xsl:variable>
+                <xsl:variable name="newv">
+                  <xsl:call-template name="call-function"><xsl:with-param name="func" select="$fn"/><xsl:with-param name="args" select="$cargs"/><xsl:with-param name="env" select="$env"/></xsl:call-template>
+                </xsl:variable>
+                <xsl:sequence select="$newv/value"/>
+                <atoms>
+                  <xsl:for-each select="$newv/atoms[1]/atom[@identity != $atom-ident]">
+                    <xsl:sequence select="."/>
+                  </xsl:for-each>
+                  <atom identity="{$atom-ident}">
+                    <xsl:sequence select="$newv/value/malval"/>
+                  </atom>
+                </atoms>
+                <xsl:sequence select="$newv/env"/>
+              </xsl:when>
+              <xsl:when test="$func/malval/@name = 'apply'"> <!-- needs access to env -->
+                <!-- (apply F A... T) -> (F A... T...) -->
+                <xsl:variable name="fun">
+                  <xsl:sequence select="$args/value/malval/lvalue/malval[1]"/>
+                </xsl:variable>
+                <xsl:variable name="args">
+                  <value>
+                    <malval kind="list">
+                      <lvalue>
+                        <xsl:variable name="argc" select="count($args/value/malval/lvalue/malval)"></xsl:variable>
+                        <xsl:sequence select="$args/value/malval/lvalue/malval[position() gt 1 and position() lt $argc]"/>
+                        <xsl:sequence select="$args/value/malval/lvalue/malval[$argc]/lvalue/malval"/>
+                      </lvalue>
+                    </malval>
+                  </value>
+                </xsl:variable>
+                <xsl:variable name="ctx">
+                  <xsl:sequence select="./*"/>
+                  <xsl:sequence select="$atoms"/>
+                </xsl:variable>
+                <xsl:message>
+                  <xsl:sequence select="$fun"/>
+                </xsl:message>
+                <xsl:variable name="res">
+                  <xsl:for-each select="$ctx">
+                    <xsl:call-template name="call-function"><xsl:with-param name="func" select="$fun"/><xsl:with-param name="args" select="$args"/><xsl:with-param name="env" select="$env"/></xsl:call-template>
+                  </xsl:for-each>
+                </xsl:variable>
+                <xsl:sequence select="$res/value"/>
+                <xsl:sequence select="$res/env"/>
+                <xsl:sequence select="$res/atoms[1]"/>
+              </xsl:when>
+              <xsl:when test="$func/malval/@name = 'map'"> <!-- needs access to env -->
+                <!-- (map F T) -> (list (F Tx)...) -->
+                <xsl:variable name="func">
+                  <xsl:sequence select="$args/value/malval/lvalue/malval[1]"/>
+                </xsl:variable>
+                <xsl:iterate select="$args/value/malval/lvalue/malval[2]/lvalue/malval">
+                  <xsl:param name="xenv" select="$env"/>
+                  <xsl:param name="atoms" select="$atoms"/>
+                  <xsl:param name="value" select="()"/>
+                  <xsl:on-completion>
+                    <value>
+                      <malval kind="list">
+                        <lvalue>
+                          <xsl:sequence select="$value"/>
+                        </lvalue>
+                      </malval>
+                    </value>
+                    <env data="{$env => env:serialise()}"/>
+                    <xsl:sequence select="$atoms"/>
+                  </xsl:on-completion>
+                  <xsl:variable name="args">
+                    <value>
+                      <malval kind="list">
+                        <lvalue>
+                          <xsl:sequence select="."/>
+                        </lvalue>
+                      </malval>
+                    </value>
+                  </xsl:variable>
+                  <xsl:variable name="ctx">
+                    <xsl:sequence select="./*"/>
+                    <xsl:sequence select="$atoms"/>
+                  </xsl:variable>
+                  <xsl:variable name="res">
+                    <xsl:for-each select="$ctx">
+                      <xsl:call-template name="call-function"><xsl:with-param name="func" select="$func"/><xsl:with-param name="args" select="$args"/><xsl:with-param name="env" select="$xenv"/></xsl:call-template>
+                    </xsl:for-each>
+                  </xsl:variable>
+                  <xsl:next-iteration>
+                    <xsl:with-param name="xenv" select="env:deserialise($res/env/@data)"/>
+                    <xsl:with-param name="atoms" select="$res/atoms[1]"/>
+                    <xsl:with-param name="value" select="$value, $res/value/malval"/>
+                  </xsl:next-iteration>
+                </xsl:iterate>
+              </xsl:when>
+              <xsl:when test="$func/malval/@name = 'readline'"> <!-- requires interaction with harness -->
+                <xsl:message>
+                  <request kind="readline" value="{$args/value/malval/lvalue/malval[1]/@value}"/>
+                </xsl:message>
+                <xsl:variable name="str" select="unparsed-text('xsl_input-string')"></xsl:variable>
+                <xsl:sequence select="core:makeMALType($str, if (string-length($str) = 0) then 'nil' else 'string')"/>
+                <xsl:sequence select="env"/>
+                <xsl:sequence select="$atoms"/>
+              </xsl:when>
+              <xsl:otherwise>
+                <xsl:call-template name="core-apply"><xsl:with-param name="func" select="$func"/><xsl:with-param name="args" select="$args"/></xsl:call-template>
+                <xsl:sequence select="$atoms"/>
+              </xsl:otherwise>
+            </xsl:choose>
           </xsl:otherwise>
         </xsl:choose>
       </xsl:variable>
@@ -334,7 +520,7 @@ UAPPLY <xsl:sequence select="core:pr-str($func/malval/body/malval)/value/text()"
       <xsl:param name="env" />
       <!-- <xsl:message>
 
-EVALUATE <xsl:sequence select="core:pr-str(value/malval)/value/text()"/> IN (<xsl:sequence select="empty($env('replEnv'))"/>) ENV <xsl:sequence select="$env"/>
+EVALUATE <xsl:sequence select="core:pr-str(value/malval)/value/text()"/> IN (<xsl:sequence select="empty(atoms)"/>) ATOMS <xsl:sequence select="atoms"/>
 
 </xsl:message> -->
       <xsl:variable name="atoms" select="atoms[1]"></xsl:variable>
@@ -665,189 +851,7 @@ EVALUATE <xsl:sequence select="core:pr-str(value/malval)/value/text()"/> IN (<xs
                         </xsl:for-each>
                       </xsl:variable>
                       <xsl:variable name="resultv">
-                        <xsl:choose>
-                          <xsl:when test="$func/malval/@kind = 'userfunction'">
-                            <xsl:call-template name="uapply"><xsl:with-param name="env" select="$env"/><xsl:with-param name="func" select="$func"/><xsl:with-param name="args" select="$args"/></xsl:call-template>
-                          </xsl:when>
-                          <xsl:otherwise>
-                            <xsl:choose>
-                              <xsl:when test="$func/malval/@name = 'env??'"> <!-- needs access to env -->
-                                <xsl:variable name="nev" select="env:dump($env)"></xsl:variable>
-                                <xsl:variable name="value">
-                                  <malval kind="string" value="{$env => serialize(map{'method':'json'})}"/>
-                                </xsl:variable>
-                                <value>
-                                  <xsl:sequence select="$value"/>
-                                </value>
-                                <env data="{env:serialise($env)}"/>
-                                <xsl:sequence select="$value/atoms[1]"/>
-                              </xsl:when>
-                              <xsl:when test="$func/malval/@name = 'eval'"> <!-- needs access to env -->
-                                <xsl:variable name="venv" select="env:replEnv($env) => env:wrapReplEnv()"></xsl:variable>
-                                <!-- <xsl:message>
-EVAL_FUNCTION ENV <xsl:sequence select="$venv"/>
-                                </xsl:message> -->
-                                <xsl:variable name="form">
-                                  <value>
-                                    <xsl:sequence select="$args/value/malval/lvalue/malval[1]"/>
-                                  </value>
-                                  <xsl:sequence select="$atoms"/>
-                                </xsl:variable>
-                                <xsl:variable name="value">
-                                  <xsl:for-each select="$form">
-                                    <xsl:call-template name="EVAL"><xsl:with-param name="env" select="$venv"/></xsl:call-template>
-                                  </xsl:for-each>
-                                </xsl:variable>
-                                <xsl:sequence select="$value/data/value"/>
-                                <env data="{env:serialise(env:swap-replEnv($env, env:deserialise($value/env/@data) => env:collapseReplEnv()))}"/>
-                                <!-- <xsl:message>
-ENV IS <xsl:sequence select="$value/env/@data => env:deserialise()"/>
-                                </xsl:message> -->
-                                <xsl:sequence select="$value/atoms[1]"/>
-                              </xsl:when>
-                              <xsl:when test="$func/malval/@name = 'atom'"> <!-- needs access to atoms -->
-                                <xsl:variable name="atom-ident" select="count($atoms/atom)"></xsl:variable>
-                                <value>
-                                  <malval kind="atom" value="{$atom-ident}"/>
-                                </value>
-                                <atoms>
-                                  <xsl:for-each select="$atoms/atom">
-                                    <xsl:sequence select="."/>
-                                  </xsl:for-each>
-                                  <atom identity="{$atom-ident}">
-                                    <xsl:sequence select="$args/value/malval/lvalue/malval[1]"/>
-                                  </atom>
-                                </atoms>
-                              </xsl:when>
-                              <xsl:when test="$func/malval/@name = 'deref'"> <!-- needs access to atoms -->
-                                <value>
-                                  <xsl:sequence select="$atoms/atom[@identity = $args/value/malval/lvalue/malval[1]/@value]/malval"/>
-                                </value>
-                                <xsl:sequence select="$atoms"/>
-                              </xsl:when>
-                              <xsl:when test="$func/malval/@name = 'reset!'"> <!-- needs access to atoms -->
-                                <xsl:variable name="atom-ident" select="$args/value/malval/lvalue/malval[1]/@value"></xsl:variable>
-                                <xsl:variable name="newv" select="$args/value/malval/lvalue/malval[2]"></xsl:variable>
-                                <value>
-                                  <xsl:sequence select="$newv"/>
-                                </value>
-                                <atoms>
-                                  <xsl:for-each select="$atoms/atom[@identity != $atom-ident]">
-                                    <xsl:sequence select="."/>
-                                  </xsl:for-each>
-                                  <atom identity="{$atom-ident}">
-                                    <xsl:sequence select="$newv"/>
-                                  </atom>
-                                </atoms>
-                              </xsl:when>
-                              <xsl:when test="$func/malval/@name = 'swap!'"> <!-- needs access to atoms -->
-                                <xsl:variable name="atom-ident" select="$args/value/malval/lvalue/malval[1]/@value"></xsl:variable>
-                                <xsl:variable name="atom-value" select="$atoms/atom[@identity = $atom-ident]/malval"></xsl:variable>
-                                <xsl:variable name="fn">
-                                  <xsl:sequence select="$args/value/malval/lvalue/malval[2]" />
-                                </xsl:variable>
-                                <xsl:variable name="cargs">
-                                  <value>
-                                    <malval kind="list">
-                                      <lvalue>
-                                        <xsl:sequence select="$atom-value"/>
-                                        <xsl:sequence select="$args/value/malval/lvalue/malval[position() > 2]"/>
-                                      </lvalue>
-                                    </malval>
-                                  </value>
-                                </xsl:variable>
-                                <xsl:variable name="newv">
-                                  <xsl:call-template name="call-function"><xsl:with-param name="func" select="$fn"/><xsl:with-param name="args" select="$cargs"/><xsl:with-param name="env" select="$env"/></xsl:call-template>
-                                </xsl:variable>
-                                <xsl:sequence select="$newv/value"/>
-                                <atoms>
-                                  <xsl:for-each select="$newv/atoms[1]/atom[@identity != $atom-ident]">
-                                    <xsl:sequence select="."/>
-                                  </xsl:for-each>
-                                  <atom identity="{$atom-ident}">
-                                    <xsl:sequence select="$newv/value/malval"/>
-                                  </atom>
-                                </atoms>
-                                <xsl:sequence select="$newv/env"/>
-                              </xsl:when>
-                              <xsl:when test="$func/malval/@name = 'apply'"> <!-- needs access to env -->
-                                <!-- (apply F A... T) -> (F A... T...) -->
-                                <xsl:variable name="fun">
-                                  <xsl:sequence select="$args/value/malval/lvalue/malval[1]"/>
-                                </xsl:variable>
-                                <xsl:variable name="args">
-                                  <value>
-                                    <malval kind="list">
-                                      <lvalue>
-                                        <xsl:variable name="argc" select="count($args/value/malval/lvalue/malval)"></xsl:variable>
-                                        <xsl:sequence select="$args/value/malval/lvalue/malval[position() gt 1 and position() lt $argc]"/>
-                                        <xsl:sequence select="$args/value/malval/lvalue/malval[$argc]/lvalue/malval"/>
-                                      </lvalue>
-                                    </malval>
-                                  </value>
-                                </xsl:variable>
-                                <xsl:variable name="res">
-                                  <xsl:call-template name="call-function"><xsl:with-param name="func" select="$fun"/><xsl:with-param name="args" select="$args"/><xsl:with-param name="env" select="$env"/></xsl:call-template>
-                                </xsl:variable>
-                                <xsl:sequence select="$res/value"/>
-                                <xsl:sequence select="$res/env"/>
-                                <xsl:sequence select="$res/atoms[1]"/>
-                              </xsl:when>
-                              <xsl:when test="$func/malval/@name = 'map'"> <!-- needs access to env -->
-                                <!-- (map F T) -> (list (F Tx)...) -->
-                                <xsl:variable name="func">
-                                  <xsl:sequence select="$args/value/malval/lvalue/malval[1]"/>
-                                </xsl:variable>
-                                <xsl:iterate select="$args/value/malval/lvalue/malval[2]/lvalue/malval">
-                                  <xsl:param name="xenv" select="$env"/>
-                                  <xsl:param name="atoms" select="$atoms"/>
-                                  <xsl:param name="value" select="()"/>
-                                  <xsl:on-completion>
-                                    <value>
-                                      <malval kind="list">
-                                        <lvalue>
-                                          <xsl:sequence select="$value"/>
-                                        </lvalue>
-                                      </malval>
-                                    </value>
-                                    <env data="{$env => env:serialise()}"/>
-                                    <xsl:sequence select="$atoms"/>
-                                  </xsl:on-completion>
-                                  <xsl:variable name="args">
-                                    <value>
-                                      <malval kind="list">
-                                        <lvalue>
-                                          <xsl:sequence select="."/>
-                                        </lvalue>
-                                      </malval>
-                                    </value>
-                                  </xsl:variable>
-                                  <xsl:variable name="res">
-                                    <xsl:call-template name="call-function"><xsl:with-param name="func" select="$func"/><xsl:with-param name="args" select="$args"/><xsl:with-param name="env" select="$xenv"/></xsl:call-template>
-                                  </xsl:variable>
-                                  <xsl:next-iteration>
-                                    <xsl:with-param name="xenv" select="env:deserialise($res/env/@data)"/>
-                                    <xsl:with-param name="atoms" select="$res/atoms[1]"/>
-                                    <xsl:with-param name="value" select="$value, $res/value/malval"/>
-                                  </xsl:next-iteration>
-                                </xsl:iterate>
-                              </xsl:when>
-                              <xsl:when test="$func/malval/@name = 'readline'"> <!-- requires interaction with harness -->
-                                <xsl:message>
-                                  <request kind="readline" value="{$args/value/malval/lvalue/malval[1]/@value}"/>
-                                </xsl:message>
-                                <xsl:variable name="str" select="unparsed-text('xsl_input-string')"></xsl:variable>
-                                <xsl:sequence select="core:makeMALType($str, if (string-length($str) = 0) then 'nil' else 'string')"/>
-                                <xsl:sequence select="env"/>
-                                <xsl:sequence select="$atoms"/>
-                              </xsl:when>
-                              <xsl:otherwise>
-                                <xsl:call-template name="core-apply"><xsl:with-param name="func" select="$func"/><xsl:with-param name="args" select="$args"/></xsl:call-template>
-                                <xsl:sequence select="$atoms"/>
-                              </xsl:otherwise>
-                            </xsl:choose>
-                          </xsl:otherwise>
-                        </xsl:choose>
+                        <xsl:call-template name="call-function"><xsl:with-param name="env" select="$env"/><xsl:with-param name="func" select="$func"/><xsl:with-param name="args" select="$args"/></xsl:call-template>
                       </xsl:variable>
                       <xsl:for-each select="$resultv">
                         <xsl:choose>
@@ -874,12 +878,13 @@ ENV IS <xsl:sequence select="$value/env/@data => env:deserialise()"/>
           </xsl:otherwise>
         </xsl:choose>
       </xsl:variable>
+      <xsl:variable name="new-atoms" select="($data/atoms[1], $atoms)[1]"></xsl:variable>
       <!-- <xsl:message>
-EVALUATED (<xsl:sequence select="empty($data/env/@data => env:deserialise() => env:replEnv())"/>) <xsl:sequence select="core:pr-str(value/malval)/value/text()"/> TO <xsl:sequence select="core:pr-str($data/value/malval)/value/text()"/> WITH ATOMS <xsl:sequence select="$data/atoms"/>
+EVALUATED (<xsl:sequence select="empty($data/atoms)"/>) <xsl:sequence select="core:pr-str(value/malval)/value/text()"/> TO <xsl:sequence select="core:pr-str($data/value/malval)/value/text()"/> WITH ATOMS <xsl:sequence select="$new-atoms"/>
       </xsl:message> -->
       <data><xsl:sequence select="$data/value"/></data>
       <env data="{$data/env/@data}" />
-      <xsl:sequence select="$data/atoms[1]"/>
+      <xsl:sequence select="$new-atoms"/>
     </xsl:template>
 
     <xsl:template name="READ">

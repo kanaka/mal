@@ -454,7 +454,7 @@
               </value>
             </xsl:when>
             <xsl:otherwise>
-              <xsl:value-of select="error(QName('MAL', 'Error'), concat('Invalid function ', $func), core:makeMALValue(concat('Invalid function ', $func), 'string'))" />
+              <xsl:value-of select="error(QName('MAL', 'Error'), concat('Invalid function ', $func/malval/@name), core:makeMALValue(concat('Invalid function ', $func/malval/@name), 'string'))" />
             </xsl:otherwise>
           </xsl:choose>
         </xsl:when>
