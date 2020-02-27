@@ -87,7 +87,8 @@ def serve_requests():
         try:
             serve_one_request()
         except Exception as e:
-            print(e)
+            # print(e)
+            pass
 
 
 th = Thread(target=serve_requests)
@@ -104,8 +105,13 @@ def transform(do_print=True):
                 print('Error:', [x for x in lines if x.strip() != ''][-1], end='')
         return
     else:
-        with open('xsl_error.xml', 'r') as f:
-            print(f.read(), end='')
+        try:
+            with open('xsl_error.xml', 'r') as f:
+                print(f.read(), end='')
+        except:
+            # nothing interesting happened
+            # HOW?
+            pass
 
     tree = ET.parse('xslt_output.xml')
     if do_print:
@@ -143,7 +149,7 @@ else:
         for a in tree.iter('mal'):
             for a in a.iter('stdin'):
                 a.text = x
-        
+
         transform()
 
     readline.write_history_file('.xslt_mal_history')
