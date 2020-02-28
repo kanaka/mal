@@ -24,7 +24,6 @@ WORKDIR /mal
 RUN apt-get -y install python3.8 openjdk-8-jre
 RUN update-alternatives --install /usr/bin/python python /usr/bin/python3.8 10
 
-# grab jq 1.6 from github releases
 RUN curl https://repo1.maven.org/maven2/net/sf/saxon/Saxon-HE/9.9.1-6/Saxon-HE-9.9.1-6.jar -O
 
 RUN mv Saxon-HE-9.9.1-6.jar /bin/Saxon-HE-9.9.1-6.jar
