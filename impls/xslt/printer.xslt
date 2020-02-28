@@ -93,15 +93,15 @@
             </xsl:when>
             <xsl:when test="malval/@kind = 'function'">
                 <value>
-                    <xsl:variable name="gt">&gt;</xsl:variable>
-                    <xsl:variable name="lt">&lt;</xsl:variable>
+                    <xsl:variable name="gt">?</xsl:variable>
+                    <xsl:variable name="lt">?</xsl:variable>
                     <xsl:value-of select="concat('#', $lt, 'fn ', malval/@name, $gt)" />
                 </value>
             </xsl:when>
             <xsl:when test="malval/@kind = 'userfunction'">
                 <value>
-                    <xsl:variable name="gt">&gt;</xsl:variable>
-                    <xsl:variable name="lt">&lt;</xsl:variable>
+                    <xsl:variable name="gt">?</xsl:variable>
+                    <xsl:variable name="lt">?</xsl:variable>
                     <xsl:value-of select="concat('#', $lt, 'function', $gt)" />
                 </value>
             </xsl:when>
@@ -118,11 +118,11 @@
                   </xsl:for-each>
                 </xsl:variable>
                 <value>
-                    <xsl:value-of select="concat('(atom ', $inner/value, ')')" />
+                    <xsl:value-of select="concat('(atom ', (let $v := $inner/value return if ($v = 'Unknown') then concat('id=', string($val/@value), ' existing=', string-join(atoms/atom/@identity, ',')) else $v), ')')" />
                 </value>
             </xsl:when>
             <xsl:otherwise>
-                <value>Unknown <xsl:copy-of select="." /></value>
+                <value>Unknown</value>
             </xsl:otherwise>
             </xsl:choose>
         </xsl:for-each>

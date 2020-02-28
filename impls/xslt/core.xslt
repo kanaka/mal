@@ -70,6 +70,7 @@
     <xsl:template name="core-apply">
       <xsl:param name="func" />
       <xsl:param name="args" />
+      <xsl:variable name="atoms" select="atoms"></xsl:variable>
       <xsl:choose>
         <xsl:when test="$func/malval/@kind = 'function'">
           <xsl:choose>
@@ -97,6 +98,7 @@
                       <value>
                           <xsl:sequence select="."/>
                       </value>
+                      <xsl:sequence select="$atoms"/>
                     </xsl:variable>
                     <str>
                         <xsl:for-each select="$arg">
@@ -118,6 +120,7 @@
                       <value>
                           <xsl:sequence select="."/>
                       </value>
+                      <xsl:sequence select="$atoms"/>
                     </xsl:variable>
                     <str>
                         <xsl:for-each select="$arg">
@@ -136,6 +139,7 @@
                       <value>
                           <xsl:sequence select="."/>
                       </value>
+                      <xsl:sequence select="$atoms"/>
                     </xsl:variable>
                     <str>
                         <xsl:for-each select="$arg">
@@ -154,6 +158,7 @@
                       <value>
                           <xsl:sequence select="."/>
                       </value>
+                      <xsl:sequence select="$atoms"/>
                     </xsl:variable>
                     <str>
                         <xsl:for-each select="$arg">

@@ -104,83 +104,48 @@
             <xsl:sequence select="$val"/>
           </value>
         </xsl:when>
-        <xsl:when test="value/malval/@kind = 'list'">
-          <value>
-            <malval kind="list">
-              <lvalue>
-                <xsl:for-each select="value/malval/lvalue/malval">
-                  <xsl:variable name="ctx">
-                    <value>
-                      <xsl:sequence select="."/>
-                    </value>
-                    <xsl:sequence select="$atoms"/>
+        <xsl:when test="value/malval/@kind = 'list' or value/malval/@kind = 'vector' or value/malval/@kind = 'hash'">
+          <xsl:variable name="myctx">
+            <xsl:iterate select="value/malval/lvalue/malval">
+              <xsl:param name="atoms" select="$atoms"/>
+              <xsl:param name="xctx" select="()"/>
+              <xsl:on-completion>
+                <xsl:sequence select="$xctx/value/malval"/>
+                <xsl:sequence select="$atoms"/>
+              </xsl:on-completion>
+              <xsl:variable name="ctx">
+                <value>
+                  <xsl:sequence select="."/>
+                </value>
+                <xsl:sequence select="$atoms"/>
+              </xsl:variable>
+              <xsl:variable name="xctxy">
+                <xsl:for-each select="$ctx">
+                  <xsl:variable name="val">
+                    <xsl:call-template name="EVAL"><xsl:with-param name="env" select="$env"/></xsl:call-template>
                   </xsl:variable>
-                  <xsl:variable name="xctx">
-                    <xsl:for-each select="$ctx">
-                      <xsl:variable name="val">
-                        <xsl:call-template name="EVAL"><xsl:with-param name="env" select="$env"/></xsl:call-template>
-                      </xsl:variable>
-                      <xsl:sequence select="$val/data/value"/>
-                    </xsl:for-each>
-                  </xsl:variable>
-                  <xsl:sequence select="$xctx/value/malval"/>
+                  <xsl:sequence select="$val/data/value"/>
+                  <xsl:sequence select="$val/atoms"/>
                 </xsl:for-each>
+              </xsl:variable>
+              <xsl:next-iteration>
+                <xsl:with-param name="atoms" select="$xctxy/atoms"/>
+                <xsl:with-param name="xctx" select="$xctx, $xctxy"/>
+              </xsl:next-iteration>
+            </xsl:iterate>
+          </xsl:variable>
+          <value>
+            <malval kind="{value/malval/@kind}">
+              <lvalue>
+                <xsl:sequence select="$myctx/malval"/>
               </lvalue>
             </malval>
           </value>
-        </xsl:when>
-        <xsl:when test="value/malval/@kind = 'vector'">
-          <value>
-            <malval kind="vector">
-              <lvalue>
-                <xsl:for-each select="value/malval/lvalue/malval">
-                  <xsl:variable name="ctx">
-                    <value>
-                      <xsl:sequence select="."/>
-                    </value>
-                    <xsl:sequence select="$atoms"/>
-                  </xsl:variable>
-                  <xsl:variable name="xctx">
-                    <xsl:for-each select="$ctx">
-                      <xsl:variable name="val">
-                        <xsl:call-template name="EVAL"><xsl:with-param name="env" select="$env"/></xsl:call-template>
-                      </xsl:variable>
-                      <xsl:sequence select="$val/data/value"/>
-                    </xsl:for-each>
-                  </xsl:variable>
-                  <xsl:sequence select="$xctx/value/malval"/>
-                </xsl:for-each>
-              </lvalue>
-            </malval>
-          </value>
-        </xsl:when>
-        <xsl:when test="value/malval/@kind = 'hash'">
-          <value>
-            <malval kind="hash">
-              <lvalue>
-                <xsl:for-each select="value/malval/lvalue/malval">
-                  <xsl:variable name="ctx">
-                    <value>
-                      <xsl:sequence select="."/>
-                    </value>
-                    <xsl:sequence select="$atoms"/>
-                  </xsl:variable>
-                  <xsl:variable name="xctx">
-                    <xsl:for-each select="$ctx">
-                      <xsl:variable name="val">
-                        <xsl:call-template name="EVAL"><xsl:with-param name="env" select="$env"/></xsl:call-template>
-                      </xsl:variable>
-                      <xsl:sequence select="$val/data/value"/>
-                    </xsl:for-each>
-                  </xsl:variable>
-                  <xsl:sequence select="$xctx/value/malval"/>
-                </xsl:for-each>
-              </lvalue>
-            </malval>
-          </value>
-        </xsl:when>
-        <xsl:otherwise>
+          <xsl:sequence select="$myctx/atoms"/>
+      </xsl:when>
+      <xsl:otherwise>
           <xsl:sequence select="." />
+          <xsl:sequence select="$atoms"/>
         </xsl:otherwise>
       </xsl:choose>
     </xsl:template>
@@ -352,7 +317,7 @@
                       <xsl:for-each select="$ctx">
                         <xsl:call-template name="eval_ast"><xsl:with-param name="atoms" select="$atoms"/><xsl:with-param name="env" select="$env"/></xsl:call-template>
                         <env data="{env:serialise($env)}"/>
-                        <xsl:sequence select="$atoms"/>
+                        <!-- <xsl:sequence select="$atoms"/> -->
                       </xsl:for-each>
                     </xsl:when>
                     <xsl:when test="let $fn := value/malval/lvalue/malval[1] return $fn/@kind = 'symbol' and $fn/@value = 'def!'">
@@ -652,7 +617,7 @@
                               </lvalue>
                             </malval>
                           </value>
-                          <xsl:sequence select="$atoms"/>
+                          <xsl:sequence select="$new_list/atoms"/>
                         </xsl:for-each>
                       </xsl:variable>
                       <xsl:variable name="resultv">
@@ -818,7 +783,12 @@
                                 </xsl:iterate>
                               </xsl:when>
                               <xsl:otherwise>
-                                <xsl:call-template name="core-apply"><xsl:with-param name="func" select="$func"/><xsl:with-param name="args" select="$args"/></xsl:call-template>
+                                <xsl:variable name="ctx">
+                                  <xsl:sequence select="$atoms"/>
+                                </xsl:variable>
+                                <xsl:for-each select="$ctx">
+                                  <xsl:call-template name="core-apply"><xsl:with-param name="func" select="$func"/><xsl:with-param name="args" select="$args"/></xsl:call-template>
+                                </xsl:for-each>
                                 <xsl:sequence select="$atoms"/>
                               </xsl:otherwise>
                             </xsl:choose>
@@ -846,7 +816,7 @@
           <xsl:otherwise>
             <xsl:call-template name="eval_ast"><xsl:with-param name="atoms" select="$atoms"/><xsl:with-param name="env" select="$env"/></xsl:call-template>
             <env data="{env:serialise($env)}" />
-            <xsl:sequence select="$atoms"/>
+            <!-- <xsl:sequence select="$atoms"/> -->
           </xsl:otherwise>
         </xsl:choose>
       </xsl:variable>
