@@ -1,3 +1,6 @@
+.DEFAULT:
+	echo
+
 .PHONY: clean
 
 all:
