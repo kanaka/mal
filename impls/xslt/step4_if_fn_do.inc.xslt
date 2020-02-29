@@ -15,6 +15,7 @@
   <xsl:import href="core.xslt"/>
   <xsl:output method="xml" encoding="utf-8" indent="yes"/>
   <xsl:template match="mal" name="rep">
+    <xsl:param name="display" select="false()" />
     <xsl:choose>
       <xsl:when test="string(state/env/@data) = ''">
         <xsl:variable name="vstate">
@@ -35,7 +36,9 @@
           <xsl:sequence select="stdin"/>
         </xsl:variable>
         <xsl:for-each select="$state-v">
-          <xsl:call-template name="rep"/>
+          <xsl:call-template name="rep">
+            <xsl:with-param name="display" select="$display"/>
+          </xsl:call-template>
         </xsl:for-each>
       </xsl:when>
       <xsl:otherwise>
@@ -55,11 +58,16 @@
             </xsl:for-each>
           </xsl:variable>
           <xsl:for-each select="$_eval">
-            <stdout>
+            <xsl:variable name="_print">
               <xsl:for-each select="data">
                 <xsl:call-template name="PRINT"/>
               </xsl:for-each>
-            </stdout>
+            </xsl:variable>
+            <xsl:if test="$display">
+              <xsl:message>
+                <request kind="display" value="{$_print}"/>
+              </xsl:message>
+            </xsl:if>
             <state>
               <env data="{env/@data}"/>
             </state>

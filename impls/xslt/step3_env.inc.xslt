@@ -14,6 +14,7 @@
   <xsl:import href="env.xslt"/>
   <xsl:output method="xml" encoding="utf-8" indent="yes"/>
   <xsl:template match="mal" name="rep">
+    <xsl:param name="display" select="false()" />
     <mal>
       <xsl:variable name="env" as="map(*)">
         <xsl:sequence select="env:deserialise((state/env/@data, env:base())[1])"/>
@@ -30,11 +31,14 @@
         </xsl:for-each>
       </xsl:variable>
       <xsl:for-each select="$_eval">
-        <stdout>
+        <xsl:variable name="_print">
           <xsl:for-each select="data">
             <xsl:call-template name="PRINT"/>
           </xsl:for-each>
-        </stdout>
+        </xsl:variable>
+        <xsl:message>
+          <request kind="display" value="{$_print}"/>
+        </xsl:message>
         <state>
           <env data="{env/@data}"/>
         </state>

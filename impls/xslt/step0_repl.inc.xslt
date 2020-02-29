@@ -11,6 +11,7 @@
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" version="1.0">
   <xsl:output method="xml" encoding="utf-8" indent="yes"/>
   <xsl:template match="mal" name="rep">
+    <xsl:param name="display" select="false()" />
     <mal>
       <stdin/>
       <!-- clear stdin -->
@@ -24,11 +25,14 @@
           <xsl:call-template name="EVAL"/>
         </xsl:for-each>
       </xsl:variable>
-      <stdout>
+      <xsl:variable name="_print">
         <xsl:for-each select="$_eval">
           <xsl:call-template name="PRINT"/>
         </xsl:for-each>
-      </stdout>
+      </xsl:variable>
+      <xsl:message>
+        <request kind="display" value="{$_print}"/>
+      </xsl:message>
     </mal>
   </xsl:template>
   <xsl:template name="PRINT">

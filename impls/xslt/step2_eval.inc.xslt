@@ -13,6 +13,7 @@
   <xsl:import href="printer.xslt"/>
   <xsl:output method="xml" encoding="utf-8" indent="yes"/>
   <xsl:template match="mal" name="rep">
+    <xsl:param name="display" select="false()" />
     <mal>
       <xsl:variable name="env" as="map(*)">
         <xsl:if test="not(state)">
@@ -36,13 +37,16 @@
           </xsl:call-template>
         </xsl:for-each>
       </xsl:variable>
-      <stdout>
+      <xsl:variable name="_print">
         <xsl:for-each select="$_eval">
           <xsl:call-template name="PRINT">
             <xsl:with-param name="env" select="$env"/>
           </xsl:call-template>
         </xsl:for-each>
-      </stdout>
+      </xsl:variable>
+      <xsl:message>
+        <request kind="display" value="{$_print}"/>
+      </xsl:message>
     </mal>
   </xsl:template>
   <xsl:template name="PRINT">
