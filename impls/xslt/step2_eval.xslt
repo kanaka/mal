@@ -26,7 +26,7 @@
         <xsl:try>
           <xsl:for-each select="$ctx/mal">
             <xsl:call-template name="rep">
-              <xsl:with-param name="display" select="true()"/>
+              <xsl:with-param name="display" select="$in_repl"/>
             </xsl:call-template>
           </xsl:for-each>
           <xsl:catch errors="*">
