@@ -8,36 +8,36 @@
     <state> ignored, preserved </state>
 </mal>
 -->
-<xsl:stylesheet
-    version="1.0"
-    xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
-    <xsl:output method='xml' encoding='utf-8' indent='yes'/>
-    <xsl:template match="mal" name="rep">
-      <mal>
-        <stdin></stdin> <!-- clear stdin -->
-        <xsl:copy-of select="state" /> <!-- preserve state -->
-        <xsl:variable name="_read">
-          <xsl:call-template name="READ" />
-        </xsl:variable>
-        <xsl:variable name="_eval">
-          <xsl:for-each select="$_read">
-            <xsl:call-template name="EVAL"></xsl:call-template>
-          </xsl:for-each>
-        </xsl:variable>
-        <stdout>
-          <xsl:for-each select="$_eval">
-            <xsl:call-template name="PRINT"></xsl:call-template>
-          </xsl:for-each>
-        </stdout>
-      </mal>
-    </xsl:template>
-    <xsl:template name="PRINT">
-      <xsl:sequence select="."/>
-    </xsl:template>
-    <xsl:template name="EVAL">
-      <xsl:sequence select="."/>
-    </xsl:template>
-    <xsl:template name="READ">
-      <xsl:copy-of select="stdin/text()" />
-    </xsl:template>
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" version="1.0">
+  <xsl:output method="xml" encoding="utf-8" indent="yes"/>
+  <xsl:template match="mal" name="rep">
+    <mal>
+      <stdin/>
+      <!-- clear stdin -->
+      <xsl:copy-of select="state"/>
+      <!-- preserve state -->
+      <xsl:variable name="_read">
+        <xsl:call-template name="READ"/>
+      </xsl:variable>
+      <xsl:variable name="_eval">
+        <xsl:for-each select="$_read">
+          <xsl:call-template name="EVAL"/>
+        </xsl:for-each>
+      </xsl:variable>
+      <stdout>
+        <xsl:for-each select="$_eval">
+          <xsl:call-template name="PRINT"/>
+        </xsl:for-each>
+      </stdout>
+    </mal>
+  </xsl:template>
+  <xsl:template name="PRINT">
+    <xsl:sequence select="."/>
+  </xsl:template>
+  <xsl:template name="EVAL">
+    <xsl:sequence select="."/>
+  </xsl:template>
+  <xsl:template name="READ">
+    <xsl:copy-of select="stdin/text()"/>
+  </xsl:template>
 </xsl:stylesheet>
