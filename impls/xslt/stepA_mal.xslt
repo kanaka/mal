@@ -123,6 +123,7 @@
                 <xsl:variable name="val">
                   <xsl:call-template name="EVAL">
                     <xsl:with-param name="env" select="$env"/>
+                    <xsl:with-param name="encode-env" select="false()"/>
                   </xsl:call-template>
                 </xsl:variable>
                 <xsl:sequence select="$val/data/value"/>
@@ -489,6 +490,7 @@
   <xsl:template name="macroexpand">
     <xsl:param name="ast"/>
     <xsl:param name="env"/>
+    <xsl:param name="encode-env"/>
     <xsl:choose>
       <xsl:when test="fn:is-macro-call($ast, $env)">
         <xsl:variable name="fn" select="env:get($env, $ast/lvalue/malval[1]/@value)"/>
@@ -511,6 +513,7 @@
         <xsl:call-template name="macroexpand">
           <xsl:with-param name="ast" select="$new/value/malval"/>
           <xsl:with-param name="env" select="$env"/>
+          <xsl:with-param name="encode-env" select="$encode-env"/>
         </xsl:call-template>
       </xsl:when>
       <xsl:otherwise>
@@ -518,12 +521,15 @@
           <xsl:sequence select="$ast"/>
         </value>
         <xsl:sequence select="atoms[1]"/>
-        <env data="{$env =&gt; env:serialise()}"/>
+        <xsl:if test="$encode-env">
+          <env data="{$env =&gt; env:serialise()}"/>
+        </xsl:if>
       </xsl:otherwise>
     </xsl:choose>
   </xsl:template>
   <xsl:template name="EVAL">
     <xsl:param name="env"/>
+    <xsl:param name="encode-env" select="true()"/>
     <!-- <xsl:message>
 
 EVALUATE <xsl:sequence select="core:pr-str(value/malval)/value/text()"/> IN (<xsl:sequence select="empty(atoms)"/>) ATOMS <xsl:sequence select="fn:pretty(atoms)"/>
@@ -536,7 +542,9 @@ EVALUATE <xsl:sequence select="core:pr-str(value/malval)/value/text()"/> IN (<xs
           <xsl:choose>
             <xsl:when test="count(value/malval/lvalue/malval) = 0">
               <xsl:sequence select="."/>
-              <env data="{env:serialise($env)}"/>
+              <xsl:if test="$encode-env">
+                <env data="{env:serialise($env)}"/>
+              </xsl:if>
               <xsl:sequence select="$atoms"/>
             </xsl:when>
             <xsl:otherwise>
@@ -544,6 +552,7 @@ EVALUATE <xsl:sequence select="core:pr-str(value/malval)/value/text()"/> IN (<xs
                 <xsl:call-template name="macroexpand">
                   <xsl:with-param name="ast" select="value/malval"/>
                   <xsl:with-param name="env" select="$env"/>
+                  <xsl:with-param name="encode-env" select="$encode-env"/>
                 </xsl:call-template>
               </xsl:variable>
               <xsl:for-each select="$mexp">
@@ -557,7 +566,9 @@ EVALUATE <xsl:sequence select="core:pr-str(value/malval)/value/text()"/> IN (<xs
                         <xsl:with-param name="atoms" select="$atoms"/>
                         <xsl:with-param name="env" select="$env"/>
                       </xsl:call-template>
-                      <env data="{env:serialise($env)}"/>
+                      <xsl:if test="$encode-env">
+                        <env data="{env:serialise($env)}"/>
+                      </xsl:if>
                       <!-- <xsl:sequence select="$atoms"/> -->
                     </xsl:for-each>
                   </xsl:when>
@@ -575,11 +586,14 @@ EVALUATE <xsl:sequence select="core:pr-str(value/malval)/value/text()"/> IN (<xs
                       <xsl:for-each select="$xvalue">
                         <xsl:call-template name="EVAL">
                           <xsl:with-param name="env" select="$env"/>
+                          <xsl:with-param name="encode-env" select="false()"/>
                         </xsl:call-template>
                       </xsl:for-each>
                     </xsl:variable>
                     <xsl:sequence select="$value/data/value"/>
-                    <env data="{env:serialise(env:set($env, $name, $value/data/value/malval))}"/>
+                    <xsl:if test="$encode-env">
+                      <env data="{env:serialise(env:set($env, $name, $value/data/value/malval))}"/>
+                    </xsl:if>
                     <xsl:sequence select="$value/atoms[1]"/>
                   </xsl:when>
                   <xsl:when test="let $fn := value/malval/lvalue/malval[1] return $fn/@kind = 'symbol' and $fn/@value = 'defmacro!'">
@@ -596,6 +610,7 @@ EVALUATE <xsl:sequence select="core:pr-str(value/malval)/value/text()"/> IN (<xs
                       <xsl:for-each select="$xvalue">
                         <xsl:call-template name="EVAL">
                           <xsl:with-param name="env" select="$env"/>
+                          <xsl:with-param name="encode-env" select="false()"/>
                         </xsl:call-template>
                       </xsl:for-each>
                     </xsl:variable>
@@ -608,7 +623,9 @@ EVALUATE <xsl:sequence select="core:pr-str(value/malval)/value/text()"/> IN (<xs
                       </value>
                     </xsl:variable>
                     <xsl:sequence select="$resv"/>
-                    <env data="{env:serialise(env:set($env, $name, $resv/value/malval))}"/>
+                    <xsl:if test="$encode-env">
+                      <env data="{env:serialise(env:set($env, $name, $resv/value/malval))}"/>
+                    </xsl:if>
                     <xsl:sequence select="$value/atoms[1]"/>
                   </xsl:when>
                   <xsl:when test="let $fn := value/malval/lvalue/malval[1] return $fn/@kind = 'symbol' and $fn/@value = 'let*'">
@@ -630,11 +647,14 @@ EVALUATE <xsl:sequence select="core:pr-str(value/malval)/value/text()"/> IN (<xs
                           <xsl:for-each select="$xvalue">
                             <xsl:call-template name="EVAL">
                               <xsl:with-param name="env" select="$new_env"/>
+                              <xsl:with-param name="encode-env" select="$encode-env"/>
                             </xsl:call-template>
                           </xsl:for-each>
                         </xsl:variable>
                         <xsl:sequence select="$value/data/value"/>
-                        <env data="{env:serialise(env:swap-replEnv($env, env:deserialise($value/env/@data) =&gt; env:replEnv()))}"/>
+                        <xsl:if test="$encode-env">
+                          <env data="{env:serialise(env:swap-replEnv($env, env:deserialise($value/env/@data) =&gt; env:replEnv()))}"/>
+                        </xsl:if>
                         <xsl:sequence select="$value/atoms[1]"/>
                       </xsl:on-completion>
                       <xsl:variable name="name">
@@ -650,6 +670,7 @@ EVALUATE <xsl:sequence select="core:pr-str(value/malval)/value/text()"/> IN (<xs
                         <xsl:for-each select="$xvalue">
                           <xsl:call-template name="EVAL">
                             <xsl:with-param name="env" select="$new_env"/>
+                            <xsl:with-param name="encode-env" select="false()"/>
                           </xsl:call-template>
                         </xsl:for-each>
                       </xsl:variable>
@@ -666,7 +687,9 @@ EVALUATE <xsl:sequence select="core:pr-str(value/malval)/value/text()"/> IN (<xs
                       <xsl:param name="previous_res" select="()"/>
                       <xsl:on-completion>
                         <xsl:sequence select="$previous_res"/>
-                        <env data="{env:serialise($new_env)}"/>
+                        <xsl:if test="$encode-env">
+                          <env data="{env:serialise($new_env)}"/>
+                        </xsl:if>
                         <xsl:sequence select="$atoms"/>
                       </xsl:on-completion>
                       <xsl:variable name="xvalue">
@@ -701,6 +724,7 @@ EVALUATE <xsl:sequence select="core:pr-str(value/malval)/value/text()"/> IN (<xs
                         <xsl:for-each select="$context">
                           <xsl:call-template name="EVAL">
                             <xsl:with-param name="env" select="$env"/>
+                            <xsl:with-param name="encode-env" select="false()"/>
                           </xsl:call-template>
                         </xsl:for-each>
                       </xsl:for-each>
@@ -741,6 +765,7 @@ EVALUATE <xsl:sequence select="core:pr-str(value/malval)/value/text()"/> IN (<xs
                           <xsl:for-each select="$xfalse">
                             <xsl:call-template name="EVAL">
                               <xsl:with-param name="env" select="$env"/>
+                              <xsl:with-param name="encode-env" select="$encode-env"/>
                             </xsl:call-template>
                           </xsl:for-each>
                         </xsl:when>
@@ -748,13 +773,16 @@ EVALUATE <xsl:sequence select="core:pr-str(value/malval)/value/text()"/> IN (<xs
                           <xsl:for-each select="$ptrue">
                             <xsl:call-template name="EVAL">
                               <xsl:with-param name="env" select="$env"/>
+                              <xsl:with-param name="encode-env" select="$encode-env"/>
                             </xsl:call-template>
                           </xsl:for-each>
                         </xsl:otherwise>
                       </xsl:choose>
                     </xsl:variable>
                     <xsl:sequence select="$res/data/value"/>
-                    <xsl:sequence select="$res/env"/>
+                    <xsl:if test="$encode-env">
+                      <xsl:sequence select="$res/env"/>
+                    </xsl:if>
                     <xsl:sequence select="$res/atoms[1]"/>
                   </xsl:when>
                   <xsl:when test="let $fn := value/malval/lvalue/malval[1] return $fn/@kind = 'symbol' and $fn/@value = 'fn*'">
@@ -771,14 +799,18 @@ EVALUATE <xsl:sequence select="core:pr-str(value/malval)/value/text()"/> IN (<xs
                         <!-- capture current env -->
                       </malval>
                     </value>
-                    <env data="{env:serialise($env)}"/>
+                    <xsl:if test="$encode-env">
+                      <env data="{env:serialise($env)}"/>
+                    </xsl:if>
                     <xsl:sequence select="$atoms"/>
                   </xsl:when>
                   <xsl:when test="let $fn := value/malval/lvalue/malval[1] return $fn/@kind = 'symbol' and $fn/@value = 'quote'">
                     <value>
                       <xsl:sequence select="value/malval/lvalue/malval[2]"/>
                     </value>
-                    <env data="{env:serialise($env)}"/>
+                    <xsl:if test="$encode-env">
+                      <env data="{env:serialise($env)}"/>
+                    </xsl:if>
                     <xsl:sequence select="$atoms"/>
                   </xsl:when>
                   <xsl:when test="let $fn := value/malval/lvalue/malval[1] return $fn/@kind = 'symbol' and $fn/@value = 'quasiquote'">
@@ -794,11 +826,14 @@ EVALUATE <xsl:sequence select="core:pr-str(value/malval)/value/text()"/> IN (<xs
                       <xsl:for-each select="$exp">
                         <xsl:call-template name="EVAL">
                           <xsl:with-param name="env" select="$env"/>
+                          <xsl:with-param name="encode-env" select="$encode-env"/>
                         </xsl:call-template>
                       </xsl:for-each>
                     </xsl:variable>
                     <xsl:sequence select="$res/data/value"/>
-                    <xsl:sequence select="$res/env"/>
+                    <xsl:if test="$encode-env">
+                      <xsl:sequence select="$res/env"/>
+                    </xsl:if>
                     <xsl:sequence select="$res/atoms[1]"/>
                   </xsl:when>
                   <xsl:when test="let $fn := value/malval/lvalue/malval[1] return $fn/@kind = 'symbol' and $fn/@value = 'macroexpand'">
@@ -806,11 +841,14 @@ EVALUATE <xsl:sequence select="core:pr-str(value/malval)/value/text()"/> IN (<xs
                       <xsl:call-template name="macroexpand">
                         <xsl:with-param name="ast" select="value/malval/lvalue/malval[2]"/>
                         <xsl:with-param name="env" select="$env"/>
+                        <xsl:with-param name="encode-env" select="false()"/>
                       </xsl:call-template>
                       <xsl:sequence select="$atoms"/>
                     </xsl:variable>
                     <xsl:sequence select="$exp/value"/>
-                    <env data="{env:serialise($env)}"/>
+                    <xsl:if test="$encode-env">
+                      <env data="{env:serialise($env)}"/>
+                    </xsl:if>
                     <xsl:sequence select="$atoms"/>
                   </xsl:when>
                   <xsl:when test="let $fn := value/malval/lvalue/malval[1] return $fn/@kind = 'symbol' and $fn/@value = 'try*'">
@@ -826,11 +864,14 @@ EVALUATE <xsl:sequence select="core:pr-str(value/malval)/value/text()"/> IN (<xs
                           <xsl:for-each select="$xvalue">
                             <xsl:call-template name="EVAL">
                               <xsl:with-param name="env" select="$env"/>
+                              <xsl:with-param name="encode-env" select="$encode-env"/>
                             </xsl:call-template>
                           </xsl:for-each>
                         </xsl:variable>
                         <xsl:sequence select="$value/data/value"/>
-                        <xsl:sequence select="$value/env"/>
+                        <xsl:if test="$encode-env">
+                          <xsl:sequence select="$value/env"/>
+                        </xsl:if>
                         <xsl:sequence select="$value/atoms[1]"/>
                         <xsl:catch errors="*">
                           <xsl:variable name="catchv-name" select="value/malval/lvalue/malval[3]/lvalue/malval[2]/@value"/>
@@ -847,12 +888,15 @@ EVALUATE <xsl:sequence select="core:pr-str(value/malval)/value/text()"/> IN (<xs
                             <xsl:for-each select="$catchv">
                               <xsl:call-template name="EVAL">
                                 <xsl:with-param name="env" select="$newenv"/>
+                                <xsl:with-param name="encode-env" select="$encode-env"/>
                               </xsl:call-template>
                             </xsl:for-each>
                           </xsl:variable>
                           <xsl:sequence select="$value/data/value"/>
-                          <xsl:sequence select="$value/env"/>
-                          <!-- leaks the bound name, ouch -->
+                          <xsl:if test="$encode-env">
+                            <xsl:sequence select="$value/env"/>
+                            <!-- leaks the bound name, ouch -->
+                          </xsl:if>
                           <xsl:sequence select="$value/atoms[1]"/>
                         </xsl:catch>
                       </xsl:try>
@@ -897,10 +941,14 @@ EVALUATE <xsl:sequence select="core:pr-str(value/malval)/value/text()"/> IN (<xs
                     <xsl:for-each select="$resultv">
                       <xsl:choose>
                         <xsl:when test="empty(env)">
-                          <env data="{env:serialise($env)}"/>
+                          <xsl:if test="$encode-env">
+                            <env data="{env:serialise($env)}"/>
+                          </xsl:if>
                         </xsl:when>
                         <xsl:otherwise>
-                          <xsl:sequence select="env"/>
+                          <xsl:if test="$encode-env">
+                            <xsl:sequence select="env"/>
+                          </xsl:if>
                         </xsl:otherwise>
                       </xsl:choose>
                       <xsl:sequence select="atoms[1]"/>
@@ -917,7 +965,9 @@ EVALUATE <xsl:sequence select="core:pr-str(value/malval)/value/text()"/> IN (<xs
             <xsl:with-param name="atoms" select="$atoms"/>
             <xsl:with-param name="env" select="$env"/>
           </xsl:call-template>
-          <env data="{env:serialise($env)}"/>
+          <xsl:if test="$encode-env">
+            <env data="{env:serialise($env)}"/>
+          </xsl:if>
           <!-- <xsl:sequence select="$atoms"/> -->
         </xsl:otherwise>
       </xsl:choose>
@@ -929,7 +979,9 @@ EVALUATED (<xsl:sequence select="empty($data/atoms)"/>) <xsl:sequence select="co
     <data>
       <xsl:sequence select="$data/value"/>
     </data>
-    <env data="{$data/env/@data}"/>
+    <xsl:if test="$encode-env">
+      <env data="{$data/env/@data}"/>
+    </xsl:if>
     <xsl:sequence select="$new-atoms"/>
   </xsl:template>
   <xsl:template name="READ">

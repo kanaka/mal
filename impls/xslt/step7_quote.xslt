@@ -123,6 +123,7 @@
                 <xsl:variable name="val">
                   <xsl:call-template name="EVAL">
                     <xsl:with-param name="env" select="$env"/>
+                    <xsl:with-param name="encode-env" select="false()"/>
                   </xsl:call-template>
                 </xsl:variable>
                 <xsl:sequence select="$val/data/value"/>
@@ -239,6 +240,7 @@
   </xsl:template>
   <xsl:template name="EVAL">
     <xsl:param name="env"/>
+    <xsl:param name="encode-env" select="true()"/>
     <xsl:variable name="atoms" select="atoms"/>
     <xsl:variable name="data">
       <xsl:choose>
@@ -246,7 +248,9 @@
           <xsl:choose>
             <xsl:when test="count(value/malval/lvalue/malval) = 0">
               <xsl:sequence select="."/>
-              <env data="{env:serialise($env)}"/>
+              <xsl:if test="$encode-env">
+                <env data="{env:serialise($env)}"/>
+              </xsl:if>
               <xsl:sequence select="$atoms"/>
             </xsl:when>
             <xsl:otherwise>
@@ -265,11 +269,14 @@
                     <xsl:for-each select="$xvalue">
                       <xsl:call-template name="EVAL">
                         <xsl:with-param name="env" select="$env"/>
+                        <xsl:with-param name="encode-env" select="false()"/>
                       </xsl:call-template>
                     </xsl:for-each>
                   </xsl:variable>
                   <xsl:sequence select="$value/data/value"/>
-                  <env data="{env:serialise(env:set($env, $name, $value/data/value/malval))}"/>
+                  <xsl:if test="$encode-env">
+                    <env data="{env:serialise(env:set($env, $name, $value/data/value/malval))}"/>
+                  </xsl:if>
                   <xsl:sequence select="$value/atoms"/>
                 </xsl:when>
                 <xsl:when test="let $fn := value/malval/lvalue/malval[1] return $fn/@kind = 'symbol' and $fn/@value = 'let*'">
@@ -291,11 +298,14 @@
                         <xsl:for-each select="$xvalue">
                           <xsl:call-template name="EVAL">
                             <xsl:with-param name="env" select="$new_env"/>
+                            <xsl:with-param name="encode-env" select="$encode-env"/>
                           </xsl:call-template>
                         </xsl:for-each>
                       </xsl:variable>
                       <xsl:sequence select="$value/data/value"/>
-                      <env data="{env:serialise(env:swap-replEnv($env, env:deserialise($value/env/@data) =&gt; env:replEnv()))}"/>
+                      <xsl:if test="$encode-env">
+                        <env data="{env:serialise(env:swap-replEnv($env, env:deserialise($value/env/@data) =&gt; env:replEnv()))}"/>
+                      </xsl:if>
                       <xsl:sequence select="$value/atoms"/>
                     </xsl:on-completion>
                     <xsl:variable name="name">
@@ -311,6 +321,7 @@
                       <xsl:for-each select="$xvalue">
                         <xsl:call-template name="EVAL">
                           <xsl:with-param name="env" select="$new_env"/>
+                          <xsl:with-param name="encode-env" select="false()"/>
                         </xsl:call-template>
                       </xsl:for-each>
                     </xsl:variable>
@@ -327,7 +338,9 @@
                     <xsl:param name="previous_res" select="()"/>
                     <xsl:on-completion>
                       <xsl:sequence select="$previous_res"/>
-                      <env data="{env:serialise($new_env)}"/>
+                      <xsl:if test="$encode-env">
+                        <env data="{env:serialise($new_env)}"/>
+                      </xsl:if>
                       <xsl:sequence select="$atoms"/>
                     </xsl:on-completion>
                     <xsl:variable name="xvalue">
@@ -362,6 +375,7 @@
                       <xsl:for-each select="$context">
                         <xsl:call-template name="EVAL">
                           <xsl:with-param name="env" select="$env"/>
+                          <xsl:with-param name="encode-env" select="false()"/>
                         </xsl:call-template>
                       </xsl:for-each>
                     </xsl:for-each>
@@ -402,6 +416,7 @@
                         <xsl:for-each select="$xfalse">
                           <xsl:call-template name="EVAL">
                             <xsl:with-param name="env" select="$env"/>
+                            <xsl:with-param name="encode-env" select="$encode-env"/>
                           </xsl:call-template>
                         </xsl:for-each>
                       </xsl:when>
@@ -409,13 +424,16 @@
                         <xsl:for-each select="$ptrue">
                           <xsl:call-template name="EVAL">
                             <xsl:with-param name="env" select="$env"/>
+                            <xsl:with-param name="encode-env" select="$encode-env"/>
                           </xsl:call-template>
                         </xsl:for-each>
                       </xsl:otherwise>
                     </xsl:choose>
                   </xsl:variable>
                   <xsl:sequence select="$res/data/value"/>
-                  <env data="{env:serialise($env)}"/>
+                  <xsl:if test="$encode-env">
+                    <env data="{env:serialise($env)}"/>
+                  </xsl:if>
                   <xsl:sequence select="$res/atoms"/>
                 </xsl:when>
                 <xsl:when test="let $fn := value/malval/lvalue/malval[1] return $fn/@kind = 'symbol' and $fn/@value = 'fn*'">
@@ -431,14 +449,18 @@
                       <!-- capture current env -->
                     </malval>
                   </value>
-                  <env data="{env:serialise($env)}"/>
+                  <xsl:if test="$encode-env">
+                    <env data="{env:serialise($env)}"/>
+                  </xsl:if>
                   <xsl:sequence select="$atoms"/>
                 </xsl:when>
                 <xsl:when test="let $fn := value/malval/lvalue/malval[1] return $fn/@kind = 'symbol' and $fn/@value = 'quote'">
                   <value>
                     <xsl:sequence select="value/malval/lvalue/malval[2]"/>
                   </value>
-                  <env data="{env:serialise($env)}"/>
+                  <xsl:if test="$encode-env">
+                    <env data="{env:serialise($env)}"/>
+                  </xsl:if>
                   <xsl:sequence select="$atoms"/>
                 </xsl:when>
                 <xsl:when test="let $fn := value/malval/lvalue/malval[1] return $fn/@kind = 'symbol' and $fn/@value = 'quasiquote'">
@@ -454,11 +476,14 @@
                     <xsl:for-each select="$exp">
                       <xsl:call-template name="EVAL">
                         <xsl:with-param name="env" select="$env"/>
+                        <xsl:with-param name="encode-env" select="$encode-env"/>
                       </xsl:call-template>
                     </xsl:for-each>
                   </xsl:variable>
                   <xsl:sequence select="$res/data/value"/>
-                  <xsl:sequence select="$res/env"/>
+                  <xsl:if test="$encode-env">
+                    <xsl:sequence select="$res/env"/>
+                  </xsl:if>
                   <xsl:sequence select="$res/atoms"/>
                 </xsl:when>
                 <xsl:otherwise>
@@ -507,7 +532,9 @@
                             <value>
                               <xsl:sequence select="$value"/>
                             </value>
-                            <env data="{env:serialise($env)}"/>
+                            <xsl:if test="$encode-env">
+                              <env data="{env:serialise($env)}"/>
+                            </xsl:if>
                             <xsl:sequence select="$value/atoms"/>
                           </xsl:when>
                           <xsl:when test="$func/malval/@name = 'eval'">
@@ -523,11 +550,14 @@
                               <xsl:for-each select="$form">
                                 <xsl:call-template name="EVAL">
                                   <xsl:with-param name="env" select="$venv"/>
+                                  <xsl:with-param name="encode-env" select="$encode-env"/>
                                 </xsl:call-template>
                               </xsl:for-each>
                             </xsl:variable>
                             <xsl:sequence select="$value/data/value"/>
-                            <env data="{env:serialise(env:swap-replEnv($env, env:deserialise($value/env/@data)))}"/>
+                            <xsl:if test="$encode-env">
+                              <env data="{env:serialise(env:swap-replEnv($env, env:deserialise($value/env/@data)))}"/>
+                            </xsl:if>
                             <xsl:sequence select="$value/atoms"/>
                           </xsl:when>
                           <xsl:when test="$func/malval/@name = 'atom'">
@@ -589,6 +619,7 @@
                               <xsl:for-each select="$newlist">
                                 <xsl:call-template name="EVAL">
                                   <xsl:with-param name="env" select="$env"/>
+                                  <xsl:with-param name="encode-env" select="$encode-env"/>
                                 </xsl:call-template>
                               </xsl:for-each>
                             </xsl:variable>
@@ -601,7 +632,9 @@
                                 <xsl:sequence select="$newv/data/value/malval"/>
                               </atom>
                             </atoms>
-                            <xsl:sequence select="$newv/env"/>
+                            <xsl:if test="$encode-env">
+                              <xsl:sequence select="$newv/env"/>
+                            </xsl:if>
                           </xsl:when>
                           <xsl:otherwise>
                             <xsl:call-template name="core-apply">
@@ -617,7 +650,9 @@
                   <xsl:for-each select="$resultv">
                     <xsl:choose>
                       <xsl:when test="empty(env)">
-                        <env data="{env:serialise($env)}"/>
+                        <xsl:if test="$encode-env">
+                          <env data="{env:serialise($env)}"/>
+                        </xsl:if>
                       </xsl:when>
                       <xsl:otherwise>
                         <xsl:sequence select="env"/>
@@ -636,7 +671,9 @@
             <xsl:with-param name="atoms" select="$atoms"/>
             <xsl:with-param name="env" select="$env"/>
           </xsl:call-template>
-          <env data="{env:serialise($env)}"/>
+          <xsl:if test="$encode-env">
+            <env data="{env:serialise($env)}"/>
+          </xsl:if>
           <!-- <xsl:sequence select="$atoms"/> -->
         </xsl:otherwise>
       </xsl:choose>
@@ -644,7 +681,9 @@
     <data>
       <xsl:sequence select="$data/value"/>
     </data>
-    <env data="{$data/env/@data}"/>
+    <xsl:if test="$encode-env">
+      <env data="{$data/env/@data}"/>
+    </xsl:if>
     <xsl:sequence select="$data/atoms"/>
   </xsl:template>
   <xsl:template name="READ">
