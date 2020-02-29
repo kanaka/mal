@@ -1,43 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Step 0: REPL -->
-<!-- input document must be in the following format -->
-<!--
-<mal>
-    <stdin>...stdin text...</stdin>
-    <stdout> ... ignored, omitted ... </stdout>
-    <state> ignored, preserved </state>
-</mal>
--->
-<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" version="1.0">
-  <xsl:output method="xml" encoding="utf-8" indent="yes"/>
-  <xsl:template match="mal" name="rep">
-    <mal>
-      <stdin/>
-      <!-- clear stdin -->
-      <xsl:copy-of select="state"/>
-      <!-- preserve state -->
-      <xsl:variable name="_read">
-        <xsl:call-template name="READ"/>
-      </xsl:variable>
-      <xsl:variable name="_eval">
-        <xsl:for-each select="$_read">
-          <xsl:call-template name="EVAL"/>
-        </xsl:for-each>
-      </xsl:variable>
-      <stdout>
-        <xsl:for-each select="$_eval">
-          <xsl:call-template name="PRINT"/>
-        </xsl:for-each>
-      </stdout>
-    </mal>
-  </xsl:template>
-  <xsl:template name="PRINT">
-    <xsl:sequence select="."/>
-  </xsl:template>
-  <xsl:template name="EVAL">
-    <xsl:sequence select="."/>
-  </xsl:template>
-  <xsl:template name="READ">
-    <xsl:copy-of select="stdin/text()"/>
-  </xsl:template>
+<!-- A way to keep a process waiting until we signal it -->
+<!-- In order to have a process pool that executes our queries faster -->
+<xsl:stylesheet version="3.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
+<xsl:import href="step0_repl.inc.xslt"></xsl:import>
+<xsl:param name="process_id" required="yes"/>
+<xsl:template match="/">
+  <xsl:variable name="uri" select="concat('process-input-', $process_id, '.xml')"></xsl:variable>
+  <xsl:variable name="_lock" select="unparsed-text(concat('process-lock-', $process_id))"></xsl:variable>
+  <!-- use _lock to trick the runtime -->
+  <xsl:variable name="ctx" select="doc(concat($uri, substring($_lock, 0, 0)))"/>
+  <xsl:for-each select="$ctx/mal">
+    <xsl:call-template name="rep"/>
+  </xsl:for-each>
+</xsl:template>
 </xsl:stylesheet>
