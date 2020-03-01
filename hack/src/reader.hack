@@ -59,6 +59,7 @@ function read_form(Reader $token_reader): (Form, Reader) {
     read_quasiquote($token_reader) ??
     read_unquote($token_reader) ??
     read_splice_unquote($token_reader) ??
+    read_with_meta($token_reader) ??
     read_atom($token_reader);
 }
 
@@ -147,6 +148,27 @@ function read_unquote(Reader $token_reader): ?(ListForm, Reader) {
 
 function read_splice_unquote(Reader $token_reader): ?(ListForm, Reader) {
   return read_macro("~@", 'splice-unquote', $token_reader);
+}
+
+function read_with_meta(Reader $token_reader): ?(ListForm, Reader) {
+  $reader_name = "^";
+  $eval_name = 'with-meta';
+  $first_token = $token_reader->peekx(
+    'Unexpected end of input, expected a form',
+  );
+  if ($first_token !== $reader_name) {
+    return null;
+  }
+  $token_reader = $token_reader->next();
+  $token_reader->peekx("Expected a form following ".$reader_name);
+  list($metadata, $token_reader) = read_form($token_reader);
+  $token_reader = $token_reader->next();
+  $token_reader->peekx("Expected a second form following ".$reader_name);
+  list($function, $token_reader) = read_form($token_reader);
+  return tuple(
+    new_function_call($eval_name, vec[$function, $metadata]),
+    $token_reader,
+  );
 }
 
 function read_macro(

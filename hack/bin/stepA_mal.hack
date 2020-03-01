@@ -27,8 +27,6 @@ async function main_async(): Awaitable<void> {
     "        (cons 'cond (rest (rest xs)))))))".
     '  (def! *host-language* "hack")'.
     '  (def! time-ms (fn* [] (throw "unimplemented")))'.
-    '  (def! meta (fn* [] (throw "unimplemented")))'.
-    '  (def! with-meta (fn* [] (throw "unimplemented")))'.
     '  (def! fn? (fn* [] (throw "unimplemented")))'.
     '  (def! string? (fn* [] (throw "unimplemented")))'.
     '  (def! number? (fn* [] (throw "unimplemented")))'.

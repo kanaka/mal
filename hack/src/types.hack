@@ -2,8 +2,25 @@ namespace Mal;
 
 interface Form {}
 
-class ListLikeForm implements Form {
-  public function __construct(public vec<Form> $children) {}
+interface WithMetadata {
+  public function metadata(): ?Form;
+}
+
+trait WithMetadataTrait implements WithMetadata {
+  private ?Form $metadata;
+
+  public function metadata(): ?Form {
+    return $this->metadata;
+  }
+}
+
+abstract class ListLikeForm implements Form {
+  use WithMetadataTrait;
+
+  public function __construct(
+    public vec<Form> $children,
+    private ?Form $metadata = null,
+  ) {}
 }
 
 final class ListForm extends ListLikeForm {}
@@ -11,7 +28,12 @@ final class ListForm extends ListLikeForm {}
 final class VectorForm extends ListLikeForm {}
 
 final class HashMapForm implements Form {
-  public function __construct(public dict<string, Form> $map) {}
+  use WithMetadataTrait;
+
+  public function __construct(
+    public dict<string, Form> $map,
+    private ?Form $metadata = null,
+  ) {}
 }
 
 interface Atom extends Form {}
@@ -43,16 +65,24 @@ final class GlobalNil implements Atom {}
 interface FunctionLike extends Atom {}
 
 final class FunctionDefinition implements FunctionLike {
-  public function __construct(public (function(vec<Form>): Form) $function) {}
+  use WithMetadataTrait;
+
+  public function __construct(
+    public (function(vec<Form>): Form) $function,
+    private ?Form $metadata = null,
+  ) {}
 }
 
 final class FunctionWithTCODefinition implements FunctionLike {
+  use WithMetadataTrait;
+
   public function __construct(
     public bool $is_macro,
     public Form $body,
     public vec<Symbol> $parameters,
     public Environment $closed_over_environment,
     public FunctionDefinition $unoptimized,
+    private ?Form $metadata = null,
   ) {}
 }
 

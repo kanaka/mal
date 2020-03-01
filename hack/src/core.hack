@@ -52,6 +52,8 @@ function ns(Environment $environment): Environment {
     is_vector_function(),
     is_sequential_function(),
     is_map_function(),
+    meta_function(),
+    with_meta_function(),
   ];
   foreach ($functions as $name_function_pair) {
     list($name, $function) = $name_function_pair;
@@ -808,6 +810,74 @@ function type_predicate_function(
     },
   );
 }
+
+function meta_function(): (Symbol, FunctionDefinition) {
+  $name = 'meta';
+  return named_function(
+    $name,
+    $arguments ==> {
+      $argument = idx($arguments, 1);
+      if (!$argument is WithMetadata) {
+        throw new TypedArgumentException(
+          $name,
+          1,
+          FunctionLike::class,
+          $argument,
+        );
+      }
+      enforce_arity($name, 1, $arguments);
+      return $argument->metadata() ?? new GlobalNil();
+    },
+  );
+}
+
+
+function with_meta_function(): (Symbol, FunctionDefinition) {
+  $name = 'with-meta';
+  return named_function(
+    $name,
+    $arguments ==> {
+      $argument = idx($arguments, 1);
+      if (!$argument is WithMetadata) {
+        throw new TypedArgumentException(
+          $name,
+          1,
+          FunctionLike::class,
+          $argument,
+        );
+      }
+      $metadata = idx($arguments, 2);
+      if ($metadata is null) {
+        throw new MissingArgumentException($name, 2, $metadata);
+      }
+      enforce_arity($name, 2, $arguments);
+      if ($argument is FunctionDefinition) {
+        return new FunctionDefinition($argument->function, $metadata);
+      }
+      if ($argument is FunctionWithTCODefinition) {
+        return new FunctionWithTCODefinition(
+          $argument->is_macro,
+          $argument->body,
+          $argument->parameters,
+          $argument->closed_over_environment,
+          $argument->unoptimized,
+          $metadata,
+        );
+      }
+      if ($argument is ListForm) {
+        return new ListForm($argument->children, $metadata);
+      }
+      if ($argument is VectorForm) {
+        return new VectorForm($argument->children, $metadata);
+      }
+      if ($argument is HashMapForm) {
+        return new HashMapForm($argument->map, $metadata);
+      }
+      invariant(false, 'Unsupported subtype of FunctionLike');
+    },
+  );
+}
+
 
 function unwrap_tco(FunctionLike $function): FunctionDefinition {
   if ($function is FunctionWithTCODefinition) {
