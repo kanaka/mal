@@ -25,14 +25,14 @@ impl Reader {
 pub(crate) fn read_str(s: String) -> super::MalResult {
     let tokens = tokenize(s);
     let mut reader = Reader { pos: 0, tokens };
-    read_form(&mut reader)
+    read_form(&mut reader, None)
 }
 
-fn read_form(r: &mut Reader) -> super::MalResult {
+fn read_form(r: &mut Reader, meta: Option<Box<MalType>>) -> super::MalResult {
     match r.peek() {
-        Some(s) if s == "(" => read_list(r, ListType::List),
-        Some(s) if s == "[" => read_list(r, ListType::Vector),
-        Some(s) if s == "{" => read_list(r, ListType::Map),
+        Some(s) if s == "(" => read_list(r, ListType::List, meta),
+        Some(s) if s == "[" => read_list(r, ListType::Vector, meta),
+        Some(s) if s == "{" => read_list(r, ListType::Map, meta),
         Some(_) => read_atom(r),
         None => Ok(MalType::Nil),
     }
@@ -44,7 +44,7 @@ enum ListType {
     Map,
 }
 
-fn read_list(r: &mut Reader, t: ListType) -> super::MalResult {
+fn read_list(r: &mut Reader, t: ListType, meta: Option<Box<MalType>>) -> super::MalResult {
     // Skip first parenthesis
     let _ = r.next();
 
@@ -62,15 +62,15 @@ fn read_list(r: &mut Reader, t: ListType) -> super::MalResult {
             _ => (),
         };
 
-        let val: MalType = read_form(r)?;
+        let val: MalType = read_form(r, None)?;
         v.push(Box::new(val));
     }
     // Skip last parenthesis
     let _ = r.next();
 
     match t {
-        ListType::List => Ok(MalType::List(v)),
-        ListType::Vector => Ok(MalType::Vector(v)),
+        ListType::List => Ok(MalType::List(v, meta)),
+        ListType::Vector => Ok(MalType::Vector(v, meta)),
         ListType::Map => {
             if v.len() % 2 != 0 {
                 Err(MalError::OddNumParamsInMap)
@@ -83,7 +83,7 @@ fn read_list(r: &mut Reader, t: ListType) -> super::MalResult {
                         return Err(MalError::NonStringKey);
                     }
                 }
-                Ok(MalType::HashMap(hm))
+                Ok(MalType::HashMap(hm, meta))
             }
         }
     }
@@ -109,24 +109,28 @@ fn read_atom(r: &mut Reader) -> super::MalResult {
         }
         t if t.starts_with("\"") => read_string(t),
         t if t == "'" => {
-            let q = read_form(r)?;
+            let q = read_form(r, None)?;
             Ok(MalType::Quote(Box::new(q)))
         }
         t if t == "`" => {
-            let q = read_form(r)?;
+            let q = read_form(r, None)?;
             Ok(MalType::QuasiQuote(Box::new(q)))
         }
         t if t == "~@" => {
-            let q = read_form(r)?;
+            let q = read_form(r, None)?;
             Ok(MalType::SpliceUnquote(Box::new(q)))
         }
         t if t == "~" => {
-            let q = read_form(r)?;
+            let q = read_form(r, None)?;
             Ok(MalType::Unquote(Box::new(q)))
         }
         t if t == "@" => {
-            let q = read_form(r)?;
+            let q = read_form(r, None)?;
             Ok(MalType::Deref(Box::new(q)))
+        }
+        t if t == "^" => {
+            let meta = read_form(r, None)?;
+            read_form(r, Some(Box::new(meta)))
         }
         _ => Ok(MalType::Symbol(token)),
     }

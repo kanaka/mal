@@ -39,33 +39,49 @@ pub fn pr_str(t: &MalType, print_readably: bool) -> String {
         MalType::Quote(t) => format!("(quote {})", pr_str(t, print_readably)),
         MalType::QuasiQuote(t) => format!("(quasiquote {})", pr_str(t, print_readably)),
         MalType::Symbol(s) => s.clone(),
-        MalType::List(l) => format!(
-            "({})",
-            l.iter()
-                .map(|v| pr_str(&v, print_readably))
-                .collect::<Vec<String>>()
-                .join(" ")
-        ),
-        MalType::Vector(l) => format!(
-            "[{}]",
-            l.iter()
-                .map(|v| pr_str(&v, print_readably))
-                .collect::<Vec<String>>()
-                .join(" ")
-        ),
-        MalType::HashMap(l) => format!(
-            "{{{}}}",
-            l.iter()
-                .map(|(k, v)| format!(
-                    "{} {}",
-                    pr_str(&MalType::String(k.clone()), print_readably),
-                    pr_str(&v, print_readably)
-                ))
-                .collect::<Vec<String>>()
-                .join(" ")
-        ),
+        MalType::List(l, meta) => {
+            let res = format!(
+                "({})",
+                l.iter()
+                    .map(|v| pr_str(&v, print_readably))
+                    .collect::<Vec<String>>()
+                    .join(" ")
+            );
+            with_meta(res, meta, print_readably)
+        }
+        MalType::Vector(l, meta) => {
+            let res = format!(
+                "[{}]",
+                l.iter()
+                    .map(|v| pr_str(&v, print_readably))
+                    .collect::<Vec<String>>()
+                    .join(" ")
+            );
+            with_meta(res, meta, print_readably)
+        }
+        MalType::HashMap(l, meta) => {
+            let res = format!(
+                "{{{}}}",
+                l.iter()
+                    .map(|(k, v)| format!(
+                        "{} {}",
+                        pr_str(&MalType::String(k.clone()), print_readably),
+                        pr_str(&v, print_readably)
+                    ))
+                    .collect::<Vec<String>>()
+                    .join(" ")
+            );
+            with_meta(res, meta, print_readably)
+        }
         MalType::Unquote(t) => format!("(unquote {})", pr_str(t, print_readably)),
         MalType::SpliceUnquote(t) => format!("(splice-unquote {})", pr_str(t, print_readably)),
+    }
+}
+
+fn with_meta(s: String, meta: &Option<Box<MalType>>, print_readably: bool) -> String {
+    match meta {
+        Some(meta) => format!("(with-meta {} {})", s, pr_str(&meta, print_readably)),
+        None => s,
     }
 }
 
