@@ -39,6 +39,7 @@
 | [GNU Smalltalk](#gnu-smalltalk) | [Vasilij Schneidermann](https://github.com/wasamasa) |
 | [Go](#go) | [Joel Martin](https://github.com/kanaka)  |
 | [Groovy](#groovy) | [Joel Martin](https://github.com/kanaka)  |
+| [Hack](#hack) | [Michal Srb](https://github.com/xixixao)  |
 | [Haskell](#haskell) | [Joel Martin](https://github.com/kanaka)  |
 | [Haxe](#haxe-neko-python-c-and-javascript) (Neko, Python, C++, &amp; JS) | [Joel Martin](https://github.com/kanaka) |
 | [Hy](#hy) | [Joel Martin](https://github.com/kanaka)  |
@@ -523,6 +524,16 @@ tested with Groovy 1.8.6.
 cd groovy
 make
 groovy ./stepX_YYY.groovy
+```
+
+### Hack
+
+The Hack implementation requires Composer and HHVM 4.41.0 to be installed.
+
+```
+cd hack
+make
+./stepX_YYY.hack
 ```
 
 ### Haskell
