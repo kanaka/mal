@@ -1,8 +1,11 @@
 const HISTORY: &str = "history.txt";
 
+mod common;
 mod printer;
 mod reader;
 mod types;
+
+pub use common::*;
 
 fn main() {
     let rl_config = rustyline::Config::builder()
@@ -44,27 +47,3 @@ fn eval(t: types::MalType) -> MalResult {
 fn print(t: types::MalType) -> String {
     printer::pr_str(&t, true)
 }
-
-#[derive(Debug)]
-enum MalError {
-    MismatchedParen,
-    OddNumParamsInMap,
-    NonStringKey,
-    StringMismatchedDoubleQuote,
-    StringEscape,
-}
-
-impl std::fmt::Display for MalError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::MismatchedParen => write!(f, "unbalanced parenthesis"),
-            Self::OddNumParamsInMap => write!(f, "a map needs an even number of parameters"),
-            Self::NonStringKey => write!(f, "maps can only have strings or keywords as keys"),
-            Self::StringEscape => write!(f, "bad string escape sequence"),
-            Self::StringMismatchedDoubleQuote => write!(f, "unbalanced double quotes in string"),
-        }
-    }
-}
-
-type Result<T> = std::result::Result<T, MalError>;
-type MalResult = Result<types::MalType>;

@@ -19,3 +19,5 @@ pub enum MalType {
     Vector(Vec<Box<MalType>>, Option<Box<MalType>>),
     //
 }
+
+pub type MalFn = Box<dyn Fn(&[MalType]) -> super::MalResult>;
