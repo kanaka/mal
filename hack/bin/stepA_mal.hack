@@ -26,12 +26,6 @@ async function main_async(): Awaitable<void> {
     "          (throw \"odd number of forms to cond\"))".
     "        (cons 'cond (rest (rest xs)))))))".
     '  (def! *host-language* "hack")'.
-    '  (def! time-ms (fn* [] (throw "unimplemented")))'.
-    '  (def! fn? (fn* [] (throw "unimplemented")))'.
-    '  (def! string? (fn* [] (throw "unimplemented")))'.
-    '  (def! number? (fn* [] (throw "unimplemented")))'.
-    '  (def! seq (fn* [] (throw "unimplemented")))'.
-    '  (def! conj (fn* [] (throw "unimplemented")))'.
     ')';
   rep($prelude, $environment);
 

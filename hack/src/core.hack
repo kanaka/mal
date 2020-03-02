@@ -33,14 +33,15 @@ function ns(Environment $environment): Environment {
     readline_function(),
     eval_function($environment),
     atom_function(),
-    is_atom_function(),
     deref_function(),
     reset_function(),
     apply_function(),
     cons_function(),
+    conj_function(),
     concat_function(),
     nth_function(),
     rest_function(),
+    seq_function(),
     throw_function(),
     map_function(),
     is_nil_function(),
@@ -52,8 +53,14 @@ function ns(Environment $environment): Environment {
     is_vector_function(),
     is_sequential_function(),
     is_map_function(),
+    is_atom_function(),
+    is_string_function(),
+    is_number_function(),
+    is_fn_function(),
+    is_macro_function(),
     meta_function(),
     with_meta_function(),
+    time_ms_function(),
   ];
   foreach ($functions as $name_function_pair) {
     list($name, $function) = $name_function_pair;
@@ -634,6 +641,29 @@ function cons_function(): (Symbol, FunctionDefinition) {
   );
 }
 
+function conj_function(): (Symbol, FunctionDefinition) {
+  $name = 'conj';
+  return named_function(
+    $name,
+    $arguments ==> {
+      $list = idx($arguments, 1);
+      if (!$list is ListLikeForm) {
+        throw new TypedArgumentException($name, 1, ListLikeForm::class, $list);
+      }
+      $rest_arguments = Vec\slice($arguments, 2);
+      if ($list is ListForm) {
+        return new ListForm(
+          Vec\concat(Vec\reverse($rest_arguments), $list->children),
+        );
+      }
+      if ($list is VectorForm) {
+        return new VectorForm(Vec\concat($list->children, $rest_arguments));
+      }
+      invariant(false, 'Unsupported subtype of ListLikeForm');
+    },
+  );
+}
+
 function concat_function(): (Symbol, FunctionDefinition) {
   $name = 'concat';
   return named_function(
@@ -697,6 +727,40 @@ function rest_function(): (Symbol, FunctionDefinition) {
       }
       enforce_arity($name, 1, $arguments);
       return new ListForm(Vec\drop($list->children, 1));
+    },
+  );
+}
+
+function seq_function(): (Symbol, FunctionDefinition) {
+  $name = 'seq';
+  return named_function(
+    $name,
+    $arguments ==> {
+      $argument = idx($arguments, 1);
+      if ($argument is null) {
+        throw new MissingArgumentException($name, 1, $argument);
+      }
+      enforce_arity($name, 1, $arguments);
+      if ($argument is ListForm) {
+        return C\is_empty($argument->children) ? new GlobalNil() : $argument;
+      }
+      if ($argument is VectorForm) {
+        return C\is_empty($argument->children)
+          ? new GlobalNil()
+          : new ListForm($argument->children);
+      }
+      if ($argument is StringAtom) {
+        return Str\is_empty($argument->value)
+          ? new GlobalNil()
+          : new ListForm(Vec\map(
+            Str\split($argument->value, ''),
+            $character ==> new StringAtom($character),
+          ));
+      }
+      if ($argument is GlobalNil) {
+        return new GlobalNil();
+      }
+      throw new TypedArgumentException($name, 1, ListForm::class, $argument);
     },
   );
 }
@@ -794,6 +858,29 @@ function is_atom_function(): (Symbol, FunctionDefinition) {
   return type_predicate_function('atom?', $value ==> $value is MutableAtom);
 }
 
+function is_string_function(): (Symbol, FunctionDefinition) {
+  return type_predicate_function('string?', $value ==> $value is StringAtom);
+}
+
+function is_number_function(): (Symbol, FunctionDefinition) {
+  return type_predicate_function('number?', $value ==> $value is Number);
+}
+
+function is_fn_function(): (Symbol, FunctionDefinition) {
+  return type_predicate_function(
+    'fn?',
+    $value ==> $value is FunctionLike &&
+      !($value is FunctionWithTCODefinition && $value->is_macro),
+  );
+}
+
+function is_macro_function(): (Symbol, FunctionDefinition) {
+  return type_predicate_function(
+    'macro?',
+    $value ==> $value is FunctionWithTCODefinition && $value->is_macro,
+  );
+}
+
 function type_predicate_function(
   string $name,
   (function(Form): bool) $check,
@@ -878,6 +965,16 @@ function with_meta_function(): (Symbol, FunctionDefinition) {
   );
 }
 
+function time_ms_function(): (Symbol, FunctionDefinition) {
+  $name = 'time-ms';
+  return named_function(
+    $name,
+    $arguments ==> {
+      enforce_arity($name, 0, $arguments);
+      return new Number((int)(\microtime(true) * 1000));
+    },
+  );
+}
 
 function unwrap_tco(FunctionLike $function): FunctionDefinition {
   if ($function is FunctionWithTCODefinition) {
