@@ -61,6 +61,7 @@ function ns(Environment $environment): Environment {
     meta_function(),
     with_meta_function(),
     time_ms_function(),
+    hack_eval_function(),
   ];
   foreach ($functions as $name_function_pair) {
     list($name, $function) = $name_function_pair;
@@ -974,6 +975,125 @@ function time_ms_function(): (Symbol, FunctionDefinition) {
       return new Number((int)(\microtime(true) * 1000));
     },
   );
+}
+
+function hack_eval_function(): (Symbol, FunctionDefinition) {
+  $name = 'hack-eval';
+  return named_function(
+    $name,
+    $arguments ==> {
+      $code = idx($arguments, 1);
+      if (!$code is StringAtom) {
+        throw new TypedArgumentException($name, 1, StringAtom::class, $code);
+      }
+      enforce_arity($name, 1, $arguments);
+      /* HH_IGNORE_ERROR[4107] Hack pretends eval doesn't exist */
+      /* HH_IGNORE_ERROR[2049] For a good reason, but we ignore it */
+      $evaluated = \eval('return '.$code->value.';');
+      return convert_hack_value_to_mal_value($evaluated);
+    },
+  );
+}
+
+function convert_hack_value_to_mal_value(mixed $value): Form {
+  if ($value is int) {
+    return new Number($value);
+  }
+  if ($value is string) {
+    return new StringAtom($value);
+  }
+  if ($value is null) {
+    return new GlobalNil();
+  }
+  if ($value is bool) {
+    return new BoolAtom($value);
+  }
+  if ($value is vec<_>) {
+    return new VectorForm(
+      Vec\map($value, $item ==> convert_hack_value_to_mal_value($item)),
+    );
+  }
+  if ($value is dict<_, _>) {
+    return new HashMapForm(
+      Dict\pull_with_key(
+        $value,
+        ($_key, $value) ==> convert_hack_value_to_mal_value($value),
+        ($key, $_value) ==> (string)$key,
+      ),
+    );
+  }
+  if (\is_array($value)) {
+    return new ListForm(
+      Vec\map($value, $item ==> convert_hack_value_to_mal_value($item)),
+    );
+  }
+  if (\is_callable($value)) {
+    return new FunctionDefinition(
+      $arguments ==> convert_hack_value_to_mal_value(
+        /* HH_IGNORE_ERROR[4009] Not sure how to type hint callables */
+        $value(...Vec\map(
+          Vec\slice($arguments, 1),
+          $form ==> convert_mal_value_to_hack_value($form),
+        )),
+      ),
+    );
+  }
+  throw new EvalException(
+    Str\format(
+      'Failed to convert a Hack value to a Mal Form, '.
+      'the value converted to string was `%s`',
+      (string)$value,
+    ),
+  );
+}
+
+function convert_mal_value_to_hack_value(Form $value): mixed {
+  if ($value is Number) {
+    return $value->value;
+  }
+  if ($value is Keyword) {
+    return ':'.$value->name;
+  }
+  if ($value is StringAtom) {
+    return $value->value;
+  }
+  if ($value is Symbol) {
+    throw new EvalException('Cannot convert a Symbol to a Hack value');
+  }
+  if ($value is GlobalNil) {
+    return null;
+  }
+  if ($value is BoolAtom) {
+    return $value->value;
+  }
+  if ($value is MutableAtom) {
+    return $value->value;
+  }
+  if ($value is ListLikeForm) {
+    return Vec\map(
+      $value->children,
+      $item ==> convert_mal_value_to_hack_value($item),
+    );
+  }
+  if ($value is HashMapForm) {
+    return Dict\map(
+      $value->map,
+      $item ==> convert_mal_value_to_hack_value($item),
+    );
+  }
+  if ($value is FunctionLike) {
+    $callable = unwrap_tco($value)->function;
+    return (vec<mixed> ...$arguments) ==> convert_mal_value_to_hack_value(
+      $callable(Vec\concat(
+        vec[new GlobalNil()],
+        Vec\map(
+          $arguments,
+          $argument ==> convert_hack_value_to_mal_value($argument),
+        ),
+      )),
+    );
+  }
+  invariant(false, 'Unhandled mal AST node type');
 }
 
 function unwrap_tco(FunctionLike $function): FunctionDefinition {
