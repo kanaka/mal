@@ -1645,11 +1645,11 @@ implementation.
   metadata attribute that refers to another mal value/type
   (nil by default). Add the following metadata related core functions
   (and remove any stub versions):
-  * `meta`: this takes a single mal function argument and returns the
-    value of the metadata attribute.
+  * `meta`: this takes a single mal function/list/vector/hash-map argument
+    and returns the value of the metadata attribute.
   * `with-meta`: this function takes two arguments. The first argument
-    is a mal function and the second argument is another mal
-    value/type to set as metadata. A copy of the mal function is
+    is a mal function/list/vector/hash-map and the second argument is
+    another mal value/type to set as metadata. A copy of the mal function is
     returned that has its `meta` attribute set to the second argument.
     Note that it is important that the environment and macro attribute
     of mal function are retained when it is copied.
