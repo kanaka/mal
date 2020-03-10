@@ -202,6 +202,12 @@
 (plus7 8)
 ;=>15
 
+(let* [b 0 f (fn* [] b)] (let* [b 1] (f)))
+;=>0
+
+((let* [b 0] (fn* [] b)))
+;=>0
+
 ;; Testing do form
 (do (prn 101))
 ;/101
