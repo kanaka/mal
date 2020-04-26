@@ -17,17 +17,17 @@ GLOBAL { readline: ug
 
 MANIFEST
 {
-  // The first word of any mal value indicates its type and suchlike.
+  // The first word of each value is a pointer to the next element
+  // of the global object list.
+  nextptr = 0
+
+  // The second word of any mal value indicates its type and suchlike.
   // The "supertype" indicates the meaning of the other words of the
   // value.  The "type" distinguishes mal types with the same supertype
   // (for instance functions and macros).  The compoundflag is set on
   // compund types (ones containing references to other values).
-  compoundflag = SLCT 1:3:0; supertype = SLCT 4:0:0; type = SLCT 8:0:0
-  gc_marked = SLCT 9:0:0
-
-  // The second work of each value is a pointer to the next element
-  // of the global object list.
-  nextptr = 1
+  compoundflag = SLCT 1:3:1; supertype = SLCT 4:0:1; type = SLCT 8:0:1
+  gc_marked = SLCT 9:0:1
 
   // Nil. There is a single nil value initialised by init_types(), but
   // it's a valid pointer so it can safely be dereferenced.

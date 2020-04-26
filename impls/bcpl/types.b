@@ -4,13 +4,13 @@ GET "malhdr"
 LET init_types() BE
 { // These objects are statically-allocated and hence special.
   // nil acts as the head and tail of the global object list.
-  nil := TABLE t_nil, ?
+  nil := TABLE ?, t_nil
   nil!nextptr := nil
-  empty := TABLE t_lst, ?, ?, ?
+  empty := TABLE ?, t_lst, ?, ?
   empty!lst_first, empty!lst_rest := nil, empty
-  empty_hashmap := TABLE t_hm0, ?
-  mtrue  := TABLE t_boo, ?, TRUE
-  mfalse := TABLE t_boo, ?, FALSE
+  empty_hashmap := TABLE ?, t_hm0
+  mtrue  := TABLE ?, t_boo, TRUE
+  mfalse := TABLE ?, t_boo, FALSE
 }
 
 LET alloc_val(size) = VALOF
@@ -122,7 +122,7 @@ LET equal_scalar(a, b) = VALOF
   // This is guaranteed not to walk off the end of b because any two mal
   // values with different lengths will differ before the point where
   // either of them ends.
-  FOR i = 0 TO len - 1 DO
+  FOR i = 1 TO len - 1 DO
     UNLESS a!i = b!i RESULTIS FALSE
   RESULTIS TRUE
 }
@@ -206,6 +206,8 @@ LET alloc_hmi(critbit, left, right) = VALOF
 
 LET key_bit(key, bit) = VALOF
 { LET offset, shift = bit / BITSPERBCPLWORD, bit REM BITSPERBCPLWORD
+  // Skip over the first word because it's not part of the value.
+  offset := offset + 1
   RESULTIS key!offset >> (BITSPERBCPLWORD - 1 - shift) & 1
 }
 
