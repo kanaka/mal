@@ -217,6 +217,35 @@ LET key_bitdiff(key1, key2) = VALOF
   RESULTIS bit
 }
 
+LET hm_pfx(pfx) BE
+  WHILE pfx > 0 DO
+  { writes(" ")
+    pfx := pfx - 1
+  }
+
+LET hm_dumpi(map, pfx, lastbit) BE
+{ hm_pfx(pfx)
+  TEST type OF map = t_hmi THEN
+  { writef("bit %n*n", hmi_critbit OF map)
+    hm_dumpi(map!hmi_left, pfx + 1,  hmi_critbit OF map)
+    hm_dumpi(map!hmi_right, pfx + 1,  hmi_critbit OF map)
+  }
+  ELSE
+  { LET p = map!hmx_key + 1
+    WHILE lastbit > 0 DO
+    { writef("%8x ", !p)
+      p := p + 1
+      lastbit := lastbit - BITSPERBCPLWORD
+    }
+    writes("*n")
+  }
+}
+
+LET hm_dump(map) BE
+{ TEST type OF map = t_hm0 THEN writes("[empty]*n")
+                           ELSE hm_dumpi(map, 0, 0)
+}
+
 // hm_find finds the nearest entry in a non-empty hash-map to
 // the key requested, and returns the entire entry.
 LET hm_find(map, key) = VALOF
