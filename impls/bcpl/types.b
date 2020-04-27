@@ -15,14 +15,24 @@ LET init_types() BE
 
 LET alloc_val(size) = VALOF
 { LET result = getvec(size)
+  result!1 := 0 // Make sure type word is all zeroes.
   result!nextptr := nil!nextptr
   nil!nextptr := result
+  // writef("ALLOC: <- %8x*n", result)
   RESULTIS result
+}
+
+LET gc_sweep() BE
+{ UNTIL nil!nextptr = nil DO
+  { LET val = nil!nextptr
+    nil!nextptr := val!nextptr
+    // writef("FREE : -> %8x (%8x)*n", val, val!1)
+    freevec(val)
+  }
 }
 
 LET cons(first, rest) = VALOF
 { LET result = alloc_val(lst_sz)
-  !result := 0
   type OF result := t_lst
   result!lst_first := first
   result!lst_rest := rest
@@ -50,7 +60,6 @@ LET as_lst(x) = VALOF SWITCHON type OF x INTO
 
 LET alloc_int(value) = VALOF
 { LET result = alloc_val(int_sz)
-  !result := 0
   type OF result := t_int
   result!int_value := value
   RESULTIS result
@@ -64,7 +73,6 @@ LET str_setlen(str, len) BE
 LET alloc_str(len) = VALOF
 { LET words = str_data + 1 + len / bytesperword
   LET result = alloc_val(words)
-  !result := 0
   result!(words - 1) := 0 // Make sure the unused part word at the end is 0.
   type OF result := t_str
   result!str_len := 0
@@ -170,7 +178,6 @@ AND equal_lstvec(l, v) = VALOF
 
 LET alloc_vec(len) = VALOF
 { LET result = alloc_val(vec_data + len)
-  !result := 0
   type OF result := t_vec
   result!vec_len := len
   RESULTIS result
@@ -179,7 +186,6 @@ LET alloc_vec(len) = VALOF
 LET alloc_fun(fn, sz, A, B, C) = VALOF
 { LET result = alloc_val(sz)
   LET p = @A
-  !result := 0
   type OF result := t_fun
   result!fun_code := fn
   FOR i = 0 TO sz - fun_data - 1
@@ -189,7 +195,6 @@ LET alloc_fun(fn, sz, A, B, C) = VALOF
 
 LET alloc_hmx(key, value) = VALOF
 { LET result = alloc_val(hmx_sz)
-  !result := 0
   type OF result := t_hmx
   result!hmx_key, result!hmx_value := key, value
   RESULTIS result
@@ -197,7 +202,6 @@ LET alloc_hmx(key, value) = VALOF
 
 LET alloc_hmi(critbit, left, right) = VALOF
 { LET result = alloc_val(hmi_sz)
-  !result := 0
   type OF result := t_hmi
   hmi_critbit OF result := critbit
   result!hmi_left, result!hmi_right := left, right

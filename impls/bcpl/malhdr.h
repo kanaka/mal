@@ -2,6 +2,7 @@ GLOBAL { readline: ug
          pr_str; pr_multi; throwf
          read_str
          init_types; nil; empty; empty_hashmap; mtrue; mfalse
+	 gc_sweep
 	 equal
 	 cons; nth; as_lst
 	 alloc_int
@@ -68,7 +69,7 @@ MANIFEST
   // bit offset in the spare bits of the first word.  External nodes
   // point to a key and a value.  Empty nodes describe an empty hash-map.
   t_hmi = #x0a; hmi_left = 2; hmi_right = 3; hmi_sz = 4
-  hmi_critbit = SLCT 0:8:0; hmi_maxcritbit = (1 << BITSPERBCPLWORD - 8) - 1
+  hmi_critbit = SLCT 0:8:1; hmi_maxcritbit = (1 << BITSPERBCPLWORD - 8) - 1
   t_hmx = #x1a; hmx_key = 2; hmx_value = 3; hmx_sz = 4
   t_hm0 = #x0b; hm0_sz = 2
 }

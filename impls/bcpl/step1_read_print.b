@@ -15,18 +15,19 @@ LET PRINT(x) = pr_str(x)
 LET rep(x) = PRINT(EVAL(READ(x)))
 
 LET repl() BE
-{ LET prompt = str_bcpl2mal("user> ")
-  catch_level, catch_label := level(), uncaught
+{ catch_level, catch_label := level(), uncaught
   IF FALSE THEN
   { uncaught:
     writes("Uncaught exception: ")
     writes(@(pr_str(last_exception)!str_data))
     newline()
   }
-  { LET line = readline(prompt)
+  { LET prompt = str_bcpl2mal("user> ")
+    LET line = readline(prompt)
     IF line = nil THEN BREAK
     writes(@rep(line)!str_data)
     newline()
+    gc_sweep()
   } REPEAT
 }
 
