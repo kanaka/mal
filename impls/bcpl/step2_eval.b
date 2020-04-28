@@ -10,7 +10,11 @@ LET READ(x) = read_str(x)
 
 LET eval_ast(ast, env) = VALOF
   SWITCHON type OF ast INTO
-  { CASE t_sym: RESULTIS env(ast)
+  { CASE t_sym:
+      { LET result = hm_get(env, ast)
+        IF result = nil THEN throw(str_bcpl2mal("unknown function"))
+	RESULTIS result
+      }
     CASE t_lst:
       TEST ast = empty THEN RESULTIS empty
       ELSE RESULTIS cons(EVAL(ast!lst_first, env), eval_ast(ast!lst_rest, env))
@@ -40,7 +44,7 @@ AND EVAL(ast, env) = VALOF
 
 LET PRINT(x) = pr_str(x)
 
-STATIC { add_fun; sub_fun; mul_fun; div_fun }
+STATIC { add_fun; sub_fun; mul_fun; div_fun; repl_env }
 
 LET init_core() BE
 { MANIFEST { wf_wrapped = fun_data; wf_sz = fun_data + 1 }
@@ -65,20 +69,15 @@ LET init_core() BE
   div_fun := arith_fun(div)
 }
 
-LET repl_env(key) = VALOF
-{ IF key!str_len = 1 SWITCHON (key + str_data)%1 INTO
-  { CASE '+':  RESULTIS add_fun
-    CASE '-':  RESULTIS sub_fun
-    CASE '**': RESULTIS mul_fun
-    CASE '/':  RESULTIS div_fun
-  }
-  throw(str_bcpl2mal("unknown function"))
-}
-
 LET rep(x) = PRINT(EVAL(READ(x), repl_env))
 
 LET repl() BE
 { LET prompt = str_bcpl2mal("user> ")
+  repl_env := empty_hashmap
+  repl_env := hm_set(repl_env, as_sym(str_bcpl2mal("+")), add_fun)
+  repl_env := hm_set(repl_env, as_sym(str_bcpl2mal("-")), sub_fun)
+  repl_env := hm_set(repl_env, as_sym(str_bcpl2mal("**")), mul_fun)
+  repl_env := hm_set(repl_env, as_sym(str_bcpl2mal("/")), div_fun)
   catch_level, catch_label := level(), uncaught
   IF FALSE THEN
   { uncaught:
