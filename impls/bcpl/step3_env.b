@@ -62,7 +62,7 @@ AND EVAL(ast, env) = VALOF
 
 LET PRINT(x) = pr_str(x)
 
-STATIC { add_fun; sub_fun; mul_fun; div_fun }
+STATIC { add_fun; sub_fun; mul_fun; div_fun; repl_env }
 
 LET init_core() BE
 { MANIFEST { wf_wrapped = fun_data; wf_sz = fun_data + 1 }
@@ -87,16 +87,16 @@ LET init_core() BE
   div_fun := arith_fun(div)
 }
 
-LET rep(x, env) = PRINT(EVAL(READ(x), env))
+LET rep(x) = PRINT(EVAL(READ(x), repl_env))
 
 LET repl() BE
 { LET prompt = str_bcpl2mal("user> ")
-  LET repl_env = env_new(nil, empty, empty)
-  LET def(env, name, value) BE env_set(env, as_sym(str_bcpl2mal(name)), value)
-  def(repl_env, "+",  add_fun)
-  def(repl_env, "-",  sub_fun)
-  def(repl_env, "**", mul_fun)
-  def(repl_env, "/",  div_fun)
+  LET def(name, value) BE env_set(repl_env, as_sym(str_bcpl2mal(name)), value)
+  repl_env := env_new(nil, empty, empty)
+  def("+",  add_fun)
+  def("-",  sub_fun)
+  def("**", mul_fun)
+  def("/",  div_fun)
   catch_level, catch_label := level(), uncaught
   IF FALSE THEN
   { uncaught:
@@ -106,7 +106,7 @@ LET repl() BE
   }
   { LET line = readline(prompt)
     IF line = nil THEN BREAK
-    writes(@rep(line, repl_env)!str_data)
+    writes(@rep(line)!str_data)
     newline()
   } REPEAT
 }

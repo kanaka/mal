@@ -82,14 +82,15 @@ AND EVAL(ast, env) = VALOF
 
 LET PRINT(x) = pr_str(x)
 
-LET rep(x, env) = PRINT(EVAL(READ(x), env))
+STATIC { repl_env }
+
+LET rep(x) = PRINT(EVAL(READ(x), repl_env))
 
 LET repl() BE
 { LET prompt = str_bcpl2mal("user> ")
-  LET repl_env = ?
-  catch_level, catch_label := level(), uncaught
   repl_env := core_env()
   rep(str_bcpl2mal("(def! not (fn** (a) (if a false true)))"), repl_env)
+  catch_level, catch_label := level(), uncaught
   IF FALSE THEN
   { uncaught:
     writes("Uncaught exception: ")
@@ -98,7 +99,7 @@ LET repl() BE
   }
   { LET line = readline(prompt)
     IF line = nil THEN BREAK
-    writes(@rep(line, repl_env)!str_data)
+    writes(@rep(line)!str_data)
     newline()
   } REPEAT
 }

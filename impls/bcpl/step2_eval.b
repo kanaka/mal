@@ -73,11 +73,13 @@ LET rep(x) = PRINT(EVAL(READ(x), repl_env))
 
 LET repl() BE
 { LET prompt = str_bcpl2mal("user> ")
+  LET def(name, value) BE
+    repl_env := hm_set(repl_env, as_sym(str_bcpl2mal(name)), value)
   repl_env := empty_hashmap
-  repl_env := hm_set(repl_env, as_sym(str_bcpl2mal("+")), add_fun)
-  repl_env := hm_set(repl_env, as_sym(str_bcpl2mal("-")), sub_fun)
-  repl_env := hm_set(repl_env, as_sym(str_bcpl2mal("**")), mul_fun)
-  repl_env := hm_set(repl_env, as_sym(str_bcpl2mal("/")), div_fun)
+  def("+",  add_fun)
+  def("-",  sub_fun)
+  def("**", mul_fun)
+  def("/",  div_fun)
   catch_level, catch_label := level(), uncaught
   IF FALSE THEN
   { uncaught:
