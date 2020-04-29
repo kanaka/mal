@@ -22,12 +22,36 @@ LET alloc_val(size) = VALOF
   RESULTIS result
 }
 
+LET gc_mark(x) BE
+{ IF gc_marked OF x = 1 THEN RETURN
+  // writef("MARK : -- %8x (%8x)*n", x, x!1)
+  gc_marked OF x := 1
+  // Note manual tail-call elimination here so that marking a long
+  // list doesn't cause a stack overflow.  Other large data structures
+  // still could, though.
+  SWITCHON supertype OF x INTO
+  { CASE t_lst: gc_mark(x!lst_first); x := x!lst_rest; LOOP
+    CASE t_vec: FOR i = 0 TO x!vec_len - 1 DO
+                  gc_mark((x+vec_data)!i)
+		ENDCASE
+    CASE t_hmi: gc_mark(x!hmi_left); x := x!hmi_right; LOOP
+  }
+  RETURN
+} REPEAT
+
 LET gc_sweep() BE
-{ UNTIL nil!nextptr = nil DO
-  { LET val = nil!nextptr
-    nil!nextptr := val!nextptr
-    // writef("FREE : -> %8x (%8x)*n", val, val!1)
-    freevec(val)
+{ LET last, this = nil, nil!nextptr
+  UNTIL this = nil DO
+  { TEST gc_marked OF this THEN
+    { gc_marked OF this := 0
+      last, this := this, this!nextptr
+    } ELSE
+    { LET tmp = this
+      this := this!nextptr
+      // writef("FREE : -> %8x (%8x)*n", tmp, tmp!1)
+      freevec(tmp)
+      last!nextptr := this
+    }
   }
 }
 
