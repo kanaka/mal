@@ -3,6 +3,7 @@ GLOBAL { readline: ug
          read_str
          init_types; nil; empty; empty_hashmap; mtrue; mfalse
 	 gc_mark; gc_sweep
+	 alloc_val
 	 equal
 	 cons; nth; as_lst
 	 alloc_int
@@ -55,6 +56,10 @@ MANIFEST
   t_kwd = #x22
 
   maxbcplstrlen = (1 << (BITSPERBCPLWORD / bytesperword)) - 1
+
+  // Environments.  While technically these don't have to be a mal type,
+  // it makes the garbage collector simpler if they are.
+  t_env = #x0e; env_outer = 2; env_data = 3; env_sz = 4
 
   // Vectors.  Structured like strings except that the data consists of
   // pointers rather than packed characters.

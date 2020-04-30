@@ -1,14 +1,12 @@
 GET "libhdr"
 GET "malhdr"
 
-MANIFEST
-{ env_outer = 0; env_data; env_sz }
-
 LET env_set(env, key, value) BE
   env!env_data := hm_set(env!env_data, key, value)
 
 LET env_new(outer, binds, exprs) = VALOF
-{ LET env = getvec(env_sz)
+{ LET env = alloc_val(env_sz)
+  type OF env := t_env
   env!env_outer := outer
   env!env_data := empty_hashmap
   UNTIL binds = empty DO
