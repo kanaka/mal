@@ -90,8 +90,7 @@ LET init_core() BE
 LET rep(x) = PRINT(EVAL(READ(x), repl_env))
 
 LET repl() BE
-{ LET prompt = str_bcpl2mal("user> ")
-  LET def(name, value) BE env_set(repl_env, as_sym(str_bcpl2mal(name)), value)
+{ LET def(name, value) BE env_set(repl_env, as_sym(str_bcpl2mal(name)), value)
   repl_env := env_new(nil, empty, empty)
   def("+",  add_fun)
   def("-",  sub_fun)
@@ -104,10 +103,13 @@ LET repl() BE
     writes(@(pr_str(last_exception)!str_data))
     newline()
   }
-  { LET line = readline(prompt)
+  { LET prompt = str_bcpl2mal("user> ")
+    LET line = readline(prompt)
     IF line = nil THEN BREAK
     writes(@rep(line)!str_data)
     newline()
+    gc_mark(repl_env)
+    gc_sweep()
   } REPEAT
 }
 

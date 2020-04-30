@@ -35,6 +35,7 @@ LET gc_mark(x) BE
                   gc_mark((x+vec_data)!i)
 		ENDCASE
     CASE t_hmi: gc_mark(x!hmi_left); x := x!hmi_right; LOOP
+    CASE t_env: gc_mark(x!env_data); x := x!env_outer; LOOP
   }
   RETURN
 } REPEAT
