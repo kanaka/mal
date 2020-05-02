@@ -88,8 +88,7 @@ STATIC { repl_env }
 LET rep(x) = PRINT(EVAL(READ(x), repl_env))
 
 LET repl() BE
-{ LET prompt = str_bcpl2mal("user> ")
-  repl_env := core_env()
+{ repl_env := core_env()
   rep(str_bcpl2mal("(def! not (fn** (a) (if a false true)))"), repl_env)
   catch_level, catch_label := level(), uncaught
   IF FALSE THEN
@@ -98,10 +97,13 @@ LET repl() BE
     writes(@(pr_str(last_exception)!str_data))
     newline()
   }
-  { LET line = readline(prompt)
+  { LET prompt = str_bcpl2mal("user> ")
+    LET line = readline(prompt)
     IF line = nil THEN BREAK
     writes(@rep(line)!str_data)
     newline()
+    gc_mark(repl_env)
+    gc_sweep()
   } REPEAT
 }
 
