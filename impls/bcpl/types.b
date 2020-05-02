@@ -208,6 +208,15 @@ LET alloc_vec(len) = VALOF
 { LET result = alloc_val(vec_data + len)
   type OF result := t_vec
   result!vec_len := len
+  FOR i = 0 TO len - 1 DO
+    (result + vec_data)!i := nil
+  RESULTIS result
+}
+
+LET alloc_vec3(A, B, C) = VALOF
+{ LET result = alloc_vec(3)
+  FOR i = 0 TO 2 DO
+    (result + vec_data)!i := (@A)!i
   RESULTIS result
 }
 
