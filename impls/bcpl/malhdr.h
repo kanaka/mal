@@ -8,7 +8,7 @@ GLOBAL { readline: ug
 	 cons; nth; as_lst
 	 alloc_int
 	 str_setlen; alloc_str; str_bcpl2mal; as_sym; as_kwd; str_eq_const
-	 hm_set; hm_contains; hm_get
+	 hm_set; hm_contains; hm_get; hm_dump
 	 alloc_vec; alloc_vec3
 	 alloc_fun
 	 throw

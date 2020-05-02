@@ -267,14 +267,15 @@ LET hm_pfx(pfx) BE
 LET hm_dumpi(map, pfx, lastbit) BE
 { hm_pfx(pfx)
   TEST type OF map = t_hmi THEN
-  { writef("bit %n*n", hmi_critbit OF map)
+  { writef("%8x: bit %n*n", map, hmi_critbit OF map)
     hm_dumpi(map!hmi_left, pfx + 1,  hmi_critbit OF map)
     hm_dumpi(map!hmi_right, pfx + 1,  hmi_critbit OF map)
   }
   ELSE
   { LET p = map!hmx_key + 1
+    writef("%8x:", map)
     WHILE lastbit > 0 DO
-    { writef("%8x ", !p)
+    { writef(" %8x", !p)
       p := p + 1
       lastbit := lastbit - BITSPERBCPLWORD
     }
