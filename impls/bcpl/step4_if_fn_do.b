@@ -16,7 +16,7 @@ LET is_sym(a, b) = VALOF
   RESULTIS str_eq_const(a, b)
 }
 
-LET eval_ast(ast, env) = VALOF
+LET eval_ast(ast, env, gc_root) = VALOF
   SWITCHON type OF ast INTO
   { CASE t_sym: RESULTIS env_get(env, ast)
     CASE t_lst:
@@ -36,7 +36,7 @@ LET eval_ast(ast, env) = VALOF
     DEFAULT: RESULTIS ast
   }
 
-AND EVAL(ast, env) = VALOF
+AND EVAL(ast, env, gc_root) = VALOF
 { UNLESS type OF ast = t_lst RESULTIS eval_ast(ast, env)
   IF ast = empty RESULTIS ast
   { LET fn = ast!lst_first
@@ -85,7 +85,7 @@ LET PRINT(x) = pr_str(x)
 
 STATIC { repl_env }
 
-LET rep(x) = PRINT(EVAL(READ(x), repl_env))
+LET rep(x) = PRINT(EVAL(READ(x), repl_env, nil))
 
 LET repl() BE
 { repl_env := core_env()
