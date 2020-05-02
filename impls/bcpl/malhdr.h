@@ -66,8 +66,10 @@ MANIFEST
   t_vec = #x09; vec_len = 2; vec_data = 3
 
   // Functions.  Contains a function which gets passed a pointer to
-  // this structure and can do what it likes with it.
+  // this structure and can do what it likes with it.  fun_ntracked
+  // is the number of tracked pointers at the start of fun_data.
   t_fun = #x0f; fun_code = 2; fun_data = 3
+  fun_ntracked = SLCT 0:9:1
 
   // Hash-maps.  These are implemented as crit-bit trees.  There are three
   // types of node: internal nodes point to two other nodes and encode a

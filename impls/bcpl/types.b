@@ -36,6 +36,9 @@ LET gc_mark(x) BE
 		ENDCASE
     CASE t_hmi: gc_mark(x!hmi_left); x := x!hmi_right; LOOP
     CASE t_env: gc_mark(x!env_data); x := x!env_outer; LOOP
+    CASE t_fun: FOR i = 0 TO (fun_ntracked OF x) - 1 DO
+                  gc_mark((x+fun_data)!i)
+		ENDCASE
   }
   RETURN
 } REPEAT

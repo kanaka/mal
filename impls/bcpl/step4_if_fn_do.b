@@ -70,6 +70,7 @@ AND EVAL(ast, env) = VALOF
           EVAL(fun!fun_body, env_new(fun!fun_env, fun!fun_binds, args))
       LET result = alloc_fun(call, fun_sz,
                              as_lst(nth(ast, 1)), nth(ast, 2), env)
+      fun_ntracked OF result := 3
       RESULTIS result
     }
   }
