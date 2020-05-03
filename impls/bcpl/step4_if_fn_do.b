@@ -25,7 +25,7 @@ LET eval_ast(ast, env, gc_root) = VALOF
       { LET first = EVAL(ast!lst_first, env, gc_root)
         LET rest = eval_ast(ast!lst_rest, env, cons(first, gc_root))
         RESULTIS cons(first, rest)
-      }                 
+      }
     CASE t_vec:
       { LET new = alloc_vec(ast!vec_len)
         LET gc_inner_root = cons(new, gc_root)
@@ -74,7 +74,7 @@ AND EVAL(ast, env, gc_root) = VALOF
     { LET cond = EVAL(nth(ast, 1), env, gc_inner_root)
       LET tail = ast!lst_rest!lst_rest
       IF cond = nil | cond = mfalse THEN tail := tail!lst_rest
-      RESULTIS EVAL(tail!lst_first, env, gc_inner_root)
+      RESULTIS EVAL(tail!lst_first, env, gc_root)
     }
     IF is_sym(fn, "fn**") THEN
     { MANIFEST { fun_binds = fun_data; fun_body; fun_env; fun_sz }
