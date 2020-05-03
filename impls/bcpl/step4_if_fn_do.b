@@ -78,8 +78,8 @@ AND EVAL(ast, env, gc_root) = VALOF
     }
     IF is_sym(fn, "fn**") THEN
     { MANIFEST { fun_binds = fun_data; fun_body; fun_env; fun_sz }
-      LET call(fun, args) =
-          EVAL(fun!fun_body, env_new(fun!fun_env, fun!fun_binds, args))
+      LET call(fun, args, gc_root) =
+          EVAL(fun!fun_body, env_new(fun!fun_env, fun!fun_binds, args), gc_root)
       LET result = alloc_fun(call, fun_sz,
                              as_lst(nth(ast, 1)), nth(ast, 2), env)
       fun_ntracked OF result := 3
@@ -89,7 +89,7 @@ AND EVAL(ast, env, gc_root) = VALOF
   ast := eval_ast(ast, env, gc_inner_root)
   { LET fn, args = ast!lst_first, ast!lst_rest
     UNLESS type OF fn = t_fun DO throwf("not a function")
-    RESULTIS (fn!fun_code)(fn, args)
+    RESULTIS (fn!fun_code)(fn, args, gc_root)
   }
 }
 
