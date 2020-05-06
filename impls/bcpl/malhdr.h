@@ -2,7 +2,7 @@ GLOBAL { readline: ug
          pr_str; pr_multi; throwf
          read_str
          init_types; nil; empty; empty_hashmap; mtrue; mfalse
-	 gc_mark; gc_sweep
+	 gc
 	 alloc_val
 	 equal
 	 cons; nth; as_lst

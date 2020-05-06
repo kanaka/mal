@@ -59,6 +59,11 @@ LET gc_sweep() BE
   }
 }
 
+LET gc(x) BE
+{ gc_mark(x)
+  gc_sweep()
+}
+
 LET cons(first, rest) = VALOF
 { LET result = alloc_val(lst_sz)
   type OF result := t_lst
@@ -213,9 +218,9 @@ LET alloc_vec(len) = VALOF
   RESULTIS result
 }
 
-LET alloc_vec3(A, B, C) = VALOF
-{ LET result = alloc_vec(3)
-  FOR i = 0 TO 2 DO
+LET alloc_vecn(n, A, B, C, D) = VALOF
+{ LET result = alloc_vec(n)
+  FOR i = 0 TO n - 1 DO
     (result + vec_data)!i := (@A)!i
   RESULTIS result
 }

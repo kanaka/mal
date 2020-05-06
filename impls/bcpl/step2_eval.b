@@ -91,8 +91,7 @@ LET repl() BE
     IF line = nil THEN BREAK
     writes(@rep(line)!str_data)
     newline()
-    gc_mark(repl_env)
-    gc_sweep()
+    gc(repl_env)
   } REPEAT
 }
 

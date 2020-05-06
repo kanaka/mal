@@ -27,7 +27,7 @@ LET repl() BE
     IF line = nil THEN BREAK
     writes(@rep(line)!str_data)
     newline()
-    gc_sweep()
+    gc(nil)
   } REPEAT
 }
 
