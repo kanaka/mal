@@ -122,6 +122,12 @@ AND print_hm(pc, map) BE
   print_char(pc, '}')
 }
 
+AND print_atm(pc, atm) BE
+{ print_const(pc, "(atom ")
+  print_form(pc, atm!atm_value)
+  print_char(pc, ')')
+}
+
 AND print_form(pc, val) BE
   SWITCHON type OF val INTO
   {
@@ -138,6 +144,7 @@ AND print_form(pc, val) BE
     CASE t_kwd: print_kwd(pc, val); ENDCASE
     CASE t_fun:
     CASE t_mfn: print_const(pc, "#<function>"); ENDCASE
+    CASE t_atm: print_atm(pc, val); ENDCASE
     DEFAULT: print_const(pc, "<unprintable>"); ENDCASE
   }
 

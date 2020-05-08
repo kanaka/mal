@@ -56,9 +56,11 @@ LET core_env() = VALOF
     // context.
     LET emptyp(val) = val =
       empty | supertype OF val = t_vec & val!vec_len = 0 -> TRUE, FALSE
+    LET atomp(val) = type OF val = t_atm
 
     def(env, "list?", pred_fun(listp))
     def(env, "empty?", pred_fun(emptyp))
+    def(env, "atom?", pred_fun(atomp))
   }
 
   // Comparisons
@@ -168,6 +170,25 @@ LET core_env() = VALOF
   // Constructors
   { LET list(fn, args) = args
     def (env, "list", bare_fun(list))
+  }
+
+  // Atom functions
+  { LET atom(fn, args) = alloc_atm(args!lst_first)
+    LET deref(fn, args) = VALOF
+    { UNLESS type OF (args!lst_first) = t_atm DO
+        throwf("invalid argument to deref: %v", args!lst_first)
+      RESULTIS args!lst_first!atm_value
+    }
+    LET reset(fn, args) = VALOF
+    { UNLESS type OF (args!lst_first) = t_atm DO
+        throwf("invalid argument to deref: %v", args!lst_first)
+      args!lst_first!atm_value := args!lst_rest!lst_first
+      RESULTIS args!lst_rest!lst_first
+    }
+    
+    def(env, "atom", bare_fun(atom))
+    def(env, "deref", bare_fun(deref))
+    def(env, "reset!", bare_fun(reset))
   }
   RESULTIS env
 }

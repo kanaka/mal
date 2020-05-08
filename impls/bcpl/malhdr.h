@@ -11,6 +11,7 @@ GLOBAL { readline: ug
 	 hm_set; hm_contains; hm_get; hm_dump
 	 alloc_vec; alloc_vecn
 	 alloc_fun
+	 alloc_atm
 	 throw
 	 env_new; env_set
 	 catch_level; catch_label; last_exception
@@ -74,13 +75,16 @@ MANIFEST
   // Functions defined in mal.  These are returned by fn* and are
   // handled specially by the tail-call optimisation in EVAL.
   t_mfn = #x1f
-				
+			
   // Hash-maps.  These are implemented as crit-bit trees.  There are three
   // types of node: internal nodes point to two other nodes and encode a
   // bit offset in the spare bits of the first word.  External nodes
   // point to a key and a value.  Empty nodes describe an empty hash-map.
-  t_hmi = #x0a; hmi_left = 2; hmi_right = 3; hmi_sz = 4
+  t_hmi = #x0b; hmi_left = 2; hmi_right = 3; hmi_sz = 4
   hmi_critbit = SLCT 0:9:1; hmi_maxcritbit = (1 << BITSPERBCPLWORD - 9) - 1
-  t_hmx = #x1a; hmx_key = 2; hmx_value = 3; hmx_sz = 4
-  t_hm0 = #x0b; hm0_sz = 2
+  t_hmx = #x1b; hmx_key = 2; hmx_value = 3; hmx_sz = 4
+  t_hm0 = #x0c; hm0_sz = 2
+
+  // Atoms.
+  t_atm = #x0a; atm_value = 2; atm_sz = 3
 }

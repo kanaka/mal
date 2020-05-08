@@ -39,6 +39,7 @@ LET gc_mark(x) BE
     CASE t_fun: FOR i = 0 TO (fun_ntracked OF x) - 1 DO
                   gc_mark((x+fun_data)!i)
 		ENDCASE
+    CASE t_atm: x := x!atm_value; LOOP
   }
   RETURN
 } REPEAT
@@ -368,6 +369,13 @@ LET hm_contains(map, key) = VALOF
   IF map = empty_hashmap RESULTIS FALSE
   map := hm_find(map, key)
   RESULTIS equal(map!hmx_key, key)
+}
+
+LET alloc_atm(value) = VALOF
+{ LET result = alloc_val(atm_sz)
+  type OF result := t_atm
+  result!atm_value := value
+  RESULTIS result
 }
 
 LET throw(val) BE
