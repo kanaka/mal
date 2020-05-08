@@ -148,16 +148,16 @@ runLoop f expr env =
         Left e ->
             case apply e env of
                 ( env_, EvalOk expr_ ) ->
-                    runLoop f expr env
+                    runLoop f expr_ env_
 
                 ( env_, EvalErr msg ) ->
-                    ( env, EvalErr msg )
+                    ( env_, EvalErr msg )
 
                 ( env_, EvalIO cmd cont ) ->
-                    ( env, EvalIO cmd (cont >> andThen (runLoop f)) )
+                    ( env_, EvalIO cmd (cont >> andThen (runLoop f)) )
 
         Right expr_ ->
-            ( env, EvalOk expr )
+            ( env, EvalOk expr_ )
 
 
 fromResult : Result String a -> Eval a
