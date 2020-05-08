@@ -181,14 +181,25 @@ LET core_env() = VALOF
     }
     LET reset(fn, args) = VALOF
     { UNLESS type OF (args!lst_first) = t_atm DO
-        throwf("invalid argument to deref: %v", args!lst_first)
+        throwf("invalid argument to reset!: %v", args!lst_first)
       args!lst_first!atm_value := args!lst_rest!lst_first
       RESULTIS args!lst_rest!lst_first
     }
-    
+    LET swap(fn, args, gc_root) = VALOF
+    { LET atm, fn = args!lst_first, args!lst_rest!lst_first
+      LET gc_inner_root = cons(atm, gc_root)
+      UNLESS type OF atm = t_atm & supertype OF fn = t_fun DO
+        throwf("invalid arguments to swap!: %v", args)
+      atm!atm_value :=
+        (fn!fun_code)(fn, cons(atm!atm_value, args!lst_rest!lst_rest),
+		      gc_inner_root)
+      RESULTIS atm!atm_value
+    }
+
     def(env, "atom", bare_fun(atom))
     def(env, "deref", bare_fun(deref))
     def(env, "reset!", bare_fun(reset))
+    def(env, "swap!", bare_fun(swap))
   }
   RESULTIS env
 }
