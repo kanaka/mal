@@ -136,7 +136,8 @@ AND print_form(pc, val) BE
     CASE t_str: IF pc!pc_print_readably THEN { print_str(pc, val); ENDCASE }
     CASE t_sym: print_sym(pc, val); ENDCASE
     CASE t_kwd: print_kwd(pc, val); ENDCASE
-    CASE t_fun: print_const(pc, "#<function>"); ENDCASE
+    CASE t_fun:
+    CASE t_mfn: print_const(pc, "#<function>"); ENDCASE
     DEFAULT: print_const(pc, "<unprintable>"); ENDCASE
   }
 

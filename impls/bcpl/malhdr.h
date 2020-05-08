@@ -9,7 +9,7 @@ GLOBAL { readline: ug
 	 alloc_int
 	 str_setlen; alloc_str; str_bcpl2mal; as_sym; as_kwd; str_eq_const
 	 hm_set; hm_contains; hm_get; hm_dump
-	 alloc_vec; alloc_vec3
+	 alloc_vec; alloc_vecn
 	 alloc_fun
 	 throw
 	 env_new; env_set
@@ -71,6 +71,10 @@ MANIFEST
   t_fun = #x0f; fun_code = 2; fun_data = 3
   fun_ntracked = SLCT 0:9:1
 
+  // Functions defined in mal.  These are returned by fn* and are
+  // handled specially by the tail-call optimisation in EVAL.
+  t_mfn = #x1f
+				
   // Hash-maps.  These are implemented as crit-bit trees.  There are three
   // types of node: internal nodes point to two other nodes and encode a
   // bit offset in the spare bits of the first word.  External nodes

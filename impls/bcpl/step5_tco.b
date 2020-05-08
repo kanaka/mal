@@ -44,7 +44,8 @@ LET eval_ast(ast, env, gc_root) = VALOF
   }
 
 AND EVAL(ast, env, gc_root) = VALOF
-{ LET gc_inner_root = alloc_vec3(ast, env, gc_root)
+{ MANIFEST { fun_binds = fun_data; fun_body; fun_env; fun_sz }
+  LET gc_inner_root = alloc_vecn(3, ast, env, gc_root)
   gc_mark(gc_inner_root)
   gc_sweep()
   UNLESS type OF ast = t_lst RESULTIS eval_ast(ast, env)
@@ -82,19 +83,23 @@ AND EVAL(ast, env, gc_root) = VALOF
       LOOP // TCO
     }
     IF is_sym(fn, "fn**") THEN
-    { MANIFEST { fun_binds = fun_data; fun_body; fun_env; fun_sz }
-      LET call(fun, args, gc_root) =
+    { LET call(fun, args, gc_root) =
           EVAL(fun!fun_body, env_new(fun!fun_env, fun!fun_binds, args), gc_root)
       LET result = alloc_fun(call, fun_sz,
                              as_lst(nth(ast, 1)), nth(ast, 2), env)
       fun_ntracked OF result := 3
+      type OF result := t_mfn
       RESULTIS result
     }
   }
   ast := eval_ast(ast, env, gc_inner_root)
   { LET fn, args = ast!lst_first, ast!lst_rest
-    UNLESS type OF fn = t_fun DO throwf("not a function")
-    RESULTIS (fn!fun_code)(fn, args)
+    UNLESS supertype OF fn = t_fun DO throwf("not a function")
+    IF type OF fn = t_mfn THEN
+    { ast, env := fn!fun_body, env_new(fn!fun_env, fn!fun_binds, args)
+      LOOP // TCO
+    }
+    RESULTIS (fn!fun_code)(fn, args, gc_root)
   }
 } REPEAT
 
@@ -102,7 +107,7 @@ LET PRINT(x) = pr_str(x)
 
 STATIC { repl_env }
 
-LET rep(x) = PRINT(EVAL(READ(x), repl_env)), nil
+LET rep(x) = PRINT(EVAL(READ(x), repl_env), nil)
 
 LET repl() BE
 { repl_env := core_env()
