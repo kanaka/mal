@@ -103,6 +103,15 @@ LET core_env() = VALOF
     def(env, "count", bare_fun(count))
   }
 
+  // Reading function
+  { LET read_string(fn, args) = VALOF
+    { UNLESS type OF (args!lst_first) = t_str DO
+        throwf("invalid argument to read-string: %v", args!lst_first)
+      RESULTIS read_str(args!lst_first)
+    }
+    def(env, "read-string", bare_fun(read_string))
+  }
+
   // Printing functions
   { LET prstr(fn, args) = pr_multi(args, TRUE, TRUE)
     LET str(fn, args) = pr_multi(args, FALSE, FALSE)
