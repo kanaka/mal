@@ -183,4 +183,4 @@ LET print_f(pc, msg, A) BE
   }
 }
 
-LET throwf(msg, A) BE throw(pr(print_f, msg, A))
+LET throwf(msg, A) BE throw(pr(print_f, msg, FALSE, A))
