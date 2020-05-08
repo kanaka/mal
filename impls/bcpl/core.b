@@ -131,6 +131,40 @@ LET core_env() = VALOF
     def(env, "println", bare_fun(println))
   }
 
+  // File-access function
+  { LET slurp(fn, args) = VALOF
+    { LET scb = ?
+      LET oldcis = cis
+      LET dest, dest_size, ptr = ?, 1024, 1
+      UNLESS type OF (args!lst_first) = t_str DO
+        throwf("invalid argument to slurp: %v", args!lst_first)
+      scb := findinput(@(args!lst_first!str_data))
+      IF scb = 0 THEN
+        throwf("couldn't open %v for input", args!lst_first)
+      // rdch() only reads from the current input stream, cis.
+      cis := scb
+      dest := alloc_str(dest_size)
+      { LET c = rdch()
+        IF c = endstreamch BREAK
+	IF ptr >= dest_size THEN
+	{ LET tmp = ?
+	  dest_size := dest_size * 2
+	  tmp := alloc_str(dest_size)
+	  FOR i = 1 TO str_data + dest_size / bytesperword DO
+            tmp!i := dest!i
+          dest := tmp
+	}
+	(dest + str_data)%ptr := c
+	ptr := ptr + 1
+      } REPEAT
+      str_setlen(dest, ptr - 1)
+      cis := oldcis
+      endstream(scb)
+      RESULTIS dest
+    }
+    def(env, "slurp", bare_fun(slurp))
+  }
+
   // Constructors
   { LET list(fn, args) = args
     def (env, "list", bare_fun(list))
