@@ -68,9 +68,11 @@ parser.add_argument('test_file', type=str,
 parser.add_argument('mal_cmd', nargs="*",
         help="Mal implementation command line. Use '--' to "
              "specify a Mal command line with dashed options.")
+parser.add_argument('--crlf', dest='crlf', action='store_true',
+        help="Write \\r\\n instead of \\n to the input")
 
 class Runner():
-    def __init__(self, args, no_pty=False):
+    def __init__(self, args, no_pty=False, line_break="\n"):
         #print "args: %s" % repr(args)
         self.no_pty = no_pty
 
@@ -113,6 +115,8 @@ class Runner():
         self.buf = ""
         self.last_prompt = ""
 
+        self.line_break = line_break
+
     def read_to_prompt(self, prompts, timeout):
         end_time = time.time() + timeout
         while time.time() < end_time:
@@ -150,7 +154,7 @@ class Runner():
         def _to_bytes(s):
             return bytes(s, "utf-8") if IS_PY_3 else s
 
-        self.stdin.write(_to_bytes(str.replace('\r', '\x16\r') + "\n"))
+        self.stdin.write(_to_bytes(str.replace('\r', '\x16\r') + self.line_break))
 
     def cleanup(self):
         #print "cleaning up"
@@ -235,7 +239,7 @@ if args.rundir: os.chdir(args.rundir)
 if args.log_file:   log_file   = open(args.log_file, "a")
 if args.debug_file: debug_file = open(args.debug_file, "a")
 
-r = Runner(args.mal_cmd, no_pty=args.no_pty)
+r = Runner(args.mal_cmd, no_pty=args.no_pty, line_break="\r\n" if args.crlf else "\n")
 t = TestReader(args.test_file)
 
 

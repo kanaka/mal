@@ -1,0 +1,34 @@
+diff --git a/src/vm/wren_core.c b/src/vm/wren_core.c
+index 34a13c8b..3c4e6ab8 100644
+--- a/src/vm/wren_core.c
++++ b/src/vm/wren_core.c
+@@ -4,6 +4,7 @@
+ #include <math.h>
+ #include <string.h>
+ #include <time.h>
++#include <sys/time.h>
+ 
+ #include "wren_common.h"
+ #include "wren_core.h"
+@@ -1121,6 +1122,13 @@ DEF_PRIMITIVE(string_toString)
+   RETURN_VAL(args[0]);
+ }
+ 
++DEF_PRIMITIVE(system_gettimeofday)
++{
++  struct timeval tv;
++  gettimeofday(&tv, NULL);
++  RETURN_NUM((double)tv.tv_sec + (double)tv.tv_usec/1000000.0);
++}
++
+ DEF_PRIMITIVE(system_clock)
+ {
+   RETURN_NUM((double)clock() / CLOCKS_PER_SEC);
+@@ -1374,6 +1382,7 @@ void wrenInitializeCore(WrenVM* vm)
+   PRIMITIVE(vm->rangeClass, "toString", range_toString);
+ 
+   ObjClass* systemClass = AS_CLASS(wrenFindVariable(vm, coreModule, "System"));
++  PRIMITIVE(systemClass->obj.classObj, "gettimeofday", system_gettimeofday);
+   PRIMITIVE(systemClass->obj.classObj, "clock", system_clock);
+   PRIMITIVE(systemClass->obj.classObj, "gc()", system_gc);
+   PRIMITIVE(systemClass->obj.classObj, "writeString_(_)", system_writeString);

@@ -39,9 +39,10 @@ const githutToNames = {
     'Objective-C':  ['Objective C'],
     'PLpgSQL':      ['PL/pgSQL'],
     'PLSQL':        ['PL/SQL'],
+    'Python':       ['Python', 'Python #2'],
     'Scheme':       ['Scheme (R7RS)'],
     'Smalltalk':    ['GNU Smalltalk'],
-    'Swift':        ['Swift 2', 'Swift 3', 'Swift 4'],
+    'Swift':        ['Swift 2', 'Swift 3', 'Swift 4', 'Swift 5'],
     'Vim script':   ['Vimscript'],
     'Visual Basic': ['Visual Basic.NET'],
 }
@@ -61,9 +62,11 @@ const dirToSOTags = {
     'objpascal': ['delphi', 'freepascal', 'delphi-7', 'delphi-2007', 'delphi-2009', 'delphi-2010', 'delphi-xe', 'delphi-xe2', 'delphi-xe3', 'delphi-xe4', 'delphi-xe5', 'delphi-xe7'],
     'objc':      ['objective-c'],
     'python':    ['python', 'python-3.x', 'python-2.7'],
+    'python.2':  ['python', 'python-3.x', 'python-2.7'],
     'swift':     ['swift2'],
     'swift3':    ['swift3'],
-    'swift4':    ['swift', 'swift4'],
+    'swift4':    ['swift4'],
+    'swift5':    ['swift', 'swift4', 'swift5'],
     'ts':        ['typescript', 'typescript-generics', 'typescript2.0'],
     'vimscript': ['viml'],
     'vb':        ['vb.net'],
@@ -159,8 +162,7 @@ async function main() {
 
 
     function githutProcess(textData, kind) {
-        const gMap = textData.split(/\n/)
-            .map(JSON.parse)
+        const gMap = JSON.parse(textData)
             .reduce((m, d) => (m[d.name] = parseInt(d.count) + (m[d.name] || 0), m), {})
         const gdata = Object.entries(gMap)
             .sort(([k1,v1],[k2,v2]) => v2 - v1)

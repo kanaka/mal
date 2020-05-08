@@ -46,6 +46,7 @@ matrix:
     - {env: IMPL=hy,                          services: [docker]}
     - {env: IMPL=io NO_SELF_HOST_PERF=1,      services: [docker]} # perf OOM
     - {env: IMPL=java,                        services: [docker]}
+    - {env: IMPL=jq,                          services: [docker]}
     - {env: IMPL=js,                          services: [docker]}
     - {env: IMPL=julia,                       services: [docker]}
     - {env: IMPL=kotlin,                      services: [docker]}
@@ -69,12 +70,14 @@ matrix:
     - {env: IMPL=perl6,                       services: [docker]}
     - {env: IMPL=php,                         services: [docker]}
     - {env: IMPL=picolisp,                    services: [docker]}
+    - {env: IMPL=pike,                        services: [docker]}
     - {env: IMPL=plpgsql NO_SELF_HOST=1,      services: [docker]} # step3 timeout
 #    - {env: IMPL=plsql,                       services: [docker]}
     - {env: IMPL=ps,                          services: [docker]}
     - {env: IMPL=powershell NO_SELF_HOST_PERF=1, services: [docker]} # perf timeout
     - {env: IMPL=python python_MODE=python2,  services: [docker]}
     - {env: IMPL=python python_MODE=python3,  services: [docker]}
+    - {env: IMPL=python.2,                    services: [docker]}
     - {env: IMPL=r,                           services: [docker]}
     - {env: IMPL=racket,                      services: [docker]}
     - {env: IMPL=rexx,                        services: [docker]}
@@ -95,6 +98,8 @@ matrix:
     - {env: IMPL=swift3 NO_DOCKER=1, os: osx, osx_image: xcode8}
     - {env: IMPL=swift4,                      services: [docker]}
     - {env: IMPL=swift4 NO_DOCKER=1, os: osx, osx_image: xcode10}
+    - {env: IMPL=swift5,                      services: [docker]}
+    - {env: IMPL=swift5 NO_DOCKER=1, os: osx, osx_image: xcode11}
     - {env: IMPL=tcl,                         services: [docker]}
     - {env: IMPL=ts,                          services: [docker]}
     - {env: IMPL=vala,                        services: [docker]}
@@ -109,7 +114,9 @@ matrix:
     - {env: IMPL=wasm wasm_MODE=node      NO_SELF_HOST_PERF=1, services: [docker]}
     - {env: IMPL=wasm wasm_MODE=warpy     NO_SELF_HOST_PERF=1, services: [docker]}
     - {env: IMPL=wasm wasm_MODE=wace_libc NO_SELF_HOST_PERF=1, services: [docker]}
+    - {env: IMPL=wren,                        services: [docker]}
     - {env: IMPL=yorick,                      services: [docker]}
+    - {env: IMPL=zig,                         services: [docker]}
 
 script:
   # Build, test, perf

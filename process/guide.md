@@ -109,7 +109,7 @@ IMPLS = ... quux ...
 quux_STEP_TO_PROG = mylang/$($(1)).qx
 ```
 
-* Add a "run" script to you implementation directory that listens to
+* Add a "run" script to your implementation directory that listens to
   the "STEP" environment variable for the implementation step to run
   and defaults to "stepA_mal". Make sure the run script has the
   executable file permission set (or else the test runner might fail with a
@@ -916,15 +916,16 @@ diff -urp ../process/step4_if_fn_do.txt ../process/step5_tco.txt
 
 * The default "apply"/invoke case of `EVAL` must now be changed to
   account for the new object/structure returned by the `fn*` form.
-  Continue to call `eval_ast` on `ast`. The first element is `f`.
+  Continue to call `eval_ast` on `ast`. The first element of the 
+  result of `eval_ast` is `f` and the remaining elements are in `args`.
   Switch on the type of `f`:
   * regular function (not one defined by `fn*`): apply/invoke it as
     before (in step 4).
   * a `fn*` value: set `ast` to the `ast` attribute of `f`. Generate
     a new environment using the `env` and `params` attributes of `f`
-    as the `outer` and `binds` arguments and rest `ast` arguments
-    (list elements 2 through the end) as the `exprs` argument. Set
-    `env` to the new environment. Continue at the beginning of the loop.
+    as the `outer` and `binds` arguments and `args` as the `exprs` 
+    argument. Set `env` to the new environment. Continue at the 
+    beginning of the loop.
 
 Run some manual tests from previous steps to make sure you have not
 broken anything by adding TCO.
@@ -1338,7 +1339,9 @@ implementation. Let us continue!
     and return the first element. If the list (or vector) is empty or
     is `nil` then `nil` is returned.
   * `rest`: this function takes a list (or vector) as its argument and
-    returns a new list containing all the elements except the first.
+    returns a new list containing all the elements except the first. If
+    the list (or vector) is empty or is `nil` then `()` (empty list) 
+    is returned.
 
 * In the main program, call the `rep` function with the following
   string argument  to define a new control structure.
