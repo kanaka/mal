@@ -110,7 +110,9 @@ STATIC { repl_env }
 LET rep(x) = PRINT(EVAL(READ(x), repl_env), nil)
 
 LET repl() BE
-{ repl_env := core_env()
+{ LET mal_eval(fn, args, gc_root) = EVAL(args!lst_first, repl_env, gc_root)
+  repl_env := core_env()
+  env_set(repl_env, as_sym(str_bcpl2mal("eval")), alloc_fun(mal_eval, fun_data))
   rep(str_bcpl2mal("(def! not (fn** (a) (if a false true)))"), repl_env)
   catch_level, catch_label := level(), uncaught
   IF FALSE THEN
