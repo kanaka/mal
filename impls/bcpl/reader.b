@@ -34,15 +34,15 @@ LET tokenize(s) = VALOF
         p := p + (sd%p = '\' -> 2, 1) REPEATUNTIL p > s!str_len | sd%p = '*"'
         ENDCASE
       DEFAULT: // Symbol, keyword, or number
-        UNTIL p > s!str_len DO
-        { SWITCHON sd%p INTO
+        WHILE p < s!str_len DO
+        { p := p + 1
+	  SWITCHON sd%p INTO
           { CASE ' ': CASE '*t': CASE '*n': CASE ',':
             CASE '[': CASE ']': CASE '{': CASE '}': CASE '(': CASE ')':
             CASE '*'': CASE '`': CASE '~': CASE '^': CASE '@': CASE '*"':
             CASE ';':
               p := p - 1; BREAK
           }
-          p := p + 1
         }
         ENDCASE
     }
