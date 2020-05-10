@@ -48,7 +48,7 @@ AND EVAL(ast, env, gc_root) = VALOF
   LET gc_inner_root = alloc_vecn(3, ast, env, gc_root)
   gc_mark(gc_inner_root)
   gc_sweep()
-  UNLESS type OF ast = t_lst RESULTIS eval_ast(ast, env)
+  UNLESS type OF ast = t_lst RESULTIS eval_ast(ast, env, gc_root)
   IF ast = empty RESULTIS ast
   { LET fn = ast!lst_first
     IF is_sym(fn, "def!") THEN
