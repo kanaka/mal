@@ -109,10 +109,11 @@ STATIC { repl_env }
 
 LET rep(x) = PRINT(EVAL(READ(x), repl_env), nil)
 
-LET repl() BE
+LET repl(argv) BE
 { LET mal_eval(fn, args, gc_root) = EVAL(args!lst_first, repl_env, gc_root)
   repl_env := core_env()
   env_set(repl_env, as_sym(str_bcpl2mal("eval")), alloc_fun(mal_eval, fun_data))
+  env_set(repl_env, as_sym(str_bcpl2mal("**ARGV**")), argv)
   rep(str_bcpl2mal("(def! not (fn** (a) (if a false true)))"), repl_env)
   rep(str_bcpl2mal("(def! load-file (fn** (f) (eval (read-string *
                     *(str *"(do *" (slurp f) *"*nnil)*")))))"), repl_env)
@@ -133,11 +134,17 @@ LET repl() BE
   } REPEAT
 }
 
+LET read_argv() = VALOF
+{ LET command_line = readline(str_bcpl2mal(""))
+  // writes("command_line: ")
+  // writes(pr_str(command_line) + str_data)
+  RESULTIS empty
+}
+ 
+
 LET start() = VALOF
-{ LET ch = 0
-  init_types()
-  ch := rdch() REPEATUNTIL ch = '*n' // Consume command-line args
+{ init_types()
   wrch('*n') // Terminate prompt printed by Cintsys
-  repl()
+  repl(read_argv())
   RESULTIS 0
 }
