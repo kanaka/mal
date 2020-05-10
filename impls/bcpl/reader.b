@@ -12,15 +12,6 @@ LET reader_next(rdr) = VALOF
   RESULTIS tok
 }
 
-LET newsubstr(s, start, end) = VALOF
-{ LET len = end - start
-  LET ss = alloc_str(len)
-  FOR i = 1 TO len DO
-    (ss + str_data) % i := (s + str_data) % (start + i - 1)
-  str_setlen(ss, len)
-  RESULTIS ss
-}
-
 LET tokenize(s) = VALOF
 { LET tokens, tail = empty, empty
   LET sd = s + str_data
@@ -57,7 +48,7 @@ LET tokenize(s) = VALOF
     }
     // At this point, tokstart points to the first character of the token,
     // and p points to the last character.
-    token := newsubstr(s, tokstart, p + 1)
+    token := str_substr(s, tokstart, p + 1)
     TEST tokens = empty THEN
     { tokens := cons(token, empty)
       tail := tokens
@@ -95,7 +86,7 @@ LET read_string(token) = VALOF
   RESULTIS out
 }
 
-LET read_keyword(token) = as_kwd(newsubstr(token, 2, token!str_len + 1))
+LET read_keyword(token) = as_kwd(str_substr(token, 2, token!str_len + 1))
 
 LET read_number_maybe(token) = VALOF
 { LET sd, start, negative, acc = token + str_data, 1, FALSE, 0

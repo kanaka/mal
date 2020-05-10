@@ -121,6 +121,15 @@ LET str_dup(val) = VALOF
   RESULTIS new
 }
 
+LET str_substr(s, start, end) = VALOF
+{ LET len = end - start
+  LET ss = alloc_str(len)
+  FOR i = 1 TO len DO
+    (ss + str_data) % i := (s + str_data) % (start + i - 1)
+  str_setlen(ss, len)
+  RESULTIS ss
+}
+
 LET as_sym(val) = VALOF
 { LET sym = ?
   IF type OF val = t_sym THEN RESULTIS val
