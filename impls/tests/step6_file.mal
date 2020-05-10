@@ -9,6 +9,9 @@
 (read-string "(1 2 (3 4) nil)")
 ;=>(1 2 (3 4) nil)
 
+(= nil (read-string "nil"))
+;=>true
+
 (read-string "(+ 2 3)")
 ;=>(+ 2 3)
 
