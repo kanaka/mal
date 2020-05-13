@@ -114,9 +114,9 @@ LET repl(argv) BE
   repl_env := core_env()
   env_set(repl_env, as_sym(str_bcpl2mal("eval")), alloc_fun(mal_eval, fun_data))
   env_set(repl_env, as_sym(str_bcpl2mal("**ARGV**")), argv)
-  rep(str_bcpl2mal("(def! not (fn** (a) (if a false true)))"), repl_env)
+  rep(str_bcpl2mal("(def! not (fn** (a) (if a false true)))"))
   rep(str_bcpl2mal("(def! load-file (fn** (f) (eval (read-string *
-                    *(str *"(do *" (slurp f) *"*nnil)*")))))"), repl_env)
+                    *(str *"(do *" (slurp f) *"*nnil)*")))))"))
   catch_level, catch_label := level(), uncaught
   IF FALSE THEN
   { uncaught:
