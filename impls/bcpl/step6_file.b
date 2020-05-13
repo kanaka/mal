@@ -113,10 +113,22 @@ LET repl(argv) BE
 { LET mal_eval(fn, args, gc_root) = EVAL(args!lst_first, repl_env, gc_root)
   repl_env := core_env()
   env_set(repl_env, as_sym(str_bcpl2mal("eval")), alloc_fun(mal_eval, fun_data))
-  env_set(repl_env, as_sym(str_bcpl2mal("**ARGV**")), argv)
-  rep(str_bcpl2mal("(def! not (fn** (a) (if a false true)))"))
+  env_set(repl_env, as_sym(str_bcpl2mal("**FILE**")), argv!lst_first)
+  env_set(repl_env, as_sym(str_bcpl2mal("**ARGV**")), argv!lst_rest)
+  rep(str_bcpl2mal("(def! not (fn** (a) (if a false true)))"), repl_env)
   rep(str_bcpl2mal("(def! load-file (fn** (f) (eval (read-string *
-                    *(str *"(do *" (slurp f) *"*nnil)*")))))"))
+                    *(str *"(do *" (slurp f) *"*nnil)*")))))"), repl_env)
+  UNLESS argv = empty DO
+  {
+    catch_level, catch_label := level(), uncaught_exit
+    rep(str_bcpl2mal("(load-file **FILE**)"))
+    sys(Sys_quit, 0)
+    uncaught_exit:
+    writes("Uncaught exception: ")
+    writes(@(pr_str(last_exception)!str_data))
+    newline()
+    sys(Sys_quit, 1)
+  }
   catch_level, catch_label := level(), uncaught
   IF FALSE THEN
   { uncaught:
@@ -134,13 +146,45 @@ LET repl(argv) BE
   } REPEAT
 }
 
+// This is a cut-down version of the reader's tokenize function.
+
+// Cintsys passes us the entire command line as a single string and doesn't
+// quote values in any way, so we can't reliably reconstruct arguments with
+// whitespace in them.
 LET read_argv() = VALOF
-{ LET command_line = readline(str_bcpl2mal(""))
-  // writes("command_line: ")
-  // writes(pr_str(command_line) + str_data)
-  RESULTIS empty
+{ LET s = readline(str_bcpl2mal(""))
+  LET tokens, tail = empty, empty
+  LET sd = s + str_data
+  LET tokstart, token = ?, ?
+  FOR p = 1 TO s!str_len DO
+  { tokstart := p
+    // Within this SWITCHON command, use LOOP to ignore input, or ENDCASE to
+    // emit a token.
+    SWITCHON sd%p INTO
+    { CASE ' ': CASE '*t': CASE '*n': LOOP // Inter-token whitespace
+      DEFAULT: // Word
+        WHILE p < s!str_len DO
+        { p := p + 1
+	  SWITCHON sd%p INTO
+          { CASE ' ': CASE '*t': CASE '*n':
+              p := p - 1; BREAK
+          }
+        }
+        ENDCASE
+    }
+    // At this point, tokstart points to the first character of the token,
+    // and p points to the last character.
+    token := str_substr(s, tokstart, p + 1)
+    TEST tokens = empty THEN
+    { tokens := cons(token, empty)
+      tail := tokens
+    } ELSE
+    { tail!lst_rest := cons(token, empty)
+      tail := tail!lst_rest
+    }
+  }
+  RESULTIS tokens
 }
- 
 
 LET start() = VALOF
 { init_types()
