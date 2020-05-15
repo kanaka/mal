@@ -12,6 +12,7 @@ step3_env: env.b printer.b reader.b readline.b types.b
 step4_if_fn_do: core.b env.b printer.b reader.b readline.b types.b
 step5_tco: core.b env.b printer.b reader.b readline.b types.b
 step6_file: core.b env.b printer.b reader.b readline.b types.b
+step7_quote: core.b env.b printer.b reader.b readline.b types.b
 
 clean:
 	rm step0_repl step1_read_print step2_eval step3_env step4_if_fn_do
