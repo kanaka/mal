@@ -89,7 +89,10 @@ LET core_env() = VALOF
   }
 
   // Miscellaneous list functions
-  { LET count(fn, args) = VALOF
+  { LET core_cons(fn, args) =
+      cons(args!lst_first, as_lst(args!lst_rest!lst_first))
+    
+    LET count(fn, args) = VALOF
     { LET arg = args!lst_first
       SWITCHON supertype OF arg INTO
       { CASE t_nil: RESULTIS alloc_int(0)
@@ -102,6 +105,7 @@ LET core_env() = VALOF
 	DEFAULT: throwf("invalid argument to count: %v", arg)
       }
     }
+    def(env, "cons", bare_fun(core_cons))
     def(env, "count", bare_fun(count))
   }
 
