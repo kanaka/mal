@@ -81,6 +81,7 @@ kotlin/.idea
 kotlin/*.iml
 lua/lib
 lua/linenoise.so
+lua/rex_pcre.so
 lua/mal.lua
 make/mal.mk
 mal/mal.mal
