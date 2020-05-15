@@ -24,12 +24,12 @@ mal: mal.lua
 
 clean:
 	rm -f linenoise.so mal.lua mal
-	rm -rf lib/lua/5.1
+	rm -rf lib
 
 .PHONY: libs
 libs: linenoise.so
 
 linenoise.so:
 	luarocks install --tree=./ linenoise
-	ln -sf lib/lua/5.1/linenoise.so $@
+	ln -sf $$(find . -name linenoise.so) $@
 
