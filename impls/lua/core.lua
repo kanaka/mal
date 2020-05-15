@@ -3,7 +3,7 @@ local types = require('types')
 local reader = require('reader')
 local printer = require('printer')
 local readline = require('readline')
-local socket = require('socket')
+-- local socket = require('socket')
 
 local Nil, List, HashMap, _pr_str = types.Nil, types.List, types.HashMap, printer._pr_str
 
@@ -272,7 +272,7 @@ M.ns = {
     ['-'] =  function(a,b) return a-b end,
     ['*'] =  function(a,b) return a*b end,
     ['/'] =  function(a,b) return math.floor(a/b) end,
-    ['time-ms'] = function() return math.floor(socket.gettime() * 1000) end,
+    -- ['time-ms'] = function() return math.floor(socket.gettime() * 1000) end,
 
     list = function(...) return List:new(table.pack(...)) end,
     ['list?'] = function(a) return types._list_Q(a) end,
