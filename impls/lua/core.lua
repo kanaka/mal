@@ -233,7 +233,7 @@ local function lua_to_mal(a)
 end
 
 local function lua_eval(str)
-    local f, err = loadstring("return "..str)
+    local f, err = load("return "..str)
     if err then
         types.throw("lua-eval: can't load code: "..err)
     end
@@ -250,8 +250,14 @@ M.ns = {
     ['number?'] = function(a) return types._number_Q(a) end,
     symbol = function(a) return types.Symbol:new(a) end,
     ['symbol?'] = function(a) return types._symbol_Q(a) end,
-    ['string?'] = function(a) return types._string_Q(a) and "\177" ~= string.sub(a,1,1) end,
-    keyword = function(a) return "\177"..a end,
+    ['string?'] = function(a) return types._string_Q(a) and "\u{029e}" ~= string.sub(a,1,2) end,
+    keyword = function(a)
+        if types._keyword_Q(a) then
+            return a
+        else
+            return "\u{029e}"..a
+        end
+    end,
     ['keyword?'] = function(a) return types._keyword_Q(a) end,
     ['fn?'] = function(a) return types._fn_Q(a) end,
     ['macro?'] = function(a) return types._macro_Q(a) end,
@@ -272,7 +278,7 @@ M.ns = {
     ['-'] =  function(a,b) return a-b end,
     ['*'] =  function(a,b) return a*b end,
     ['/'] =  function(a,b) return math.floor(a/b) end,
-    -- ['time-ms'] = function() return math.floor(socket.gettime() * 1000) end,
+    ['time-ms'] = function() return math.floor(os.clock()*1000) end,
 
     list = function(...) return List:new(table.pack(...)) end,
     ['list?'] = function(a) return types._list_Q(a) end,

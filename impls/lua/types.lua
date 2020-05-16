@@ -118,7 +118,7 @@ end
 
 -- Keywords
 function M._keyword_Q(obj)
-    return M._string_Q(obj) and "\177" == string.sub(obj,1,1)
+    return M._string_Q(obj) and "\u{029e}" == string.sub(obj,1,2)
 end
 
 
