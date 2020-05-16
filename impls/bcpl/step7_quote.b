@@ -154,7 +154,7 @@ LET repl(argv) BE
 // whitespace in them.
 LET read_argv() = VALOF
 { LET s = readline(str_bcpl2mal(""))
-  LET tokens, tail = empty, empty
+  LET tokens, tailp = empty, @tokens
   LET sd = s + str_data
   LET tokstart, token = ?, ?
   FOR p = 1 TO s!str_len DO
@@ -176,13 +176,8 @@ LET read_argv() = VALOF
     // At this point, tokstart points to the first character of the token,
     // and p points to the last character.
     token := str_substr(s, tokstart, p + 1)
-    TEST tokens = empty THEN
-    { tokens := cons(token, empty)
-      tail := tokens
-    } ELSE
-    { tail!lst_rest := cons(token, empty)
-      tail := tail!lst_rest
-    }
+    !tailp := cons(token, empty)
+    tailp := @(!tailp)!lst_rest
   }
   RESULTIS tokens
 }
