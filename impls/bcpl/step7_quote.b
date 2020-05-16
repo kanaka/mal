@@ -66,6 +66,7 @@ AND EVAL(ast, env, gc_root) = VALOF
       ast, env := nth(ast, 2), newenv
       LOOP // TCO
     }
+    IF is_sym(fn, "quote") RESULTIS ast!lst_rest!lst_first
     IF is_sym(fn, "do") THEN
     { LET tail = ast!lst_rest
       UNTIL tail!lst_rest = empty DO
