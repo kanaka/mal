@@ -16,6 +16,23 @@ LET is_sym(a, b) = VALOF
   RESULTIS str_eq_const(a, b)
 }
 
+LET is_pair(ast) =
+  type OF ast = t_lst & ast ~= empty | type OF ast = t_vec & ast!vec_len > 0
+
+LET quasiquote(ast) = VALOF
+{ UNLESS is_pair(ast)
+    RESULTIS cons(as_sym(str_bcpl2mal("quote")), cons(ast, empty))
+  ast := as_lst(ast)
+  IF is_sym(ast!lst_first, "unquote") RESULTIS ast!lst_rest!lst_first
+  IF is_pair(ast!lst_first) & is_sym(ast!lst_first!lst_first, "splice-unquote")
+    RESULTIS cons(as_sym(str_bcpl2mal("concat")),
+                  cons(ast!lst_first!lst_rest!lst_first,
+		       cons(quasiquote(ast!lst_rest), empty)))
+  RESULTIS cons(as_sym(str_bcpl2mal("cons")),
+                cons(quasiquote(ast!lst_first),
+		     cons(quasiquote(ast!lst_rest), empty)))
+}
+
 LET eval_ast(ast, env, gc_root) = VALOF
   SWITCHON type OF ast INTO
   { CASE t_sym: RESULTIS env_get(env, ast)
@@ -67,6 +84,10 @@ AND EVAL(ast, env, gc_root) = VALOF
       LOOP // TCO
     }
     IF is_sym(fn, "quote") RESULTIS ast!lst_rest!lst_first
+    IF is_sym(fn, "quasiquote") THEN
+    { ast := quasiquote(ast!lst_rest!lst_first)
+      LOOP // TCO
+    }
     IF is_sym(fn, "do") THEN
     { LET tail = ast!lst_rest
       UNTIL tail!lst_rest = empty DO
