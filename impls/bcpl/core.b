@@ -91,7 +91,21 @@ LET core_env() = VALOF
   // Miscellaneous list functions
   { LET core_cons(fn, args) =
       cons(args!lst_first, as_lst(args!lst_rest!lst_first))
-    
+    LET concat(fn, args) = VALOF
+    { LET head, tailp = empty, @head
+      IF args = empty RESULTIS empty
+      UNTIL args!lst_rest = empty DO
+      { LET this = as_lst(args!lst_first)
+        UNTIL this = empty DO
+	{ !tailp := cons(this!lst_first, empty)
+	  tailp := @(!tailp)!lst_rest
+	  this := this!lst_rest
+	}
+	args := args!lst_rest
+      }
+      !tailp := as_lst(args!lst_first)
+      RESULTIS head
+    }
     LET count(fn, args) = VALOF
     { LET arg = args!lst_first
       SWITCHON supertype OF arg INTO
@@ -106,6 +120,7 @@ LET core_env() = VALOF
       }
     }
     def(env, "cons", bare_fun(core_cons))
+    def(env, "concat", bare_fun(concat))
     def(env, "count", bare_fun(count))
   }
 
