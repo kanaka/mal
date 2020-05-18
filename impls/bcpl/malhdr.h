@@ -71,11 +71,12 @@ MANIFEST
   // this structure and can do what it likes with it.  fun_ntracked
   // is the number of tracked pointers at the start of fun_data.
   t_fun = #x0f; fun_code = 2; fun_data = 3
-  fun_ntracked = SLCT 0:9:1
+  fun_ntracked = SLCT 2:9:1
 
   // Functions defined in mal.  These are returned by fn* and are
   // handled specially by the tail-call optimisation in EVAL.
   t_mfn = #x1f
+  mfn_ismacro = SLCT 1:11:1
 			
   // Hash-maps.  These are implemented as crit-bit trees.  There are three
   // types of node: internal nodes point to two other nodes and encode a

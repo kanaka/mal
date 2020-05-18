@@ -33,6 +33,22 @@ LET quasiquote(ast) = VALOF
 		     cons(quasiquote(ast!lst_rest), empty)))
 }
 
+LET is_macro_call(ast, env) = VALOF
+{ LET fn = ?
+  UNLESS type OF ast = t_lst & type OF (ast!lst_first) = t_sym &
+         env_find(env, ast!lst_first) ~= nil RESULTIS FALSE
+  fn := env_get(env, ast!lst_first)
+  RESULTIS type OF fn = t_mfn & mfn_ismacro OF fn ~= 0
+}
+
+LET macroexpand(ast, env, gc_root) = VALOF
+{ WHILE is_macro_call(ast, env) DO
+  { LET fn = env_get(env, ast!lst_first)
+    ast := (fn!fun_code)(fn, ast!lst_rest, gc_root)
+  }
+  RESULTIS ast
+}
+
 LET eval_ast(ast, env, gc_root) = VALOF
   SWITCHON type OF ast INTO
   { CASE t_sym: RESULTIS env_get(env, ast)
@@ -66,6 +82,8 @@ AND EVAL(ast, env, gc_root) = VALOF
   gc_mark(gc_inner_root)
   gc_sweep()
   UNLESS type OF ast = t_lst RESULTIS eval_ast(ast, env, gc_root)
+  ast := macroexpand(ast, env, gc_inner_root)
+  UNLESS type OF ast = t_lst RESULTIS eval_ast(ast, env, gc_root)
   IF ast = empty RESULTIS ast
   { LET fn = ast!lst_first
     IF is_sym(fn, "def!") THEN
@@ -88,6 +106,14 @@ AND EVAL(ast, env, gc_root) = VALOF
     { ast := quasiquote(ast!lst_rest!lst_first)
       LOOP // TCO
     }
+    IF is_sym(fn, "defmacro!") THEN
+    { LET val = EVAL(nth(ast, 2), env, gc_inner_root)
+      IF type OF val = t_mfn THEN mfn_ismacro OF val := 1
+      env_set(env, nth(ast, 1), val, env)
+      RESULTIS val
+    }
+    IF is_sym(fn, "macroexpand") THEN
+      RESULTIS macroexpand(ast!lst_rest!lst_first, env, gc_root)
     IF is_sym(fn, "do") THEN
     { LET tail = ast!lst_rest
       UNTIL tail!lst_rest = empty DO
