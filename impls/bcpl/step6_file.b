@@ -58,6 +58,7 @@ AND EVAL(ast, env, gc_root) = VALOF
     }
     IF is_sym(fn, "let**") THEN
     { LET newenv, bindings = env_new(env, empty, empty), as_lst(nth(ast, 1))
+      gc_inner_root := alloc_vecn(3, newenv, bindings, gc_inner_root)
       UNTIL bindings = empty DO
       { env_set(newenv, bindings!lst_first,
                 EVAL(nth(bindings, 1), newenv, gc_inner_root))
