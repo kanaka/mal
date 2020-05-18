@@ -111,6 +111,7 @@ LET rep(x) = PRINT(EVAL(READ(x), repl_env), nil)
 
 LET repl(argv) BE
 { LET mal_eval(fn, args, gc_root) = EVAL(args!lst_first, repl_env, gc_root)
+  catch_level, catch_label := level(), uncaught_exit
   repl_env := core_env()
   env_set(repl_env, as_sym(str_bcpl2mal("eval")), alloc_fun(mal_eval, fun_data))
   env_set(repl_env, as_sym(str_bcpl2mal("**FILE**")), argv!lst_first)
@@ -120,7 +121,6 @@ LET repl(argv) BE
                     *(str *"(do *" (slurp f) *"*nnil)*")))))"), repl_env)
   UNLESS argv = empty DO
   {
-    catch_level, catch_label := level(), uncaught_exit
     rep(str_bcpl2mal("(load-file **FILE**)"))
     sys(Sys_quit, 0)
     uncaught_exit:
