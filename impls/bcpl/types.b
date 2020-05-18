@@ -81,6 +81,7 @@ LET nth(lst, n) = VALOF
 
 LET as_lst(x) = VALOF SWITCHON type OF x INTO
 { CASE t_lst: RESULTIS x
+  CASE t_nil: RESULTIS empty
   CASE t_vec:
     { LET l = empty
       FOR i = x!vec_len - 1 TO 0 BY -1 DO

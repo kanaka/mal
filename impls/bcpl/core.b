@@ -119,9 +119,29 @@ LET core_env() = VALOF
 	DEFAULT: throwf("invalid argument to count: %v", arg)
       }
     }
+    LET core_nth(fn, args) = VALOF
+    { LET seq, n = args!lst_first, args!lst_rest!lst_first
+      UNLESS type OF n = t_int DO throwf("subscript not an integer")
+      n := n!int_value
+      IF type OF seq = t_lst RESULTIS nth(seq, n)
+      IF type OF seq = t_vec THEN
+      { IF n >= seq!vec_len THEN throwf("subscript out of range")
+        RESULTIS (seq+vec_data)!n
+      }
+      throwf("nth applied to non-sequence")
+    }
+    LET first(fn, args) = VALOF
+    { LET seq = args!lst_first
+      IF type OF seq = t_vec & seq!vec_len > 0 RESULTIS seq!vec_data
+      RESULTIS as_lst(seq)!lst_first
+    }
+    LET rest(fn, args) = as_lst(args!lst_first)!lst_rest
     def(env, "cons", bare_fun(core_cons))
     def(env, "concat", bare_fun(concat))
     def(env, "count", bare_fun(count))
+    def(env, "nth", bare_fun(core_nth))
+    def(env, "first", bare_fun(first))
+    def(env, "rest", bare_fun(rest))
   }
 
   // Reading function
