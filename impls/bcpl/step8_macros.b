@@ -168,6 +168,10 @@ LET repl(argv) BE
   rep(str_bcpl2mal("(def! not (fn** (a) (if a false true)))"), repl_env)
   rep(str_bcpl2mal("(def! load-file (fn** (f) (eval (read-string *
                     *(str *"(do *" (slurp f) *"*nnil)*")))))"), repl_env)
+  rep(str_bcpl2mal("(defmacro! cond (fn** (& xs) (if (> (count xs) 0) *
+                    *(list 'if (first xs) (if (> (count xs) 1) (nth xs 1) *
+                    *(throw *"odd number of forms to cond*")) *
+                    *(cons 'cond (rest (rest xs)))))))"), repl_env)
   UNLESS argv = empty DO
   {
     rep(str_bcpl2mal("(load-file **FILE**)"))
