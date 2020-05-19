@@ -224,7 +224,14 @@ LET core_env() = VALOF
 
   // Constructors
   { LET list(fn, args) = args
-    def (env, "list", bare_fun(list))
+    LET str_conv(fn, args) = VALOF
+    { UNLESS supertype OF (args!lst_first) = t_str DO
+        throwf("Cannot treat %v as a string", args!lst_first)
+      RESULTIS (fn!wf_wrapped)(args!lst_first)
+    }
+    def(env, "list", bare_fun(list))
+    def(env, "symbol", alloc_fun(str_conv, wf_sz, as_sym))
+    def(env, "keyword", alloc_fun(str_conv, wf_sz, as_kwd))
   }
 
   // Atom functions
