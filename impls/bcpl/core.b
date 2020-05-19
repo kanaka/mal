@@ -229,9 +229,20 @@ LET core_env() = VALOF
         throwf("Cannot treat %v as a string", args!lst_first)
       RESULTIS (fn!wf_wrapped)(args!lst_first)
     }
+    LET vector(fn, args) = VALOF
+    { LET vec = ?
+      LET ptr, n = args, 0
+      UNTIL ptr = empty DO
+        n, ptr := n + 1, ptr!lst_rest
+      vec := alloc_vec(n)
+      FOR i = 0 TO n - 1 DO
+        (vec+vec_data)!i, args := args!lst_first, args!lst_rest
+      RESULTIS vec
+    }
     def(env, "list", bare_fun(list))
     def(env, "symbol", alloc_fun(str_conv, wf_sz, as_sym))
     def(env, "keyword", alloc_fun(str_conv, wf_sz, as_kwd))
+    def(env, "vector", bare_fun(vector))
   }
 
   // Atom functions
