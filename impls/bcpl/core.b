@@ -240,5 +240,10 @@ LET core_env() = VALOF
     def(env, "reset!", bare_fun(reset))
     def(env, "swap!", bare_fun(swap))
   }
+
+  // Control-flow functions
+  { LET core_throw(fn, args) = throw(args!lst_first)
+    def(env, "throw", bare_fun(core_throw))
+  }
   RESULTIS env
 }

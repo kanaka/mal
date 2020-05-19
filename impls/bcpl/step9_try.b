@@ -115,6 +115,22 @@ AND EVAL(ast, env, gc_root) = VALOF
     }
     IF is_sym(fn, "macroexpand") THEN
       RESULTIS macroexpand(ast!lst_rest!lst_first, env, gc_root)
+    IF is_sym(fn, "try**") THEN
+    { LET old_catch_level, old_catch_label = catch_level, catch_label
+      LET result, catcher = ?, ?
+      catch_level, catch_label := level(), catch
+      result := EVAL(ast!lst_rest!lst_first, env, gc_inner_root)
+      catch_level, catch_label := old_catch_level, old_catch_label
+      RESULTIS result
+     catch:
+      catch_level, catch_label := old_catch_level, old_catch_label
+      catcher := ast!lst_rest!lst_rest!lst_first
+      IF catcher = nil THEN throw(last_exception)
+      env := env_new(env, empty, empty)
+      env_set(env, nth(catcher, 1), last_exception)
+      ast := nth(catcher, 2)
+      LOOP // TCO
+    }
     IF is_sym(fn, "do") THEN
     { LET tail = ast!lst_rest
       UNTIL tail!lst_rest = empty DO
