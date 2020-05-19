@@ -239,19 +239,44 @@ LET core_env() = VALOF
         (vec+vec_data)!i, args := args!lst_first, args!lst_rest
       RESULTIS vec
     }
-    LET hash_map(fn, args) = VALOF
-    { LET hm = empty_hashmap
+    def(env, "list", bare_fun(list))
+    def(env, "symbol", alloc_fun(str_conv, wf_sz, as_sym))
+    def(env, "keyword", alloc_fun(str_conv, wf_sz, as_kwd))
+    def(env, "vector", bare_fun(vector))
+  }
+
+  // Hash-map functions
+  { LET assert_hashmap(hm) = VALOF
+    { UNLESS hm = empty_hashmap | supertype OF hm = t_hmi DO
+        throwf("Not a hash-map: %v", hm)
+      RESULTIS hm
+    }
+    LET assoc(fn, args) = VALOF
+    { LET hm = assert_hashmap(args!lst_first)
+      args := args!lst_rest
       UNTIL args = empty DO
       { hm := hm_set(hm, args!lst_first, args!lst_rest!lst_first)
         args := args!lst_rest!lst_rest
       }
       RESULTIS hm
     }
-    def(env, "list", bare_fun(list))
-    def(env, "symbol", alloc_fun(str_conv, wf_sz, as_sym))
-    def(env, "keyword", alloc_fun(str_conv, wf_sz, as_kwd))
-    def(env, "vector", bare_fun(vector))
+    LET hash_map(fn, args) = assoc(fn, cons(empty_hashmap, args))
+    LET dissoc(fn, args) = VALOF
+    { LET hm = assert_hashmap(args!lst_first)
+      args := args!lst_rest
+      UNTIL args = empty DO
+        hm, args := hm_remove(hm, args!lst_first), args!lst_rest
+      RESULTIS hm
+    }
+    LET get(fn, args) = VALOF
+    { LET hm = assert_hashmap(args!lst_first)
+      RESULTIS hm_get(hm, args!lst_rest!lst_first)
+    }
+
     def(env, "hash-map", bare_fun(hash_map))
+    def(env, "assoc", bare_fun(assoc))
+    def(env, "dissoc", bare_fun(dissoc))
+    def(env, "get", bare_fun(get))
   }
 
   // Atom functions

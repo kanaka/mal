@@ -9,7 +9,7 @@ GLOBAL { readline: ug
 	 alloc_int
 	 str_setlen; alloc_str; str_substr; str_bcpl2mal
 	 as_sym; as_kwd; str_eq_const
-	 hm_set; hm_contains; hm_get; hm_dump
+	 hm_set; hm_contains; hm_remove; hm_get; hm_dump
 	 alloc_vec; alloc_vecn
 	 alloc_fun
 	 alloc_atm
