@@ -254,8 +254,21 @@ LET core_env() = VALOF
       !tailp := as_lst(args!lst_first)
       RESULTIS (inner_fn!fun_code)(inner_fn, head, gc_root)
     }
+    LET map(fn, args, gc_root) = VALOF
+    { LET inner_fn, seq = args!lst_first, as_lst(args!lst_rest!lst_first)
+      LET dummy_head, tail = cons(nil, empty), dummy_head
+      LET gc_inner_root = alloc_vecn(4, seq, dummy_head, inner_fn, gc_root)
+      UNTIL seq = empty DO
+      { tail!lst_rest :=
+          cons((inner_fn!fun_code)(inner_fn, cons(seq!lst_first, nil),
+                                   gc_inner_root), empty)
+        tail, seq := tail!lst_rest, seq!lst_rest
+      }
+      RESULTIS dummy_head!lst_rest
+    }
     def(env, "throw", bare_fun(core_throw))
     def(env, "apply", bare_fun(apply))
+    def(env, "map", bare_fun(map))
   }
   RESULTIS env
 }
