@@ -57,10 +57,26 @@ LET core_env() = VALOF
     LET emptyp(val) = val =
       empty | supertype OF val = t_vec & val!vec_len = 0 -> TRUE, FALSE
     LET atomp(val) = type OF val = t_atm
+    LET nilp(val) = val = nil
+    LET truep(val) = val = mtrue
+    LET falsep(val) = val = mfalse
+    LET symbolp(val) = type OF val = t_sym
+    LET keywordp(val) = type OF val = t_kwd
+    LET vectorp(val) = type OF val = t_vec
+    LET sequentialp(val) = type OF val = t_lst | type OF val = t_vec
+    LET mapp(val) = type OF val = t_hm0 | supertype OF val = t_hmi
 
     def(env, "list?", pred_fun(listp))
     def(env, "empty?", pred_fun(emptyp))
     def(env, "atom?", pred_fun(atomp))
+    def(env, "nil?", pred_fun(nilp))
+    def(env, "true?", pred_fun(truep))
+    def(env, "false?", pred_fun(falsep))
+    def(env, "symbol?", pred_fun(symbolp))
+    def(env, "keyword?", pred_fun(keywordp))
+    def(env, "vector?", pred_fun(vectorp))
+    def(env, "sequential?", pred_fun(sequentialp))
+    def(env, "map?", pred_fun(mapp))
   }
 
   // Comparisons
