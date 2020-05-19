@@ -268,15 +268,17 @@ LET core_env() = VALOF
         hm, args := hm_remove(hm, args!lst_first), args!lst_rest
       RESULTIS hm
     }
-    LET get(fn, args) = VALOF
-    { LET hm = assert_hashmap(args!lst_first)
-      RESULTIS hm_get(hm, args!lst_rest!lst_first)
-    }
+    LET get(fn, args) =
+      hm_get(assert_hashmap(args!lst_first), args!lst_rest!lst_first)
+    LET containsp(fn, args) =
+      hm_contains(assert_hashmap(args!lst_first), args!lst_rest!lst_first) ->
+        mtrue, mfalse
 
     def(env, "hash-map", bare_fun(hash_map))
     def(env, "assoc", bare_fun(assoc))
     def(env, "dissoc", bare_fun(dissoc))
     def(env, "get", bare_fun(get))
+    def(env, "contains?", bare_fun(containsp))
   }
 
   // Atom functions
