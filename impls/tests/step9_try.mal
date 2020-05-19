@@ -27,6 +27,12 @@
 ;/"exc:" "my exception"
 ;=>7
 
+;; Test that exception handlers get restored correctly
+(try* (do (try* "t1" (catch* e "c1")) (throw "e1")) (catch* e "c2"))
+;=>"c2"
+(try* (try* (throw "e1") (catch* e (throw "e2"))) (catch* e "c2"))
+;=>"c2"
+
 ;;; Test that throw is a function:
 (try* (map throw (list "my err")) (catch* exc exc))
 ;=>"my err"
