@@ -239,10 +239,19 @@ LET core_env() = VALOF
         (vec+vec_data)!i, args := args!lst_first, args!lst_rest
       RESULTIS vec
     }
+    LET hash_map(fn, args) = VALOF
+    { LET hm = empty_hashmap
+      UNTIL args = empty DO
+      { hm := hm_set(hm, args!lst_first, args!lst_rest!lst_first)
+        args := args!lst_rest!lst_rest
+      }
+      RESULTIS hm
+    }
     def(env, "list", bare_fun(list))
     def(env, "symbol", alloc_fun(str_conv, wf_sz, as_sym))
     def(env, "keyword", alloc_fun(str_conv, wf_sz, as_kwd))
     def(env, "vector", bare_fun(vector))
+    def(env, "hash-map", bare_fun(hash_map))
   }
 
   // Atom functions
