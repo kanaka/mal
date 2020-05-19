@@ -243,7 +243,19 @@ LET core_env() = VALOF
 
   // Control-flow functions
   { LET core_throw(fn, args) = throw(args!lst_first)
+    LET apply(fn, args, gc_root) = VALOF {
+      LET inner_fn, head, tailp = args!lst_first, empty, @head
+      args := args!lst_rest
+      UNTIL args!lst_rest = empty DO
+      { !tailp := cons(args!lst_first, empty)
+        tailp := @(!tailp)!lst_rest
+	args := args!lst_rest
+      }
+      !tailp := as_lst(args!lst_first)
+      RESULTIS (inner_fn!fun_code)(inner_fn, head, gc_root)
+    }
     def(env, "throw", bare_fun(core_throw))
+    def(env, "apply", bare_fun(apply))
   }
   RESULTIS env
 }
