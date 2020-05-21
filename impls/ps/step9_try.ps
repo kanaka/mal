@@ -156,9 +156,11 @@ end } def
         }{ /try* a0 eq { %if try*
             ast _count 2 gt { %if has catch* block
                 { %try
+		    2 dict begin % special dict for dict stack count
                     countdictstack /dictcnt exch def
                     count /stackcnt exch def
                     ast 1 _nth env EVAL
+		    end
                 } stopped { %catch
                     % clean up the dictionary stack
                     1 1 countdictstack dictcnt sub { %foreach added dict
@@ -172,6 +174,7 @@ end } def
                         pop pop % pop idx and operand
                         %(popped op stack\n) print pstack
                     } for
+		    end % remove special dict
                     % get error data and reset $error dict
                     /errdata get_error_data def
                     $error /newerror false put
