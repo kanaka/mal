@@ -12,7 +12,7 @@ Each implementation of mal is separated into
 11 incremental, self-contained (and testable) steps that demonstrate
 core concepts of Lisp. The last step is capable of self-hosting
 (running the mal implementation of mal). See the [make-a-lisp process
-guide](process/guide.md). 
+guide](process/guide.md).
 
 The make-a-lisp steps are:
 
@@ -647,13 +647,12 @@ logo stepX_YYY.lg
 
 ### Lua
 
-The Lua implementation of mal has been tested with Lua 5.2. The
-implementation requires that luarocks and the lua-rex-pcre library
-are installed.
+The Lua implementation of mal has been tested with Lua 5.3.5 The
+implementation requires luarocks to be installed.
 
 ```
 cd impls/lua
-make  # to build and link linenoise.so
+make  # to build and link linenoise.so and rex_pcre.so
 ./stepX_YYY.lua
 ```
 

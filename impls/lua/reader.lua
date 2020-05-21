@@ -46,15 +46,15 @@ function M.read_atom(rdr)
     elseif float_re:exec(token) then return tonumber(token)
     elseif string_re:exec(token) then
         local sval = string.sub(token,2,string.len(token)-1)
-        sval = string.gsub(sval, '\\\\', '\177')
+        sval = string.gsub(sval, '\\\\', '\u{029e}')
         sval = string.gsub(sval, '\\"', '"')
         sval = string.gsub(sval, '\\n', '\n')
-        sval = string.gsub(sval, '\177', '\\')
+        sval = string.gsub(sval, '\u{029e}', '\\')
         return sval
     elseif string.sub(token,1,1) == '"' then
         throw("expected '\"', got EOF")
     elseif string.sub(token,1,1) == ':' then
-        return "\177" .. string.sub(token,2)
+        return "\u{029e}" .. string.sub(token,2)
     elseif token == "nil" then       return Nil
     elseif token == "true" then      return true
     elseif token == "false" then     return false

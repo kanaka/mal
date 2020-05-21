@@ -23,8 +23,8 @@ function M._pr_str(obj, print_readably)
         end
         return "{".. table.concat(res, " ").."}"
     elseif type(obj) == 'string' then
-        if string.sub(obj,1,1) == "\177" then
-            return ':' .. string.sub(obj,2)
+        if string.sub(obj,1,2) == "\u{029e}" then
+            return ':' .. string.sub(obj,3)
         else
             if _r then
                 local sval = obj:gsub('\\', '\\\\')

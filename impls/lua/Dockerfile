@@ -22,9 +22,22 @@ WORKDIR /mal
 ##########################################################
 
 # Lua
-RUN apt-get -y install lua5.2 liblua5.2-dev lua-rex-pcre luarocks
-RUN luarocks install linenoise
-RUN luarocks install luasocket
+RUN apt-get -y install gcc wget unzip libpcre3-dev
+
+RUN \
+curl -R -O http://www.lua.org/ftp/lua-5.3.5.tar.gz && \
+tar -zxf lua-5.3.5.tar.gz && \
+cd lua-5.3.5 && \
+make linux test && \
+make install
+
+RUN \
+wget https://luarocks.org/releases/luarocks-3.3.1.tar.gz && \
+tar zxpf luarocks-3.3.1.tar.gz && \
+cd luarocks-3.3.1 && \
+./configure && \
+make && \
+make install
 
 # luarocks .cache directory is relative to HOME
 ENV HOME /mal
