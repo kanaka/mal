@@ -132,13 +132,6 @@ class Runner():
                 else:
                     self.buf += new_data
                 self.buf = self.buf.replace("\r\r", "\r")
-                # Remove ANSI codes generally
-                #ansi_escape = re.compile(r'\x1B\[[0-?]*[ -/]*[@-~]')
-                # Remove rustyline ANSI CSI codes:
-                #  - [6C - CR + cursor forward
-                #  - [6K - CR + erase in line
-                ansi_escape = re.compile(r'\r\x1B\[[0-9]*[CK]')
-                self.buf = ansi_escape.sub('', self.buf)
                 for prompt in prompts:
                     regexp = re.compile(prompt)
                     match = regexp.search(self.buf)
@@ -147,7 +140,7 @@ class Runner():
                         buf = self.buf[0:match.start()]
                         self.buf = self.buf[end:]
                         self.last_prompt = prompt
-                        return buf.replace("^M", "\r")
+                        return buf
         return None
 
     def writeline(self, str):
@@ -296,11 +289,8 @@ while t.next():
     # The repeated form is to get around an occasional OS X issue
     # where the form is repeated.
     # https://github.com/kanaka/mal/issues/30
-    expects = ["%s%s%s%s" % (re.escape(t.form), sep,
-                              t.out, re.escape(t.ret)),
-               "%s%s%s%s%s%s" % (re.escape(t.form), sep,
-                                  re.escape(t.form), sep,
-                                  t.out, re.escape(t.ret))]
+    expects = [".*%s%s%s" % (sep, t.out, re.escape(t.ret)),
+               ".*%s.*%s%s%s" % (sep, sep, t.out, re.escape(t.ret))]
 
     r.writeline(t.form)
     try:
