@@ -28,8 +28,7 @@ def log(data, end='\n'):
     print(data, end=end)
     sys.stdout.flush()
 
-# TODO: do we need to support '\n' too
-sep = "\r\n"
+sep = "\n"
 rundir = None
 
 parser = argparse.ArgumentParser(
@@ -127,11 +126,7 @@ class Runner():
                 #print("new_data: '%s'" % new_data)
                 debug(new_data)
                 # Perform newline cleanup
-                if self.no_pty:
-                    self.buf += new_data.replace("\n", "\r\n")
-                else:
-                    self.buf += new_data
-                self.buf = self.buf.replace("\r\r", "\r")
+                self.buf += new_data.replace("\r", "")
                 for prompt in prompts:
                     regexp = re.compile(prompt)
                     match = regexp.search(self.buf)
@@ -216,10 +211,10 @@ class TestReader:
                     break
             if self.ret != None: break
 
-        if self.out[-2:] == sep and not self.ret:
+        if self.out[-1:] == sep and not self.ret:
             # If there is no return value, output should not end in
             # separator
-            self.out = self.out[0:-2]
+            self.out = self.out[0:-1]
         return self.form
 
 args = parser.parse_args(sys.argv[1:])
