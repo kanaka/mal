@@ -196,7 +196,9 @@
             </xsl:when>
             <xsl:otherwise>
               <xsl:choose>
-                <xsl:when test="let $fn := value/malval/lvalue/malval[1] return $fn/@kind = 'symbol' and $fn/@value = 'def!'">
+                  <xsl:when test="let $fn := value/malval/lvalue/malval[1]
+                                      return $fn/@kind = 'symbol' and
+                                           $fn/@value = 'def!'">
                   <xsl:variable name="name">
                     <xsl:value-of select="value/malval/lvalue/malval[2]/@value"/>
                   </xsl:variable>
@@ -218,7 +220,9 @@
                     <env data="{env:serialise(env:set($env, $name, $value/data/value/malval))}"/>
                   </xsl:if>
                 </xsl:when>
-                <xsl:when test="let $fn := value/malval/lvalue/malval[1] return $fn/@kind = 'symbol' and $fn/@value = 'let*'">
+                <xsl:when test="let $fn := value/malval/lvalue/malval[1]
+                                    return $fn/@kind = 'symbol' and
+                                           $fn/@value = 'let*'">
                   <xsl:variable name="xvalue">
                     <value>
                       <xsl:sequence select="value/malval/lvalue/malval[3]"/>

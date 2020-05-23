@@ -188,10 +188,16 @@
       <xsl:choose>
         <xsl:when test="fn:is-pair($ast)">
           <xsl:choose>
-            <xsl:when test="let $fst := $ast/lvalue/malval[1] return $fst/@kind = 'symbol' and $fst/@value = 'unquote'">
+            <xsl:when test="let $fst := $ast/lvalue/malval[1]
+                                return $fst/@kind = 'symbol' and
+                                       $fst/@value = 'unquote'">
               <xsl:sequence select="$ast/lvalue/malval[2]"/>
             </xsl:when>
-            <xsl:when test="let $fst := $ast/lvalue/malval[1] return fn:is-pair($fst) and (let $fstfst := $fst/lvalue/malval[1] return $fstfst/@kind = 'symbol' and $fstfst/@value = 'splice-unquote')">
+            <xsl:when test="let $fst := $ast/lvalue/malval[1]
+                                return fn:is-pair($fst) and
+                                       (let $fstfst := $fst/lvalue/malval[1]
+                                            return $fstfst/@kind = 'symbol' and
+                                                   $fstfst/@value = 'splice-unquote')">
               <malval kind="list">
                 <lvalue>
                   <malval kind="symbol" value="concat"/>
@@ -326,7 +332,9 @@
                       <!-- <xsl:sequence select="$atoms"/> -->
                     </xsl:for-each>
                   </xsl:when>
-                  <xsl:when test="let $fn := value/malval/lvalue/malval[1] return $fn/@kind = 'symbol' and $fn/@value = 'def!'">
+                  <xsl:when test="let $fn := value/malval/lvalue/malval[1]
+                                    return $fn/@kind = 'symbol' and
+                                           $fn/@value = 'def!'">
                     <xsl:variable name="name">
                       <xsl:value-of select="value/malval/lvalue/malval[2]/@value"/>
                     </xsl:variable>
@@ -350,7 +358,9 @@
                     </xsl:if>
                     <xsl:sequence select="$value/atoms[1]"/>
                   </xsl:when>
-                  <xsl:when test="let $fn := value/malval/lvalue/malval[1] return $fn/@kind = 'symbol' and $fn/@value = 'defmacro!'">
+                  <xsl:when test="let $fn := value/malval/lvalue/malval[1]
+                                    return $fn/@kind = 'symbol' and
+                                           $fn/@value = 'defmacro!'">
                     <xsl:variable name="name">
                       <xsl:value-of select="value/malval/lvalue/malval[2]/@value"/>
                     </xsl:variable>
@@ -382,7 +392,9 @@
                     </xsl:if>
                     <xsl:sequence select="$resv/atoms[1]"/>
                   </xsl:when>
-                  <xsl:when test="let $fn := value/malval/lvalue/malval[1] return $fn/@kind = 'symbol' and $fn/@value = 'let*'">
+                  <xsl:when test="let $fn := value/malval/lvalue/malval[1]
+                                    return $fn/@kind = 'symbol' and
+                                           $fn/@value = 'let*'">
                     <xsl:variable name="xvalue">
                       <value>
                         <xsl:sequence select="value/malval/lvalue/malval[3]"/>
@@ -434,7 +446,9 @@
                       </xsl:next-iteration>
                     </xsl:iterate>
                   </xsl:when>
-                  <xsl:when test="let $fn := value/malval/lvalue/malval[1] return $fn/@kind = 'symbol' and $fn/@value = 'do'">
+                  <xsl:when test="let $fn := value/malval/lvalue/malval[1]
+                                    return $fn/@kind = 'symbol' and
+                                           $fn/@value = 'do'">
                     <xsl:iterate select="value/malval/lvalue/malval[position() &gt; 1]">
                       <xsl:param name="new_env" select="$env"/>
                       <xsl:param name="atoms" select="$atoms"/>
@@ -466,7 +480,9 @@
                       </xsl:next-iteration>
                     </xsl:iterate>
                   </xsl:when>
-                  <xsl:when test="let $fn := value/malval/lvalue/malval[1] return $fn/@kind = 'symbol' and $fn/@value = 'if'">
+                  <xsl:when test="let $fn := value/malval/lvalue/malval[1]
+                                    return $fn/@kind = 'symbol' and
+                                           $fn/@value = 'if'">
                     <xsl:variable name="cond">
                       <xsl:for-each select="value/malval/lvalue/malval[2]">
                         <xsl:variable name="context">
@@ -515,7 +531,9 @@
                     </xsl:variable>
                     <xsl:variable name="res">
                       <xsl:choose>
-                        <xsl:when test="let $kind := $cond/data/value/malval/@kind return $kind = 'nil' or $kind = 'false'">
+                        <xsl:when test="let $kind := $cond/data/value/malval/@kind
+                                            return $kind = 'nil' or
+                                                   $kind = 'false'">
                           <xsl:for-each select="$xfalse">
                             <xsl:call-template name="EVAL">
                               <xsl:with-param name="env" select="$env"/>
@@ -539,7 +557,9 @@
                     </xsl:if>
                     <xsl:sequence select="$res/atoms[1]"/>
                   </xsl:when>
-                  <xsl:when test="let $fn := value/malval/lvalue/malval[1] return $fn/@kind = 'symbol' and $fn/@value = 'fn*'">
+                  <xsl:when test="let $fn := value/malval/lvalue/malval[1]
+                                    return $fn/@kind = 'symbol' and
+                                           $fn/@value = 'fn*'">
                     <value>
                       <malval kind="userfunction">
                         <is_macro>false</is_macro>
@@ -558,7 +578,9 @@
                     </xsl:if>
                     <xsl:sequence select="$atoms"/>
                   </xsl:when>
-                  <xsl:when test="let $fn := value/malval/lvalue/malval[1] return $fn/@kind = 'symbol' and $fn/@value = 'quote'">
+                  <xsl:when test="let $fn := value/malval/lvalue/malval[1]
+                                    return $fn/@kind = 'symbol' and
+                                           $fn/@value = 'quote'">
                     <value>
                       <xsl:sequence select="value/malval/lvalue/malval[2]"/>
                     </value>
@@ -567,7 +589,9 @@
                     </xsl:if>
                     <xsl:sequence select="$atoms"/>
                   </xsl:when>
-                  <xsl:when test="let $fn := value/malval/lvalue/malval[1] return $fn/@kind = 'symbol' and $fn/@value = 'quasiquote'">
+                  <xsl:when test="let $fn := value/malval/lvalue/malval[1]
+                                    return $fn/@kind = 'symbol' and
+                                           $fn/@value = 'quasiquote'">
                     <xsl:variable name="exp">
                       <value>
                         <xsl:call-template name="quasiquote">
@@ -590,7 +614,9 @@
                     </xsl:if>
                     <xsl:sequence select="$res/atoms[1]"/>
                   </xsl:when>
-                  <xsl:when test="let $fn := value/malval/lvalue/malval[1] return $fn/@kind = 'symbol' and $fn/@value = 'macroexpand'">
+                  <xsl:when test="let $fn := value/malval/lvalue/malval[1]
+                                    return $fn/@kind = 'symbol' and
+                                           $fn/@value = 'macroexpand'">
                     <xsl:variable name="exp">
                       <xsl:call-template name="macroexpand">
                         <xsl:with-param name="ast" select="value/malval/lvalue/malval[2]"/>
@@ -855,12 +881,19 @@
   </xsl:function>
   <xsl:function name="fn:is-pair">
     <xsl:param name="list"/>
-    <xsl:sequence select="($list/@kind = 'list' or $list/@kind = 'vector') and count($list/lvalue/malval) != 0"/>
+    <xsl:sequence select="($list/@kind = 'list' or $list/@kind = 'vector') and
+                          count($list/lvalue/malval) != 0"/>
   </xsl:function>
   <xsl:function name="fn:is-macro-call">
     <xsl:param name="ast"/>
     <xsl:param name="env"/>
-    <xsl:variable name="res" select="$ast/@kind = 'list' and $ast/lvalue/malval[1]/@kind = 'symbol' and (let $fn := env:get-noerror($env, $ast/lvalue/malval[1]/@value) return not(empty($fn)) and $fn/malval/is_macro/text() = 'true')"/>
+    <xsl:variable
+        name="res"
+        select="$ast/@kind = 'list' and
+                $ast/lvalue/malval[1]/@kind = 'symbol' and
+                (let $fn := env:get-noerror($env, $ast/lvalue/malval[1]/@value)
+                    return not(empty($fn)) and
+                           $fn/malval/is_macro/text() = 'true')"/>
     <xsl:sequence select="$res"/>
   </xsl:function>
 </xsl:stylesheet>

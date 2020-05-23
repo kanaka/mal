@@ -21,7 +21,18 @@
         </xsl:when>
         <xsl:when test="malval/@kind = 'string'">
           <value>
-            <xsl:value-of select="concat(if ($readably) then '&quot;' else '', fn:desc_string(malval/@value, $readably), if ($readably) then '&quot;' else '')"/>
+            <xsl:value-of select="concat(
+                                        if ($readably) then
+                                            '&quot;'
+                                        else
+                                            '',
+
+                                        fn:desc_string(malval/@value, $readably),
+
+                                        if ($readably) then
+                                            '&quot;'
+                                        else
+                                            '')"/>
           </value>
         </xsl:when>
         <xsl:when test="malval/@kind = 'keyword'">
@@ -131,7 +142,14 @@
             </xsl:for-each>
           </xsl:variable>
           <value>
-            <xsl:value-of select="concat('(atom ', (let $v := $inner/value return if ($v = 'Unknown') then concat('id=', string($val/@value), ' existing=', string-join(atoms/atom/@identity, ',')) else $v), ')')"/>
+            <xsl:value-of select="concat(
+                                      '(atom ',
+                                      (let $v := $inner/value
+                                            return if ($v = 'Unknown') then
+                                                     concat('id=', string($val/@value), ' existing=', string-join(atoms/atom/@identity, ','))
+                                                   else
+                                                      $v),
+                                      ')')"/>
           </value>
         </xsl:when>
         <xsl:otherwise>

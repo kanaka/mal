@@ -217,7 +217,9 @@
             </xsl:when>
             <xsl:otherwise>
               <xsl:choose>
-                <xsl:when test="let $fn := value/malval/lvalue/malval[1] return $fn/@kind = 'symbol' and $fn/@value = 'def!'">
+                <xsl:when test="let $fn := value/malval/lvalue/malval[1]
+                                    return $fn/@kind = 'symbol' and
+                                           $fn/@value = 'def!'">
                   <xsl:variable name="name">
                     <xsl:value-of select="value/malval/lvalue/malval[2]/@value"/>
                   </xsl:variable>
@@ -239,7 +241,9 @@
                     <env data="{env:serialise(env:set($env, $name, $value/data/value/malval))}"/>
                   </xsl:if>
                 </xsl:when>
-                <xsl:when test="let $fn := value/malval/lvalue/malval[1] return $fn/@kind = 'symbol' and $fn/@value = 'let*'">
+                <xsl:when test="let $fn := value/malval/lvalue/malval[1]
+                                    return $fn/@kind = 'symbol' and
+                                           $fn/@value = 'let*'">
                   <xsl:variable name="xvalue">
                     <value>
                       <xsl:sequence select="value/malval/lvalue/malval[3]"/>
@@ -283,7 +287,9 @@
                     </xsl:next-iteration>
                   </xsl:iterate>
                 </xsl:when>
-                <xsl:when test="let $fn := value/malval/lvalue/malval[1] return $fn/@kind = 'symbol' and $fn/@value = 'do'">
+                <xsl:when test="let $fn := value/malval/lvalue/malval[1]
+                                    return $fn/@kind = 'symbol' and
+                                           $fn/@value = 'do'">
                   <xsl:iterate select="value/malval/lvalue/malval[position() &gt; 1]">
                     <xsl:param name="new_env" select="$env"/>
                     <xsl:param name="previous_res" select="()"/>
@@ -312,7 +318,9 @@
                     </xsl:next-iteration>
                   </xsl:iterate>
                 </xsl:when>
-                <xsl:when test="let $fn := value/malval/lvalue/malval[1] return $fn/@kind = 'symbol' and $fn/@value = 'if'">
+                <xsl:when test="let $fn := value/malval/lvalue/malval[1]
+                                    return $fn/@kind = 'symbol' and
+                                           $fn/@value = 'if'">
                   <xsl:variable name="cond">
                     <xsl:for-each select="value/malval/lvalue/malval[2]">
                       <xsl:variable name="context">
@@ -356,7 +364,9 @@
                   </xsl:variable>
                   <xsl:variable name="res">
                     <xsl:choose>
-                      <xsl:when test="let $kind := $cond/data/value/malval/@kind return $kind = 'nil' or $kind = 'false'">
+                        <xsl:when test="let $kind := $cond/data/value/malval/@kind
+                                            return $kind = 'nil' or $kind
+                                               = 'false'">
                         <xsl:for-each select="$xfalse">
                           <xsl:call-template name="EVAL">
                             <xsl:with-param name="env" select="$env"/>
@@ -379,7 +389,9 @@
                     <env data="{env:serialise($env)}"/>
                   </xsl:if>
                 </xsl:when>
-                <xsl:when test="let $fn := value/malval/lvalue/malval[1] return $fn/@kind = 'symbol' and $fn/@value = 'fn*'">
+                <xsl:when test="let $fn := value/malval/lvalue/malval[1]
+                                    return $fn/@kind = 'symbol' and
+                                           $fn/@value = 'fn*'">
                   <value>
                     <malval kind="userfunction">
                       <binds>
