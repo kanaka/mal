@@ -38,9 +38,9 @@ function read_atom(rdr)
     elseif match(r"^-?[0-9][0-9.]*$", token) !== nothing
         float(token)
     elseif match(r"^\"(?:\\.|[^\\\"])*\"$", token) !== nothing
-        # replace(token[2:end-1], r"\\.", (r) -> get(Dict("\\n"=>"\n",
-        #                                                 "\\\""=>"\"",
-        #                                                 "\\\\"=>"\\"), r, r))
+        replace(token[2:end-1], r"\\." => (r) -> get(Dict("\\n"=>"\n",
+                                                        "\\\""=>"\"",
+                                                        "\\\\"=>"\\"), r, r))
     elseif match(r"^\".*$", token) !== nothing
         error("expected '\"', got EOF")
     elseif token[1] == ':'

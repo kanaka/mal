@@ -24,6 +24,9 @@ WORKDIR /mal
 # Julia
 RUN apt-get -y install wget unzip
 RUN \
+  mkdir -p /opt && cd /opt && \
   wget https://julialang-s3.julialang.org/bin/linux/x64/1.4/julia-1.4.1-linux-x86_64.tar.gz && \
   tar zxpf julia-1.4.1-linux-x86_64.tar.gz && \
-  ln -s /mal/julia-1.4.1/bin/julia /usr/local/bin/julia
+  ln -s /opt/julia-1.4.1/bin/julia /usr/bin/julia
+
+ENV HOME /mal
