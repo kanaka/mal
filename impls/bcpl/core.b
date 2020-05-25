@@ -273,12 +273,25 @@ LET core_env() = VALOF
     LET containsp(fn, args) =
       hm_contains(assert_hashmap(args!lst_first), args!lst_rest!lst_first) ->
         mtrue, mfalse
-
+    LET fields(fn, args, field) = VALOF
+    { LET hm = assert_hashmap(args!lst_first)
+      LET fields1(hm, field, acc) = VALOF
+      { IF type OF hm = t_hmx RESULTIS cons(hm!field, acc)
+        acc := fields1(hm!hmi_right, field, acc)
+        RESULTIS fields1(hm!hmi_left, field, acc)
+      }
+      IF type OF hm = t_hm0 RESULTIS empty
+      RESULTIS fields1(hm, field, empty)
+    }
+    LET keys(fn, args) = fields(fn, args, hmx_key)
+    LET vals(fn, args) = fields(fn, args, hmx_value)
     def(env, "hash-map", bare_fun(hash_map))
     def(env, "assoc", bare_fun(assoc))
     def(env, "dissoc", bare_fun(dissoc))
     def(env, "get", bare_fun(get))
     def(env, "contains?", bare_fun(containsp))
+    def(env, "keys", bare_fun(keys))
+    def(env, "vals", bare_fun(vals))
   }
 
   // Atom functions
