@@ -188,7 +188,7 @@ LET core_env() = VALOF
     def(env, "println", bare_fun(println))
   }
 
-  // File-access function
+  // Input/output functions
   { LET slurp(fn, args) = VALOF
     { LET scb = ?
       LET oldcis = cis
@@ -219,7 +219,9 @@ LET core_env() = VALOF
       endstream(scb)
       RESULTIS dest
     }
+    LET core_readline(fn, args) = readline(as_str(args!lst_first))
     def(env, "slurp", bare_fun(slurp))
+    def(env, "readline", bare_fun(core_readline))
   }
 
   // Constructors
