@@ -246,13 +246,14 @@ LET core_env() = VALOF
   }
 
   // Hash-map functions
-  { LET assert_hashmap(hm) = VALOF
-    { UNLESS hm = empty_hashmap | supertype OF hm = t_hmi DO
+  { LET as_hashmap(hm) = VALOF
+    { IF hm = nil THEN hm := empty_hashmap
+      UNLESS hm = empty_hashmap | supertype OF hm = t_hmi DO
         throwf("Not a hash-map: %v", hm)
       RESULTIS hm
     }
     LET assoc(fn, args) = VALOF
-    { LET hm = assert_hashmap(args!lst_first)
+    { LET hm = as_hashmap(args!lst_first)
       args := args!lst_rest
       UNTIL args = empty DO
       { hm := hm_set(hm, args!lst_first, args!lst_rest!lst_first)
@@ -262,19 +263,19 @@ LET core_env() = VALOF
     }
     LET hash_map(fn, args) = assoc(fn, cons(empty_hashmap, args))
     LET dissoc(fn, args) = VALOF
-    { LET hm = assert_hashmap(args!lst_first)
+    { LET hm = as_hashmap(args!lst_first)
       args := args!lst_rest
       UNTIL args = empty DO
         hm, args := hm_remove(hm, args!lst_first), args!lst_rest
       RESULTIS hm
     }
     LET get(fn, args) =
-      hm_get(assert_hashmap(args!lst_first), args!lst_rest!lst_first)
+      hm_get(as_hashmap(args!lst_first), args!lst_rest!lst_first)
     LET containsp(fn, args) =
-      hm_contains(assert_hashmap(args!lst_first), args!lst_rest!lst_first) ->
+      hm_contains(as_hashmap(args!lst_first), args!lst_rest!lst_first) ->
         mtrue, mfalse
     LET fields(fn, args, field) = VALOF
-    { LET hm = assert_hashmap(args!lst_first)
+    { LET hm = as_hashmap(args!lst_first)
       LET fields1(hm, field, acc) = VALOF
       { IF type OF hm = t_hmx RESULTIS cons(hm!field, acc)
         acc := fields1(hm!hmi_right, field, acc)
