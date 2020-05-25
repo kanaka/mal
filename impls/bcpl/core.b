@@ -270,8 +270,18 @@ LET core_env() = VALOF
       RESULTIS dest
     }
     LET core_readline(fn, args) = readline(as_str(args!lst_first))
+    LET time_ms(fn, args) = VALOF
+    { LET datv = VEC 3
+      datstamp(datv)
+      // On systems with big enough words, return milliseconds since epoch.
+      IF BITSPERBCPLWORD >= 44 THEN
+        RESULTIS alloc_int(datv!0 * 86400000 + datv!1)
+      // Otherwise, return millisends since start of day.
+      RESULTIS alloc_int(datv!1)
+    }
     def(env, "slurp", bare_fun(slurp))
     def(env, "readline", bare_fun(core_readline))
+    def(env, "time-ms", bare_fun(time_ms))
   }
 
   // Constructors
