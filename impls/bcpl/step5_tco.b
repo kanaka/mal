@@ -46,8 +46,7 @@ LET eval_ast(ast, env, gc_root) = VALOF
 AND EVAL(ast, env, gc_root) = VALOF
 { MANIFEST { fun_binds = fun_data; fun_body; fun_env; fun_sz }
   LET gc_inner_root = alloc_vecn(3, ast, env, gc_root)
-  gc_mark(gc_inner_root)
-  gc_sweep()
+  gc(gc_inner_root)
   UNLESS type OF ast = t_lst RESULTIS eval_ast(ast, env, gc_root)
   IF ast = empty RESULTIS ast
   { LET fn = ast!lst_first
@@ -125,8 +124,7 @@ LET repl() BE
     IF line = nil THEN BREAK
     writes(@rep(line)!str_data)
     newline()
-    gc_mark(repl_env)
-    gc_sweep()
+    gc(repl_env)
   } REPEAT
 }
 
