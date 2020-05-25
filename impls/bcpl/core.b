@@ -416,5 +416,11 @@ LET core_env() = VALOF
     def(env, "apply", bare_fun(apply))
     def(env, "map", bare_fun(map))
   }
+
+  // Unimplemented stubs
+  { LET not_implemented() BE throwf("not implemented")
+    def(env, "meta", bare_fun(not_implemented))
+    def(env, "with-meta", bare_fun(not_implemented))
+  }
   RESULTIS env
 }
