@@ -53,7 +53,7 @@ LET eval_ast(ast, env, gc_root) = VALOF
       }
     CASE t_hmx:
       { LET gc_inner_root = cons(ast, gc_root)
-        RESULTIS alloc_hmx(ast!hmx_key, EVAL(ast!hmx_value, env, gc_root))
+        RESULTIS alloc_hmx(ast!hmx_key, EVAL(ast!hmx_value, env, gc_inner_root))
       }
     CASE t_hmi:
       { LET gc_inner_root = alloc_vecn(3, ast, env, gc_root)
