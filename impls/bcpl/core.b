@@ -66,7 +66,7 @@ LET core_env() = VALOF
     LET keywordp(val) = type OF val = t_kwd
     LET vectorp(val) = type OF val = t_vec
     LET sequentialp(val) = type OF val = t_lst | type OF val = t_vec
-    LET mapp(val) = type OF val = t_hm0 | supertype OF val = t_hmi
+    LET mapp(val) = val = empty_hashmap | supertype OF val = t_hmi
     LET macrop(val) = type OF val = t_mfn & mfn_ismacro OF val = 1
     LET fnp(val) = supertype OF val = t_fun & ~macrop(val)
 
@@ -333,7 +333,7 @@ LET core_env() = VALOF
         acc := fields1(hm!hmi_right, field, acc)
         RESULTIS fields1(hm!hmi_left, field, acc)
       }
-      IF type OF hm = t_hm0 RESULTIS empty
+      IF hm = empty_hashmap RESULTIS empty
       RESULTIS fields1(hm, field, empty)
     }
     LET keys(fn, args) = fields(fn, args, hmx_key)

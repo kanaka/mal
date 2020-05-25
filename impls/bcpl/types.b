@@ -295,7 +295,7 @@ LET hm_dumpi(map, pfx, lastbit) BE
 }
 
 LET hm_dump(map) BE
-{ TEST type OF map = t_hm0 THEN writes("[empty]*n")
+{ TEST map = empty_hashmap THEN writes("[empty]*n")
                            ELSE hm_dumpi(map, 0, 0)
 }
 
