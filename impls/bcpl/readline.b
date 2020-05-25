@@ -7,17 +7,25 @@ MANIFEST
 // readline returns a newly-allocated mal string.
 // 'prompt' is a mal string,
 LET readline(prompt) = VALOF
-{ LET buf = VEC 1 + buflen / bytesperword
-  LET p = 1
+{ LET dest, dest_size, ptr = ?, 1024, 1
   LET ch = 0
   writes(@prompt!str_data)
   deplete(cos)
-  { IF p > buflen THEN { writes("Input line too long"); FINISH }
-    ch := rdch()
-    IF ch = endstreamch THEN RESULTIS nil
-    buf%p := ch
-    p := p + 1
-  } REPEATUNTIL ch = '*n'
-  buf%0 := p - 1
-  RESULTIS str_bcpl2mal(buf)
+  dest := alloc_str(dest_size)
+  { LET c = rdch()
+    IF c = endstreamch RESULTIS nil
+    IF c = '*n' BREAK
+    IF ptr >= dest_size THEN
+    { LET tmp = ?
+      dest_size := dest_size * 2
+      tmp := alloc_str(dest_size)
+      FOR i = 1 TO str_data + dest_size / bytesperword DO
+        tmp!i := dest!i
+      dest := tmp
+    }
+    (dest + str_data)%ptr := c
+    ptr := ptr + 1
+  } REPEAT
+  str_setlen(dest, ptr - 1)
+  RESULTIS dest
 }
