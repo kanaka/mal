@@ -160,12 +160,35 @@ LET core_env() = VALOF
       RESULTIS as_lst(seq)!lst_first
     }
     LET rest(fn, args) = as_lst(args!lst_first)!lst_rest
+    LET conj(fn, args) = VALOF
+    { LET seq = args!lst_first
+      args := args!lst_rest
+      IF type OF seq = t_lst THEN
+      { UNTIL args = empty DO
+          seq, args := cons(args!lst_first, seq), args!lst_rest
+	RESULTIS seq
+      }
+      IF type OF seq = t_vec THEN
+      { LET vec = ?
+        LET n, ptr = seq!vec_len, args
+        UNTIL ptr = empty DO
+	  n, ptr := n + 1, ptr!lst_rest
+	vec := alloc_vec(n)
+	FOR i = 0 TO seq!vec_len - 1 DO
+	  (vec+vec_data)!i := (seq+vec_data)!i
+	FOR i = seq!vec_len TO n - 1 DO
+	  (vec+vec_data)!i, args := args!lst_first, args!lst_rest
+	RESULTIS vec
+      }
+      throwf("conj applied to non-sequence")
+    }	
     def(env, "cons", bare_fun(core_cons))
     def(env, "concat", bare_fun(concat))
     def(env, "count", bare_fun(count))
     def(env, "nth", bare_fun(core_nth))
     def(env, "first", bare_fun(first))
     def(env, "rest", bare_fun(rest))
+    def(env, "conj", bare_fun(conj))
   }
 
   // Reading function
