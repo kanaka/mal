@@ -60,11 +60,15 @@ LET core_env() = VALOF
     LET nilp(val) = val = nil
     LET truep(val) = val = mtrue
     LET falsep(val) = val = mfalse
+    LET numberp(val) = type OF val = t_int
+    LET stringp(val) = type OF val = t_str
     LET symbolp(val) = type OF val = t_sym
     LET keywordp(val) = type OF val = t_kwd
     LET vectorp(val) = type OF val = t_vec
     LET sequentialp(val) = type OF val = t_lst | type OF val = t_vec
     LET mapp(val) = type OF val = t_hm0 | supertype OF val = t_hmi
+    LET macrop(val) = type OF val = t_mfn & mfn_ismacro OF val = 1
+    LET fnp(val) = supertype OF val = t_fun & ~macrop(val)
 
     def(env, "list?", pred_fun(listp))
     def(env, "empty?", pred_fun(emptyp))
@@ -72,11 +76,15 @@ LET core_env() = VALOF
     def(env, "nil?", pred_fun(nilp))
     def(env, "true?", pred_fun(truep))
     def(env, "false?", pred_fun(falsep))
+    def(env, "number?", pred_fun(numberp))
+    def(env, "string?", pred_fun(stringp))
     def(env, "symbol?", pred_fun(symbolp))
     def(env, "keyword?", pred_fun(keywordp))
     def(env, "vector?", pred_fun(vectorp))
     def(env, "sequential?", pred_fun(sequentialp))
     def(env, "map?", pred_fun(mapp))
+    def(env, "fn?", pred_fun(fnp))
+    def(env, "macro?", pred_fun(macrop))
   }
 
   // Comparisons
