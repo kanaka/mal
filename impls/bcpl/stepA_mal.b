@@ -181,6 +181,8 @@ LET repl(argv) BE
   env_set(repl_env, as_sym(str_bcpl2mal("eval")), alloc_fun(mal_eval, fun_data))
   env_set(repl_env, as_sym(str_bcpl2mal("**FILE**")), argv!lst_first)
   env_set(repl_env, as_sym(str_bcpl2mal("**ARGV**")), argv!lst_rest)
+  env_set(repl_env, as_sym(str_bcpl2mal("**host-language**")),
+          str_bcpl2mal("BCPL"))
   rep(str_bcpl2mal("(def! not (fn** (a) (if a false true)))"), repl_env)
   rep(str_bcpl2mal("(def! load-file (fn** (f) (eval (read-string *
                     *(str *"(do *" (slurp f) *"*nnil)*")))))"), repl_env)
@@ -198,6 +200,7 @@ LET repl(argv) BE
     newline()
     sys(Sys_quit, 1)
   }
+  rep(str_bcpl2mal("(println (str *"Mal [*" **host-language** *"]*"))"))
   catch_level, catch_label := level(), uncaught
   IF FALSE THEN
   { uncaught:
