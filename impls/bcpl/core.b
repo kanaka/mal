@@ -181,7 +181,25 @@ LET core_env() = VALOF
 	RESULTIS vec
       }
       throwf("conj applied to non-sequence")
-    }	
+    }
+    LET seq(fn, args) = VALOF
+    { LET arg = args!lst_first
+      IF arg = empty | arg = nil RESULTIS nil
+      IF type OF arg = t_lst RESULTIS arg
+      IF type OF arg = t_vec RESULTIS arg!vec_len = 0 -> nil, as_lst(arg)
+      IF supertype OF arg = t_str THEN
+      { LET l = empty
+        IF arg!str_len = 0 RESULTIS nil
+        FOR i = arg!str_len TO 1 BY -1 DO
+	{ LET s = alloc_str(1)
+	  (s+str_data)%1 := (arg+str_data)%i
+	  str_setlen(s, 1)
+	  l := cons(s, l)
+	}
+	RESULTIS l
+      }
+      throwf("invalid argument to seq")
+    }
     def(env, "cons", bare_fun(core_cons))
     def(env, "concat", bare_fun(concat))
     def(env, "count", bare_fun(count))
@@ -189,6 +207,7 @@ LET core_env() = VALOF
     def(env, "first", bare_fun(first))
     def(env, "rest", bare_fun(rest))
     def(env, "conj", bare_fun(conj))
+    def(env, "seq", bare_fun(seq))
   }
 
   // Reading function
