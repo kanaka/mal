@@ -290,7 +290,7 @@ LET hm_dumpi(map, pfx, lastbit) BE
       p := p + 1
       lastbit := lastbit - BITSPERBCPLWORD
     }
-    writes("*n")
+    writef(" v: %8x*n", map!hmx_value)
   }
 }
 
