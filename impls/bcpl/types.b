@@ -131,21 +131,16 @@ LET str_substr(s, start, end) = VALOF
   RESULTIS ss
 }
 
-LET as_sym(val) = VALOF
-{ LET sym = ?
-  IF type OF val = t_sym THEN RESULTIS val
-  sym := str_dup(val)
-  type OF sym := t_sym
-  RESULTIS sym
+LET as_strtype(val, want_type) = VALOF
+{ IF type OF val = want_type THEN RESULTIS val
+  val := str_dup(val)
+  type OF val := want_type
+  RESULTIS val
 }
 
-LET as_kwd(val) = VALOF
-{ LET kwd = ?
-  IF type OF val = t_kwd THEN RESULTIS val
-  kwd := str_dup(val)
-  type OF kwd := t_kwd
-  RESULTIS kwd
-}
+LET as_str(val) = as_strtype(val, t_str)
+LET as_sym(val) = as_strtype(val, t_sym)
+LET as_kwd(val) = as_strtype(val, t_kwd)
 
 LET str_bcpl2mal(bcplstr) = VALOF
 { LET result = alloc_str(bcplstr%0)
