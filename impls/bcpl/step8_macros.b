@@ -86,6 +86,7 @@ AND EVAL(ast, env, gc_root) = VALOF
   gc(gc_inner_root)
   UNLESS type OF ast = t_lst RESULTIS eval_ast(ast, env, gc_root)
   ast := macroexpand(ast, env, gc_inner_root)
+  (gc_inner_root+vec_data)!0 := ast // In case it has changed.
   UNLESS type OF ast = t_lst RESULTIS eval_ast(ast, env, gc_root)
   IF ast = empty RESULTIS ast
   { LET fn = ast!lst_first
