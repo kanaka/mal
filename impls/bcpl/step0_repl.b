@@ -17,6 +17,7 @@ LET repl() BE
   { LET line = readline(prompt)
     IF line = nil THEN BREAK
     writes(@rep(line)!str_data)
+    newline()
   } REPEAT
 }
 
