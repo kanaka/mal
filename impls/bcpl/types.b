@@ -13,11 +13,14 @@ LET init_types() BE
   mfalse := TABLE ?, t_boo, FALSE
 }
 
+STATIC { new_objects = 0; old_objects = 0 }
+
 LET alloc_val(size) = VALOF
 { LET result = getvec(size)
   result!1 := 0 // Make sure type word is all zeroes.
   result!nextptr := nil!nextptr
   nil!nextptr := result
+  new_objects := new_objects + 1
   // writef("ALLOC: <- %8x*n", result)
   RESULTIS result
 }
@@ -46,9 +49,11 @@ LET gc_mark(x) BE
 
 LET gc_sweep() BE
 { LET last, this = nil, nil!nextptr
+  old_objects := 0
   UNTIL this = nil DO
   { TEST gc_marked OF this THEN
     { gc_marked OF this := 0
+      old_objects := old_objects + 1
       last, this := this, this!nextptr
     } ELSE
     { LET tmp = this
@@ -61,8 +66,13 @@ LET gc_sweep() BE
 }
 
 LET gc(x) BE
-{ gc_mark(x)
-  gc_sweep()
+{ IF new_objects > old_objects THEN
+  { // writef("Starting GC: ctr = %0d; last = %0d*n", alloc_ctr, alloc_last)
+    gc_mark(x)
+    gc_sweep()
+    new_objects := 0
+    // writef("GC done: last = %0d*n", alloc_last)
+  }
 }
 
 LET cons(first, rest) = VALOF
