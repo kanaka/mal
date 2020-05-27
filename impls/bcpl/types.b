@@ -174,6 +174,7 @@ LET equal_scalar(a, b) = VALOF
   { CASE t_nil: RESULTIS 1
     CASE t_int: RESULTIS int_sz
     CASE t_str: RESULTIS str_data + 1 + a!str_len / bytesperword
+    CASE t_hm0: RESULTIS hm0_sz
     DEFAULT: throwf("incomparable value: %v", a)
   }
   // This is guaranteed not to walk off the end of b because any two mal
@@ -189,6 +190,8 @@ LET equal(a, b) = VALOF
   SWITCHON type OF a INTO
   { CASE t_lst: RESULTIS equal_lst(a, b)
     CASE t_vec: RESULTIS equal_vec(a, b)
+    CASE t_hmi: RESULTIS equal_hmi(a, b)
+    CASE t_hmx: RESULTIS equal_hmx(a, b)
     DEFAULT:    RESULTIS equal_scalar(a, b)
   }
 }
@@ -224,6 +227,14 @@ AND equal_lstvec(l, v) = VALOF
   }
   RESULTIS l = empty
 }
+
+// No need to compare the critical bit between nodes, since it's completely
+// determined by the leaf nodes, which we will reach eventually.
+AND equal_hmi(a, b) = equal(a!hmi_left, b!hmi_left) &
+                      equal(a!hmi_right, b!hmi_right)
+
+AND equal_hmx(a, b) = equal(a!hmx_key, b!hmx_key) &
+                      equal(a!hmx_value, b!hmx_value)
 
 LET alloc_vec(len) = VALOF
 { LET result = alloc_val(vec_data + len)
