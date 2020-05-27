@@ -202,7 +202,7 @@ LET repl(argv) BE
     writes("Uncaught exception: ")
     writes(@(pr_str(last_exception)!str_data))
     newline()
-    sys(Sys_quit, 1)
+    sys(Sys_quit, 0)
   }
   rep(str_bcpl2mal("(println (str *"Mal [*" **host-language** *"]*"))"))
   catch_level, catch_label := level(), uncaught

@@ -131,7 +131,7 @@ LET repl(argv) BE
     writes("Uncaught exception: ")
     writes(@(pr_str(last_exception)!str_data))
     newline()
-    sys(Sys_quit, 1)
+    sys(Sys_quit, 0)
   }
   catch_level, catch_label := level(), uncaught
   IF FALSE THEN
