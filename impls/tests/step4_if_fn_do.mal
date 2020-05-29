@@ -119,6 +119,8 @@
 
 (= (list) (list))
 ;=>true
+(= (list) ())
+;=>true
 (= (list 1 2) (list 1 2))
 ;=>true
 (= (list 1) (list))
