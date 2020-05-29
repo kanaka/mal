@@ -17,6 +17,7 @@ func eval_ast(ast, env)
     return val
   } else if (type == MalList) {
     seq = *(ast.val)
+    if (numberof(seq) == 0) return ast
     res = array(pointer, numberof(seq))
     for (i = 1; i <= numberof(seq); ++i) {
       e = EVAL(*seq(i), env)
@@ -26,6 +27,7 @@ func eval_ast(ast, env)
     return MalList(val=&res)
   } else if (type == MalVector) {
     seq = *(ast.val)
+    if (numberof(seq) == 0) return ast
     res = array(pointer, numberof(seq))
     for (i = 1; i <= numberof(seq); ++i) {
       e = EVAL(*seq(i), env)
