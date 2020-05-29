@@ -25,7 +25,7 @@ RUN apt-get -y install gcc mesa-common-dev libglu1-mesa-dev freeglut3-dev
 
 RUN cd /usr/local && \
     curl -o bcpl.tgz https://www.cl.cam.ac.uk/~mr10/BCPL/bcpl.tgz && \
-    tar zxf bcpl.tgz && chmod -R a+rX BCPL
+    tar zxf bcpl.tgz && chmod -R a+rX BCPL && rm bcpl.tgz
 
 ENV PATH /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:\
 /usr/local/BCPL/cintcode/bin
