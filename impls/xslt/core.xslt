@@ -196,6 +196,9 @@
       <malval kind="function" name="xpath-eval">
         <is_macro>false</is_macro>
       </malval>
+      <malval kind="function" name="xslt-halt">
+        <is_macro>false</is_macro>
+      </malval>
       <!-- evaluate xpath, no context node | requires Saxon PE/EE [paywalls piss me off] -->
     </xsl:sequence>
   </xsl:function>
@@ -597,6 +600,14 @@
             </xsl:message>
             <value>
               <xsl:sequence select="document('xsl_input-string')"/>
+            </value>
+          </xsl:when>
+          <xsl:when test="$func/malval/@name = 'xslt-halt'">
+            <xsl:message>
+              <request kind="halt"/>
+            </xsl:message>
+            <value>
+              <malval kind="list" />
             </value>
           </xsl:when>
           <xsl:otherwise>
