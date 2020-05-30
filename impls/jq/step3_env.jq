@@ -108,7 +108,7 @@ def EVAL(env):
             end;
     (select(.kind == "list") |
         if .value | length == 0 then 
-            .
+            . | addEnv(env)
         else
             (
                 (
