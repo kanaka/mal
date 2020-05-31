@@ -94,7 +94,8 @@ IMPLS = ada ada.2 awk bash basic bbc-basic c chuck clojure coffee common-lisp cp
 	guile haskell haxe hy io java js jq julia kotlin livescript logo lua make mal \
 	matlab miniMAL nasm nim objc objpascal ocaml perl perl6 php picolisp pike plpgsql \
 	plsql powershell ps python python.2 r racket rexx rpython ruby rust scala scheme skew \
-	swift swift3 swift4 swift5 tcl ts vala vb vhdl vimscript wasm wren yorick zig
+	swift swift3 swift4 swift5 tcl ts vala vb vhdl vimscript wasm wren yorick zig \
+	fredrik-rust frust
 
 EXTENSION = .mal
 
@@ -250,6 +251,7 @@ rexx_STEP_TO_PROG =          impls/rexx/$($(1)).rexxpp
 rpython_STEP_TO_PROG =       impls/rpython/$($(1))
 ruby_STEP_TO_PROG =          impls/ruby/$($(1)).rb
 rust_STEP_TO_PROG =          impls/rust/$($(1))
+frust_STEP_TO_PROG =         impls/frust/$($(1))
 scala_STEP_TO_PROG =         impls/scala/target/scala-2.11/classes/$($(1)).class
 scheme_STEP_TO_PROG =        $(scheme_STEP_TO_PROG_$(scheme_MODE))
 skew_STEP_TO_PROG =          impls/skew/$($(1)).js
