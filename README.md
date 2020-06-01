@@ -41,7 +41,7 @@ guide](process/guide.md) there is also a [mal/make-a-lisp
 FAQ](docs/FAQ.md) where I attempt to answer some common questions.
 
 
-**3. Mal is implemented in 81 languages (84 different implementations and 104 runtime modes)**
+**3. Mal is implemented in 82 languages (85 different implementations and 105 runtime modes)**
 
 | Language | Creator |
 | -------- | ------- |
@@ -127,6 +127,7 @@ FAQ](docs/FAQ.md) where I attempt to answer some common questions.
 | [Visual Basic.NET](#visual-basicnet) | [Joel Martin](https://github.com/kanaka)  |
 | [WebAssembly](#webassembly-wasm) (wasm) | [Joel Martin](https://github.com/kanaka) |
 | [Wren](#wren) | [Dov Murik](https://github.com/dubek) |
+| [XSLT](#xslt) | [Ali MohammadPur](https://github.com/alimpfard) |
 | [Yorick](#yorick) | [Dov Murik](https://github.com/dubek) |
 | [Zig](#zig) | [Josh Tobin](https://github.com/rjtobin) |
 
@@ -1142,6 +1143,15 @@ wace ./stepX_YYY.wasm
 # warpy
 make wasm_MODE=warpy
 warpy --argv --memory-pages 256 ./stepX_YYY.wasm
+```
+
+### XSLT
+
+The XSLT implementation of mal is written with XSLT 3 and tested on Saxon 9.9.1.6 Home Edition.
+
+```
+cd impls/xslt
+STEP=stepX_YY ./run
 ```
 
 ### Wren
