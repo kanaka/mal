@@ -264,6 +264,9 @@ fail_cnt = 0
 soft_fail_cnt = 0
 failures = []
 
+class TestTimeout(Exception):
+    pass
+
 while t.next():
     if args.deferrable == False and t.deferrable:
         log(t.deferrable)
@@ -293,7 +296,10 @@ while t.next():
         res = r.read_to_prompt(['\r\n[^\s()<>]+> ', '\n[^\s()<>]+> '],
                                 timeout=args.test_timeout)
         #print "%s,%s,%s" % (idx, repr(p.before), repr(p.after))
-        if (t.ret == "" and t.out == ""):
+        if (res == None):
+            log(" -> TIMEOUT (line %d)" % t.line_num)
+            raise TestTimeout("TIMEOUT (line %d)" % t.line_num)
+        elif (t.ret == "" and t.out == ""):
             log(" -> SUCCESS (result ignored)")
             pass_cnt += 1
         elif (re.search(expects[0], res, re.S) or
