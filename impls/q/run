@@ -1,0 +1,2 @@
+#!/bin/bash
+exec ~/q/l32/q $(dirname $0)/${STEP:-stepA_mal}_mixed.q "${@}"
