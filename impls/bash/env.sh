@@ -48,7 +48,7 @@ ENV_FIND () {
         r="${1}"
     else
         local obj="${ANON["${1}"]}"
-        eval local outer="\${${obj}["__outer__"]}"
+        eval 'local outer=${'${obj}'["__outer__"]}'
         if [[ "${outer}" && "${outer}" != "${__nil}" ]]; then
             ENV_FIND "${outer}" "${2}"
         else
@@ -66,7 +66,7 @@ ENV_GET () {
     local key="${ANON["${2}"]}"
     if [[ "${r}" ]]; then
         local obj="${ANON["${env}"]}"
-        eval r="\${${obj}["${key}"]}"
+        eval 'r=${'${obj}'["'${key}'"]}'
     else
         _error "'${key}' not found"
     fi
