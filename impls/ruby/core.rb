@@ -11,7 +11,7 @@ $core_ns = {
     :string? =>   lambda {|a| (a.is_a? String) && "\u029e" != a[0]},
     :symbol =>    lambda {|a| a.to_sym},
     :symbol? =>   lambda {|a| a.is_a? Symbol},
-    :keyword =>   lambda {|a| "\u029e"+a},
+    :keyword =>   lambda {|a| (a.is_a? String) && "\u029e" == a[0] ? a : "\u029e"+a},
     :keyword? =>  lambda {|a| (a.is_a? String) && "\u029e" == a[0]},
     :number? =>   lambda {|a| a.is_a? Numeric},
     :fn? =>       lambda {|a| (a.is_a? Proc) && (!(a.is_a? Function) || !a.is_macro)},
