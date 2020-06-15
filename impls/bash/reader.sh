@@ -103,6 +103,8 @@ READ_FORM () {
     esac
 }
 
+TOKEN_PAT=$'^^([][{}\\(\\)^@])|^(~@)|^("(\\\\.|[^\\"])*"?)|^(;[^\n]*)|^([~\'`])|^([^][ ~`\'";{}\\(\\)^@,\n]+)|^(,)|^([[:space:]]+)'
+
 # Returns __reader_tokens as an indexed array of tokens
 TOKENIZE () {
     local data="${*}"
@@ -114,14 +116,14 @@ TOKENIZE () {
     local str=
 
     __reader_idx=0
-    __reader_tokens=
+    declare -a -g __reader_tokens=()  # global array
     while true; do
         if (( ${#str} < ( chunksz / 2) )) && (( chunk < datalen )); then
             str="${str}${data:${chunk}:${chunksz}}"
             chunk=$(( chunk + ${chunksz} ))
         fi
         (( ${#str} == 0 )) && break
-        [[ "${str}" =~ ^^([][{}\(\)^@])|^(~@)|^(\"(\\.|[^\\\"])*\"?)|^(;[^$'\n']*)|^([~\'\`])|^([^][ ~\`\'\";{}\(\)^@\,$'\n']+)|^(,)|^([[:space:]]+) ]]
+        [[ "${str}" =~ ${TOKEN_PAT} ]]
         token=${BASH_REMATCH[0]}
         str="${str:${#token}}"
         token="${token}"

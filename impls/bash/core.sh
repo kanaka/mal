@@ -376,10 +376,10 @@ declare -A core_ns=(
     [readline]=readline
     [read-string]=read_string
     [slurp]=slurp
-    [<]=num_lt
-    [<=]=num_lte
-    [>]=num_gt
-    [>=]=num_gte
+    ['<']=num_lt
+    ['<=']=num_lte
+    ['>']=num_gt
+    ['>=']=num_gte
     [+]=num_plus
     [-]=num_minus
     [__STAR__]=num_multiply
