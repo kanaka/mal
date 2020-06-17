@@ -1,8 +1,8 @@
 module Eval exposing (..)
 
-import Types exposing (..)
-import IO exposing (IO)
 import Env
+import IO exposing (IO)
+import Types exposing (..)
 
 
 apply : Eval a -> Env -> EvalContext a
@@ -43,14 +43,14 @@ io cmd cont env =
 map : (a -> b) -> Eval a -> Eval b
 map f e env =
     case apply e env of
-        ( env, EvalOk res ) ->
-            ( env, EvalOk (f res) )
+        ( env_, EvalOk res ) ->
+            ( env_, EvalOk (f res) )
 
-        ( env, EvalErr msg ) ->
-            ( env, EvalErr msg )
+        ( env_, EvalErr msg ) ->
+            ( env_, EvalErr msg )
 
-        ( env, EvalIO cmd cont ) ->
-            ( env, EvalIO cmd (cont >> map f) )
+        ( env_, EvalIO cmd cont ) ->
+            ( env_, EvalIO cmd (cont >> map f) )
 
 
 {-| Chain two Eval's together. The function f takes the result from
@@ -59,14 +59,14 @@ the left eval and generates a new Eval.
 andThen : (a -> Eval b) -> Eval a -> Eval b
 andThen f e env =
     case apply e env of
-        ( env, EvalOk res ) ->
-            apply (f res) env
+        ( env_, EvalOk res ) ->
+            apply (f res) env_
 
-        ( env, EvalErr msg ) ->
-            ( env, EvalErr msg )
+        ( env_, EvalErr msg ) ->
+            ( env_, EvalErr msg )
 
-        ( env, EvalIO cmd cont ) ->
-            ( env, EvalIO cmd (cont >> andThen f) )
+        ( env_, EvalIO cmd cont ) ->
+            ( env_, EvalIO cmd (cont >> andThen f) )
 
 
 {-| Apply a transformation to the Env, for a Ok and a Err.
@@ -74,52 +74,54 @@ andThen f e env =
 finally : (Env -> Env) -> Eval a -> Eval a
 finally f e env =
     case apply e env of
-        ( env, EvalOk res ) ->
-            ( f env, EvalOk res )
+        ( env_, EvalOk res ) ->
+            ( f env_, EvalOk res )
 
-        ( env, EvalErr msg ) ->
-            ( f env, EvalErr msg )
+        ( env_, EvalErr msg ) ->
+            ( f env_, EvalErr msg )
 
-        ( env, EvalIO cmd cont ) ->
-            ( env, EvalIO cmd (cont >> finally f) )
+        ( env_, EvalIO cmd cont ) ->
+            ( env_, EvalIO cmd (cont >> finally f) )
 
 
 gcPass : Eval MalExpr -> Eval MalExpr
 gcPass e env =
     let
-        go env t expr =
-            if env.gcCounter >= env.gcInterval then
+        -- fix shadowing error by changing the function argument name
+        go env_arg t expr =
+            if env_arg.gcCounter >= env_arg.gcInterval then
                 --Debug.log
                 --    ("before GC: "
                 --        ++ (printEnv env)
                 --    )
                 --    ""
                 --    |> always ( Env.gc env, t expr )
-                ( Env.gc expr env, t expr )
+                ( Env.gc expr env_arg, t expr )
+
             else
-                ( env, t expr )
+                ( env_arg, t expr )
     in
-        case apply e env of
-            ( env, EvalOk res ) ->
-                go env EvalOk res
+    case apply e env of
+        ( env_, EvalOk res ) ->
+            go env_ EvalOk res
 
-            ( env, EvalErr msg ) ->
-                go env EvalErr msg
+        ( env_, EvalErr msg ) ->
+            go env_ EvalErr msg
 
-            ( env, EvalIO cmd cont ) ->
-                ( env, EvalIO cmd (cont >> gcPass) )
+        ( env_, EvalIO cmd cont ) ->
+            ( env_, EvalIO cmd (cont >> gcPass) )
 
 
 catchError : (MalExpr -> Eval a) -> Eval a -> Eval a
 catchError f e env =
     case apply e env of
-        ( env, EvalOk res ) ->
+        ( env_, EvalOk res ) ->
             ( env, EvalOk res )
 
-        ( env, EvalErr msg ) ->
+        ( env_, EvalErr msg ) ->
             apply (f msg) env
 
-        ( env, EvalIO cmd cont ) ->
+        ( env_, EvalIO cmd cont ) ->
             ( env, EvalIO cmd (cont >> catchError f) )
 
 
@@ -145,17 +147,17 @@ runLoop f expr env =
     case f expr env of
         Left e ->
             case apply e env of
-                ( env, EvalOk expr ) ->
-                    runLoop f expr env
+                ( env_, EvalOk expr_ ) ->
+                    runLoop f expr_ env_
 
-                ( env, EvalErr msg ) ->
-                    ( env, EvalErr msg )
+                ( env_, EvalErr msg ) ->
+                    ( env_, EvalErr msg )
 
-                ( env, EvalIO cmd cont ) ->
-                    ( env, EvalIO cmd (cont >> andThen (runLoop f)) )
+                ( env_, EvalIO cmd cont ) ->
+                    ( env_, EvalIO cmd (cont >> andThen (runLoop f)) )
 
-        Right expr ->
-            ( env, EvalOk expr )
+        Right expr_ ->
+            ( env, EvalOk expr_ )
 
 
 fromResult : Result String a -> Eval a
@@ -214,15 +216,16 @@ inGlobal body =
                 , currentFrameId = oldEnv.currentFrameId
             }
     in
-        withEnv
-            (\env ->
-                if env.currentFrameId /= Env.globalFrameId then
-                    enter env
-                        |> andThen (always body)
-                        |> finally (leave env)
-                else
-                    body
-            )
+    withEnv
+        (\env ->
+            if env.currentFrameId /= Env.globalFrameId then
+                enter env
+                    |> andThen (always body)
+                    |> finally (leave env)
+
+            else
+                body
+        )
 
 
 runSimple : Eval a -> Result MalExpr a
@@ -235,4 +238,4 @@ runSimple e =
             Err msg
 
         _ ->
-            Debug.crash "can't happen"
+            Debug.todo "can't happen"

@@ -1,15 +1,14 @@
-port module IO
-    exposing
-        ( IO(..)
-        , writeLine
-        , readLine
-        , readFile
-        , input
-        , decodeIO
-        )
+port module IO exposing
+    ( IO(..)
+    , decodeIO
+    , input
+    , readFile
+    , readLine
+    , writeLine
+    )
 
 import Json.Decode exposing (..)
-import Time exposing (Time)
+import Time exposing (Posix)
 
 
 {-| Output a string to stdout
@@ -37,7 +36,7 @@ type IO
     | LineWritten
     | FileRead String
     | Exception String
-    | GotTime Time
+    | GotTime Posix
 
 
 decodeIO : Decoder IO

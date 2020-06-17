@@ -1,21 +1,22 @@
 port module Main exposing (..)
 
-import IO exposing (..)
-import Json.Decode exposing (decodeValue)
-import Platform exposing (programWithFlags)
-import Types exposing (..)
-import Reader exposing (readString)
-import Printer exposing (printStr)
-import Utils exposing (maybeToList, zip)
-import Dict exposing (Dict)
-import Tuple exposing (mapFirst, second)
 import Array
+import Dict exposing (Dict)
+import Env
 import Eval
+import IO exposing (..)
+import Json.Decode exposing (Error, decodeValue, errorToString)
+import Platform exposing (worker)
+import Printer exposing (printString)
+import Reader exposing (readString)
+import Tuple exposing (mapFirst, mapSecond, second)
+import Types exposing (..)
+import Utils exposing (maybeToList, zip)
 
 
 main : Program Flags Model Msg
 main =
-    programWithFlags
+    worker
         { init = init
         , update = update
         , subscriptions =
@@ -28,18 +29,14 @@ type alias Flags =
     }
 
 
-type alias ReplEnv =
-    Dict String MalExpr
-
-
 type alias Model =
     { args : List String
-    , env : ReplEnv
+    , env : Env
     }
 
 
 type Msg
-    = Input (Result String IO)
+    = Input (Result Error IO)
 
 
 init : Flags -> ( Model, Cmd Msg )
@@ -47,7 +44,7 @@ init { args } =
     ( { args = args, env = initReplEnv }, readLine prompt )
 
 
-initReplEnv : ReplEnv
+initReplEnv : Env
 initReplEnv =
     let
         makeFn =
@@ -61,12 +58,11 @@ initReplEnv =
                 _ ->
                     Eval.fail "unsupported arguments"
     in
-        Dict.fromList
-            [ ( "+", makeFn <| binaryOp (+) )
-            , ( "-", makeFn <| binaryOp (-) )
-            , ( "*", makeFn <| binaryOp (*) )
-            , ( "/", makeFn <| binaryOp (//) )
-            ]
+    Env.global
+        |> Env.set "+" (makeFn <| binaryOp (+))
+        |> Env.set "-" (makeFn <| binaryOp (-))
+        |> Env.set "*" (makeFn <| binaryOp (*))
+        |> Env.set "/" (makeFn <| binaryOp (//))
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -87,10 +83,10 @@ update msg model =
             ( model, Cmd.none )
 
         Input (Ok io) ->
-            Debug.crash "unexpected IO received: " io
+            Debug.todo "unexpected IO received: " io
 
-        Input (Err msg) ->
-            Debug.crash msg ( model, Cmd.none )
+        Input (Err error) ->
+            Debug.todo (errorToString error) ( model, Cmd.none )
 
 
 makeOutput : Result String String -> String
@@ -120,11 +116,17 @@ read =
     readString
 
 
-eval : ReplEnv -> MalExpr -> ( Result String MalExpr, ReplEnv )
+eval : Env -> MalExpr -> ( Result String MalExpr, Env )
 eval env ast =
     case ast of
         MalList [] ->
             ( Ok ast, env )
+
+        MalList ((MalSymbol "def!") :: args) ->
+            evalDef env args
+
+        MalList ((MalSymbol "let*") :: args) ->
+            evalLet env args
 
         MalList list ->
             case evalList env list [] of
@@ -142,7 +144,7 @@ eval env ast =
                                     ( Err (print msg), newEnv )
 
                         fn :: _ ->
-                            ( Err ((print fn) ++ " is not a function"), newEnv )
+                            ( Err (print fn ++ " is not a function"), newEnv )
 
                 ( Err msg, newEnv ) ->
                     ( Err msg, newEnv )
@@ -151,17 +153,17 @@ eval env ast =
             evalAst env ast
 
 
-evalAst : ReplEnv -> MalExpr -> ( Result String MalExpr, ReplEnv )
+evalAst : Env -> MalExpr -> ( Result String MalExpr, Env )
 evalAst env ast =
     case ast of
         MalSymbol sym ->
             -- Lookup symbol in env and return value or raise error if not found.
-            case Dict.get sym env of
-                Just val ->
+            case Env.get sym env of
+                Ok val ->
                     ( Ok val, env )
 
-                Nothing ->
-                    ( Err "symbol not found", env )
+                Err msg ->
+                    ( Err msg, env )
 
         MalList list ->
             -- Return new list that is result of calling eval on each element of list.
@@ -186,7 +188,7 @@ evalAst env ast =
             ( Ok ast, env )
 
 
-evalList : ReplEnv -> List MalExpr -> List MalExpr -> ( Result String (List MalExpr), ReplEnv )
+evalList : Env -> List MalExpr -> List MalExpr -> ( Result String (List MalExpr), Env )
 evalList env list acc =
     case list of
         [] ->
@@ -199,6 +201,65 @@ evalList env list acc =
 
                 ( Err msg, newEnv ) ->
                     ( Err msg, newEnv )
+
+
+evalDef : Env -> List MalExpr -> ( Result String MalExpr, Env )
+evalDef env args =
+    case args of
+        [ MalSymbol name, uneValue ] ->
+            case eval env uneValue of
+                ( Ok value, newEnv ) ->
+                    ( Ok value, Env.set name value newEnv )
+
+                err ->
+                    err
+
+        _ ->
+            ( Err "def! expected two args: name and value", env )
+
+
+evalLet : Env -> List MalExpr -> ( Result String MalExpr, Env )
+evalLet env args =
+    let
+        evalBinds env_ binds =
+            case binds of
+                (MalSymbol name) :: expr :: rest ->
+                    case eval env_ expr of
+                        ( Ok value, newEnv ) ->
+                            let
+                                newEnv_ =
+                                    Env.set name value env_
+                            in
+                            if List.isEmpty rest then
+                                Ok newEnv_
+
+                            else
+                                evalBinds newEnv_ rest
+
+                        ( Err msg, _ ) ->
+                            Err msg
+
+                _ ->
+                    Err "let* expected an even number of binds (symbol expr ..)"
+
+        go binds body =
+            case evalBinds (Env.push env) binds of
+                Ok newEnv ->
+                    eval newEnv body
+                        |> mapSecond (\_ -> Env.pop newEnv)
+
+                Err msg ->
+                    ( Err msg, env )
+    in
+    case args of
+        [ MalList binds, body ] ->
+            go binds body
+
+        [ MalVector bindsVec, body ] ->
+            go (Array.toList bindsVec) body
+
+        _ ->
+            ( Err "let* expected two args: binds and a body", env )
 
 
 {-| Try to map a list with a fn that can return a Err.
@@ -222,13 +283,13 @@ tryMapList fn list =
                             Err msg
                 )
     in
-        List.foldl go (Ok []) list
-            |> Result.map List.reverse
+    List.foldl go (Ok []) list
+        |> Result.map List.reverse
 
 
 print : MalExpr -> String
 print =
-    printStr True
+    printString Env.global True
 
 
 {-| Read-Eval-Print. rep returns:
@@ -238,18 +299,18 @@ Just ((Ok out), newEnv) -> input has been evaluated.
 Just ((Err msg), env) -> error parsing or evaluating.
 
 -}
-rep : ReplEnv -> String -> Maybe ( Result String String, ReplEnv )
+rep : Env -> String -> Maybe ( Result String String, Env )
 rep env input =
     let
         evalPrint =
             eval env >> mapFirst (Result.map print)
     in
-        case readString input of
-            Ok Nothing ->
-                Nothing
+    case readString input of
+        Ok Nothing ->
+            Nothing
 
-            Err msg ->
-                Just ( Err msg, env )
+        Err msg ->
+            Just ( Err msg, env )
 
-            Ok (Just ast) ->
-                Just (evalPrint ast)
+        Ok (Just ast) ->
+            Just (evalPrint ast)

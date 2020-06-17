@@ -1,16 +1,16 @@
 port module Main exposing (..)
 
 import IO exposing (..)
-import Json.Decode exposing (decodeValue)
-import Platform exposing (programWithFlags)
-import Types exposing (MalExpr(..))
-import Reader exposing (readString)
+import Json.Decode exposing (Error, decodeValue, errorToString)
+import Platform exposing (worker)
 import Printer exposing (printStr)
+import Reader exposing (readString)
+import Types exposing (MalExpr(..))
 
 
 main : Program Flags Model Msg
 main =
-    programWithFlags
+    worker
         { init = init
         , update = update
         , subscriptions =
@@ -29,7 +29,7 @@ type alias Model =
 
 
 type Msg
-    = Input (Result String IO)
+    = Input (Result Error IO)
 
 
 init : Flags -> ( Model, Cmd Msg )
@@ -55,10 +55,10 @@ update msg model =
             ( model, Cmd.none )
 
         Input (Ok io) ->
-            Debug.crash "unexpected IO received: " io
+            Debug.todo "unexpected IO received: " io
 
-        Input (Err msg) ->
-            Debug.crash msg ( model, Cmd.none )
+        Input (Err error) ->
+            Debug.todo (errorToString error) ( model, Cmd.none )
 
 
 prompt : String
@@ -101,6 +101,6 @@ rep =
                 Err msg ->
                     Just msg
     in
-        readString
-            >> Result.map (Maybe.map (eval >> print))
-            >> formatResult
+    readString
+        >> Result.map (Maybe.map (eval >> print))
+        >> formatResult

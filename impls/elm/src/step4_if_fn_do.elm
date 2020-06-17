@@ -1,22 +1,22 @@
 port module Main exposing (..)
 
 import Array
-import Dict exposing (Dict)
-import IO exposing (..)
-import Json.Decode exposing (decodeValue)
-import Platform exposing (programWithFlags)
-import Types exposing (..)
-import Reader exposing (readString)
-import Printer exposing (printString)
-import Utils exposing (maybeToList, zip, last, justValues)
-import Env
 import Core
+import Dict exposing (Dict)
+import Env
 import Eval
+import IO exposing (..)
+import Json.Decode exposing (Error, decodeValue, errorToString)
+import Platform exposing (worker)
+import Printer exposing (printString)
+import Reader exposing (readString)
+import Types exposing (..)
+import Utils exposing (justValues, last, maybeToList, zip)
 
 
 main : Program Flags Model Msg
 main =
-    programWithFlags
+    worker
         { init = init
         , update = update
         , subscriptions =
@@ -50,7 +50,7 @@ init { args } =
                     (\b a -> a |> Eval.andThen (\_ -> b))
                     (Eval.succeed MalNil)
     in
-        runInit initEnv evalMalInit
+    runInit initEnv evalMalInit
 
 
 malInit : List String
@@ -73,8 +73,8 @@ update msg model =
                 Input (Ok io) ->
                     runInit env (cont io)
 
-                Input (Err msg) ->
-                    Debug.crash msg
+                Input (Err error) ->
+                    Debug.todo (errorToString error)
 
         ReplActive env ->
             case msg of
@@ -94,47 +94,47 @@ update msg model =
                     ( model, Cmd.none )
 
                 Input (Ok io) ->
-                    Debug.crash "unexpected IO received: " io
+                    Debug.todo "unexpected IO received: " io
 
-                Input (Err msg) ->
-                    Debug.crash msg
+                Input (Err error) ->
+                    Debug.todo (errorToString error) ( model, Cmd.none )
 
         ReplIO env cont ->
             case msg of
                 Input (Ok io) ->
                     run env (cont io)
 
-                Input (Err msg) ->
-                    Debug.crash msg ( model, Cmd.none )
+                Input (Err error) ->
+                    Debug.todo (errorToString error) ( model, Cmd.none )
 
 
 runInit : Env -> Eval MalExpr -> ( Model, Cmd Msg )
 runInit env expr =
     case Eval.run env expr of
-        ( env, EvalOk expr ) ->
+        ( env_, EvalOk expr_ ) ->
             -- Init went okay, start REPL.
-            ( ReplActive env, readLine prompt )
+            ( ReplActive env_, readLine prompt )
 
-        ( env, EvalErr msg ) ->
+        ( env_, EvalErr msg ) ->
             -- Init failed, don't start REPL.
-            ( InitError, writeLine (printError env msg) )
+            ( InitError, writeLine (printError env_ msg) )
 
-        ( env, EvalIO cmd cont ) ->
+        ( env_, EvalIO cmd cont ) ->
             -- IO in init.
-            ( InitIO env cont, cmd )
+            ( InitIO env_ cont, cmd )
 
 
 run : Env -> Eval MalExpr -> ( Model, Cmd Msg )
 run env expr =
     case Eval.run env expr of
-        ( env, EvalOk expr ) ->
-            ( ReplActive env, writeLine (print env expr) )
+        ( env_, EvalOk expr_ ) ->
+            ( ReplActive env_, writeLine (print env_ expr_) )
 
-        ( env, EvalErr msg ) ->
-            ( ReplActive env, writeLine (printError env msg) )
+        ( env_, EvalErr msg ) ->
+            ( ReplActive env_, writeLine (printError env_ msg) )
 
-        ( env, EvalIO cmd cont ) ->
-            ( ReplIO env cont, cmd )
+        ( env_, EvalIO cmd cont ) ->
+            ( ReplIO env_ cont, cmd )
 
 
 prompt : String
@@ -154,92 +154,50 @@ read =
     readString
 
 
-debug : String -> (Env -> a) -> Eval b -> Eval b
-debug msg f e =
-    Eval.withEnv
-        (\env ->
-            Env.debug env msg (f env)
-                |> always e
-        )
-
-
 eval : MalExpr -> Eval MalExpr
 eval ast =
-    let
-        apply expr env =
-            case expr of
-                MalApply app ->
-                    Left
-                        (debug "evalApply"
-                            (\env -> printString env True expr)
-                            (evalApply app)
-                        )
+    case ast of
+        MalList [] ->
+            Eval.succeed ast
 
-                _ ->
-                    Right expr
-    in
-        evalNoApply ast
-            |> Eval.andThen (Eval.runLoop apply)
+        MalList ((MalSymbol "def!") :: args) ->
+            evalDef args
 
+        MalList ((MalSymbol "let*") :: args) ->
+            evalLet args
 
-evalApply : ApplyRec -> Eval MalExpr
-evalApply { frameId, bound, body } =
-    Eval.withEnv
-        (\env ->
-            Eval.modifyEnv (Env.enter frameId bound)
-                |> Eval.andThen (\_ -> evalNoApply body)
-                |> Eval.finally Env.leave
-                |> Eval.gcPass
-        )
+        MalList ((MalSymbol "do") :: args) ->
+            evalDo args
 
+        MalList ((MalSymbol "if") :: args) ->
+            evalIf args
 
-evalNoApply : MalExpr -> Eval MalExpr
-evalNoApply ast =
-    debug "evalNoApply"
-        (\env -> printString env True ast)
-        (case ast of
-            MalList [] ->
-                Eval.succeed ast
+        MalList ((MalSymbol "fn*") :: args) ->
+            evalFn args
 
-            MalList ((MalSymbol "def!") :: args) ->
-                evalDef args
+        MalList list ->
+            evalList list
+                |> Eval.andThen
+                    (\newList ->
+                        case newList of
+                            [] ->
+                                Eval.fail "can't happen"
 
-            MalList ((MalSymbol "let*") :: args) ->
-                evalLet args
+                            (MalFunction (CoreFunc fn)) :: args ->
+                                fn args
 
-            MalList ((MalSymbol "do") :: args) ->
-                evalDo args
+                            (MalFunction (UserFunc { eagerFn })) :: args ->
+                                eagerFn args
 
-            MalList ((MalSymbol "if") :: args) ->
-                evalIf args
+                            fn :: _ ->
+                                Eval.withEnv
+                                    (\env ->
+                                        Eval.fail (printString env True fn ++ " is not a function")
+                                    )
+                    )
 
-            MalList ((MalSymbol "fn*") :: args) ->
-                evalFn args
-
-            MalList list ->
-                evalList list
-                    |> Eval.andThen
-                        (\newList ->
-                            case newList of
-                                [] ->
-                                    Eval.fail "can't happen"
-
-                                (MalFunction (CoreFunc fn)) :: args ->
-                                    fn args
-
-                                (MalFunction (UserFunc { lazyFn })) :: args ->
-                                    lazyFn args
-
-                                fn :: _ ->
-                                    Eval.withEnv
-                                        (\env ->
-                                            Eval.fail ((printString env True fn) ++ " is not a function")
-                                        )
-                        )
-
-            _ ->
-                evalAst ast
-        )
+        _ ->
+            evalAst ast
 
 
 evalAst : MalExpr -> Eval MalExpr
@@ -281,8 +239,8 @@ evalAst ast =
 evalList : List MalExpr -> Eval (List MalExpr)
 evalList list =
     let
-        go list acc =
-            case list of
+        go list_ acc =
+            case list_ of
                 [] ->
                     Eval.succeed (List.reverse acc)
 
@@ -293,7 +251,7 @@ evalList list =
                                 go rest (val :: acc)
                             )
     in
-        go list []
+    go list []
 
 
 evalDef : List MalExpr -> Eval MalExpr
@@ -325,6 +283,7 @@ evalLet args =
                                         (\_ ->
                                             if List.isEmpty rest then
                                                 Eval.succeed ()
+
                                             else
                                                 evalBinds rest
                                         )
@@ -336,63 +295,68 @@ evalLet args =
         go binds body =
             Eval.modifyEnv Env.push
                 |> Eval.andThen (\_ -> evalBinds binds)
-                |> Eval.andThen (\_ -> evalNoApply body)
+                |> Eval.andThen (\_ -> eval body)
                 |> Eval.andThen
                     (\res ->
                         Eval.modifyEnv Env.pop
                             |> Eval.map (\_ -> res)
                     )
     in
-        case args of
-            [ MalList binds, body ] ->
-                go binds body
+    case args of
+        [ MalList binds, body ] ->
+            go binds body
 
-            [ MalVector bindsVec, body ] ->
-                go (Array.toList bindsVec) body
+        [ MalVector bindsVec, body ] ->
+            go (Array.toList bindsVec) body
 
-            _ ->
-                Eval.fail "let* expected two args: binds and a body"
+        _ ->
+            Eval.fail "let* expected two args: binds and a body"
 
 
 evalDo : List MalExpr -> Eval MalExpr
 evalDo args =
-    case List.reverse args of
-        last :: rest ->
-            evalList (List.reverse rest)
-                |> Eval.andThen (\_ -> evalNoApply last)
+    let
+        returnLast list =
+            case last list of
+                Just value ->
+                    Eval.succeed value
 
-        [] ->
-            Eval.fail "do expected at least one arg"
+                Nothing ->
+                    Eval.fail "do expected at least one arg"
+    in
+    evalList args
+        |> Eval.andThen returnLast
 
 
 evalIf : List MalExpr -> Eval MalExpr
 evalIf args =
     let
         isThruthy expr =
-            expr /= MalNil && expr /= (MalBool False)
+            expr /= MalNil && expr /= MalBool False
 
         go condition trueExpr falseExpr =
             eval condition
                 |> Eval.map isThruthy
                 |> Eval.andThen
                     (\cond ->
-                        evalNoApply
+                        eval
                             (if cond then
                                 trueExpr
+
                              else
                                 falseExpr
                             )
                     )
     in
-        case args of
-            [ condition, trueExpr ] ->
-                go condition trueExpr MalNil
+    case args of
+        [ condition, trueExpr ] ->
+            go condition trueExpr MalNil
 
-            [ condition, trueExpr, falseExpr ] ->
-                go condition trueExpr falseExpr
+        [ condition, trueExpr, falseExpr ] ->
+            go condition trueExpr falseExpr
 
-            _ ->
-                Eval.fail "if expected at least two args"
+        _ ->
+            Eval.fail "if expected at least two args"
 
 
 evalFn : List MalExpr -> Eval MalExpr
@@ -407,6 +371,7 @@ evalFn args =
                 (MalSymbol name) :: rest ->
                     if List.member name acc then
                         Err "all binds must have unique names"
+
                     else
                         extractSymbols (name :: acc) rest
 
@@ -421,64 +386,67 @@ evalFn args =
                 _ ->
                     if List.member "&" list then
                         Err "varargs separator '&' is used incorrectly"
+
                     else
                         Ok <| bindArgs list
 
         extractAndParse =
             extractSymbols [] >> Result.andThen parseBinds
 
-        bindArgs binds args =
+        bindArgs binds args_ =
             let
                 numBinds =
                     List.length binds
             in
-                if List.length args /= numBinds then
-                    Err <|
-                        "function expected "
-                            ++ (toString numBinds)
-                            ++ " arguments"
-                else
-                    Ok <| zip binds args
+            if List.length args_ /= numBinds then
+                Err <|
+                    "function expected "
+                        ++ Debug.toString numBinds
+                        ++ " arguments"
 
-        bindVarArgs binds var args =
+            else
+                Ok <| zip binds args_
+
+        bindVarArgs binds var args_ =
             let
                 minArgs =
                     List.length binds
 
                 varArgs =
-                    MalList (List.drop minArgs args)
+                    MalList (List.drop minArgs args_)
             in
-                if List.length args < minArgs then
-                    Err <|
-                        "function expected at least "
-                            ++ (toString minArgs)
-                            ++ " arguments"
-                else
-                    Ok <| zip binds args ++ [ ( var, varArgs ) ]
+            if List.length args_ < minArgs then
+                Err <|
+                    "function expected at least "
+                        ++ Debug.toString minArgs
+                        ++ " arguments"
+
+            else
+                Ok <| zip binds args_ ++ [ ( var, varArgs ) ]
 
         makeFn frameId binder body =
-            MalFunction <|
-                let
-                    lazyFn args =
-                        case binder args of
-                            Ok bound ->
-                                Eval.succeed <|
-                                    MalApply
-                                        { frameId = frameId
-                                        , bound = bound
-                                        , body = body
-                                        }
+            let
+                fn args_ =
+                    case binder args_ of
+                        Ok bound ->
+                            Eval.withEnv
+                                (\env ->
+                                    Eval.modifyEnv (Env.enter frameId bound)
+                                        |> Eval.andThen (always (eval body))
+                                        |> Eval.finally Env.leave
+                                )
 
-                            Err msg ->
-                                Eval.fail msg
-                in
-                    UserFunc
-                        { frameId = frameId
-                        , lazyFn = lazyFn
-                        , eagerFn = lazyFn >> Eval.andThen eval
-                        , isMacro = False
-                        , meta = Nothing
-                        }
+                        Err msg ->
+                            Eval.fail msg
+            in
+            MalFunction <|
+                UserFunc
+                    { frameId = frameId
+                    , lazyFn = fn
+                    , eagerFn = fn
+                    , isMacro = False
+                    , meta = Nothing
+                    }
 
         go bindsList body =
             case extractAndParse bindsList of
@@ -497,15 +465,15 @@ evalFn args =
                 Err msg ->
                     Eval.fail msg
     in
-        case args of
-            [ MalList bindsList, body ] ->
-                go bindsList body
+    case args of
+        [ MalList bindsList, body ] ->
+            go bindsList body
 
-            [ MalVector bindsVec, body ] ->
-                go (Array.toList bindsVec) body
+        [ MalVector bindsVec, body ] ->
+            go (Array.toList bindsVec) body
 
-            _ ->
-                Eval.fail "fn* expected two args: binds list and body"
+        _ ->
+            Eval.fail "fn* expected two args: binds list and body"
 
 
 print : Env -> MalExpr -> String
@@ -515,7 +483,7 @@ print env =
 
 printError : Env -> MalExpr -> String
 printError env expr =
-    "Error: " ++ (printString env False expr)
+    "Error: " ++ printString env False expr
 
 
 {-| Read-Eval-Print.

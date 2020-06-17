@@ -7,7 +7,7 @@
     "ffi-napi": "2.4.x"
   },
   "devDependencies": {
-    "elm": "^0.18.0"
+    "elm": "^0.19.0"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"

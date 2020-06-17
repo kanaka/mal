@@ -3,6 +3,7 @@ module Types exposing (..)
 import Array exposing (Array)
 import Dict exposing (Dict)
 import IO exposing (IO)
+import Json.Decode exposing (Error)
 
 
 type Either a b
@@ -11,7 +12,7 @@ type Either a b
 
 
 type Msg
-    = Input (Result String IO)
+    = Input (Result Error IO)
 
 
 type alias Frame =
@@ -99,7 +100,7 @@ type MalExpr
 {-| Keywords are prefixed by this char for usage in a MalMap.
 Elm doesn't support user defined types as keys in a Dict.
 
-The unicode char is: '\x029e'
+The unicode char is: '\\x029e'
 
 -}
 keywordPrefix : Char

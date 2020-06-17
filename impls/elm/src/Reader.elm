@@ -1,11 +1,11 @@
 module Reader exposing (..)
 
 import Array
-import Dict
 import Combine exposing (..)
 import Combine.Num
+import Dict
 import Types exposing (MalExpr(..), keywordPrefix)
-import Utils exposing (decodeString, makeCall)
+import Utils exposing (decodeString, flip, makeCall)
 
 
 comment : Parser s String
@@ -15,12 +15,13 @@ comment =
 
 ws : Parser s (List String)
 ws =
-    many (comment <|> string "," <|> whitespace)
+    many (whitespace |> or (string ",") |> or comment)
 
 
 int : Parser s MalExpr
 int =
-    MalInt <$> Combine.Num.int <?> "int"
+    Combine.map MalInt Combine.Num.int
+        |> onerror "int"
 
 
 symbolString : Parser s String
@@ -45,67 +46,62 @@ symbolOrConst =
                 _ ->
                     MalSymbol sym
     in
-        make
-            <$> symbolString
-            <?> "symbol"
+    Combine.map make symbolString
+        |> onerror "symbol"
 
 
 keywordString : Parser s String
 keywordString =
-    (++)
-        <$> string ":"
-        <*> symbolString
+    Combine.map (++) (string ":")
+        |> andMap symbolString
 
 
 keyword : Parser s MalExpr
 keyword =
-    MalKeyword <$> keywordString
+    Combine.map MalKeyword keywordString
 
 
 list : Parser s MalExpr
 list =
-    MalList
-        <$> parens (many form <* ws)
-        <?> "list"
+    Combine.map MalList (parens (many form |> (ignore ws)))
+        |> onerror "list"
 
 
 vector : Parser s MalExpr
 vector =
-    MalVector
-        << Array.fromList
-        <$> (string "["
-                *> many form
-                <* ws
-                <* string "]"
-            )
-        <?> "vector"
+    Combine.map (MalVector << Array.fromList)
+        (string "["
+            |> keep (many form)
+            |> ignore ws
+            |> ignore (string "]")
+        )
+        |> onerror "vector"
 
 
 mapKey : Parser s String
 mapKey =
     choice
-        [ String.cons keywordPrefix <$> keywordString
-        , decodeString <$> strString
+        [ Combine.map (String.cons keywordPrefix) keywordString
+        , Combine.map decodeString strString
         ]
 
 
 mapEntry : Parser s ( String, MalExpr )
 mapEntry =
-    (,) <$> mapKey <*> form <?> "map entry"
+    Combine.map Tuple.pair mapKey
+        |> andMap form
+        |> onerror "map entry"
 
 
 map : Parser s MalExpr
 map =
-    lazy <|
-        \() ->
-            MalMap
-                << Dict.fromList
-                <$> (string "{"
-                        *> many (ws *> mapEntry)
-                        <* ws
-                        <* string "}"
-                    )
-                <?> "map"
+    Combine.map (MalMap << Dict.fromList)
+        (string "{"
+            |> keep (many (ws |> keep mapEntry))
+            |> ignore ws
+            |> ignore (string "}")
+        )
+        |> onerror "map"
 
 
 atom : Parser s MalExpr
@@ -116,7 +112,7 @@ atom =
         , symbolOrConst
         , str
         ]
-        <?> "atom"
+        |> onerror "atom"
 
 
 form : Parser s MalExpr
@@ -137,34 +133,30 @@ form =
                     , atom
                     ]
             in
-                ws *> choice parsers <?> "form"
+            ws |> keep (choice parsers) |> onerror "form"
 
 
 simpleMacro : String -> String -> Parser s MalExpr
 simpleMacro token symbol =
-    makeCall symbol
-        << List.singleton
-        <$> (string token *> form)
-        <?> symbol
+    string token
+        |> andThen (\_ -> Combine.map (makeCall symbol << List.singleton) form)
+        |> onerror symbol
 
 
 withMeta : Parser s MalExpr
 withMeta =
-    lazy <|
-        \() ->
-            let
-                make meta expr =
-                    makeCall "with-meta" [ expr, meta ]
-            in
-                make
-                    <$> (string "^" *> form)
-                    <*> form
-                    <?> "with-meta"
+    let
+        make meta expr =
+            makeCall "with-meta" [ expr, meta ]
+    in
+    string "^"
+        |> andThen (\_ -> infixAndMap (Combine.map make form) form)
+        |> onerror "with-meta"
 
 
 readString : String -> Result String (Maybe MalExpr)
-readString str =
-    case parse ((maybe form) <* ws <* end) str of
+readString stri =
+    case parse (maybe form |> ignore ws |> ignore end) stri of
         Ok ( _, _, ast ) ->
             Ok ast
 
@@ -178,19 +170,19 @@ formatError ms stream =
         location =
             currentLocation stream
     in
-        "Parse error: "
-            ++ String.join ", " ms
-            ++ " "
-            ++ "(at "
-            ++ toString location.line
-            ++ ":"
-            ++ toString location.column
-            ++ ")"
+    "Parse error: "
+        ++ String.join ", " ms
+        ++ " "
+        ++ "(at "
+        ++ Debug.toString location.line
+        ++ ":"
+        ++ Debug.toString location.column
+        ++ ")"
 
 
 str : Parser s MalExpr
 str =
-    MalString << decodeString <$> strString
+    Combine.map (MalString << decodeString) strString
 
 
 {-| Syntax highlighter in VS code is messed up by this regex,
@@ -198,4 +190,9 @@ that's why it's down below. :)
 -}
 strString : Parser s String
 strString =
-    regex "\"(\\\\.|[^\\\\\"])*\"" <?> "string"
+    regex "\"(\\\\.|[^\\\\\"])*\"" |> onerror "string"
+
+
+infixAndMap : Parser s (a -> b) -> Parser s a -> Parser s b
+infixAndMap =
+    flip andMap
