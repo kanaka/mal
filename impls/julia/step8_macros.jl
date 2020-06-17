@@ -23,7 +23,7 @@ function quasiquote(ast)
         [[:quote]; Any[ast]]
     elseif ast[1] == :unquote
         ast[2]
-    elseif ispair(ast[1]) && ast[1][1] == symbol("splice-unquote")
+    elseif ispair(ast[1]) && ast[1][1] == Symbol("splice-unquote")
         [[:concat]; Any[ast[1][2]]; Any[quasiquote(ast[2:end])]]
     else
         [[:cons]; Any[quasiquote(ast[1])]; Any[quasiquote(ast[2:end])]]
@@ -71,7 +71,7 @@ function EVAL(ast, env)
 
     if     :def! == ast[1]
         return env_set(env, ast[2], EVAL(ast[3], env))
-    elseif symbol("let*") == ast[1]
+    elseif Symbol("let*") == ast[1]
         let_env = Env(env)
         for i = 1:2:length(ast[2])
             env_set(let_env, ast[2][i], EVAL(ast[2][i+1], let_env))
@@ -107,7 +107,7 @@ function EVAL(ast, env)
             ast = ast[3]
             # TCO loop
         end
-    elseif symbol("fn*") == ast[1]
+    elseif Symbol("fn*") == ast[1]
         return MalFunc(
             (args...) -> EVAL(ast[3], Env(env, ast[2], Any[args...])),
             ast[3], env, ast[2])
@@ -139,7 +139,7 @@ end
 # core.jl: defined using Julia
 repl_env = Env(nothing, core.ns)
 env_set(repl_env, :eval, (ast) -> EVAL(ast, repl_env))
-env_set(repl_env, symbol("*ARGV*"), ARGS[2:end])
+env_set(repl_env, Symbol("*ARGV*"), ARGS[2:end])
 
 # core.mal: defined using the language itself
 REP("(def! not (fn* (a) (if a false true)))")

@@ -2,7 +2,7 @@ module env
 
 export Env, env_set, env_find, env_get
 
-type Env
+struct Env
     outer::Any
     data::Dict{Symbol,Any}
 end

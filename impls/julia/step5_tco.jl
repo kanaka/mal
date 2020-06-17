@@ -35,7 +35,7 @@ function EVAL(ast, env)
     # apply
     if     :def! == ast[1]
         return env_set(env, ast[2], EVAL(ast[3], env))
-    elseif symbol("let*") == ast[1]
+    elseif Symbol("let*") == ast[1]
         let_env = Env(env)
         for i = 1:2:length(ast[2])
             env_set(let_env, ast[2][i], EVAL(ast[2][i+1], let_env))
@@ -60,7 +60,7 @@ function EVAL(ast, env)
             ast = ast[3]
             # TCO loop
         end
-    elseif symbol("fn*") == ast[1]
+    elseif Symbol("fn*") == ast[1]
         return MalFunc(
             (args...) -> EVAL(ast[3], Env(env, ast[2], Any[args...])),
             ast[3], env, ast[2])

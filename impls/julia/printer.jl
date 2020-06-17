@@ -17,9 +17,9 @@ function pr_str(obj, print_readably=true)
             ":$(obj[3:end])"
         elseif _r
             str = replace(replace(replace(obj,
-                                          "\\", "\\\\"),
-                                 "\"", "\\\""),
-                          "\n", "\\n")
+                                          "\\" => "\\\\"),
+                                  "\"" => "\\\""),
+                          "\n" => "\\n")
             "\"$(str)\""
         else
             obj
