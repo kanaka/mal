@@ -80,7 +80,7 @@ class Main
         newElements := (ast as MalVector).value.map |MalVal v -> MalVal| { EVAL(v, env) }
         return MalVector(newElements)
       case MalHashMap#:
-        newElements := (ast as MalHashMap).value.map |MalVal v -> MalVal| { return EVAL(v, env) }
+        newElements := (ast as MalHashMap).value.map |MalVal v -> MalVal| { EVAL(v, env) }
         return MalHashMap.fromMap(newElements)
       default:
         return ast
