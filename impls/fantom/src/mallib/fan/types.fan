@@ -82,7 +82,7 @@ class MalString : MalValBase
 {
   const Str value
   new make(Str v) { value = v }
-  new makeKeyword(Str v) { value = "\u029e$v" }
+  new makeKeyword(Str v) { value = v[0] == '\u029e' ? v : "\u029e$v" }
   override Bool equals(Obj? that) { return that is MalString && (that as MalString).value == value }
   override Str toString(Bool readable)
   {
