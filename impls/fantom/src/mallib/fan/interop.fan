@@ -47,9 +47,13 @@ internal class Interop
     else if (obj is Int)
       return MalInteger((Int)obj)
     else if (obj is List)
-      return MalList((obj as List).map { fantomToMal(it) })
+      return MalList((obj as List).map |Obj? e -> MalVal| { fantomToMal(e) })
     else if (obj is Map)
-      return MalHashMap.fromMap((obj as Map).map { fantomToMal(it) })
+    {
+      m := [Str:MalVal][:]
+      (obj as Map).each |v, k| { m.set(k.toStr, fantomToMal(v)) }
+      return MalHashMap.fromMap(m)
+    }
     else
       return MalString.make(obj.toStr)
   }
