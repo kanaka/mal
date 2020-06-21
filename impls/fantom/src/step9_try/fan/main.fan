@@ -116,7 +116,7 @@ class Main
           ast = quasiquote(astList[1])
           // TCO
         case "defmacro!":
-          f := EVAL(astList[2], env) as MalUserFunc
+          f := (EVAL(astList[2], env) as MalUserFunc).dup
           f.isMacro = true
           return env.set(astList[1], f)
         case "macroexpand":
