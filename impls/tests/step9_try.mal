@@ -94,6 +94,8 @@
 ;=>(2 4 6)
 (map (fn* (x) (symbol? x)) (list 1 (quote two) "three"))
 ;=>(false true false)
+(= () (map str ()))
+;=>true
 
 ;>>> deferrable=True
 ;;
@@ -237,6 +239,8 @@
 ;;; TODO: fix. Clojure returns nil but this breaks mal impl
 (keys hm1)
 ;=>()
+(= () (keys hm1))
+;=>true
 
 (keys hm2)
 ;=>("a")
@@ -247,6 +251,8 @@
 ;;; TODO: fix. Clojure returns nil but this breaks mal impl
 (vals hm1)
 ;=>()
+(= () (vals hm1))
+;=>true
 
 (vals hm2)
 ;=>(1)
