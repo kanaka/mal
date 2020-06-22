@@ -101,7 +101,7 @@ MalType* EVAL(MalType* ast, Env* env) {
   }
   else {
     return make_error_fmt("Error: first item in list is not callable: %s.", \
-			  pr_str(func, UNREADABLY));
+                          pr_str(func, UNREADABLY));
   }
 }
 
@@ -426,39 +426,39 @@ MalType* regularise_parameters(list* args, MalType** more_symbol) {
 
     if (!is_symbol(val)) {
       return make_error_fmt("non-symbol found in fn argument list '%s'", \
-			    pr_str(val, UNREADABLY));
+                            pr_str(val, UNREADABLY));
     }
 
     if (val->value.mal_symbol[0] == '&') {
 
       /* & is found but there is no symbol */
       if (val->value.mal_symbol[1] == '\0' && !(*args)->next) {
-	return make_error("missing symbol after '&' in argument list");
+        return make_error("missing symbol after '&' in argument list");
       }
       /* & is found and there is a single symbol after */
       else if ((val->value.mal_symbol[1] == '\0' && (*args)->next &&
-		is_symbol((*args)->next->data) && !(*args)->next->next)) {
+                is_symbol((*args)->next->data) && !(*args)->next->next)) {
 
-	/* TODO: check symbol is no a duplicate of one already on the list */
-	*more_symbol = (*args)->next->data;
-	break;
+        /* TODO: check symbol is no a duplicate of one already on the list */
+        *more_symbol = (*args)->next->data;
+        break;
       }
       /* & is found and there extra symbols after */
       else if ((val->value.mal_symbol[1] == '\0' && (*args)->next && (*args)->next->next)) {
-	return make_error_fmt("unexpected symbol after '& %s' in argument list: '%s'", \
-			      pr_str((*args)->next->data, UNREADABLY),	\
-			      pr_str((*args)->next->next->data, UNREADABLY));
+        return make_error_fmt("unexpected symbol after '& %s' in argument list: '%s'", \
+                              pr_str((*args)->next->data, UNREADABLY),  \
+                              pr_str((*args)->next->next->data, UNREADABLY));
       }
       /* & is found as part of the symbol and no other symbols */
       else if (val->value.mal_symbol[1] != '\0' && !(*args)->next) {
-	*more_symbol = make_symbol((val->value.mal_symbol + 1));
-	break;
+        *more_symbol = make_symbol((val->value.mal_symbol + 1));
+        break;
       }
       /* & is found as part of the symbol but there are other symbols after */
       else if (val->value.mal_symbol[1] != '\0' && (*args)->next) {
-	return make_error_fmt("unexpected symbol after '%s' in argument list: '%s'", \
-			      pr_str(val, UNREADABLY),	\
-			      pr_str((*args)->next->data, UNREADABLY));
+        return make_error_fmt("unexpected symbol after '%s' in argument list: '%s'", \
+                              pr_str(val, UNREADABLY),  \
+                              pr_str((*args)->next->data, UNREADABLY));
        }
     }
 
@@ -466,10 +466,10 @@ MalType* regularise_parameters(list* args, MalType** more_symbol) {
     else {
 
       if (list_findf(regular_args, val->value.mal_symbol, symbol_fn) > 0) {
-	return make_error_fmt("duplicate symbol in argument list: '%s'", pr_str(val, UNREADABLY));
+        return make_error_fmt("duplicate symbol in argument list: '%s'", pr_str(val, UNREADABLY));
       }
       else {
-	regular_args = list_push(regular_args, val);
+        regular_args = list_push(regular_args, val);
       }
     }
     *args = (*args)->next;

@@ -49,7 +49,8 @@ Reader* reader_append(Reader* reader, Token* token) {
   }
   else {
     /* TODO: expand the storage more intelligently */
-    reader->max_tokens *= 2;    reader = GC_REALLOC(reader, sizeof(*reader) * reader->max_tokens);
+    reader->max_tokens *= 2;
+    reader = GC_REALLOC(reader, sizeof(*reader) * reader->max_tokens);
     reader->token_data[reader->token_count] = token;
     reader->token_count++;
   }
@@ -176,10 +177,10 @@ Reader* tokenize(char* token_string) {
       /* single or double character token */
     case '~':
       if ( *(next + 1) == '@' ) {
-	next = read_fixed_length_token(next, &token, 2);
+        next = read_fixed_length_token(next, &token, 2);
       }
       else {
-	next = read_fixed_length_token(next, &token, 1);
+        next = read_fixed_length_token(next, &token, 1);
       }
       break;
 
@@ -213,11 +214,11 @@ Reader* tokenize(char* token_string) {
     case '+':
     case '-':
       if (isdigit(next[1])) {
-	next = read_number_token(next, &token);
-	//	next = read_integer_token(next, &token);
+        next = read_number_token(next, &token);
+        //      next = read_integer_token(next, &token);
       }
       else { /* if not digits it is part of a symbol */
-	next = read_symbol_token(next, &token);
+        next = read_symbol_token(next, &token);
       }
       break;
 
@@ -234,16 +235,16 @@ Reader* tokenize(char* token_string) {
 
     if (!token) {
       /* if no token was read (whitespace or comments)
-	 continue the loop */
+         continue the loop */
       continue;
     }
     else {
 
       if (token->error) {
-	/* report any errors with an early return */
-	reader = reader_append(reader, token);
-	reader->error = token->error;
-	return reader;
+        /* report any errors with an early return */
+        reader = reader_append(reader, token);
+        reader->error = token->error;
+        return reader;
       }
       /* otherwise append the token and continue */
       reader = reader_append(reader, token);
@@ -351,17 +352,17 @@ char* read_string_token(char* current, Token** ptoken) {
 
       char* back_ptr = end - 1;
       while (*back_ptr == '\\') {
-	back_ptr--; /* back up to count the escape characters '\' */
+        back_ptr--; /* back up to count the escape characters '\' */
       }
 
       long escape_chars = (end - 1) - back_ptr;
 
       if (escape_chars % 2 == 1) { /* odd number of '\' chars means " is not quoted */
-	start = end + 1; /* so keep searching */
+        start = end + 1; /* so keep searching */
       } else {
-	/* even number of '\' characters means we found the terminating quote mark */
-	token_length =  (end - current - 1); /* quotes are excluded from string token */
-	break;
+        /* even number of '\' characters means we found the terminating quote mark */
+        token_length =  (end - current - 1); /* quotes are excluded from string token */
+        break;
       }
     }
     else {
@@ -400,63 +401,63 @@ MalType* read_form(Reader* reader) {
       switch(tok->data[0]) {
 
       case '(':
-	return read_list(reader);
-	break;
+        return read_list(reader);
+        break;
 
       case '[':
-	return read_vector(reader);
-	break;
+        return read_vector(reader);
+        break;
 
       case '{':
-	return read_hashmap(reader);
-	break;
+        return read_hashmap(reader);
+        break;
 
       case '\'':
-	/* create and return a MalType list (quote read_form) */
-	return make_symbol_list(reader, SYMBOL_QUOTE);
-	break;
+        /* create and return a MalType list (quote read_form) */
+        return make_symbol_list(reader, SYMBOL_QUOTE);
+        break;
 
       case '`':
-	/* create and return a MalType list (quasiquote read_form) */
-	return make_symbol_list(reader, SYMBOL_QUASIQUOTE);
-	break;
+        /* create and return a MalType list (quasiquote read_form) */
+        return make_symbol_list(reader, SYMBOL_QUASIQUOTE);
+        break;
 
       case '~':
-	if (tok->data[1] == '@') {
-	  /* create and return a MalType list (splice-unquote read_form) */
-	  return make_symbol_list(reader, SYMBOL_SPLICE_UNQUOTE);
-	}
-	else {
-	  /* create and return a MalType list (unquote read_form) */
-	  return make_symbol_list(reader, SYMBOL_UNQUOTE);
-	}
+        if (tok->data[1] == '@') {
+          /* create and return a MalType list (splice-unquote read_form) */
+          return make_symbol_list(reader, SYMBOL_SPLICE_UNQUOTE);
+        }
+        else {
+          /* create and return a MalType list (unquote read_form) */
+          return make_symbol_list(reader, SYMBOL_UNQUOTE);
+        }
       case '@':
-	/* create and return a MalType list (deref read_form) */
-	return make_symbol_list(reader, SYMBOL_DEREF);
+        /* create and return a MalType list (deref read_form) */
+        return make_symbol_list(reader, SYMBOL_DEREF);
 
       case '^':
-	/* create and return a MalType list (with-meta <second-form> <first-form>
-	   where first form should ne a metadata map and second form is somethingh
-	   that can have metadata attached */
-	  reader_next(reader);
+        /* create and return a MalType list (with-meta <second-form> <first-form>
+           where first form should ne a metadata map and second form is somethingh
+           that can have metadata attached */
+          reader_next(reader);
 
-	  /* grab the components of the list */
-	  MalType* symbol = make_symbol(SYMBOL_WITH_META);
-	  MalType* first_form = read_form(reader);
-	  MalType* second_form = read_form(reader);
+          /* grab the components of the list */
+          MalType* symbol = make_symbol(SYMBOL_WITH_META);
+          MalType* first_form = read_form(reader);
+          MalType* second_form = read_form(reader);
 
-	  /* push the symbol and the following forms onto a list */
-	  list lst = NULL;
-	  lst = list_push(lst, symbol);
-	  lst = list_push(lst, second_form);
-	  lst = list_push(lst, first_form);
-	  lst = list_reverse(lst);
+          /* push the symbol and the following forms onto a list */
+          list lst = NULL;
+          lst = list_push(lst, symbol);
+          lst = list_push(lst, second_form);
+          lst = list_push(lst, first_form);
+          lst = list_reverse(lst);
 
-	  return make_list(lst);
+          return make_list(lst);
 
       default:
-	/* shouldn't happen */
-	return make_error_fmt("Reader error: Unknown special character '%c'", tok->data[0]);
+        /* shouldn't happen */
+        return make_error_fmt("Reader error: Unknown special character '%c'", tok->data[0]);
       }
 
     } else { /* Not a special character */
@@ -523,15 +524,15 @@ MalType* read_matched_delimiters(Reader* reader, char start_delimiter, char end_
   else {
     while (tok->data[0] != end_delimiter) {
 
-	MalType* val = read_form(reader);
-	lst = list_push(lst, (gptr)val);
+        MalType* val = read_form(reader);
+        lst = list_push(lst, (gptr)val);
 
-	tok = reader_peek(reader);
+        tok = reader_peek(reader);
 
-	if (!tok) {
-      	  /* unbalanced parentheses */
-	  return make_error("");
-	}
+        if (!tok) {
+          /* unbalanced parentheses */
+          return make_error("");
+        }
       }
     reader_next(reader);
 
@@ -628,19 +629,19 @@ char* unescape_string(char* str, long length) {
 
       switch (str[i+1]) {
 
-	/* replace '\"' with normal '"' */
+        /* replace '\"' with normal '"' */
       case '"':
         dest[j++]='"';
         i++; /* skip extra char */
         break;
 
-    	/* replace '\n' with newline 0x0A */
+        /* replace '\n' with newline 0x0A */
       case 'n':
         dest[j++]= 0x0A;
         i++; /* skip extra char */
         break;
 
-	/* replace '\\' with '\' */
+        /* replace '\\' with '\' */
       case '\\':
         dest[j++]= '\\';
         i++; /* skip extra char */
@@ -648,12 +649,12 @@ char* unescape_string(char* str, long length) {
 
       default:
         /* just a '\' symbol so copy it */
-	      dest[j++]='\\';
+              dest[j++]='\\';
       }
     }
     /* not a quote so copy it */
     else {
-      	dest[j++] = str[i];
+        dest[j++] = str[i];
     }
   }
   dest[j] = '\0';

@@ -65,7 +65,7 @@ MalType* EVAL(MalType* ast, Env* env) {
   }
   else {
     return make_error_fmt("Error: first item in list is not callable: %s.", \
-			  pr_str(func, UNREADABLY));
+                          pr_str(func, UNREADABLY));
   }
 }
 

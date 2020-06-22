@@ -97,18 +97,18 @@ char* pr_str(MalType* val, int readably) {
       list lst = parameters->value.mal_list;
 
       if (more_symbol) {
-	lst = list_reverse(lst);
-	lst = list_push(lst, make_symbol(snprintfbuf(STRING_BUFFER_SIZE, "%s%s", "&", more_symbol->value.mal_symbol)));
-	lst = list_reverse(lst);
+        lst = list_reverse(lst);
+        lst = list_push(lst, make_symbol(snprintfbuf(STRING_BUFFER_SIZE, "%s%s", "&", more_symbol->value.mal_symbol)));
+        lst = list_reverse(lst);
       }
 
       if (val->is_macro) {
-	return snprintfbuf(FUNCTION_BUFFER_SIZE, "#<function::macro: (fn* %s %s))", \
-			   pr_str(make_list(lst), UNREADABLY), pr_str(definition, UNREADABLY));
+        return snprintfbuf(FUNCTION_BUFFER_SIZE, "#<function::macro: (fn* %s %s))", \
+                           pr_str(make_list(lst), UNREADABLY), pr_str(definition, UNREADABLY));
       }
       else {
-	return snprintfbuf(FUNCTION_BUFFER_SIZE, "#<function::closure: (fn* %s %s))", \
-			   pr_str(make_list(lst), UNREADABLY), pr_str(definition, UNREADABLY));
+        return snprintfbuf(FUNCTION_BUFFER_SIZE, "#<function::closure: (fn* %s %s))", \
+                           pr_str(make_list(lst), UNREADABLY), pr_str(definition, UNREADABLY));
       }
     }
   break;
@@ -164,8 +164,8 @@ char* pr_str_list(list lst, int readably, char* start_delimiter, char* end_delim
       count += len;
 
       if (count >= buffer_length) {
-	buffer_length += (count + 1);
-	list_buffer = GC_REALLOC(list_buffer, buffer_length);
+        buffer_length += (count + 1);
+        list_buffer = GC_REALLOC(list_buffer, buffer_length);
       }
       /* add the separator */
       strncat(list_buffer, separator, len);

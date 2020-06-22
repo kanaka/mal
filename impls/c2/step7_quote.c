@@ -138,8 +138,8 @@ MalType* EVAL(MalType* ast, Env* env) {
     }
   }
   else {
-    return make_error_fmt("first item in list is not callable: '%s'",	\
-			  pr_str(func, UNREADABLY));
+    return make_error_fmt("first item in list is not callable: '%s'",   \
+                          pr_str(func, UNREADABLY));
   }
 }
 
@@ -217,8 +217,8 @@ int main(int argc, char** argv) {
 
       /* Check for EOF (Ctrl-D) */
       if (!input) {
-	printf("\n\n");
-	return 0;
+        printf("\n\n");
+        return 0;
       }
 
       /* add input to history */
@@ -266,7 +266,7 @@ MalType* eval_ast(MalType* ast, Env* env) {
     list result = evaluate_vector(ast->value.mal_list, env);
 
     if (!result || !is_error(result->data)) {
-	return make_vector(result);
+        return make_vector(result);
     } else {
       return result->data;
     }
@@ -506,25 +506,25 @@ MalType* quasiquote(MalType* ast) {
     if (is_symbol(first) && strcmp(first->value.mal_symbol, SYMBOL_UNQUOTE) == 0) {
 
       if (!args->next) {
-	return make_nil();
+        return make_nil();
       }
 
       if (args->next->next) {
-	return make_error("'quasiquote': unquote expected exactly one argument");
+        return make_error("'quasiquote': unquote expected exactly one argument");
       }
       else {
-	return args->next->data;
+        return args->next->data;
       }
     }
 
     /* (quasiquote ((splice-unquote first-second) rest))
        => (concat first-second (quasiquote rest)) */
     else if (is_list(first) &&
-	     is_symbol(first->value.mal_list->data) &&
-    	     strcmp(((MalType*)first->value.mal_list->data)->value.mal_symbol, SYMBOL_SPLICE_UNQUOTE) == 0) {
+             is_symbol(first->value.mal_list->data) &&
+             strcmp(((MalType*)first->value.mal_list->data)->value.mal_symbol, SYMBOL_SPLICE_UNQUOTE) == 0) {
 
       if (!first->value.mal_list->next) {
-	return make_error("'quasiquote': splice-unquote expected exactly one argument");
+        return make_error("'quasiquote': splice-unquote expected exactly one argument");
       }
 
       MalType* first_second = first->value.mal_list->next->data;
@@ -533,7 +533,7 @@ MalType* quasiquote(MalType* ast) {
 
       MalType* rest = quasiquote(make_list(args->next));
       if (is_error(rest)) {
-	return rest;
+        return rest;
       }
 
       lst = list_push(lst, rest);
@@ -549,16 +549,16 @@ MalType* quasiquote(MalType* ast) {
 
       MalType* first = quasiquote(args->data);
       if (is_error(first)) {
-	return first;
+        return first;
       } else {
-	lst = list_push(lst, first);
+        lst = list_push(lst, first);
       }
 
       MalType* rest = quasiquote(make_list(args->next));
       if (is_error(rest)) {
-	return rest;
+        return rest;
       } else {
-	lst = list_push(lst, rest);
+        lst = list_push(lst, rest);
       }
 
       lst = list_reverse(lst);
@@ -635,39 +635,39 @@ MalType* regularise_parameters(list* args, MalType** more_symbol) {
 
     if (!is_symbol(val)) {
       return make_error_fmt("non-symbol found in fn argument list '%s'", \
-			    pr_str(val, UNREADABLY));
+                            pr_str(val, UNREADABLY));
     }
 
     if (val->value.mal_symbol[0] == '&') {
 
       /* & is found but there is no symbol */
       if (val->value.mal_symbol[1] == '\0' && !(*args)->next) {
-	return make_error("missing symbol after '&' in argument list");
+        return make_error("missing symbol after '&' in argument list");
       }
       /* & is found and there is a single symbol after */
       else if ((val->value.mal_symbol[1] == '\0' && (*args)->next &&
-		is_symbol((*args)->next->data) && !(*args)->next->next)) {
+                is_symbol((*args)->next->data) && !(*args)->next->next)) {
 
-	/* TODO: check symbol is no a duplicate of one already on the list */
-	*more_symbol = (*args)->next->data;
-	break;
+        /* TODO: check symbol is no a duplicate of one already on the list */
+        *more_symbol = (*args)->next->data;
+        break;
       }
       /* & is found and there extra symbols after */
       else if ((val->value.mal_symbol[1] == '\0' && (*args)->next && (*args)->next->next)) {
-	return make_error_fmt("unexpected symbol after '& %s' in argument list: '%s'", \
-			      pr_str((*args)->next->data, UNREADABLY),	\
-			      pr_str((*args)->next->next->data, UNREADABLY));
+        return make_error_fmt("unexpected symbol after '& %s' in argument list: '%s'", \
+                              pr_str((*args)->next->data, UNREADABLY),  \
+                              pr_str((*args)->next->next->data, UNREADABLY));
       }
       /* & is found as part of the symbol and no other symbols */
       else if (val->value.mal_symbol[1] != '\0' && !(*args)->next) {
-	*more_symbol = make_symbol((val->value.mal_symbol + 1));
-	break;
+        *more_symbol = make_symbol((val->value.mal_symbol + 1));
+        break;
       }
       /* & is found as part of the symbol but there are other symbols after */
       else if (val->value.mal_symbol[1] != '\0' && (*args)->next) {
-	return make_error_fmt("unexpected symbol after '%s' in argument list: '%s'", \
-			      pr_str(val, UNREADABLY),	\
-			      pr_str((*args)->next->data, UNREADABLY));
+        return make_error_fmt("unexpected symbol after '%s' in argument list: '%s'", \
+                              pr_str(val, UNREADABLY),  \
+                              pr_str((*args)->next->data, UNREADABLY));
        }
     }
 
@@ -675,10 +675,10 @@ MalType* regularise_parameters(list* args, MalType** more_symbol) {
     else {
 
       if (list_findf(regular_args, val->value.mal_symbol, symbol_fn) > 0) {
-	return make_error_fmt("duplicate symbol in argument list: '%s'", pr_str(val, UNREADABLY));
+        return make_error_fmt("duplicate symbol in argument list: '%s'", pr_str(val, UNREADABLY));
       }
       else {
-	regular_args = list_push(regular_args, val);
+        regular_args = list_push(regular_args, val);
       }
     }
     *args = (*args)->next;

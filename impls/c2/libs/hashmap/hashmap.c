@@ -32,10 +32,10 @@ gptr hashmap_get(hashmap map, char* keystring) {
   while(lst) {
 
     if (strcmp(keystring, (char*)lst->data) == 0) {
-	return (lst->next)->data; /* return next item in list which is the value */
+        return (lst->next)->data; /* return next item in list which is the value */
       }
       else {
-	lst = (lst->next)->next; /* skip the next item in the list to get to the next key */
+        lst = (lst->next)->next; /* skip the next item in the list to get to the next key */
       }
   }
   return NULL; /* not found */
@@ -57,10 +57,10 @@ gptr hashmap_getf(hashmap map, char* keystring, char*(*fn)(gptr)) {
     char* item = fn(lst->data);
 
     if (strcmp(keystring, item) == 0) {
-	return (lst->next)->data; /* return next item in list which is the value */
+        return (lst->next)->data; /* return next item in list which is the value */
       }
       else {
-	lst = (lst->next)->next; /* skip the next item in the list to get to the next key */
+        lst = (lst->next)->next; /* skip the next item in the list to get to the next key */
       }
   }
   return NULL; /* not found */

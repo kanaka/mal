@@ -258,20 +258,20 @@ MalType* mal_sub(list args) {
       val = args->data;
 
       if (!is_number(val)) {
-	return make_error_fmt("'-': expected numerical arguments");
+        return make_error_fmt("'-': expected numerical arguments");
       }
 
       if (is_integer(val) && !return_float) {
-	i_sum = i_sum - val->value.mal_integer;
+        i_sum = i_sum - val->value.mal_integer;
       }
       else if (is_integer(val)) {
-	r_sum = (double)i_sum + r_sum - (double)val->value.mal_integer;
-	i_sum = 0;
+        r_sum = (double)i_sum + r_sum - (double)val->value.mal_integer;
+        i_sum = 0;
       }
       else {
-	r_sum = (double)i_sum + r_sum - val->value.mal_float;
-	i_sum = 0;
-	return_float = 1;
+        r_sum = (double)i_sum + r_sum - val->value.mal_float;
+        i_sum = 0;
+        return_float = 1;
       }
       args = args->next;
     }
@@ -354,31 +354,31 @@ MalType* mal_div(list args) {
       val = args->data;
 
       if (!is_number(val)) {
-	return make_error_fmt("'/': expected numerical arguments");
+        return make_error_fmt("'/': expected numerical arguments");
       }
 
       /* integer division */
       if (is_integer(val) && !return_float) {
-	i_product /= val->value.mal_integer;
+        i_product /= val->value.mal_integer;
       }
       /* promote integer to double */
       else if (is_integer(val)) {
-	if (i_product != 1) {
-	  r_product = (double)i_product / (double)val->value.mal_integer;
-	  i_product = 1;
-	} else {
-	  r_product /= (double)val->value.mal_integer;
-	}
+        if (i_product != 1) {
+          r_product = (double)i_product / (double)val->value.mal_integer;
+          i_product = 1;
+        } else {
+          r_product /= (double)val->value.mal_integer;
+        }
       }
       /* double division */
       else {
-	return_float = 1;
-	if (i_product != 1) {
-	  r_product = (double)i_product / val->value.mal_float;
-	  i_product = 1;
-	} else {
-	  r_product /= val->value.mal_float;
-	}
+        return_float = 1;
+        if (i_product != 1) {
+          r_product = (double)i_product / val->value.mal_float;
+          i_product = 1;
+        } else {
+          r_product /= val->value.mal_float;
+        }
       }
       args = args->next;
     }
@@ -574,43 +574,43 @@ MalType* mal_equals(list args) {
     case MALTYPE_INTEGER:
 
       if (first_val->value.mal_integer == second_val->value.mal_integer) {
-	return make_true();
+        return make_true();
       } else {
-	return make_false();
+        return make_false();
       }
       break;
 
     case MALTYPE_FLOAT:
 
       if (first_val->value.mal_float == second_val->value.mal_float) {
-	return make_true();
+        return make_true();
       } else {
-	return make_false();
+        return make_false();
       }
       break;
 
     case MALTYPE_SYMBOL:
 
       if (strcmp(first_val->value.mal_symbol, second_val->value.mal_symbol) == 0) {
-	return make_true();
+        return make_true();
       } else {
-	return make_false();
+        return make_false();
       }
       break;
 
     case MALTYPE_STRING:
       if (strcmp(first_val->value.mal_string, second_val->value.mal_string) == 0) {
-	return make_true();
+        return make_true();
       } else {
-	return make_false();
+        return make_false();
       }
       break;
 
     case MALTYPE_KEYWORD:
       if (strcmp(first_val->value.mal_keyword, second_val->value.mal_keyword) == 0) {
-	return make_true();
+        return make_true();
       } else {
-	return make_false();
+        return make_false();
       }
       break;
 
@@ -628,18 +628,18 @@ MalType* mal_equals(list args) {
     case MALTYPE_FUNCTION:
 
       if (first_val->value.mal_function == second_val->value.mal_function) {
-	return make_true();
+        return make_true();
       } else {
-	return make_false();
+        return make_false();
       }
       break;
 
     case MALTYPE_CLOSURE:
 
       if (&first_val->value.mal_closure == &second_val->value.mal_closure) {
-	return make_true();
+        return make_true();
       } else {
-	return make_false();
+        return make_false();
       }
       break;
     }
@@ -676,7 +676,7 @@ MalType* mal_nth(list args) {
   }
   else {
     return make_error_fmt("'nth': index %s out of bounds for: '%s'\n", \
-			  pr_str(n, UNREADABLY), pr_str(lst, UNREADABLY));
+                          pr_str(n, UNREADABLY), pr_str(lst, UNREADABLY));
   }
 }
 
@@ -740,7 +740,7 @@ MalType* mal_cons(list args) {
   }
   else {
     return make_error_fmt("'cons': second argument is not a list or vector: '%s'\n", \
-			  pr_str(lst, UNREADABLY));
+                          pr_str(lst, UNREADABLY));
   }
 }
 
@@ -771,7 +771,7 @@ MalType* mal_concat(list args) {
     /* raise an error for any non-sequence types */
     else {
       return make_error_fmt("'concat': all arguments must be lists or vectors '%s'", \
-			    pr_str(val, UNREADABLY));
+                            pr_str(val, UNREADABLY));
     }
   }
   return make_list(new_list);
@@ -786,7 +786,7 @@ MalType* mal_count(list args) {
   MalType* val = args->data;
   if (!is_sequential(val) && !is_nil(val)) {
         return make_error_fmt("'count': argument is not a list or vector: '%s'\n", \
-			      pr_str(val, UNREADABLY));
+                              pr_str(val, UNREADABLY));
   }
   return make_integer(list_count(val->value.mal_list));
 }
@@ -1364,8 +1364,8 @@ MalType* mal_dissoc(list args) {
       MalType* cmp = mal_equals(tmp);
 
       if (is_true(cmp)) {
-	dis = 1;
-	break;
+        dis = 1;
+        break;
       }
       dis_args = dis_args->next;
     }
@@ -1521,7 +1521,7 @@ MalType* mal_conj(list args) {
 
   if (!is_sequential(lst)) {
     return make_error_fmt("'conj': first argument is not a list or vector: '%s'\n", \
-			  pr_str(lst, UNREADABLY));
+                          pr_str(lst, UNREADABLY));
   }
 
   list rest = args->next;
@@ -1578,11 +1578,11 @@ MalType* mal_seq(list args) {
       list lst = NULL;
 
       while(*ch != '\0') {
-	char* new_ch = GC_MALLOC(sizeof(*new_ch));
-	strncpy(new_ch, ch, 1);
+        char* new_ch = GC_MALLOC(sizeof(*new_ch));
+        strncpy(new_ch, ch, 1);
 
-	lst = list_push(lst, make_string(new_ch));
-	ch++;
+        lst = list_push(lst, make_string(new_ch));
+        ch++;
       }
       return make_list(list_reverse(lst));
     }
@@ -1701,8 +1701,8 @@ MalType* equal_lists(MalType* list1, MalType* list2) {
       MalType* cmp = mal_equals(args);
 
       if (is_false(cmp)) {
-	return make_false();
-	break;
+        return make_false();
+        break;
       }
       first = first->next;
       second = second->next;
@@ -1911,13 +1911,13 @@ ffi_type* ffi_get_type(char *type, MalType* err) {
     return &ffi_type_void;
   }
   else if ((strcmp("string", type) == 0) ||
-	   (strcmp("char*", type) == 0) ||
-	   (strcmp("char *", type) == 0)) {
+           (strcmp("char*", type) == 0) ||
+           (strcmp("char *", type) == 0)) {
 
     return &ffi_type_pointer;
   }
   else if ((strcmp("integer", type) == 0) ||
-	   (strcmp("int64", type) == 0)) {
+           (strcmp("int64", type) == 0)) {
 
     return &ffi_type_sint64;
   }
@@ -1946,13 +1946,13 @@ MalType* make_type(char *type) {
     return make_nil();
   }
   else if ((strcmp("string", type) == 0) ||
-	   (strcmp("char*", type) == 0) ||
-	   (strcmp("char *", type) == 0)) {
+           (strcmp("char*", type) == 0) ||
+           (strcmp("char *", type) == 0)) {
 
     return make_string("");
   }
   else if ((strcmp("integer", type) == 0) ||
-	   (strcmp("int64", type) == 0)) {
+           (strcmp("int64", type) == 0)) {
 
     return make_integer(0);
   }
