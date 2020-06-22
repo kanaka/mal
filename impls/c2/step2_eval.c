@@ -121,7 +121,7 @@ MalType* eval_ast(MalType* ast, Env* env) {
 
   if (is_symbol(ast)) {
 
-    MalType* symbol_value = env_get(env, ast);
+    MalType* symbol_value = hashmap_get(env->data, ast->value.mal_symbol);
 
     if (symbol_value) {
       return symbol_value;
