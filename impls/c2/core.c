@@ -5,8 +5,10 @@
 #include <gc.h>
 
 /* only needed for ffi */
+#ifdef WITH_FFI
 #include <dlfcn.h>
 #include <ffi.h>
+#endif
 
 #include "libs/hashmap/hashmap.h"
 #include "core.h"
@@ -90,7 +92,9 @@ MalType* mal_meta(list);
 MalType* mal_with_meta(list);
 
 /* only needed for ffi */
+#ifdef WITH_FFI
 MalType* mal_dot(list);
+#endif
 
 ns* ns_make_core() {
 
@@ -178,7 +182,9 @@ ns* ns_make_core() {
   core_functions = hashmap_put(core_functions, "with-meta", mal_with_meta);
 
   /* only needed for ffi */
+  #ifdef WITH_FFI
   core_functions = hashmap_put(core_functions, ".", mal_dot);
+  #endif
 
   core->mappings = core_functions;
   return core;
@@ -1770,6 +1776,7 @@ char* get_fn(gptr data) {
   }
 }
 
+#ifdef WITH_FFI
 MalType* mal_dot(list args) {
 
   /* (. "lib" "return type" "function" "arg1 type" "arg 1" ...) */
@@ -1964,3 +1971,4 @@ MalType* make_type(char *type) {
     return make_error_fmt("'ffi' type not supported '%s'", type);
   }
 }
+#endif
