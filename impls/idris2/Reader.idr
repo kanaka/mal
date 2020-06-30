@@ -1,10 +1,9 @@
 module Reader
 
-import AST
+import Types
 
 import Control.Monad.Syntax
 import Data.List
-import Data.SortedMap
 import Data.Strings
 import Text.Lexer
 import Text.Parser
@@ -140,7 +139,7 @@ parseTokens : List Token -> Either String (List AST)
 parseTokens toks =
   case parse (many grammar) toks of
        Right (ast, []) => Right ast
-       Right (ast, rest) => Left $ "Parse error: possible unbalanced parentheses" ++ show ast
+       Right (ast, rest) => Left $ "Parse error: possible unbalanced parentheses"
        Left (Error msg _) => Left msg
 
 export

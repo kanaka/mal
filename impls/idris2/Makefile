@@ -1,5 +1,5 @@
-SRCS = step0_repl.idr step1_read_print.idr
-OTHER_SRCS = AST.idr Reader.idr
+SRCS = step0_repl.idr step1_read_print.idr step2_eval.idr
+OTHER_SRCS = Types.idr Reader.idr Eval.idr MonadTrans.idr
 BINS = $(SRCS:%.idr=build/exec/%)
 
 idris_args = -p contrib

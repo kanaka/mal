@@ -1,6 +1,6 @@
 import System.File
 
-import AST
+import Types
 import Reader
 
 read : String -> IO (Maybe AST)
