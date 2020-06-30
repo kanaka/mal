@@ -1,4 +1,4 @@
-SRCS = step0_repl.idr step1_read_print.idr step2_eval.idr
+SRCS = step0_repl.idr step1_read_print.idr step2_eval.idr step3_env.idr
 OTHER_SRCS = Types.idr Reader.idr Eval.idr MonadTrans.idr
 BINS = $(SRCS:%.idr=build/exec/%)
 

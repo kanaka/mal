@@ -1,15 +1,18 @@
 module Types
 
 import Control.Monad.State
+import public Data.IORef
 import public Data.SortedMap
 import Data.Strings
-import MonadTrans
+import public MonadTrans
 
 mutual
   public export
   data AST = Symbol String -- Identifiers
            | Str String -- Includes keywords
            | Number Integer
+           | Boolean Bool
+           | Nil
            | Quasiquote AST
            | Quote AST
            | Unquote AST
@@ -23,11 +26,11 @@ mutual
 
   public export
   Env : Type
-  Env = SortedMap String AST
+  Env = List (IORef (SortedMap String AST))
 
   public export
   MalM : Type -> Type
-  MalM = StateT Env (ExceptT AST IO)
+  MalM = ReaderT Env (ExceptT AST IO)
 
 export
 implementation Show AST where
@@ -36,69 +39,48 @@ implementation Show AST where
     case strUncons s of
          Just ('\xff', rest) => strCons ':' rest
          _ => show s
+  show (Number x) = show x
+  show (Boolean True) = "true"
+  show (Boolean False) = "false"
+  show Nil = "nil"
   show (Quasiquote x) = "(quasiquote " ++ show x ++ ")"
   show (Quote x) = "(quote " ++ show x ++ ")"
   show (Unquote x) = "(unquote " ++ show x ++ ")"
   show (SpliceUnquote x) = "(splice-unquote " ++ show x ++ ")"
   show (Deref x) = "(deref " ++ show x ++ ")"
   show (WithMeta a b) = "(with-meta " ++ show a ++ " " ++ show b ++ ")"
-  show (Number x) = show x
   show (List xs) = "(" ++ unwords (map show xs) ++ ")"
   show (Vector xs) = "[" ++ unwords (map show xs) ++ "]"
   show (Map m) = "{" ++ unwords (concatMap (\(a, b) => [show (Str a), show b]) $ toList m) ++ "}"
   show (Func f) = "<function>"
 
 public export
-interface MalType a where
-  toMalAst : a -> AST
-  fromMalAst : AST -> Maybe a
+getEnv : MalM (IORef (SortedMap String AST))
+getEnv = do
+  env <- ask
+  case env of
+       [] => throwError $ Str "Internal error: no environment"
+       e :: _ => pure e
 
 public export
-implementation MalType AST where
-  toMalAst = id
-  fromMalAst = Just
+withLocalEnv : MalM a -> MalM a
+withLocalEnv x = do
+  new <- liftIO $ newIORef empty
+  local (new::) x
 
 public export
-implementation MalType Integer where
-  toMalAst = Number
-  fromMalAst (Number x) = Just x
-  fromMalAst _ = Nothing
+insert : String -> AST -> MalM ()
+insert n x = do
+  env <- getEnv
+  liftIO $ modifyIORef env $ insert n x
 
 public export
-implementation MalType String where
-  toMalAst = Str
-  fromMalAst (Str s) = Just s
-  fromMalAst _ = Nothing
-
-public export
-implementation MalType a => MalType (List a) where
-  toMalAst = Vector . map toMalAst -- Should this be List or Vector?
-  fromMalAst (List xs) = traverse fromMalAst xs
-  fromMalAst _ = Nothing
-
-public export
-implementation MalType a => MalType (SortedMap String a) where
-  toMalAst = Map . map toMalAst
-  fromMalAst (Map m) = traverse fromMalAst m
-  fromMalAst _ = Nothing
-
-public export
-interface MalFunction a where
-  toMalFunc : a -> List AST -> MalM AST
-
-public export
-implementation MalType a => MalFunction a where
-  toMalFunc x [] = pure $ toMalAst x
-  toMalFunc _ _ = throwError $ Str "Too many arguments"
-
-public export
-implementation MalType a => MalFunction (MalM a) where
-  toMalFunc x [] = map toMalAst x
-  toMalFunc _ _ = throwError $ Str "Too many arguments"
-
-public export
-implementation (MalType a, MalFunction b) => MalFunction (a -> b) where
-  toMalFunc _ [] = throwError $ Str "Too few arguments"
-  toMalFunc f (x::xs) = case fromMalAst x of
-                             Just x' => toMalFunc (f x') xs
-                             Nothing => throwError $ Str "Wrong argument type"
+lookup : String -> MalM AST
+lookup n = ask >>= go
+  where go : Env -> MalM AST
+        go [] = throwError $ Str $ "Symbol " ++ n ++ " not found"
+        go (e::es) = do
+          val <- map (lookup n) $ liftIO $ readIORef e
+          case val of
+               Just x => pure x
+               Nothing => go es
