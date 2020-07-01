@@ -34,6 +34,14 @@ implementation MalType Int where
   fromMalAst (Number x) = Just $ cast x
   fromMalAst _ = Nothing
 
+implementation MalType Nat where
+  toMalAst = Number . cast
+  fromMalAst (Number x) = toNat x 0
+    where toNat : Integer -> Nat -> Maybe Nat
+          toNat 0 acc = Just acc
+          toNat n acc = if n < 0 then Nothing else toNat (n - 1) (S acc)
+  fromMalAst _ = Nothing
+
 implementation MalType String where
   toMalAst = Str
   fromMalAst (Str s) = Just s
@@ -99,6 +107,20 @@ defBuiltin [Symbol n, x] = do
 defBuiltin [_, _] = throwError $ Str "def!: expecting symbol"
 defBuiltin _ = throwError $ Str "def!: too many arguments"
 
+defmacroBuiltin : List AST -> MalM AST
+defmacroBuiltin [] = throwError $ Str "defmacro!: too few arguments"
+defmacroBuiltin [_] = throwError $ Str "defmacro!: too few arguments"
+defmacroBuiltin [Symbol n, x] = do
+  Func _ m <- eval x
+    | _ => throwError $ Str "defmacro!: expected a function"
+  -- Really wish it was fn* and macro*, not def! and defmacro!, so it would be
+  -- possible to use native functions without hacky quoting or a is_macro flag
+  let m' = Func True $ eval <=< local (record { evalFunc = don'tEval }) . m
+  insert n m'
+  pure m'
+defmacroBuiltin [_, _] = throwError $ Str "defmacro!: expecting symbol"
+defmacroBuiltin _ = throwError $ Str "defmacro!: too many arguments"
+
 letBuiltin : List AST -> MalM AST
 letBuiltin [] = throwError $ Str "let*: too few arguments"
 letBuiltin [_] = throwError $ Str "let*: too few arguments"
@@ -135,11 +157,14 @@ fnBuiltin : List AST -> MalM AST
 fnBuiltin [List _ argNames, res] = do
   argNames' <- traverse getSymbol argNames
   parentEnv <- ask
-  pure $ Func $ \args => do
+  pure $ Func False $ \args => do
     args' <- traverse eval args
     local (const parentEnv) $ withLocalEnv $ do
       bindArgs argNames' args'
-      eval res
+      -- If it's a regular function, then it only runs during fullEval mode.
+      -- If it's a macro, we need to evaluate it even it macroexpand mode.
+      -- So fullEval is the right thing to do here.
+      fullEval res
   where getSymbol : AST -> MalM String
         getSymbol (Symbol n) = pure n
         getSymbol _ = throwError $ Str "fn: malformed arguments"
@@ -183,7 +208,7 @@ swapBuiltin : List AST -> MalM AST
 swapBuiltin [] = throwError $ Str "swap!: too few arguments"
 swapBuiltin [_] = throwError $ Str "swap!: too few arguments"
 swapBuiltin xs = do
-  Atom x::Func f::args <- traverse eval xs
+  Atom x::Func _ f::args <- traverse eval xs
     | _ => throwError $ Str "swap!: type error"
   old <- liftIO $ readIORef x
   new <- f (old::args)
@@ -191,6 +216,20 @@ swapBuiltin xs = do
 
 consBuiltin : AST -> List AST -> List AST
 consBuiltin = (::)
+
+firstBuiltin : List AST -> AST
+firstBuiltin [] = Symbol "nil"
+firstBuiltin (x::_) = x
+
+restBuiltin : List AST -> List AST
+restBuiltin [] = []
+restBuiltin (_::xs) = xs
+
+-- TODO: move to corelib
+nthBuiltin : List AST -> Nat -> MalM AST
+nthBuiltin (x::_) 0 = pure x
+nthBuiltin (_::xs) (S n) = nthBuiltin xs n
+nthBuiltin [] _ = throwError $ Str "nth: index out of bounds"
 
 concatBuiltin : List AST -> MalM AST
 concatBuiltin = map (List False) . go <=< traverse eval
@@ -223,8 +262,12 @@ quasiquoteBuiltin [x] = qq x
           xs' <- traverse qq xs
           map (List False . concat) $ traverse expandSplice xs'
         qq (Map m) = map Map $ traverse qq m
-        qq (Func f) = pure $ Func f
+        qq (Func m f) = pure $ Func m f
 quasiquoteBuiltin _ = throwError $ Str "quote: wanted exactly one argument"
+
+macroexpandBuiltin : List AST -> MalM AST
+macroexpandBuiltin [x] = local (record { evalFunc = macroexpand }) $ eval x
+macroexpandBuiltin _ = throwError $ Str "macroexpand: wanted exactly one argument"
 
 prStr : List AST -> MalM AST
 prStr xs = do
@@ -252,42 +295,47 @@ baseEnv = fromList [
   ("nil", Symbol "nil"),
   ("true", Symbol "true"),
   ("false", Symbol "false"),
-  ("+", Func $ toMalFunc $ (+) {ty=Integer}),
-  ("-", Func $ toMalFunc $ (-) {ty=Integer}),
-  ("*", Func $ toMalFunc $ (*) {ty=Integer}),
-  ("/", Func $ toMalFunc $ div {ty=Integer}),
-  ("def!", Func defBuiltin),
-  ("let*", Func letBuiltin),
-  ("if", Func ifBuiltin),
-  ("fn*", Func fnBuiltin),
-  ("do", Func doBuiltin),
-  ("list", Func $ map (List False) . traverse eval),
-  ("list?", Func $ toMalFunc isList),
-  ("vector", Func $ map (List True) . traverse eval),
-  ("vector?", Func $ toMalFunc isVector),
-  ("count", Func $ toMalFunc $ the (List AST -> Integer) $ cast . List.length),
-  ("=", Func $ toMalFunc $ (==) {ty=AST}),
-  (">", Func $ toMalFunc $ (>) {ty=Integer}),
-  (">=", Func $ toMalFunc $ (>=) {ty=Integer}),
-  ("<", Func $ toMalFunc $ (<) {ty=Integer}),
-  ("<=", Func $ toMalFunc $ (<=) {ty=Integer}),
-  -- TODO: implement in corelib when varargs is done
-  ("pr-str", Func prStr),
-  ("str", Func str),
-  ("prn", Func prn),
-  ("println", Func println),
-  ("read-string", Func $ toMalFunc readStringBuiltin),
-  ("slurp", Func $ toMalFunc slurpBuiltin),
-  ("eval", Func $ toMalFunc $ withGlobalEnv . eval),
-  ("atom", Func $ toMalFunc atomBuiltin),
-  ("atom?", Func $ toMalFunc isAtom),
-  ("deref", Func $ toMalFunc derefBuiltin),
-  ("reset!", Func $ toMalFunc resetBuiltin),
-  ("swap!", Func swapBuiltin),
-  ("cons", Func $ toMalFunc consBuiltin),
-  ("concat", Func concatBuiltin),
-  ("quote", Func quoteBuiltin),
-  ("quasiquote", Func quasiquoteBuiltin)
+  ("+", Func False $ toMalFunc $ (+) {ty=Integer}),
+  ("-", Func False $ toMalFunc $ (-) {ty=Integer}),
+  ("*", Func False $ toMalFunc $ (*) {ty=Integer}),
+  ("/", Func False $ toMalFunc $ div {ty=Integer}),
+  ("def!", Func False $ defBuiltin),
+  ("defmacro!", Func False $ defmacroBuiltin),
+  ("let*", Func False letBuiltin),
+  ("if", Func False ifBuiltin),
+  ("fn*", Func False fnBuiltin),
+  ("do", Func False doBuiltin),
+  ("list", Func False $ map (List False) . traverse eval),
+  ("list?", Func False $ toMalFunc isList),
+  ("vector", Func False $ map (List True) . traverse eval),
+  ("vector?", Func False $ toMalFunc isVector),
+  ("count", Func False $ toMalFunc $ the (List AST -> Integer) $ cast . List.length),
+  ("=", Func False $ toMalFunc $ (==) {ty=AST}),
+  (">", Func False $ toMalFunc $ (>) {ty=Integer}),
+  (">=", Func False $ toMalFunc $ (>=) {ty=Integer}),
+  ("<", Func False $ toMalFunc $ (<) {ty=Integer}),
+  ("<=", Func False $ toMalFunc $ (<=) {ty=Integer}),
+  -- TODO: implement in corelib
+  ("pr-str", Func False prStr),
+  ("str", Func False str),
+  ("prn", Func False prn),
+  ("println", Func False println),
+  ("read-string", Func False $ toMalFunc readStringBuiltin),
+  ("slurp", Func False $ toMalFunc slurpBuiltin),
+  ("eval", Func False $ toMalFunc $ withGlobalEnv . eval),
+  ("atom", Func False $ toMalFunc atomBuiltin),
+  ("atom?", Func False $ toMalFunc isAtom),
+  ("deref", Func False $ toMalFunc derefBuiltin),
+  ("reset!", Func False $ toMalFunc resetBuiltin),
+  ("swap!", Func False swapBuiltin),
+  ("cons", Func False $ toMalFunc consBuiltin),
+  ("concat", Func False concatBuiltin),
+  ("first", Func False $ toMalFunc firstBuiltin),
+  ("rest", Func False $ toMalFunc restBuiltin),
+  ("nth", Func False $ toMalFunc nthBuiltin),
+  ("quote", Func False quoteBuiltin),
+  ("quasiquote", Func False quasiquoteBuiltin),
+  ("macroexpand", Func False macroexpandBuiltin)
 ]
 
 coreLib : String
@@ -295,6 +343,16 @@ coreLib = "
 (def! empty? (fn* (l) (= (count l) 0)))
 (def! not (fn* (a) (if a false true)))
 (def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \"\\nnil)\")))))
+(defmacro! cond 
+  (fn* (& xs) (if (> (count xs) 0) 
+        (list 'if (first xs)
+              (if (> (count xs) 1) 
+                  (nth xs 1)
+                  (throw \"odd number of forms to cond\"))
+              (cons 'cond (rest (rest xs)))
+        )
+  ))
+)
 "
 
 public export
@@ -305,7 +363,7 @@ getStartingEnv = do
     case args of
          (_::_::rest) => List False $ map Str rest
          _ => List False []
-  env <- map pure $ newIORef $ insert "*ARGV*" argv baseEnv
+  env <- map (\v => MkEnv fullEval [v]) $ newIORef $ insert "*ARGV*" argv baseEnv
   res <- runExceptT $ flip runReaderT env $ do
     defs <- either (throwError . Str . ("parse error: "++)) pure $ parseText coreLib
     traverse_ eval defs

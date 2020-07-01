@@ -16,11 +16,13 @@ mutual
            | WithMeta AST AST
            | List Bool (List AST) -- List False -> List, List True -> Vector
            | Map (SortedMap String AST)
-           | Func (List AST -> MalM AST)
+           | Func Bool (List AST -> MalM AST)
 
   public export
-  Env : Type
-  Env = List (IORef (SortedMap String AST))
+  record Env where
+    constructor MkEnv
+    evalFunc : AST -> MalM AST
+    symbols : List (IORef (SortedMap String AST))
 
   public export
   MalM : Type -> Type
@@ -53,7 +55,8 @@ toString b (Map m) = do
   pure $ "{" ++ unwords sm ++ "}"
   where onePair : (String, AST) -> IO (List String)
         onePair (k, v) = sequence [toString b (Str k), toString b v]
-toString b (Func f) = pure "#<function>"
+toString b (Func False f) = pure "#<function>"
+toString b (Func True f) = pure "#<macro>"
 
 export
 implementation Eq AST where
@@ -63,7 +66,7 @@ implementation Eq AST where
   WithMeta a b == WithMeta x y = a == x && b == y
   List _ x == List _ y = x == y
   Map x == Map y = SortedMap.toList x == SortedMap.toList y
-  Func _ == Func _ = False
+  Func _ _ == Func _ _ = False
   _ == _ = False
  
 export
@@ -90,7 +93,7 @@ isAtom _ = False
 export
 getEnv : MalM (IORef (SortedMap String AST))
 getEnv = do
-  env <- ask
+  env <- reader symbols
   case env of
        [] => throwError $ Str "Internal error: no environment"
        e :: _ => pure e
@@ -99,14 +102,15 @@ export
 withLocalEnv : MalM a -> MalM a
 withLocalEnv x = do
   new <- liftIO $ newIORef empty
-  local (new::) x
+  local (record {symbols $= (new::)}) x
 
 export
 withGlobalEnv : MalM a -> MalM a
 withGlobalEnv x = do
-  env <- ask
+  env <- reader symbols
+  evil <- reader evalFunc
   case last' env of
-       Just ge => local (const [ge]) x
+       Just ge => local (const $ MkEnv evil [ge]) x
        Nothing => throwError $ Str "Internal error: no environment"
 
 export
@@ -117,8 +121,8 @@ insert n x = do
 
 export
 lookup : String -> MalM AST
-lookup n = ask >>= go
-  where go : Env -> MalM AST
+lookup n = reader symbols >>= go
+  where go : List (IORef (SortedMap String AST)) -> MalM AST
         go [] = throwError $ Str $ "Symbol " ++ n ++ " not found"
         go (e::es) = do
           val <- map (lookup n) $ liftIO $ readIORef e
