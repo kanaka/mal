@@ -53,7 +53,7 @@ implementation MalType (IORef AST) where
   fromMalAst _ = Nothing
 
 implementation MalType a => MalType (List a) where
-  toMalAst = List True . map toMalAst -- Should this be List or Vector?
+  toMalAst = List False . map toMalAst
   fromMalAst (List _ xs) = traverse fromMalAst xs
   fromMalAst (Symbol "nil") = Just []
   fromMalAst _ = Nothing
@@ -189,6 +189,43 @@ swapBuiltin xs = do
   new <- f (old::args)
   resetBuiltin x new
 
+consBuiltin : AST -> List AST -> List AST
+consBuiltin = (::)
+
+concatBuiltin : List AST -> MalM AST
+concatBuiltin = map (List False) . go <=< traverse eval
+  where go : List AST -> MalM (List AST)
+        go (List _ l::ls) = map (l ++) $ go ls
+        go (_::_) = throwError $ Str "concat: expected list"
+        go [] = pure []
+
+quoteBuiltin : List AST -> MalM AST
+quoteBuiltin [x] = pure x
+quoteBuiltin _ = throwError $ Str "quote: wanted exactly one argument"
+
+quasiquoteBuiltin : List AST -> MalM AST
+quasiquoteBuiltin [x] = qq x
+  where expandSplice : AST -> MalM (List AST)
+        expandSplice (List False [Symbol "splice-unquote", x]) = do
+          x' <- eval x
+          case x' of
+               List _ xs => pure xs
+               _ => pure [x']
+        expandSplice x = pure [x]
+        qq : AST -> MalM AST
+        qq (Symbol x) = pure $ Symbol x
+        qq (Str s) = pure $ Str s
+        qq (Number x) = pure $ Number x
+        qq (Atom a) = pure $ Atom a
+        qq (WithMeta a b) = pure $ WithMeta a b -- TODO
+        qq (List False [Symbol "unquote", a]) = eval a
+        qq (List _ xs) = do
+          xs' <- traverse qq xs
+          map (List False . concat) $ traverse expandSplice xs'
+        qq (Map m) = map Map $ traverse qq m
+        qq (Func f) = pure $ Func f
+quasiquoteBuiltin _ = throwError $ Str "quote: wanted exactly one argument"
+
 prStr : List AST -> MalM AST
 prStr xs = do
   xs' <- traverse eval xs
@@ -246,7 +283,11 @@ baseEnv = fromList [
   ("atom?", Func $ toMalFunc isAtom),
   ("deref", Func $ toMalFunc derefBuiltin),
   ("reset!", Func $ toMalFunc resetBuiltin),
-  ("swap!", Func swapBuiltin)
+  ("swap!", Func swapBuiltin),
+  ("cons", Func $ toMalFunc consBuiltin),
+  ("concat", Func concatBuiltin),
+  ("quote", Func quoteBuiltin),
+  ("quasiquote", Func quasiquoteBuiltin)
 ]
 
 coreLib : String
