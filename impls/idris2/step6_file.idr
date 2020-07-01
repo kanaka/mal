@@ -1,3 +1,4 @@
+import System
 import System.File
 
 import Types
@@ -14,13 +15,13 @@ read s =
        Right _ => throwError $ Str "wack" -- too many ast's
        Left e => throwError $ Str $ "parse error: " ++ e
 
-runMalM : MalM () -> ReaderT Env IO ()
+runMalM : MalM a -> ReaderT Env IO ()
 runMalM x = MkReaderT $ \r => do
-  Right x <- runExceptT $ runReaderT x r
+  Right _ <- runExceptT $ runReaderT x r
     | Left e => do
       se <- toString False e
       putStrLn $ "error: " ++ se
-  pure x
+  pure ()
 
 repl : r -> String -> (String -> ReaderT r IO ()) -> IO ()
 repl r prompt f = do
@@ -32,12 +33,19 @@ repl r prompt f = do
   runReaderT (f input) r
   repl r prompt f
 
+doRepl : Env -> IO ()
+doRepl startingEnv = repl startingEnv "user> " $ \input => runMalM $ do
+  Just ast <- read input
+    | Nothing => pure ()
+  result <- eval ast
+  str <- MonadTrans.liftIO $ toString True result
+  MonadTrans.liftIO $ putStrLn str
+
 main : IO ()
 main = do 
   startingEnv <- getStartingEnv
-  repl startingEnv "user> " $ \input => runMalM $ do
-    Just ast <- read input
-      | Nothing => pure ()
-    result <- eval ast
-    str <- MonadTrans.liftIO $ toString True result
-    MonadTrans.liftIO $ putStrLn str
+  args <- getArgs
+  case args of
+       (_::f::_) => flip runReaderT startingEnv $ runMalM $
+           eval $ List False [Symbol "load-file", Str f]
+       _ => doRepl startingEnv

@@ -32,5 +32,6 @@ main = repl () "user> " $ \state, input => do
   Just ast <- read input
     | Nothing => pure ()
   result <- eval ast
-  printLn result
+  str <- toString True result
+  putStrLn str
   pure ()

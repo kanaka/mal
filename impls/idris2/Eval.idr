@@ -9,13 +9,7 @@ eval : AST -> MalM AST
 eval (Symbol n) = lookup n
 eval (Str s) = pure $ Str s
 eval (Number x) = pure $ Number x
-eval (Boolean b) = pure $ Boolean b
-eval Nil = pure Nil
-eval (Quasiquote x) = pure x -- TODO
-eval (Quote x) = pure x -- TODO
-eval (Unquote x) = pure x -- TODO
-eval (SpliceUnquote x) = pure x -- TODO
-eval (Deref x) = pure x -- TODO
+eval (Atom e) = pure $ Atom e
 eval (WithMeta a b) = pure $ WithMeta a b -- TODO
 eval (List False []) = pure $ List False []
 eval (List False (f::xs)) = do

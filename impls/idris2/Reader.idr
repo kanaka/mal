@@ -117,11 +117,11 @@ mutual
   sigilGrammar = assert_total $ match TSigil >>= sigilAction
     where partial
           sigilAction : String -> Parser AST
-          sigilAction "~@" = map SpliceUnquote grammar
-          sigilAction "'" = map Quote grammar
-          sigilAction "`" = map Quasiquote grammar
-          sigilAction "~" = map Unquote grammar
-          sigilAction "@" = map Deref grammar
+          sigilAction "~@" = map (\x => List False [Symbol "splice-unquote", x]) grammar
+          sigilAction "'" = map (\x => List False [Symbol "quote", x]) grammar
+          sigilAction "`" = map (\x => List False [Symbol "quasiquote", x]) grammar
+          sigilAction "~" = map (\x => List False [Symbol "unquote", x]) grammar
+          sigilAction "@" = map (\x => List False [Symbol "deref", x]) grammar
           sigilAction "^" = flip WithMeta <$> grammar <*> grammar
 
   grammar : Parser AST

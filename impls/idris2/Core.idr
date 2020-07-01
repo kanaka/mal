@@ -3,6 +3,9 @@ module Core
 import Control.Monad.Syntax
 import Data.List
 import Data.Strings
+import System
+import System.File
+
 import Eval
 import Reader
 import Types
@@ -17,8 +20,8 @@ implementation MalType AST where
   fromMalAst = Just
 
 implementation MalType () where
-  toMalAst () = Nil
-  fromMalAst Nil = Just ()
+  toMalAst () = Symbol "nil"
+  fromMalAst (Symbol "nil") = Just ()
   fromMalAst _ = Nothing
 
 implementation MalType Integer where
@@ -37,14 +40,22 @@ implementation MalType String where
   fromMalAst _ = Nothing
 
 implementation MalType Bool where
-  toMalAst = Boolean
-  fromMalAst (Boolean b) = Just b
+  toMalAst True = Symbol "true"
+  toMalAst False = Symbol "false"
+  fromMalAst (Symbol "true") = Just True
+  fromMalAst (Symbol "false") = Just False
+  -- fromMalAst (Symbol "nil") = Just False -- Maybe?
+  fromMalAst _ = Nothing
+
+implementation MalType (IORef AST) where
+  toMalAst = Atom
+  fromMalAst (Atom a) = Just a
   fromMalAst _ = Nothing
 
 implementation MalType a => MalType (List a) where
   toMalAst = List True . map toMalAst -- Should this be List or Vector?
   fromMalAst (List _ xs) = traverse fromMalAst xs
-  fromMalAst Nil = Just []
+  fromMalAst (Symbol "nil") = Just []
   fromMalAst _ = Nothing
 
 implementation MalType a => MalType (SortedMap String a) where
@@ -73,6 +84,10 @@ implementation (MalType a, MalFunction b) => MalFunction (a -> b) where
     Just x' <- map fromMalAst $ eval x
       | Nothing => traverse_ eval xs *> throwError (Str "Wrong argument type")
     toMalFunc (f x') xs
+
+-- Specialized on MalM to help type inference
+liftIO' : MalType a => IO a -> MalM AST
+liftIO' = map toMalAst . MonadTrans.liftIO
 
 defBuiltin : List AST -> MalM AST
 defBuiltin [] = throwError $ Str "def!: too few arguments"
@@ -110,7 +125,7 @@ ifBuiltin [] = throwError $ Str "if: too few arguments"
 ifBuiltin [_] = throwError $ Str "if: too few arguments"
 ifBuiltin [cond, tt] = do
   cond' <- eval cond
-  if truthiness cond' then eval tt else pure Nil
+  if truthiness cond' then eval tt else pure $ Symbol "nil"
 ifBuiltin [cond, tt, ff] = do
   cond' <- eval cond
   if truthiness cond' then eval tt else eval ff
@@ -138,40 +153,68 @@ fnBuiltin [List _ argNames, res] = do
           bindArgs ns xs
 fnBuiltin _ = throwError $ Str "fn: malformed arguments"
 
-isList : AST -> Bool
-isList (List False _) = True
-isList _ = False
+readStringBuiltin : String -> MalM AST
+readStringBuiltin s =
+  case parseText s of
+       Right [] => pure $ Symbol "nil"
+       Right [ast] => pure ast
+       Right xs => pure $ List True xs
+       Left e => throwError $ Str $ "parse error: " ++ e
 
-isVector : AST -> Bool
-isVector (List True _) = True
-isVector _ = False
+slurpBuiltin : String -> MalM String
+slurpBuiltin file = do
+  res <- liftIO $ readFile file
+  case res of
+       Right contents => pure contents
+       Left _ => throwError $ Str $ "slurp: could not read file " ++ file
 
--- Specialized on MalM to help type inference
-liftIO' : MalType a => IO a -> MalM AST
-liftIO' = map toMalAst . MonadTrans.liftIO
+atomBuiltin : AST -> MalM AST
+atomBuiltin = liftIO' . newIORef
+
+resetBuiltin : IORef AST -> AST -> MalM AST
+resetBuiltin r x = do
+  liftIO $ writeIORef r x
+  pure x
+
+derefBuiltin : IORef AST -> MalM AST
+derefBuiltin = MonadTrans.liftIO . readIORef
+
+swapBuiltin : List AST -> MalM AST
+swapBuiltin [] = throwError $ Str "swap!: too few arguments"
+swapBuiltin [_] = throwError $ Str "swap!: too few arguments"
+swapBuiltin xs = do
+  Atom x::Func f::args <- traverse eval xs
+    | _ => throwError $ Str "swap!: type error"
+  old <- liftIO $ readIORef x
+  new <- f (old::args)
+  resetBuiltin x new
 
 prStr : List AST -> MalM AST
 prStr xs = do
   xs' <- traverse eval xs
-  pure $ Str $ fastAppend $ intersperse " " $ map (toString True) xs'
+  sxs <- liftIO $ traverse (toString True) xs'
+  pure $ Str $ fastAppend $ intersperse " " sxs
 str : List AST -> MalM AST
 str xs = do
   xs' <- traverse eval xs
-  pure $ Str $ fastAppend $ map (toString False) xs'
+  sxs <- liftIO $ traverse (toString False) xs'
+  pure $ Str $ fastAppend sxs
 prn : List AST -> MalM AST
 prn xs = do
   xs' <- traverse eval xs
-  liftIO' $ putStrLn $ fastAppend $ intersperse " " $ map (toString True) xs'
+  sxs <- liftIO $ traverse (toString True) xs'
+  liftIO' $ putStrLn $ fastAppend $ intersperse " " sxs
 println : List AST -> MalM AST
 println xs = do
   xs' <- traverse eval xs
-  liftIO' $ putStrLn $ fastAppend $ intersperse " " $ map (toString False) xs'
+  sxs <- liftIO $ traverse (toString False) xs'
+  liftIO' $ putStrLn $ fastAppend $ intersperse " " sxs
 
 baseEnv : SortedMap String AST
 baseEnv = fromList [
-  ("nil", Nil),
-  ("true", Boolean True),
-  ("false", Boolean False),
+  ("nil", Symbol "nil"),
+  ("true", Symbol "true"),
+  ("false", Symbol "false"),
   ("+", Func $ toMalFunc $ (+) {ty=Integer}),
   ("-", Func $ toMalFunc $ (-) {ty=Integer}),
   ("*", Func $ toMalFunc $ (*) {ty=Integer}),
@@ -195,23 +238,39 @@ baseEnv = fromList [
   ("pr-str", Func prStr),
   ("str", Func str),
   ("prn", Func prn),
-  ("println", Func println)
+  ("println", Func println),
+  ("read-string", Func $ toMalFunc readStringBuiltin),
+  ("slurp", Func $ toMalFunc slurpBuiltin),
+  ("eval", Func $ toMalFunc $ withGlobalEnv . eval),
+  ("atom", Func $ toMalFunc atomBuiltin),
+  ("atom?", Func $ toMalFunc isAtom),
+  ("deref", Func $ toMalFunc derefBuiltin),
+  ("reset!", Func $ toMalFunc resetBuiltin),
+  ("swap!", Func swapBuiltin)
 ]
 
 coreLib : String
 coreLib = "
 (def! empty? (fn* (l) (= (count l) 0)))
 (def! not (fn* (a) (if a false true)))
+(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \"\\nnil)\")))))
 "
 
 public export
 getStartingEnv : IO Env
 getStartingEnv = do
-  env <- map pure $ newIORef baseEnv
+  args <- getArgs
+  let argv =
+    case args of
+         (_::_::rest) => List False $ map Str rest
+         _ => List False []
+  env <- map pure $ newIORef $ insert "*ARGV*" argv baseEnv
   res <- runExceptT $ flip runReaderT env $ do
     defs <- either (throwError . Str . ("parse error: "++)) pure $ parseText coreLib
     traverse_ eval defs
   case res of
        Right () => pure ()
-       Left e => putStrLn $ "CORELIB: error: " ++ toString False e
+       Left e => do
+         se <- toString False e
+         putStrLn $ "CORELIB: error: " ++ se
   pure env
