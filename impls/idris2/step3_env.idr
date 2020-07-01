@@ -4,6 +4,7 @@ import Types
 import MonadTrans
 import Reader
 import Eval
+import Core
 
 read : String -> MalM (Maybe AST)
 read s =

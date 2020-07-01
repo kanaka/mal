@@ -103,10 +103,10 @@ mutual
   stringGrammar = match TString <|> map (strCons '\xff') (match TKeyword)
 
   listGrammar : Parser AST
-  listGrammar = match TOpenParen *> map List (many grammar) <* match TCloseParen
+  listGrammar = match TOpenParen *> map (List False) (many grammar) <* match TCloseParen
 
   vectorGrammar : Parser AST
-  vectorGrammar = match TOpenBracket *> map Vector (many grammar) <* match TCloseBracket
+  vectorGrammar = match TOpenBracket *> map (List True) (many grammar) <* match TCloseBracket
 
   mapGrammar : Parser AST
   mapGrammar = match TOpenBrace *> map (Map . fromList) contents <* match TCloseBrace
