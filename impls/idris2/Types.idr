@@ -13,7 +13,6 @@ mutual
            | Str String -- Includes keywords
            | Number Integer
            | Atom (IORef AST)
-           | WithMeta AST AST
            | List Bool (List AST) -- List False -> List, List True -> Vector
            | Map (SortedMap String AST)
            | Func Bool (List AST -> MalM AST)
@@ -40,10 +39,6 @@ toString b (Atom a) = do
   x <- readIORef a
   sx <- toString b x
   pure $ "(atom " ++ sx ++ ")"
-toString b (WithMeta x y) = do
-  sx <- toString b x
-  sy <- toString b y
-  pure $ "(with-meta " ++ sx ++ " " ++ sy ++ ")"
 toString b (List False xs) = do
   sxs <- traverse (toString b) xs
   pure $ "(" ++ unwords sxs ++ ")"
@@ -63,7 +58,6 @@ implementation Eq AST where
   Symbol x == Symbol y = x == y
   Str x == Str y = x == y
   Number x == Number y = x == y
-  WithMeta a b == WithMeta x y = a == x && b == y
   List _ x == List _ y = x == y
   Map x == Map y = SortedMap.toList x == SortedMap.toList y
   Func _ _ == Func _ _ = False

@@ -122,7 +122,10 @@ mutual
           sigilAction "`" = map (\x => List False [Symbol "quasiquote", x]) grammar
           sigilAction "~" = map (\x => List False [Symbol "unquote", x]) grammar
           sigilAction "@" = map (\x => List False [Symbol "deref", x]) grammar
-          sigilAction "^" = flip WithMeta <$> grammar <*> grammar
+          sigilAction "^" = do
+            x <- grammar
+            y <- grammar
+            pure $ List False [Symbol "with-meta", y, x]
 
   grammar : Parser AST
   grammar = choice [

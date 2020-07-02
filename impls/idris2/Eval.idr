@@ -18,7 +18,6 @@ fullEval (Symbol n) = lookup n
 fullEval (Str s) = pure $ Str s
 fullEval (Number x) = pure $ Number x
 fullEval (Atom e) = pure $ Atom e
-fullEval (WithMeta a b) = pure $ WithMeta a b -- TODO
 fullEval (List False []) = pure $ List False []
 fullEval (List False (f::xs)) = do
   Func _ f' <- fullEval f
