@@ -196,12 +196,9 @@ swapBuiltin : List AST -> MalM AST
 swapBuiltin [] = throwError $ Str "swap!: too few arguments"
 swapBuiltin [_] = throwError $ Str "swap!: too few arguments"
 swapBuiltin (a::f::args) = do
-  Atom x <- eval a
-    | _ => throwError $ Str "swap!: expecting atom"
-  Func _ f' <- eval f
-    | _ => throwError $ Str "swap!: expecting function"
-  old <- liftIO $ readIORef x
-  new <- f' (old::args)
+  (Atom x, Func _ f') <- [| MkPair (eval a) (eval f) |]
+    | _ => throwError $ Str "swap!: type error"
+  new <- f' (List False [Symbol "deref", Atom x]::args)
   resetBuiltin x new
 
 consBuiltin : AST -> List AST -> List AST
