@@ -42,7 +42,7 @@ doRepl startingEnv = repl startingEnv "user> " $ \input => runMalM $ do
   MonadTrans.liftIO $ putStrLn str
 
 main : IO ()
-main = do 
+main = do
   startingEnv <- getStartingEnv
   args <- getArgs
   case args of

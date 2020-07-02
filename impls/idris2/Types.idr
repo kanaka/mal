@@ -68,7 +68,7 @@ implementation Eq AST where
   Map x == Map y = SortedMap.toList x == SortedMap.toList y
   Func _ _ == Func _ _ = False
   _ == _ = False
- 
+
 export
 truthiness : AST -> Bool
 truthiness (Symbol "false") = False
@@ -76,19 +76,8 @@ truthiness (Symbol "nil") = False
 truthiness _ = True
 
 export
-isList : AST -> Bool
-isList (List False _) = True
-isList _ = False
-
-export
-isVector : AST -> Bool
-isVector (List True _) = True
-isVector _ = False
-
-export
-isAtom : AST -> Bool
-isAtom (Atom _) = True
-isAtom _ = False
+Keyword : String -> AST
+Keyword = Str . strCons '\xff'
 
 export
 getEnv : MalM (IORef (SortedMap String AST))
@@ -123,7 +112,7 @@ export
 lookup : String -> MalM AST
 lookup n = reader symbols >>= go
   where go : List (IORef (SortedMap String AST)) -> MalM AST
-        go [] = throwError $ Str $ "Symbol " ++ n ++ " not found"
+        go [] = throwError $ Str $ "'" ++ n ++ "' not found"
         go (e::es) = do
           val <- map (lookup n) $ liftIO $ readIORef e
           case val of

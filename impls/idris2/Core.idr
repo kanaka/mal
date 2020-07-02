@@ -2,6 +2,7 @@ module Core
 
 import Control.Monad.Syntax
 import Data.List
+import Data.Maybe
 import Data.Strings
 import System
 import System.File
@@ -29,19 +30,6 @@ implementation MalType Integer where
   fromMalAst (Number x) = Just x
   fromMalAst _ = Nothing
 
-implementation MalType Int where
-  toMalAst = Number . cast
-  fromMalAst (Number x) = Just $ cast x
-  fromMalAst _ = Nothing
-
-implementation MalType Nat where
-  toMalAst = Number . cast
-  fromMalAst (Number x) = toNat x 0
-    where toNat : Integer -> Nat -> Maybe Nat
-          toNat 0 acc = Just acc
-          toNat n acc = if n < 0 then Nothing else toNat (n - 1) (S acc)
-  fromMalAst _ = Nothing
-
 implementation MalType String where
   toMalAst = Str
   fromMalAst (Str s) = Just s
@@ -66,9 +54,10 @@ implementation MalType a => MalType (List a) where
   fromMalAst (Symbol "nil") = Just []
   fromMalAst _ = Nothing
 
-implementation MalType a => MalType (SortedMap String a) where
-  toMalAst = Map . map toMalAst
-  fromMalAst (Map m) = traverse fromMalAst m
+implementation MalType (SortedMap String AST) where
+  toMalAst = Map
+  fromMalAst (Map m) = Just m
+  fromMalAst (Symbol "nil") = Just empty
   fromMalAst _ = Nothing
 
 interface MalFunction a where
@@ -113,8 +102,6 @@ defmacroBuiltin [_] = throwError $ Str "defmacro!: too few arguments"
 defmacroBuiltin [Symbol n, x] = do
   Func _ m <- eval x
     | _ => throwError $ Str "defmacro!: expected a function"
-  -- Really wish it was fn* and macro*, not def! and defmacro!, so it would be
-  -- possible to use native functions without hacky quoting or a is_macro flag
   let m' = Func True $ eval <=< local (record { evalFunc = don'tEval }) . m
   insert n m'
   pure m'
@@ -225,12 +212,6 @@ restBuiltin : List AST -> List AST
 restBuiltin [] = []
 restBuiltin (_::xs) = xs
 
--- TODO: move to corelib
-nthBuiltin : List AST -> Nat -> MalM AST
-nthBuiltin (x::_) 0 = pure x
-nthBuiltin (_::xs) (S n) = nthBuiltin xs n
-nthBuiltin [] _ = throwError $ Str "nth: index out of bounds"
-
 concatBuiltin : List AST -> MalM AST
 concatBuiltin = map (List False) . go <=< traverse eval
   where go : List AST -> MalM (List AST)
@@ -269,6 +250,55 @@ macroexpandBuiltin : List AST -> MalM AST
 macroexpandBuiltin [x] = local (record { evalFunc = macroexpand }) $ eval x
 macroexpandBuiltin _ = throwError $ Str "macroexpand: wanted exactly one argument"
 
+tryBuiltin : List AST -> MalM AST
+tryBuiltin [x] = eval x
+tryBuiltin [x, List False [Symbol "catch*", Symbol e, handler]] =
+  catchError (eval x) $ \err => withLocalEnv $ do
+    insert e err
+    eval handler
+tryBuiltin _ = throwError $ Str "try*: malformed arguments"
+
+typeofBuiltin : AST -> AST
+typeofBuiltin (Symbol _) = Keyword "symbol"
+typeofBuiltin (Str s) = Keyword $ if map fst (strUncons s) == Just '\xff' then "keyword" else "string"
+typeofBuiltin (Number _) = Keyword "number"
+typeofBuiltin (Atom _) = Keyword "atom"
+typeofBuiltin (WithMeta _ _) = Symbol "nil" -- TODO
+typeofBuiltin (List False _) = Keyword "list"
+typeofBuiltin (List True _) = Keyword "vector"
+typeofBuiltin (Map _) = Keyword "map"
+typeofBuiltin (Func False _) = Keyword "func"
+typeofBuiltin (Func True _) = Keyword "macro"
+
+assocBuiltin : List AST -> MalM AST
+assocBuiltin = traverse eval >=> assoc
+  where go : SortedMap String AST -> List AST -> MalM (SortedMap String AST)
+        go m [] = pure m
+        go m [_] = throwError $ Str "odd number of arguments"
+        go m (Str k::v::rest) = go (insert k v m) rest
+        go m _ = throwError $ Str "expected a string or keyword"
+        assoc : List AST -> MalM AST
+        assoc [] = throwError $ Str "too few arguments"
+        assoc (Map m::rest) = map Map $ go m rest
+        assoc _ = throwError $ Str "expected a map"
+
+dissocBuiltin : List AST -> MalM AST
+dissocBuiltin = traverse eval >=> dissoc
+  where go : SortedMap String AST -> List AST -> MalM (SortedMap String AST)
+        go m [] = pure m
+        go m (Str k::rest) = go (delete k m) rest
+        go m _ = throwError $ Str "expecting a string or keyword"
+        dissoc : List AST -> MalM AST
+        dissoc [] = throwError $ Str "too few arguments"
+        dissoc (Map m::rest) = map Map $ go m rest
+        dissoc _ = throwError $ Str "expected a map"
+
+getBuiltin : SortedMap String AST -> String -> AST
+getBuiltin m k = fromMaybe (Symbol "nil") $ lookup k m
+
+containsBuiltin : SortedMap String AST -> String -> Bool
+containsBuiltin m k = isJust $ lookup k m
+
 prStr : List AST -> MalM AST
 prStr xs = do
   xs' <- traverse eval xs
@@ -306,9 +336,7 @@ baseEnv = fromList [
   ("fn*", Func False fnBuiltin),
   ("do", Func False doBuiltin),
   ("list", Func False $ map (List False) . traverse eval),
-  ("list?", Func False $ toMalFunc isList),
   ("vector", Func False $ map (List True) . traverse eval),
-  ("vector?", Func False $ toMalFunc isVector),
   ("count", Func False $ toMalFunc $ the (List AST -> Integer) $ cast . List.length),
   ("=", Func False $ toMalFunc $ (==) {ty=AST}),
   (">", Func False $ toMalFunc $ (>) {ty=Integer}),
@@ -324,7 +352,6 @@ baseEnv = fromList [
   ("slurp", Func False $ toMalFunc slurpBuiltin),
   ("eval", Func False $ toMalFunc $ withGlobalEnv . eval),
   ("atom", Func False $ toMalFunc atomBuiltin),
-  ("atom?", Func False $ toMalFunc isAtom),
   ("deref", Func False $ toMalFunc derefBuiltin),
   ("reset!", Func False $ toMalFunc resetBuiltin),
   ("swap!", Func False swapBuiltin),
@@ -332,10 +359,20 @@ baseEnv = fromList [
   ("concat", Func False concatBuiltin),
   ("first", Func False $ toMalFunc firstBuiltin),
   ("rest", Func False $ toMalFunc restBuiltin),
-  ("nth", Func False $ toMalFunc nthBuiltin),
   ("quote", Func False quoteBuiltin),
   ("quasiquote", Func False quasiquoteBuiltin),
-  ("macroexpand", Func False macroexpandBuiltin)
+  ("macroexpand", Func False macroexpandBuiltin),
+  ("try*", Func False tryBuiltin),
+  ("throw", Func False $ toMalFunc $ the (AST -> MalM AST) throwError),
+  ("idris-typeof", Func False $ toMalFunc typeofBuiltin),
+  ("idris-str-to-keyword", Func False $ toMalFunc Keyword),
+  ("symbol", Func False $ toMalFunc Symbol),
+  ("assoc", Func False assocBuiltin),
+  ("dissoc", Func False dissocBuiltin),
+  ("keys", Func False $ toMalFunc $ the (SortedMap String AST -> List String) keys),
+  ("vals", Func False $ toMalFunc $ the (SortedMap String AST -> List AST) values),
+  ("get", Func False $ toMalFunc getBuiltin),
+  ("contains?", Func False $ toMalFunc containsBuiltin)
 ]
 
 coreLib : String
@@ -343,16 +380,73 @@ coreLib = "
 (def! empty? (fn* (l) (= (count l) 0)))
 (def! not (fn* (a) (if a false true)))
 (def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \"\\nnil)\")))))
-(defmacro! cond 
-  (fn* (& xs) (if (> (count xs) 0) 
+(defmacro! cond
+  (fn* (& xs) (if (> (count xs) 0)
         (list 'if (first xs)
-              (if (> (count xs) 1) 
-                  (nth xs 1)
+              (if (> (count xs) 1)
+                  (first (rest xs))
                   (throw \"odd number of forms to cond\"))
               (cons 'cond (rest (rest xs)))
         )
   ))
 )
+(def! nth (fn* (xs n)
+  (cond
+    (not (sequential? xs)) (throw \"expecting a list or vector\")
+    (if (< n 0) true (empty? xs)) (throw \"nth: index out of bounds\")
+    (= n 0) (first xs)
+    (true) (nth (rest xs) (- n 1))
+  )
+))
+(def! apply
+  (let*
+    ( init (fn* (l) (if (<= (count l) 1) () (cons (first l) (init (rest l)))))
+    , last (fn* (l) (if (<= (count l) 1) (first l) (last (rest l))))
+    )
+    (fn* (f & args)
+      (if (empty? args)
+          (throw \"apply: expected at least two arguments\")
+          (eval
+            (cons f
+              (map (fn* (x) (list 'quote x))
+                (concat (init args) (last args))))
+          )
+      )
+    )
+  )
+)
+(def! map
+  (fn* (f list)
+    (if (empty? list)
+        ()
+        (cons (f (first list)) (map f (rest list)))
+    )
+  )
+)
+(def! list? (fn* (x) (= (idris-typeof x) :list)))
+(def! vector? (fn* (x) (= (idris-typeof x) :vector)))
+(def! atom? (fn* (x) (= (idris-typeof x) :atom)))
+(def! map? (fn* (x) (= (idris-typeof x) :map)))
+(def! keyword? (fn* (x) (= (idris-typeof x) :keyword)))
+(def! nil? (fn* (x) (= x nil)))
+(def! true? (fn* (x) (= x true)))
+(def! false? (fn* (x) (= x false)))
+;; nil, true, and false are implemented as symbols, but (symbol? nil) == false
+(def! symbol? (fn* (x)
+  (if (= (idris-typeof x) :symbol)
+      (if (nil? x)
+          false
+          (if (true? x)
+              false
+              (if (false? x) false true)
+          )
+      )
+      false
+  )
+))
+(def! sequential? (fn* (x) (if (list? x) true (vector? x))))
+(def! keyword (fn* (x) (if (keyword? x) x (idris-str-to-keyword x))))
+(def! hash-map (fn* (& args) (eval `(assoc {} ~@args))))
 "
 
 public export

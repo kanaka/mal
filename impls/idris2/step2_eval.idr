@@ -33,7 +33,7 @@ repl r prompt f = do
   repl r prompt f
 
 main : IO ()
-main = do 
+main = do
   startingEnv <- getStartingEnv
   repl startingEnv "user> " $ \input => runMalM $ do
     Just ast <- read input
