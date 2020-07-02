@@ -5,6 +5,7 @@ import Data.List
 import Data.Maybe
 import Data.Strings
 import System
+import System.Clock
 import System.File
 
 import Eval
@@ -194,11 +195,13 @@ derefBuiltin = MonadTrans.liftIO . readIORef
 swapBuiltin : List AST -> MalM AST
 swapBuiltin [] = throwError $ Str "swap!: too few arguments"
 swapBuiltin [_] = throwError $ Str "swap!: too few arguments"
-swapBuiltin xs = do
-  Atom x::Func _ f::args <- traverse eval xs
-    | _ => throwError $ Str "swap!: type error"
+swapBuiltin (a::f::args) = do
+  Atom x <- eval a
+    | _ => throwError $ Str "swap!: expecting atom"
+  Func _ f' <- eval f
+    | _ => throwError $ Str "swap!: expecting function"
   old <- liftIO $ readIORef x
-  new <- f (old::args)
+  new <- f' (old::args)
   resetBuiltin x new
 
 consBuiltin : AST -> List AST -> List AST
@@ -267,7 +270,7 @@ typeofBuiltin (WithMeta _ _) = Symbol "nil" -- TODO
 typeofBuiltin (List False _) = Keyword "list"
 typeofBuiltin (List True _) = Keyword "vector"
 typeofBuiltin (Map _) = Keyword "map"
-typeofBuiltin (Func False _) = Keyword "func"
+typeofBuiltin (Func False _) = Keyword "fn"
 typeofBuiltin (Func True _) = Keyword "macro"
 
 assocBuiltin : List AST -> MalM AST
@@ -299,6 +302,38 @@ getBuiltin m k = fromMaybe (Symbol "nil") $ lookup k m
 containsBuiltin : SortedMap String AST -> String -> Bool
 containsBuiltin m k = isJust $ lookup k m
 
+timeBuiltin : MalM Integer
+timeBuiltin = do
+  MkClock s ns <- liftIO $ clockTime UTC
+  let ms = 1000 * s + ns `div` 1000000
+  pure ms
+
+conjBuiltin : List AST -> MalM AST
+conjBuiltin = conj <=< traverse eval
+  where conj : List AST -> MalM AST
+        conj (List False xs::rest) = pure $ List False $ foldl (flip (::)) xs rest
+        conj (List True xs::rest) = pure $ List True $ xs ++ rest
+        conj (_::_) = throwError $ Str "conj: expecting a list or a vector"
+        conj [] = throwError $ Str "conj: too few arguments"
+
+seqBuiltin : AST -> MalM AST
+seqBuiltin (Symbol "nil") = pure $ Symbol "nil"
+seqBuiltin (List _ []) = pure $ Symbol "nil"
+seqBuiltin (Str "") = pure $ Symbol "nil"
+seqBuiltin (List _ xs) = pure $ List False xs
+seqBuiltin (Str s) = case strUncons s of
+                          Just ('\xff', _) => throwError $ Str "seq: expecting a list, vector, or string"
+                          _ => pure $ List False $ map (Str . pack . pure) $ unpack s
+seqBuiltin _ = throwError $ Str "seq: expecting a list, vector, or string"
+
+readlineBuiltin : String -> MalM String
+readlineBuiltin s =
+  case strUncons s of
+       Just ('\xff', _) => throwError $ Str "readline: expecing a string"
+       _ => liftIO $ do
+         putStr s
+         getLine
+
 prStr : List AST -> MalM AST
 prStr xs = do
   xs' <- traverse eval xs
@@ -325,6 +360,7 @@ baseEnv = fromList [
   ("nil", Symbol "nil"),
   ("true", Symbol "true"),
   ("false", Symbol "false"),
+  ("*host-language*", Str "idris2"),
   ("+", Func False $ toMalFunc $ (+) {ty=Integer}),
   ("-", Func False $ toMalFunc $ (-) {ty=Integer}),
   ("*", Func False $ toMalFunc $ (*) {ty=Integer}),
@@ -372,7 +408,13 @@ baseEnv = fromList [
   ("keys", Func False $ toMalFunc $ the (SortedMap String AST -> List String) keys),
   ("vals", Func False $ toMalFunc $ the (SortedMap String AST -> List AST) values),
   ("get", Func False $ toMalFunc getBuiltin),
-  ("contains?", Func False $ toMalFunc containsBuiltin)
+  ("contains?", Func False $ toMalFunc containsBuiltin),
+  ("readline", Func False $ toMalFunc readlineBuiltin),
+  ("time-ms", Func False $ toMalFunc timeBuiltin),
+  ("conj", Func False conjBuiltin),
+  ("seq", Func False $ toMalFunc seqBuiltin),
+  ("meta", Func False $ const $ throwError $ Str "unimplemented"),
+  ("with-meta", Func False $ const $ throwError $ Str "unimplemented")
 ]
 
 coreLib : String
@@ -423,6 +465,8 @@ coreLib = "
     )
   )
 )
+(def! number? (fn* (x) (= (idris-typeof x) :number)))
+(def! string? (fn* (x) (= (idris-typeof x) :string)))
 (def! list? (fn* (x) (= (idris-typeof x) :list)))
 (def! vector? (fn* (x) (= (idris-typeof x) :vector)))
 (def! atom? (fn* (x) (= (idris-typeof x) :atom)))
@@ -444,6 +488,8 @@ coreLib = "
       false
   )
 ))
+(def! fn? (fn* (x) (= (idris-typeof x) :fn)))
+(def! macro? (fn* (x) (= (idris-typeof x) :macro)))
 (def! sequential? (fn* (x) (if (list? x) true (vector? x))))
 (def! keyword (fn* (x) (if (keyword? x) x (idris-str-to-keyword x))))
 (def! hash-map (fn* (& args) (eval `(assoc {} ~@args))))
@@ -459,7 +505,7 @@ getStartingEnv = do
          _ => List False []
   env <- map (\v => MkEnv fullEval [v]) $ newIORef $ insert "*ARGV*" argv baseEnv
   res <- runExceptT $ flip runReaderT env $ do
-    defs <- either (throwError . Str . ("parse error: "++)) pure $ parseText coreLib
+    defs <- either (throwError . Str) pure $ parseText coreLib
     traverse_ eval defs
   case res of
        Right () => pure ()
