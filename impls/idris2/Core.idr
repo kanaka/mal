@@ -437,7 +437,7 @@ coreLib = "
     (not (sequential? xs)) (throw \"expecting a list or vector\")
     (if (< n 0) true (empty? xs)) (throw \"nth: index out of bounds\")
     (= n 0) (first xs)
-    (true) (nth (rest xs) (- n 1))
+    true (nth (rest xs) (- n 1))
   )
 ))
 (def! apply
