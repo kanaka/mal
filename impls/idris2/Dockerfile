@@ -21,16 +21,19 @@ WORKDIR /mal
 # Specific implementation requirements
 ##########################################################
 
-ENV HOME /mal
-ENV PATH /mal/.idris2/bin:$PATH
-ENV LD_LIBRARY_PATH /mal/.idris2/lib:$LD_LIBRARY_PATH
-
 # Idris2 deps
 RUN apt-get -y install gcc chezscheme git
 
 # Install from source
+WORKDIR /idris2
+ENV PATH /idris2/bin:$PATH
+ENV LD_LIBRARY_PATH /idris2/lib:$LD_LIBRARY_PATH
 ENV SCHEME chezscheme
 RUN git clone https://github.com/idris-lang/Idris2.git \
     && cd Idris2 \
+    && sed -i 's|^PREFIX.*|PREFIX = /idris2|' config.mk \
     && make bootstrap \
     && make install
+RUN chmod -R a+x /idris2/idris2-0.2.0
+
+WORKDIR /mal
