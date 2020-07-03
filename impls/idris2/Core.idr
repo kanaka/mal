@@ -250,13 +250,15 @@ seqBuiltin (Str s) = case strUncons s of
                           _ => pure $ List False $ map (Str . pack . pure) $ unpack s
 seqBuiltin _ = throwError $ Str "seq: expecting a list, vector, or string"
 
-readlineBuiltin : String -> MalM String
+readlineBuiltin : String -> MalM AST
 readlineBuiltin s =
   case strUncons s of
        Just ('\xff', _) => throwError $ Str "readline: expecing a string"
        _ => liftIO $ do
+         False <- fEOF stdin
+           | True => putStr "\n" *> pure (Symbol "nil")
          putStr s
-         getLine
+         map Str getLine
 
 prStr : List AST -> MalM AST
 prStr xs = do
