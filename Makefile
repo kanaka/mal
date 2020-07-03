@@ -91,11 +91,10 @@ DOCKERIZE =
 
 IMPLS = ada ada.2 awk bash basic bbc-basic c chuck clojure coffee common-lisp cpp crystal cs d dart \
 	elisp elixir elm erlang es6 factor fantom forth fsharp go groovy gnu-smalltalk \
-	guile haskell haxe hy io java js jq julia kotlin livescript logo lua make mal \
+	guile haskell haxe hy idris2 io java js jq julia kotlin livescript logo lua make mal \
 	matlab miniMAL nasm nim objc objpascal ocaml perl perl6 php picolisp pike plpgsql \
 	plsql powershell ps python python.2 r racket rexx rpython ruby rust scala scheme skew \
-	swift swift3 swift4 swift5 tcl ts vala vb vhdl vimscript wasm wren yorick xslt zig \
-	idris2
+	swift swift3 swift4 swift5 tcl ts vala vb vhdl vimscript wasm wren yorick xslt zig
 
 EXTENSION = .mal
 
@@ -218,6 +217,7 @@ guile_STEP_TO_PROG =         impls/guile/$($(1)).scm
 haskell_STEP_TO_PROG =       impls/haskell/$($(1))
 haxe_STEP_TO_PROG =          $(haxe_STEP_TO_PROG_$(haxe_MODE))
 hy_STEP_TO_PROG =            impls/hy/$($(1)).hy
+idris2_STEP_TO_PROG =        impls/idris2/build/exec/$($(1))
 io_STEP_TO_PROG =            impls/io/$($(1)).io
 java_STEP_TO_PROG =          impls/java/target/classes/mal/$($(1)).class
 js_STEP_TO_PROG =            impls/js/$($(1)).js
@@ -271,7 +271,6 @@ wren_STEP_TO_PROG =          impls/wren/$($(1)).wren
 yorick_STEP_TO_PROG =        impls/yorick/$($(1)).i
 xslt_STEP_TO_PROG =          impls/xslt/$($(1))
 zig_STEP_TO_PROG =           impls/zig/$($(1))
-idris2_STEP_TO_PROG =        impls/idris2/build/exec/$($(1))
 
 #
 # General settings and utility functions
