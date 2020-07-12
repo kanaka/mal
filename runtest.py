@@ -296,13 +296,13 @@ while t.next():
         res = r.read_to_prompt(['\r\n[^\s()<>]+> ', '\n[^\s()<>]+> '],
                                 timeout=args.test_timeout)
         #print "%s,%s,%s" % (idx, repr(p.before), repr(p.after))
-        if (res == None):
+        if (res == None and (args.test_timeout == 20)):
             log(" -> TIMEOUT (line %d)" % t.line_num)
             raise TestTimeout("TIMEOUT (line %d)" % t.line_num)
         elif (t.ret == "" and t.out == ""):
             log(" -> SUCCESS (result ignored)")
             pass_cnt += 1
-        elif (re.search(expects[0], res, re.S) or
+        elif res != None and (re.search(expects[0], res, re.S) or
                 re.search(expects[1], res, re.S)):
             log(" -> SUCCESS")
             pass_cnt += 1
