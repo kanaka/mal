@@ -46,7 +46,7 @@ package body Types.Atoms is
    function Swap (Args : in T_Array) return T is
    begin
       Err.Check (2 <= Args'Length and then Args (Args'First).Kind = Kind_Atom,
-                 "expected an atom, optional arguments then a function");
+                 "expected an atom, a function, then optional arguments");
       declare
          X : T renames Args (Args'First).Atom.all.Data;
          F : T renames Args (Args'First + 1);
