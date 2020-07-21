@@ -47,10 +47,10 @@ keyword_p([_A]) ->
 keyword_p(_) ->
     {error, "keyword? takes a single argument"}.
 
-keyword([{string, Name}]) ->
-    {keyword, Name};
-keyword(_) ->
-    {error, "keyword expects a single string argument"}.
+keyword([{string,  Name}]) -> {keyword, Name};
+keyword([{keyword, Name}]) -> {keyword, Name};
+keyword([_])               -> {error, "keyword: expectst a keyword or string."};
+keyword(_)                 -> {error, "keyword: takes a single argument."}.
 
 vector_p([{vector, _V, _Meta}]) ->
     true;

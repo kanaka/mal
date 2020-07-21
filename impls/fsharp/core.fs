@@ -157,13 +157,17 @@ module Core
     let isMap = isPattern (function Map(_, _) -> true | _ -> false)
     let isAtom = isPattern (function Atom(_, _) -> true | _ -> false)
 
-    let fromString f = function
-        | [String(str)] -> f str
+    let symbol = function
+        | [String(s)] -> Symbol s
         | [_] -> raise <| Error.argMismatch ()
         | _ -> raise <| Error.wrongArity ()
 
-    let symbol = fromString (fun s -> Symbol(s))
-    let keyword = fromString (fun s -> Keyword(s))
+    let keyword = function
+        | [String(s)] -> Keyword s
+        | [Keyword(_) as k] -> k
+        | [_] -> raise <| Error.argMismatch ()
+        | _ -> raise <| Error.wrongArity ()
+
     let vector lst =  lst |> Array.ofList |> Node.ofArray
 
     let rec getPairs lst =
