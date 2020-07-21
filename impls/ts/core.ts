@@ -274,6 +274,16 @@ export const ns: Map<MalSymbol, MalFunction> = (() => {
 
             return new MalList(list);
         },
+        vec(a: MalType) {
+            switch (a.type) {
+                case Node.List:
+                    return new MalVector(a.list);
+                case Node.Vector:
+                    return a;
+            }
+            throw new Error(`unexpected symbol: ${a.type}, expected: list or vector`);
+        },
+
         nth(list: MalType, idx: MalType) {
             if (!isSeq(list)) {
                 throw new Error(`unexpected symbol: ${list.type}, expected: list or vector`);

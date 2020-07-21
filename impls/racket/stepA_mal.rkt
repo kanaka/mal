@@ -9,23 +9,28 @@
   (read_str str))
 
 ;; eval
-(define (is-pair x)
-  (and (_sequential? x) (> (_count x) 0)))
+
+(define (qq-loop elt acc)
+  (if (and (list? elt) (= (length elt) 2) (equal? (car elt) 'splice-unquote))
+    (list 'concat (cadr elt) acc)
+    (list 'cons (quasiquote elt) acc)))
 
 (define (quasiquote ast)
   (cond
-    [(not (is-pair ast))
+    [(or (symbol? ast) (hash? ast))
      (list 'quote ast)]
 
-    [(equal? 'unquote (_nth ast 0))
-     (_nth ast 1)]
+    [(vector? ast)
+     (list 'vec (foldr qq-loop null (_to_list ast)))]
 
-    [(and (is-pair (_nth ast 0))
-          (equal? 'splice-unquote (_nth (_nth ast 0) 0)))
-     (list 'concat (_nth (_nth ast 0) 1) (quasiquote (_rest ast)))]
+    [(not (list? ast))
+     ast]
+
+    [(and (= (length ast) 2) (equal? (car ast) 'unquote))
+     (cadr ast)]
 
     [else
-     (list 'cons (quasiquote (_nth ast 0)) (quasiquote (_rest ast)))]))
+     (foldr qq-loop null ast)]))
 
 (define (macro? ast env)
   (and (list? ast)
@@ -70,6 +75,8 @@
                (EVAL (_nth ast 2) let-env))]
             [(eq? 'quote a0)
              (_nth ast 1)]
+            [(eq? 'quasiquoteexpand a0)
+             (quasiquote (cadr ast))]
             [(eq? 'quasiquote a0)
              (EVAL (quasiquote (_nth ast 1)) env)]
             [(eq? 'defmacro! a0)

@@ -645,6 +645,25 @@ package body Core is
    end New_Vector;
 
 
+   function Vec (Rest_Handle : Mal_Handle)
+   return Types.Mal_Handle is
+      First_Param : Mal_Handle;
+   begin
+      First_Param := Car (Deref_List (Rest_Handle).all);
+      if Deref (First_Param).Sym_Type /= List then
+         raise Runtime_Exception with "Expecting a sequence";
+      end if;
+      case Deref_List_Class (First_Param).Get_List_Type is
+      when Hashed_List =>
+         raise Runtime_Exception with "Expecting a sequence";
+      when Vector_List =>
+         return First_Param;
+      when List_List =>
+         return New_Vector (First_Param);
+      end case;
+   end Vec;
+
+
    function New_Map (Rest_Handle : Mal_Handle)
    return Types.Mal_Handle is
       Rest_List : List_Mal_Type;
@@ -1058,6 +1077,10 @@ package body Core is
       Envs.Set (Repl_Env,
            "list?",
            New_Func_Mal_Type ("list?", Is_List'access));
+
+      Envs.Set (Repl_Env,
+           "vec",
+           New_Func_Mal_Type ("vec", Vec'access));
 
       Envs.Set (Repl_Env,
            "vector",

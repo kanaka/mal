@@ -37,6 +37,11 @@ proc concat(xs: varargs[MalType]): MalType =
     for i in x.list:
       result.list.add i
 
+proc vec(xs: varargs[MalType]): MalType =
+  result = MalType(kind: Vector, list: newSeq[MalType](xs[0].list.len))
+  for i, x in xs[0].list:
+    result.list[i] = x
+
 proc nth(xs: varargs[MalType]): MalType =
   if xs[1].number < xs[0].list.len: return xs[0].list[xs[1].number]
   else: raise newException(ValueError, "nth: index out of range")
@@ -204,6 +209,7 @@ let ns* = {
   "sequential?": fun seq_q,
   "cons": fun cons,
   "concat": fun concat,
+  "vec": fun vec,
   "count": fun count,
   "nth": fun nth,
   "first": fun first,

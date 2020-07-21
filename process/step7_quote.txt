@@ -3,7 +3,6 @@ import types, reader, printer, env, core
 
 READ(str): return reader.read_str(str)
 
-pair?(ast): return ... // true if non-empty sequence
 quasiquote(ast): return ... // quasiquote
 
 eval_ast(ast,env):
@@ -83,6 +82,7 @@ ns = {'=:        equal?,
 
       'cons:     (a) -> concat([a[0]], a[1]),
       'concat:   (a) -> reduce(concat, [], a),
+      'vec:      (l) -> l converted to vector,
       'empty?:   empty?,
       'count:    count,
 

@@ -13,19 +13,36 @@ READ = { str ->
 }
 
 // EVAL
-pair_Q = { ast -> types.sequential_Q(ast) && ast.size() > 0}
-quasiquote = { ast ->
-    if (! pair_Q(ast)) {
-        [new MalSymbol("quote"), ast]
-    } else if (ast[0] != null &&
-               ast[0].class == MalSymbol &&
-               ast[0].value == "unquote") {
-        ast[1]
-    } else if (pair_Q(ast[0]) && ast[0][0].class == MalSymbol && 
-               ast[0][0].value == "splice-unquote") {
-        [new MalSymbol("concat"), ast[0][1], quasiquote(ast.drop(1))]
+starts_with = { lst, sym ->
+    lst.size() == 2 && lst[0].class == MalSymbol && lst[0].value == sym
+}
+qq_loop = { elt, acc ->
+    if (types.list_Q(elt) && starts_with(elt, "splice-unquote")) {
+        return [new MalSymbol("concat"), elt[1], acc]
     } else {
-        [new MalSymbol("cons"), quasiquote(ast[0]), quasiquote(ast.drop(1))]
+        return [new MalSymbol("cons"), quasiquote(elt), acc]
+    }
+}
+qq_foldr = { xs ->
+    def acc = []
+    for (int i=xs.size()-1; 0<=i; i-=1) {
+        acc = qq_loop(xs[i], acc)
+    }
+    return acc
+}
+quasiquote = { ast ->
+    switch (ast) {
+    case List:
+        if (types.vector_Q(ast)) {
+            return [new MalSymbol("vec"), qq_foldr(ast)]
+        } else if (starts_with(ast, "unquote")) {
+            return ast[1]
+        } else {
+            return qq_foldr(ast)
+        }
+    case MalSymbol: return [new MalSymbol("quote"), ast]
+    case Map:       return [new MalSymbol("quote"), ast]
+    default:        return ast
     }
 }
 
@@ -63,6 +80,8 @@ EVAL = { ast, env ->
         break // TCO
     case { it instanceof MalSymbol && it.value == "quote" }:
         return ast[1]
+    case { it instanceof MalSymbol && it.value == "quasiquoteexpand" }:
+        return quasiquote(ast[1])
     case { it instanceof MalSymbol && it.value == "quasiquote" }:
         ast = quasiquote(ast[1])
         break // TCO

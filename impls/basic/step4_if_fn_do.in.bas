@@ -234,9 +234,9 @@ SUB EVAL
 
       EVAL_DO_FUNCTION:
         REM regular function
-        IF Z%(F+1)<60 THEN GOSUB DO_FUNCTION:GOTO EVAL_DO_FUNCTION_SKIP
+        IF Z%(F+1)<65 THEN GOSUB DO_FUNCTION:GOTO EVAL_DO_FUNCTION_SKIP
         REM for recur functions (apply, map, swap!), use GOTO
-        IF Z%(F+1)>60 THEN CALL DO_TCO_FUNCTION
+        IF Z%(F+1)>64 THEN CALL DO_TCO_FUNCTION
         EVAL_DO_FUNCTION_SKIP:
 
         REM pop and release f/args

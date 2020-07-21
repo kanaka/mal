@@ -31,34 +31,40 @@ fn read(str: &str) -> MalRet {
 }
 
 // eval
-fn quasiquote(ast: &MalVal) -> MalVal {
-    match ast {
-        List(ref v, _) | Vector(ref v, _) if v.len() > 0 => {
-            let a0 = &v[0];
-            match a0 {
-                Sym(ref s) if s == "unquote" => v[1].clone(),
-                _ => match a0 {
-                    List(ref v0, _) | Vector(ref v0, _) if v0.len() > 0 => match v0[0] {
-                        Sym(ref s) if s == "splice-unquote" => list![
-                            Sym("concat".to_string()),
-                            v0[1].clone(),
-                            quasiquote(&list!(v[1..].to_vec()))
-                        ],
-                        _ => list![
-                            Sym("cons".to_string()),
-                            quasiquote(a0),
-                            quasiquote(&list!(v[1..].to_vec()))
-                        ],
-                    },
-                    _ => list![
-                        Sym("cons".to_string()),
-                        quasiquote(a0),
-                        quasiquote(&list!(v[1..].to_vec()))
-                    ],
-                },
+
+fn qq_iter(elts: &MalArgs) -> MalVal {
+    let mut acc = list![];
+    for elt in elts.iter().rev() {
+        if let List(v, _) = elt {
+            if v.len() == 2 {
+                if let Sym(ref s) = v[0] {
+                    if s == "splice-unquote" {
+                        acc = list![Sym("concat".to_string()), v[1].clone(), acc];
+                        continue;
+                    }
+                }
             }
         }
-        _ => list![Sym("quote".to_string()), ast.clone()],
+        acc = list![Sym("cons".to_string()), quasiquote(&elt), acc];
+    }
+    return acc;
+}
+
+fn quasiquote(ast: &MalVal) -> MalVal {
+    match ast {
+        List(v, _) => {
+            if v.len() == 2 {
+                if let Sym(ref s) = v[0] {
+                    if s == "unquote" {
+                        return v[1].clone();
+                    }
+                }
+            }
+            return qq_iter(&v);
+        },
+        Vector(v, _) => return list![Sym("vec".to_string()), qq_iter(&v)],
+        Hash(_, _) | Sym(_)=> return list![Sym("quote".to_string()), ast.clone()],
+        _ => ast.clone(),
     }
 }
 
@@ -174,6 +180,7 @@ fn eval(mut ast: MalVal, mut env: Env) -> MalRet {
                         continue 'tco;
                     }
                     Sym(ref a0sym) if a0sym == "quote" => Ok(l[1].clone()),
+                    Sym(ref a0sym) if a0sym == "quasiquoteexpand" => Ok(quasiquote(&l[1])),
                     Sym(ref a0sym) if a0sym == "quasiquote" => {
                         ast = quasiquote(&l[1]);
                         continue 'tco;

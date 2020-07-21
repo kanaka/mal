@@ -36,6 +36,7 @@ CONSTANT: ns H{
     { "slurp" [ first utf8 file-contents ] }
     { "cons" [ first2 swap prefix { } like ] }
     { "concat" [ concat { } like ] }
+    { "vec" [ first >vector ] }
     { "nth" [ first2 swap nth ] }
     { "first" [ first dup nil? [ drop nil ] [ [ nil ] [ first ] if-empty ] if ] }
     { "rest" [ first dup nil? [ drop { } ] [ [ { } ] [ rest { } like ] if-empty ] if ] }

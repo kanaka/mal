@@ -117,6 +117,7 @@ ns = Dict{Any,Any}(
     symbol("sequential?") => types.sequential_Q,
     :cons => (a,b) -> [Any[a]; Any[b...]],
     :concat => concat,
+    :vec => (a) -> tuple(a...),
     :nth => (a,b) -> b+1 > length(a) ? error("nth: index out of range") : a[b+1],
     :first => (a) -> a === nothing || isempty(a) ? nothing : first(a),
     :rest => (a) -> a === nothing ? Any[] : Any[a[2:end]...],

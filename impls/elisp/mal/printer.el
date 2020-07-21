@@ -1,34 +1,35 @@
+(require 'cl-lib)
+
 (defun pr-str (form &optional print-readably)
-  (let ((type (mal-type form))
-        (value (mal-value form)))
-    (cond
-     ((eq type 'nil)
+  (let ((value (mal-value form)))
+    (cl-ecase (mal-type form)
+     ('nil
       "nil")
-     ((eq type 'true)
+     (true
       "true")
-     ((eq type 'false)
+     (false
       "false")
-     ((eq type 'number)
-      (number-to-string (mal-value form)))
-     ((eq type 'string)
+     (number
+      (number-to-string value))
+     (string
       (if print-readably
           (let ((print-escape-newlines t))
             (prin1-to-string value))
         value))
-     ((or (eq type 'symbol) (eq type 'keyword))
+     ((symbol keyword)
       (symbol-name value))
-     ((eq type 'list)
+     (list
       (pr-list value print-readably))
-     ((eq type 'vector)
+     (vector
       (pr-vector value print-readably))
-     ((eq type 'map)
+     (map
       (pr-map value print-readably))
-     ((eq type 'fn)
+     (fn
       "#<fn>")
-     ((eq type 'func)
+     (func
       "#<func>")
-     ((eq type 'atom)
-      (format "(atom %s)" (mal-value value))))))
+     (atom
+      (format "(atom %s)" (pr-str value print-readably))))))
 
 (defun pr-list (form print-readably)
   (let ((items (mapconcat

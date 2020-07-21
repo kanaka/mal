@@ -1123,9 +1123,10 @@ unquoted (normal evaluation). There are two special forms that only
 mean something within a quasiquoted list: `unquote` and
 `splice-unquote`. These are perhaps best explained with some examples:
 
-* `(def! lst (quote (2 3)))` -> `(2 3)`
-* `(quasiquote (1 (unquote lst)))` -> `(1 (2 3))`
-* `(quasiquote (1 (splice-unquote lst)))` -> `(1 2 3)`
+* `(def! lst (quote (b c)))` -> `(b c)`
+* `(quasiquote (a lst d)` -> `(a lst d)`
+* `(quasiquote (a (unquote lst) d)` -> `(a (b c) d)`
+* `(quasiquote (a (splice-unquote lst)) d)` -> `(a b c d)`
 
 The `unquote` form turns evaluation back on for its argument and the
 result of evaluation is put in place into the quasiquoted list. The
@@ -1162,28 +1163,57 @@ Mal borrows most of its syntax and feature-set).
 * Add the `quote` special form. This form just returns its argument
   (the second list element of `ast`).
 
-* Add the `quasiquote` special form. First implement a helper function
-  `is_pair` that returns true if the parameter is a non-empty list.
-  Then define a `quasiquote` function. This is called from `EVAL` with
-  the first `ast` argument (second list element) and then `ast` is set
-  to the result and execution continues at the top of the loop (TCO).
+* Add the `quasiquote` function.
   The `quasiquote` function takes a parameter `ast` and has the
-  following conditional:
-  1. if `is_pair` of `ast` is false: return a new list containing:
-     a symbol named "quote" and `ast`.
-  2. else if the first element of `ast` is a symbol named "unquote":
-     return the second element of `ast`.
-  3. if `is_pair` of the first element of `ast` is true and the first
-     element of first element of `ast` (`ast[0][0]`) is a symbol named
-     "splice-unquote": return a new list containing: a symbol named
-     "concat", the second element of first element of `ast`
-     (`ast[0][1]`), and the result of calling `quasiquote` with the
-     second through last element of `ast`.
-  4. otherwise: return a new list containing: a symbol named "cons", the
-     result of calling `quasiquote` on first element of `ast`
-     (`ast[0]`), and the result of calling `quasiquote` with the second
-     through last element of `ast`.
+  following conditional.
+  - If `ast` is a list starting with the "unquote" symbol, return its
+    second element.
+  - If `ast` is a list failing previous test, the result will be a
+    list populated by the following process.
 
+    The result is initially an empty list.
+    Iterate over each element `elt` of `ast` in reverse order:
+    - If `elt` is a list starting with the "splice-unquote" symbol,
+      replace the current result with a list containing:
+      the "concat" symbol,
+      the second element of `elt`,
+      then the previous result.
+    - Else replace the current result with a list containing:
+      the "cons" symbol,
+      the result of calling `quasiquote` with `elt` as argument,
+      then the previous result.
+
+    This process can also be described recursively:
+    - If `ast` is empty return it unchanged. else let `elt` be its
+      first element.
+    - If `elt` is a list starting with the "splice-unquote" symbol,
+      return a list containing:
+      the "concat" symbol,
+      the second element of `elt`,
+      then the result of processing the rest of `ast`.
+    - Else return a list containing:
+      the "cons" symbol,
+      the result of calling `quasiquote` with `elt` as argument,
+      then the result of processing the rest of `ast`.
+  - If `ast` is a map or a symbol, return a list containing:
+    the "quote" symbol,
+    then `ast`.
+  - Else return `ast` unchanged.
+    Such forms are not affected by evaluation, so you may quote them
+    as in the previous case if implementation is easyer.
+
+* Optionally, add a the `quasiquoteexpand` special form.
+  This form calls the `quasiquote` function using the first `ast`
+  argument (second list element) and returns the result.
+  It has no other practical purpose than testing your implementation
+  of the `quasiquote` internal function.
+
+* Add the `quasiquote` special form.
+  This form does the same than `quasiquoteexpand`,
+  but evaluates the result in the current environment before returning it,
+  either by recursively calling `EVAL` with the result and `env`,
+  or by assigning `ast` with the result and continuing execution at
+  the top of the loop (TCO).
 
 Now go to the top level, run the step 7 tests:
 ```
@@ -1218,12 +1248,20 @@ macros.
     the symbol "splice-unquote" and the result of reading the next
     form (`read_form`).
 
-* Add support for quoting of vectors. The `is_pair` function should
-  return true if the argument is a non-empty list or vector. `cons`
+* Add support for quoting of vectors. `cons`
   should also accept a vector as the second argument. The return value
-  is a list regardless. `concat` should support concatenation of
-  lists, vectors, or a mix or both. The result is always a list.
+  is a list regardless.  `concat` should support concatenation of
+  lists, vectors, or a mix of both.  The result is always a list.
 
+  Implement a core function `vec` turning a list into a vector with
+  the same elements.  If provided a vector, `vec` should return it
+  unchanged.
+
+  In the `quasiquote` function, when `ast` is a vector,
+  return a list containing:
+  the "vec" symbol,
+  then the result of processing `ast` as if it were a list not
+  starting with `quote`.
 
 <a name="step8"></a>
 

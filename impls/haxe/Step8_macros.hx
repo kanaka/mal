@@ -14,31 +14,28 @@ class Step8_macros {
     }
 
     // EVAL
-    static function is_pair(ast:MalType) {
-        return switch (ast) {
-            case MalList(l) | MalVector(l): l.length > 0;
-            case _: false;
+    static function qq_loop(elt:MalType, acc:MalType) {
+        switch elt {
+            case MalList([MalSymbol("splice-unquote"), arg]):
+                return MalList([MalSymbol("concat"), arg, acc]);
+            case _:
+                return MalList([MalSymbol("cons"), quasiquote(elt), acc]);
         }
     }
-
+    static function qq_foldr(xs:Array<MalType>) {
+        var acc = MalList([]);
+        for (i in 1 ... xs.length+1) {
+            acc = qq_loop (xs[xs.length-i], acc);
+        }
+        return acc;
+    }
     static function quasiquote(ast:MalType) {
-        if (!is_pair(ast)) {
-            return MalList([MalSymbol("quote"), ast]);
-        } else {
-            var a0 = first(ast);
-            if (_equal_Q(a0, MalSymbol("unquote"))) {
-                    return _nth(ast, 1);
-            } else if (is_pair(a0)) {
-                var a00 = first(a0);
-                if (_equal_Q(a00, MalSymbol("splice-unquote"))) {
-                    return MalList([MalSymbol("concat"),
-                                    _nth(a0, 1),
-                                    quasiquote(rest(ast))]);
-                }
-            }
-            return MalList([MalSymbol("cons"),
-                            quasiquote(a0),
-                            quasiquote(rest(ast))]);
+        return switch(ast) {
+            case MalList([MalSymbol("unquote"), arg]): arg;
+            case MalList(l): qq_foldr(l);
+            case MalVector(l): MalList([MalSymbol("vec"), qq_foldr(l)]);
+            case MalSymbol(_) | MalHashMap(_): MalList([MalSymbol("quote"), ast]);
+            case _: ast;
         }
     }
 
@@ -111,6 +108,8 @@ class Step8_macros {
             continue; // TCO
         case MalSymbol("quote"):
             return alst[1];
+        case MalSymbol("quasiquoteexpand"):
+            return quasiquote(alst[1]);
         case MalSymbol("quasiquote"):
             ast = quasiquote(alst[1]);
             continue; // TCO

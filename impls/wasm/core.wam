@@ -374,6 +374,9 @@
     $res
   )
 
+  (func $vec (param $args i32) (result i32)
+    ($FORCE_SEQ_TYPE (global.get $VECTOR_T) ($MEM_VAL1_ptr $args)))
+
   (func $nth (param $args i32) (result i32)
     (LET $a   ($MEM_VAL1_ptr $args)
          $idx ($VAL0 ($MEM_VAL1_ptr ($MEM_VAL0_ptr $args)))
@@ -650,6 +653,7 @@
           $swap_BANG
 
           $pr_memory_summary
+          $vec
     )
   )
 
@@ -722,5 +726,6 @@
     (drop ($ENV_SET_S $env "swap!"       ($FUNCTION 60)))
 
     (drop ($ENV_SET_S $env "pr-memory-summary"       ($FUNCTION 61)))
+    (drop ($ENV_SET_S $env "vec"         ($FUNCTION 62)))
   )
 )

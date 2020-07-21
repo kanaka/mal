@@ -269,6 +269,11 @@ concat(Args) ->
         error:Reason -> {error, Reason}
     end.
 
+vec([{list,   List, _Meta}]) -> {vector, List, nil};
+vec([{vector, List, _Meta}]) -> {vector, List, nil};
+vec([_])                     -> {error, "vec: arg type"};
+vec(_)                       -> {error, "vec: arg count"}.
+
 mal_throw([Reason]) ->
     throw(Reason);
 mal_throw(_) ->
@@ -381,6 +386,7 @@ ns() ->
         "time-ms" => fun time_ms/1,
         "true?" => fun true_p/1,
         "vals" => fun types:map_values/1,
+        "vec" => fun vec/1,
         "vector" => fun types:vector/1,
         "vector?" => fun types:vector_p/1,
         "with-meta" => fun types:with_meta/1

@@ -56,25 +56,33 @@ END
 DEF FNREAD(a$)
 =FNread_str(FNalloc_string(a$))
 
-DEF FNis_pair(val%)
-=FNis_seq(val%) AND NOT FNis_empty(val%)
+DEF FNstarts_with(ast%, sym$)
+  LOCAL a0%
+  IF NOT FNis_list(ast%) THEN =FALSE
+  a0% = FNfirst(ast%)
+  IF NOT FNis_symbol(a0%) THEN =FALSE
+  =FNunbox_symbol(a0%) = sym$
+
+DEF FNqq_elts(seq%)
+  LOCAL elt%, acc%
+  IF FNis_empty(seq%) THEN =FNempty
+  elt% = FNfirst(seq%)
+  acc% = FNqq_elts(FNrest(seq%))
+  IF FNstarts_with(elt%, "splice-unquote") THEN
+    =FNalloc_list3(FNalloc_symbol("concat"), FNnth(elt%, 1), acc%)
+  ENDIF
+  =FNalloc_list3(FNalloc_symbol("cons"), FNquasiquote(elt%), acc%)
 
 DEF FNquasiquote(ast%)
-  LOCAL car%, caar%
-  IF NOT FNis_pair(ast%) THEN =FNalloc_list2(FNalloc_symbol("quote"), ast%)
-  car% = FNfirst(ast%)
-  IF FNis_symbol(car%) THEN
-    IF FNunbox_symbol(car%) = "unquote" THEN =FNnth(ast%, 1)
+  IF FNstarts_with(ast%, "unquote") THEN =FNnth(ast%, 1)
+  IF FNis_list(ast%) THEN =FNqq_elts(ast%)
+  IF FNis_vector(ast%) THEN
+    =FNalloc_list2(FNalloc_symbol("vec"), FNqq_elts(ast%))
   ENDIF
-  IF FNis_pair(car%) THEN
-    caar% = FNfirst(car%)
-    IF FNis_symbol(caar%) THEN
-      IF FNunbox_symbol(caar%) = "splice-unquote" THEN
-        =FNalloc_list3(FNalloc_symbol("concat"), FNnth(car%, 1), FNquasiquote(FNrest(ast%)))
-      ENDIF
-    ENDIF
+  IF FNis_symbol(ast%) OR FNis_hashmap(ast%) THEN
+    =FNalloc_list2(FNalloc_symbol("quote"), ast%)
   ENDIF
-=FNalloc_list3(FNalloc_symbol("cons"), FNquasiquote(car%), FNquasiquote(FNrest(ast%)))
+  =ast%
 
 DEF FNis_macro_call(ast%, env%)
   LOCAL car%, val%
@@ -197,6 +205,8 @@ DEF FNEVAL_(ast%, env%)
           =FNalloc_fn(FNnth(ast%, 2), FNnth(ast%, 1), env%)
         WHEN "quote"
           =FNnth(ast%, 1)
+        WHEN "quasiquoteexpand"
+          = FNquasiquote(FNnth(ast%, 1))
         WHEN "quasiquote"
           ast% = FNquasiquote(FNnth(ast%, 1))
           REM  Loop round for tail-call optimisation

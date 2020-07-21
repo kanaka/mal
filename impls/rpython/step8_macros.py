@@ -13,27 +13,32 @@ def READ(str):
     return reader.read_str(str)
 
 # eval
-def is_pair(x):
-    return types._sequential_Q(x) and len(x) > 0
+def qq_loop(elt, acc):
+    if types._list_Q(elt) and len(elt) == 2:
+        fst = elt[0]
+        if isinstance(fst, MalSym) and fst.value == u"splice-unquote":
+            return _list(_symbol(u"concat"), elt[1], acc)
+    return _list(_symbol(u"cons"), quasiquote(elt), acc)
+
+def qq_foldr(seq):
+    acc = _list()
+    for elt in reversed(seq):
+        acc = qq_loop (elt, acc)
+    return acc
 
 def quasiquote(ast):
-    if not is_pair(ast):
+    if types._list_Q(ast):
+        if len(ast) == 2:
+            fst = ast[0]
+            if isinstance(fst, MalSym) and fst.value == u"unquote":
+                return ast[1]
+        return qq_foldr(ast.values)
+    elif types._vector_Q(ast):
+        return _list(_symbol(u"vec"), qq_foldr(ast.values))
+    elif types._symbol_Q(ast) or types._hash_map_Q(ast):
         return _list(_symbol(u"quote"), ast)
     else:
-        a0 = ast[0]
-        if isinstance(a0, MalSym):
-            if a0.value == u'unquote':
-                return ast[1]
-        if is_pair(a0) and isinstance(a0[0], MalSym):
-            a00 = a0[0]
-            if (isinstance(a00, MalSym) and
-                a00.value == u'splice-unquote'):
-                return _list(_symbol(u"concat"),
-                             a0[1],
-                             quasiquote(ast.rest()))
-    return _list(_symbol(u"cons"),
-                quasiquote(a0),
-                quasiquote(ast.rest()))
+        return ast
 
 def is_macro_call(ast, env):
     if types._list_Q(ast):
@@ -103,6 +108,8 @@ def EVAL(ast, env):
             env = let_env # Continue loop (TCO)
         elif u"quote" == a0sym:
             return ast[1]
+        elif u"quasiquoteexpand" == a0sym:
+            return quasiquote(ast[1])
         elif u"quasiquote" == a0sym:
             ast = quasiquote(ast[1]) # Continue loop (TCO)
         elif u"defmacro!" == a0sym:
@@ -134,7 +141,7 @@ def EVAL(ast, env):
             if isinstance(f, MalFunc):
                 if f.ast:
                     ast = f.ast
-                    env = f.gen_env(el.rest()) # Continue loop (TCO) 
+                    env = f.gen_env(el.rest()) # Continue loop (TCO)
                 else:
                     return f.apply(el.rest())
             else:

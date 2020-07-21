@@ -87,6 +87,8 @@ list? = $(if $(call _list?,$(1)),$(__true),$(__false))
 # Vector functions
 vector? = $(if $(call _vector?,$(1)),$(__true),$(__false))
 
+vec = $(if $(_list?),$(call _vector,$($1_value)),$(if $(_vector?),$1,$(call _error,vec: called on non-sequence)))
+
 
 # Hash map (associative array) functions
 hash_map? = $(if $(call _hash_map?,$(1)),$(__true),$(__false))
@@ -140,7 +142,7 @@ sfirst = $(word 1,$($(1)_value))
 
 slast = $(word $(words $($(1)_value)),$($(1)_value))
 
-empty? = $(if $(call _EQ,0,$(if $(call _hash_map?,$(1)),$($(1)_size),$(words $($(1)_value)))),$(__true),$(__false))
+empty? = $(if $(_empty?),$(__true),$(__false))
 
 count = $(call _number,$(call _count,$(1)))
 
@@ -278,6 +280,7 @@ core_ns = type obj_type \
           sequential? sequential? \
           cons cons \
           concat concat \
+          vec vec \
           nth nth \
           first sfirst \
           rest srest \

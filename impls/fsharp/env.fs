@@ -65,6 +65,7 @@ module Env
               wrap "slurp" Core.slurp
               wrap "cons" Core.cons
               wrap "concat" Core.concat
+              wrap "vec" Core.vec
               wrap "nth" Core.nth
               wrap "first" Core.first
               wrap "rest" Core.rest

@@ -19,29 +19,26 @@
 (defun EVAL (ast env)
   (if (and (mal-list-p ast) (mal-value ast))
       (let* ((a (mal-value ast))
-             (a0 (car a))
-             (a0* (mal-value a0))
              (a1 (cadr a))
              (a2 (nth 2 a))
              (a3 (nth 3 a)))
-        (cond
-         ((eq a0* 'def!)
+        (cl-case (mal-value (car a))
+         (def!
           (let ((identifier (mal-value a1))
                 (value (EVAL a2 env)))
             (mal-env-set env identifier value)))
-         ((eq a0* 'let*)
-          (let* ((env* (mal-env env))
-                 (a1* (mal-value a1))
-                 (bindings (if (vectorp a1*) (append a1* nil) a1*))
-                 (form a2))
+         (let*
+          (let ((env* (mal-env env))
+                (bindings (mal-listify a1))
+                (form a2))
             (while bindings
               (let ((key (mal-value (pop bindings)))
                     (value (EVAL (pop bindings) env*)))
                 (mal-env-set env* key value)))
             (EVAL form env*)))
-         ((eq a0* 'do)
+         (do
           (car (last (mal-value (eval-ast (mal-list (cdr a)) env)))))
-         ((eq a0* 'if)
+         (if
           (let* ((condition (EVAL a1 env))
                  (condition-type (mal-type condition))
                  (then a2)
@@ -52,7 +49,7 @@
               (if else
                   (EVAL else env)
                 mal-nil))))
-         ((eq a0* 'fn*)
+         (fn*
           (let ((binds (mapcar 'mal-value (mal-value a1)))
                 (body a2))
             (mal-fn
@@ -62,31 +59,25 @@
          (t
           ;; not a special form
           (let* ((ast* (mal-value (eval-ast ast env)))
-                 (fn (car ast*))
-                 (fn* (cond
-                       ((functionp fn)
-                        fn)
-                       ((mal-fn-p fn)
-                        (mal-value fn))))
+                 (fn* (mal-value (car ast*)))
                  (args (cdr ast*)))
             (apply fn* args)))))
     (eval-ast ast env)))
 
 (defun eval-ast (ast env)
-  (let ((type (mal-type ast))
-        (value (mal-value ast)))
-    (cond
-     ((eq type 'symbol)
+  (let ((value (mal-value ast)))
+    (cl-case (mal-type ast)
+     (symbol
       (let ((definition (mal-env-get env value)))
         (or definition (error "Definition not found"))))
-     ((eq type 'list)
+     (list
       (mal-list (mapcar (lambda (item) (EVAL item env)) value)))
-     ((eq type 'vector)
+     (vector
       (mal-vector (vconcat (mapcar (lambda (item) (EVAL item env)) value))))
-     ((eq type 'map)
+     (map
       (let ((map (copy-hash-table value)))
-        (maphash (lambda (key value)
-                   (puthash key (EVAL value env) map))
+        (maphash (lambda (key val)
+                   (puthash key (EVAL val env) map))
                  map)
         (mal-map map)))
      (t
@@ -122,14 +113,12 @@
                ;; empty input, carry on
                )
               (unterminated-sequence
-               (let* ((type (cadr err))
-                      (end
-                       (cond
-                        ((eq type 'string) ?\")
-                        ((eq type 'list) ?\))
-                        ((eq type 'vector) ?\])
-                        ((eq type 'map) ?}))))
-                 (princ (format "Expected '%c', got EOF\n" end))))
+               (princ (format "Expected '%c', got EOF\n"
+                              (cl-case (cadr err)
+                                (string ?\")
+                                (list   ?\))
+                                (vector ?\])
+                                (map    ?})))))
               (error ; catch-all
                (println (error-message-string err))))
           (setq eof t)

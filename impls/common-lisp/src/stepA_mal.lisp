@@ -42,8 +42,10 @@
 (defvar mal-fn* (make-mal-symbol "fn*"))
 (defvar mal-quote (make-mal-symbol "quote"))
 (defvar mal-quasiquote (make-mal-symbol "quasiquote"))
+(defvar mal-quasiquoteexpand (make-mal-symbol "quasiquoteexpand"))
 (defvar mal-unquote (make-mal-symbol "unquote"))
 (defvar mal-splice-unquote (make-mal-symbol "splice-unquote"))
+(defvar mal-vec (make-mal-symbol "vec"))
 (defvar mal-cons (make-mal-symbol "cons"))
 (defvar mal-concat (make-mal-symbol "concat"))
 (defvar mal-defmacro! (make-mal-symbol "defmacro!"))
@@ -74,29 +76,23 @@
     (types:hash-map (eval-hash-map ast env))
     (types:any ast)))
 
-(defun is-pair (value)
-  (and (or (mal-list-p value)
-           (mal-vector-p value))
-       (< 0 (length (mal-data-value value)))))
-
+(defun qq-reducer (elt acc)
+  (make-mal-list
+    (if (and (mal-list-p elt)
+             (mal-data-value= (first (mal-data-value elt)) mal-splice-unquote))
+      (list mal-concat (second (mal-data-value elt)) acc)
+      (list mal-cons (quasiquote elt) acc))))
+(defun qq-iter (elts)
+  (reduce #'qq-reducer elts :from-end t :initial-value (make-mal-list ())))
 (defun quasiquote (ast)
-  (if (not (is-pair ast))
-      (make-mal-list (list mal-quote ast))
-      (let ((forms (map 'list #'identity (mal-data-value ast))))
-        (cond
-          ((mal-data-value= mal-unquote (first forms))
-           (second forms))
-
-          ((and (is-pair (first forms))
-                (mal-data-value= mal-splice-unquote
-                                 (first (mal-data-value (first forms)))))
-           (make-mal-list (list mal-concat
-                                (second (mal-data-value (first forms)))
-                                (quasiquote (make-mal-list (cdr forms))))))
-
-          (t (make-mal-list (list mal-cons
-                                  (quasiquote (first forms))
-                                  (quasiquote (make-mal-list (cdr forms))))))))))
+  (switch-mal-type ast
+    (types:list     (if (mal-data-value= (first (mal-data-value ast)) mal-unquote)
+                      (second (mal-data-value ast))
+                      (qq-iter (mal-data-value ast))))
+    (types:vector   (make-mal-list (list mal-vec (qq-iter (listify (mal-data-value ast))))))
+    (types:hash-map (make-mal-list (list mal-quote ast)))
+    (types:symbol   (make-mal-list (list mal-quote ast)))
+    (types:any      ast)))
 
 (defun is-macro-call (ast env)
   (when (mal-list-p ast)
@@ -130,6 +126,9 @@
                (cond
                  ((mal-data-value= mal-quote (first forms))
                   (return (second forms)))
+
+                 ((mal-data-value= mal-quasiquoteexpand (first forms))
+                  (return (quasiquote (second forms))))
 
                  ((mal-data-value= mal-quasiquote (first forms))
                   (setf ast (quasiquote (second forms))))

@@ -13,36 +13,36 @@ import reader;
 import printer;
 import types;
 
-bool is_pair(MalType ast)
+bool starts_with(MalType ast, MalSymbol sym)
 {
-    auto lst = cast(MalSequential) ast;
+    auto lst = cast(MalList) ast;
     if (lst is null) return false;
-    return lst.elements.length > 0;
+    auto lste = lst.elements;
+    return lste.length > 0 && lste[0] == sym;
 }
 
 MalType quasiquote(MalType ast)
 {
-    if (!is_pair(ast))
-    {
+    if (cast(MalSymbol)ast || cast(MalHashmap)ast)
         return new MalList([sym_quote, ast]);
-    }
-    auto ast_seq = verify_cast!MalSequential(ast);
+
+    auto ast_seq = cast(MalSequential) ast;
+    if (ast_seq is null)
+        return ast;
+
     auto aste = ast_seq.elements;
-    if (aste[0] == sym_unquote)
-    {
+    if (starts_with(ast, sym_unquote))
         return aste[1];
-    }
 
-    if (is_pair(aste[0]))
-    {
-        auto ast0_seq = verify_cast!MalSequential(aste[0]);
-        if (ast0_seq.elements[0] == sym_splice_unquote)
-        {
-            return new MalList([new MalSymbol("concat"), ast0_seq.elements[1], quasiquote(new MalList(aste[1..$]))]);
-        }
-    }
-
-    return new MalList([new MalSymbol("cons"), quasiquote(aste[0]), quasiquote(new MalList(aste[1..$]))]);
+    MalType res = new MalList([]);;
+    foreach_reverse (elt; ast_seq.elements)
+        if (starts_with(elt, sym_splice_unquote))
+            res = new MalList([new MalSymbol("concat"), (cast(MalList) elt).elements[1], res]);
+        else
+            res = new MalList([new MalSymbol("cons"), quasiquote(elt), res]);
+    if (cast(MalVector) ast)
+        res = new MalList([new MalSymbol("vec"), res]);
+    return res;
 }
 
 bool is_macro_call(MalType ast, Env env)
@@ -154,6 +154,9 @@ MalType EVAL(MalType ast, Env env)
 
             case "quote":
                 return aste[1];
+
+            case "quasiquoteexpand":
+                return quasiquote(aste[1]);
 
             case "quasiquote":
                 ast = quasiquote(aste[1]);

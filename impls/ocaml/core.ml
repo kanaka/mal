@@ -127,6 +127,11 @@ let init env = begin
                  | [x] -> Types.list (seq x)
                  | [] -> Types.list []
                in concat));
+  Env.set env (Types.symbol "vec") (Types.fn (function
+                 | [T.List   {T.value = xs}] -> Types.vector xs
+                 | [T.Vector {T.value = xs}] -> Types.vector xs
+                 | [_] -> raise (Invalid_argument "vec: expects a sequence")
+                 | _   -> raise (Invalid_argument "vec: arg count")));
 
   Env.set env (Types.symbol "nth")
     (Types.fn (function [xs; T.Int i] ->

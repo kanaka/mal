@@ -21,22 +21,23 @@ mal_read = read_str
 
 -- starts-with is replaced with pattern matching.
 
-qqIter :: Env -> MalVal -> [MalVal] -> IOThrows [MalVal]
-qqIter env (MalSeq _ (Vect False) [MalSymbol "splice-unquote", x]) acc = do
-    evaluated <- eval env x
-    case evaluated of
-        MalSeq _ (Vect False) xs -> return $ xs ++ acc
-        _ -> throwStr "invalid splice-unquote argument"
-qqIter _ (MalSeq _ (Vect False) (MalSymbol "splice-unquote" : _)) _ = throwStr "invalid splice-unquote"
-qqIter env x acc = (: acc) <$> quasiquote x env
+qqIter :: MalVal -> MalVal -> IOThrows MalVal
+qqIter (MalSeq _ (Vect False) [MalSymbol "splice-unquote", x]) acc = return $ toList [MalSymbol "concat", x, acc]
+qqIter (MalSeq _ (Vect False) (MalSymbol "splice-unquote" : _)) _ = throwStr "invalid splice-unquote"
+qqIter elt acc = do
+    qqted <- quasiquote elt
+    return $ toList [MalSymbol "cons", qqted, acc]
 
-quasiquote :: MalVal -> Env -> IOThrows MalVal
-quasiquote (MalSeq _ (Vect False) [MalSymbol "unquote", x]) env = eval env x
---  FIXME This line
-quasiquote (MalSeq m _ ys) env = MalSeq m (Vect False) <$> foldrM (qqIter env) [] ys
---  is adapted to broken tests. It should be:
---  quasiquote (MalSeq m v ys) env = MalSeq m v <$> foldrM (qqIter env) [] ys
-quasiquote ast _ = return ast
+quasiquote :: MalVal -> IOThrows MalVal
+quasiquote (MalSeq _ (Vect False) [MalSymbol "unquote", x]) = return x
+quasiquote (MalSeq _ (Vect False) (MalSymbol "unquote" : _)) = throwStr "invalid unquote"
+quasiquote (MalSeq _ (Vect False) ys) = foldrM qqIter (toList []) ys
+quasiquote (MalSeq _ (Vect True) ys) = do
+  lst <- foldrM qqIter (toList []) ys
+  return $ toList [MalSymbol "vec", lst]
+quasiquote ast@(MalHashMap _ _) = return $ toList [MalSymbol "quote", ast]
+quasiquote ast@(MalSymbol _)    = return $ toList [MalSymbol "quote", ast]
+quasiquote ast = return ast
 
 -- eval_ast is replaced with pattern matching.
 
@@ -79,7 +80,10 @@ apply_ast (MalSymbol "let*" : _) _ = throwStr "invalid let*"
 apply_ast [MalSymbol "quote", a1] _ = return a1
 apply_ast (MalSymbol "quote" : _) _ = throwStr "invalid quote"
 
-apply_ast [MalSymbol "quasiquote", a1] env = quasiquote a1 env
+apply_ast [MalSymbol "quasiquoteexpand", a1] _ = quasiquote a1
+apply_ast (MalSymbol "quasiquoteexpand" : _) _ = throwStr "invalid quasiquote"
+
+apply_ast [MalSymbol "quasiquote", a1] env = eval env =<< quasiquote a1
 apply_ast (MalSymbol "quasiquote" : _) _ = throwStr "invalid quasiquote"
 
 apply_ast (MalSymbol "do" : args) env = foldlM (const $ eval env) Nil args

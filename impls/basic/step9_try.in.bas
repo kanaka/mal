@@ -17,74 +17,114 @@ MAL_READ:
 
 REM QUASIQUOTE(A) -> R
 SUB QUASIQUOTE
-  REM pair?
   GOSUB TYPE_A
-  IF T<6 OR T>7 THEN GOTO QQ_QUOTE
-  IF (Z%(A+1)=0) THEN GOTO QQ_QUOTE
+  IF T<5 OR T>8 THEN GOTO QQ_UNCHANGED
+  IF T=5 OR T=8 THEN GOTO QQ_QUOTE
+  IF T=7 THEN GOTO QQ_VECTOR
+  IF (Z%(A+1)=0) THEN GOTO QQ_LIST
+  R=Z%(A+2)
+  IF (Z%(R)AND 31)<>5 THEN GOTO QQ_LIST
+  IF S$(Z%(R+1))<>"unquote" THEN GOTO QQ_LIST
   GOTO QQ_UNQUOTE
+
+  QQ_UNCHANGED:
+    R=A
+    GOSUB INC_REF_R
+
+    GOTO QQ_DONE
 
   QQ_QUOTE:
     REM ['quote, ast]
     B$="quote":T=5:GOSUB STRING
-    B=R:A=A:GOSUB LIST2
+    B=R:GOSUB LIST2
+    AY=B:GOSUB RELEASE
+
+    GOTO QQ_DONE
+
+  QQ_VECTOR:
+    REM ['vec, (qq_foldr ast)]
+    CALL QQ_FOLDR
+    A=R
+    B$="vec":T=5:GOSUB STRING:B=R
+    GOSUB LIST2
+    AY=A:GOSUB RELEASE
     AY=B:GOSUB RELEASE
 
     GOTO QQ_DONE
 
   QQ_UNQUOTE:
-    R=Z%(A+2)
-    IF (Z%(R)AND 31)<>5 THEN GOTO QQ_SPLICE_UNQUOTE
-    IF S$(Z%(R+1))<>"unquote" THEN GOTO QQ_SPLICE_UNQUOTE
-      REM [ast[1]]
-      R=Z%(Z%(A+1)+2)
-      GOSUB INC_REF_R
+    REM [ast[1]]
+    R=Z%(Z%(A+1)+2)
+    GOSUB INC_REF_R
 
-      GOTO QQ_DONE
+    GOTO QQ_DONE
 
-  QQ_SPLICE_UNQUOTE:
+  QQ_LIST:
+    CALL QQ_FOLDR
+
+QQ_DONE:
+END SUB
+
+REM Quasiquote right fold (A) -> R.
+REM Used for unquoted lists (GOTO), vectors (GOSUB),
+REM and recursively (GOSUB).
+SUB QQ_FOLDR
+  IF A=0 THEN GOTO QQ_EMPTY
+  IF Z%(A+1)=0 THEN GOTO QQ_EMPTY
+  GOTO QQ_NOTEMPTY
+
+  QQ_EMPTY:
+    REM empty list/vector -> empty list
+    R=6
+    GOSUB INC_REF_R
+
+    GOTO QQ_FOLDR_DONE
+
+  QQ_NOTEMPTY:
+    REM Execute QQ_FOLDR recursively with (rest A)
     GOSUB PUSH_A
-    REM rest of cases call quasiquote on ast[1..]
-    A=Z%(A+1):CALL QUASIQUOTE
-    W=R
+    A=Z%(A+1):CALL QQ_FOLDR
     GOSUB POP_A
 
-    REM set A to ast[0] for last two cases
+    REM Set A to elt = (first A)
     A=Z%(A+2)
 
-    REM pair?
-    GOSUB TYPE_A
-    IF T<6 OR T>7 THEN GOTO QQ_DEFAULT
-    IF (Z%(A+1)=0) THEN GOTO QQ_DEFAULT
+    REM Quasiquote transition function:
+    REM A: current element, R: accumulator -> R: new accumulator
 
+    REM check if A is a list starting with splice-unquote
+    GOSUB TYPE_A
+    IF T<>6 THEN GOTO QQ_DEFAULT
+    IF (Z%(A+1)=0) THEN GOTO QQ_DEFAULT
     B=Z%(A+2)
     IF (Z%(B)AND 31)<>5 THEN GOTO QQ_DEFAULT
-    IF S$(Z%(B+1))<>"splice-unquote" THEN QQ_DEFAULT
-      REM ['concat, ast[0][1], quasiquote(ast[1..])]
+    IF S$(Z%(B+1))<>"splice-unquote" THEN GOTO QQ_DEFAULT
 
+    REM ('concat, A[1], R)
       B=Z%(Z%(A+1)+2)
+      A=R
       B$="concat":T=5:GOSUB STRING:C=R
-      A=W:GOSUB LIST3
+      GOSUB LIST3
       REM release inner quasiquoted since outer list takes ownership
       AY=A:GOSUB RELEASE
       AY=C:GOSUB RELEASE
-      GOTO QQ_DONE
 
-  QQ_DEFAULT:
-    REM ['cons, quasiquote(ast[0]), quasiquote(ast[1..])]
+      GOTO QQ_FOLDR_DONE
 
-    Q=W:GOSUB PUSH_Q
-    REM A set above to ast[0]
-    CALL QUASIQUOTE
-    B=R
-    GOSUB POP_Q:W=Q
+    QQ_DEFAULT:
+      REM ('cons, quasiquote(A), R)
+      GOSUB PUSH_R
+      CALL QUASIQUOTE
+      B=R
+      B$="cons":T=5:GOSUB STRING:C=R
+      GOSUB POP_A
+      GOSUB LIST3
+      REM release inner quasiquoted since outer list takes ownership
+      AY=A:GOSUB RELEASE
+      AY=B:GOSUB RELEASE
+      AY=C:GOSUB RELEASE
 
-    B$="cons":T=5:GOSUB STRING:C=R
-    A=W:GOSUB LIST3
-    REM release inner quasiquoted since outer list takes ownership
-    AY=A:GOSUB RELEASE
-    AY=B:GOSUB RELEASE
-    AY=C:GOSUB RELEASE
-  QQ_DONE:
+QQ_FOLDR_DONE:
 END SUB
 
 REM MACROEXPAND(A, E) -> A:
@@ -238,6 +278,7 @@ SUB EVAL
     IF A$="def!" THEN GOTO EVAL_DEF
     IF A$="let*" THEN GOTO EVAL_LET
     IF A$="quote" THEN GOTO EVAL_QUOTE
+    IF A$="quasiquoteexpand" THEN GOTO EVAL_QUASIQUOTEEXPAND
     IF A$="quasiquote" THEN GOTO EVAL_QUASIQUOTE
     IF A$="defmacro!" THEN GOTO EVAL_DEFMACRO
     IF A$="macroexpand" THEN GOTO EVAL_MACROEXPAND
@@ -331,6 +372,11 @@ SUB EVAL
     EVAL_QUOTE:
       R=Z%(Z%(A+1)+2)
       GOSUB INC_REF_R
+      GOTO EVAL_RETURN
+
+    EVAL_QUASIQUOTEEXPAND:
+      R=Z%(Z%(A+1)+2)
+      A=R:CALL QUASIQUOTE
       GOTO EVAL_RETURN
 
     EVAL_QUASIQUOTE:
@@ -448,9 +494,9 @@ SUB EVAL
 
       EVAL_DO_FUNCTION:
         REM regular function
-        IF Z%(F+1)<60 THEN GOSUB DO_FUNCTION:GOTO EVAL_DO_FUNCTION_SKIP
+        IF Z%(F+1)<65 THEN GOSUB DO_FUNCTION:GOTO EVAL_DO_FUNCTION_SKIP
         REM for recur functions (apply, map, swap!), use GOTO
-        IF Z%(F+1)>60 THEN CALL DO_TCO_FUNCTION
+        IF Z%(F+1)>64 THEN CALL DO_TCO_FUNCTION
         EVAL_DO_FUNCTION_SKIP:
 
         REM pop and release f/args

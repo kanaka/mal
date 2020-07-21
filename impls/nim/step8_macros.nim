@@ -2,19 +2,32 @@ import rdstdin, tables, sequtils, os, types, reader, printer, env, core
 
 proc read(str: string): MalType = str.read_str
 
-proc is_pair(x: MalType): bool =
-  x.kind in {List, Vector} and x.list.len > 0
+proc quasiquote(ast: MalType): MalType
+
+proc quasiquote_loop(xs: seq[MalType]): MalType =
+  result = list()
+  for i in countdown(xs.high, 0):
+    var elt = xs[i]
+    if elt.kind == List and 0 < elt.list.len and elt.list[0] == symbol "splice-unquote":
+      result = list(symbol "concat", elt.list[1], result)
+    else:
+      result = list(symbol "cons", quasiquote(elt), result)
 
 proc quasiquote(ast: MalType): MalType =
-  if not ast.is_pair:
-    return list(symbol "quote", ast)
-  elif ast.list[0] == symbol "unquote":
-    return ast.list[1]
-  elif ast.list[0].is_pair and ast.list[0].list[0] == symbol "splice-unquote":
-    return list(symbol "concat", ast.list[0].list[1],
-      quasiquote(list ast.list[1 .. ^1]))
+  case ast.kind
+  of List:
+    if ast.list.len == 2 and ast.list[0] == symbol "unquote":
+      result = ast.list[1]
+    else:
+      result = quasiquote_loop(ast.list)
+  of Vector:
+    result = list(symbol "vec", quasiquote_loop(ast.list))
+  of Symbol:
+    result = list(symbol "quote", ast)
+  of HashMap:
+    result = list(symbol "quote", ast)
   else:
-    return list(symbol "cons", quasiquote(ast.list[0]), quasiquote(list(ast.list[1 .. ^1])))
+    result = ast
 
 proc is_macro_call(ast: MalType, env: Env): bool =
   ast.kind == List and ast.list.len > 0 and ast.list[0].kind == Symbol and
@@ -90,6 +103,9 @@ proc eval(ast: MalType, env: Env): MalType =
 
       of "quote":
         return ast.list[1]
+
+      of "quasiquoteexpand":
+        return ast.list[1].quasiquote
 
       of "quasiquote":
         ast = ast.list[1].quasiquote

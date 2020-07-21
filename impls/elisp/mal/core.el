@@ -1,79 +1,52 @@
+(require 'cl-lib)
+
 (defun mal-seq-p (mal-object)
-  (let ((type (mal-type mal-object)))
-    (if (or (eq type 'list) (eq type 'vector))
-        mal-true
-      mal-false)))
+  (memq (mal-type mal-object) '(list vector)))
 
 (defun mal-listify (mal-object)
-  (let ((type (mal-type mal-object)))
-    (if (eq type 'vector)
-        (append (mal-value mal-object) nil)
-      (mal-value mal-object))))
+  (cl-ecase (mal-type mal-object)
+    (list   (mal-value mal-object))
+    (vector (append (mal-value mal-object) nil))))
 
 (defun mal-= (a b)
-  (let ((a-type (mal-type a))
-        (b-type (mal-type b)))
-    (cond
-     ((and (and (not (eq a-type 'map))
-                (not (eq a-type 'list))
-                (not (eq a-type 'vector)))
-           (and (not (eq b-type 'map))
-                (not (eq b-type 'list))
-                (not (eq b-type 'vector))))
-      (mal-atom-= a b))
-     ((and (or (eq a-type 'list) (eq a-type 'vector))
-           (or (eq b-type 'list) (eq b-type 'vector)))
-      (mal-seq-= a b))
-     ((and (eq a-type 'map) (eq b-type 'map))
-      (mal-map-= a b))
-     (t
-      ;; incompatible types
-      nil))))
-
-(defun mal-atom-= (a b)
-  (equal (mal-value a) (mal-value b)))
+  (cl-case (mal-type a)
+    ((list vector) (and (mal-seq-p b)
+                        (mal-seq-= (mal-listify a) (mal-listify b))))
+    (map           (and (mal-map-p b)
+                        (mal-map-= (mal-value a) (mal-value b))))
+    (t             (equal (mal-value a) (mal-value b)))))
 
 (defun mal-seq-= (a b)
-  (when (= (length (mal-value a))
-           (length (mal-value b)))
-    (when (everyp 'mal-= (mal-listify a) (mal-listify b))
-      t)))
-
-(defun everyp (predicate list-a list-b)
-  (let ((everyp t))
-    (while (and everyp list-a list-b)
-      (let ((item-a (pop list-a))
-            (item-b (pop list-b)))
-        (when (not (funcall predicate item-a item-b))
-          (setq everyp nil))))
-    everyp))
+  (if a
+      (and b
+           (mal-= (car a) (car b))
+           (mal-seq-= (cdr a) (cdr b)))
+    (null b)))
 
 (defun mal-map-= (a b)
-  (catch 'return
-    (let ((a* (mal-value a))
-          (b* (mal-value b)))
-      (when (= (hash-table-count a*)
-               (hash-table-count b*))
-        (maphash (lambda (key a-value)
-                   (let ((b-value (gethash key b*)))
-                     (if b-value
-                         (when (not (mal-= a-value b-value))
-                           (throw 'return nil))
-                       (throw 'return nil))))
-                 a*)
-        ;; if we made it this far, the maps are equal
-        t))))
+  (when (= (hash-table-count a)
+           (hash-table-count b))
+    (catch 'return
+      (maphash (lambda (key a-value)
+                 (let ((b-value (gethash key b)))
+                   (unless (and b-value
+                                (mal-= a-value b-value))
+                     (throw 'return nil))))
+               a)
+      ;; if we made it this far, the maps are equal
+      t)))
 
 (define-hash-table-test 'mal-= 'mal-= 'sxhash)
 
 (defun mal-conj (seq &rest args)
-  (let ((type (mal-type seq))
-        (value (mal-value seq)))
-    (if (eq type 'vector)
-        (mal-vector (vconcat (append (append value nil) args)))
+  (let ((value (mal-value seq)))
+    (cl-ecase (mal-type seq)
+     (vector
+        (mal-vector (vconcat (append (append value nil) args))))
+     (list
       (while args
         (push (pop args) value))
-      (mal-list value))))
+      (mal-list value)))))
 
 (defun elisp-to-mal (arg)
   (cond
@@ -143,6 +116,7 @@
                                (value (apply (mal-value fn*) args*)))
                           (setf (aref atom 1) value)))))
 
+    (vec . ,(mal-fn (lambda (seq) (if (mal-vector-p seq) seq (mal-vector (mal-value seq))))))
     (cons . ,(mal-fn (lambda (arg list) (mal-list (cons arg (mal-listify list))))))
     (concat . ,(mal-fn (lambda (&rest lists)
                          (let ((lists* (mapcar (lambda (item) (mal-listify item)) lists)))
@@ -156,10 +130,8 @@
     (first . ,(mal-fn (lambda (seq)
                         (if (mal-nil-p seq)
                             mal-nil
-                          (let* ((list (mal-listify seq))
-                                 (value (car list)))
-                            (or value mal-nil))))))
-    (rest . ,(mal-fn (lambda (seq) (mal-list (cdr (mal-listify seq))))))
+                          (or (car (mal-listify seq)) mal-nil)))))
+    (rest . ,(mal-fn (lambda (seq) (mal-list (unless (mal-nil-p seq) (cdr (mal-listify seq)))))))
 
     (throw . ,(mal-fn (lambda (mal-object) (signal 'mal-custom (list mal-object)))))
 
@@ -185,7 +157,7 @@
     (map? . ,(mal-fn (lambda (arg) (if (mal-map-p arg) mal-true mal-false))))
 
     (symbol . ,(mal-fn (lambda (string) (mal-symbol (intern (mal-value string))))))
-    (keyword . ,(mal-fn (lambda (string) (mal-keyword (intern (concat ":" (mal-value string)))))))
+    (keyword . ,(mal-fn (lambda (x) (if (mal-keyword-p x) x (mal-keyword (intern (concat ":" (mal-value x))))))))
     (vector . ,(mal-fn (lambda (&rest args) (mal-vector (vconcat args)))))
     (hash-map . ,(mal-fn (lambda (&rest args)
                            (let ((map (make-hash-table :test 'mal-=)))
@@ -193,7 +165,7 @@
                                (puthash (pop args) (pop args) map))
                              (mal-map map)))))
 
-    (sequential? . ,(mal-fn 'mal-seq-p))
+    (sequential? . ,(mal-fn (lambda (mal-object) (if (mal-seq-p mal-object) mal-true mal-false))))
     (fn? . ,(mal-fn (lambda (arg) (if (or (mal-fn-p arg)
                                           (and (mal-func-p arg)
                                                (not (mal-func-macro-p arg))))

@@ -215,6 +215,7 @@ let CoreNs = {
   \ "slurp":       NewNativeFnLambda({a -> StringNew(join(readfile(a[0].val, "b"), "\n"))}),
   \ "cons":        NewNativeFn("MalCons"),
   \ "concat":      NewNativeFn("MalConcat"),
+  \ "vec":         NewNativeFnLambda({a -> VectorNew(a[0].val)}),
   \ "first":       NewNativeFnLambda({a -> NilQ(a[0]) ? g:MalNil : ListFirst(a[0])}),
   \ "nth":         NewNativeFnLambda({a -> ListNth(a[0], a[1].val)}),
   \ "rest":        NewNativeFnLambda({a -> NilQ(a[0]) ? ListNew([]) : ListRest(a[0])}),

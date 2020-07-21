@@ -66,6 +66,7 @@ our %ns = (
   'swap!'     => MalCode(-> $atom, $func, *@args { $atom.val = $func.apply($atom.val, |@args) }),
   cons        => MalCode({ MalList([$^a, |$^b.val]) }),
   concat      => MalCode({ MalList([@_.map({|$_.val})]) }),
+  vec         => MalCode({ MalVector([|$^a.val]) }),
   nth         => MalCode({ $^a[$^b.val] // die X::MalOutOfRange.new }),
   first       => MalCode({ $^a[0] // $NIL }),
   rest        => MalCode({ MalList([$^a[1..*]]) }),

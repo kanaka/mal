@@ -44,6 +44,7 @@ fun eval(_ast: MalType, _env: Env): MalType {
                     } else return NIL
                 }
                 "quote" -> return ast.nth(1)
+                "quasiquoteexpand" -> return quasiquote(ast.nth(1))
                 "quasiquote" -> ast = quasiquote(ast.nth(1))
                 "defmacro!" -> return defmacro(ast, env)
                 "macroexpand" -> return macroexpand(ast.nth(1), env)
@@ -83,36 +84,42 @@ private fun fn_STAR(ast: MalList, env: Env): MalType {
     return MalFnFunction(body, params, env, { s: ISeq -> eval(body, Env(env, params, s.seq())) })
 }
 
-private fun is_pair(ast: MalType): Boolean = ast is ISeq && ast.seq().any()
-
 private fun quasiquote(ast: MalType): MalType {
-    if (!is_pair(ast)) {
-        val quoted = MalList()
-        quoted.conj_BANG(MalSymbol("quote"))
-        quoted.conj_BANG(ast)
-        return quoted
+    when (ast) {
+        is MalList -> {
+            if (ast.count() == 2 && (ast.first() as? MalSymbol)?.value == "unquote") {
+                return ast.nth(1)
+            } else {
+                return ast.elements.foldRight(MalList(), ::quasiquote_loop)
+            }
+        }
+        is MalVector -> {
+            val result = MalList()
+            result.conj_BANG(MalSymbol("vec"))
+            result.conj_BANG(ast.elements.foldRight(MalList(), ::quasiquote_loop))
+            return result
+        }
+        is MalSymbol, is MalHashMap -> {
+            val quoted = MalList()
+            quoted.conj_BANG(MalSymbol("quote"))
+            quoted.conj_BANG(ast)
+            return quoted
+        }
+        else -> return ast
     }
+}
 
-    val seq = ast as ISeq
-    var first = seq.first()
-
-    if ((first as? MalSymbol)?.value == "unquote") {
-        return seq.nth(1)
+private fun quasiquote_loop(elt: MalType, acc: MalList): MalList {
+    val result = MalList()
+    if (elt is MalList && elt.count() == 2 && (elt.first() as? MalSymbol)?.value == "splice-unquote") {
+        result.conj_BANG(MalSymbol("concat"))
+        result.conj_BANG(elt.nth(1))
+    } else {
+        result.conj_BANG(MalSymbol("cons"))
+        result.conj_BANG(quasiquote(elt))
     }
-
-    if (is_pair(first) && ((first as ISeq).first() as? MalSymbol)?.value == "splice-unquote") {
-        val spliced = MalList()
-        spliced.conj_BANG(MalSymbol("concat"))
-        spliced.conj_BANG(first.nth(1))
-        spliced.conj_BANG(quasiquote(MalList(seq.seq().drop(1).toCollection(LinkedList<MalType>()))))
-        return spliced
-    }
-
-    val consed = MalList()
-    consed.conj_BANG(MalSymbol("cons"))
-    consed.conj_BANG(quasiquote(ast.first()))
-    consed.conj_BANG(quasiquote(MalList(seq.seq().drop(1).toCollection(LinkedList<MalType>()))))
-    return consed
+    result.conj_BANG(acc)
+    return result
 }
 
 private fun is_macro_call(ast: MalType, env: Env): Boolean {

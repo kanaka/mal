@@ -300,6 +300,11 @@ evalNoApply ast =
                         MalList ((MalSymbol "quote") :: args) ->
                             evalQuote args
 
+                        MalList [MalSymbol "quasiquoteexpand", expr] ->
+                            Eval.succeed <| evalQuasiQuote expr
+                        MalList (MalSymbol "quasiquoteexpand" :: _) ->
+                            Eval.fail "quasiquoteexpand: arg count"
+
                         MalList ((MalSymbol "quasiquote") :: args) ->
                             case args of
                                 [ expr ] ->
@@ -634,35 +639,27 @@ evalQuote args =
 evalQuasiQuote : MalExpr -> MalExpr
 evalQuasiQuote expr =
     let
-        apply list empty =
-            case list of
-                [ MalSymbol "unquote", ast ] ->
-                    ast
-
-                (MalList [ MalSymbol "splice-unquote", ast ]) :: rest ->
-                    makeCall "concat"
-                        [ ast
-                        , evalQuasiQuote (MalList rest)
-                        ]
-
-                ast :: rest ->
-                    makeCall "cons"
-                        [ evalQuasiQuote ast
-                        , evalQuasiQuote (MalList rest)
-                        ]
-
+        qq_loop : MalExpr -> MalExpr -> MalExpr
+        qq_loop elt acc =
+            case elt of
+                (MalList [MalSymbol "splice-unquote", form]) ->
+                    MalList <| [MalSymbol "concat", form, acc ]
                 _ ->
-                    makeCall "quote" [ empty ]
+                    MalList <| [MalSymbol "cons", evalQuasiQuote elt, acc ]
     in
         case expr of
-            MalList list ->
-                apply list (MalList [])
-
-            MalVector vec ->
-                apply (Array.toList vec) (MalVector Array.empty)
-
-            ast ->
-                makeCall "quote" [ ast ]
+            (MalList [MalSymbol "unquote", form]) ->
+                    form
+            (MalList xs) ->
+                    List.foldr qq_loop (MalList []) xs
+            (MalVector xs) ->
+                    MalList <| (\x -> [MalSymbol "vec", x]) <| Array.foldr qq_loop (MalList []) xs
+            (MalSymbol _) ->
+                    MalList <| [MalSymbol "quote", expr]
+            (MalMap _) ->
+                    MalList <| [MalSymbol "quote", expr]
+            _ ->
+                    expr
 
 
 macroexpand : MalExpr -> Eval MalExpr

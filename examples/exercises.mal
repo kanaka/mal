@@ -23,6 +23,7 @@
 (def! >= (fn* [a b] (not (< a b))))
 
 (def! list (fn* [& xs] xs))
+(def! vec (fn* [xs] (apply vector xs)))
 (def! prn (fn* [& xs] (println (apply pr-str xs))))
 (def! hash-map (fn* [& xs] (apply assoc {} xs)))
 (def! swap! (fn* [a f & xs] (reset! a (apply f (deref a) xs))))
@@ -48,7 +49,7 @@
 (def! conj
   (fn* [xs & ys]
     (if (vector? xs)
-      (apply vector (concat xs ys))
+      (vec (concat xs ys))
       (reduce (fn* [acc x] (cons x acc)) xs ys))))
 
 (def! do2 (fn* [& xs] (nth xs (- (count xs) 1))))
@@ -69,8 +70,7 @@
       (first (rest ast))
       (foldr _quasiquote_iter () ast))
     (if (vector? ast)
-      ;; TODO: once tests are fixed, replace 'list with 'vector.
-      (list 'apply 'list (foldr _quasiquote_iter () ast))
+      (list 'vec (foldr _quasiquote_iter () ast))
       (list 'quote ast)))))
 
 ;; Interpret kvs as [k1 v1 k2 v2 ... kn vn] and returns

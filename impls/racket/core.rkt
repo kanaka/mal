@@ -102,6 +102,7 @@
     'sequential? _sequential?
     'cons     (lambda a (cons (first a) (_to_list (second a))))
     'concat   (lambda a (apply append (map _to_list a)))
+    'vec      (lambda a (let* ([x (first a)]) (if (vector? x) x (list->vector x))))
     'nth      _nth
     'first    _first
     'rest     _rest

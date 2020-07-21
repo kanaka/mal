@@ -1,5 +1,6 @@
 ;; -*- lexical-binding: t; -*-
 
+(require 'cl-lib)
 (require 'mal/types)
 (require 'mal/func)
 (require 'mal/env)
@@ -14,34 +15,30 @@
         (fn (cdr binding)))
     (mal-env-set repl-env symbol fn)))
 
-(defun mal-pair-p (mal-object)
-  (let ((type (mal-type mal-object))
-        (value (mal-value mal-object)))
-    (if (and (or (eq type 'list) (eq type 'vector))
-             (not (zerop (length value))))
-        t
-      nil)))
+(defun starts-with-p (ast sym)
+  (let ((l (mal-value ast)))
+    (and l
+         (let ((s (car l)))
+           (and (mal-symbol-p s)
+                (eq (mal-value s) sym))))))
+
+(defun qq-reducer (elt acc)
+  (mal-list (if (and (mal-list-p elt)
+                     (starts-with-p elt 'splice-unquote))
+                (list (mal-symbol 'concat) (cadr (mal-value elt)) acc)
+              (list (mal-symbol 'cons) (quasiquote elt) acc))))
+
+(defun qq-iter (elts)
+  (cl-reduce 'qq-reducer elts :from-end t :initial-value (mal-list nil)))
 
 (defun quasiquote (ast)
-  (if (not (mal-pair-p ast))
-      (mal-list (list (mal-symbol 'quote) ast))
-    (let* ((a (mal-listify ast))
-           (a0 (car a))
-           (a0... (cdr a))
-           (a1 (cadr a)))
-      (cond
-       ((eq (mal-value a0) 'unquote)
-        a1)
-       ((and (mal-pair-p a0)
-             (eq (mal-value (car (mal-value a0)))
-                 'splice-unquote))
-        (mal-list (list (mal-symbol 'concat)
-                        (cadr (mal-value a0))
-                        (quasiquote (mal-list a0...)))))
-       (t
-        (mal-list (list (mal-symbol 'cons)
-                        (quasiquote a0)
-                        (quasiquote (mal-list a0...)))))))))
+  (cl-case (mal-type ast)
+    (list         (if (starts-with-p ast 'unquote)
+                      (cadr (mal-value ast))
+                    (qq-iter (mal-value ast))))
+    (vector       (mal-list (list (mal-symbol 'vec) (qq-iter (mal-value ast)))))
+    ((map symbol) (mal-list (list (mal-symbol 'quote) ast)))
+    (t            ast)))
 
 (defun READ (input)
   (read-str input))
@@ -51,40 +48,38 @@
     (while t
       (if (and (mal-list-p ast) (mal-value ast))
           (let* ((a (mal-value ast))
-                 (a0 (car a))
-                 (a0* (mal-value a0))
                  (a1 (cadr a))
                  (a2 (nth 2 a))
                  (a3 (nth 3 a)))
-            (cond
-             ((eq a0* 'def!)
+            (cl-case (mal-value (car a))
+             (def!
               (let ((identifier (mal-value a1))
                     (value (EVAL a2 env)))
                 (throw 'return (mal-env-set env identifier value))))
-             ((eq a0* 'let*)
-              (let* ((env* (mal-env env))
-                     (bindings (mal-value a1))
-                     (form a2))
-                (when (vectorp bindings)
-                  (setq bindings (append bindings nil)))
+             (let*
+              (let ((env* (mal-env env))
+                    (bindings (mal-listify a1))
+                    (form a2))
                 (while bindings
                   (let ((key (mal-value (pop bindings)))
                         (value (EVAL (pop bindings) env*)))
                     (mal-env-set env* key value)))
                 (setq env env*
                       ast form))) ; TCO
-             ((eq a0* 'quote)
+             (quote
               (throw 'return a1))
-             ((eq a0* 'quasiquote)
+             (quasiquoteexpand
+              (throw 'return (quasiquote a1)))
+             (quasiquote
               (setq ast (quasiquote a1))) ; TCO
-             ((eq a0* 'do)
+             (do
               (let* ((a0... (cdr a))
                      (butlast (butlast a0...))
                      (last (car (last a0...))))
                 (when butlast
                   (eval-ast (mal-list butlast) env))
                 (setq ast last))) ; TCO
-             ((eq a0* 'if)
+             (if
               (let* ((condition (EVAL a1 env))
                      (condition-type (mal-type condition))
                      (then a2)
@@ -95,7 +90,7 @@
                   (if else
                       (setq ast else) ; TCO
                     (throw 'return mal-nil)))))
-             ((eq a0* 'fn*)
+             (fn*
               (let* ((binds (mapcar 'mal-value (mal-value a1)))
                      (body a2)
                      (fn (mal-fn
@@ -120,20 +115,19 @@
         (throw 'return (eval-ast ast env))))))
 
 (defun eval-ast (ast env)
-  (let ((type (mal-type ast))
-        (value (mal-value ast)))
-    (cond
-     ((eq type 'symbol)
+  (let ((value (mal-value ast)))
+    (cl-case (mal-type ast)
+     (symbol
       (let ((definition (mal-env-get env value)))
         (or definition (error "Definition not found"))))
-     ((eq type 'list)
+     (list
       (mal-list (mapcar (lambda (item) (EVAL item env)) value)))
-     ((eq type 'vector)
+     (vector
       (mal-vector (vconcat (mapcar (lambda (item) (EVAL item env)) value))))
-     ((eq type 'map)
+     (map
       (let ((map (copy-hash-table value)))
-        (maphash (lambda (key value)
-                   (puthash key (EVAL value env) map))
+        (maphash (lambda (key val)
+                   (puthash key (EVAL val env) map))
                  map)
         (mal-map map)))
      (t
@@ -169,14 +163,12 @@
       ;; empty input, carry on
       )
      (unterminated-sequence
-      (let* ((type (cadr err))
-             (end
-              (cond
-               ((eq type 'string) ?\")
-               ((eq type 'list) ?\))
-               ((eq type 'vector) ?\])
-               ((eq type 'map) ?}))))
-        (princ (format "Expected '%c', got EOF\n" end))))
+      (princ (format "Expected '%c', got EOF\n"
+                     (cl-case (cadr err)
+                       (string ?\")
+                       (list   ?\))
+                       (vector ?\])
+                       (map    ?})))))
      (error ; catch-all
       (println (error-message-string err)))))
 

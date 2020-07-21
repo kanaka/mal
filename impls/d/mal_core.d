@@ -213,6 +213,12 @@ static MalType mal_concat(MalType[] a ...)
     return new MalList(res);
 }
 
+static MalType mal_vec(MalType[] a ...)
+{
+    verify_args_count(a, 1);
+    return new MalVector(verify_cast!MalSequential(a[0]).elements);
+}
+
 static MalType mal_nth(MalType[] a ...)
 {
     verify_args_count(a, 2);
@@ -397,6 +403,7 @@ static this()
         "sequential?": (a ...) => mal_type_q!MalSequential(a),
         "cons":     &mal_cons,
         "concat":   &mal_concat,
+        "vec":      &mal_vec,
         "nth":      &mal_nth,
         "first":    &mal_first,
         "rest":     &mal_rest,

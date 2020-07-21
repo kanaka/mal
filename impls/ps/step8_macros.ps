@@ -15,31 +15,50 @@
 
 
 % eval
-% is_pair?: ast -> is_pair? -> bool
-% return true if non-empty list, otherwise false
-/is_pair? { 
-    dup _sequential? { _count 0 gt }{ pop false } ifelse
+% sym ast -> starts_with -> bool
+/starts_with {
+    dup _list? {
+        0 _nth
+        eq
+    }{
+        pop pop false
+    } ifelse
 } def
 
 % ast -> quasiquote -> new_ast
 /quasiquote { 3 dict begin
     /ast exch def
-    ast is_pair? not { %if not is_pair?
+    ast _sequential? not {
+      ast _symbol? ast _hash_map? or {
         /quote ast 2 _list
-    }{ 
-        /a0 ast 0 _nth def
-        a0 /unquote eq { %if a0 unquote symbol
+      }{
+        ast
+      } ifelse
+    }{
+        /unquote ast starts_with {
             ast 1 _nth
-        }{ a0 is_pair? { %elseif a0 is_pair?
-            /a00 a0 0 _nth def
-            a00 /splice-unquote eq { %if splice-unquote
-                /concat a0 1 _nth ast _rest quasiquote 3 _list
-            }{ %else not splice-unquote
-                /cons a0 quasiquote ast _rest quasiquote 3 _list
+        }{
+            /res 0 _list def
+            ast /data get aload length { % reverse traversal
+                /elt exch def
+                /res
+                /splice-unquote elt starts_with {
+                    /concat
+                    elt 1 _nth
+                }{
+                    /cons
+                    elt quasiquote
+                } ifelse
+                res
+                3 _list
+                def
+            } repeat
+            ast _list? {
+                res
+            }{
+                /vec res 2 _list
             } ifelse
-        }{ % else not a0 is_pair?
-            /cons a0 quasiquote ast _rest quasiquote 3 _list
-        } ifelse } ifelse
+        } ifelse
     } ifelse
 end } def
 
@@ -134,6 +153,8 @@ end } def
             /loop? true def % loop
         }{ /quote a0 eq { %if quote
             ast 1 _nth
+        }{ /quasiquoteexpand a0 eq {%if quasiquoteexpand
+            ast 1 _nth quasiquote
         }{ /quasiquote a0 eq { %if quasiquote
             ast 1 _nth quasiquote
             env
@@ -182,7 +203,7 @@ end } def
             }{ %else (regular procedure/function)
                 (cannot apply native proc!\n) print quit
             } ifelse } ifelse
-        } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse
+        } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse
       } ifelse
     } ifelse
 

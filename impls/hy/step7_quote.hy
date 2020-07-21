@@ -13,23 +13,23 @@
   (read-str str))
 
 ;; eval
-(defn pair? [x]
-  (and (core.sequential? x) (> (len x) 0)))
-
+(defn qq-loop [elt acc]
+  (if (and (instance? tuple elt)
+           (= (first elt) (Sym "splice-unquote")))
+    (tuple [(Sym "concat") (get elt 1) acc])
+    (tuple [(Sym "cons") (QUASIQUOTE elt) acc])))
+(defn qq-foldr [xs]
+  (if (empty? xs)
+    (,)
+    (qq-loop (first xs) (qq-foldr (tuple (rest xs))))))
 (defn QUASIQUOTE [ast]
   (if
-    (not (pair? ast))
-    (tuple [(Sym "quote") ast])
-
-    (= (Sym "unquote") (first ast))
-    (nth ast 1)
-
-    (and (pair? (first ast))
-         (= (Sym "splice-unquote") (first (first ast))))
-    (tuple [(Sym "concat") (nth (first ast) 1) (QUASIQUOTE (tuple (rest ast)))])
-
-    True
-    (tuple [(Sym "cons") (QUASIQUOTE (first ast)) (QUASIQUOTE (tuple (rest ast)))])))
+    (instance? list ast)            (tuple [(Sym "vec") (qq-foldr ast)])
+    (symbol? ast)                   (tuple [(Sym "quote") ast])
+    (instance? dict ast)            (tuple [(Sym "quote") ast])
+    (not (instance? tuple ast))     ast
+    (= (first ast) (Sym "unquote")) (get ast 1)
+    True                            (qq-foldr ast)))
 
 (defn eval-ast [ast env]
   ;;(print "eval-ast:" ast (type ast))
@@ -71,6 +71,9 @@
 
                 (= (Sym "quote") a0)
                 a1
+
+                (= (Sym "quasiquoteexpand") a0)
+                (QUASIQUOTE a1)
 
                 (= (Sym "quasiquote") a0)
                 (do (setv ast (QUASIQUOTE a1)) (continue)) ;; TCO

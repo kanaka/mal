@@ -402,6 +402,7 @@ declare -A core_ns=(
     [sequential?]=sequential?
     [cons]=cons
     [concat]=concat
+    [vec]=vec
     [nth]=nth
     [first]=_first
     [rest]=_rest

@@ -84,6 +84,7 @@ exports.ns = {
   'sequential?': types._sequential_Q,
   'cons': (a,b) -> [a].concat(b),
   'concat': (a=[],b...) -> a.concat(b...),
+  'vec': (a) -> types._vector a...,
   'nth': (a,b) -> if a.length > b then a[b] else
     throw new Error "nth: index out of bounds",
   'first': (a) -> if a != null and a.length > 0 then a[0] else null,

@@ -208,6 +208,14 @@ package body Types.Sequences is
       end case;
    end Rest;
 
+   function Vec (Args : in T_Array) return T is
+   begin
+      Err.Check (Args'Length = 1
+                   and then Args (Args'First).Kind in Kind_Sequence,
+                 "expects a sequence");
+      return (Kind_Vector, Args (Args'First).Sequence);
+   end Vec;
+
    function Vector (Args : in T_Array) return T
    is
       Ref : constant Sequence_Ptr := Constructor (Args'Length);

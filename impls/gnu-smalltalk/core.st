@@ -222,6 +222,8 @@ Core Ns at: #symbol put:
     (Fn new: [ :args | MALSymbol new: args first value asSymbol ]).
 Core Ns at: #keyword put:
     (Fn new: [ :args | MALKeyword new: args first value asSymbol ]).
+Core Ns at: #'vec' put:
+    (Fn new: [ :args | MALVector new: args first value ]).
 Core Ns at: #vector put:
     (Fn new: [ :args | MALVector new: (OrderedCollection from: args) ]).
 Core Ns at: #'hash-map' put:

@@ -1,3 +1,4 @@
+import functools
 import sys, traceback
 import mal_readline
 import mal_types as types
@@ -10,23 +11,27 @@ def READ(str):
     return reader.read_str(str)
 
 # eval
-def is_pair(x):
-    return types._sequential_Q(x) and len(x) > 0
+def qq_loop(acc, elt):
+    if types._list_Q(elt) and len(elt) == 2 and elt[0] == u'splice-unquote':
+        return types._list(types._symbol(u'concat'), elt[1], acc)
+    else:
+        return types._list(types._symbol(u'cons'), quasiquote(elt), acc)
+
+def qq_foldr(seq):
+    return functools.reduce(qq_loop, reversed(seq), types._list())
 
 def quasiquote(ast):
-    if not is_pair(ast):
-        return types._list(types._symbol("quote"),
-                           ast)
-    elif ast[0] == 'unquote':
-        return ast[1]
-    elif is_pair(ast[0]) and ast[0][0] == 'splice-unquote':
-        return types._list(types._symbol("concat"),
-                           ast[0][1],
-                           quasiquote(ast[1:]))
+    if types._list_Q(ast):
+        if len(ast) == 2 and ast[0] == u'unquote':
+            return ast[1]
+        else:
+            return qq_foldr(ast)
+    elif types._hash_map_Q(ast) or types._symbol_Q(ast):
+        return types._list(types._symbol(u'quote'), ast)
+    elif types._vector_Q (ast):
+        return types._list(types._symbol(u'vec'), qq_foldr(ast))
     else:
-        return types._list(types._symbol("cons"),
-                           quasiquote(ast[0]),
-                           quasiquote(ast[1:]))
+        return ast
 
 def is_macro_call(ast, env):
     return (types._list_Q(ast) and
@@ -83,6 +88,8 @@ def EVAL(ast, env):
             # Continue loop (TCO)
         elif "quote" == a0:
             return ast[1]
+        elif "quasiquoteexpand" == a0:
+            return quasiquote(ast[1]);
         elif "quasiquote" == a0:
             ast = quasiquote(ast[1]);
             # Continue loop (TCO)

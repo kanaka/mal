@@ -39,25 +39,39 @@ def _symbol_v(name):
     end;
 
 def quasiquote:
-    if isPair then
-        .value as $value | null |
-        if ($value[0] | _symbol_v("unquote")) then
-            $value[1]
-        else
-            if isPair($value[0]) and ($value[0].value[0] | _symbol_v("splice-unquote")) then
-                    [_symbol("concat")] +
-                    [$value[0].value[1]] + 
-                    [($value[1:] | wrap("list") | quasiquote)] | wrap("list")
-            else
-                    [_symbol("cons")] + 
-                    [($value[0] | quasiquote)] +
-                    [($value[1:] | wrap("list") | quasiquote)] | wrap("list")
-            end
-        end
-    else
-            [_symbol("quote")] + 
-            [.] | wrap("list")
-    end;
+
+    # If input is ('name, arg), return arg, else nothing.
+    def _starts_with(name):
+        select(.kind == "list")
+        | .value
+        | select(length == 2)
+        | select(.[0] | _symbol_v(name))
+        | .[1];
+
+    # Right-folding function. The current element is provided as input.
+    def qq_loop(acc):
+        ((_starts_with("splice-unquote") | [_symbol("concat"), ., acc])
+         // [_symbol("cons"), quasiquote, acc])
+        | {kind:"list", value:.};
+
+    # Adapt parameters for jq foldr.
+    def qq_foldr:
+        .value
+        | reverse
+        | reduce .[] as $elt ({kind:"list", value:[]};
+                              . as $acc | $elt | qq_loop($acc));
+
+    _starts_with("unquote")
+    // (
+        select(.kind == "list")
+        | qq_foldr
+    ) // (
+        select(.kind == "vector")
+        | {kind:"list", value:[_symbol("vec"), qq_foldr]}
+    ) // (
+        select(.kind == "hashmap" or .kind == "symbol")
+        | {kind:"list", value:[_symbol("quote"), .]}
+    ) // .;
 
 def set_macro_function:
     if .kind != "function" then
@@ -280,6 +294,10 @@ def EVAL(env):
                             (
                                 .value | select(.[0].value == "quote") as $value |
                                     $value[1] | TCOWrap($_menv; $_orig_retenv; false)
+                            ) //
+                            (
+                                .value | select(.[0].value == "quasiquoteexpand")
+                                | .[1] | quasiquote | TCOWrap($_menv; $_orig_retenv; false)
                             ) //
                             (
                                 .value | select(.[0].value == "quasiquote") as $value |

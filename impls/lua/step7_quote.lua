@@ -17,25 +17,36 @@ function READ(str)
 end
 
 -- eval
-function is_pair(x)
-    return types._sequential_Q(x) and #x > 0
+function starts_with(ast, sym)
+    return 0 < #ast and types._symbol_Q(ast[1]) and ast[1].val == sym
+end
+
+function quasiquote_loop(ast)
+   local acc = types.List:new({})
+   for i = #ast,1,-1 do
+      local elt = ast[i]
+      if types._list_Q(elt) and starts_with(elt, "splice-unquote") then
+         acc = types.List:new({types.Symbol:new("concat"), elt[2], acc})
+      else
+         acc = types.List:new({types.Symbol:new("cons"), quasiquote(elt), acc})
+      end
+   end
+   return acc
 end
 
 function quasiquote(ast)
-    if not is_pair(ast) then
+    if types._list_Q(ast) then
+        if starts_with(ast, "unquote") then
+            return ast[2]
+        else
+            return quasiquote_loop(ast)
+        end
+    elseif types._vector_Q(ast) then
+        return types.List:new({types.Symbol:new("vec"), quasiquote_loop(ast)})
+    elseif types._symbol_Q(ast) or types._hash_map_Q(ast) then
         return types.List:new({types.Symbol:new("quote"), ast})
-    elseif types._symbol_Q(ast[1]) and ast[1].val == 'unquote' then
-        return ast[2]
-    elseif is_pair(ast[1]) and
-           types._symbol_Q(ast[1][1]) and
-           ast[1][1].val == 'splice-unquote' then
-        return types.List:new({types.Symbol:new("concat"),
-                               ast[1][2],
-                               quasiquote(ast:slice(2))})
     else
-        return types.List:new({types.Symbol:new("cons"),
-                               quasiquote(ast[1]),
-                               quasiquote(ast:slice(2))})
+        return ast
     end
 end
 
@@ -76,6 +87,8 @@ function EVAL(ast, env)
         ast = a2 -- TCO
     elseif 'quote' == a0sym then
         return a1
+    elseif 'quasiquoteexpand' == a0sym then
+        return quasiquote(a1)
     elseif 'quasiquote' == a0sym then
         ast = quasiquote(a1) -- TCO
     elseif 'do' == a0sym then

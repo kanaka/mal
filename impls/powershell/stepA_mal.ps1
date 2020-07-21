@@ -12,28 +12,39 @@ function READ([String] $str) {
 }
 
 # EVAL
-function pair?($ast) {
-    (sequential? $ast) -and $ast.values.Count -gt 0
+function starts_with($lst, $sym) {
+    if ($lst.values.Count -ne 2) { return $false }
+    $a0 = $lst.nth(0)
+    return (symbol? $a0) -and ($a0.value -ceq $sym)
 }
-
-function quasiquote($ast) {
-    if (-not (pair? $ast)) {
-        return (new-list @((new-symbol "quote"), $ast))
+function qq_loop($elt, $acc) {
+    if ((list? $elt) -and (starts_with $elt "splice-unquote")) {
+        return (new-list @((new-symbol "concat"), $elt.nth(1), $acc))
     } else {
-        $a0 = $ast.nth(0)
-        if ((symbol? $a0) -and $a0.value -ceq "unquote") {
-            return $ast.nth(1)
-        } elseif (pair? $a0) {
-            $a00 = $a0.nth(0)
-            if ((symbol? $a00) -and $a00.value -ceq "splice-unquote") {
-                return (new-list @((new-symbol "concat"),
-                                   $a0.nth(1),
-                                   (quasiquote $ast.rest())))
+        return (new-list @((new-symbol "cons"), (quasiquote $elt), $acc))
+    }
+}
+function qq_foldr($xs) {
+    $acc = new-list @()
+    for ( $i = $xs.Count - 1; $i -ge 0; $i-- ) {
+        $acc = qq_loop $xs[$i] $acc
+    }
+    return $acc
+}
+function quasiquote($ast) {
+    if ($ast -eq $null) { return $ast }
+    switch ($ast.GetType().Name) {
+        "Symbol"    { return (new-list @((new-symbol "quote"), $ast)) }
+        "HashMap"   { return (new-list @((new-symbol "quote"), $ast)) }
+        "Vector"    { return (new-list @((new-symbol "vec"), (qq_foldr $ast.values))) }
+        "List"      {
+            if (starts_with $ast "unquote") {
+                return $ast.values[1]
+            } else {
+                return qq_foldr $ast.values
             }
         }
-        return (new-list @((new-symbol "cons"),
-                           (quasiquote $a0),
-                           (quasiquote $ast.rest())))
+        default     { return $ast }
     }
 }
 
@@ -98,6 +109,9 @@ function EVAL($ast, $env) {
         }
         "quote" {
             return $a1
+        }
+        "quasiquoteexpand" {
+            return (quasiquote $a1)
         }
         "quasiquote" {
             $ast = quasiquote $a1

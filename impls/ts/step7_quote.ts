@@ -11,43 +11,49 @@ function read(str: string): MalType {
     return readStr(str);
 }
 
+function starts_with(lst: MalType[], sym: string): boolean {
+    if (lst.length == 2) {
+        let a0 = lst[0]
+        switch (a0.type) {
+            case Node.Symbol:
+                return a0.v === sym;
+        }
+    }
+    return false;
+}
+
+function qq_loop(elt: MalType, acc: MalList): MalList {
+    if (elt.type == Node.List && starts_with(elt.list, "splice-unquote")) {
+        return new MalList([MalSymbol.get("concat"), elt.list[1], acc]);
+    } else {
+        return new MalList([MalSymbol.get("cons"), quasiquote(elt), acc]);
+    }
+}
+
+function qq_foldr(xs : MalType[]): MalList {
+    let acc = new MalList([])
+    for (let i=xs.length-1; 0<=i; i-=1) {
+         acc = qq_loop(xs[i], acc)
+    }
+    return acc;
+}
+
 function quasiquote(ast: MalType): MalType {
-    if (!isPair(ast)) {
-        return new MalList([MalSymbol.get("quote"), ast]);
-    }
-    if (!isSeq(ast)) {
-        throw new Error(`unexpected token type: ${ast.type}, expected: list or vector`);
-    }
-    const [arg1, arg2] = ast.list;
-    if (arg1.type === Node.Symbol && arg1.v === "unquote") {
-        return arg2;
-    }
-    if (isPair(arg1)) {
-        if (!isSeq(arg1)) {
-            throw new Error(`unexpected token type: ${arg1.type}, expected: list or vector`);
-        }
-        const [arg11, arg12] = arg1.list;
-        if (arg11.type === Node.Symbol && arg11.v === "splice-unquote") {
-            return new MalList([
-                MalSymbol.get("concat"),
-                arg12,
-                quasiquote(new MalList(ast.list.slice(1))),
-            ]);
-        }
-    }
-
-    return new MalList([
-        MalSymbol.get("cons"),
-        quasiquote(arg1),
-        quasiquote(new MalList(ast.list.slice(1))),
-    ]);
-
-    function isPair(ast: MalType) {
-        if (!isSeq(ast)) {
-            return false;
-        }
-
-        return 0 < ast.list.length;
+    switch (ast.type) {
+        case Node.Symbol:
+            return new MalList([MalSymbol.get("quote"), ast]);
+        case Node.HashMap:
+            return new MalList([MalSymbol.get("quote"), ast]);
+        case Node.List:
+            if (starts_with(ast.list, "unquote")) {
+                return ast.list[1];
+            } else {
+                return qq_foldr(ast.list);
+            }
+        case Node.Vector:
+            return new MalList([MalSymbol.get("vec"), qq_foldr(ast.list)]);
+        default:
+            return ast;
     }
 }
 
@@ -121,6 +127,9 @@ function evalMal(ast: MalType, env: Env): MalType {
                     }
                     case "quote": {
                         return ast.list[1];
+                    }
+                    case "quasiquoteexpand": {
+                        return quasiquote(ast.list[1]);
                     }
                     case "quasiquote": {
                         ast = quasiquote(ast.list[1]);

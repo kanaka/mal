@@ -119,6 +119,11 @@ def core_identify:
             function: "concat",
             inputs: -1
         },
+        "vec": {
+            kind: "fn",
+            function: "vec",
+            inputs: 1
+        },
         "nth": {
             kind: "fn",
             function: "nth",
@@ -373,6 +378,8 @@ def core_interp(arguments; env):
         select(.function == "cons") | ([arguments[0]] + arguments[1].value) | wrap("list")
     ) // (
         select(.function == "concat") | arguments | map(.value) | (add//[]) | wrap("list")
+    ) // (
+        select(.function == "vec") | {kind:"vector", value:arguments[0].value}
     ) // (
         select(.function == "nth")
             | _debug(arguments)

@@ -286,6 +286,10 @@ DEF FNcore_call(fn%, args%)
     WHEN 60
       PROCcore_prepare_args("?", "seq")
       =FNcore_seq(args%(0))
+    DATA vec, 61
+    WHEN 61
+      PROCcore_prepare_args("l", "vec")
+      =FNas_vector(args%(0))
     DATA "", -1
   ENDCASE
 ERROR &40E809F1, "Call to non-existent core function"

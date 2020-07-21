@@ -371,6 +371,7 @@ namespace Mal {
             {"sequential?", sequential_Q},
             {"cons", cons},
             {"concat", concat},
+            {"vec",  new MalFunc(a => new MalVector(((MalList)a[0]).getValue()))},
             {"nth", nth},
             {"first", first},
             {"rest",  rest},

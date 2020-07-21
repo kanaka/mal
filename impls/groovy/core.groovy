@@ -112,6 +112,7 @@ class core {
         "sequential?": { a -> types.&sequential_Q(a[0]) },
         "cons": { a -> [a[0]] + (a[1] as List) },
         "concat": core.&do_concat,
+        "vec": { a -> types.vector_Q(a[0]) ? a[0] : types.vector(a[0]) },
         "nth": core.&do_nth,
         "first": { a -> a[0] == null || a[0].size() == 0 ? null : a[0][0] },
         "rest": { a -> a[0] == null ? [] as List : a[0].drop(1) },

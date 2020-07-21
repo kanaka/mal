@@ -5,47 +5,38 @@ func read(_ s: String) throws -> Expr {
     return try Reader.read(s)
 }
 
-private func isPair(_ expr: Expr) -> Bool {
-    switch expr {
-    case let .list(values, _), let .vector(values, _):
-        return !values.isEmpty
-    default:
-        return false
-    }
-}
-
-private func asListOrVector(_ expr: Expr) -> [Expr]? {
-    switch expr {
-    case let .list(values, _), let .vector(values, _):
-        return values
-    default:
-        return nil
-    }
-}
-
-private func quasiquote(_ expr: Expr) throws -> Expr {
-    if !isPair(expr) {
-        return .list([.symbol("quote"), expr])
-    }
-    guard let ast = asListOrVector(expr), !ast.isEmpty else {
-        throw MalError.invalidArguments("quasiquote")
-    }
-
-    if case .symbol("unquote") = ast[0] {
-        guard ast.count > 1 else { throw MalError.invalidArguments("unquote") }
-        return ast[1]
-    }
-
-    if isPair(ast[0]), let ast0 = asListOrVector(ast[0]) {
-        if case .symbol("splice-unquote") = ast0.first {
-            guard ast0.count > 1 else { throw MalError.invalidArguments("splice-unquote") }
-            let rest = try quasiquote(.list(Array(ast[1...])))
-            return .list([.symbol("concat"), ast0[1], rest])
+private func qq_loop(_ elt: Expr, acc: Expr) throws -> Expr {
+    if case let .list(xs, _) = elt {
+        if 0 < xs.count && xs[0] == .symbol("splice-unquote") {
+            guard xs.count == 2 else { throw MalError.invalidArguments("splice-unquote") }
+            return .list([.symbol("concat"), xs[1], acc])
         }
     }
-
-    let rest = try quasiquote(.list(Array(ast[1...])))
-    return .list([.symbol("cons"), try quasiquote(ast[0]), rest])
+    return .list([.symbol("cons"), try quasiquote(elt), acc])
+}
+private func qq_foldr(_ xs: [Expr]) throws -> Expr {
+    var acc : Expr = .list([])
+    for i in stride(from: xs.count-1, through: 0, by: -1) {
+        acc = try qq_loop(xs[i], acc:acc)
+    }
+    return acc
+}
+private func quasiquote(_ expr: Expr) throws -> Expr {
+    switch expr {
+    case let .list(xs, _):
+        if 0 < xs.count && xs[0] == .symbol("unquote") {
+            guard xs.count == 2 else { throw MalError.invalidArguments("unquote") }
+            return xs[1]
+        } else {
+            return try qq_foldr(xs)
+        }
+    case let .vector(xs, _):
+        return .list([.symbol("vec"), try qq_foldr(xs)])
+    case .symbol(_), .hashmap(_):
+        return .list([.symbol("quote"), expr])
+    default:
+        return expr
+    }
 }
 
 private func macroExpand(_ expr: Expr, env: Env) throws -> Expr {
@@ -127,6 +118,10 @@ func eval(_ expr: Expr, env: Env) throws -> Expr {
         case .symbol("quote"):
             guard ast.count == 2 else { throw MalError.invalidArguments("quote") }
             return ast[1]
+
+        case .symbol("quasiquoteexpand"):
+            guard ast.count == 2 else { throw MalError.invalidArguments("quasiquoteexpand") }
+            return try quasiquote(ast[1])
 
         case .symbol("quasiquote"):
             guard ast.count == 2 else { throw MalError.invalidArguments("quasiquote") }

@@ -44,6 +44,7 @@ section .data
 
         static core_cons_symbol, db "cons"
         static core_concat_symbol, db "concat"
+        static core_vec_symbol, db "vec"
 
         static core_first_symbol, db "first"
         static core_rest_symbol, db "rest"
@@ -112,6 +113,8 @@ section .data
         static core_cons_not_vector, db "Error: cons expects a list or vector"
         
         static core_concat_not_list, db "Error: concat expects lists or vectors"
+
+        static core_vec_wrong_arg, db "Error: vec expects a list or vector "
 
         static core_first_missing_arg, db "Error: missing argument to first"
         static core_first_not_list, db "Error: first expects a list or vector"
@@ -192,6 +195,7 @@ core_environment:
         
         core_env_native core_cons_symbol, core_cons
         core_env_native core_concat_symbol, core_concat
+        core_env_native core_vec_symbol, core_vec
         
         core_env_native core_first_symbol, core_first
         core_env_native core_rest_symbol, core_rest
@@ -1795,6 +1799,36 @@ core_concat:
         mov rsi, rax
         jmp error_throw
 
+;; Convert a sequence to vector
+core_vec:
+        mov al, BYTE [rsi]
+        and al, content_mask
+        cmp al, content_pointer
+        jne .error
+        mov rsi, [rsi + Cons.car]
+
+        mov al, BYTE [rsi]
+        and al, block_mask + container_mask
+
+        ;; delegate lists to `vector` built-in
+        cmp al, container_list
+        je core_vector
+
+        ;; expect a sequence
+        cmp al, container_vector
+        jne .error
+
+        ;; return vectors unchanged
+        call incref_object
+        mov rax, rsi
+        ret
+
+.error
+        push rsi
+        print_str_mac error_string
+        print_str_mac core_vec_wrong_arg
+        pop rsi
+        jmp error_throw
 
 ;; Returns the first element of a list
 ;;

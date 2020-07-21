@@ -15,25 +15,31 @@
 (def '*ReplEnv (MAL-env NIL))
 (for Bind *Ns (set> *ReplEnv (car Bind) (cdr Bind)))
 
-(de is-pair (Ast)
-   (and (memq (MAL-type Ast) '(list vector)) (MAL-value Ast) T) )
+(de starts-with (Ast Sym) ;; MAL list, symbol -> nil or second element of Ast
+   (let (L  (MAL-value Ast)
+         A0 (car L))
+      (and (= (MAL-type A0) 'symbol)
+           (= (MAL-value A0) Sym)
+           (cadr L))))
+
+(de quasiquote-loop (Xs) ;; list -> MAL list
+   (MAL-list
+      (when Xs
+         (let (Elt (car Xs)
+               Unq (when (= (MAL-type Elt) 'list)
+                      (starts-with Elt 'splice-unquote))
+               Acc (quasiquote-loop (cdr Xs)))
+            (if Unq
+               (list (MAL-symbol 'concat) Unq Acc)
+               (list (MAL-symbol 'cons) (quasiquote Elt) Acc))))))
 
 (de quasiquote (Ast)
-   (if (not (is-pair Ast))
-      (MAL-list (list (MAL-symbol 'quote) Ast))
-      (let A (MAL-value Ast)
-         (cond
-            ((= (MAL-value (car A)) 'unquote)
-             (cadr A) )
-            ((and (is-pair (car A))
-                (= (MAL-value (car (MAL-value (car A)))) 'splice-unquote) )
-             (MAL-list (list (MAL-symbol 'concat)
-                          (cadr (MAL-value (car A)))
-                          (quasiquote (MAL-list (cdr A))) ) ) )
-            (T
-               (MAL-list (list (MAL-symbol 'cons)
-                            (quasiquote (car A))
-                            (quasiquote (MAL-list (cdr A))) ) ) ) ) ) ) )
+   (case (MAL-type Ast)
+      (list         (or (starts-with Ast 'unquote)
+                        (quasiquote-loop (MAL-value Ast))))
+      (vector       (MAL-list (list (MAL-symbol 'vec) (quasiquote-loop (MAL-value Ast)))))
+      ((map symbol) (MAL-list (list (MAL-symbol 'quote) Ast)))
+      (T            Ast)))
 
 (de EVAL (Ast Env)
    (catch 'done
@@ -50,6 +56,8 @@
                    (throw 'done (set> Env A1* (EVAL A2 Env))) )
                   ((= A0* 'quote)
                    (throw 'done A1) )
+                  ((= A0* 'quasiquoteexpand)
+                   (throw 'done (quasiquote A1)))
                   ((= A0* 'quasiquote)
                    (setq Ast (quasiquote A1)) ) # TCO
                   ((= A0* 'let*)

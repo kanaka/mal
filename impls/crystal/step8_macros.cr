@@ -51,36 +51,49 @@ module Mal
     read_str str
   end
 
-  macro pair?(list)
-    {{list}}.is_a?(Array) && !{{list}}.empty?
+  def starts_with(list, symbol)
+    if list.size == 2
+      head = list.first.unwrap
+      head.is_a? Mal::Symbol && head.str == symbol
+    end
+  end
+
+  def quasiquote_elts(list)
+    acc = Mal::Type.new(Mal::List.new)
+    list.reverse.each do |elt|
+      elt_val = elt.unwrap
+      if elt_val.is_a? Mal::List && starts_with(elt_val, "splice-unquote")
+        acc = Mal::Type.new(
+          Mal::List.new << gen_type(Mal::Symbol, "concat") << elt_val[1] << acc
+        )
+      else
+        acc = Mal::Type.new(
+          Mal::List.new << gen_type(Mal::Symbol, "cons") << quasiquote(elt) << acc
+        )
+      end
+    end
+    acc
   end
 
   def quasiquote(ast)
-    list = ast.unwrap
-
-    unless pair?(list)
-      return Mal::Type.new(
+    ast_val = ast.unwrap
+    case ast_val
+    when Mal::List
+      if starts_with(ast_val,"unquote")
+        ast_val[1]
+      else
+        quasiquote_elts(ast_val)
+      end
+    when Mal::Vector
+      Mal::Type.new(
+        Mal::List.new << gen_type(Mal::Symbol, "vec") << quasiquote_elts(ast_val)
+      )
+    when Mal::HashMap, Mal::Symbol
+      Mal::Type.new (
         Mal::List.new << gen_type(Mal::Symbol, "quote") << ast
       )
-    end
-
-    head = list.first.unwrap
-
-    case
-    # ("unquote" ...)
-    when head.is_a?(Mal::Symbol) && head.str == "unquote"
-      list[1]
-      # (("splice-unquote" ...) ...)
-    when pair?(head) && (arg0 = head.first.unwrap).is_a?(Mal::Symbol) && arg0.str == "splice-unquote"
-      tail = Mal::Type.new list[1..-1].each_with_object(Mal::List.new) { |e, l| l << e }
-      Mal::Type.new(
-        Mal::List.new << gen_type(Mal::Symbol, "concat") << head[1] << quasiquote(tail)
-      )
     else
-      tail = Mal::Type.new list[1..-1].each_with_object(Mal::List.new) { |e, l| l << e }
-      Mal::Type.new(
-        Mal::List.new << gen_type(Mal::Symbol, "cons") << quasiquote(list.first) << quasiquote(tail)
-      )
+      ast
     end
   end
 
@@ -200,6 +213,8 @@ module Mal
         Mal::Closure.new(list[2], params, env, func_of(env, params, list[2]))
       when "quote"
         list[1]
+      when "quasiquoteexpand"
+        quasiquote list[1]
       when "quasiquote"
         ast = quasiquote list[1]
         next # TCO

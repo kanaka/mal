@@ -81,6 +81,12 @@ module Core
         |> List.rev
         |> Node.makeList
 
+    let vec = function
+        | [Vector(_, _) as v] -> v
+        | [List(_, xs)] -> Node.ofArray <| Array.ofSeq xs
+        | [_] -> raise <| Error.argMismatch ()
+        | _   -> raise <| Error.wrongArity ()
+
     let nth = function
         | [List(_, lst); Number(n)] ->
             let rec nth_list n = function

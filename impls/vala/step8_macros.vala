@@ -87,51 +87,68 @@ class Mal.Main : GLib.Object {
         return val;
     }
 
+    //  If ast is (sym x), return x, else return null.
+    public static Mal.Val? unquoted (Mal.Val ast,
+                                     string sym)
+    throws Mal.Error {
+        var list = ast as Mal.List;
+        if (list == null || list.vs == null) return null;
+        var a0 = list.vs.data as Mal.Sym;
+        if (a0 == null || a0.v != sym) return null;
+        if (list.vs.next == null || list.vs.next.next != null)
+            throw new Mal.Error.BAD_PARAMS(sym + ": wrong arg count");
+        return list.vs.next.data;
+    }
+
+    public static Mal.Val qq_loop(Mal.Val elt,
+                                  Mal.Val acc)
+    throws Mal.Error {
+        var list = new Mal.List.empty();
+        var unq = unquoted(elt, "splice-unquote");
+        if (unq != null) {
+            list.vs.append(new Mal.Sym("concat"));
+            list.vs.append(unq);
+        } else {
+            list.vs.append(new Mal.Sym("cons"));
+            list.vs.append(quasiquote (elt));
+        }
+        list.vs.append(acc);
+        return list;
+    }
+
+    public static Mal.Val qq_foldr(Mal.Iterator xs)
+    throws Mal.Error {
+        if (xs.empty()) {
+            return new Mal.List.empty();
+        } else {
+            var elt = xs.deref();
+            xs.step();
+            return qq_loop(elt, qq_foldr(xs));
+        }
+    }
+
     public static Mal.Val quasiquote(Mal.Val ast)
     throws Mal.Error {
-        if (!is_pair(ast)) {
-            var list = new GLib.List<Mal.Val>();
-            list.append(new Mal.Sym("quote"));
-            list.append(ast);
-            return new Mal.List(list);
-        }
-
-        var iter = (ast as Mal.Listlike).iter();
-        var first = iter.deref();
-        if (first is Mal.Sym && (first as Mal.Sym).v == "unquote") {
-            if (iter.step().empty())
-                throw new Mal.Error.BAD_PARAMS(
-                    "unquote: expected two values");
-            return iter.deref();
-        }
-
-        if (is_pair(first)) {
-            var fiter = (first as Mal.Listlike).iter();
-            var ffirst = fiter.deref();
-            if (ffirst is Mal.Sym &&
-                (ffirst as Mal.Sym).v == "splice-unquote") {
-                var list = new GLib.List<Mal.Val>();
-                list.append(new Mal.Sym("concat"));
-                if (fiter.step().empty())
-                    throw new Mal.Error.BAD_PARAMS(
-                        "unquote: expected two values");
-                list.append(fiter.deref());
-                var sublist = new GLib.List<Mal.Val>();
-                while (!iter.step().empty())
-                    sublist.append(iter.deref());
-                list.append(quasiquote(new Mal.List(sublist)));
-                return new Mal.List(list);
+        if (ast is Mal.List) {
+            var unq = unquoted(ast, "unquote");
+            if (unq != null) {
+                return unq;
+            } else {
+                return qq_foldr((ast as Mal.List).iter());
             }
+        } else if (ast is Mal.Vector) {
+            var list = new Mal.List.empty();
+            list.vs.append(new Mal.Sym("vec"));
+            list.vs.append(qq_foldr((ast as Mal.Vector).iter()));
+            return list;
+        } else if (ast is Mal.Sym || ast is Mal.Hashmap) {
+            var list = new Mal.List.empty();
+            list.vs.append(new Mal.Sym("quote"));
+            list.vs.append(ast);
+            return list;
+        } else {
+            return ast;
         }
-
-        var list = new GLib.List<Mal.Val>();
-        list.append(new Mal.Sym("cons"));
-        list.append(quasiquote(first));
-        var sublist = new GLib.List<Mal.Val>();
-        while (!iter.step().empty())
-            sublist.append(iter.deref());
-        list.append(quasiquote(new Mal.List(sublist)));
-        return new Mal.List(list);
     }
 
     public static bool is_macro_call(Mal.Val v, Mal.Env env) {
@@ -269,6 +286,11 @@ class Mal.Main : GLib.Object {
                             throw new Mal.Error.BAD_PARAMS(
                                 "quote: expected one argument");
                         return list.next.data;
+                    case "quasiquoteexpand":
+                        if (list.length() != 2)
+                            throw new Mal.Error.BAD_PARAMS(
+                                "quasiquoteexpand: expected one argument");
+                        return quasiquote(list.next.data);
                     case "quasiquote":
                         if (list.length() != 2)
                             throw new Mal.Error.BAD_PARAMS(

@@ -35,14 +35,12 @@
                ;; empty input, carry on
                )
               (unterminated-sequence
-               (let* ((type (cadr err))
-                      (end
-                       (cond
-                        ((eq type 'string) ?\")
-                        ((eq type 'list) ?\))
-                        ((eq type 'vector) ?\])
-                        ((eq type 'map) ?}))))
-                 (princ (format "Expected '%c', got EOF\n" end))))
+               (princ (format "Expected '%c', got EOF\n"
+                              (cl-case (cadr err)
+                                (string ?\")
+                                (list   ?\))
+                                (vector ?\])
+                                (map    ?})))))
               (error ; catch-all
                (println (error-message-string err))
                (backtrace)))

@@ -21,30 +21,41 @@ namespace Mal {
         }
 
         // eval
-        public static bool is_pair(MalVal x) {
-            return x is MalList && ((MalList)x).size() > 0;
+        public static bool starts_with(MalVal ast, string sym) {
+            if (ast is MalList && !(ast is MalVector)) {
+                MalList list = (MalList)ast;
+                if (list.size() == 2 && list[0] is MalSymbol) {
+                    MalSymbol a0 = (MalSymbol)list[0];
+                    return a0.getName() == sym;
+                }
+            }
+            return false;
         }
 
+        public static MalVal qq_loop(MalList ast) {
+            MalVal acc = new MalList();
+            for(int i=ast.size()-1; 0<=i; i-=1) {
+                MalVal elt = ast[i];
+                if (starts_with(elt, "splice-unquote")) {
+                    acc = new MalList(new MalSymbol("concat"), ((MalList)elt)[1], acc);
+                } else {
+                    acc = new MalList(new MalSymbol("cons"), quasiquote(elt), acc);
+                }
+            }
+            return acc;
+        }
         public static MalVal quasiquote(MalVal ast) {
-            if (!is_pair(ast)) {
+            //  Check Vector subclass before List.
+            if (ast is MalVector) {
+                return new MalList(new MalSymbol("vec"), qq_loop(((MalList)ast)));
+            } else if (starts_with(ast, "unquote")) {
+                return ((MalList)ast)[1];
+            } else if (ast is MalList) {
+                return qq_loop((MalList)ast);
+            } else if (ast is MalSymbol || ast is MalHashMap) {
                 return new MalList(new MalSymbol("quote"), ast);
             } else {
-                MalVal a0 = ((MalList)ast)[0];
-                if ((a0 is MalSymbol) &&
-                    (((MalSymbol)a0).getName() == "unquote")) {
-                    return ((MalList)ast)[1];
-                } else if (is_pair(a0)) {
-                    MalVal a00 = ((MalList)a0)[0];
-                    if ((a00 is MalSymbol) &&
-                        (((MalSymbol)a00).getName() == "splice-unquote")) {
-                        return new MalList(new MalSymbol("concat"),
-                                           ((MalList)a0)[1],
-                                           quasiquote(((MalList)ast).rest()));
-                    }
-                }
-                return new MalList(new MalSymbol("cons"),
-                                   quasiquote(a0),
-                                   quasiquote(((MalList)ast).rest()));
+                return ast;
             }
         }
 
@@ -113,6 +124,8 @@ namespace Mal {
                 break;
             case "quote":
                 return ast[1];
+            case "quasiquoteexpand":
+                return quasiquote(ast[1]);
             case "quasiquote":
                 orig_ast = quasiquote(ast[1]);
                 break;

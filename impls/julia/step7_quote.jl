@@ -14,19 +14,32 @@ function READ(str)
 end
 
 # EVAL
-function ispair(ast)
-    (isa(ast, Array) || isa(ast, Tuple)) && length(ast) > 0
+function quasiquote_loop(elts)
+    acc = Any[]
+    for i in length(elts):-1:1
+        elt = elts[i]
+        if isa(elt, Array) && length(elt) == 2 && elt[1] == symbol("splice-unquote")
+            acc = Any[:concat, elt[2], acc]
+        else
+            acc = Any[:cons, quasiquote(elt), acc]
+        end
+    end
+    return acc
 end
 
 function quasiquote(ast)
-    if !ispair(ast)
-        [[:quote]; Any[ast]]
-    elseif ast[1] == :unquote
-        ast[2]
-    elseif ispair(ast[1]) && ast[1][1] == symbol("splice-unquote")
-        [[:concat]; Any[ast[1][2]]; Any[quasiquote(ast[2:end])]]
+    if isa(ast, Array)
+        if length(ast) == 2 && ast[1] == symbol("unquote")
+            ast[2]
+        else
+            quasiquote_loop(ast)
+        end
+    elseif isa(ast, Tuple)
+        Any[:vec, quasiquote_loop(ast)]
+    elseif typeof(ast) == Symbol || isa(ast, Dict)
+        Any[:quote, ast]
     else
-        [[:cons]; Any[quasiquote(ast[1])]; Any[quasiquote(ast[2:end])]]
+        ast
     end
 end
 
@@ -61,6 +74,8 @@ function EVAL(ast, env)
         # TCO loop
     elseif :quote == ast[1]
         return ast[2]
+    elseif :quasiquoteexpand == ast[1]
+        return quasiquote(ast[2])
     elseif :quasiquote == ast[1]
         ast = quasiquote(ast[2])
         # TCO loop

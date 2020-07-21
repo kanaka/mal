@@ -67,6 +67,7 @@ private mapping(string:function) builtins = ([
   "sequential?": lambda(Val a) { return to_bool(a.is_sequence); },
   "cons":        lambda(Val a, Val b) { return List(({ a }) + b.data); },
   "concat":      lambda(Val ... a) { return List(`+(({ }), @map(a, lambda(Val e) { return e.data; }))); },
+  "vec":         lambda(Val a) { return Vector(a.data); },
   "nth":         lambda(Val a, Val b) { return a.nth(b.value); },
   "first":       lambda(Val a) { return a.first(); },
   "rest":        lambda(Val a) { return a.rest(); },
