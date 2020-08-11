@@ -46,14 +46,36 @@ b
 ;=>(1 2 (3 4))
 
 ;; Testing simple quasiquote
+(quasiquote nil)
+;=>nil
 (quasiquote 7)
 ;=>7
+(quasiquote a)
+;=>a
+(quasiquote {"a" b})
+;=>{"a" b}
+
+;; Testing quasiquote with lists
+(quasiquote ())
+;=>()
 (quasiquote (1 2 3))
 ;=>(1 2 3)
+(quasiquote (a))
+;=>(a)
 (quasiquote (1 2 (3 4)))
 ;=>(1 2 (3 4))
 (quasiquote (nil))
 ;=>(nil)
+(quasiquote (1 ()))
+;=>(1 ())
+(quasiquote (() 1))
+;=>(() 1)
+(quasiquote (1 () 2))
+;=>(1 () 2)
+(quasiquote (()))
+;=>(())
+;; (quasiquote (f () g (h) i (j k) l))
+;; =>(f () g (h) i (j k) l)
 
 ;; Testing unquote
 (quasiquote (unquote 7))
@@ -77,6 +99,10 @@ b
 (quasiquote ((unquote 1) (unquote 2)))
 ;=>(1 2)
 
+;; Quasiquote and environments
+(let* (x 0) (quasiquote (unquote x)))
+;=>0
+
 ;; Testing splice-unquote
 (def! c (quote (1 "b" "d")))
 ;=>(1 "b" "d")
@@ -84,7 +110,12 @@ b
 ;=>(1 c 3)
 (quasiquote (1 (splice-unquote c) 3))
 ;=>(1 1 "b" "d" 3)
-
+(quasiquote (1 (splice-unquote c)))
+;=>(1 1 "b" "d")
+(quasiquote ((splice-unquote c) 2))
+;=>(1 "b" "d" 2)
+(quasiquote ((splice-unquote c) (splice-unquote c)))
+;=>(1 "b" "d" 1 "b" "d")
 
 ;; Testing symbol equality
 (= (quote abc) (quote abc))
@@ -102,11 +133,6 @@ b
 (= nil (quote abc))
 ;=>false
 
-;;;;; Test quine
-;;; TODO: needs expect line length fix
-;;;((fn* [q] (quasiquote ((unquote q) (quote (unquote q))))) (quote (fn* [q] (quasiquote ((unquote q) (quote (unquote q)))))))
-;;;=>((fn* [q] (quasiquote ((unquote q) (quote (unquote q))))) (quote (fn* [q] (quasiquote ((unquote q) (quote (unquote q)))))))
-
 ;>>> deferrable=True
 ;;
 ;; -------- Deferrable Functionality --------
@@ -121,6 +147,8 @@ b
 
 ;; Testing cons and concat with vectors
 
+(cons 1 [])
+;=>(1)
 (cons [1] [2 3])
 ;=>([1] 2 3)
 (cons 1 [2 3])
@@ -129,7 +157,6 @@ b
 ;=>(1 2 3 4 5 6)
 (concat [1 2])
 ;=>(1 2)
-
 
 ;>>> optional=True
 ;;
@@ -167,18 +194,154 @@ b
 `(1 ~@c 3)
 ;=>(1 1 "b" "d" 3)
 
-;; Testing unquote with vectors
+;>>> soft=True
+
+;; Testing vec function
+
+(vec (list))
+;=>[]
+(vec (list 1))
+;=>[1]
+(vec (list 1 2))
+;=>[1 2]
+(vec [])
+;=>[]
+(vec [1 2])
+;=>[1 2]
+
+;; Testing that vec does not mutate the original list
+(def! a (list 1 2))
+(vec a)
+;=>[1 2]
+a
+;=>(1 2)
+
+;; Test quine
+((fn* (q) (quasiquote ((unquote q) (quote (unquote q))))) (quote (fn* (q) (quasiquote ((unquote q) (quote (unquote q)))))))
+;=>((fn* (q) (quasiquote ((unquote q) (quote (unquote q))))) (quote (fn* (q) (quasiquote ((unquote q) (quote (unquote q)))))))
+
+;; Testing quasiquote with vectors
+(quasiquote [])
+;=>[]
+(quasiquote [[]])
+;=>[[]]
+(quasiquote [()])
+;=>[()]
+(quasiquote ([]))
+;=>([])
 (def! a 8)
 ;=>8
 `[1 a 3]
-;=>(1 a 3)
-;;; TODO: fix this
-;;;;=>[1 a 3]
+;=>[1 a 3]
+(quasiquote [a [] b [c] d [e f] g])
+;=>[a [] b [c] d [e f] g]
+
+;; Testing unquote with vectors
+`[~a]
+;=>[8]
+`[(~a)]
+;=>[(8)]
+`([~a])
+;=>([8])
+`[a ~a a]
+;=>[a 8 a]
+`([a ~a a])
+;=>([a 8 a])
+`[(a ~a a)]
+;=>[(a 8 a)]
 
 ;; Testing splice-unquote with vectors
 (def! c '(1 "b" "d"))
 ;=>(1 "b" "d")
+`[~@c]
+;=>[1 "b" "d"]
+`[(~@c)]
+;=>[(1 "b" "d")]
+`([~@c])
+;=>([1 "b" "d"])
 `[1 ~@c 3]
-;=>(1 1 "b" "d" 3)
-;;; TODO: fix this
-;;;;=>[1 1 "b" "d" 3]
+;=>[1 1 "b" "d" 3]
+`([1 ~@c 3])
+;=>([1 1 "b" "d" 3])
+`[(1 ~@c 3)]
+;=>[(1 1 "b" "d" 3)]
+
+;; Misplaced unquote or splice-unquote
+`(0 unquote)
+;=>(0 unquote)
+`(0 splice-unquote)
+;=>(0 splice-unquote)
+`[unquote 0]
+;=>[unquote 0]
+`[splice-unquote 0]
+;=>[splice-unquote 0]
+
+;; Debugging quasiquote
+(quasiquoteexpand nil)
+;=>nil
+(quasiquoteexpand 7)
+;=>7
+(quasiquoteexpand a)
+;=>(quote a)
+(quasiquoteexpand {"a" b})
+;=>(quote {"a" b})
+(quasiquoteexpand ())
+;=>()
+(quasiquoteexpand (1 2 3))
+;=>(cons 1 (cons 2 (cons 3 ())))
+(quasiquoteexpand (a))
+;=>(cons (quote a) ())
+(quasiquoteexpand (1 2 (3 4)))
+;=>(cons 1 (cons 2 (cons (cons 3 (cons 4 ())) ())))
+(quasiquoteexpand (nil))
+;=>(cons nil ())
+(quasiquoteexpand (1 ()))
+;=>(cons 1 (cons () ()))
+(quasiquoteexpand (() 1))
+;=>(cons () (cons 1 ()))
+(quasiquoteexpand (1 () 2))
+;=>(cons 1 (cons () (cons 2 ())))
+(quasiquoteexpand (()))
+;=>(cons () ())
+(quasiquoteexpand (f () g (h) i (j k) l))
+;=>(cons (quote f) (cons () (cons (quote g) (cons (cons (quote h) ()) (cons (quote i) (cons (cons (quote j) (cons (quote k) ())) (cons (quote l) ())))))))
+(quasiquoteexpand (unquote 7))
+;=>7
+(quasiquoteexpand a)
+;=>(quote a)
+(quasiquoteexpand (unquote a))
+;=>a
+(quasiquoteexpand (1 a 3))
+;=>(cons 1 (cons (quote a) (cons 3 ())))
+(quasiquoteexpand (1 (unquote a) 3))
+;=>(cons 1 (cons a (cons 3 ())))
+(quasiquoteexpand (1 b 3))
+;=>(cons 1 (cons (quote b) (cons 3 ())))
+(quasiquoteexpand (1 (unquote b) 3))
+;=>(cons 1 (cons b (cons 3 ())))
+(quasiquoteexpand ((unquote 1) (unquote 2)))
+;=>(cons 1 (cons 2 ()))
+(quasiquoteexpand (a (splice-unquote (b c)) d))
+;=>(cons (quote a) (concat (b c) (cons (quote d) ())))
+(quasiquoteexpand (1 c 3))
+;=>(cons 1 (cons (quote c) (cons 3 ())))
+(quasiquoteexpand (1 (splice-unquote c) 3))
+;=>(cons 1 (concat c (cons 3 ())))
+(quasiquoteexpand (1 (splice-unquote c)))
+;=>(cons 1 (concat c ()))
+(quasiquoteexpand ((splice-unquote c) 2))
+;=>(concat c (cons 2 ()))
+(quasiquoteexpand ((splice-unquote c) (splice-unquote c)))
+;=>(concat c (concat c ()))
+(quasiquoteexpand [])
+;=>(vec ())
+(quasiquoteexpand [[]])
+;=>(vec (cons (vec ()) ()))
+(quasiquoteexpand [()])
+;=>(vec (cons () ()))
+(quasiquoteexpand ([]))
+;=>(cons (vec ()) ())
+(quasiquoteexpand [1 a 3])
+;=>(vec (cons 1 (cons (quote a) (cons 3 ()))))
+(quasiquoteexpand [a [] b [c] d [e f] g])
+;=>(vec (cons (quote a) (cons (vec ()) (cons (quote b) (cons (vec (cons (quote c) ())) (cons (quote d) (cons (vec (cons (quote e) (cons (quote f) ()))) (cons (quote g) ()))))))))

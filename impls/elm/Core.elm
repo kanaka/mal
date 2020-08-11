@@ -390,6 +390,13 @@ ns =
                 List.foldl (go >> Eval.andThen) (Eval.succeed []) args
                     |> Eval.map MalList
 
+        vec args =
+            case args of
+                [MalVector xs] -> Eval.succeed <| MalVector xs
+                [MalList   xs] -> Eval.succeed <| MalVector <| Array.fromList xs
+                [_]            -> Eval.fail "vec: arg type"
+                _              -> Eval.fail "vec: arg count"
+
         nth args =
             let
                 get list index =
@@ -921,6 +928,7 @@ ns =
             |> Env.set "typeof" (makeFn typeof)
             |> Env.set "cons" (makeFn cons)
             |> Env.set "concat" (makeFn concat)
+            |> Env.set "vec" (makeFn vec)
             |> Env.set "nth" (makeFn nth)
             |> Env.set "first" (makeFn first)
             |> Env.set "rest" (makeFn rest)

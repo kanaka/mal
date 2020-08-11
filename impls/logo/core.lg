@@ -233,6 +233,10 @@ to mal_concat [:args]
 output obj_new "list apply "sentence map [obj_val ?] :args
 end
 
+to mal_vec :s
+output obj_new "vector obj_val :s
+end
+
 to mal_nth :a :i
 if (obj_val :i) >= _count :a [(throw "error [nth: index out of range])]
 output nth :a obj_val :i
@@ -355,7 +359,7 @@ output cond [
 end
 
 to mal_logo_eval :str
-make "res runresult obj_val :str
+localmake "res runresult obj_val :str
 if emptyp :res [output nil_new]
 output logo_to_mal first :res
 end
@@ -410,6 +414,7 @@ make "core_ns [
   [[symbol sequential?] [nativefn mal_sequential_q]]
   [[symbol cons]        [nativefn mal_cons]]
   [[symbol concat]      [nativefn mal_concat]]
+  [[symbol vec]         [nativefn mal_vec]]
   [[symbol nth]         [nativefn mal_nth]]
   [[symbol first]       [nativefn mal_first]]
   [[symbol rest]        [nativefn mal_rest]]

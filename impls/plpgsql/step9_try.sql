@@ -20,35 +20,61 @@ BEGIN
 END; $$ LANGUAGE plpgsql;
 
 -- eval
-CREATE FUNCTION mal.is_pair(ast integer) RETURNS boolean AS $$
+
+CREATE FUNCTION mal.qq_loop(elt integer, acc integer) RETURNS integer AS $$
+DECLARE
+    a0 integer;
 BEGIN
-    RETURN types._sequential_Q(ast) AND types._count(ast) > 0;
+    IF types._list_Q(elt) AND types._count(elt) = 2 THEN
+        a0 := types._first(elt);
+        IF types._symbol_Q(a0) AND a0 = types._symbolv('splice-unquote') THEN
+            RETURN types._list(ARRAY[types._symbolv('concat'), types._nth(elt, 1), acc]);
+        END IF;
+    END IF;
+    RETURN types._list(ARRAY[types._symbolv('cons'), mal.quasiquote(elt), acc]);
+END; $$ LANGUAGE plpgsql;
+
+CREATE FUNCTION mal.qq_foldr(xs integer) RETURNS integer AS $$
+DECLARE
+    elt integer;
+    acc integer := types._list(ARRAY[]::integer[]);
+BEGIN
+    FOREACH elt IN ARRAY types.array_reverse(types._valueToArray(xs)) LOOP
+        acc := mal.qq_loop(elt, acc);
+    END LOOP;
+    RETURN acc;
 END; $$ LANGUAGE plpgsql;
 
 CREATE FUNCTION mal.quasiquote(ast integer) RETURNS integer AS $$
 DECLARE
+    type integer;
     a0   integer;
-    a00  integer;
 BEGIN
-    IF NOT mal.is_pair(ast) THEN
-        RETURN types._list(ARRAY[types._symbolv('quote'), ast]);
-    ELSE
-        a0 := types._nth(ast, 0);
-        IF types._symbol_Q(a0) AND a0 = types._symbolv('unquote') THEN
-            RETURN types._nth(ast, 1);
-        ELSE
-            a00 := types._nth(a0, 0);
-            IF types._symbol_Q(a00) AND
-               a00 = types._symbolv('splice-unquote') THEN
-                RETURN types._list(ARRAY[types._symbolv('concat'),
-                                         types._nth(a0, 1),
-                                         mal.quasiquote(types._rest(ast))]);
+    SELECT type_id INTO type FROM types.value WHERE value_id = ast;
+    CASE
+    WHEN type = 8 THEN          --  list
+    BEGIN
+        IF types._count(ast) = 2 THEN
+            a0 := types._first(ast);
+            IF types._symbol_Q(a0) AND a0 = types._symbolv('unquote') THEN
+                RETURN types._nth(ast, 1);
             END IF;
         END IF;
-        RETURN types._list(ARRAY[types._symbolv('cons'),
-                                 mal.quasiquote(types._first(ast)),
-                                 mal.quasiquote(types._rest(ast))]);
-    END IF;
+        RETURN mal.qq_foldr(ast);
+    END;
+    WHEN type = 9 THEN          --  vector
+    BEGIN
+        RETURN types._list(ARRAY[types._symbolv('vec'), mal.qq_foldr(ast)]);
+    END;
+    WHEN type in (7, 10) THEN   --  symbol or map
+    BEGIN
+        RETURN types._list(ARRAY[types._symbolv('quote'), ast]);
+    END;
+    ELSE
+    BEGIN
+        RETURN ast;
+    END;
+    END CASE;
 END; $$ LANGUAGE plpgsql;
 
 CREATE FUNCTION mal.is_macro_call(ast integer, env integer) RETURNS boolean AS $$
@@ -198,6 +224,8 @@ BEGIN
     BEGIN
         RETURN types._nth(ast, 1);
     END;
+    WHEN a0sym = 'quasiquoteexpand' THEN
+        RETURN mal.quasiquote(types._nth(ast, 1));
     WHEN a0sym = 'quasiquote' THEN
     BEGIN
         ast := mal.quasiquote(types._nth(ast, 1));

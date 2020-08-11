@@ -19,11 +19,19 @@
 ;=>8
 
 ;; Testing macroexpand
+(macroexpand (one))
+;=>1
+(macroexpand (unless PRED A B))
+;=>(if PRED B A)
+(macroexpand (unless2 PRED A B))
+;=>(if (not PRED) A B)
 (macroexpand (unless2 2 3 4))
 ;=>(if (not 2) 3 4)
 
 ;; Testing evaluation of macro result
 (defmacro! identity (fn* (x) x))
+(let* (a 123) (macroexpand (identity a)))
+;=>a
 (let* (a 123) (identity a))
 ;=>123
 
@@ -31,6 +39,9 @@
 ()
 ;=>()
 
+;; Test that macros do not break quasiquote
+`(1)
+;=>(1)
 
 ;>>> deferrable=True
 ;;
@@ -73,10 +84,18 @@ x
 
 ;; Testing cond macro
 
+(macroexpand (cond))
+;=>nil
 (cond)
 ;=>nil
+(macroexpand (cond X Y))
+;=>(if X Y (cond))
 (cond true 7)
 ;=>7
+(cond false 7)
+;=>nil
+(macroexpand (cond X Y Z T))
+;=>(if X Y (cond Z T))
 (cond true 7 true 8)
 ;=>7
 (cond false 7 true 8)

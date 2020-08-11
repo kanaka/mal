@@ -66,6 +66,7 @@ const ns StringMap<fn(List<MalVal>) MalVal> = {
               a.each(e => list.append((e as MalSequential).val))
               return MalList.new(list)
             },
+  "vec":    (a List<MalVal>) => a[0] is MalVector ? a[0] : MalVector.new((a[0] as MalSequential).val),
   "nth":    (a List<MalVal>) => (a[0] as MalSequential).nth((a[1] as MalNumber).val),
   "first":  (a List<MalVal>) => a[0] is MalNil ? gNil : (a[0] as MalSequential).first,
   "rest":   (a List<MalVal>) => a[0] is MalNil ? MalList.new([]) : (a[0] as MalSequential).rest,

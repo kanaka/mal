@@ -256,6 +256,7 @@ package body Core is
       P ("throw",       Err.Throw'Access);
       P ("time-ms",     Time_Ms'Access);
       P ("vals",        Types.Maps.Vals'Access);
+      P ("vec",         Types.Sequences.Vec'Access);
       P ("vector",      Types.Sequences.Vector'Access);
       P ("with-meta",   With_Meta'Access);
    end NS_Add_To_Repl;

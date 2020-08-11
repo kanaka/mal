@@ -316,6 +316,10 @@ Namespace Mal
             return DirectCast(new MalList(lst),MalVal)
         End Function
 
+        Shared Function vec(a As MalList) As MalVal
+            return New MalVector(DirectCast(a(0),MalList).getValue())
+        End Function
+
         Shared Function nth(a As MalList) As MalVal
             Dim idx As Integer = DirectCast(a(1),MalInt).getValue()
             If (idx < DirectCast(a(0),MalList).size()) Then
@@ -515,6 +519,7 @@ Namespace Mal
             ns.Add("sequential?", New MalFunc(AddressOf sequential_Q))
             ns.Add("cons", New MalFunc(AddressOf cons))
             ns.Add("concat", New MalFunc(AddressOf concat))
+            ns.Add("vec", New MalFunc(AddressOf vec))
             ns.Add("nth", New MalFunc(AddressOf nth))
             ns.Add("first", New MalFunc(AddressOf first))
             ns.Add("rest",  New MalFunc(AddressOf rest))

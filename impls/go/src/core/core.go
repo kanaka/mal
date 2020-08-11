@@ -192,6 +192,17 @@ func concat(a []MalType) (MalType, error) {
 	return List{slc1, nil}, nil
 }
 
+func vec(a []MalType) (MalType, error) {
+	switch obj := a[0].(type) {
+	case Vector:
+		return obj, nil
+	case List:
+		return Vector{obj.Val, nil}, nil
+	default:
+		return nil, errors.New("vec: expects a sequence")
+	}
+}
+
 func nth(a []MalType) (MalType, error) {
 	slc, e := GetSlice(a[0])
 	if e != nil {
@@ -483,6 +494,7 @@ var NS = map[string]MalType{
 	"sequential?": call1b(Sequential_Q),
 	"cons":        call2e(cons),
 	"concat":      callNe(concat),
+	"vec":         call1e(vec),
 	"nth":         call2e(nth),
 	"first":       call1e(first),
 	"rest":        call1e(rest),

@@ -11,20 +11,39 @@ def READ(str)
 end
 
 # eval
-def pair?(x)
-    return sequential?(x) && x.size > 0
+def starts_with(ast, sym)
+    return ast.is_a?(List) && ast.size == 2 && ast[0] == sym
+end
+
+def qq_loop(ast)
+  acc = List.new []
+  ast.reverse_each do |elt|
+    if starts_with(elt, :"splice-unquote")
+      acc = List.new [:concat, elt[1], acc]
+    else
+      acc = List.new [:cons, quasiquote(elt), acc]
+    end
+  end
+  return acc
 end
 
 def quasiquote(ast)
-    if not pair?(ast)
-        return List.new [:quote, ast]
-    elsif ast[0] == :unquote
-        return ast[1]
-    elsif pair?(ast[0]) && ast[0][0] == :"splice-unquote"
-        return List.new [:concat, ast[0][1], quasiquote(ast.drop(1))]
+  return case ast
+  when List
+    if starts_with(ast, :unquote)
+      ast[1]
     else
-        return List.new [:cons, quasiquote(ast[0]), quasiquote(ast.drop(1))]
+      qq_loop(ast)
     end
+  when Vector
+    List.new [:vec, qq_loop(ast)]
+  when Hash
+    List.new [:quote, ast]
+  when Symbol
+    List.new [:quote, ast]
+  else
+    ast
+  end
 end
 
 def macro_call?(ast, env)
@@ -91,6 +110,8 @@ def EVAL(ast, env)
         ast = a2 # Continue loop (TCO)
     when :quote
         return a1
+    when :quasiquoteexpand
+        return quasiquote(a1);
     when :quasiquote
         ast = quasiquote(a1); # Continue loop (TCO)
     when :defmacro!

@@ -9,25 +9,42 @@ func READ(str)
   return read_str(str)
 }
 
-func is_pair(ast)
+func starts_with(seq, sym)
 {
-  type = structof(ast)
-  return ((type == MalList) || (type == MalVector)) && count(ast) > 0
+  return numberof(seq) == 2 && structof(*seq(1)) == MalSymbol && seq(1)->val == sym
+}
+
+func quasiquote_loop(seq)
+{
+  acc = MalList(val=&[])
+  for (i=numberof(seq); 0<i; --i) {
+    elt = *seq(i)
+    if (structof(elt) == MalList && starts_with(*elt.val, "splice-unquote")) {
+      acc = MalList(val=&[&MalSymbol(val="concat"), (*elt.val)(2), &acc])
+    } else {
+      acc = MalList(val=&[&MalSymbol(val="cons"), &quasiquote(elt), &acc])
+    }
+  }
+  return acc
 }
 
 func quasiquote(ast)
 {
-  if (!is_pair(ast)) return MalList(val=&[&MalSymbol(val="quote"), &ast])
-  lst = *ast.val
-  ast1 = *lst(1)
-  if (structof(ast1) == MalSymbol && ast1.val == "unquote") return *lst(2)
-  if (is_pair(ast1)) {
-    ast11 = *((*ast1.val)(1))
-    if (structof(ast11) == MalSymbol && ast11.val == "splice-unquote") {
-      return MalList(val=&[&MalSymbol(val="concat"), (*ast1.val)(2), &quasiquote(rest(ast))])
+  type = structof(ast)
+  if (type == MalList) {
+    seq = *ast.val
+    if (starts_with(seq, "unquote")) {
+      return *seq(2)
+    } else {
+      return quasiquote_loop(seq)
     }
+  } else if (type == MalVector) {
+    return MalList(val=&[&MalSymbol(val="vec"), &quasiquote_loop(*ast.val)])
+  } else if (type == MalHashmap || type == MalSymbol) {
+    return MalList(val=&[&MalSymbol(val="quote"), &ast])
+  } else {
+    return ast
   }
-  return MalList(val=&[&MalSymbol(val="cons"), &quasiquote(ast1), &quasiquote(rest(ast))])
 }
 
 func eval_ast(ast, env)
@@ -96,6 +113,8 @@ func EVAL(ast, env)
       // TCO
     } else if (a1 == "quote") {
       return *lst(2)
+    } else if (a1 == "quasiquoteexpand") {
+      return quasiquote(*lst(2))
     } else if (a1 == "quasiquote") {
       ast = quasiquote(*lst(2)) // TCO
     } else if (a1 == "do") {

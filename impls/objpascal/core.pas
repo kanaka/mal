@@ -204,6 +204,10 @@ function list_Q(Args: TMalArray) : TMal;
 begin
     list_Q := wrap_tf(Args[0].ClassType = TMalList);
 end;
+function vec(Args: TMalArray) : TMal;
+begin
+    vec := TMalVector.Create((Args[0] as TMalList).Val);
+end;
 function vector(Args: TMalArray) : TMal;
 begin
     vector := TMalVector.Create(Args);
@@ -604,6 +608,7 @@ begin
     NS['sequential?'] := @sequential_Q;
     NS['cons'] := @cons;
     NS['concat'] := @do_concat;
+    NS['vec'] := @vec;
     NS['nth'] := @nth;
     NS['first'] := @first;
     NS['rest'] := @rest;

@@ -86,6 +86,13 @@ defcore concat { lists argc }
     argc over MalList/count !
     MalList/concat ;;
 
+defcore vec ( argv[coll] argc )
+    drop
+    @
+    dup mal-type @ MalList = if
+        MalVector new tuck MalVector/list !
+    endif ;;
+
 defcore conj { argv argc }
     argv @ ( coll )
     argc 1 ?do

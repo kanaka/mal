@@ -1,8 +1,7 @@
 ;; These are the answers to the questions in ../docs/exercise.md.
 
 ;; In order to avoid unexpected circular dependencies among solutions,
-;; this files attempts to be self-contained.
-(def! identity (fn* [x] x))
+;; this answer file attempts to be self-contained.
 (def! reduce (fn* (f init xs)
   (if (empty? xs) init (reduce f (f init (first xs)) (rest xs)))))
 (def! foldr (fn* [f init xs]
@@ -23,9 +22,10 @@
 (def! <= (fn* [a b] (not (< b a))))
 (def! >= (fn* [a b] (not (< a b))))
 
-(def! hash-map (fn* [& xs] (apply assoc {} xs)))
 (def! list (fn* [& xs] xs))
+(def! vec (fn* [xs] (apply vector xs)))
 (def! prn (fn* [& xs] (println (apply pr-str xs))))
+(def! hash-map (fn* [& xs] (apply assoc {} xs)))
 (def! swap! (fn* [a f & xs] (reset! a (apply f (deref a) xs))))
 
 (def! count
@@ -44,65 +44,65 @@
   (fn* [f xs]
     (foldr (fn* [x acc] (cons (f x) acc)) () xs)))
 (def! concat
-   (fn* [& xs]
-    (foldr (fn* [xs ys] (foldr cons ys xs)) () xs)))
+  (fn* [& xs]
+    (foldr (fn* [x acc] (foldr cons acc x)) () xs)))
 (def! conj
   (fn* [xs & ys]
     (if (vector? xs)
-      (apply vector (concat xs ys))
-      (reduce (fn* [xs x] (cons x xs)) xs ys))))
+      (vec (concat xs ys))
+      (reduce (fn* [acc x] (cons x acc)) xs ys))))
 
 (def! do2 (fn* [& xs] (nth xs (- (count xs) 1))))
-(def! do3 (fn* [& xs] (reduce (fn* [acc x] x) nil xs)))
+(def! do3 (fn* [& xs] (reduce (fn* [_ x] x) nil xs)))
 ;; do2 will probably be more efficient when lists are implemented as
 ;; arrays with direct indexing, but when they are implemented as
 ;; linked lists, do3 may win because it only does one traversal.
 
-(defmacro! quote (fn* [ast] (list (fn* [] ast))))
+(defmacro! quote2 (fn* [ast]
+  (list (fn* [] ast))))
 (def! _quasiquote_iter (fn* [x acc]
   (if (if (list? x) (= (first x) 'splice-unquote)) ; logical and
     (list 'concat (first (rest x)) acc)
-    (list 'cons (list 'quasiquote x) acc))))
-(defmacro! quasiquote (fn* [ast]
+    (list 'cons (list 'quasiquote2 x) acc))))
+(defmacro! quasiquote2 (fn* [ast]
   (if (list? ast)
     (if (= (first ast) 'unquote)
       (first (rest ast))
       (foldr _quasiquote_iter () ast))
     (if (vector? ast)
-      ;; TODO: once tests are fixed, replace 'list with 'vector.
-      (list 'apply 'list (foldr _quasiquote_iter () ast))
+      (list 'vec (foldr _quasiquote_iter () ast))
       (list 'quote ast)))))
 
-(def! _letA_keys (fn* [binds]
-  (if (empty? binds)
-    ()
-    (cons (first binds) (_letA_keys (rest (rest binds)))))))
-(def! _letA_values (fn* [binds]
-  (if (empty? binds)
-    ()
-    (_letA_keys (rest binds)))))
-(def! _letA (fn* [binds form]
-  (cons (list 'fn* (_letA_keys binds) form) (_letA_values binds))))
+;; Interpret kvs as [k1 v1 k2 v2 ... kn vn] and returns
+;; (f k1 v1 (f k2 v2 (f ... (f kn vn)))).
+(def! _foldr_pairs (fn* [f init kvs]
+  (if (empty? kvs)
+    init
+    (let* [key (first kvs)
+           rst (rest kvs)
+           val (first rst)
+           acc (_foldr_pairs f init (rest rst))]
+      (f key val acc)))))
+(defmacro! let*A (fn* [binds form]
+  (let* [formal (_foldr_pairs (fn* [key val acc] (cons key acc)) () binds)
+         actual (_foldr_pairs (fn* [key val acc] (cons val acc)) () binds)]
+    `((fn* ~formal ~form) ~@actual))))
 ;; Fails for (let* [a 1 b (+ 1 a)] b)
-(def! _letB (fn* [binds form]
-  (if (empty? binds)
-    form
-    (list (list 'fn* [(first binds)] (_letB (rest (rest binds)) form))
-          (first (rest binds))))))
+(defmacro! let*B (fn* [binds form]
+  (let* [f (fn* [key val acc]
+                `((fn* [~key] ~acc) ~val))]
+    (_foldr_pairs f form binds))))
 ;; Fails for (let* (cst (fn* (n) (if (= n 0) nil (cst (- n 1))))) (cst 1))
 (def! _c_combinator (fn* [x] (x x)))
 (def! _d_combinator (fn* [f] (fn* [x] (f (fn* [v] ((x x) v))))))
 (def! _Y_combinator (fn* [x] (_c_combinator (_d_combinator x))))
-(def! _letC
-  (fn* [binds form]
-    (if (empty? binds)
-      form
-      (list (list 'fn* [(first binds)] (_letC (rest (rest binds)) form))
-            (list '_Y_combinator (list 'fn* [(first binds)] (first (rest binds))))))))
+(defmacro! let*C (fn* [binds form]
+  (let* [f (fn* [key val acc]
+                `((fn* [~key] ~acc) (_Y_combinator (fn* [~key] ~val))))]
+    (_foldr_pairs f form binds))))
 ;; Fails for mutual recursion.
 ;; See http://okmij.org/ftp/Computation/fixed-point-combinators.html
 ;; if you are motivated to implement solution D.
-(defmacro! let* _letC)
 
 (def! apply
   ;; Replace (f a b [c d]) with ('f 'a 'b 'c 'd) then evaluate the
@@ -156,10 +156,8 @@
     (fn* [xs]
       (reduce update_max 0 xs))))
 
-(def! compose
-  (let* [compose2 (fn* [f acc] (fn* [x] (f (acc x))))]
-    (fn* [& fs]
-      (foldr compose2 identity fs))))
-;; ((compose f1 f2) x) is equivalent to (f1 (f2 x))
-;; This is the mathematical composition. For practical purposes, `->`
-;; and `->>` defined in `core.mal` are more efficient and general.
+;; (fn* [& fs] (foldr (fn* [f acc] (fn* [x] (f (acc x)))) identity fs))
+;; computes the composition of an arbitrary number of functions.
+;; The first anonymous function is the mathematical composition.
+;; For practical purposes, `->` and `->>` in `core.mal` are more
+;; efficient and general.

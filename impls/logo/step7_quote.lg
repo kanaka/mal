@@ -9,22 +9,27 @@ to _read :str
 output read_str :str
 end
 
-to pairp :obj
-output and sequentialp :obj ((_count :obj) > 0)
+to starts_with :ast :sym
+if (obj_type :ast) <> "list [output "false]
+localmake "xs obj_val :ast
+if emptyp :xs [output "false]
+localmake "a0 first :xs
+output and ((obj_type :a0) = "symbol) ((obj_val :a0) = :sym)
 end
 
 to quasiquote :ast
-if not pairp :ast [output (mal_list symbol_new "quote :ast)]
-localmake "a0 nth :ast 0
-if symbolnamedp "unquote :a0 [output nth :ast 1]
-if pairp :a0 [
-  localmake "a00 nth :a0 0
-  if symbolnamedp "splice-unquote :a00 [
-    localmake "a01 nth :a0 1
-    output (mal_list symbol_new "concat :a01 (mal_list symbol_new "quasiquote rest :ast))
-  ]
-]
-output (mal_list symbol_new "cons (mal_list symbol_new "quasiquote :a0) (mal_list symbol_new "quasiquote rest :ast))
+if memberp obj_type :ast [hashmap symbol] [output (mal_list symbol_new "quote :ast)]
+if not sequentialp :ast [output :ast]
+if starts_with :ast "unquote [output nth :ast 1]
+localmake "result mal_list
+foreach reverse obj_val :ast [
+  ifelse starts_with ? "splice-unquote [
+    make "result (mal_list symbol_new "concat nth ? 1 :result)
+  ] [
+    make "result (mal_list symbol_new "cons quasiquote ? :result)
+  ] ]
+if (obj_type :ast) = "vector [make "result (mal_list symbol_new "vec :result)]
+output :result
 end
 
 to eval_ast :ast :env
@@ -66,6 +71,9 @@ forever [
 
     [[[symbol quasiquote]]
       make "ast quasiquote nth :ast 1 ]     ; TCO
+
+    [[[symbol quasiquoteexpand]]
+      output quasiquote nth :ast 1]
 
     [[[symbol do]]
       localmake "i 1

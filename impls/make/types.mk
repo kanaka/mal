@@ -237,6 +237,8 @@ _count = $(strip \
              $($(1)_size),\
              $(words $($(1)_value))))
 
+_empty? = $(call _EQ,0,$(_count))
+
 # Creates a new vector/list of the everything after but the first
 # element
 srest = $(word 1,$(foreach new_list,$(call _list),\

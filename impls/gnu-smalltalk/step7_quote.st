@@ -46,36 +46,44 @@ Object subclass: MAL [
         ^aClass new: items
     ]
 
+    MAL class >> starts_with: ast sym: sym  [
+        | a a0 |
+        ast type = #list ifFalse: [ ^false. ].
+        a := ast value.
+        a isEmpty ifTrue: [ ^false. ].
+        a0 := a first.
+        ^a0 type = #symbol and: [ a0 value = sym ].
+    ]
+
     MAL class >> quasiquote: ast [
-        | result a a0 a0_ a0_0 rest |
-        ast isPair ifFalse: [
+        | result acc |
+        (ast type = #symbol or: [ ast type = #map ]) ifTrue: [
             result := {MALSymbol new: #quote. ast}.
             ^MALList new: (OrderedCollection from: result)
         ].
-
-        a := ast value.
-        a0 := a first.
-
-        (a0 type = #symbol and: [ a0 value = #unquote ]) ifTrue: [ ^a second ].
-
-        a0 isPair ifTrue: [
-            a0_ := a0 value.
-            a0_0 := a0_ first.
-
-            (a0_0 type = #symbol and:
-             [ a0_0 value = #'splice-unquote' ]) ifTrue: [
-                rest := MALList new: a allButFirst.
-                result := {MALSymbol new: #concat.
-                           a0_ second.
-                           self quasiquote: rest}.
-                ^MALList new: (OrderedCollection from: result)
-            ]
+        (ast type = #list or: [ ast type = #vector ]) ifFalse: [
+            ^ast
         ].
 
-        rest := MALList new: a allButFirst.
-        result := {MALSymbol new: #cons. self quasiquote: a0.
-                   self quasiquote: rest}.
-        ^MALList new: (OrderedCollection from: result)
+        (self starts_with: ast sym: #unquote) ifTrue: [
+            ^ast value second
+        ].
+
+        result := {}.
+        acc := MALList new: (OrderedCollection from: result).
+        ast value reverseDo: [ : elt |
+            (self starts_with: elt sym: #'splice-unquote') ifTrue: [
+                result := {MALSymbol new: #concat. elt value second. acc}
+            ] ifFalse: [
+                result := {MALSymbol new: #cons. self quasiquote: elt. acc}
+            ].
+            acc := MALList new: (OrderedCollection from: result)
+        ].
+        ast type = #vector ifTrue: [
+            result := {MALSymbol new: #vec. acc}.
+            acc := MALList new: (OrderedCollection from: result)
+        ].
+        ^acc
     ]
 
     MAL class >> EVAL: aSexp env: anEnv [
@@ -155,6 +163,11 @@ Object subclass: MAL [
                 a0_ = #quote ifTrue: [
                     a1 := ast second.
                     ^a1
+                ].
+
+                a0_ = #quasiquoteexpand ifTrue: [
+                    a1 := ast second.
+                    ^self quasiquote: a1.
                 ].
 
                 a0_ = #quasiquote ifTrue: [

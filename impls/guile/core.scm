@@ -19,6 +19,8 @@
 
 (define (->list o) ((if (vector? o) vector->list identity) o))
 
+(define (vec lst) (if (vector? lst) lst (list->vector lst)))
+
 (define (_count obj)
   (cond
    ((_nil? obj) 0)
@@ -224,6 +226,7 @@
     (slurp       ,slurp)
     (cons        ,_cons)
     (concat      ,concat)
+    (vec         ,vec)
     (nth         ,_nth)
     (first       ,_first)
     (rest        ,_rest)

@@ -73,6 +73,13 @@ fn EVAL(mal_arg: *MalType, env_arg: *Env) MalError!*MalType {
                 else if(string_eql(symbol, "quote")) {
                     return EVAL_quote(mal, env);
                 }
+                else if(string_eql(symbol, "quasiquoteexpand")) {
+                    env.delete();
+                    (try mal.sequence_pop_first(Allocator)).delete(Allocator);
+                    var second = try mal.sequence_pop_first(Allocator);
+                    mal.delete(Allocator);
+                    return try quasiquote(second);
+                }
                 else if(string_eql(symbol, "quasiquote")) {
                     (try mal.sequence_pop_first(Allocator)).delete(Allocator);
                     var second = try mal.sequence_pop_first(Allocator);
@@ -115,13 +122,19 @@ fn eval(a1: *MalType) MalError!*MalType {
     return EVAL(try a1.copy(Allocator), try repl_environment.copy(Allocator));
 }
 
-fn is_pair(mal: *MalType) ?*MalType {
-    const ll = switch(mal.data) {
+fn starts_with(ast: *MalType, sym: []const u8) bool {
+    const ll = switch(ast.data) {
         .List => |l| l,
-        .Vector => |v| v,
-        else => return null,
+        else => return false,
     };
-    return linked_list.first(&ll);
+    if(ll.count() < 2) {
+        return false;
+    }
+    const ss = switch(ll.at(0).data) {
+        .Generic => |s| s,
+        else => return false,
+    };
+    return string_eql(ss, sym);
 }
 
 fn is_macro_call(mal: *MalType, env: *Env) ?*MalType {
@@ -319,51 +332,50 @@ fn EVAL_try(mal: *MalType, env: *Env) MalError!*MalType {
     return evaled_mal;
 }
 
-fn quasiquote(mal: *MalType) MalError!*MalType {
-    var optional_mal = is_pair(mal);
-    if(optional_mal == null) {
+fn quasiquote(ast: *MalType) MalError!*MalType {
+    const kind = MalTypeValue(ast.data);
+    if(kind == MalTypeValue.Generic or kind == MalTypeValue.HashMap) {
         const new_list = try MalType.new_list_empty(Allocator);
         try new_list.sequence_append(Allocator, try MalType.new_generic(Allocator, "quote"));
-        try new_list.sequence_append(Allocator, mal);
+        try new_list.sequence_append(Allocator, ast);
         return new_list;
     }
 
-    var ast_first = optional_mal.?;
-    switch(ast_first.data) {
-        .Generic => |s| {
-            if(string_eql(s, "unquote")) {
-                (try mal.sequence_pop_first(Allocator)).delete(Allocator);
-                const second_mal = try mal.sequence_pop_first(Allocator);
-                defer mal.delete(Allocator);
-                return second_mal;
-            }
-        },
-        else => {},
+    if(kind != MalTypeValue.List and kind != MalTypeValue.Vector) {
+        return ast;
     }
 
-    optional_mal = is_pair(ast_first);
-    if(optional_mal) |first_first| {
-        const s = switch(first_first.data) {
-            .Generic => |s| s,
-            else => "",
-        };
-        if(string_eql(s, "splice-unquote")) {
-            const new_list = try MalType.new_list_empty(Allocator);
+    defer ast.delete(Allocator);
+
+    if(starts_with(ast, "unquote")) {
+        (try ast.sequence_pop_first(Allocator)).delete(Allocator);
+        return ast.sequence_pop_first(Allocator);
+    }
+
+    var result = try MalType.new_list_empty(Allocator);
+    while(0 < (try ast.sequence_length())) {
+        var elt = try ast.sequence_pop_last(Allocator);
+        const new_list = try MalType.new_list_empty(Allocator);
+        if(starts_with(elt, "splice-unquote")) {
+            (try elt.sequence_pop_first(Allocator)).delete(Allocator);
+            defer elt.delete(Allocator);
             try new_list.sequence_append(Allocator, try MalType.new_generic(Allocator, "concat"));
-            const first_second = try ast_first.sequence_nth(1);
-            try new_list.sequence_append(Allocator, try first_second.copy(Allocator));
-            (try mal.sequence_pop_first(Allocator)).delete(Allocator);
-            try new_list.sequence_append(Allocator, try quasiquote(mal));
-            return new_list;
+            try new_list.sequence_append(Allocator, try elt.sequence_pop_first(Allocator));
+        } else {
+            try new_list.sequence_append(Allocator, try MalType.new_generic(Allocator, "cons"));
+            try new_list.sequence_append(Allocator, try quasiquote(elt));
         }
+        try new_list.sequence_append(Allocator, result);
+        result = new_list;
     }
 
-    const new_list = try MalType.new_list_empty(Allocator);
-    try new_list.sequence_append(Allocator, try MalType.new_generic(Allocator, "cons"));
-    _ = try mal.sequence_pop_first(Allocator);
-    try new_list.sequence_append(Allocator, try quasiquote(ast_first));
-    try new_list.sequence_append(Allocator, try quasiquote(mal));
-    return new_list;
+    if(kind == MalTypeValue.Vector) {
+        const new_list = try MalType.new_list_empty(Allocator);
+        try new_list.sequence_append(Allocator, try MalType.new_generic(Allocator, "vec"));
+        try new_list.sequence_append(Allocator, result);
+        result = new_list;
+    }
+    return result;
 }
 
 fn PRINT(optional_mal: ?*MalType) MalError![] u8 {

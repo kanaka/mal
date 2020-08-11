@@ -109,6 +109,10 @@ eval_list({list, [{symbol, "quote"}, AST], _Meta}, _Env) ->
     AST;
 eval_list({list, [{symbol, "quote"}|_], _Meta}, _Env) ->
     error("quote requires 1 argument");
+eval_list({list, [{symbol, "quasiquoteexpand"}, AST], _Meta}, Env) ->
+    quasiquote(AST);
+eval_list({list, [{symbol, "quasiquoteexpand"}|_], _Meta}, _Env) ->
+    error("quasiquoteexpand requires 1 argument");
 eval_list({list, [{symbol, "quasiquote"}, AST], _Meta}, Env) ->
     eval(quasiquote(AST), Env);
 eval_list({list, [{symbol, "quasiquote"}|_], _Meta}, _Env) ->
@@ -201,31 +205,27 @@ list_to_proplist([_H], _AccIn) ->
 list_to_proplist([K,V|T], AccIn) ->
     list_to_proplist(T, [{K, V}|AccIn]).
 
-quasiquote({T, [{list, [{symbol, "splice-unquote"}, First], _M1}|Rest], _M2}) when T == list orelse T == vector ->
-    % 3. if is_pair of first element of ast is true and the first element of
-    %    first element of ast (ast[0][0]) is a symbol named "splice-unquote":
-    %    return a new list containing: a symbol named "concat", the second element
-    %    of first element of ast (ast[0][1]), and the result of calling quasiquote
-    %    with the second through last element of ast.
-    {list, [{symbol, "concat"}, First] ++ [quasiquote({list, Rest, nil})], nil};
-quasiquote({T, [{symbol, "splice-unquote"}], _M}) when T == list orelse T == vector ->
+qqLoop ({list, [{symbol, "splice-unquote"}, Arg], _Meta}, Acc) ->
+    {list, [{symbol, "concat"}, Arg, Acc], nil};
+qqLoop({list, [{symbol, "splice-unquote"}|_], _Meta}, _Acc) ->
     {error, "splice-unquote requires an argument"};
-quasiquote({T, [{symbol, "unquote"}, AST], _M}) when T == list orelse T == vector ->
-    % 2. else if the first element of ast is a symbol named "unquote": return
-    %    the second element of ast.
-    AST;
-quasiquote({T, [{symbol, "unquote"}|_], _M}) when T == list orelse T == vector ->
-    {error, "unquote expects one argument"};
-quasiquote({T, [First|Rest], _M}) when T == list orelse T == vector ->
-    % 4. otherwise: return a new list containing: a symbol named "cons",
-    %    the result of calling quasiquote on first element of ast (ast[0]),
-    %    and result of calling quasiquote with the second through last
-    %    element of ast.
-    {list, [{symbol, "cons"}, quasiquote(First)] ++ [quasiquote({list, Rest, nil})], nil};
-quasiquote(AST) ->
-    % 1. if is_pair of ast is false: return a new list containing:
-    %    a symbol named "quote" and ast.
-    {list, [{symbol, "quote"}, AST], nil}.
+qqLoop(Elt, Acc) ->
+    {list, [{symbol, "cons"}, quasiquote(Elt), Acc], nil}.
+
+quasiquote({list, [{symbol, "unquote"}, Arg], _Meta}) ->
+    Arg;
+quasiquote({list, [{symbol, "unquote"}|_], _Meta}) ->
+    error("unquote requires 1 argument");
+quasiquote({list, List, _Meta}) ->
+    lists:foldr(fun qqLoop/2, {list, [], nil}, List);
+quasiquote({vector, List, _Meta}) ->
+    {list, [{symbol, "vec"}, lists:foldr(fun qqLoop/2, {list, [], nil}, List)], nil};
+quasiquote({symbol, _Symbol} = Arg) ->
+    {list, [{symbol, "quote"}, Arg], nil};
+quasiquote({map, _Map, _Meta} = Arg) ->
+    {list, [{symbol, "quote"}, Arg], nil};
+quasiquote(Arg) ->
+    Arg.
 
 is_macro_call({list, [{symbol, Name}|_], _Meta}, Env) ->
     case env:find(Env, {symbol, Name}) of

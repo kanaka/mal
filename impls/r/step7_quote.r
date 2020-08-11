@@ -11,26 +11,38 @@ READ <- function(str) {
 }
 
 # eval
-is_pair <- function(x) {
-    .sequential_q(x) && length(x) > 0
+starts_with <- function(ast, sym) {
+    .list_q(ast) && length(ast) == 2 && .symbol_q(ast[[1]]) && ast[[1]] == sym
+}
+
+quasiquote_elements <- function(ast) {
+    acc <- new.list()
+    i <- length(ast)
+    while (0 < i) {
+        elt <- ast[[i]]
+        if (starts_with(elt, "splice-unquote")) {
+            acc = new.list(new.symbol("concat"), elt[[2]], acc)
+        } else {
+            acc = new.list(new.symbol("cons"), quasiquote(elt), acc)
+        }
+        i <- i-1
+    }
+    acc
 }
 
 quasiquote <- function(ast) {
-    if (!is_pair(ast)) {
-        new.list(new.symbol("quote"),
-                 ast)
-    } else if (.symbol_q(ast[[1]]) && ast[[1]] == "unquote") {
-        ast[[2]]
-    } else if (is_pair(ast[[1]]) &&
-               .symbol_q(ast[[1]][[1]]) &&
-               ast[[1]][[1]] == "splice-unquote") {
-        new.list(new.symbol("concat"),
-                 ast[[1]][[2]],
-                 quasiquote(slice(ast, 2)))
+    if (.list_q(ast)) {
+        if (starts_with(ast, "unquote")) {
+            ast[[2]]
+        } else {
+            quasiquote_elements(ast)
+        }
+    } else if (.vector_q(ast)) {
+        new.list(new.symbol("vec"), quasiquote_elements(ast))
+    } else if (.symbol_q(ast) || .hash_map_q(ast)) {
+        new.list(new.symbol("quote"), ast)
     } else {
-        new.list(new.symbol("cons"),
-                 quasiquote(ast[[1]]),
-                 quasiquote(slice(ast, 2)))
+        ast
     }
 }
 
@@ -81,6 +93,8 @@ EVAL <- function(ast, env) {
         env <- let_env
     } else if (a0sym == "quote") {
         return(a1)
+    } else if (a0sym == "quasiquoteexpand") {
+        return(quasiquote(a1))
     } else if (a0sym == "quasiquote") {
         ast <- quasiquote(a1)
     } else if (a0sym == "do") {

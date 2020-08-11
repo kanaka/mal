@@ -48,6 +48,7 @@ $core_ns = {
     :vals =>      lambda {|a| List.new a.values},
 
     :sequential? => lambda {|a| sequential?(a)},
+    :vec =>       lambda {|a| Vector.new a},
     :cons =>      lambda {|a,b| List.new(b.clone.insert(0,a))},
     :concat =>    lambda {|*a| List.new(a && a.reduce(:+) || [])},
     :nth =>       lambda {|a,b| raise "nth: index out of range" if b >= a.size; a[b]},

@@ -12,7 +12,7 @@
 
     (list? ast)   (map (fn* [exp] (EVAL exp env)) ast)
 
-    (vector? ast) (apply vector (map (fn* [exp] (EVAL exp env)) ast))
+    (vector? ast) (vec (map (fn* [exp] (EVAL exp env)) ast))
 
     (map? ast)    (apply hash-map
                     (apply concat

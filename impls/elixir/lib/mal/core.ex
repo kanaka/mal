@@ -30,6 +30,7 @@ defmodule Mal.Core do
       "keyword" => &keyword/1,
       "symbol?" => &symbol?/1,
       "cons" => &cons/1,
+      "vec" => &vec/1,
       "vector?" => &vector?/1,
       "assoc" => &assoc/1,
       "dissoc" => &dissoc/1,
@@ -184,6 +185,11 @@ defmodule Mal.Core do
       |> Enum.concat
       |> list
   end
+
+  defp vec([{:list,   xs, _}]), do: vector(xs)
+  defp vec([{:vector, xs, _}]), do: vector(xs)
+  defp vec([_]),                do: throw({:error, "vec: arg type"})
+  defp vec(_),                  do: throw({:error, "vec: arg count"})
 
   defp assoc([{:map, hash_map, meta} | pairs]) do
     {:map, merge, _} = hash_map(pairs)

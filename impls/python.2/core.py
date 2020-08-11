@@ -126,6 +126,11 @@ def reset(atom: MalExpression, val: MalExpression) -> MalExpression:
     return val
 
 
+def vec(arg: MalExpression) -> MalExpression:
+    assert isinstance(arg, MalList) or isinstance(arg, MalVector)
+    return MalVector(arg.native ())
+
+
 def cons(first: MalExpression, rest: MalExpression) -> MalExpression:
     assert isinstance(rest, MalList) or isinstance(rest, MalVector)
     return MalList([first] + rest.native())
@@ -381,6 +386,7 @@ ns = {
     "atom?": MalFunctionCompiled(lambda args: MalBoolean(isinstance(args[0], MalAtom))),
     "deref": MalFunctionCompiled(lambda args: deref_q(args[0])),
     "reset!": MalFunctionCompiled(lambda args: reset(args[0], args[1])),
+    "vec": MalFunctionCompiled(lambda args: vec(args[0])),
     "cons": MalFunctionCompiled(lambda args: cons(args[0], args[1])),
     "concat": MalFunctionCompiled(concat),
     "not": MalFunctionCompiled(lambda args: not_(args[0])),

@@ -172,6 +172,7 @@ ns = {
         'sequential?': types._sequential_Q,
         'cons': cons,
         'concat': concat,
+        'vec': Vector,
         'nth': nth,
         'first': first,
         'rest': rest,

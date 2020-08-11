@@ -140,6 +140,17 @@ class Core {
         return MalList(res);
     }
 
+    static function do_vec(args:Array<MalType>) {
+        switch (args[0]) {
+            case MalList(l):
+                return MalVector(l);
+            case MalVector(l):
+                return args[0];
+            case _:
+                throw "vec called with non-sequence";
+        }
+    }
+
     static function nth(args) {
         return switch [args[0], args[1]] {
             case [seq, MalInt(idx)]:
@@ -366,6 +377,8 @@ class Core {
         "sequential?" => sequential_Q,
         "cons" => cons,
         "concat" => do_concat,
+        "vec" => do_vec,
+
         "nth" => nth,
         "first" => function(a) { return first(a[0]); },
         "rest" => function(a) { return rest(a[0]); },

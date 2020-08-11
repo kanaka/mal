@@ -220,6 +220,11 @@ unwrapSeq _ = throwStr "invalid concat"
 do_concat :: Fn
 do_concat args = toList . concat <$> mapM unwrapSeq args
 
+vec :: Fn
+vec [MalSeq _ _ xs] = return $ MalSeq (MetaData Nil) (Vect True) xs
+vec [_]             = throwStr "vec: arg type"
+vec _               = throwStr "vec: arg count"
+
 nth :: Fn
 nth [MalSeq _ _ lst, MalNumber idx] =
     case drop idx lst of
@@ -366,6 +371,7 @@ ns = [
     ("sequential?", pred1 sequential_Q),
     ("cons",        cons),
     ("concat",      do_concat),
+    ("vec",         vec),
     ("nth",         nth),
     ("first",       first),
     ("rest",        rest),

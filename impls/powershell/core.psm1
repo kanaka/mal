@@ -19,6 +19,14 @@ function concat {
     new-list $res
 }
 
+function vec($seq) {
+    if(vector? $seq) {
+        return $seq
+    } else {
+        return new-vector($seq.values)
+    }
+}
+
 function nth($lst, $idx) {
     if ($idx -ge $lst.values.Count) {
         throw "nth: index out of range"
@@ -147,6 +155,7 @@ $core_ns = @{
     "sequential?" = Get-Command sequential?;
     "cons"    = { param($a, $b); new-list (@($a) + $b.values) };
     "concat"  = Get-Command concat;
+    "vec"     = Get-Command vec;
     "nth"     = Get-Command nth;
     "first"   = { param($a); if ($a -eq $null) { $null } else { $a.first() } };
     "rest"    = { param($a); if ($a -eq $null) { new-list @() } else { $a.rest() } };

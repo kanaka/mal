@@ -395,6 +395,12 @@ public class core {
         }
     };
 
+    static MalFunction vec = new MalFunction() {
+        public MalVal apply(MalList a) throws MalThrowable {
+            return new MalVector(((MalList)a.nth(0)).getList());
+        }
+    };
+
     static MalFunction first = new MalFunction() {
         public MalVal apply(MalList a) throws MalThrowable {
             MalVal exp = a.nth(0);
@@ -604,6 +610,7 @@ public class core {
         .put("sequential?", sequential_Q)
         .put("cons",      cons)
         .put("concat",    concat)
+        .put("vec",       vec)
         .put("nth",       nth)
         .put("first",     first)
         .put("rest",      rest)

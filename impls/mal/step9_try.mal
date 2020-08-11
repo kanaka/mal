@@ -6,23 +6,23 @@
 
 
 ;; eval
-(def! is-pair (fn* [x]
-  (if (sequential? x)
-    (not (empty? x)))))
 
+(def! qq-loop (fn* [elt acc]
+  (if (if (list? elt) (= (first elt) 'splice-unquote)) ; 2nd 'if' means 'and'
+    (list 'concat (nth elt 1) acc)
+    (list 'cons (QUASIQUOTE elt) acc))))
+(def! qq-foldr (fn* [xs]
+  (if (empty? xs)
+    (list)
+    (qq-loop (first xs) (qq-foldr (rest xs))))))
 (def! QUASIQUOTE (fn* [ast]
-  (if (not (is-pair ast))
-    (list 'quote ast)
-    (let* [a0 (first ast)]
-      (cond
-       (= 'unquote a0)
-       (nth ast 1)
-
-       (if (is-pair a0) (= 'splice-unquote (first a0))) ; `if` means `and`
-       (list 'concat (nth a0 1) (QUASIQUOTE (rest ast)))
-
-       "else"
-       (list 'cons (QUASIQUOTE a0) (QUASIQUOTE (rest ast))))))))
+  (cond
+    (vector? ast)            (list 'vec (qq-foldr ast))
+    (map? ast)               (list 'quote ast)
+    (symbol? ast)            (list 'quote ast)
+    (not (list? ast))        ast
+    (= (first ast) 'unquote) (nth ast 1)
+    "else"                   (qq-foldr ast))))
 
 (def! MACROEXPAND (fn* [ast env]
   (let* [a0 (if (list? ast) (first ast))
@@ -39,7 +39,7 @@
 
     (list? ast)   (map (fn* [exp] (EVAL exp env)) ast)
 
-    (vector? ast) (apply vector (map (fn* [exp] (EVAL exp env)) ast))
+    (vector? ast) (vec (map (fn* [exp] (EVAL exp env)) ast))
 
     (map? ast)    (apply hash-map
                     (apply concat
@@ -75,6 +75,9 @@
 
           (= 'quote a0)
           (nth ast 1)
+
+          (= 'quasiquoteexpand a0)
+          (QUASIQUOTE (nth ast 1))
 
           (= 'quasiquote a0)
           (EVAL (QUASIQUOTE (nth ast 1)) env)

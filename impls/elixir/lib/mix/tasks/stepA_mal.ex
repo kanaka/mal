@@ -111,29 +111,20 @@ defmodule Mix.Tasks.StepAMal do
   end
   defp eval_bindings(_bindings, _env), do: throw({:error, "Unbalanced let* bindings"})
 
-  defp quasi_list([], _env), do: list([{:symbol, "quote"}, list([])])
-  defp quasi_list([{:symbol, "unquote"}, arg], _env), do: arg
-  defp quasi_list([{:list, [{:symbol, "splice-unquote"}, first], _meta} | tail], env) do
-    right = tail
-      |> list
-      |> quasiquote(env)
+  defp quasiquote({:list, [{:symbol, "unquote"}, arg], _}), do: arg
+  defp quasiquote({:list, [{:symbol, "unquote"}|   _], _}), do: throw({:error, "unquote: arg count"})
+  defp quasiquote({:list,   xs, _}), do:                         qq_foldr(xs)
+  defp quasiquote({:vector, xs, _}), do: list([{:symbol, "vec"}, qq_foldr(xs)])
+  defp quasiquote({:symbol, sym}),    do: list([{:symbol, "quote"}, {:symbol, sym}])
+  defp quasiquote({:map, ast, meta}), do: list([{:symbol, "quote"}, {:map, ast, meta}])
+  defp quasiquote(ast), do: ast
 
-    list([{:symbol, "concat"}, first, right])
-  end
-  defp quasi_list([head | tail], env) do
-    left = quasiquote(head, env)
-    right = tail
-      |> list
-      |> quasiquote(env)
+  defp qq_foldr([]),     do: list([])
+  defp qq_foldr([x|xs]), do: qq_loop(x, qq_foldr xs)
 
-    list([{:symbol, "cons"}, left, right])
-  end
-
-  defp quasiquote({list_type, ast, _}, env)
-  when list_type in [:list, :vector] do
-    quasi_list(ast, env)
-  end
-  defp quasiquote(ast, _env), do: list([{:symbol, "quote"}, ast])
+  defp qq_loop({:list, [{:symbol, "splice-unquote"}, arg], _}, acc), do: list([{:symbol, "concat"}, arg, acc])
+  defp qq_loop({:list, [{:symbol, "splice-unquote"}|   _], _},   _), do: throw({:error, "splice-unquote: arg count"})
+  defp qq_loop(elt, acc), do: list([{:symbol, "cons"}, quasiquote(elt), acc])
 
   defp macro_call?({:list, [{:symbol, key} | _tail], _}, env) do
     case Mal.Env.get(env, key) do
@@ -221,8 +212,12 @@ defmodule Mix.Tasks.StepAMal do
 
   defp eval_list([{:symbol, "quote"}, arg], _env, _), do: arg
 
+  defp eval_list([{:symbol, "quasiquoteexpand"}, ast], _, _) do
+    quasiquote(ast)
+  end
+
   defp eval_list([{:symbol, "quasiquote"}, ast], env, _) do
-    quasiquote(ast, env)
+    ast |> quasiquote
       |> eval(env)
   end
 

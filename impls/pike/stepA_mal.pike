@@ -9,21 +9,45 @@ Val READ(string str)
   return read_str(str);
 }
 
-bool is_pair(Val e)
+bool starts_with(Val ast, string sym)
 {
-  return e.is_sequence && !e.emptyp();
+  return ast.mal_type == MALTYPE_LIST &&
+    !ast.emptyp() &&
+    ast.data[0].mal_type == MALTYPE_SYMBOL &&
+    ast.data[0].value == sym;
+}
+
+Val quasiquote_list(array(Val) elts)
+{
+  Val acc = List(({ }));
+  for(int i=sizeof(elts)-1; 0<=i; i-=1)
+  {
+    Val elt = elts[i];
+    if(starts_with(elt, "splice-unquote"))
+      acc = List(({ Symbol("concat"), elt.data[1], acc }));
+    else
+      acc = List(({ Symbol("cons"), quasiquote(elt), acc }));
+  }
+  return acc;
 }
 
 Val quasiquote(Val ast)
 {
-  if(!is_pair(ast)) return List(({ Symbol("quote"), ast }));
-  Val ast0 = ast.data[0];
-  if(ast0.mal_type == MALTYPE_SYMBOL && ast0.value == "unquote") return ast.data[1];
-  if(is_pair(ast0) && ast0.data[0].mal_type == MALTYPE_SYMBOL && ast0.data[0].value == "splice-unquote")
+  switch(ast.mal_type)
   {
-    return List(({ Symbol("concat"), ast0.data[1], quasiquote(ast.rest()) }));
+    case MALTYPE_LIST:
+      if(starts_with(ast, "unquote"))
+        return ast.data[1];
+      else
+        return quasiquote_list(ast.data);
+    case MALTYPE_VECTOR:
+      return List(({ Symbol("vec"), quasiquote_list(ast.data) }));
+  case MALTYPE_SYMBOL:
+  case MALTYPE_MAP:
+      return List(({ Symbol("quote"), ast }));
+  default:
+      return ast;
   }
-  return List(({ Symbol("cons"), quasiquote(ast0), quasiquote(ast.rest()) }));
 }
 
 bool is_macro_call(Val ast, Env env)
@@ -96,6 +120,8 @@ Val EVAL(Val ast, Env env)
           continue; // TCO
         case "quote":
           return ast.data[1];
+        case "quasiquoteexpand":
+          return quasiquote(ast.data[1]);
         case "quasiquote":
           ast = quasiquote(ast.data[1]);
           continue; // TCO

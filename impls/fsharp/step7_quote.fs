@@ -10,19 +10,22 @@ module REPL
         | Empty -> ()
         | _ -> raise <| Error.errExpectedX "list or vector"
 
-    let quasiquoteForm nodes =
-        let transformNode f = function
-            | Elements 1 [|a|] -> f a
-            | _ -> raise <| Error.wrongArity ()
-        let singleNode = transformNode (fun n -> n)
-        let rec quasiquote node =
-            match node with
-            | Cons(Symbol("unquote"), rest) -> rest |> singleNode
-            | Cons(Cons(Symbol("splice-unquote"), spliceRest), rest) ->
-                makeList [Symbol("concat"); singleNode spliceRest; quasiquote rest]
-            | Cons(h, t) -> makeList [Symbol("cons"); quasiquote h; quasiquote t]
-            | n -> makeList [Symbol("quote"); n]
-        makeList nodes |> transformNode quasiquote
+    let rec qqLoop elt acc =
+        match elt with
+        | List(_, [Symbol("splice-unquote");list]) -> makeList [Symbol "concat"; list; acc]
+        | List(_,  Symbol("splice-unquote")::_)    -> raise <| Error.wrongArity ()
+        | _ -> makeList [Symbol "cons"; quasiquote elt; acc]
+    and quasiquote = function
+        | List(_, [Symbol("unquote");form]) -> form
+        | List(_,  Symbol("unquote")::_)    -> raise <| Error.wrongArity ()
+        | List (_, list) -> List.foldBack qqLoop list Node.EmptyLIST
+        | Vector(_, segment) ->
+            let array = Array.sub segment.Array segment.Offset segment.Count
+            let folded = Array.foldBack qqLoop array Node.EmptyLIST
+            makeList [Symbol "vec"; folded]
+        | Map(_)    as ast -> makeList [Symbol "quote"; ast]
+        | Symbol(_) as ast -> makeList [Symbol "quote"; ast]
+        | ast -> ast
 
     let quoteForm = function
         | [node] -> node
@@ -102,7 +105,10 @@ module REPL
         | List(_, Symbol("do")::rest) -> doForm env rest |> eval env
         | List(_, Symbol("fn*")::rest) -> fnStarForm env rest
         | List(_, Symbol("quote")::rest) -> quoteForm rest
-        | List(_, Symbol("quasiquote")::rest) -> quasiquoteForm rest |> eval env
+        | List(_, [Symbol("quasiquoteexpand");form]) -> quasiquote form
+        | List(_,  Symbol("quasiquoteexpand")::_)    -> raise <| Error.wrongArity ()
+        | List(_, [Symbol("quasiquote");form]) -> eval env <| quasiquote form
+        | List(_,  Symbol("quasiquote")::_)    -> raise <| Error.wrongArity ()
         | List(_, _) as node ->
             let resolved = node |> eval_ast env
             match resolved with

@@ -76,46 +76,73 @@ drop
     :noname
     ;
 
-: is-pair? ( obj -- bool )
-    empty? mal-false = ;
-
 defspecial quote ( env list -- form )
     nip MalList/start @ cell+ @ ;;
 
 s" concat" MalSymbol. constant concat-sym
 s" cons" MalSymbol. constant cons-sym
+s" vec" MalSymbol. constant vec-sym
 
 defer quasiquote
-: quasiquote0 { ast -- form }
-    ast is-pair? 0= if
-        here quote-sym , ast , here>MalList
-    else
-        ast to-list MalList/start @ { ast-start }
-        ast-start @ { ast[0] }
-        ast[0] unquote-sym m= if
-            ast-start cell+ @
-        else
-            ast[0] is-pair? if
-                ast[0] to-list MalList/start @ { ast[0]-start }
-                ast[0]-start @ splice-unquote-sym m= if
-                    here
-                    concat-sym ,
-                    ast[0]-start cell+ @ ,
-                    ast to-list MalList/rest quasiquote ,
-                    here>MalList
-                    false
-                else true endif
-            else true endif
-            if
-                here
-                cons-sym ,
-                ast[0] quasiquote ,
-                ast to-list MalList/rest quasiquote ,
-                here>MalList
-            endif
+
+( If the list has two elements and the first is sym, return the second )
+( element and true, else return the list unchanged and false. )
+: qq_extract_unquote ( list symbol -- form f )
+    over MalList/count @ 2 = if
+        over MalList/start @ tuck @ m= if         ( list start - )
+            cell+ @
+            nip
+            true
+            exit
         endif
+    endif
+    drop
+    false ;
+
+( Transition function for the following quasiquote folder. )
+: qq_loop ( acc elt -- form )
+    dup mal-type @ MalList = if
+        splice-unquote-sym qq_extract_unquote if
+            here concat-sym , swap , swap , here>MalList
+            exit
+        endif
+    endif
+    quasiquote
+    here cons-sym , swap , swap , here>MalList ;
+
+( Right-fold quasiquoting each element of a list. )
+: qq_foldr ( list -- form )
+    dup MalList/count @ if
+        dup MalList/rest recurse
+        swap MalList/start @ @
+        qq_loop
     endif ;
+
+: quasiquote0 ( ast -- form )
+    dup mal-type @ case
+    MalList of
+        unquote-sym qq_extract_unquote if
+            ( the work is already done )
+        else
+            qq_foldr
+        endif
+    endof
+    MalVector of
+        MalVector/list @ qq_foldr
+        here vec-sym , swap , here>MalList
+    endof
+    MalSymbol of
+        here quote-sym , swap , here>MalList
+    endof
+    MalMap of
+        here quote-sym , swap , here>MalList
+    endof
+    ( other types are returned unchanged )
+    endcase ;
 ' quasiquote0 is quasiquote
+
+defspecial quasiquoteexpand ( env list -- form )
+    nip MalList/start @ cell+ @ quasiquote ;;
 
 defspecial quasiquote ( env list )
     MalList/start @ cell+ @ ( ast )

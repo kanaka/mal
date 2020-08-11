@@ -95,6 +95,15 @@ function concat(lst) {
     lst = lst || [];
     return lst.concat.apply(lst, Array.prototype.slice.call(arguments, 1));
 }
+function vec(lst) {
+    if (types._list_Q(lst)) {
+        var v = Array.prototype.slice.call(lst, 0);
+        v.__isvector__ = true;
+        return v;
+    } else {
+        return lst;
+    }
+}
 
 function nth(lst, idx) {
     if (idx < lst.length) { return lst[idx]; }
@@ -236,6 +245,7 @@ var ns = {'type': types._obj_type,
           'sequential?': types._sequential_Q,
           'cons': cons,
           'concat': concat,
+          'vec': vec,
           'nth': nth,
           'first': first,
           'rest': rest,

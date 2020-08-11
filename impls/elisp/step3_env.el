@@ -15,17 +15,15 @@
 (defun EVAL (ast env)
   (if (and (mal-list-p ast) (mal-value ast))
       (let* ((a (mal-value ast))
-             (a0 (car a))
-             (a0* (mal-value a0))
              (a1 (cadr a))
              (a1* (mal-value a1))
              (a2 (nth 2 a)))
-        (cond
-         ((eq a0* 'def!)
+        (cl-case (mal-value (car a))
+         (def!
           (let ((identifier a1*)
                 (value (EVAL a2 env)))
             (mal-env-set env identifier value)))
-         ((eq a0* 'let*)
+         (let*
           (let ((env* (mal-env env))
                 (bindings (if (vectorp a1*) (append a1* nil) a1*))
                 (form a2))
@@ -43,20 +41,19 @@
     (eval-ast ast env)))
 
 (defun eval-ast (ast env)
-  (let ((type (mal-type ast))
-        (value (mal-value ast)))
-    (cond
-     ((eq type 'symbol)
+  (let ((value (mal-value ast)))
+    (cl-case (mal-type ast)
+     (symbol
       (let ((definition (mal-env-get env value)))
         (or definition (error "Definition not found"))))
-     ((eq type 'list)
+     (list
       (mal-list (mapcar (lambda (item) (EVAL item env)) value)))
-     ((eq type 'vector)
+     (vector
       (mal-vector (vconcat (mapcar (lambda (item) (EVAL item env)) value))))
-     ((eq type 'map)
+     (map
       (let ((map (copy-hash-table value)))
-        (maphash (lambda (key value)
-                   (puthash key (EVAL value env) map))
+        (maphash (lambda (key val)
+                   (puthash key (EVAL val env) map))
                  map)
         (mal-map map)))
      (t
@@ -90,14 +87,12 @@
                ;; empty input, carry on
                )
               (unterminated-sequence
-               (let* ((type (cadr err))
-                      (end
-                       (cond
-                        ((eq type 'string) ?\")
-                        ((eq type 'list) ?\))
-                        ((eq type 'vector) ?\])
-                        ((eq type 'map) ?}))))
-                 (princ (format "Expected '%c', got EOF\n" end))))
+               (princ (format "Expected '%c', got EOF\n"
+                              (cl-case (cadr err)
+                                (string ?\")
+                                (list   ?\))
+                                (vector ?\])
+                                (map    ?})))))
               (error ; catch-all
                (println (error-message-string err))))
           (setq eof t)

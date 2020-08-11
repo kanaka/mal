@@ -209,6 +209,12 @@ _vector () {
 }
 _vector? () { [[ ${1} =~ ^vector_ ]]; }
 
+vec () {
+    __new_obj_hash_code
+    r="vector_$r"
+    ANON["$r"]=${ANON["$1"]}
+}
+
 
 # hash maps (associative arrays)
 

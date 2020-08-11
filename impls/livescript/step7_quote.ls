@@ -52,6 +52,7 @@ eval_ast = (env, {type, value}: ast) -->
             | 'if'         => eval_if env, params
             | 'fn*'        => eval_fn env, params
             | 'quote'      => eval_quote env, params
+            | 'quasiquoteexpand' => eval_quasiquoteexpand params
             | 'quasiquote' => eval_quasiquote env, params
             | otherwise    => eval_apply env, value
         else 
@@ -206,30 +207,51 @@ eval_quote = (env, params) ->
     params[0]
 
 
-is-pair = (ast) -> ast.type in [\list \vector] and ast.value.length != 0
-
-
-eval_quasiquote = (env, params) ->
+eval_quasiquoteexpand = (params) ->
     if params.length != 1
         runtime-error "quasiquote expected 1 parameter, got #{params.length}"
 
     ast = params[0]
-    new-ast = if not is-pair ast
+    quasiquote ast
+
+
+quasiquote = (ast) ->
+    if ast.type in [\symbol, \map]
         make-call 'quote', [ast]
-    else if is-symbol ast.value[0], 'unquote'
+    else if ast.type == \vector
+        make-call 'vec', [qq_foldr ast.value]
+    else if ast.type != \list
+        ast
+    else if (ast.value.length == 2) and is-symbol ast.value[0], 'unquote'
         ast.value[1]
-    else if is-pair ast.value[0] and \
-            is-symbol ast.value[0].value[0], 'splice-unquote'
+    else
+        qq_foldr ast.value
+
+
+qq_foldr = (xs) ->
+    result = make-list []
+    for i from xs.length - 1 to 0 by -1
+       result := qq_loop xs[i], result
+    result
+
+
+qq_loop = (elt, acc) ->
+    if elt.type == \list and \
+       elt.value.length == 2 and \
+       is-symbol elt.value[0], 'splice-unquote'
         make-call 'concat', [
-            ast.value[0].value[1]
-            make-call 'quasiquote', [make-list ast.value[1 to]]
+            elt.value[1]
+            acc
         ]
     else
         make-call 'cons', [
-            make-call 'quasiquote', [ast.value[0]]
-            make-call 'quasiquote', [make-list ast.value[1 to]]
+            quasiquote elt
+            acc
         ]
 
+
+eval_quasiquote = (env, params) ->
+    new-ast = eval_quasiquoteexpand params
     defer-tco env, new-ast
 
 

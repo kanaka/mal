@@ -628,6 +628,24 @@ class Mal.BuiltinFunctionConcat : Mal.BuiltinFunction {
     }
 }
 
+class Mal.BuiltinFunctionVec : Mal.BuiltinFunction {
+    public override Mal.ValWithMetadata copy() {
+        return new Mal.BuiltinFunctionVec();
+    }
+    public override string name() { return "vec"; }
+    public override Mal.Val call(Mal.List args) throws Mal.Error {
+        if (args.vs.length() != 1)
+            throw new Mal.Error.BAD_PARAMS("%s: expected one argument", name());
+        var a0 = args.vs.data;
+        if (a0 is Mal.List)
+            return new Mal.Vector.from_list((a0 as Mal.List).vs);
+        if (a0 is Mal.Vector)
+            return a0;
+        throw new Mal.Error.BAD_PARAMS(
+            "%s: expected a list or a vector", name());
+    }
+}
+
 class Mal.BuiltinFunctionNth : Mal.BuiltinFunction {
     public override Mal.ValWithMetadata copy() {
         return new Mal.BuiltinFunctionNth();
@@ -1162,6 +1180,7 @@ class Mal.Core {
         add_builtin(new BuiltinFunctionSwap());
         add_builtin(new BuiltinFunctionCons());
         add_builtin(new BuiltinFunctionConcat());
+        add_builtin(new BuiltinFunctionVec());
         add_builtin(new BuiltinFunctionNth());
         add_builtin(new BuiltinFunctionFirst());
         add_builtin(new BuiltinFunctionRest());

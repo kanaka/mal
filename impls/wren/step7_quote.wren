@@ -11,17 +11,37 @@ class Mal {
     return MalReader.read_str(str)
   }
 
-  static isPair(x) { x is MalSequential && !x.isEmpty }
+  static qq_loop(elt, acc) {
+    if (elt is MalList && elt.count == 2 && elt[0] is MalSymbol && elt[0].value == "splice-unquote") {
+      return MalList.new([MalSymbol.new("concat"), elt[1], acc])
+    } else {
+      return MalList.new([MalSymbol.new("cons"), quasiquote(elt), acc])
+    }
+  }
+
+  static qq_foldr(ast) {
+    var acc = MalList.new([])
+    var i = ast.count - 1
+    while (0 <= i) {
+      acc = qq_loop(ast[i], acc)
+      i = i - 1
+    }
+    return acc
+  }
 
   static quasiquote(ast) {
-    if (!isPair(ast)) {
+    if (ast is MalList) {
+      if (ast.count == 2 && ast[0] is MalSymbol && ast[0].value == "unquote") {
+        return ast[1]
+      } else {
+        return qq_foldr(ast)
+      }
+    } else if (ast is MalVector) {
+      return MalList.new([MalSymbol.new("vec"), qq_foldr(ast)])
+    } else if (ast is MalSymbol || ast is MalMap) {
       return MalList.new([MalSymbol.new("quote"), ast])
-    } else if (ast[0] is MalSymbol && ast[0].value == "unquote") {
-      return ast[1]
-    } else if (isPair(ast[0]) && ast[0][0] is MalSymbol && ast[0][0].value == "splice-unquote") {
-      return MalList.new([MalSymbol.new("concat"), ast[0][1], quasiquote(ast.rest)])
     } else {
-      return MalList.new([MalSymbol.new("cons"), quasiquote(ast[0]), quasiquote(ast.rest)])
+      return ast
     }
   }
 
@@ -63,6 +83,8 @@ class Mal {
           tco = true
         } else if (ast[0].value == "quote") {
           return ast[1]
+        } else if (ast[0].value == "quasiquoteexpand") {
+          return quasiquote(ast[1])
         } else if (ast[0].value == "quasiquote") {
           ast = quasiquote(ast[1])
           tco = true

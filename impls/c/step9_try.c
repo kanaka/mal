@@ -11,6 +11,7 @@
 
 // Declarations
 MalVal *EVAL(MalVal *ast, Env *env);
+MalVal *quasiquote(MalVal *ast);
 MalVal *macroexpand(MalVal *ast, Env *env);
 
 // read
@@ -32,30 +33,40 @@ MalVal *READ(char prompt[], char *str) {
 }
 
 // eval
-int is_pair(MalVal *x) {
-    return _sequential_Q(x) && (_count(x) > 0);
+int starts_with(MalVal *ast, const char *sym) {
+    if (ast->type != MAL_LIST)
+        return 0;
+    const MalVal * const a0 = _first(ast);
+    return (a0->type & MAL_SYMBOL) && ! strcmp(sym, a0->val.string);
+}
+
+MalVal *qq_iter(GArray *xs) {
+    MalVal *acc = _listX(0);
+    int i;
+    for (i=xs->len-1; 0<=i; i--) {
+        MalVal * const elt = g_array_index(xs, MalVal*, i);
+        if (starts_with(elt, "splice-unquote"))
+            acc = _listX(3, malval_new_symbol("concat"), _nth(elt, 1), acc);
+        else
+            acc = _listX(3, malval_new_symbol("cons"), quasiquote(elt), acc);
+    }
+    return acc;
 }
 
 MalVal *quasiquote(MalVal *ast) {
-    if (!is_pair(ast)) {
-        return _listX(2, malval_new_symbol("quote"), ast);
-    } else {
-        MalVal *a0 = _nth(ast, 0);
-        if ((a0->type & MAL_SYMBOL) &&
-            strcmp("unquote", a0->val.string) == 0) {
+    switch (ast->type) {
+    case MAL_LIST:
+        if (starts_with(ast, "unquote"))
             return _nth(ast, 1);
-        } else if (is_pair(a0)) {
-            MalVal *a00 = _nth(a0, 0);
-            if ((a00->type & MAL_SYMBOL) &&
-                strcmp("splice-unquote", a00->val.string) == 0) {
-                return _listX(3, malval_new_symbol("concat"),
-                                 _nth(a0, 1),
-                                 quasiquote(_rest(ast)));
-            }
-        }
-        return _listX(3, malval_new_symbol("cons"),
-                         quasiquote(a0),
-                         quasiquote(_rest(ast)));
+        else
+            return qq_iter(ast->val.array);
+    case MAL_VECTOR:
+        return _listX(2, malval_new_symbol("vec"), qq_iter(ast->val.array));
+    case MAL_HASH_MAP:
+    case MAL_SYMBOL:
+        return _listX(2, malval_new_symbol("quote"), ast);
+    default:
+        return ast;
     }
 }
 
@@ -164,6 +175,9 @@ MalVal *EVAL(MalVal *ast, Env *env) {
                strcmp("quote", a0->val.string) == 0) {
         //g_print("eval apply quote\n");
         return _nth(ast, 1);
+    } else if ((a0->type & MAL_SYMBOL) &&
+               strcmp("quasiquoteexpand", a0->val.string) == 0) {
+        return quasiquote(_nth(ast, 1));
     } else if ((a0->type & MAL_SYMBOL) &&
                strcmp("quasiquote", a0->val.string) == 0) {
         //g_print("eval apply quasiquote\n");

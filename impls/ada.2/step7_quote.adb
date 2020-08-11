@@ -1,5 +1,4 @@
 with Ada.Command_Line;
-with Ada.Containers.Vectors;
 with Ada.Environment_Variables;
 with Ada.Text_IO.Unbounded_IO;
 
@@ -23,7 +22,6 @@ procedure Step7_Quote is
    use all type Types.Kind_Type;
    use type Types.Strings.Instance;
    package ACL renames Ada.Command_Line;
-   package Vectors is new Ada.Containers.Vectors (Positive, Types.T);
 
    function Read return Types.T_Array with Inline;
 
@@ -32,12 +30,7 @@ procedure Step7_Quote is
    function Eval_Builtin (Args : in Types.T_Array) return Types.T;
    --  The built-in variant needs to see the Repl variable.
 
-   function Quasiquote (Ast : in Types.T;
-                        Env : in Envs.Ptr) return Types.T;
-   --  Mergeing quote and quasiquote into eval with a flag triggering
-   --  a different behaviour as done for macros in step8 would improve
-   --  the performances significantly, but Kanaka finds that it breaks
-   --  too much the step structure shared by all implementations.
+   function Quasiquote (Ast : in Types.T) return Types.T;
 
    procedure Print (Ast : in Types.T) with Inline;
 
@@ -174,9 +167,13 @@ procedure Step7_Quote is
                   Ast    => Ast.Sequence.all.Data (3),
                   Env    => Env));
             end;
+         elsif First.Str.all = "quasiquoteexpand" then
+            Err.Check (Ast.Sequence.all.Length = 2, "expected 1 parameter");
+            return Quasiquote (Ast.Sequence.all.Data (2));
          elsif First.Str.all = "quasiquote" then
             Err.Check (Ast.Sequence.all.Length = 2, "expected 1 parameter");
-            return Quasiquote (Ast.Sequence.all.Data (2), Env);
+            Ast := Quasiquote (Ast.Sequence.all.Data (2));
+            goto Restart;
          else
             --  Equivalent to First := Eval (First, Env)
             --  except that we already know enough to spare a recursive call.
@@ -266,62 +263,54 @@ procedure Step7_Quote is
       Ada.Text_IO.Unbounded_IO.Put_Line (Printer.Pr_Str (Ast));
    end Print;
 
-   function Quasiquote (Ast : in Types.T;
-                        Env : in Envs.Ptr) return Types.T
-   is
+   function Quasiquote (Ast : in Types.T) return Types.T is
 
-      function Quasiquote_List (List : in Types.T_Array) return Types.T;
-      --  Handle vectors and lists not starting with unquote.
+      function Qq_Seq return Types.T;
+      function Starts_With (Sequence : Types.T_Array;
+                            Symbol   : String) return Boolean;
 
-      function Quasiquote_List (List : in Types.T_Array) return Types.T is
-         Vector : Vectors.Vector; --  buffer for concatenation
-         Tmp    : Types.T;
+      function Qq_Seq return Types.T is
+         Result : Types.T := Types.Sequences.List ((1 .. 0 => Types.Nil));
       begin
-         for Elt of List loop
-            if Elt.Kind in Kind_List
-              and then 0 < Elt.Sequence.all.Length
-              and then Elt.Sequence.all.Data (1).Kind = Kind_Symbol
-              and then Elt.Sequence.all.Data (1).Str.all = "splice-unquote"
+         for Elt of reverse Ast.Sequence.all.Data loop
+            if Elt.Kind = Kind_List
+              and then Starts_With (Elt.Sequence.all.Data, "splice-unquote")
             then
                Err.Check (Elt.Sequence.all.Length = 2,
                           "splice-unquote expects 1 parameter");
-               Tmp := Eval (Elt.Sequence.all.Data (2), Env);
-               Err.Check (Tmp.Kind = Kind_List,
-                          "splice_unquote expects a list");
-               for Sub_Elt of Tmp.Sequence.all.Data loop
-                  Vector.Append (Sub_Elt);
-               end loop;
+               Result := Types.Sequences.List
+                 (((Kind_Symbol, Types.Strings.Alloc ("concat")),
+                   Elt.Sequence.all.Data (2), Result));
             else
-               Vector.Append (Quasiquote (Elt, Env));
+               Result := Types.Sequences.List
+                 (((Kind_Symbol, Types.Strings.Alloc ("cons")),
+                   Quasiquote (Elt), Result));
             end if;
          end loop;
-         --  Now that we know the number of elements, convert to a list.
-         declare
-            Sequence : constant Types.Sequence_Ptr
-              := Types.Sequences.Constructor (Natural (Vector.Length));
-         begin
-            for I in 1 .. Natural (Vector.Length) loop
-               Sequence.all.Data (I) := Vector (I);
-            end loop;
-            return (Kind_List, Sequence);
-         end;
-      end Quasiquote_List;
+         return Result;
+      end Qq_Seq;
 
-   begin                                --  Quasiquote
+      function Starts_With (Sequence : Types.T_Array;
+                            Symbol   : String) return Boolean is
+         (0 < Sequence'Length
+            and then Sequence (Sequence'First).Kind = Kind_Symbol
+            and then Sequence (Sequence'First).Str.all = Symbol);
+
+   begin
       case Ast.Kind is
-         when Kind_Vector =>
-            --  When the test is updated, replace Kind_List with Kind_Vector.
-            return Quasiquote_List (Ast.Sequence.all.Data);
          when Kind_List =>
-            if 0 < Ast.Sequence.all.Length
-              and then Ast.Sequence.all.Data (1).Kind = Kind_Symbol
-              and then Ast.Sequence.all.Data (1).Str.all = "unquote"
-            then
+            if Starts_With (Ast.Sequence.all.Data, "unquote") then
                Err.Check (Ast.Sequence.all.Length = 2, "expected 1 parameter");
-               return Eval (Ast.Sequence.all.Data (2), Env);
+               return Ast.Sequence.all.Data (2);
             else
-               return Quasiquote_List (Ast.Sequence.all.Data);
+               return Qq_Seq;
             end if;
+         when Kind_Vector =>
+            return Types.Sequences.List
+              (((Kind_Symbol, Types.Strings.Alloc ("vec")), Qq_Seq));
+         when Kind_Map | Kind_Symbol =>
+            return Types.Sequences.List
+              (((Kind_Symbol, Types.Strings.Alloc ("quote")), Ast));
          when others =>
             return Ast;
       end case;

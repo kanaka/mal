@@ -294,6 +294,7 @@ object core {
     "sequential?" -> ((a: List[Any]) => types._sequential_Q(a(0))),
     "cons" -> ((a: List[Any]) => a(0) +: a(1).asInstanceOf[MalList]),
     "concat" -> concat _,
+    "vec" -> ((a: List[Any]) => _vector(a(0).asInstanceOf[MalList].value:_*)),
     "nth" -> nth _,
     "first" -> first _,
     "rest" -> rest _,

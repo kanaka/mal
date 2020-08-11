@@ -253,6 +253,9 @@ mal_concat: procedure expose values. /* mal_concat(...) */
   end
   return new_list(seq)
 
+mal_vec: procedure expose values. /* mal_vec(a) */
+  return new_vector(obj_val(arg(1)))
+
 mal_nth: procedure expose values. err /* mal_nth(list, index) */
   list_val = obj_val(arg(1))
   i = obj_val(arg(2))
@@ -486,6 +489,7 @@ get_core_ns: procedure /* get_core_ns() */
          "sequential? mal_sequential?" ,
          "cons        mal_cons"        ,
          "concat      mal_concat"      ,
+         "vec         mal_vec"         ,
          "nth         mal_nth"         ,
          "first       mal_first"       ,
          "rest        mal_rest"        ,

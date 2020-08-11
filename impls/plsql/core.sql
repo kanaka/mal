@@ -322,6 +322,20 @@ BEGIN
     RETURN types.seq(M, 8, new_items);
 END;
 
+FUNCTION vec(M IN OUT NOCOPY types.mal_table,
+             seq integer) RETURN integer IS
+BEGIN
+    type_id := M(seq).type_id;
+    CASE
+    WHEN type_id = 8 THEN
+        RETURN types.seq(M, 9, TREAT(M(seq) AS mal_seq_T).val_seq);
+    WHEN type_id = 9 THEN
+        RETURN seq;
+    ELSE
+        raise_application_error(-20009,
+            'vec: not supported on type ' || type_id, TRUE);
+    END CASE;
+END;
 
 FUNCTION nth(M IN OUT NOCOPY types.mal_table,
              val integer,
@@ -518,6 +532,7 @@ BEGIN
     WHEN fname = 'sequential?' THEN RETURN types.tf(M(a(1)).type_id IN (8,9));
     WHEN fname = 'cons'        THEN RETURN cons(M, a);
     WHEN fname = 'concat'      THEN RETURN concat(M, a);
+    WHEN fname = 'vec'         THEN RETURN vec(M, a(1));
     WHEN fname = 'nth'         THEN RETURN nth(M, a(1), a(2));
     WHEN fname = 'first'       THEN RETURN first(M, a(1));
     WHEN fname = 'rest'        THEN RETURN rest(M, a(1));
@@ -590,6 +605,7 @@ BEGIN
         'sequential?',
         'cons',
         'concat',
+        'vec',
         'nth',
         'first',
         'rest',

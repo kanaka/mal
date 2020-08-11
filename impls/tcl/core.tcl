@@ -236,6 +236,17 @@ proc mal_concat {a} {
     list_new $res
 }
 
+proc mal_vec {a} {
+    lassign $a a0
+    if {[vector_q $a0]} {
+        return $a0
+    } elseif {[list_q $a0]} {
+        return [vector_new [obj_val $a0]]
+    } else {
+        error "vec requires list or vector"
+    }
+}
+
 proc mal_nth {a} {
     lassign $a lst_obj index_obj
     set index [obj_val $index_obj]
@@ -438,6 +449,7 @@ set core_ns [dict create \
     "sequential?"  [nativefunction_new mal_sequential_q] \
     "cons"         [nativefunction_new mal_cons] \
     "concat"       [nativefunction_new mal_concat] \
+    "vec"          [nativefunction_new mal_vec] \
     "nth"          [nativefunction_new mal_nth] \
     "first"        [nativefunction_new mal_first] \
     "rest"         [nativefunction_new mal_rest] \

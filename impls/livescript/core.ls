@@ -160,6 +160,12 @@ export ns = do
 
         {type: \list, value: params |> map (.value) |> concat}
 
+    'vec': fn (sequence) ->
+        check-param 'vec', 0, (list-or-vector sequence),
+            'list or vector', sequence.type
+
+        {type: \vector, value: sequence.value}
+
     'nth': fn (list, index) ->
         check-param 'nth', 0, (list-or-vector list),
             'list or vector', list.type

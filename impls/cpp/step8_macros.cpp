@@ -168,6 +168,11 @@ malValuePtr EVAL(malValuePtr ast, malEnvPtr env)
                 return macroExpand(list->item(1), env);
             }
 
+            if (special == "quasiquoteexpand") {
+                checkArgsIs("quasiquote", 1, argCount);
+                return quasiquote(list->item(1));
+            }
+
             if (special == "quasiquote") {
                 checkArgsIs("quasiquote", 1, argCount);
                 ast = quasiquote(list->item(1));
@@ -214,50 +219,48 @@ static bool isSymbol(malValuePtr obj, const String& text)
     return sym && (sym->value() == text);
 }
 
-static const malSequence* isPair(malValuePtr obj)
+//  Return arg when ast matches ('sym, arg), else NULL.
+static malValuePtr starts_with(const malValuePtr ast, const char* sym)
 {
-    const malSequence* list = DYNAMIC_CAST(malSequence, obj);
-    return list && !list->isEmpty() ? list : NULL;
+    const malList* list = DYNAMIC_CAST(malList, ast);
+    if (!list || list->isEmpty() || !isSymbol(list->item(0), sym))
+        return NULL;
+    checkArgsIs(sym, 1, list->count() - 1);
+    return list->item(1);
 }
 
 static malValuePtr quasiquote(malValuePtr obj)
 {
-    const malSequence* seq = isPair(obj);
-    if (!seq) {
+    if (DYNAMIC_CAST(malSymbol, obj) || DYNAMIC_CAST(malHash, obj))
         return mal::list(mal::symbol("quote"), obj);
-    }
 
-    if (isSymbol(seq->item(0), "unquote")) {
-        // (qq (uq form)) -> form
-        checkArgsIs("unquote", 1, seq->count() - 1);
-        return seq->item(1);
-    }
+    const malSequence* seq = DYNAMIC_CAST(malSequence, obj);
+    if (!seq)
+        return obj;
 
-    const malSequence* innerSeq = isPair(seq->item(0));
-    if (innerSeq && isSymbol(innerSeq->item(0), "splice-unquote")) {
-        checkArgsIs("splice-unquote", 1, innerSeq->count() - 1);
-        // (qq (sq '(a b c))) -> a b c
-        return mal::list(
-            mal::symbol("concat"),
-            innerSeq->item(1),
-            quasiquote(seq->rest())
-        );
+    const malValuePtr unquoted = starts_with(obj, "unquote");
+    if (unquoted)
+        return unquoted;
+
+    malValuePtr res = mal::list(new malValueVec(0));
+    for (int i=seq->count()-1; 0<=i; i--) {
+        const malValuePtr elt     = seq->item(i);
+        const malValuePtr spl_unq = starts_with(elt, "splice-unquote");
+        if (spl_unq)
+            res = mal::list(mal::symbol("concat"), spl_unq, res);
+         else
+            res = mal::list(mal::symbol("cons"), quasiquote(elt), res);
     }
-    else {
-        // (qq (a b c)) -> (list (qq a) (qq b) (qq c))
-        // (qq xs     ) -> (cons (qq (car xs)) (qq (cdr xs)))
-        return mal::list(
-            mal::symbol("cons"),
-            quasiquote(seq->first()),
-            quasiquote(seq->rest())
-        );
-    }
+    if (DYNAMIC_CAST(malVector, obj))
+        res = mal::list(mal::symbol("vec"), res);
+    return res;
 }
 
 static const malLambda* isMacroApplication(malValuePtr obj, malEnvPtr env)
 {
-    if (const malSequence* seq = isPair(obj)) {
-        if (malSymbol* sym = DYNAMIC_CAST(malSymbol, seq->first())) {
+    const malList* seq = DYNAMIC_CAST(malList, obj);
+    if (seq && !seq->isEmpty()) {
+        if (malSymbol* sym = DYNAMIC_CAST(malSymbol, seq->item(0))) {
             if (malEnvPtr symEnv = env->find(sym->value())) {
                 malValuePtr value = sym->eval(symEnv);
                 if (malLambda* lambda = DYNAMIC_CAST(malLambda, value)) {

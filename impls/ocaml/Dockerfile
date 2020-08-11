@@ -1,4 +1,4 @@
-FROM ubuntu:vivid
+[FROM ubuntu:vivid
 MAINTAINER Joel Martin <github@martintribe.org>
 
 ##########################################################

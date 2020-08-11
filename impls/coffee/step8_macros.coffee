@@ -9,15 +9,19 @@ core = require("./core.coffee")
 READ = (str) -> reader.read_str str
 
 # eval
-is_pair = (x) -> types._sequential_Q(x) && x.length > 0
+starts_with = (ast, sym) ->
+  types._list_Q(ast) && 0<ast.length && ast[0]!=null && types._symbol_Q(ast[0]) && ast[0].name==sym
+
+qq_iter = (accumulator, elt) ->
+  if starts_with(elt, 'splice-unquote') then [types._symbol('concat'), elt[1], accumulator]
+  else [types._symbol('cons'), quasiquote(elt), accumulator]
 
 quasiquote = (ast) ->
-  if !is_pair(ast) then [types._symbol('quote'), ast]
-  else if ast[0] != null && ast[0].name == 'unquote' then ast[1]
-  else if is_pair(ast[0]) && ast[0][0].name == 'splice-unquote'
-    [types._symbol('concat'), ast[0][1], quasiquote(ast[1..])]
-  else
-    [types._symbol('cons'), quasiquote(ast[0]), quasiquote(ast[1..])]
+  if starts_with(ast, 'unquote') then ast[1]
+  else if types._list_Q(ast) then ast.reduceRight(qq_iter, [])
+  else if types._vector_Q(ast) then [types._symbol('vec'), ast.reduceRight(qq_iter, [])]
+  else if types._symbol_Q(ast) || types._hash_map_Q(ast) then [types._symbol('quote'), ast]
+  else ast
 
 is_macro_call = (ast, env) ->
   return types._list_Q(ast) && types._symbol_Q(ast[0]) &&
@@ -63,6 +67,8 @@ EVAL = (ast, env) ->
       env = let_env
     when "quote"
       return a1
+    when "quasiquoteexpand"
+      return quasiquote(a1)
     when "quasiquote"
       ast = quasiquote(a1)
     when "defmacro!"

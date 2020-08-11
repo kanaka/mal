@@ -3,18 +3,22 @@ MalReader
 
 READ := method(str, MalReader read_str(str))
 
-isPair := method(obj,
-    obj ?isSequential and(obj isEmpty not)
-)
+qq_foldr := method(xs,
+    xs reverseReduce(acc, elt,
+        if((elt type == "MalList") and (elt size == 2) and (elt at(0) == MalSymbol with("splice-unquote")),
+            MalList with(list(MalSymbol with("concat"), elt at(1), acc)),
+            MalList with(list(MalSymbol with("cons"), quasiquote(elt), acc))),
+        MalList with(list())))
 
 quasiquote := method(ast,
-    if(isPair(ast) not, return(MalList with(list(MalSymbol with("quote"), ast))))
-    a0 := ast at(0)
-    if(a0 == MalSymbol with("unquote"), return(ast at(1)))
-    if(isPair(a0) and (a0 at(0) == MalSymbol with("splice-unquote")),
-        return(MalList with(list(MalSymbol with("concat"), a0 at(1), quasiquote(ast rest)))),
-        return(MalList with(list(MalSymbol with("cons"), quasiquote(a0), quasiquote(ast rest)))))
-)
+    ast type switch(
+        "MalSymbol", MalList with(list(MalSymbol with("quote"), ast)),
+        "MalMap",    MalList with(list(MalSymbol with("quote"), ast)),
+        "MalVector", MalList with(list(MalSymbol with("vec"), qq_foldr(ast))),
+        "MalList",   if((ast size == 2) and (ast at(0) == MalSymbol with("unquote")),
+                         ast at(1),
+                         qq_foldr(ast)),
+        ast))
 
 isMacroCall := method(ast, env,
     if(ast type != "MalList", return false)
@@ -84,6 +88,8 @@ EVAL := method(ast, env,
                     continue, // TCO
                 "quote",
                     return(ast at(1)),
+                "quasiquoteexpand",
+                    return quasiquote(ast at(1)),
                 "quasiquote",
                     ast = quasiquote(ast at(1))
                     continue, // TCO

@@ -20,31 +20,36 @@ public class step8_macros {
     }
 
     // eval
-    public static Boolean is_pair(MalVal x) {
-        return x instanceof MalList && ((MalList)x).size() > 0;
+    public static Boolean starts_with(MalVal ast, String sym) {
+        //  Liskov, forgive me
+        if (ast instanceof MalList && !(ast instanceof MalVector) && ((MalList)ast).size() == 2) {
+            MalVal a0 = ((MalList)ast).nth(0);
+            return a0 instanceof MalSymbol && ((MalSymbol)a0).getName().equals(sym);
+        }
+        return false;
     }
 
     public static MalVal quasiquote(MalVal ast) {
-        if (!is_pair(ast)) {
+        if ((ast instanceof MalSymbol || ast instanceof MalHashMap))
             return new MalList(new MalSymbol("quote"), ast);
-        } else {
-            MalVal a0 = ((MalList)ast).nth(0);
-            if ((a0 instanceof MalSymbol) &&
-                (((MalSymbol)a0).getName().equals("unquote"))) {
-                return ((MalList)ast).nth(1);
-            } else if (is_pair(a0)) {
-                MalVal a00 = ((MalList)a0).nth(0);
-                if ((a00 instanceof MalSymbol) &&
-                    (((MalSymbol)a00).getName().equals("splice-unquote"))) {
-                    return new MalList(new MalSymbol("concat"),
-                                       ((MalList)a0).nth(1),
-                                       quasiquote(((MalList)ast).rest()));
-                }
-            }
-            return new MalList(new MalSymbol("cons"),
-                               quasiquote(a0),
-                               quasiquote(((MalList)ast).rest()));
+
+        if (!(ast instanceof MalList))
+            return ast;
+
+        if (starts_with(ast, "unquote"))
+            return ((MalList)ast).nth(1);
+
+        MalVal res = new MalList();
+        for (Integer i=((MalList)ast).size()-1; 0<=i; i--) {
+            MalVal elt = ((MalList)ast).nth(i);
+            if (starts_with(elt, "splice-unquote"))
+                res = new MalList(new MalSymbol("concat"), ((MalList)elt).nth(1), res);
+            else
+                res = new MalList(new MalSymbol("cons"), quasiquote(elt), res);
         }
+        if (ast instanceof MalVector)
+            res = new MalList(new MalSymbol("vec"), res);
+        return res;
     }
 
     public static Boolean is_macro_call(MalVal ast, Env env)
@@ -142,6 +147,8 @@ public class step8_macros {
             break;
         case "quote":
             return ast.nth(1);
+        case "quasiquoteexpand":
+            return quasiquote(ast.nth(1));
         case "quasiquote":
             orig_ast = quasiquote(ast.nth(1));
             break;

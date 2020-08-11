@@ -24,6 +24,7 @@ package Types.Sequences is
    function Map      (Args : in T_Array) return T;
    function Nth      (Args : in T_Array) return T;
    function Rest     (Args : in T_Array) return T;
+   function Vec      (Args : in T_Array) return T;
    function Vector   (Args : in T_Array) return T;
 
    --  New instances must be created via this constructor.

@@ -10,13 +10,11 @@ SYMBOL: repl-env
 
 DEFER: EVAL
 
-: eval-ast ( ast env -- ast )
-    {
-        { [ over malsymbol? ] [ env-get ] }
-        { [ over sequence? ]  [ '[ _ EVAL ] map ] }
-        { [ over assoc? ]     [ '[ [ _ EVAL ] bi@ ] assoc-map ] }
-        [ drop ]
-    } cond ;
+GENERIC# eval-ast 1 ( ast env -- ast )
+M: malsymbol eval-ast env-get ;
+M: sequence  eval-ast '[ _ EVAL ] map ;
+M: assoc     eval-ast '[ _ EVAL ] assoc-map ;
+M: object    eval-ast drop ;
 
 :: eval-def! ( key value env -- maltype )
     value env EVAL [ key env env-set ] keep ;

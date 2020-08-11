@@ -330,6 +330,24 @@ MalVal *concat(MalVal *args) {
     return lst;
 }
 
+MalVal *vec(MalVal *seq) {
+    switch(seq->type) {
+    case MAL_VECTOR:
+        return seq;
+    case MAL_LIST: {
+        const GArray * const src = seq->val.array;
+        const int len = src->len;
+        GArray * const dst = g_array_sized_new(TRUE, TRUE, sizeof(MalVal*), len);
+        int i;
+        for (i=0; i<len; i++)
+            g_array_append_val(dst, g_array_index(seq->val.array, MalVal*, i));
+        return malval_new_list(MAL_VECTOR, dst);
+    }
+    default:
+        _error("vec called with non-sequential");
+    }
+}
+
 MalVal *nth(MalVal *seq, MalVal *idx) {
     return _nth(seq, idx->val.intnum);
 }
@@ -505,7 +523,7 @@ MalVal *swap_BANG(MalVal *args) {
 
 
 
-core_ns_entry core_ns[61] = {
+core_ns_entry core_ns[] = {
     {"=", (void*(*)(void*))equal_Q, 2},
     {"throw", (void*(*)(void*))throw, 1},
     {"nil?", (void*(*)(void*))nil_Q, 1},
@@ -553,6 +571,7 @@ core_ns_entry core_ns[61] = {
     {"sequential?", (void*(*)(void*))sequential_Q, 1},
     {"cons", (void*(*)(void*))cons, 2},
     {"concat", (void*(*)(void*))concat, -1},
+    {"vec", (void*(*)(void*))vec, 1},
     {"nth", (void*(*)(void*))nth, 2},
     {"first", (void*(*)(void*))_first, 1},
     {"rest", (void*(*)(void*))_rest, 1},

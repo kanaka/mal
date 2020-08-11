@@ -5,14 +5,16 @@ let repl_env = Env.make (Some Core.ns)
 let rec quasiquote ast =
   match ast with
     | T.List   { T.value = [T.Symbol {T.value = "unquote"}; ast] } -> ast
-    | T.Vector { T.value = [T.Symbol {T.value = "unquote"}; ast] } -> ast
-    | T.List   { T.value = T.List { T.value = [T.Symbol {T.value = "splice-unquote"}; head]} :: tail }
-    | T.Vector { T.value = T.List { T.value = [T.Symbol {T.value = "splice-unquote"}; head]} :: tail } ->
-       Types.list [Types.symbol "concat"; head; quasiquote (Types.list tail)]
-    | T.List   { T.value = head :: tail }
-    | T.Vector { T.value = head :: tail } ->
-       Types.list [Types.symbol "cons"; quasiquote head; quasiquote (Types.list tail) ]
-    | ast -> Types.list [Types.symbol "quote"; ast]
+    | T.List {T.value = xs} -> List.fold_right qq_folder xs (Types.list [])
+    | T.Vector {T.value = xs} -> Types.list [Types.symbol "vec";
+                                             List.fold_right qq_folder xs (Types.list [])]
+    | T.Map    _ -> Types.list [Types.symbol "quote"; ast]
+    | T.Symbol _ -> Types.list [Types.symbol "quote"; ast]
+    | _ -> ast
+and qq_folder elt acc =
+  match elt with
+    | T.List {T.value = [T.Symbol {T.value = "splice-unquote"}; x]} -> Types.list [Types.symbol "concat"; x; acc]
+    | _ -> Types.list [Types.symbol "cons"; quasiquote elt; acc]
 
 let is_macro_call ast env =
   match ast with
@@ -61,7 +63,7 @@ and eval ast env =
           | T.Fn { T.value = f; T.meta = meta } ->
              let fn = T.Fn { T.value = f; meta = Core.assoc [meta; Core.kw_macro; (T.Bool true)]}
              in Env.set env key fn; fn
-          | _ -> raise (Invalid_argument "devmacro! value must be a fn"))
+          | _ -> raise (Invalid_argument "defmacro! value must be a fn"))
     | T.List { T.value = [(T.Symbol { T.value = "let*" }); (T.Vector { T.value = bindings }); body] }
     | T.List { T.value = [(T.Symbol { T.value = "let*" }); (T.List   { T.value = bindings }); body] } ->
         (let sub_env = Env.make (Some env) in
@@ -95,6 +97,8 @@ and eval ast env =
               in bind_args arg_names args;
               eval expr sub_env)
     | T.List { T.value = [T.Symbol { T.value = "quote" }; ast] } -> ast
+    | T.List { T.value = [T.Symbol { T.value = "quasiquoteexpand" }; ast] } ->
+       quasiquote ast
     | T.List { T.value = [T.Symbol { T.value = "quasiquote" }; ast] } ->
        eval (quasiquote ast) env
     | T.List { T.value = [T.Symbol { T.value = "macroexpand" }; ast] } ->

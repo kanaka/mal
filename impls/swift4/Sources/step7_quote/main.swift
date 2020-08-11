@@ -5,25 +5,49 @@ func READ(_ input: String) throws -> MalData {
     return try read_str(input)
 }
 
-func EVAL(_ anAst: MalData, env anEnv: Env) throws -> MalData {
-    func is_pair(_ ast: MalData) -> Bool { // not used
-        return (ast is [MalData]) && (ast.count != 0)
+func starts_with(_ ast: MalData, _ sym: String) -> MalData? {
+    if let list = ast as? [MalData],
+       2 == list.count,
+       let a0 = list[0] as? Symbol,
+       a0.name == sym {
+        return list[1]
+    } else {
+        return nil
     }
-    func quasiquote(_ ast: MalData) -> MalData {
-        let list = ast.listForm
-        if list.isEmpty {
-            return [Symbol("quote"), ast]
-        }
-        if let sym = list[0] as? Symbol, sym.name == "unquote" {
-            return list[1]
-        }
-        let innerList = list[0].listForm
-        if !innerList.isEmpty, let sym = innerList[0] as? Symbol, sym.name == "splice-unquote" {
-            return [Symbol("concat"), innerList[1], quasiquote(list.dropFirst().listForm)]
-        }
-        return [Symbol("cons"), quasiquote(list[0]), quasiquote(list.dropFirst().listForm)]
-    }
+}
 
+func qqIter(_ lst: [MalData]) -> MalData {
+    var result:MalData = []
+    for elt in lst.reversed() {
+        if let x = starts_with(elt, "splice-unquote") {
+            result = [Symbol("concat"), x, result]
+        } else {
+            result = [Symbol("cons"), quasiquote(elt), result]
+        }
+    }
+    return result
+}
+
+func quasiquote(_ ast: MalData) -> MalData {
+    switch ast.dataType {
+    case .List:
+        if let x = starts_with(ast, "unquote") {
+            return x
+        } else {
+            return qqIter (ast.listForm)
+        }
+    case .Vector:
+        return [Symbol("vec"), qqIter (ast.listForm)]
+    case .Symbol:
+        return [Symbol("quote"), ast]
+    case .HashMap:
+        return [Symbol("quote"), ast]
+    default:
+        return ast
+    }
+}
+
+func EVAL(_ anAst: MalData, env anEnv: Env) throws -> MalData {
     var ast = anAst, env = anEnv
     while true {
         switch ast.dataType {
@@ -67,6 +91,8 @@ func EVAL(_ anAst: MalData, env anEnv: Env) throws -> MalData {
                     return Function(ast: list[2], params: (list[1].listForm as! [Symbol]), env:env , fn: fn)
                 case "quote":
                     return list[1]
+                case "quasiquoteexpand":
+                    return quasiquote(list[1])
                 case "quasiquote":
                     ast = quasiquote(list[1])
                     continue

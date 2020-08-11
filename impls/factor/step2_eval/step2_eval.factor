@@ -14,22 +14,12 @@ CONSTANT: repl-env H{
 
 DEFER: EVAL
 
-: eval-symbol ( sym env -- ast )
+GENERIC# eval-ast 1 ( ast env -- ast )
+M: malsymbol eval-ast
     [ name>> ] dip ?at [ "no variable " prepend throw ] unless ;
-
-: eval-list ( list env -- ast )
-    '[ _ EVAL ] map ;
-
-: eval-assoc ( assoc env -- ast )
-    '[ [ _ EVAL ] bi@ ] assoc-map ;
-
-: eval-ast ( ast env -- ast )
-    {
-        { [ over malsymbol? ] [ eval-symbol ] }
-        { [ over sequence? ]  [ eval-list ] }
-        { [ over assoc? ]     [ eval-assoc ] }
-        [ drop ]
-    } cond ;
+M: sequence  eval-ast '[ _ EVAL ] map ;
+M: assoc     eval-ast '[ _ EVAL ] assoc-map ;
+M: object    eval-ast drop ;
 
 : READ ( str -- maltype ) read-str ;
 

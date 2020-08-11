@@ -88,6 +88,12 @@ module Mal
     end
   end
 
+  def self.vec(args)
+    arg = args.first.unwrap
+    arg.is_a? Array || eval_error "argument of vec must be a sequence"
+    arg.to_mal(Mal::Vector)
+  end
+
   def self.nth(args)
     a0, a1 = args[0].unwrap, args[1].unwrap
     eval_error "1st argument of nth must be list or vector" unless a0.is_a? Array
@@ -410,6 +416,7 @@ module Mal
     "slurp"       => func(:slurp),
     "cons"        => func(:cons),
     "concat"      => func(:concat),
+    "vec"         => func(:vec),
     "nth"         => func(:nth),
     "first"       => func(:first),
     "rest"        => func(:rest),

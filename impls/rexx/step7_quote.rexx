@@ -18,20 +18,45 @@ exit
 read: procedure expose values. err /* read(str) */
   return read_str(arg(1))
 
-pair?: procedure expose values. /* pair?(ast) */
-  ast = arg(1)
-  return sequential?(ast) & words(obj_val(ast)) > 0
+starts_with?: procedure expose values. /* starts_with?(lst, sym) */
+  lst = arg(1)
+  sym = arg(2)
+  if words(obj_val(lst)) != 2 then return 0
+  a0 = word(obj_val(lst), 1)
+  return symbol?(a0) & obj_val(a0) == sym
+
+qq_loop: procedure expose values. /* qq_loop(elt, acc) */
+  elt = arg(1)
+  acc = arg(2)
+  if list?(elt) & starts_with?(elt, "splice-unquote") then
+    return new_list(new_symbol("concat") || " " || word(obj_val(elt), 2) || " " || acc)
+  else
+    return new_list(new_symbol("cons") || " " || quasiquote(elt) || " " || acc)
+
+qq_foldr: procedure expose values. /* qq_foldr(xs) */
+  xs = arg(1)
+  acc = new_list()
+  do i=words(xs) to 1 by -1
+    acc = qq_loop(word(xs, i), acc)
+  end
+  return acc
 
 quasiquote: procedure expose values. env. err /* quasiquote(ast) */
   ast = arg(1)
-  if \pair?(ast) then return new_list(new_symbol("quote") || " " || ast)
-  ast0 = word(obj_val(ast), 1)
-  if symbol?(ast0) & obj_val(ast0) == "unquote" then return word(obj_val(ast), 2)
-  ast00 = word(obj_val(ast0), 1)
-  if pair?(ast0) & symbol?(ast00) & obj_val(ast00) == "splice-unquote" then
-    return new_list(new_symbol("concat") || " " || word(obj_val(ast0), 2) || " " || quasiquote(mal_rest(ast)))
-  else
-    return new_list(new_symbol("cons") || " " || quasiquote(ast0) || " " || quasiquote(mal_rest(ast)))
+  type = obj_type(ast)
+  select
+    when type == "list" then
+        if starts_with?(ast, "unquote") then
+          return word(obj_val(ast), 2)
+        else
+          return qq_foldr(obj_val(ast))
+    when type == "vect" then
+      return new_list(new_symbol("vec") || " " || qq_foldr(obj_val(ast)))
+    when type == "symb" | type == "hash" then
+      return new_list(new_symbol("quote") || " " || ast)
+    otherwise
+      return ast
+    end
 
 eval_ast: procedure expose values. env. err /* eval_ast(ast, env_idx) */
   ast = arg(1)
@@ -109,6 +134,7 @@ eval: procedure expose values. env. err /* eval(ast) */
         /* TCO */
       end
       when a0sym == "quote" then return word(astval, 2)
+      when a0sym == "quasiquoteexpand" then return quasiquote(word(astval, 2))
       when a0sym == "quasiquote" then do
         ast = quasiquote(word(astval, 2))
         /* TCO */

@@ -272,6 +272,14 @@ let core_ns: Dictionary<String,(Array<MalVal>) throws -> MalVal> = [
         }
         return list(res)
     },
+    "vec": {
+        if $0.count != 1 { throw MalError.General(msg: "Invalid vec call") }
+        switch $0[0] {
+            case MV.MalList  (let lst, _): return vector(lst)
+            case MV.MalVector(let lst, _): return vector(lst)
+            default: throw MalError.General(msg: "Invalid vec call")
+        }
+    },
     "nth": {
         if $0.count != 2 { throw MalError.General(msg: "Invalid nth call") }
         switch ($0[0], $0[1]) {

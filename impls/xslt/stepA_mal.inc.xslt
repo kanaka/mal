@@ -431,71 +431,96 @@
     <env data="{env:serialise(env:swap-replEnv($env, env:deserialise($result/env/@data) =&gt; env:replEnv()))}"/>
     <xsl:sequence select="$result/atoms[1]"/>
   </xsl:template>
+  <!-- Quasiquote: reduce/fold function, computing the new accumulator
+       value from the current element and the previous accumulator -->
+  <xsl:template name="qq_loop">
+    <xsl:param name="elt"/>
+    <xsl:param name="acc"/>
+    <xsl:choose>
+      <xsl:when test="$elt/@kind                   = 'list'
+            and count($elt/lvalue/malval)          = 2
+            and       $elt/lvalue/malval[1]/@kind  = 'symbol'
+            and       $elt/lvalue/malval[1]/@value = 'splice-unquote'">
+        <malval kind="list">
+          <lvalue>
+            <malval kind="symbol" value="concat"/>
+            <xsl:sequence select="$elt/lvalue/malval[2]"/>
+            <xsl:sequence select="$acc"/>
+          </lvalue>
+        </malval>
+      </xsl:when>
+      <xsl:otherwise>
+        <malval kind="list">
+          <lvalue>
+            <malval kind="symbol" value="cons"/>
+            <xsl:call-template name="quasiquote">
+              <xsl:with-param name="ast" select="$elt"/>
+            </xsl:call-template>
+            <xsl:sequence select="$acc"/>
+          </lvalue>
+        </malval>
+      </xsl:otherwise>
+    </xsl:choose>
+  </xsl:template>
+  <!-- Quasiquote: right reduce/fold for an XML sequence -->
+  <xsl:template name="qq_foldr">
+    <xsl:param name="xs"/>
+    <xsl:choose>
+      <xsl:when test="count($xs) = 0">
+        <malval kind="list">
+          <lvalue/>
+        </malval>
+      </xsl:when>
+      <xsl:otherwise>
+        <xsl:call-template name="qq_loop">
+          <xsl:with-param name="elt" select="$xs[1]"/>
+          <xsl:with-param name="acc">
+            <xsl:call-template name="qq_foldr">
+              <xsl:with-param name="xs" select="$xs[position() != 1]"/>
+            </xsl:call-template>
+          </xsl:with-param>
+        </xsl:call-template>
+      </xsl:otherwise>
+    </xsl:choose>
+  </xsl:template>
   <xsl:template name="quasiquote">
     <xsl:param name="ast"/>
     <xsl:variable name="result">
       <xsl:choose>
-        <xsl:when test="fn:is-pair($ast)">
+        <xsl:when test="$ast/@kind = 'list'">
           <xsl:choose>
-              <xsl:when test="let $fst := $ast/lvalue/malval[1]
-                                  return $fst/@kind = 'symbol' and
-                                       $fst/@value = 'unquote'">
+            <xsl:when test="count($ast/lvalue/malval)          = 2
+                              and $ast/lvalue/malval[1]/@kind  = 'symbol'
+                              and $ast/lvalue/malval[1]/@value = 'unquote'">
               <xsl:sequence select="$ast/lvalue/malval[2]"/>
             </xsl:when>
-            <xsl:when test="let $fst := $ast/lvalue/malval[1]
-                                return fn:is-pair($fst) and
-                                       (let $fstfst := $fst/lvalue/malval[1]
-                                            return $fstfst/@kind = 'symbol' and
-                                                   $fstfst/@value = 'splice-unquote')">
-              <malval kind="list">
-                <lvalue>
-                  <malval kind="symbol" value="concat"/>
-                  <xsl:sequence select="$ast/lvalue/malval[1]/lvalue/malval[2]"/>
-                  <xsl:variable name="rest" select="$ast/lvalue/malval[position() &gt; 1]"/>
-                  <xsl:variable name="rest-">
-                    <malval kind="list">
-                      <lvalue>
-                        <xsl:sequence select="$rest"/>
-                      </lvalue>
-                    </malval>
-                  </xsl:variable>
-                  <xsl:call-template name="quasiquote">
-                    <xsl:with-param name="ast" select="$rest-"/>
-                  </xsl:call-template>
-                </lvalue>
-              </malval>
-            </xsl:when>
             <xsl:otherwise>
-              <malval kind="list">
-                <lvalue>
-                  <malval kind="symbol" value="cons"/>
-                  <xsl:variable name="first" select="$ast/lvalue/malval[1]"/>
-                  <xsl:variable name="rest" select="$ast/lvalue/malval[position() &gt; 1]"/>
-                  <xsl:variable name="rest-">
-                    <malval kind="list">
-                      <lvalue>
-                        <xsl:sequence select="$rest"/>
-                      </lvalue>
-                    </malval>
-                  </xsl:variable>
-                  <xsl:call-template name="quasiquote">
-                    <xsl:with-param name="ast" select="$first"/>
-                  </xsl:call-template>
-                  <xsl:call-template name="quasiquote">
-                    <xsl:with-param name="ast" select="$rest-/malval"/>
-                  </xsl:call-template>
-                </lvalue>
-              </malval>
+              <xsl:call-template name="qq_foldr">
+                <xsl:with-param name="xs" select="$ast/lvalue/malval"/>
+              </xsl:call-template>
             </xsl:otherwise>
           </xsl:choose>
         </xsl:when>
-        <xsl:otherwise>
+        <xsl:when test="$ast/@kind = 'vector'">
+          <malval kind="list">
+            <lvalue>
+              <malval kind="symbol" value="vec"/>
+              <xsl:call-template name="qq_foldr">
+                <xsl:with-param name="xs" select="$ast/lvalue/malval"/>
+              </xsl:call-template>
+            </lvalue>
+          </malval>
+        </xsl:when>
+        <xsl:when test="$ast/@kind = 'symbol' or $ast/@kind = 'hash'">
           <malval kind="list">
             <lvalue>
               <malval kind="symbol" value="quote"/>
               <xsl:sequence select="$ast"/>
             </lvalue>
           </malval>
+        </xsl:when>
+        <xsl:otherwise>
+          <xsl:sequence select="$ast"/>
         </xsl:otherwise>
       </xsl:choose>
     </xsl:variable>
@@ -845,6 +870,19 @@ EVALUATE <xsl:sequence select="core:pr-str(value/malval)/value/text()"/> IN (<xs
                   </xsl:when>
                   <xsl:when test="let $fn := value/malval/lvalue/malval[1]
                                       return $fn/@kind = 'symbol' and
+                                             $fn/@value = 'quasiquoteexpand'">
+                    <value>
+                      <xsl:call-template name="quasiquote">
+                        <xsl:with-param name="ast" select="value/malval/lvalue/malval[2]"/>
+                      </xsl:call-template>
+                    </value>
+                    <xsl:if test="$encode-env">
+                      <env data="{env:serialise($env)}"/>
+                    </xsl:if>
+                    <xsl:sequence select="$atoms"/>
+                  </xsl:when>
+                  <xsl:when test="let $fn := value/malval/lvalue/malval[1]
+                                      return $fn/@kind = 'symbol' and
                                              $fn/@value = 'quasiquote'">
                     <xsl:variable name="exp">
                       <value>
@@ -1068,10 +1106,6 @@ EVALUATED (<xsl:sequence select="empty($data/atoms)"/>) <xsl:sequence select="co
         </second>
       </element>
     </xsl:iterate>
-  </xsl:function>
-  <xsl:function name="fn:is-pair">
-    <xsl:param name="list"/>
-    <xsl:sequence select="($list/@kind = 'list' or $list/@kind = 'vector') and count($list/lvalue/malval) != 0"/>
   </xsl:function>
   <xsl:function name="fn:is-macro-call">
     <xsl:param name="ast"/>

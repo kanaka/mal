@@ -4,20 +4,18 @@ USING: accessors arrays assocs combinators
 combinators.short-circuit command-line continuations fry
 grouping hashtables io kernel lists locals lib.core lib.env
 lib.printer lib.reader lib.types math namespaces quotations
-readline sequences splitting ;
+readline sequences splitting vectors ;
 IN: step7_quote
 
 SYMBOL: repl-env
 
 DEFER: EVAL
 
-: eval-ast ( ast env -- ast )
-    {
-        { [ over malsymbol? ] [ env-get ] }
-        { [ over sequence? ]  [ '[ _ EVAL ] map ] }
-        { [ over assoc? ]     [ '[ [ _ EVAL ] bi@ ] assoc-map ] }
-        [ drop ]
-    } cond ;
+GENERIC# eval-ast 1 ( ast env -- ast )
+M: malsymbol eval-ast env-get ;
+M: sequence  eval-ast '[ _ EVAL ] map ;
+M: assoc     eval-ast '[ _ EVAL ] assoc-map ;
+M: object    eval-ast drop ;
 
 :: eval-def! ( key value env -- maltype )
     value env EVAL [ key env env-set ] keep ;
@@ -51,7 +49,7 @@ DEFER: EVAL
     swapd [ over length cut [ zip ] dip ] dip
     [ swap 2array suffix ] [ drop ] if* >hashtable ;
 
-GENERIC: apply ( args fn -- maltype newenv/f )
+GENERIC# apply 0 ( args fn -- maltype newenv/f )
 
 M: malfn apply
     [ exprs>> nip ]
@@ -60,17 +58,36 @@ M: malfn apply
 
 M: callable apply call( x -- y ) f ;
 
-: is-pair? ( maltype -- bool )
-    { [ sequence? ] [ empty? not ] } 1&& ;
+DEFER: quasiquote
 
-: quasiquote ( maltype -- maltype )
-    {
-        { [ dup is-pair? not ] [ [ "quote" <malsymbol> ] dip 2array ] }
-        { [ "unquote" over first symeq? ] [ second ] }
-        { [ dup first { [ is-pair? ] [ first "splice-unquote" swap symeq? ] } 1&& ]
-          [ [ "concat" <malsymbol> ] dip unclip second swap quasiquote 3array ] }
-        [ "cons" <malsymbol> swap unclip quasiquote swap quasiquote 3array ]
-    } cond ;
+: qq_loop ( elt acc -- maltype )
+    [
+        { [ dup array? ]
+          [ dup length 2 = ]
+          [ "splice-unquote" over first symeq? ] } 0&& [
+            second "concat"
+        ] [
+            quasiquote "cons"
+        ] if
+        <malsymbol> swap
+    ]
+    dip 3array ;
+
+: qq_foldr ( xs -- maltype )
+    dup length 0 = [
+        drop { }
+    ] [
+        unclip swap qq_foldr qq_loop
+    ] if ;
+
+GENERIC: quasiquote ( maltype -- maltype )
+M: array     quasiquote
+    { [ dup length 2 = ] [ "unquote" over first symeq? ] } 0&&
+    [ second ] [ qq_foldr ] if ;
+M: vector    quasiquote qq_foldr "vec" <malsymbol> swap 2array ;
+M: malsymbol quasiquote "quote" <malsymbol> swap 2array ;
+M: assoc     quasiquote "quote" <malsymbol> swap 2array ;
+M: object    quasiquote ;
 
 : READ ( str -- maltype ) read-str ;
 
@@ -78,11 +95,12 @@ M: callable apply call( x -- y ) f ;
     over { [ array? ] [ empty? not ] } 1&& [
         over first dup malsymbol? [ name>> ] when {
             { "def!" [ [ rest first2 ] dip eval-def! f ] }
-            { "let*" [ [ first2 ] dip eval-let* ] }
+            { "let*" [ [ rest first2 ] dip eval-let* ] }
             { "do" [ [ rest ] dip eval-do ] }
             { "if" [ [ rest ] dip eval-if ] }
             { "fn*" [ [ rest ] dip eval-fn* f ] }
             { "quote" [ drop second f ] }
+            { "quasiquoteexpand" [ drop second quasiquote f ] }
             { "quasiquote" [ [ second quasiquote ] dip ] }
             [ drop '[ _ EVAL ] map unclip apply ]
         } case [ EVAL ] when*
