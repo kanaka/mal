@@ -41,7 +41,7 @@ guide](process/guide.md) there is also a [mal/make-a-lisp
 FAQ](docs/FAQ.md) where I attempt to answer some common questions.
 
 
-**3. Mal is implemented in 82 languages (85 different implementations and 105 runtime modes)**
+**3. Mal is implemented in 83 languages (86 different implementations and 106 runtime modes)**
 
 | Language | Creator |
 | -------- | ------- |
@@ -104,6 +104,7 @@ FAQ](docs/FAQ.md) where I attempt to answer some common questions.
 | [PL/SQL](#plsql-oracle-sql-procedural-language) (Oracle) | [Joel Martin](https://github.com/kanaka) |
 | [PostScript](#postscript-level-23) | [Joel Martin](https://github.com/kanaka)  |
 | [PowerShell](#powershell) | [Joel Martin](https://github.com/kanaka)  |
+| [Prolog](#prolog-logical-language) | [Nicolas Boulenguez](https://github.com/asarhaddon) |
 | [Python](#python-2x-and-3x) (2.X &amp; 3.X) | [Joel Martin](https://github.com/kanaka) |
 | [Python #2](#python2-3x) (3.X) | [Gavin Lewis](https://github.com/epylar) |
 | [RPython](#rpython) | [Joel Martin](https://github.com/kanaka)  |
@@ -869,6 +870,17 @@ language. It has been tested with PowerShell 6.0.0 Alpha 9 on Linux.
 ```
 cd impls/powershell
 powershell ./stepX_YYY.ps1
+```
+
+### Prolog
+
+The Prolog implementation uses some constructs specific to SWI-Prolog,
+includes readline support and has been tested on Debian GNU/Linux with
+version 8.2.1.
+
+```
+cd impls/prolog
+swipl stepX_YYY
 ```
 
 ### Python (2.X and 3.X)

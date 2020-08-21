@@ -93,7 +93,7 @@ IMPLS = ada ada.2 awk bash basic bbc-basic c chuck clojure coffee common-lisp cp
 	elisp elixir elm erlang es6 factor fantom forth fsharp go groovy gnu-smalltalk \
 	guile haskell haxe hy io java js jq julia kotlin livescript logo lua make mal \
 	matlab miniMAL nasm nim objc objpascal ocaml perl perl6 php picolisp pike plpgsql \
-	plsql powershell ps python python.2 r racket rexx rpython ruby rust scala scheme skew \
+	plsql powershell prolog ps python python.2 r racket rexx rpython ruby rust scala scheme skew \
 	swift swift3 swift4 swift5 tcl ts vala vb vhdl vimscript wasm wren yorick xslt zig
 
 EXTENSION = .mal
@@ -134,6 +134,7 @@ step5_EXCLUDES += matlab      # never completes at 10,000
 step5_EXCLUDES += plpgsql     # too slow for 10,000
 step5_EXCLUDES += plsql       # too slow for 10,000
 step5_EXCLUDES += powershell  # too slow for 10,000
+step5_EXCLUDES += prolog      # no iteration (but interpreter does TCO implicitly)
 step5_EXCLUDES += $(if $(filter cpp,$(haxe_MODE)),haxe,) # cpp finishes 10,000, segfaults at 100,000
 step5_EXCLUDES += xslt		  # iteration cannot be expressed
 
@@ -243,6 +244,7 @@ pike_STEP_TO_PROG =          impls/pike/$($(1)).pike
 plpgsql_STEP_TO_PROG =       impls/plpgsql/$($(1)).sql
 plsql_STEP_TO_PROG =         impls/plsql/$($(1)).sql
 powershell_STEP_TO_PROG =    impls/powershell/$($(1)).ps1
+prolog_STEP_TO_PROG =        impls/prolog/$($(1)).pl
 ps_STEP_TO_PROG =            impls/ps/$($(1)).ps
 python_STEP_TO_PROG =        impls/python/$($(1)).py
 python.2_STEP_TO_PROG =      impls/python.2/$($(1)).py

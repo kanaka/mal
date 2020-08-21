@@ -73,6 +73,7 @@ matrix:
     - {env: IMPL=pike,                        services: [docker]}
     - {env: IMPL=plpgsql NO_SELF_HOST=1,      services: [docker]} # step3 timeout
 #    - {env: IMPL=plsql,                       services: [docker]}
+    - {env: IMPL=prolog,                      services: [docker]}
     - {env: IMPL=ps,                          services: [docker]}
     - {env: IMPL=powershell NO_SELF_HOST_PERF=1, services: [docker]} # perf timeout
     - {env: IMPL=python python_MODE=python2,  services: [docker]}

@@ -1,0 +1,29 @@
+;; Testing basic prolog interop
+
+(prolog-call "1+")
+;/.*prolog-call: .*syntax_error.*
+(prolog-call "atom_length(\"ab\")")
+;=>2
+(prolog-call "atom_concat(\"ab\", \"cd\")")
+;=>abcd
+(prolog-call "number_string(42)")
+;=>"42"
+(prolog-call "=(mal_kwd(\"kw\"))")
+;=>:kw
+(prolog-call "list([a, b])")
+;=>(a b)
+(prolog-call "vector([a, b])")
+;=>[a b]
+(prolog-call "'hash-map'([\"a\", 1])")
+;=>{"a" 1}
+(meta (prolog-call "=(mal_vector([a, b], 12))"))
+;=>12
+(prolog-call "=(mal_list([1, mal_formed(1)]))")
+;/.*prolog-call: invalid result.*
+
+(prolog-asserta "(mal_setenv(Name, Value, nil) :- setenv(Name, Value))")
+;=>nil
+(prolog-call "mal_setenv(\"answer\", 42)")
+;=>nil
+(prolog-call "getenv(\"answer\")")
+;=>42
