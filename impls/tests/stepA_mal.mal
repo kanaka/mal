@@ -43,6 +43,9 @@
 (do (list time-ms string? number? seq conj meta with-meta fn?) nil)
 ;=>nil
 
+(map symbol? '(nil false true))
+;=>(false false false)
+
 ;; ------------------------------------------------------------------
 
 ;>>> soft=True
