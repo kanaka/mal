@@ -8,7 +8,7 @@ public class Printer {
         return buf.toString();
     }
 
-    private static void prStr(StringBuilder buf, Object form, boolean printReadably) {
+    public static void prStr(StringBuilder buf, Object form, boolean printReadably) {
         if (form instanceof Boolean) {
 
             buf.append((boolean)form);
@@ -83,6 +83,10 @@ public class Printer {
             }
             buf.append('}');
 
+        } else if (form instanceof MalFunction) {
+            buf.append("#<function>");
+        } else {
+            throw new RuntimeException("Not a MAL type: "+form.getClass().getCanonicalName());
         }
     }
 }

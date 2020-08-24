@@ -7,6 +7,7 @@ import org.organicdesign.fp.collections.PersistentHashMap;
 import org.organicdesign.fp.collections.PersistentVector;
 
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
+import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.TruffleException;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
@@ -36,7 +37,7 @@ class MalException extends RuntimeException implements TruffleException {
     }
 }
 
-abstract class MalValue implements TruffleObject {
+abstract class MalValue {
     @Override
     @TruffleBoundary
     public String toString() {
@@ -405,6 +406,29 @@ class MalSymbol extends MalValue implements TruffleObject {
         } else if (!symbol.equals(other.symbol))
             return false;
         return true;
+    }
+
+    @ExportMessage
+    Object toDisplayString(boolean allowSideEffects) {
+        return this.toString();
+    }
+}
+
+@ExportLibrary(InteropLibrary.class)
+class MalFunction extends MalValue implements TruffleObject {
+    final RootCallTarget callTarget;
+    final MalEnv closedOverEnv;
+    final int numArgs;
+
+    MalFunction(RootCallTarget callTarget, MalEnv closedOverEnv, int numArgs) {
+        this.callTarget = callTarget;
+        this.closedOverEnv = closedOverEnv;
+        this.numArgs = numArgs;
+    }
+
+    @Override
+    public String toString() {
+        return Printer.prStr(this, true);
     }
 
     @ExportMessage
