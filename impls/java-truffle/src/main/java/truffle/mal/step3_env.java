@@ -277,7 +277,7 @@ public class step3_env {
     }
 
     final static class MalContext {
-        final MalEnv globalEnv = new MalEnv();
+        final MalEnv globalEnv = new MalEnv(MalLanguage.class);
     }
 
     @TruffleLanguage.Registration(
