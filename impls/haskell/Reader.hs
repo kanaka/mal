@@ -2,98 +2,122 @@ module Reader
 ( read_str )
 where
 
+import qualified Data.Map.Strict as Map
 import Text.ParserCombinators.Parsec (
-    Parser, (<|>), anyChar, char, digit, many, many1, noneOf, oneOf, parse)
-import qualified Data.Map as Map
+    Parser, parse, char, digit, anyChar,
+    (<|>), oneOf, noneOf, many, many1)
 
 import Types
 
---  Helpers
+----------------------------------------------------------------------
+--  A MAL grammar and a possible parsing are described here.
 
-symbolFalseTrueNil :: String -> MalVal
-symbolFalseTrueNil "true"  = MalBoolean True
-symbolFalseTrueNil "false" = MalBoolean False
-symbolFalseTrueNil "nil"   = Nil
-symbolFalseTrueNil s       = MalSymbol s
+--  If you are only interested in the grammar, please ignore the
+--  left-hand side of <$> and =<< operators (second column).
+
+--  *>  <*  <*>                     all mean concatenation
+--  <|>                             means alternative
+--  many  p = (many1 p) | empty     means p*, zero or more p
+--  many1 p = p (many p)            means p+, one or more p
+
+--  For efficiency, the alternative operator <|> expects each branch
+--  to either:
+--  * succeed,
+--  * fall after looking at the next character without consuming it,
+--  * or consume some input and fail, indicating that the input is
+--    incorrect and no remaining branches should be ignored.
+
+allowedChar   :: Parser Char
+allowedChar =                    noneOf "\n\r \"(),;[\\]{}"
+
+sep           :: Parser String
+sep         =                    many (oneOf  ", \n"
+                                       <|> char ';' <* many (noneOf "\n"))
+
+stringChar    :: Parser Char
+stringChar  = unescapeChar  <$> (char '\\' *>  anyChar)
+          <|>                    noneOf "\""
+
+afterMinus    :: Parser MalVal
+afterMinus  = negative      <$>  many1 digit
+          <|> hyphenSymbol  <$>  many allowedChar
+
+afterTilde    :: Parser MalVal
+afterTilde  = spliceUnquote <$> (char '@' *> sep *> form)
+          <|> unquote       <$> (sep *> form)
+
+form          :: Parser MalVal
+form        = MalString     <$> (char '"'  *> many stringChar <* char '"')
+          <|> MalKeyword    <$> (char ':'  *> many1 allowedChar)
+          <|>                    char '-'  *> afterMinus
+          <|> toList        <$> (char '('  *> sep *> many (form <* sep) <* char ')')
+          <|> vector        <$> (char '['  *> sep *> many (form <* sep) <* char ']')
+          <|> (toMap        =<<  char '{'  *> sep *> many (form <* sep) <* char '}')
+          <|> quote         <$> (char '\'' *> sep *> form)
+          <|> quasiquote    <$> (char '`'  *> sep *> form)
+          <|> deref         <$> (char '@'  *> sep *> form)
+          <|>                    char '~'  *> afterTilde
+          <|> withMeta      <$> (char '^'  *> sep *> form <* sep) <*> form
+          <|> positive      <$>  many1 digit
+          <|> symbol        <$>  many1 allowedChar
+
+read_form     :: Parser MalVal
+read_form   =                    sep *> form
+
+----------------------------------------------------------------------
+--  Part specific to Haskell
 
 addPrefix :: String -> MalVal -> MalVal
-addPrefix s m = toList [MalSymbol s, m]
+addPrefix s x = toList [MalSymbol s, x]
 
-with_meta :: MalVal -> MalVal -> MalVal
-with_meta m x = toList [MalSymbol "with-meta", x, m]
+deref :: MalVal -> MalVal
+deref = addPrefix "deref"
 
-hash_map         :: [MalVal] -> Parser MalVal
-hash_map = g . keyValuePairs
-    where
-          g (Just pairs) = return $ MalHashMap (MetaData Nil) $ Map.fromList pairs
-          g Nothing      = fail "invalid contents inside map braces"
+hyphenSymbol :: String -> MalVal
+hyphenSymbol = MalSymbol . (:) '-'
 
-toKeyword :: String -> MalVal
-toKeyword = MalString . (:) keywordMagic
+negative ::  String ->  MalVal
+negative = MalNumber . negate . read
 
-toVector :: [MalVal] -> MalVal
-toVector = MalSeq (MetaData Nil) (Vect True)
+positive :: String -> MalVal
+positive = MalNumber . read
 
---  Parsing
+quasiquote :: MalVal -> MalVal
+quasiquote = addPrefix "quasiquote"
 
---  For efficiency, <|> expects each choice in an alternative to
---  * either succeed,
---  * or fall after looking only at the next character
---  * or consume some input and fail for incorrect input.
+quote :: MalVal -> MalVal
+quote = addPrefix "quote"
 
---  The grammar should be human-readable in the first and third column
---  without former knowledge of Haskell, except these two regex-style
---  combinators:
---  many  p = (many1 p) | empty     AKA p*, zero or more p
---  many1 p = p (many p)            AKA p+, one or more p
+spliceUnquote :: MalVal -> MalVal
+spliceUnquote = addPrefix "splice-unquote"
 
-allowedChar    :: Parser Char
-allowedChar =                                 noneOf "\n\r \"(),;[\\]{}"
+toMap :: [MalVal] -> Parser MalVal
+toMap kvs = case kv2map Map.empty kvs of
+  Just m -> return m
+  Nothing -> fail "invalid contents in map braces"
 
-separChar      :: Parser ()
-separChar   =  ()                         <$  oneOf "\n ,"
-          <|>  ()                         <$  char ';' <* many (noneOf "\n")
+unquote :: MalVal -> MalVal
+unquote = addPrefix "unquote"
 
-sep            :: Parser ()
-sep         =  ()                         <$  many separChar
---  A comment may also reach the end of the input. The terminator, if
---  present, will be consumed by the first option later anyway.
+symbol ::  String -> MalVal
+symbol "true"  = MalBoolean True
+symbol "false" = MalBoolean False
+symbol "nil"   = Nil
+symbol s       = MalSymbol s
 
-escapedChar    :: Parser Char
-escapedChar =  '\n'                       <$  char 'n'
-          <|>                                 anyChar
+unescapeChar :: Char -> Char
+unescapeChar 'n' = '\n'
+unescapeChar c   = c
 
-stringChar     :: Parser Char
-stringChar  =                                 char '\\' *> escapedChar
-          <|>                                 noneOf "\""
+vector :: [MalVal] -> MalVal
+vector = MalSeq (MetaData Nil) (Vect True)
 
-afterMinus     :: Parser MalVal
-afterMinus  =  MalNumber . negate . read  <$> many1 digit
-          <|>  MalSymbol . (:) '-'        <$> many allowedChar
+withMeta :: MalVal -> MalVal -> MalVal
+withMeta m d = toList [MalSymbol "with-meta", d, m]
 
-afterTilde     :: Parser MalVal
-afterTilde  =  addPrefix "splice-unquote" <$> (char '@' *> sep *> form)
-          <|>  addPrefix "unquote"        <$> (sep *> form)
-
-form           :: Parser MalVal
-form        =  MalString                  <$> (char '"' *> many stringChar <* char '"')
-          <|>  addPrefix "quote"          <$> (char '\'' *> sep *> form)
-          <|>  toList                     <$> (char '(' *> sep *> many (form <* sep) <* char ')')
-          <|>                                 char '-' *> afterMinus
-          <|>  MalNumber . read           <$> many1 digit
-          <|>  toKeyword                  <$> (char ':' *> many1 allowedChar)
-          <|>  addPrefix "deref"          <$> (char '@' *> sep *> form)
-          <|>  toVector                   <$> (char '[' *> sep *> many (form <* sep) <* char ']')
-          <|>  with_meta                  <$> (char '^' *> sep *> form <* sep) <*> form
-          <|>  addPrefix "quasiquote"     <$> (char '`' *> sep *> form)
-          <|>  (hash_map                  =<< char '{' *> sep *> many (form <* sep) <* char '}')
-          <|>                                 char '~' *> afterTilde
-          <|>  symbolFalseTrueNil         <$> many1 allowedChar
-
-top            :: Parser MalVal
-top         =                                 sep *> form
+--  The only exported function
 
 read_str :: String -> IOThrows MalVal
-read_str str = case parse top "Mal" str of
+read_str str = case parse read_form "Mal" str of
     Left err -> throwStr $ show err
     Right val -> return val

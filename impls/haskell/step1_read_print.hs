@@ -1,6 +1,5 @@
 import System.IO (hFlush, stdout)
-import Control.Monad.Except (runExceptT)
-import Control.Monad.Trans (liftIO)
+import Control.Monad.Except (liftIO, runExceptT)
 
 import Readline (addHistory, readline, load_history)
 import Types
@@ -20,7 +19,7 @@ eval = id
 -- print
 
 mal_print :: MalVal -> IOThrows String
-mal_print = liftIO. Printer._pr_str True
+mal_print = liftIO . Printer._pr_str True
 
 -- repl
 
