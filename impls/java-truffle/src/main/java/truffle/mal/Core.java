@@ -5,6 +5,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.StringWriter;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Stack;
@@ -62,6 +63,28 @@ class Core {
         NS.put("nth", NthBuiltinFactory.getInstance());
         NS.put("first", FirstBuiltinFactory.getInstance());
         NS.put("rest", RestBuiltinFactory.getInstance());
+
+        NS.put("throw", ThrowBuiltinFactory.getInstance());
+        NS.put("apply", ApplyBuiltinFactory.getInstance());
+        NS.put("map", MapBuiltinFactory.getInstance());
+        NS.put("nil?", IsNilBuiltinFactory.getInstance());
+        NS.put("true?", IsTrueBuiltinFactory.getInstance());
+        NS.put("false?", IsFalseBuiltinFactory.getInstance());
+        NS.put("symbol?", IsSymbolBuiltinFactory.getInstance());
+        NS.put("symbol", SymbolBuiltinFactory.getInstance());
+        NS.put("keyword", KeywordBuiltinFactory.getInstance());
+        NS.put("keyword?", IsKeywordBuiltinFactory.getInstance());
+        NS.put("vector", VectorBuiltinFactory.getInstance());
+        NS.put("vector?", IsVectorBuiltinFactory.getInstance());
+        NS.put("sequential?", IsSequentialBuiltinFactory.getInstance());
+        NS.put("hash-map", HashMapBuiltinFactory.getInstance());
+        NS.put("map?", IsMapBuiltinFactory.getInstance());
+        NS.put("assoc", AssocBuiltinFactory.getInstance());
+        NS.put("dissoc", DissocBuiltinFactory.getInstance());
+        NS.put("get", GetBuiltinFactory.getInstance());
+        NS.put("contains?", ContainsBuiltinFactory.getInstance());
+        NS.put("keys", KeysBuiltinFactory.getInstance());
+        NS.put("vals", ValsBuiltinFactory.getInstance());
     }
 
     static MalEnv newGlobalEnv(Class<? extends TruffleLanguage<?>> languageClass, TruffleLanguage<?> language) {
@@ -626,6 +649,232 @@ abstract class RestBuiltin extends BuiltinNode {
     }
 }
 
+@NodeChild(value="fn", type=ReadArgNode.class)
+@NodeChild(value="args", type=ReadArgsNode.class)
+@GenerateNodeFactory
+abstract class ApplyBuiltin extends BuiltinNode {
+    @Child private AbstractInvokeNode invokeNode;
+
+    protected ApplyBuiltin() {
+        super("apply");
+    }
+
+    @Override
+    protected void setLanguage(IMalLanguage language) {
+        super.setLanguage(language);
+        this.invokeNode = language.invokeNode();
+    }
+
+    @TruffleBoundary
+    private Object[] getArgs(Object[] args) {
+        Object[] fnArgs;
+        if (args.length == 0) {
+            fnArgs = args;
+        } else {
+            Object lastArg = args[args.length-1];
+            int lastArgSize;
+            if (lastArg instanceof MalVector) {
+                lastArgSize = ((MalVector)lastArg).size();
+            } else {
+                lastArgSize = (int)((MalList)lastArg).length;
+            }
+            fnArgs = new Object[args.length + lastArgSize];
+            for (int i=0; i < args.length-1; i++) {
+                fnArgs[i+1] = args[i];
+            }
+            int i = args.length;
+            assert lastArg instanceof Iterable<?>;
+            for (Object obj : ((Iterable<?>)lastArg)) {
+                fnArgs[i++] = obj;
+            }
+        }
+        return fnArgs;
+    }
+
+    @Specialization
+    protected Object apply(VirtualFrame frame, MalFunction fn, Object[] args) {
+        var fnArgs = getArgs(args);
+        fnArgs[0] = fn.closedOverEnv;
+        return invokeNode.invoke(fn.callTarget, fnArgs);
+    }
+}
+
+@NodeChild(value="fn", type=ReadArgNode.class)
+@NodeChild(value="col", type=ReadArgNode.class)
+@GenerateNodeFactory
+abstract class MapBuiltin extends BuiltinNode {
+    @Child private AbstractInvokeNode invokeNode;
+
+    protected MapBuiltin() {
+        super("map");
+    }
+
+    @Override
+    protected void setLanguage(IMalLanguage language) {
+        super.setLanguage(language);
+        invokeNode = language.invokeNode();
+    }
+
+    @TruffleBoundary
+    private Object doMap(MalFunction fn, Iterable<Object> vals) {
+        var result = new ArrayList<Object>();
+        Object[] args = new Object[2];
+        args[0] = fn.closedOverEnv;
+        for (Object obj : vals) {
+            args[1] = obj;
+            result.add(invokeNode.invoke(fn.callTarget, args));
+        }
+        return MalList.from(result);
+    }
+
+    @Specialization
+    protected Object map(MalFunction fn, MalVector vec) {
+        return doMap(fn, vec);
+    }
+
+    @Specialization
+    protected Object map(MalFunction fn, MalList list) {
+        return doMap(fn, list);
+    }
+}
+
+@NodeChild(value="args", type=ReadArgsNode.class)
+@GenerateNodeFactory
+abstract class VectorBuiltin extends BuiltinNode {
+
+    protected VectorBuiltin() { super("vector"); }
+
+    @TruffleBoundary
+    @Specialization
+    public MalVector vector(Object[] args) {
+        MalVector v = MalVector.EMPTY;
+        for (Object arg : args) {
+            v = v.append(arg);
+        }
+        return v;
+    }
+}
+
+/************* Maps ********************/
+
+@NodeChild(value="args", type=ReadArgsNode.class)
+@GenerateNodeFactory
+abstract class HashMapBuiltin extends BuiltinNode {
+
+    protected HashMapBuiltin() { super("hash-map"); }
+
+    @Specialization
+    @TruffleBoundary
+    protected MalMap hashMap(Object[] args) {
+        MalMap map = MalMap.EMPTY;
+        for (int i=0; i < args.length; i += 2) {
+            map = map.assoc(args[i], args[i+1]);
+        }
+        return map;
+    }
+}
+
+@NodeChild(value="map", type=ReadArgNode.class)
+@NodeChild(value="args", type=ReadArgsNode.class)
+@GenerateNodeFactory
+abstract class AssocBuiltin extends BuiltinNode {
+
+    protected AssocBuiltin() { super("assoc"); }
+
+    @Specialization
+    protected Object assoc(MalMap map, Object[] args) {
+        for (int i=0; i < args.length; i+=2) {
+            map = map.assoc(args[i], args[i+1]);
+        }
+        return map;
+    }
+}
+
+@NodeChild(value="map", type=ReadArgNode.class)
+@NodeChild(value="args", type=ReadArgsNode.class)
+@GenerateNodeFactory
+abstract class DissocBuiltin extends BuiltinNode {
+
+    protected DissocBuiltin() { super("dissoc"); }
+
+    @Specialization
+    protected MalMap dissoc(MalMap map, Object[] args) {
+        for (Object arg : args) {
+            map = map.dissoc(arg);
+        }
+        return map;
+    }
+}
+
+@NodeChild(value="map", type=ReadArgNode.class)
+@NodeChild(value="key", type=ReadArgNode.class)
+@GenerateNodeFactory
+abstract class GetBuiltin extends BuiltinNode {
+
+    protected GetBuiltin() { super("get"); }
+
+    @Specialization
+    @TruffleBoundary
+    protected Object get(MalMap map, Object key) {
+        return map.map.getOrDefault(key, MalNil.NIL);
+    }
+
+    @Specialization
+    protected Object get(MalNil nil, Object key) {
+        return MalNil.NIL;
+    }
+}
+
+@NodeChild(value="map", type=ReadArgNode.class)
+@NodeChild(value="key", type=ReadArgNode.class)
+@GenerateNodeFactory
+abstract class ContainsBuiltin extends BuiltinNode {
+
+    protected ContainsBuiltin() { super("contains?"); }
+
+    @Specialization
+    @TruffleBoundary
+    protected boolean contains(MalMap map, Object key) {
+        return map.map.containsKey(key);
+    }
+}
+
+@NodeChild(value="map", type=ReadArgNode.class)
+@GenerateNodeFactory
+abstract class KeysBuiltin extends BuiltinNode {
+
+    protected KeysBuiltin() { super("keys"); }
+
+    @Specialization
+    @TruffleBoundary
+    protected MalList keys(MalMap map) {
+        MalList list = MalList.EMPTY;
+        var iter = map.map.keyIterator();
+        while (iter.hasNext()) {
+            list = list.cons(iter.next());
+        }
+        return list;
+    }
+}
+
+@NodeChild(value="map", type=ReadArgNode.class)
+@GenerateNodeFactory
+abstract class ValsBuiltin extends BuiltinNode {
+
+    protected ValsBuiltin() { super("vals"); }
+
+    @Specialization
+    @TruffleBoundary
+    protected Object vals(MalMap map) {
+        MalList list = MalList.EMPTY;
+        var iter = map.map.valIterator();
+        while (iter.hasNext()) {
+            list = list.cons(iter.next());
+        }
+        return list;
+    }
+}
+
 /************* COMPARISONS *************/
 
 @NodeChild(value="lhs", type=ReadArgNode.class)
@@ -853,6 +1102,142 @@ abstract class SwapBuiltin extends BuiltinNode {
     }
 }
 
+/*************** Predicates ***************/
+
+@NodeChild(value="arg", type=ReadArgNode.class)
+@GenerateNodeFactory
+abstract class IsNilBuiltin extends BuiltinNode {
+    protected IsNilBuiltin() { super("nil?"); }
+
+    @Specialization
+    protected boolean isNil(MalNil nil) {
+        return true;
+    }
+
+    @Fallback
+    protected boolean isNil(Object obj) {
+        return false;
+    }
+}
+
+@NodeChild(value="arg", type=ReadArgNode.class)
+@GenerateNodeFactory
+abstract class IsTrueBuiltin extends BuiltinNode {
+    protected IsTrueBuiltin() { super("true?"); }
+
+    @Specialization
+    protected boolean isTrue(boolean b) {
+        return b == true;
+    }
+
+    @Fallback
+    protected boolean isTrue(Object obj) {
+        return false;
+    }
+}
+
+@NodeChild(value="arg", type=ReadArgNode.class)
+@GenerateNodeFactory
+abstract class IsFalseBuiltin extends BuiltinNode {
+    protected IsFalseBuiltin() { super("false?"); }
+
+    @Specialization
+    protected boolean isFalse(boolean b) {
+        return b == false;
+    }
+
+    @Fallback
+    protected boolean isFalse(Object obj) {
+        return false;
+    }
+}
+
+@NodeChild(value="arg", type=ReadArgNode.class)
+@GenerateNodeFactory
+abstract class IsSymbolBuiltin extends BuiltinNode {
+    protected IsSymbolBuiltin() { super("symbol?"); }
+
+    @Specialization
+    protected boolean isSymbol(MalSymbol sym) {
+        return true;
+    }
+
+    @Fallback
+    protected boolean isSymbol(Object obj) {
+        return false;
+    }
+}
+
+@NodeChild(value="arg", type=ReadArgNode.class)
+@GenerateNodeFactory
+abstract class IsKeywordBuiltin extends BuiltinNode {
+
+    protected IsKeywordBuiltin() { super("keyword?"); }
+
+    @Specialization
+    protected boolean isKeyword(MalKeyword kw) {
+        return true;
+    }
+
+    @Fallback
+    protected boolean isKeyword(Object obj) {
+        return false;
+    }
+}
+
+@NodeChild(value="arg", type=ReadArgNode.class)
+@GenerateNodeFactory
+abstract class IsVectorBuiltin extends BuiltinNode {
+
+    protected IsVectorBuiltin() { super("vector?"); }
+
+    @Specialization
+    protected boolean isVector(MalVector vec) {
+        return true;
+    }
+
+    @Fallback
+    protected boolean isVector(Object obj) {
+        return false;
+    }
+}
+
+@NodeChild(value="arg", type=ReadArgNode.class)
+@GenerateNodeFactory
+abstract class IsSequentialBuiltin extends BuiltinNode {
+
+    protected IsSequentialBuiltin() { super("sequential?"); }
+
+    @Specialization
+    protected Object isSequential(MalList list) {
+        return true;
+    }
+    @Specialization
+    protected Object isSequential(MalVector vec) {
+        return true;
+    }
+    @Fallback
+    protected Object isSequential(Object obj) {
+        return false;
+    }
+}
+
+@NodeChild(value="arg", type=ReadArgNode.class)
+@GenerateNodeFactory
+abstract class IsMapBuiltin extends BuiltinNode {
+
+    protected IsMapBuiltin() { super("map?"); }
+
+    @Specialization
+    protected boolean isMap(MalMap map) {
+        return true;
+    }
+    @Fallback
+    protected boolean isMap(Object obj) {
+        return false;
+    }
+}
+
 /*************** Other ********************/
 
 @NodeChild(value="ast", type=ReadArgNode.class)
@@ -864,5 +1249,56 @@ abstract class EvalBuiltin extends BuiltinNode {
     @Specialization
     protected Object eval(Object ast) {
         return language.evalForm(ast).call();
+    }
+}
+
+@NodeChild(value="obj", type=ReadArgNode.class)
+@GenerateNodeFactory
+abstract class ThrowBuiltin extends BuiltinNode {
+
+    protected ThrowBuiltin() { super("throw"); }
+
+    @Specialization
+    protected Object throwException(String obj) {
+        throw new MalException(obj);
+    }
+
+    @Fallback
+    protected Object throwException(Object obj) {
+        throw new MalException(obj);
+    }
+}
+
+@NodeChild(value="arg", type=ReadArgNode.class)
+@GenerateNodeFactory
+abstract class SymbolBuiltin extends BuiltinNode {
+
+    protected SymbolBuiltin() { super("symbol"); }
+
+    @Specialization
+    protected MalSymbol symbol(String str) {
+        return MalSymbol.get(str);
+    }
+
+    @Specialization
+    protected MalSymbol symbol(MalSymbol sym) {
+        return sym;
+    }
+}
+
+@GenerateNodeFactory
+@NodeChild(value="arg", type=ReadArgNode.class)
+abstract class KeywordBuiltin extends BuiltinNode {
+
+    protected KeywordBuiltin() { super("keyword"); }
+
+    @Specialization
+    protected MalKeyword keyword(String arg) {
+        return MalKeyword.get(arg);
+    }
+
+    @Specialization
+    protected MalKeyword keyword(MalKeyword kw) {
+        return kw;
     }
 }
