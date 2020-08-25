@@ -20,10 +20,16 @@ public class Types {
 
 @SuppressWarnings("serial")
 class MalException extends RuntimeException implements TruffleException {
+    final Object obj;
 
-    @TruffleBoundary
-    public MalException(String message) {
+    MalException(String message) {
         super(message);
+        this.obj = message;
+    }
+
+    MalException(Object obj) {
+        super(Printer.prStr(obj, true));
+        this.obj = obj;
     }
 
     @Override
