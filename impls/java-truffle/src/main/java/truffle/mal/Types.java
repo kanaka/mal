@@ -419,11 +419,20 @@ class MalFunction extends MalValue implements TruffleObject {
     final RootCallTarget callTarget;
     final MalEnv closedOverEnv;
     final int numArgs;
+    final boolean isMacro;
 
     MalFunction(RootCallTarget callTarget, MalEnv closedOverEnv, int numArgs) {
         this.callTarget = callTarget;
         this.closedOverEnv = closedOverEnv;
         this.numArgs = numArgs;
+        this.isMacro = false;
+    }
+
+    MalFunction(MalFunction f, boolean isMacro) {
+        this.callTarget = f.callTarget;
+        this.closedOverEnv = f.closedOverEnv;
+        this.numArgs = f.numArgs;
+        this.isMacro = isMacro;
     }
 
     @ExportMessage
