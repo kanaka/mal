@@ -3,6 +3,7 @@ package truffle.mal;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.function.Function;
@@ -520,10 +521,14 @@ public class step6_file {
     final static class MalContext {
         final MalEnv globalEnv;
         final Iterable<Scope> topScopes;
+        final PrintStream out;
+        final BufferedReader in;
 
         MalContext(MalLanguage language) {
             globalEnv = Core.newGlobalEnv(MalLanguage.class, language);
             topScopes = Collections.singleton(Scope.newBuilder("global", globalEnv).build());
+            out = System.out;
+            in = new BufferedReader(new InputStreamReader(System.in));
         }
     }
 
@@ -559,6 +564,16 @@ public class step6_file {
         @Override
         protected Iterable<Scope> findTopScopes(MalContext context) {
             return context.topScopes;
+        }
+
+        @Override
+        public PrintStream out() {
+            return getCurrentContext(MalLanguage.class).out;
+        }
+
+        @Override
+        public BufferedReader in() {
+            return getCurrentContext(MalLanguage.class).in;
         }
     }
 }

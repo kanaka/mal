@@ -1,9 +1,11 @@
 package truffle.mal;
 
+import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.PrintStream;
 import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -85,6 +87,17 @@ class Core {
         NS.put("contains?", ContainsBuiltinFactory.getInstance());
         NS.put("keys", KeysBuiltinFactory.getInstance());
         NS.put("vals", ValsBuiltinFactory.getInstance());
+
+        NS.put("readline", ReadlineBuiltinFactory.getInstance());
+        NS.put("meta", MetaBuiltinFactory.getInstance());
+        NS.put("with-meta", WithMetaBuiltinFactory.getInstance());
+        NS.put("time-ms", TimeMsBuiltinFactory.getInstance());
+        NS.put("conj", ConjBuiltinFactory.getInstance());
+        NS.put("string?", IsStringBuiltinFactory.getInstance());
+        NS.put("number?", IsNumberBuiltinFactory.getInstance());
+        NS.put("fn?", IsFnBuiltinFactory.getInstance());
+        NS.put("macro?", IsMacroBuiltinFactory.getInstance());
+        NS.put("seq", SeqBuiltinFactory.getInstance());
     }
 
     static MalEnv newGlobalEnv(Class<? extends TruffleLanguage<?>> languageClass, TruffleLanguage<?> language) {
@@ -101,11 +114,13 @@ class Core {
 abstract class AbstractInvokeNode extends Node {
     abstract Object invoke(CallTarget target, Object[] args);
 }
-/** A hack to make the EvalBuiltin sharable across languages.
+/** A hack to make certain nodes sharable across languages.
  */
 interface IMalLanguage {
     CallTarget evalForm(Object form);
     AbstractInvokeNode invokeNode();
+    PrintStream out();
+    BufferedReader in();
 }
 
 abstract class BuiltinNode extends Node {
@@ -285,10 +300,7 @@ abstract class PrnBuiltin extends BuiltinNode {
             buf.append(' ');
             Printer.prStr(buf, args[i], true);
         }
-        // The correct thing is to use the output stream associated with our language context.
-        // However, since each step is effectively its own language, and we wish
-        // to share this node among them, we'll just cheat and call System.out directly.
-        System.out.println(buf.toString());
+        language.out().println(buf.toString());
         return MalNil.NIL;
     }
 }
@@ -351,7 +363,7 @@ abstract class PrintlnBuiltin extends BuiltinNode {
         // The correct thing is to use the output stream associated with our language context.
         // However, since each step is effectively its own language, and we wish
         // to share this node among them, we'll just cheat and call System.out directly.
-        System.out.println(buf.toString());
+        language.out().println(buf.toString());
         return MalNil.NIL;
     }
 }
@@ -752,6 +764,67 @@ abstract class VectorBuiltin extends BuiltinNode {
             v = v.append(arg);
         }
         return v;
+    }
+}
+
+@NodeChild(value="col", type=ReadArgNode.class)
+@NodeChild(value="elems", type=ReadArgsNode.class)
+@GenerateNodeFactory
+abstract class ConjBuiltin extends BuiltinNode {
+
+    protected ConjBuiltin() { super("conj"); }
+
+    @Specialization
+    protected MalList conj(MalList list, Object[] elems) {
+        for (int i=0; i < elems.length; i++) {
+            list = list.cons(elems[i]);
+        }
+        return list;
+    }
+
+    @Specialization
+    protected MalVector conj(MalVector vec, Object[] elems) {
+        for (int i=0; i < elems.length; i++) {
+            vec = vec.append(elems[i]);
+        }
+        return vec;
+    }
+}
+
+@NodeChild(value="arg", type=ReadArgNode.class)
+@GenerateNodeFactory
+abstract class SeqBuiltin extends BuiltinNode {
+
+    protected SeqBuiltin() { super("seq"); }
+
+    @Specialization
+    protected Object seq(MalList list) {
+        if (list.length == 0) {
+            return MalNil.NIL;
+        }
+        return list;
+    }
+    @Specialization
+    protected Object seq(MalVector vec) {
+        if (vec.size() == 0) {
+            return MalNil.NIL;
+        }
+        return vec.toList();
+    }
+    @Specialization
+    protected Object seq(String str) {
+        if (str.isEmpty()) {
+            return MalNil.NIL;
+        }
+        MalList l = MalList.EMPTY;
+        for (int i=str.length()-1; i >= 0; i--) {
+            l = l.cons(str.substring(i, i+1));
+        }
+        return l;
+    }
+    @Specialization
+    protected MalNil seq(MalNil nil) {
+        return nil;
     }
 }
 
@@ -1238,6 +1311,74 @@ abstract class IsMapBuiltin extends BuiltinNode {
     }
 }
 
+@NodeChild(value="arg", type=ReadArgNode.class)
+@GenerateNodeFactory
+abstract class IsStringBuiltin extends BuiltinNode {
+
+    protected IsStringBuiltin() { super("string?"); }
+
+    @Specialization
+    protected boolean isString(String val) {
+        return true;
+    }
+
+    @Fallback
+    protected boolean isString(Object obj) {
+        return false;
+    }
+}
+
+@NodeChild(value="arg", type=ReadArgNode.class)
+@GenerateNodeFactory
+abstract class IsNumberBuiltin extends BuiltinNode {
+
+    protected IsNumberBuiltin() { super("number?"); }
+
+    @Specialization
+    protected boolean isNumber(long n) {
+        return true;
+    }
+
+    @Fallback
+    protected boolean isNumber(Object obj) {
+        return false;
+    }
+}
+
+@NodeChild(value="arg", type=ReadArgNode.class)
+@GenerateNodeFactory
+abstract class IsFnBuiltin extends BuiltinNode {
+
+    protected IsFnBuiltin() { super("fn?"); }
+
+    @Specialization
+    protected boolean isFn(MalFunction fn) {
+        return !fn.isMacro;
+    }
+
+    @Fallback
+    protected boolean isFn(Object obj) {
+        return false;
+    }
+}
+
+@NodeChild(value="arg", type=ReadArgNode.class)
+@GenerateNodeFactory
+abstract class IsMacroBuiltin extends BuiltinNode {
+
+    protected IsMacroBuiltin() { super("macro?"); }
+
+    @Specialization
+    protected boolean isMacro(MalFunction fn) {
+        return fn.isMacro;
+    }
+
+    @Fallback
+    protected boolean isMacro(Object obj) {
+        return false;
+    }
+}
+
 /*************** Other ********************/
 
 @NodeChild(value="ast", type=ReadArgNode.class)
@@ -1300,5 +1441,67 @@ abstract class KeywordBuiltin extends BuiltinNode {
     @Specialization
     protected MalKeyword keyword(MalKeyword kw) {
         return kw;
+    }
+}
+
+@NodeChild(value="prompt", type=ReadArgNode.class)
+@GenerateNodeFactory
+abstract class ReadlineBuiltin extends BuiltinNode {
+
+    protected ReadlineBuiltin() { super("readline"); }
+
+    @Specialization
+    @TruffleBoundary
+    protected Object readline(String prompt) {
+        language.out().print(prompt);
+        language.out().flush();
+        try {
+            String s = language.in().readLine();
+            return s == null ? MalNil.NIL : s;
+        } catch (IOException ex) {
+            throw new MalException(ex.getMessage());
+        }
+    }
+}
+
+@NodeChild(value="arg", type=ReadArgNode.class)
+@GenerateNodeFactory
+abstract class MetaBuiltin extends BuiltinNode {
+
+    protected MetaBuiltin() { super("meta"); }
+
+    @Specialization
+    protected <T> Object meta(MetaHolder<T> arg) {
+        return arg.getMeta();
+    }
+
+    @Fallback
+    protected Object meta(Object obj) {
+        return MalNil.NIL;
+    }
+}
+
+@NodeChild(value="arg", type=ReadArgNode.class)
+@NodeChild(value="meta", type=ReadArgNode.class)
+@GenerateNodeFactory
+abstract class WithMetaBuiltin extends BuiltinNode {
+
+    protected WithMetaBuiltin() { super("with-meta"); }
+
+    @Specialization
+    protected <T> Object withMeta(MetaHolder<T> holder, Object meta) {
+        return holder.withMeta(meta);
+    }
+}
+
+@GenerateNodeFactory
+abstract class TimeMsBuiltin extends BuiltinNode {
+
+    protected TimeMsBuiltin() { super("time-ms"); }
+
+    @TruffleBoundary
+    @Specialization
+    protected long timeMs() {
+        return System.nanoTime() / 1000000;
     }
 }

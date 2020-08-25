@@ -18,6 +18,11 @@ import com.oracle.truffle.api.nodes.Node;
 public class Types {
 }
 
+interface MetaHolder<T> {
+    Object getMeta();
+    T withMeta(Object meta);
+}
+
 @SuppressWarnings("serial")
 class MalException extends RuntimeException implements TruffleException {
     final Object obj;
@@ -64,7 +69,7 @@ class MalNil extends MalValue implements TruffleObject {
 }
 
 @ExportLibrary(InteropLibrary.class)
-class MalList extends MalValue implements TruffleObject, Iterable<Object> {
+class MalList extends MalValue implements TruffleObject, Iterable<Object>, MetaHolder<MalList> {
     public static final MalList EMPTY = new MalList();
 
     @TruffleBoundary
@@ -101,6 +106,16 @@ class MalList extends MalValue implements TruffleObject, Iterable<Object> {
         this.length = 0;
         this.meta = MalNil.NIL;
     }
+
+    @TruffleBoundary
+    private MalList(MalList list, Object meta) {
+        this.head = list.head;
+        this.tail = list.tail;
+        this.hash = list.hash;
+        this.length = list.length;
+        this.meta = meta;
+    }
+
     @TruffleBoundary
     private MalList(Object head, MalList tail, Object meta) {
         this.head = head;
@@ -192,10 +207,20 @@ class MalList extends MalValue implements TruffleObject, Iterable<Object> {
             return obj;
         }
     }
+
+    @Override
+    public Object getMeta() {
+        return meta;
+    }
+
+    @Override
+    public MalList withMeta(Object meta) {
+        return new MalList(this, meta);
+    }
 }
 
 @ExportLibrary(InteropLibrary.class)
-class MalVector extends MalValue implements TruffleObject, Iterable<Object> {
+class MalVector extends MalValue implements TruffleObject, Iterable<Object>, MetaHolder<MalVector> {
     public static final MalVector EMPTY = new MalVector();
 
     private final PersistentVector<Object> vector;
@@ -267,10 +292,20 @@ class MalVector extends MalValue implements TruffleObject, Iterable<Object> {
     Object toDisplayString(boolean allowSideEffects) {
         return this.toString();
     }
+
+    @Override
+    public Object getMeta() {
+        return meta;
+    }
+
+    @Override
+    public MalVector withMeta(Object meta) {
+        return new MalVector(this.vector, meta);
+    }
 }
 
 @ExportLibrary(InteropLibrary.class)
-class MalMap extends MalValue implements TruffleObject {
+class MalMap extends MalValue implements TruffleObject, MetaHolder<MalMap> {
     public static final MalMap EMPTY = new MalMap();
 
     public final PersistentHashMap<Object, Object> map;
@@ -327,6 +362,16 @@ class MalMap extends MalValue implements TruffleObject {
     @ExportMessage
     Object toDisplayString(boolean allowSideEffects) {
         return this.toString();
+    }
+
+    @Override
+    public Object getMeta() {
+        return meta;
+    }
+
+    @Override
+    public MalMap withMeta(Object meta) {
+        return new MalMap(map, meta);
     }
 }
 
@@ -421,29 +466,46 @@ class MalSymbol extends MalValue implements TruffleObject {
 }
 
 @ExportLibrary(InteropLibrary.class)
-class MalFunction extends MalValue implements TruffleObject {
+class MalFunction extends MalValue implements TruffleObject, MetaHolder<MalFunction> {
     final RootCallTarget callTarget;
     final MalEnv closedOverEnv;
     final int numArgs;
     final boolean isMacro;
+    final Object meta;
 
     MalFunction(RootCallTarget callTarget, MalEnv closedOverEnv, int numArgs) {
         this.callTarget = callTarget;
         this.closedOverEnv = closedOverEnv;
         this.numArgs = numArgs;
         this.isMacro = false;
+        this.meta = MalNil.NIL;
     }
 
     MalFunction(MalFunction f, boolean isMacro) {
+        this(f, f.meta, isMacro);
+    }
+
+    MalFunction(MalFunction f, Object meta, boolean isMacro) {
         this.callTarget = f.callTarget;
         this.closedOverEnv = f.closedOverEnv;
         this.numArgs = f.numArgs;
         this.isMacro = isMacro;
+        this.meta = meta;
     }
 
     @ExportMessage
     Object toDisplayString(boolean allowSideEffects) {
         return this.toString();
+    }
+
+    @Override
+    public Object getMeta() {
+        return meta;
+    }
+
+    @Override
+    public MalFunction withMeta(Object meta) {
+        return new MalFunction(this, meta, this.isMacro);
     }
 }
 
