@@ -58,6 +58,10 @@ class Core {
         NS.put("cons", ConsBuiltinFactory.getInstance());
         NS.put("concat", ConcatBuiltinFactory.getInstance());
         NS.put("vec", VecBuiltinFactory.getInstance());
+
+        NS.put("nth", NthBuiltinFactory.getInstance());
+        NS.put("first", FirstBuiltinFactory.getInstance());
+        NS.put("rest", RestBuiltinFactory.getInstance());
     }
 
     static MalEnv newGlobalEnv(Class<? extends TruffleLanguage<?>> languageClass, TruffleLanguage<?> language) {
@@ -535,6 +539,90 @@ abstract class VecBuiltin extends BuiltinNode {
     @Specialization
     protected MalVector vec(MalList l) {
         return MalVector.EMPTY.concat(l);
+    }
+}
+
+@NodeChild(value="list", type=ReadArgNode.class)
+@NodeChild(value="n", type=ReadArgNode.class)
+@GenerateNodeFactory
+abstract class NthBuiltin extends BuiltinNode {
+
+    protected NthBuiltin() { super("nth"); }
+
+    @Specialization
+    @TruffleBoundary
+    protected Object nth(MalVector vec, long n) {
+        if (n >= vec.size()) {
+            throwInvalidArgument();
+        }
+        return vec.get((int)n);
+    }
+
+    private void throwInvalidArgument() {
+        throw new MalException("Out of bounds");
+    }
+
+    @Specialization
+    protected Object nth(MalList list, long n) {
+        if (n >= list.length) {
+            throwInvalidArgument();
+        }
+        while (--n >= 0) {
+            list = list.tail;
+        }
+        return list.head;
+    }
+}
+
+@GenerateNodeFactory
+@NodeChild(value="arg", type=ReadArgNode.class)
+abstract class FirstBuiltin extends BuiltinNode {
+    protected FirstBuiltin() { super("first"); }
+
+    @Specialization
+    protected MalNil first(MalNil nil) {
+        return MalNil.NIL;
+    }
+
+    @Specialization
+    protected Object first(MalVector vec) {
+        if (vec.size() == 0)
+            return MalNil.NIL;
+        return vec.get(0);
+    }
+
+    @Specialization
+    protected Object first(MalList list) {
+        if (list.head == null) {
+            return MalNil.NIL;
+        }
+        return list.head;
+    }
+}
+
+@NodeChild(value="arg", type=ReadArgNode.class)
+@GenerateNodeFactory
+abstract class RestBuiltin extends BuiltinNode {
+
+    protected RestBuiltin() { super("rest"); }
+
+    @Specialization
+    protected MalList rest(MalNil nil) {
+        return MalList.EMPTY;
+    }
+
+    @Specialization
+    @TruffleBoundary
+    protected MalList rest(MalVector vec) {
+        return rest(vec.toList());
+    }
+
+    @Specialization
+    protected MalList rest(MalList list) {
+        if (list.head == null) {
+            return list;
+        }
+        return list.tail;
     }
 }
 
