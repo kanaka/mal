@@ -84,7 +84,15 @@ public class Printer {
             buf.append('}');
 
         } else if (form instanceof MalFunction) {
+
             buf.append("#<function>");
+
+        } else if (form instanceof MalAtom) {
+
+            buf.append("(atom ");
+            prStr(buf, ((MalAtom)form).deref(), printReadably);
+            buf.append(")");
+
         } else {
             throw new RuntimeException("Not a MAL type: "+form.getClass().getCanonicalName());
         }

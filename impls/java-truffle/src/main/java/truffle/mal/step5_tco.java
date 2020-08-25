@@ -3,6 +3,7 @@ package truffle.mal;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.function.Function;
@@ -198,7 +199,7 @@ public class step5_tco {
         }
     }
 
-    static class InvokeNode extends Node {
+    static class InvokeNode extends AbstractInvokeNode {
         final boolean tailPosition;
         @Child private IndirectCallNode callNode = Truffle.getRuntime().createIndirectCallNode();
 
@@ -503,10 +504,14 @@ public class step5_tco {
     final static class MalContext {
         final MalEnv globalEnv;
         final Iterable<Scope> topScopes;
+        final PrintStream out;
+        final BufferedReader in;
 
         MalContext(MalLanguage language) {
             globalEnv = Core.newGlobalEnv(MalLanguage.class, language);
             topScopes = Collections.singleton(Scope.newBuilder("global", globalEnv).build());
+            out = System.out;
+            in = new BufferedReader(new InputStreamReader(System.in));
         }
     }
 
@@ -515,23 +520,43 @@ public class step5_tco {
             name=LANGUAGE_ID,
             defaultMimeType = "application/x-"+LANGUAGE_ID,
             characterMimeTypes = "application/x-"+LANGUAGE_ID)
-    public final static class MalLanguage extends TruffleLanguage<MalContext> {
+    public final static class MalLanguage extends TruffleLanguage<MalContext> implements IMalLanguage {
         @Override
         protected MalContext createContext(Env env) {
             return new MalContext(this);
         }
 
         @Override
+        public CallTarget evalForm(Object form) {
+            var root = new MalRootNode(this, form);
+            return Truffle.getRuntime().createCallTarget(root);
+        }
+
+        @Override
+        public AbstractInvokeNode invokeNode() {
+            return new InvokeNode(false);
+        }
+
+        @Override
         protected CallTarget parse(ParsingRequest request) throws Exception {
             Source source = request.getSource();
             String s = source.getCharacters().toString();
-            var root = new MalRootNode(this, Reader.readStr(s));
-            return Truffle.getRuntime().createCallTarget(root);
+            return evalForm(Reader.readStr(s));
         }
 
         @Override
         protected Iterable<Scope> findTopScopes(MalContext context) {
             return context.topScopes;
+        }
+
+        @Override
+        public PrintStream out() {
+            return getCurrentContext(MalLanguage.class).out;
+        }
+
+        @Override
+        public BufferedReader in() {
+            return getCurrentContext(MalLanguage.class).in;
         }
     }
 }

@@ -426,9 +426,27 @@ class MalFunction extends MalValue implements TruffleObject {
         this.numArgs = numArgs;
     }
 
-    @Override
-    public String toString() {
-        return Printer.prStr(this, true);
+    @ExportMessage
+    Object toDisplayString(boolean allowSideEffects) {
+        return this.toString();
+    }
+}
+
+@ExportLibrary(InteropLibrary.class)
+class MalAtom extends MalValue implements TruffleObject {
+    private Object value;
+
+    public MalAtom(Object initialValue) {
+        this.value = initialValue;
+    }
+
+    public Object deref() {
+        return value;
+    }
+
+    public Object reset(Object newValue) {
+        this.value = newValue;
+        return newValue;
     }
 
     @ExportMessage
