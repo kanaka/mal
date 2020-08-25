@@ -29,8 +29,8 @@ import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.nodes.UnexpectedResultException;
 import com.oracle.truffle.api.source.Source;
 
-public class step8_macros {
-    static final String LANGUAGE_ID = "mal_step8";
+public class stepA_mal {
+    static final String LANGUAGE_ID = "mal_stepA";
 
     public static void main(String[] args) throws IOException {
         boolean done = false;
@@ -40,6 +40,7 @@ public class step8_macros {
         context.eval(LANGUAGE_ID, "(def! not (fn* [a] (if a false true)))");
         context.eval(LANGUAGE_ID, "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \"\nnil)\")))))");
         context.eval(LANGUAGE_ID, "(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))");
+        context.eval(LANGUAGE_ID, "(def! *host-language* \"java-truffle\")");
 
         var buf = new StringBuilder();
         buf.append("(def! *ARGV* (list");
@@ -134,6 +135,7 @@ public class step8_macros {
         return MalList.from(result);
     }
 
+    @TruffleBoundary
     private static MalNode formToNode(MalLanguage language, Object form, boolean tailPosition) {
         if (form instanceof MalSymbol) {
             return new LookupNode((MalSymbol)form);
@@ -160,6 +162,8 @@ public class step8_macros {
                 return formToNode(language, quasiquote(list.tail.head), tailPosition);
             } else if (MalSymbol.MACROEXPAND.equals(head)) {
                 return new MacroexpandNode(list);
+            } else if (MalSymbol.TRY.equals(head)) {
+                return new TryNode(language, list, tailPosition);
             } else {
                 return new ApplyNode(language, list, tailPosition);
             }
@@ -233,7 +237,7 @@ public class step8_macros {
         public Object executeGeneric(VirtualFrame frame, MalEnv env) {
             var result = env.get(symbol);
             if (result == null) {
-                throw new MalException(symbol+" not found");
+                throw new MalException("'"+symbol+"' not found");
             }
             return result;
         }
@@ -354,6 +358,7 @@ public class step8_macros {
                 args[i+1] = argNodes[i].form;
             }
             // We should never throw a tail call during expansion!
+            Object form = invokeNode.invoke(fn.callTarget, args, false);
             var result = macroexpand(invokeNode, env, form);
             var newRoot = new MalRootNode(language, result, env, invokeNode.tailPosition);
             return Truffle.getRuntime().createCallTarget(newRoot);
@@ -482,7 +487,7 @@ public class step8_macros {
             bodyNodes = new MalNode[form.length-1];
             int i = 0;
             for (var f : form.tail) {
-                bodyNodes[i++] = formToNode(language, f, tailPosition && i == form.length-2);
+                bodyNodes[i++] = formToNode(language, f, tailPosition && i == form.length-1);
             }
         }
 
@@ -615,6 +620,11 @@ public class step8_macros {
             }
             return bodyNode.executeGeneric(frame, env);
         }
+
+        @Override
+        public String toString() {
+            return form.toString();
+        }
     }
 
     /**
@@ -647,6 +657,41 @@ public class step8_macros {
         @Override
         public Object executeGeneric(VirtualFrame frame, MalEnv env) {
             return quoted;
+        }
+    }
+
+    static class TryNode extends MalNode {
+        @Child private MalNode tryBody;
+        @Child private MalNode catchBody;
+        final MalSymbol exSymbol;
+
+        TryNode(MalLanguage language, MalList form, boolean tailPosition) {
+            super(form);
+            var tryForm = form.tail.head;
+            var catchForm = (MalList)form.tail.tail.head;
+            // We don't allow tail calls inside a try body, because
+            // they'd get thrown past the catch that should catch subsequent failures.
+            this.tryBody = formToNode(language, tryForm, false);
+            if (catchForm != null && MalSymbol.CATCH.equals(catchForm.head)) {
+                exSymbol = (MalSymbol)catchForm.tail.head;
+                catchBody = formToNode(language, catchForm.tail.tail.head, tailPosition);
+            } else {
+                exSymbol = null;
+            }
+        }
+
+        @Override
+        public Object executeGeneric(VirtualFrame frame, MalEnv env) {
+            try {
+                return tryBody.executeGeneric(frame, env);
+            } catch (MalException ex) {
+                if (catchBody == null) {
+                    throw ex;
+                }
+                var catchEnv = new MalEnv(env);
+                catchEnv.set(exSymbol, ex.obj);
+                return catchBody.executeGeneric(frame, catchEnv);
+            }
         }
     }
 
