@@ -7,6 +7,7 @@ import java.io.InputStreamReader;
 import java.io.StringWriter;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Stack;
 
 import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
@@ -53,6 +54,10 @@ class Core {
         NS.put("deref", DerefBuiltinFactory.getInstance());
         NS.put("reset!", ResetBuiltinFactory.getInstance());
         NS.put("swap!", SwapBuiltinFactory.getInstance());
+
+        NS.put("cons", ConsBuiltinFactory.getInstance());
+        NS.put("concat", ConcatBuiltinFactory.getInstance());
+        NS.put("vec", VecBuiltinFactory.getInstance());
     }
 
     static MalEnv newGlobalEnv(Class<? extends TruffleLanguage<?>> languageClass, TruffleLanguage<?> language) {
@@ -444,6 +449,92 @@ abstract class CountBuiltin extends BuiltinNode {
     @Fallback
     protected Object count(Object arg) {
         throw illegalArgumentException("list", arg);
+    }
+}
+
+@NodeChild(value="obj", type=ReadArgNode.class)
+@NodeChild(value="list", type=ReadArgNode.class)
+@GenerateNodeFactory
+abstract class ConsBuiltin extends BuiltinNode {
+
+    protected ConsBuiltin() { super("cons"); }
+
+    @Specialization
+    @TruffleBoundary
+    protected MalList cons(Object obj, MalVector vec) {
+        return cons(obj, vec.toList());
+    }
+
+    @Specialization
+    @TruffleBoundary
+    protected MalList cons(Object obj, MalList list) {
+        return list.cons(obj);
+    }
+}
+
+@NodeChild(value="args", type=ReadArgsNode.class)
+@GenerateNodeFactory
+abstract class ConcatBuiltin extends BuiltinNode {
+
+    protected ConcatBuiltin() { super("concat"); }
+
+    private MalList concat1(MalList a, MalList b) {
+        var elems = new Stack<Object>();
+        for (Object elem : a) {
+            elems.push(elem);
+        }
+        while (!elems.isEmpty()) {
+            b = b.cons(elems.pop());
+        }
+        return b;
+    }
+
+    private MalList concat1(MalVector a, MalList b) {
+        for (int i=a.size()-1; i >= 0; i--) {
+            b = b.cons(a.get(i));
+        }
+        return b;
+    }
+
+    @Specialization
+    @TruffleBoundary
+    protected MalList concat(Object... args) {
+        if (args.length == 0) {
+            return MalList.EMPTY;
+        }
+        Object arg = args[args.length-1];
+        MalList result;
+        if (arg instanceof MalVector) {
+            result = ((MalVector) arg).toList();
+        } else {
+            result = (MalList)arg;
+        }
+        for (int i=args.length-2; i >= 0; --i) {
+            arg = args[i];
+            if (arg instanceof MalVector) {
+                result = concat1((MalVector)arg, result);
+            } else {
+                result = concat1((MalList)arg, result);
+            }
+        }
+        return result;
+    }
+}
+
+@NodeChild(value="arg", type=ReadArgNode.class)
+@GenerateNodeFactory
+abstract class VecBuiltin extends BuiltinNode {
+
+    protected VecBuiltin() { super("vec"); }
+    
+    @Specialization
+    protected MalVector vec(MalVector v) {
+        return v;
+    }
+
+    @Specialization
+    protected MalVector vec(MalList l) {
+        return MalVector.EMPTY.concat(l);
     }
 }
 
