@@ -25,7 +25,7 @@ env_apply outer keys values = (: outer) . Constant <$> bind keys values Map.empt
 
 bind :: [MalVal] -> [MalVal] -> Map.Map String MalVal -> Maybe (Map.Map String MalVal)
 bind [MalSymbol "&", (MalSymbol k)] vs       m = Just $ Map.insert k (toList vs) m
-bind (MalSymbol k : ks)             (v : vs) m = Map.insert k v <$> bind ks vs m
+bind (MalSymbol k : ks)             (v : vs) m = bind ks vs $ Map.insert k v m
 bind []                             []       m = Just m
 bind _                              _        _ = Nothing
 
