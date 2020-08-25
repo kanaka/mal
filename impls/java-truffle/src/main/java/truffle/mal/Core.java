@@ -1,8 +1,14 @@
 package truffle.mal;
 
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.StringWriter;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.TruffleLanguage;
@@ -38,6 +44,15 @@ class Core {
         NS.put("pr-str", PrStrBuiltinFactory.getInstance());
         NS.put("str", StrBuiltinFactory.getInstance());
         NS.put("println", PrintlnBuiltinFactory.getInstance());
+
+        NS.put("read-string", ReadStringBuiltinFactory.getInstance());
+        NS.put("slurp", SlurpBuiltinFactory.getInstance());
+        NS.put("eval", EvalBuiltinFactory.getInstance());
+        NS.put("atom", AtomBuiltinFactory.getInstance());
+        NS.put("atom?", IsAtomBuiltinFactory.getInstance());
+        NS.put("deref", DerefBuiltinFactory.getInstance());
+        NS.put("reset!", ResetBuiltinFactory.getInstance());
+        NS.put("swap!", SwapBuiltinFactory.getInstance());
     }
 
     static MalEnv newGlobalEnv(Class<? extends TruffleLanguage<?>> languageClass, TruffleLanguage<?> language) {
@@ -51,7 +66,23 @@ class Core {
     }
 }
 
+abstract class AbstractInvokeNode extends Node {
+    abstract Object invoke(CallTarget target, Object[] args);
+}
+/** A hack to make the EvalBuiltin sharable across languages.
+ */
+interface IMalLanguage {
+    CallTarget evalForm(Object form);
+    AbstractInvokeNode invokeNode();
+}
+
 abstract class BuiltinNode extends Node {
+    protected IMalLanguage language;
+
+    protected void setLanguage(IMalLanguage language) {
+        this.language = language;
+    }
+
     @TruffleBoundary
     protected static MalException illegalArgumentException(String expectedType, Object obj) {
         return new MalException("Illegal argument: '"+obj.toString()+"' is not of type "+expectedType);
@@ -129,6 +160,9 @@ class BuiltinRootNode extends RootNode {
             }
         }
         node = nodeFactory.createNode(readArgNodes);
+        if (lang instanceof IMalLanguage) {
+            node.setLanguage((IMalLanguage)lang);
+        }
         this.numArgs = numArgs;
     }
 
@@ -287,6 +321,45 @@ abstract class PrintlnBuiltin extends BuiltinNode {
         // to share this node among them, we'll just cheat and call System.out directly.
         System.out.println(buf.toString());
         return MalNil.NIL;
+    }
+}
+
+@NodeChild(value="arg", type=ReadArgNode.class)
+@GenerateNodeFactory
+abstract class ReadStringBuiltin extends BuiltinNode {
+
+    protected ReadStringBuiltin() { super("read-string"); }
+
+    @TruffleBoundary
+    @Specialization
+    protected Object readString(String s) {
+        return Reader.readStr(s);
+    }
+}
+
+@NodeChild(value="arg", type=ReadArgNode.class)
+@GenerateNodeFactory
+abstract class SlurpBuiltin extends BuiltinNode {
+
+    protected SlurpBuiltin() { super("slurp"); }
+
+    @TruffleBoundary
+    @Specialization
+    protected String slurp(String path) {
+        try {
+            var writer = new StringWriter();
+            var reader = new InputStreamReader(new FileInputStream(path));
+            try {
+                reader.transferTo(writer);
+                return writer.toString();
+            } finally {
+                reader.close();
+            }
+        } catch (FileNotFoundException ex) {
+            throw new MalException(ex.getMessage());
+        } catch (IOException ex) {
+            throw new MalException(ex.getMessage());
+        }
     }
 }
 
@@ -514,5 +587,103 @@ abstract class LessThanEqualBuiltin extends BuiltinNode {
     @Fallback
     protected Object typeError(Object lhs, Object rhs) {
         throw illegalArgumentException("integer", rhs);
+    }
+}
+
+/*************** Atoms ********************/
+
+@NodeChild(value="val", type=ReadArgNode.class)
+@GenerateNodeFactory
+abstract class AtomBuiltin extends BuiltinNode {
+    protected AtomBuiltin() { super("atom"); }
+
+    @Specialization
+    protected MalAtom atom(Object val) {
+        return new MalAtom(val);
+    }
+}
+
+@NodeChild(value="val", type=ReadArgNode.class)
+@GenerateNodeFactory
+abstract class IsAtomBuiltin extends BuiltinNode {
+
+    protected IsAtomBuiltin() { super("atom?"); }
+
+    @Specialization
+    protected boolean isAtom(Object obj) {
+        return obj instanceof MalAtom;
+    }
+}
+
+@NodeChild(value="arg", type=ReadArgNode.class)
+@GenerateNodeFactory
+abstract class DerefBuiltin extends BuiltinNode {
+
+    protected DerefBuiltin() { super("deref"); }
+
+    @Specialization
+    protected Object deref(MalAtom atom) {
+        return atom.deref();
+    }
+}
+
+@NodeChild(value="atom", type=ReadArgNode.class)
+@NodeChild(value="val", type=ReadArgNode.class)
+@GenerateNodeFactory
+abstract class ResetBuiltin extends BuiltinNode {
+
+    protected ResetBuiltin() { super("reset!"); }
+
+    @Specialization
+    protected Object reset(MalAtom atom, Object val) {
+        atom.reset(val);
+        return val;
+    }
+}
+
+@NodeChild(value="atom", type=ReadArgNode.class)
+@NodeChild(value="fn", type=ReadArgNode.class)
+@NodeChild(value="args", type=ReadArgsNode.class)
+@GenerateNodeFactory
+abstract class SwapBuiltin extends BuiltinNode {
+    @Child private AbstractInvokeNode invokeNode;
+
+    protected SwapBuiltin() {
+        super("swap!");
+    }
+
+    @Override
+    protected void setLanguage(IMalLanguage language) {
+        super.setLanguage(language);
+        this.invokeNode = language.invokeNode();
+    }
+
+    @Specialization
+    protected Object swap(MalAtom atom, MalFunction fn, Object... args) {
+        synchronized (atom) {
+            Object[] fnArgs = new Object[2+args.length];
+            fnArgs[0] = fn.closedOverEnv;
+            fnArgs[1] = atom.deref();
+            for (int i=0; i < args.length; i++) {
+                fnArgs[i+2] = args[i];
+            }
+            Object newVal = invokeNode.invoke(fn.callTarget, fnArgs);
+            atom.reset(newVal);
+            return newVal;
+        }
+    }
+}
+
+/*************** Other ********************/
+
+@NodeChild(value="ast", type=ReadArgNode.class)
+@GenerateNodeFactory
+abstract class EvalBuiltin extends BuiltinNode {
+
+    protected EvalBuiltin() { super("eval"); }
+
+    @Specialization
+    protected Object eval(Object ast) {
+        return language.evalForm(ast).call();
     }
 }

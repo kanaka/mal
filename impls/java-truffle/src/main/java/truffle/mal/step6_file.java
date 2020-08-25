@@ -3,7 +3,6 @@ package truffle.mal;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.function.Function;
@@ -21,6 +20,7 @@ import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.TruffleObject;
+import com.oracle.truffle.api.nodes.ControlFlowException;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.IndirectCallNode;
 import com.oracle.truffle.api.nodes.Node;
@@ -28,14 +28,31 @@ import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.nodes.UnexpectedResultException;
 import com.oracle.truffle.api.source.Source;
 
-public class step4_if_fn_do {
-    static final String LANGUAGE_ID = "mal_step4";
+public class step6_file {
+    static final String LANGUAGE_ID = "mal_step6";
 
     public static void main(String[] args) throws IOException {
         boolean done = false;
         BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+
         var context = Context.create(LANGUAGE_ID);
         context.eval(LANGUAGE_ID, "(def! not (fn* [a] (if a false true)))");
+        context.eval(LANGUAGE_ID, "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \"\nnil)\")))))");
+
+        var buf = new StringBuilder();
+        buf.append("(def! *ARGV* (list");
+        for (int i=1; i < args.length; i++) {
+            buf.append(' ');
+            buf.append(Printer.prStr(args[i], true));
+        }
+        buf.append("))");
+        context.eval(LANGUAGE_ID, buf.toString());
+
+        if (args.length > 0) {
+            context.eval(LANGUAGE_ID, "(load-file \""+args[0]+"\")");
+            return;
+        }
+
         while (!done) {
             System.out.print("user> ");
             String s = reader.readLine();
@@ -89,7 +106,7 @@ public class step4_if_fn_do {
         }
     }
 
-    private static MalNode formToNode(MalLanguage language, Object form) {
+    private static MalNode formToNode(MalLanguage language, Object form, boolean tailPosition) {
         if (form instanceof MalSymbol) {
             return new LookupNode((MalSymbol)form);
         } else if (form instanceof MalVector) {
@@ -102,15 +119,15 @@ public class step4_if_fn_do {
             if (MalSymbol.DEF_BANG.equals(head)) {
                 return new DefNode(language, list);
             } else if (MalSymbol.LET_STAR.equals(head)) {
-                return new LetNode(language, list);
+                return new LetNode(language, list, tailPosition);
             } else if (MalSymbol.DO.equals(head)) {
-                return new DoNode(language, list);
+                return new DoNode(language, list, tailPosition);
             } else if (MalSymbol.IF.equals(head)) {
-                return new IfNode(language, list);
+                return new IfNode(language, list, tailPosition);
             } else if (MalSymbol.FN_STAR.equals(head)) {
                 return new FnNode(language, list);
             } else {
-                return new ApplyNode(language, list);
+                return new ApplyNode(language, list, tailPosition);
             }
         } else {
             return new LiteralNode(form);
@@ -135,7 +152,7 @@ public class step4_if_fn_do {
             super(vector);
             this.elementNodes = new MalNode[vector.size()];
             for (int i=0; i < vector.size(); i++) {
-                elementNodes[i] = formToNode(language, vector.get(i));
+                elementNodes[i] = formToNode(language, vector.get(i), false);
             }
         }
 
@@ -156,8 +173,8 @@ public class step4_if_fn_do {
             nodes = new MalNode[map.map.size()*2];
             int i=0;
             for (var entry : map.map) {
-                nodes[i++] = formToNode(language, entry.getKey());
-                nodes[i++] = formToNode(language, entry.getValue());
+                nodes[i++] = formToNode(language, entry.getKey(), false);
+                nodes[i++] = formToNode(language, entry.getValue(), false);
             }
         }
         @Override
@@ -188,32 +205,56 @@ public class step4_if_fn_do {
         }
     }
 
+    @SuppressWarnings("serial")
+    static class TailCallException extends ControlFlowException {
+        final CallTarget callTarget;
+        final Object[] args;
+        TailCallException(CallTarget target, Object[] args) {
+            this.callTarget = target;
+            this.args = args;
+        }
+    }
+
     static class InvokeNode extends AbstractInvokeNode {
+        final boolean tailPosition;
         @Child private IndirectCallNode callNode = Truffle.getRuntime().createIndirectCallNode();
 
-        InvokeNode() {
+        InvokeNode(boolean tailPosition) {
+            this.tailPosition = tailPosition;
         }
 
         Object invoke(CallTarget target, Object[] args) {
-            return callNode.call(target, args);
+            if (tailPosition) {
+                throw new TailCallException(target, args);
+            } else {
+                while (true) {
+                    try {
+                        return callNode.call(target, args);
+                    } catch (TailCallException ex) {
+                        target = ex.callTarget;
+                        args = ex.args;
+                    }
+                }
+            }
         }
     }
 
     static class ApplyNode extends MalNode {
         @Child private MalNode fnNode;
         @Children private MalNode[] argNodes;
-        @Child private IndirectCallNode callNode = Truffle.getRuntime().createIndirectCallNode();
+        @Child private InvokeNode invokeNode;
 
-        ApplyNode(MalLanguage language, MalList list) {
+        ApplyNode(MalLanguage language, MalList list, boolean tailPosition) {
             super(list);
-            fnNode = formToNode(language, list.head);
+            fnNode = formToNode(language, list.head, false);
             argNodes = new MalNode[list.length-1];
             int i=0;
             list = list.tail;
             while (!list.isEmpty()) {
-                argNodes[i++] = formToNode(language, list.head);
+                argNodes[i++] = formToNode(language, list.head, false);
                 list = list.tail;
             }
+            invokeNode = new InvokeNode(tailPosition);
         }
 
         @Override
@@ -224,7 +265,7 @@ public class step4_if_fn_do {
             for (int i=0; i < argNodes.length; i++) {
                 args[i+1] = argNodes[i].executeGeneric(frame, env);
             }
-            return callNode.call(fn.callTarget, args);
+            return invokeNode.invoke(fn.callTarget, args);
         }
     }
 
@@ -235,7 +276,7 @@ public class step4_if_fn_do {
         DefNode(MalLanguage language, MalList list) {
             super(list);
             this.symbol = (MalSymbol)list.tail.head;
-            this.valueNode = formToNode(language, list.tail.tail.head);
+            this.valueNode = formToNode(language, list.tail.tail.head, false);
         }
 
         @Override
@@ -252,7 +293,7 @@ public class step4_if_fn_do {
 
         LetBindingNode(MalLanguage language, MalSymbol symbol, Object valueForm) {
             this.symbol = symbol;
-            this.valueNode = formToNode(language, valueForm);
+            this.valueNode = formToNode(language, valueForm, false);
         }
 
         public void executeGeneric(VirtualFrame frame, MalEnv env) {
@@ -264,7 +305,7 @@ public class step4_if_fn_do {
         @Children private LetBindingNode[] bindings;
         @Child private MalNode bodyNode;
 
-        LetNode(MalLanguage language, MalList form) {
+        LetNode(MalLanguage language, MalList form, boolean tailPosition) {
             super(form);
             var bindingForms = new ArrayList<Object>();
             assert form.tail.head instanceof Iterable<?>;
@@ -273,7 +314,7 @@ public class step4_if_fn_do {
             for (int i=0; i < bindingForms.size(); i+=2) {
                 bindings[i/2] = new LetBindingNode(language, (MalSymbol)bindingForms.get(i), bindingForms.get(i+1));
             }
-            bodyNode = formToNode(language, form.tail.tail.head);
+            bodyNode = formToNode(language, form.tail.tail.head, tailPosition);
         }
 
         @ExplodeLoop
@@ -287,6 +328,9 @@ public class step4_if_fn_do {
         }
     }
 
+    /**
+     * Represents a top-level evaluated form.
+     */
     static class MalRootNode extends RootNode {
         final Object form;
         @Child MalNode body;
@@ -294,7 +338,9 @@ public class step4_if_fn_do {
         MalRootNode(MalLanguage language, Object form) {
             super(language, new FrameDescriptor());
             this.form = form;
-            this.body = formToNode(language, form);
+            // There's no stack to unwind at the top level, so
+            // a top-level form is never in tail position.
+            this.body = formToNode(language, form, false);
         }
 
         @Override
@@ -312,12 +358,12 @@ public class step4_if_fn_do {
     static class DoNode extends MalNode {
         @Children private MalNode[] bodyNodes;
 
-        DoNode(MalLanguage language, MalList form) {
+        DoNode(MalLanguage language, MalList form, boolean tailPosition) {
             super(form);
             bodyNodes = new MalNode[form.length-1];
             int i = 0;
             for (var f : form.tail) {
-                bodyNodes[i++] = formToNode(language, f);
+                bodyNodes[i++] = formToNode(language, f, tailPosition && i == form.length-2);
             }
         }
 
@@ -340,12 +386,12 @@ public class step4_if_fn_do {
         @Child private MalNode trueNode;
         @Child private MalNode falseNode;
 
-        IfNode(MalLanguage language, MalList form) {
+        IfNode(MalLanguage language, MalList form, boolean tailPosition) {
             super(form);
-            conditionNode = formToNode(language, form.tail.head);
-            trueNode = formToNode(language, form.tail.tail.head);
+            conditionNode = formToNode(language, form.tail.head, false);
+            trueNode = formToNode(language, form.tail.tail.head, tailPosition);
             var falseForm = form.tail.tail.tail.head;
-            falseNode = falseForm == null ? null : formToNode(language, falseForm);
+            falseNode = falseForm == null ? null : formToNode(language, falseForm, tailPosition);
         }
 
         @Override
@@ -438,7 +484,7 @@ public class step4_if_fn_do {
                     bindNodes[i] = new BindArgNode(argNamesList.get(i), i+1);
                 }
             }
-            this.bodyNode = formToNode(language, form.tail.tail.head);
+            this.bodyNode = formToNode(language, form.tail.tail.head, true);
         }
 
         @ExplodeLoop
@@ -474,14 +520,10 @@ public class step4_if_fn_do {
     final static class MalContext {
         final MalEnv globalEnv;
         final Iterable<Scope> topScopes;
-        final PrintStream out;
-        final BufferedReader in;
 
         MalContext(MalLanguage language) {
             globalEnv = Core.newGlobalEnv(MalLanguage.class, language);
             topScopes = Collections.singleton(Scope.newBuilder("global", globalEnv).build());
-            out = System.out;
-            in = new BufferedReader(new InputStreamReader(System.in));
         }
     }
 
@@ -504,7 +546,7 @@ public class step4_if_fn_do {
 
         @Override
         public AbstractInvokeNode invokeNode() {
-            return new InvokeNode();
+            return new InvokeNode(false);
         }
 
         @Override
@@ -517,16 +559,6 @@ public class step4_if_fn_do {
         @Override
         protected Iterable<Scope> findTopScopes(MalContext context) {
             return context.topScopes;
-        }
-
-        @Override
-        public PrintStream out() {
-            return getCurrentContext(MalLanguage.class).out;
-        }
-
-        @Override
-        public BufferedReader in() {
-            return getCurrentContext(MalLanguage.class).in;
         }
     }
 }
