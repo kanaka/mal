@@ -104,7 +104,12 @@ class Core {
         var env = new MalEnv(languageClass);
         for (var entry : NS.entrySet()) {
             var root = new BuiltinRootNode(language, entry.getValue());
-            var fnVal = new MalFunction(Truffle.getRuntime().createCallTarget(root), null, root.getNumArgs());
+            var fnVal = new MalFunction(
+                    Truffle.getRuntime().createCallTarget(root), null, root.getNumArgs(),
+                    // Built-in functions should not be tail called. It doesn't help with
+                    // stack consumption, since they aren't recursive, and it *does*
+                    // invalidate direct call sites, which hurts performance.
+                    false);
             env.set(MalSymbol.get(entry.getKey()), fnVal);
         }
         return env;
