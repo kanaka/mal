@@ -472,25 +472,36 @@ class MalFunction extends MalValue implements TruffleObject, MetaHolder<MalFunct
     final int numArgs;
     final boolean isMacro;
     final Object meta;
+    final boolean canBeTailCalled;
 
-    MalFunction(RootCallTarget callTarget, MalEnv closedOverEnv, int numArgs) {
+    MalFunction(RootCallTarget callTarget, MalEnv closedOverEnv, int numArgs, boolean canBeTailCalled) {
         this.callTarget = callTarget;
         this.closedOverEnv = closedOverEnv;
         this.numArgs = numArgs;
         this.isMacro = false;
         this.meta = MalNil.NIL;
+        this.canBeTailCalled = canBeTailCalled;
+    }
+
+    MalFunction(RootCallTarget callTarget, MalEnv closedOverEnv, int numArgs) {
+        this(callTarget, closedOverEnv, numArgs, true);
     }
 
     MalFunction(MalFunction f, boolean isMacro) {
-        this(f, f.meta, isMacro);
+        this(f, f.meta, isMacro, true);
     }
 
     MalFunction(MalFunction f, Object meta, boolean isMacro) {
+        this(f, meta, isMacro, true);
+    }
+
+    MalFunction(MalFunction f, Object meta, boolean isMacro, boolean canBeTailCalled) {
         this.callTarget = f.callTarget;
         this.closedOverEnv = f.closedOverEnv;
         this.numArgs = f.numArgs;
         this.isMacro = isMacro;
         this.meta = meta;
+        this.canBeTailCalled = canBeTailCalled;
     }
 
     @ExportMessage
