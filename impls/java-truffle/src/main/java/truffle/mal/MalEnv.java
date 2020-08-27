@@ -27,6 +27,7 @@ class MalEnv implements TruffleObject {
     private Map<MalSymbol, Object> bindings;
     final LexicalScope scope;
     final Object[] staticBindings;
+    private Map<MalSymbol, CachedResult> cachedResults;
 
     private MalEnv(Class<? extends TruffleLanguage<?>> language, MalEnv outer, LexicalScope scope, Object[] staticBindings) {
         this.language = language;
@@ -64,6 +65,12 @@ class MalEnv implements TruffleObject {
         }
         if (!bindings.containsKey(symbol) && scope != null) {
             scope.wasDynamicallyBound(symbol);
+        }
+        if (cachedResults != null) {
+            var result = cachedResults.get(symbol);
+            if (result != null) {
+                result.notRedefined.invalidate();
+            }
         }
         bindings.put(symbol, value);
     }
@@ -124,6 +131,27 @@ class MalEnv implements TruffleObject {
             env = env.outer;
         }
         return null;
+    }
+
+    @TruffleBoundary
+    CachedResult cachedGet(MalSymbol symbol) {
+        if (cachedResults == null) {
+            cachedResults = new HashMap<>();
+        }
+        var result = cachedResults.get(symbol);
+        if (result == null) {
+            Object obj = null;
+            if (bindings != null) {
+                obj = bindings.get(symbol);
+            }
+            if (obj == null && outer != null) {
+                result = outer.cachedGet(symbol);
+            } else {
+                result = new CachedResult(obj);
+            }
+            cachedResults.put(symbol, result);
+        }
+        return result;
     }
 
     /**
@@ -200,6 +228,15 @@ class MalEnv implements TruffleObject {
             names[i++] = sym.symbol;
         }
         return new EnvMembersObject(names);
+    }
+
+    static class CachedResult {
+        final Object result;
+        final Assumption notRedefined = Truffle.getRuntime().createAssumption();
+
+        CachedResult(Object result) {
+            this.result = result;
+        }
     }
 }
 
