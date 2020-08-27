@@ -377,6 +377,8 @@ class MalMap extends MalValue implements TruffleObject, MetaHolder<MalMap> {
 
 @ExportLibrary(InteropLibrary.class)
 class MalKeyword extends MalValue implements TruffleObject {
+    public static final MalKeyword INLINE_Q = MalKeyword.get("inline?");
+
     public final String keyword;
 
     public static MalKeyword get(String keyword) {

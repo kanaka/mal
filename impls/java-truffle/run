@@ -17,4 +17,4 @@ java \
      --add-opens org.graalvm.truffle/com.oracle.truffle.api.interop=ALL-UNNAMED \
      --add-opens org.graalvm.truffle/com.oracle.truffle.api.nodes=ALL-UNNAMED \
      -classpath $CP \
-     truffle.mal.${STEP:-stepA_mal} "$@"
+     truffle.mal.${STEP:-stepE_macros} "$@"
