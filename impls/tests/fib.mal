@@ -1,0 +1,14 @@
+(load-file "../lib/benchmark.mal")
+
+(def! fib (fn* [n]
+  (if (= n 0)
+    1
+    (if (= n 1)
+      1
+      (+ (fib (- n 1))
+         (fib (- n 2)))))))
+
+(let* [n (read-string (first *ARGV*))
+       iters (read-string (first (rest *ARGV*)))]
+  (println (str "Times (in ms) for (fib " n ") on " *host-language* ": ")
+           (benchmark (fib n) iters)))
