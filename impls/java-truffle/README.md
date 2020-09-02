@@ -98,7 +98,10 @@ creates some awkwardness in Core.java.
 ## Prerequisites
 
 [GraalVM Community Edition](https://www.graalvm.org/downloads/) (version 20.1.0 or higher)
-should be on your PATH and pointed to by JAVA_HOME. That should be all you need!
+should be on your PATH and pointed to by JAVA_HOME.
+
+You'll also need to [install Gradle](https://gradle.org/install/)
+if you're going to build without using the provided Docker image.
 
 ## Outline of Approach
 
@@ -557,11 +560,11 @@ A few extra lines is all it takes. Look what happens now...
 | ---------- | -------------- | ----------------- | ----------------- |
 | Fib        | 1700 ms        | 718 ms (2.3x)     | 21 ms (81x)       |
 | Busywork   | 781 ms         | 19 ms (41x)       | 12 ms (65x)       |
-| Fib on Mal | 686 ms         | 104 ms (6.6x)     | 58 ms (12x)       |
+| Fib on Mal | 686 ms         | 104 ms (6.6x)     | 25 ms (27x)       |
 
 No substantial difference on Fib, which makes sense: that benchmark doesn't use macros.
 
-_Huge_ gains on Busywork, which also makes sense: it's _testing_ macros.
+_Huge_ gains on Busywork and Fib on Mal, because both are so dependent on macros.
 It's a bit suspicious, though, that there isn't more of a performance difference between
 the OpenJDK and GraalVM runs. Maybe the test runs so fast we're not sufficiently warmed up?
 Let's crank up the number of iterations from 10k to 100k and see what happens.
@@ -578,9 +581,14 @@ wins by around 6-7x, which is pretty decent!
 
 What about the Fib on Mal benchmark? Why don't we see a bigger difference
 between the OpenJDK and GraalVM runs? It's not insufficient warm-up this time.
-If we enable some GraalVM options for Truffle-related logging, we see that
-the compiler actually fails to compile several crucial functions. I'm still
-looking into the reason why. The problem is almost certainly user (i.e. my).
+Doing some profiling shows that we're spending quite a bit of time in
+code that isn't partially evaluated. For example, self-hosted Mal's environment
+implementation turns symbols into strings, and uses the strings as
+keys in environment maps, instead of just using the symbols themselves.
+The code for turning objects into strings in Printer depends heavily on
+JDK-provided classes that were not designed with partial evaluation in mind,
+so we must exclude them from partial evaluation to avoid an explosion in
+code size.
 
 ## Conclusions
 
@@ -595,9 +603,31 @@ Let's revisit the questions we started with:
 
 *Do more complicated Mal programs show similar speed-ups?*
 
-No, GraalVM JIT compilation does not provide non-trivial Mal programs with the
+No, GraalVM JIT compilation does not provide arbitrary Mal programs with the
 massive performance gains we see on the Fib benchmark. This should be
 totally unsurprising.
+
+*How much of the speed-up is really attributable to the Truffle/GraalVM combo,
+and how much came from optimizations that could be applied to any Mal interpreter?*
+
+Our benchmarks show that the answer depends heavily on the nature of the
+program. Let's look at the performance of Truffle Mal on GraalVM relative
+to its performance on OpenJDK (where we don't have the benefit of Truffle-
+enabled partial evaluation):
+
+| Benchmark    | TruffleMal (GraalVM relative to OpenJDK) |
+| ------------ | ---------------------------------------- |
+| Fib          | 34x |
+| Busywork 10x | 6x  |
+| Fib On Mal   | 4x  |
+
+In extreme cases, for programs that are heavy on arithmetic and function calls,
+our use of Truffle/GraalVM buys us 30x _after accounting for our optimizations_.
+
+That's pretty amazing.
+
+Realistically, though, we're likely to see more 3-6x speed-ups directly attributable
+to Truffle/GraalVM. Still impressive!
 
 *How much simplicity did we have to sacrifice in the name of performance?*
 
@@ -611,7 +641,7 @@ Let's look at the size, in lines of code, of each implementation.
 | reader.java    | 151        | 166                  | 166                  |
 | types.java     | 381        | 532                  | 545                  |
 | core.java      | 633        | 1506                 | 1511                 |
-| *Total*        | 1586       | 3206 (2x)            | 3578                 |
+| *Total*        | 1586       | 3206 (2x)            | 3578 (2.25x)         |
 
 The Truffle-based implementation, before optimizations, weighs in at about
 2x the size of the Java implementation.
@@ -629,19 +659,21 @@ adding substantial complexity in the process.
 
 *Was it worth it?*
 
-This is both totally subjective and a gross simplification,
-but let's say we've increased the complexity of the interpreter overall by roughly
-1.5 x, and environments in particular by 3x. If we were to perform the same changes
-in the Java implementation (discounting macro inlining, which has nothing to do with
-Truffle/GraalVM at all), I expect based on Truffle Mal's performance on OpenJDK
-we'd see at most a 3x performance improvement. Thanks to Truffle/GraalVM, we were
-able to leverage that into anywhere from a 6x to 80x improvement.
+This is both totally subjective and a gross over-simplification,
+but let's just guess that we've increased the complexity of the baseline Java interpreter
+overall by roughly 1.5 x, and environments in particular by 3x.
+In exchange for this increase in complexity, we've managed to obtain between from 25x to 80x
+better performance over the baseline Java interpreter, depending on the Mal
+program.
 
-*How much of the speed-up is really attributable to the Truffle/GraalVM combo,
-and how much came from putting more time into the code itself?*
+We could perform most of our optimizations on that Java interpreter _without_
+using Truffle. However, we'd end up at a similar level of complexity, and
+would see substantially smaller performance gains.
 
-The actual speed-up attributable to Truffle-enabled JIT compilation
-for the Busywork benchmark is probably more like 6-7x. I suspect that
-the Fib on Mal benchmark would be an even better indicator of real
-performance gains, but I'll need to fix the compilation failures in order
-to get good numbers.
+Based on these results, if I were to attempt a 'production quality' Mal implementation,
+I'd probably do it with Truffle and GraalVM. The performance gains alone seem to justify it.
+
+It's also worth observing that the Truffle/GraalVM provide _other_ interesting benefits
+that are not performance-related. I won't cover them here. I think the most interesting
+non-performance benefit is the promise of interoperability with other Truffle languages.
+
