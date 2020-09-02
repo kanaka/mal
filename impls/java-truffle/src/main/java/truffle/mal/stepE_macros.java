@@ -201,6 +201,7 @@ public class stepE_macros {
             }
         }
 
+        @ExplodeLoop
         @Override
         public Object executeGeneric(VirtualFrame frame, MalEnv env) {
             var elements = new ArrayList<>(elementNodes.length);
@@ -223,6 +224,7 @@ public class stepE_macros {
             }
         }
 
+        @ExplodeLoop
         @Override
         public Object executeGeneric(VirtualFrame frame, MalEnv env) {
             var result = MalMap.EMPTY;
