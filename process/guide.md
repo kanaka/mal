@@ -1124,9 +1124,9 @@ mean something within a quasiquoted list: `unquote` and
 `splice-unquote`. These are perhaps best explained with some examples:
 
 * `(def! lst (quote (b c)))` -> `(b c)`
-* `(quasiquote (a lst d)` -> `(a lst d)`
-* `(quasiquote (a (unquote lst) d)` -> `(a (b c) d)`
-* `(quasiquote (a (splice-unquote lst)) d)` -> `(a b c d)`
+* `(quasiquote (a lst d))` -> `(a lst d)`
+* `(quasiquote (a (unquote lst) d))` -> `(a (b c) d)`
+* `(quasiquote (a (splice-unquote lst) d))` -> `(a b c d)`
 
 The `unquote` form turns evaluation back on for its argument and the
 result of evaluation is put in place into the quasiquoted list. The
