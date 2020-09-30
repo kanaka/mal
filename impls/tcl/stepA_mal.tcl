@@ -162,10 +162,7 @@ proc EVAL {ast env} {
             "defmacro!" {
                 set varname [obj_val $a1]
                 set value [EVAL $a2 $env]
-                set fn [obj_val $value]
-                dict set fn is_macro 1
-                obj_set_val $value $fn
-                return [$env set $varname $value]
+                return [$env set $varname [macro_new $value]]
             }
             "macroexpand" {
                 return [macroexpand $a1 $env]
