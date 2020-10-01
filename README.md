@@ -1,12 +1,12 @@
-# mal - Make a Lisp
+## mal - Make a Lisp
 
 [![Build Status](https://travis-ci.org/kanaka/mal.svg?branch=master)](https://travis-ci.org/kanaka/mal)
 
 ## Description
 
-**1. Mal is a Clojure inspired Lisp interpreter**
+ a. Mal is a Clojure inspired Lisp interpreter.
 
-**2. Mal is a learning tool**
+ b. Mal is a learning tool.
 
 Each implementation of mal is separated into
 11 incremental, self-contained (and testable) steps that demonstrate
