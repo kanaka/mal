@@ -4,7 +4,7 @@ rl:{1 x; read0 0};
 / as we cannot really do infinite loops, so
 / we make a iterator that never quits and keeps
 / calling a callback
-forever: {{x`; x}/ [{1b}; x]};
+forever: {{.[x; enlist (); show]; x}/ [{1b}; x]};
 
 notempty: {>[count x; 0]};
 tail: {(1; -[count x; 1]) sublist x};
