@@ -71,7 +71,10 @@ read_symbol_or_number_or_native: {$[strequals[x; "true"]; (`true; x);
                                     strequals[x; "nil"]; (`nil; x);
                                     read_symbol_or_number x]}
 DIGITS: "0123456789";
-read_symbol_or_number: {v:"0",x; $[notempty v except DIGITS; (`symbol; x); (`number; parse v)]};
+skip_numerics: {a:$[x ~ "-"; x;
+               first x = "-"; (tail x) except DIGITS;
+               x except DIGITS]; a};
+read_symbol_or_number: {v:$[first x = "-"; x; "0",x]; $[notempty skip_numerics v; (`symbol; x); (`number; parse v)]};
 
 read_str: {[str]; first read_form tokenize str};
 

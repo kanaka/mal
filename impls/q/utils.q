@@ -20,3 +20,5 @@ strequals: {$[=[count x; count y]; all (x = y); 0b]};
 
 / 101h 'missing?'
 actionordefault: {res:y["a",x][`fn]; $[=[type res; 101h]; y["d."][`fn]; res]};
+
+throw: {'(x)};

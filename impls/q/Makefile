@@ -2,9 +2,10 @@
 	echo
 
 OBJECTS := step0_repl_mixed.q \
-	step1_read_print_mixed.q
+	step1_read_print_mixed.q \
+	step2_eval_mixed.q
 
-all: 
+all: $(OBJECTS)
 	echo "hello there general kenobi"
 
 step0_repl_mixed.q: FORCE
@@ -12,6 +13,9 @@ step0_repl_mixed.q: FORCE
 
 step1_read_print_mixed.q: FORCE
 	./mix.sh step1_read_print utils reader printer
+
+step2_eval_mixed.q: FORCE
+	./mix.sh step2_eval utils reader printer
 
 clean:
 	rm $(OBJECTS)
