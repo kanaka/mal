@@ -25,3 +25,6 @@ strequals: {$[=[count x; count y]; all (x = y); 0b]};
 actionordefault: {res:y["a",x][`fn]; $[=[type res; 101h]; y["d."][`fn]; res]};
 
 throw: {'(x)};
+
+bool: {[x];($[x; `true; `false]; ())};
+number: {[x];(`number; x)};

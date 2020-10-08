@@ -26,7 +26,7 @@ readone: {((`special; x); y)};
 readpunc: {((`punc; x); y)};
 readignore: {((); y)};
 readstring: {s: accumulate[doesnt_end_string; y; read_string]; tok: first s; rest: last s; $[=["\""; first rest]; ((`string; raze tok); tail rest); ((`incompletestring; raze tok); rest)]};
-readstrbackslash: {(x, first y; tail y)};
+readstrbackslash: {(actionordefault[first y; backslashmap][first y]; tail y)};
 readcomment: {s: accumulate[doesnt_end_comment; y; read_comment]; rest: last s; ((); rest)};
 readchar: {((`char; x); y)};
 takeone: {(x; y)};
@@ -36,6 +36,9 @@ tokenmap: ([tok: ("a "; "a,"; "a~"; "a["; "a]"; "a{"; "a}"; "a("; "a)"; "a'"; "a
 
 strtokenmap: ([tok: ("a\\"; "d.")]
                fn: (readstrbackslash; takeone));
+
+backslashmap: ([tok: ("a\\"; "a\""; "an"; "d.")]
+                fn: ({x}; {x}; {"\n"}; {"\\", x}))
 
 token_eq: {(y = first x) and strequals[z; last x]};
 token_ty_eq: {(y = first x)};
@@ -66,9 +69,9 @@ read_atom: {[tokens]; s: dopeek tokens; ($[token_ty_eq[s; `char]; read_symbol_or
                                            (`error; "wrong kind ", string s)];
                                          doconsume tokens)};
 read_symbol_or_number_or_kw_or_native: {$[":" = first x; (`keyword; tail x); read_symbol_or_number_or_native x]};
-read_symbol_or_number_or_native: {$[strequals[x; "true"]; (`true; x);
-                                    strequals[x; "false"]; (`false; x);
-                                    strequals[x; "nil"]; (`nil; x);
+read_symbol_or_number_or_native: {$[strequals[x; "true"]; (`true; ());
+                                    strequals[x; "false"]; (`false; ());
+                                    strequals[x; "nil"]; (`nil; ());
                                     read_symbol_or_number x]}
 DIGITS: "0123456789";
 skip_numerics: {a:$[x ~ "-"; x;

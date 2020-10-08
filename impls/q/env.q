@@ -10,6 +10,16 @@ set_env: {global_env_storage[x - 1]:y};
 
 make_env: {allocate_env (`data`outer!(([name:(enlist "d.")] fn:(enlist {[x;y];})); x))};
 make_env_from: {allocate_env (`data`outer!(x; y))};
+make_env_with_binds: {[outer; binds; exprs];
+  env:make_env outer;
+  accumulate[{notempty first x}; (binds; exprs); {[xs;env];
+    binds:first xs;
+    exprs:last xs;
+    setall: {[e;n;x]; env_set[e; n; (`list; x)]; ((); ((); ()))};
+    setone: {[e;ns;xs]; env_set[e; last first ns; first xs]; ((); (tail ns; tail xs))};
+    $[strequals[last first binds; "&"]; setall[env; last first tail binds; exprs]; setone[env; binds; exprs]]
+    }[;env]];
+  env};
 
 env_set: {[env; n; v]; e:get_env env; set_env[env; `data`outer!(e[`data], ([name: enlist raze "a",n] fn: enlist v); e`outer)]; env};
 env_find: {[env; n];
