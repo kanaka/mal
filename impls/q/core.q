@@ -19,6 +19,8 @@ vequals: {[x; y];
     uninhabited xty; 1b;
     (last x) = (last y)]};
 
+with_uninhabited_nil:{$[x ~ (); (`nil; x); x]};
+
 core_ns: (
   "prn"; {[xs];
     v:" " sv (first accumulate[notempty; xs; {(pr_str[first x; 1b]; tail x)}]);
@@ -51,4 +53,10 @@ core_ns: (
     xs @ 1};
   "cons"; {[xs]; list ((enlist first xs), (last last xs))};
   "concat"; {[xs]; list (,/)(,/)(skip[1;] each xs)};
-  "vec"; {[xs]; vec last first xs});
+  "vec"; {[xs]; vec last first xs};
+  "nth"; {[xs];
+    v:last first xs;
+    n:last (xs @ 1);
+    $[(count v) <= n; throw "index out of range"; v @ n]};
+  "first"; {[xs]; with_uninhabited_nil first last first xs};
+  "rest"; {[xs]; list tail last last xs});

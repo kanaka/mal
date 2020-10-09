@@ -28,3 +28,6 @@ env_find: {[env; n];
 env_get: {[env; n];
   fenv: env_find[env; n];
   $[fenv ~ (); (`error; throw "'", n, "' not found"); (fenv`data)[raze "a",n][`fn]]};
+env_get_nothrow: {[env; n];
+  fenv: env_find[env; n];
+  $[fenv ~ (); (`error; "'", n, "' not found"); (fenv`data)[raze "a",n][`fn]]};
