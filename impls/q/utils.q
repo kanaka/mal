@@ -31,3 +31,5 @@ throw: {'(x)};
 
 bool: {[x];($[x; `true; `false]; ())};
 number: {[x];(`number; x)};
+list: {[x]; (`list; x)};
+str: {[x]; (`string; x)};

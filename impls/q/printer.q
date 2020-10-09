@@ -7,7 +7,7 @@ escapemap: ([tok: ("a\\"; "a\""; "a\n"; "d.")]
             fn: ({"\\\\"}; {"\\\""}; {"\\n"}; {x}));
 escape: {[x]; first accumulate[notempty; x; {(actionordefault[first x; escapemap][first x]; tail x)}]};
 
-printmap: `list`vector`hashmap`string`symbol`number`keyword`nil`true`false`error!(
+printmap: `list`vector`hashmap`string`symbol`number`keyword`nil`true`false`error`atom!(
     {[x;y]; prlist[x @ 1; y; "()"]};
     {[x;y]; prlist[x @ 1; y; "[]"]};
     {[x;y]; prhmap[x @ 1; y]};
@@ -18,4 +18,5 @@ printmap: `list`vector`hashmap`string`symbol`number`keyword`nil`true`false`error
     {[x;y]; "nil"};
     {[x;y]; "true"};
     {[x;y]; "false"};
-    {[x;y]; "Error: ", (x @ 1)});
+    {[x;y]; "Error: ", (x @ 1)};
+    {[x;y]; "(atom ", (pr_str[get_atom last x; y]), ")"});

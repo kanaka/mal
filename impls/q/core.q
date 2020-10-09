@@ -39,4 +39,12 @@ core_ns: (
   "<"; {[xs]; bool ((last first xs) < (last (xs @ 1)))};
   ">"; {[xs]; bool ((last first xs) > (last (xs @ 1)))};
   ">="; {[xs]; bool ((last first xs) >= (last (xs @ 1)))};
-  "<="; {[xs]; bool ((last first xs) <= (last (xs @ 1)))});
+  "<="; {[xs]; bool ((last first xs) <= (last (xs @ 1)))};
+  "read-string"; {[xs]; read_str (last first xs)};
+  "slurp"; {[xs]; str "c"$read1 value raze ("`:", last first xs)};
+  "atom"; {[xs]; (`atom; make_atom first xs)};
+  "atom?"; {[xs]; bool ((first first xs) ~ `atom)};
+  "deref"; {[xs]; get_atom last first xs};
+  "reset!"; {[xs];
+    set_atom[last first xs; xs @ 1];
+    xs @ 1});

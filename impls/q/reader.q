@@ -31,8 +31,8 @@ readcomment: {s: accumulate[doesnt_end_comment; y; read_comment]; rest: last s; 
 readchar: {((`char; x); y)};
 takeone: {(x; y)};
 
-tokenmap: ([tok: ("a "; "a,"; "a~"; "a["; "a]"; "a{"; "a}"; "a("; "a)"; "a'"; "a`"; "a^"; "a@"; "a\""; "a;"; "d.")]
-            fn: (readignore; readignore; readtilde; readpunc; readpunc; readpunc; readpunc; readpunc; readpunc; readone; readone; readone; readone; readstring; readcomment; readchar));
+tokenmap: ([tok: ("a "; "a,"; "a\n"; "a~"; "a["; "a]"; "a{"; "a}"; "a("; "a)"; "a'"; "a`"; "a^"; "a@"; "a\""; "a;"; "d.")]
+            fn: (readignore; readignore; readignore; readtilde; readpunc; readpunc; readpunc; readpunc; readpunc; readpunc; readone; readone; readone; readone; readstring; readcomment; readchar));
 
 strtokenmap: ([tok: ("a\\"; "d.")]
                fn: (readstrbackslash; takeone));
