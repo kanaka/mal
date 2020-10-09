@@ -19,6 +19,9 @@ take: {(0; x) sublist y};
 apply_and_record: {acc: x @ 0; init: x @ 1; fn: x @ 2; cond: x @ 3; res: fn[init]; (acc, enlist first res; last res; fn; cond)};
 accumulate: {[cond;init;fn]; res: apply_and_record/ [{(x @ 3)[x @ 1]}; ((); init; fn; cond)]; (res @ 0; res @ 1)};
 
+apply_and_replace: {init: x @ 0; fn: x @ 1; cond: x @ 2; res: fn[init]; (res; fn; cond)}
+while_: {[cond;init;fn]; res: apply_and_replace/ [{(x @ 2)[x @ 0]}; (init; fn; cond)]; res};
+
 strequals: {$[=[count x; count y]; all (x = y); 0b]};
 
 / 101h 'missing?'

@@ -5,7 +5,8 @@ OBJECTS := step0_repl_mixed.q \
 	step1_read_print_mixed.q \
 	step2_eval_mixed.q \
 	step3_env_mixed.q \
-	step4_if_fn_do_mixed.q
+	step4_if_fn_do_mixed.q \
+	step5_tco_mixed.q
 
 all: $(OBJECTS)
 	echo "hello there general kenobi"
@@ -24,6 +25,9 @@ step3_env_mixed.q: FORCE
 
 step4_if_fn_do_mixed.q: FORCE
 	./mix.sh step4_if_fn_do utils reader printer env core
+
+step5_tco_mixed.q: FORCE
+	./mix.sh step5_tco utils reader printer env core
 
 clean:
 	rm $(OBJECTS)
