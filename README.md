@@ -41,7 +41,7 @@ guide](process/guide.md) there is also a [mal/make-a-lisp
 FAQ](docs/FAQ.md) where I attempt to answer some common questions.
 
 
-**3. Mal is implemented in 82 languages (85 different implementations and 105 runtime modes)**
+**3. Mal is implemented in 83 languages (86 different implementations and 106 runtime modes)**
 
 | Language | Creator |
 | -------- | ------- |
@@ -106,6 +106,7 @@ FAQ](docs/FAQ.md) where I attempt to answer some common questions.
 | [PowerShell](#powershell) | [Joel Martin](https://github.com/kanaka)  |
 | [Python](#python-2x-and-3x) (2.X &amp; 3.X) | [Joel Martin](https://github.com/kanaka) |
 | [Python #2](#python2-3x) (3.X) | [Gavin Lewis](https://github.com/epylar) |
+| [q](#q) | [Ali MohammadPur](https://github.com/alimpfard) |
 | [RPython](#rpython) | [Joel Martin](https://github.com/kanaka)  |
 | [R](#r) | [Joel Martin](https://github.com/kanaka)  |
 | [Racket](#racket-53) | [Joel Martin](https://github.com/kanaka)  |
@@ -886,6 +887,18 @@ The second Python implementation makes heavy use of type annotations and uses th
 # Recommended: do these steps in a Python virtual environment.
 pip3 install Arpeggio==1.9.0
 python3 stepX_YYY.py
+```
+
+### q
+
+The q implementation requires q 3.x, and has been tested with KDB+ q 3.6.
+
+```
+cd impls/q
+make stepXXX_YYY_mixed.q
+q stepXXX_YYY_mixed.q
+    # OR for debug mode (break into q console on exceptions)
+q stepXXX_YYY_mixed.q -repl -debug 1
 ```
 
 ### RPython
