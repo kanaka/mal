@@ -2,7 +2,7 @@ add_core_ns: {[env];
   accumulate[notempty; core_ns; {[xs; env]; env_set[env; xs @ 0; xs @ 1]; ((); skip[2; xs])}[;env]];
   env};
 
-isseq_container: {[ty]; (ty = `list) or (ty = `vector)};
+isseq_container: {[ty]; (ty ~ `list) or (ty ~ `vector)};
 uninhabited: {[ty]; (`true`false`nil?ty) <> 3};
 
 vequals: {[x; y];
@@ -11,15 +11,26 @@ vequals: {[x; y];
   $[(isseq_container xty) and (isseq_container yty); 
       $[(count last x) <> (count last y); 0b; (&/) ((enlist 1b),((last x) vequals' (last y)))];
     (xty <> yty); 0b;
-    / TODO: Implement hashmap equality
-    xty = `hashmap; hashmapequals[last x; last y];
-    xty = `string; strequals[last x; last y];
-    xty = `symbol; strequals[last x; last y];
-    xty = `keyword; strequals[last x; last y];
+    xty ~ `hashmap; hashmapequals[last x; last y];
+    xty ~ `string; strequals[last x; last y];
+    xty ~ `symbol; strequals[last x; last y];
+    xty ~ `keyword; strequals[last x; last y];
     uninhabited xty; 1b;
     (last x) = (last y)]};
 
-with_uninhabited_nil:{$[x ~ (); (`nil; x); x]};
+/ TODO: Unordered?
+hashmapequals: {[lmap; rmap];
+  $[(count lmap) <> (count rmap); 0b;
+    $[all over {vequals[first first x; first first y]}'[key lmap; key rmap]; 1b; 0b]]};
+
+with_uninhabited_nil:{$[x ~ (); (`nil; x); $[null first x; (`nil; ()); x]]};
+
+apply:{[fn;arg];
+  strip_tco: {[x]; $[(first x) ~ `tco; EVAL[x @ 1; x @ 2]; x]};
+  fn:$[(first fn) ~ `macro; last fn; fn];
+  strip_tco fn[arg]};
+
+map_from:{[x]; $[x ~ (); ([k:()] k:(); v:()); x]};
 
 core_ns: (
   "prn"; {[xs];
@@ -59,4 +70,41 @@ core_ns: (
     n:last (xs @ 1);
     $[(count v) <= n; throw "index out of range"; v @ n]};
   "first"; {[xs]; with_uninhabited_nil first last first xs};
-  "rest"; {[xs]; list tail last last xs});
+  "rest"; {[xs]; list tail last last xs};
+  "throw"; {[xs]; throw first xs};
+  "apply"; {[xs];
+    args: skip[1; init xs], last last xs;
+    apply[first xs; args]};
+  "map"; {[xs]; list apply[first xs] each enlist each last last xs};
+  "nil?"; {[xs]; bool ((first first xs) ~ `nil)};
+  "true?"; {[xs]; bool ((first first xs) ~ `true)};
+  "false?"; {[xs]; bool ((first first xs) ~ `false)};
+  "symbol?"; {[xs]; bool ((first first xs) ~ `symbol)};
+  "keyword?"; {[xs]; bool ((first first xs) ~ `keyword)};
+  "map?"; {[xs]; bool ((first first xs) ~ `hashmap)};
+  "vector?"; {[xs]; bool ((first first xs) ~ `vector)};
+  "sequential?"; {[xs]; bool (isseq_container (first first xs))};
+  "symbol"; {[xs]; symbol last first xs};
+  "keyword"; {[xs]; keyword last first xs};
+  "vector"; vec;
+  "hash-map"; make_hmap;
+  "assoc"; {[xs];
+    map:map_from last first xs;
+    xs:tail xs;
+    newvalues:flip `k`v!(enlist each xs where (0 = (til count xs) mod 2); enlist each xs where (1 = (til count xs) mod 2));
+    (`hashmap; maketable ((delete from value map where any ({{vequals[first x; first y]}[x;] each y}[;k] each newvalues`k)), newvalues))};
+  "dissoc"; {[xs];
+    map:map_from last first xs;
+    (`hashmap; maketable (delete from value map where any ({{vequals[x; first y]}[x;] each y}[;k] each tail xs)))};
+  "get"; {[xs];
+    $[(last first xs) ~ (); (`nil; ());
+      with_uninhabited_nil first (last first xs)[xs @ 1][`v]]};
+  "contains?"; {[xs];
+    $[(last first xs) ~ (); (`false; ());
+      bool any over not null ((last first xs)[xs @ 1][`k])]};
+  "keys"; {[xs];
+    $[(last first xs) ~ (); list ();
+      list first each (key last first xs)[`k]]};
+  "vals"; {[xs];
+    $[(last first xs) ~ (); list ();
+      list first each (value last first xs)[`v]]});

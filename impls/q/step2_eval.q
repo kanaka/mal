@@ -16,7 +16,7 @@ EVAL: {ty: first x; $[ty = `list; $[notempty last x; eval_list[x; y]; x]; eval_a
 PRINT: {pr_str[x; 1b]};
 
 show_or_ignore: { $[x ~ (); x; 1 x] };
-rep: { @[show_or_ignore; PRINT EVAL[READ rl "user> "; repl_env]; {1 string x}]; 1"\n" };
+rep: { show_or_ignore PRINT EVAL[READ rl "user> "; repl_env]; 1"\n" };
 
 main: { forever rep };
 

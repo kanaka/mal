@@ -54,7 +54,7 @@ do_fnstar:{[partial_ast; env];
     EVAL[body; new_env]}[; last first partial_ast; partial_ast @ 1; env]};
 
 show_or_ignore: { $[x ~ (); x; 1 x] };
-rep: { @[show_or_ignore; PRINT EVAL[READ rl "user> "; repl_env]; {1 string x}]; 1"\n" };
+rep: { show_or_ignore PRINT EVAL[READ rl "user> "; repl_env]; 1"\n" };
 
 main: {
   EVAL[READ "(def! not (fn* (a) (if a false true)))"; repl_env];

@@ -1,13 +1,13 @@
 rl:{1 x; read0 0};
 
-indebug:{(.Q.def[`debug`_!(0b;0b)].Q.opt .z.x)`debug}
+indebug:(.Q.def[`debug`_!(0b;0b)].Q.opt .z.x)`debug;
 
 / We have to get a bit crafty with this one
 / as we cannot really do infinite loops, so
 / we make a iterator that never quits and keeps
 / calling a callback
 / forever: 
-forever: $[indebug`; {{x`; x}/ [{1b}; x]}; {{.[x; enlist (); show]; x}/ [{1b}; x]}];
+forever: $[indebug; {{x`; x}/ [{1b}; x]}; {{.[x; enlist (); showerror]; x}/ [{1b}; x]}];
 
 notempty: {>[count x; 0]};
 tail: {(1; -[count x; 1]) sublist x};
@@ -27,7 +27,12 @@ strequals: {$[=[count x; count y]; all (x = y); 0b]};
 / 101h 'missing?'
 actionordefault: {res:y["a",x][`fn]; $[=[type res; 101h]; y["d."][`fn]; res]};
 
-throw: {'(x)};
+global_error: (::);
+throw: {`global_error set mvalue x; '`throw};
+showerror:{
+  err:$[strequals[x; "throw"]; pr_str[global_error; 1b]; x];
+  1 ("Exception: ", err, "\n");
+  (`nothing; ())};
 
 bool: {[x];($[x; `true; `false]; ())};
 number: {[x];(`number; x)};
@@ -35,5 +40,8 @@ list: {[x]; (`list; x)};
 str: {[x]; (`string; x)};
 symbol: {[x]; (`symbol; x)};
 vec: {[x]; (`vector; x)};
+keyword: {[x]; (`keyword; x)};
+
+mvalue: {[x]; $[((type x) = (type "")); str x; x]};
 
 issymbol:{((first x) ~ `symbol) and strequals[last x; y]};

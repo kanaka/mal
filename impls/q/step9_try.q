@@ -30,6 +30,7 @@ eval_toplevel_list: {[ast; env];
       strequals[last head; "quasiquote"]; (`tco; do_quasiquote[first tail last ast]; env);
       strequals[last head; "quasiquoteexpand"]; do_quasiquote[first tail last ast];
       strequals[last head; "macroexpand"]; macroexpand[first tail last ast; env];
+      strequals[last head; "try*"]; do_trystar[tail last ast; env];
       eval_list[ast; env]]; eval_list[ast; env]]; eval_list[ast; env]]};
 
 eval_possibly_with_macro:{[ast; env];
@@ -113,6 +114,17 @@ do_defmacrobang:{[partial_ast; env];
   res:EVAL[last partial_ast; env];
   $[isfn[res]; env_set[env; last first partial_ast; (`macro; res)]; throw ("'", last first partial_ast, "' is not defined as a function")];
   res};
+
+do_trystar: {[partial_ast; env];
+  try_ast:first partial_ast;
+  catch_ast:partial_ast @ 1;
+  do_trycatch:{[tast; cname; cast; env];
+    catch:{[x;cname;cast;env];
+      exc:global_error;
+      `global_error set (::);
+      EVAL[cast; make_env_with_binds[env; enlist cname; enlist exc]]}[;cname;cast;env];
+    .[EVAL; (tast; env); catch]};
+  $[issymbol[first last catch_ast; "catch*"]; do_trycatch[try_ast; (last catch_ast) @ 1; (last catch_ast) @ 2; env]; (`tco; try_ast; env)]};
 
 breakpoint: {[x]; break x};
 

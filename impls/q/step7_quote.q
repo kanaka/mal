@@ -95,7 +95,7 @@ do_quasiquote:{[ast];
 breakpoint: {[x]; break x};
 
 show_or_ignore: { $[x ~ (); x; 1 x] };
-rep: { @[show_or_ignore; PRINT EVAL[READ rl "user> "; repl_env]; {1 string x}]; 1"\n" };
+rep: { show_or_ignore PRINT EVAL[READ rl "user> "; repl_env]; 1"\n" };
 
 withargs: {
   env_set[repl_env; "*ARGV*"; list str each tail .z.x];

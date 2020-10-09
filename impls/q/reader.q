@@ -52,9 +52,9 @@ read_form: {[tokens]; $[notempty tokens; $[token_eq[dopeek tokens; `punc; "("]; 
                                            token_eq[dopeek tokens; `punc; "{"]; read_hmap doconsume tokens;
                                            read_atom_or_expand tokens];
                                          ()]};
-read_list: {[tokens]; s: accumulate[{not ends_list x}; tokens; read_form]; $[ends_list[last s] and notempty[last s]; ((`list; first s); tail last s); ((`error; "unbalanced list"); last s)]};
-read_vec: {[tokens]; s: accumulate[{not ends_vector x}; tokens; read_form]; $[ends_vector[last s] and notempty[last s]; ((`vector; first s); tail last s); ((`error; "unbalanced vector"); last s)]};
-read_hmap: {[tokens]; s: accumulate[{not ends_hmap x}; tokens; read_form]; $[ends_hmap[last s] and notempty[last s]; ((make_hmap first s); tail last s); ((`error; "unbalanced hashmap"); last s)]};
+read_list: {[tokens]; s: accumulate[{not ends_list x}; tokens; read_form]; $[ends_list[last s] and notempty[last s]; ((`list; first s); tail last s); ((`error; throw "unbalanced list"); last s)]};
+read_vec: {[tokens]; s: accumulate[{not ends_vector x}; tokens; read_form]; $[ends_vector[last s] and notempty[last s]; ((`vector; first s); tail last s); ((`error; throw "unbalanced vector"); last s)]};
+read_hmap: {[tokens]; s: accumulate[{not ends_hmap x}; tokens; read_form]; $[ends_hmap[last s] and notempty[last s]; ((make_hmap first s); tail last s); ((`error; throw "unbalanced hashmap"); last s)]};
 take_one_and_splice: {rest: read_form tail y; ((`list; ((`symbol; x); rest@0)); rest@1)};
 read_atom_or_expand: {[tokens]; s: dopeek tokens; $[token_eq[s; `special; "~@"]; take_one_and_splice["splice-unquote"; tokens];
                                                     token_eq[s; `special; "@"]; take_one_and_splice["deref"; tokens];
@@ -65,8 +65,8 @@ read_atom_or_expand: {[tokens]; s: dopeek tokens; $[token_eq[s; `special; "~@"];
                                                     read_atom tokens]};
 read_atom: {[tokens]; s: dopeek tokens; ($[token_ty_eq[s; `char]; read_symbol_or_number_or_kw_or_native (s @ 1);
                                            token_ty_eq[s; `string]; s;
-                                           token_ty_eq[s; `incompletestring]; (`error; "unbalanced string");
-                                           (`error; "wrong kind ", string s)];
+                                           token_ty_eq[s; `incompletestring]; (`error; throw "unbalanced string");
+                                           (`error; throw ("wrong kind ", string s))];
                                          doconsume tokens)};
 read_symbol_or_number_or_kw_or_native: {$[":" = first x; (`keyword; tail x); read_symbol_or_number_or_native x]};
 read_symbol_or_number_or_native: {$[strequals[x; "true"]; (`true; ());
@@ -82,4 +82,4 @@ read_symbol_or_number: {v:$[first x = "-"; x; "0",x]; $[notempty skip_numerics v
 read_str: {[str]; first read_form tokenize str};
 
 maketable: {$[notempty x; (flip (enlist `k)!enlist (x`k))!x; x]};
-make_hmap: {[items]; $[=[0; (count items) mod 2]; (`hashmap; maketable first accumulate[notempty; items; {(`k`v!(enlist x @ 0; enlist x @ 1); skip[2; x])}]); (`error; "odd number of items in hashmap")]}
+make_hmap: {[items]; $[=[0; (count items) mod 2]; (`hashmap; maketable first accumulate[notempty; items; {(`k`v!(enlist x @ 0; enlist x @ 1); skip[2; x])}]); (`error; throw "odd number of items in hashmap")]}
