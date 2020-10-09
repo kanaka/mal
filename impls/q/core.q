@@ -32,17 +32,23 @@ apply:{[fn;arg];
 
 map_from:{[x]; $[x ~ (); ([k:()] k:(); v:()); x]};
 
+tostring:{[sep; lst; r];
+  c:count lst;
+  $[c = 0; "";
+    c = 1; pr_str[first lst; r];
+    sep sv (first accumulate[notempty; lst; {(pr_str[first x; y]; tail x)}[;r]])]};
+
 core_ns: (
   "prn"; {[xs];
-    v:" " sv (first accumulate[notempty; xs; {(pr_str[first x; 1b]; tail x)}]);
+    v:tostring[" "; xs; 1b];
     1 v; 1"\n";
     (`nil; ())};
   "str"; {[xs];
-    (`string; "" sv (first accumulate[notempty; xs; {(pr_str[first x; 0b]; tail x)}]))};
+    str tostring[""; xs; 0b]};
   "pr-str"; {[xs];
-    (`string; " " sv (first accumulate[notempty; xs; {(pr_str[first x; 1b]; tail x)}]))};
+    str tostring[" "; xs; 1b]};
   "println"; {[xs];
-    v:" " sv (first accumulate[notempty; xs; {(pr_str[first x; 0b]; tail x)}]);
+    v:tostring[" "; xs; 0b];
     1 v; 1"\n";
     (`nil; ())};
   "list"; {[xs]; (`list; xs)};
@@ -62,6 +68,13 @@ core_ns: (
   "reset!"; {[xs];
     set_atom[last first xs; xs @ 1];
     xs @ 1};
+  "swap!"; {[xs];
+    atom:last first xs;
+    fn:xs @ 1;
+    args:skip[2; xs];
+    val:apply[fn; (enlist get_atom atom), args];
+    set_atom[atom; val];
+    val};
   "cons"; {[xs]; list ((enlist first xs), (last last xs))};
   "concat"; {[xs]; list (,/)(,/)(skip[1;] each xs)};
   "vec"; {[xs]; vec last first xs};

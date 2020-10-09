@@ -25,7 +25,6 @@ eval_toplevel_list: {[ast; env];
       strequals[last head; "if"]; do_if[tail last ast; env];
       strequals[last head; "fn*"]; do_fnstar[tail last ast; env];
       strequals[last head; "eval"]; do_eval[tail last ast; env];
-      strequals[last head; "swap!"]; do_swapbang[tail last ast; env];
       strequals[last head; "quote"]; first tail last ast;
       strequals[last head; "quasiquote"]; (`tco; do_quasiquote[first tail last ast]; env);
       strequals[last head; "quasiquoteexpand"]; do_quasiquote[first tail last ast];
@@ -90,15 +89,6 @@ do_eval:{[partial_ast; env];
   ast: EVAL[first partial_ast; env];
   EVAL[ast; repl_env]};
 
-do_swapbang:{[partial_ast; env];
-  xs:EVAL[; env] each partial_ast;
-  atom:last first xs;
-  fn:xs @ 1;
-  args:skip[2; xs];
-  val:apply[fn; (enlist get_atom atom), args];
-  set_atom[atom; val];
-  val};
-
 do_quasiquote:{[ast];
   qq:{[ast];
     first first while_[{notempty last x}; (list (); last ast); {[x];
@@ -138,13 +128,13 @@ withargs: {
 
 repl:{
   env_set[repl_env; "*ARGV*"; (`list; ())];
-  env_set[repl_env; "*host-language*"; str "q"];
   forever rep};
 
 main: {
   EVAL[READ "(def! not (fn* (a) (if a false true)))"; repl_env];
   EVAL[READ "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \"\nnil)\")))))"; repl_env];
-  / EVAL[READ "(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))"; repl_env];
+  EVAL[READ "(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))"; repl_env];
+  env_set[repl_env; "*host-language*"; str "q"];
   $[count .z.x > 0;
     $[strequals[first .z.x; "-repl"]; repl`; withargs`];
     repl`]};

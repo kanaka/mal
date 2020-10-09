@@ -22,7 +22,6 @@ eval_toplevel_list: {[ast; env];
       strequals[last head; "if"]; do_if[tail last ast; env];
       strequals[last head; "fn*"]; do_fnstar[tail last ast; env];
       strequals[last head; "eval"]; do_eval[tail last ast; env];
-      strequals[last head; "swap!"]; do_swapbang[tail last ast; env];
       eval_list[ast; env]]; eval_list[ast; env]]; eval_list[ast; env]]};
 
 EVAL: {[x;env];
@@ -68,15 +67,6 @@ do_fnstar:{[partial_ast; env];
 do_eval:{[partial_ast; env];
   ast: EVAL[first partial_ast; env];
   EVAL[ast; repl_env]};
-
-do_swapbang:{[partial_ast; env];
-  xs:EVAL[; env] each partial_ast;
-  atom:last first xs;
-  fn:xs @ 1;
-  args:skip[2; xs];
-  val:apply[fn; (enlist get_atom atom), args];
-  set_atom[atom; val];
-  val};
 
 show_or_ignore: { $[x ~ (); x; 1 x] };
 rep: { show_or_ignore PRINT EVAL[READ rl "user> "; repl_env]; 1"\n" };
