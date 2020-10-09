@@ -138,12 +138,13 @@ withargs: {
 
 repl:{
   env_set[repl_env; "*ARGV*"; (`list; ())];
+  env_set[repl_env; "*host-language*"; str "q"];
   forever rep};
 
 main: {
   EVAL[READ "(def! not (fn* (a) (if a false true)))"; repl_env];
   EVAL[READ "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \"\nnil)\")))))"; repl_env];
-  EVAL[READ "(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))"; repl_env];
+  / EVAL[READ "(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))"; repl_env];
   $[count .z.x > 0;
     $[strequals[first .z.x; "-repl"]; repl`; withargs`];
     repl`]};

@@ -77,7 +77,7 @@ do_swapbang:{[partial_ast; env];
   atom:last first xs;
   fn:xs @ 1;
   args:skip[2; xs];
-  val:EVAL[fn ((enlist get_atom atom), args); env];
+  val:apply[fn; (enlist get_atom atom), args];
   set_atom[atom; val];
   val};
 

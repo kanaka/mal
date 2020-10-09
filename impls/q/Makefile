@@ -10,7 +10,8 @@ OBJECTS := step0_repl_mixed.q \
 	step6_file_mixed.q \
 	step7_quote_mixed.q \
 	step8_macros_mixed.q \
-	step9_try_mixed.q
+	step9_try_mixed.q \
+	stepA_mal_mixed.q
 
 all: $(OBJECTS)
 	echo "hello there general kenobi"
@@ -44,6 +45,9 @@ step8_macros_mixed.q: FORCE
 
 step9_try_mixed.q: FORCE
 	./mix.sh step9_try utils reader printer env core atom
+
+stepA_mal_mixed.q: FORCE
+	./mix.sh stepA_mal utils reader printer env core atom
 
 clean:
 	rm $(OBJECTS)

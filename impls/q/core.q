@@ -81,8 +81,10 @@ core_ns: (
   "false?"; {[xs]; bool ((first first xs) ~ `false)};
   "symbol?"; {[xs]; bool ((first first xs) ~ `symbol)};
   "keyword?"; {[xs]; bool ((first first xs) ~ `keyword)};
+  "string?"; {[xs]; bool ((first first xs) ~ `string)};
   "map?"; {[xs]; bool ((first first xs) ~ `hashmap)};
   "vector?"; {[xs]; bool ((first first xs) ~ `vector)};
+  "fn?"; {[xs]; bool isfn[first xs]};
   "sequential?"; {[xs]; bool (isseq_container (first first xs))};
   "symbol"; {[xs]; symbol last first xs};
   "keyword"; {[xs]; keyword last first xs};
@@ -107,4 +109,12 @@ core_ns: (
       list first each (key last first xs)[`k]]};
   "vals"; {[xs];
     $[(last first xs) ~ (); list ();
-      list first each (value last first xs)[`v]]});
+      list first each (value last first xs)[`v]]};
+  "readline"; {[xs]; str rl (last first xs)};
+  "time-ms"; {[xs]; throw "nyi"};
+  "meta"; {[xs]; throw "nyi"};
+  "with-meta"; {[xs]; throw "nyi"};
+  "number?"; {[xs]; throw "nyi"};
+  "seq"; {[xs]; throw "nyi"};
+  "conj"; {[xs]; throw "nyi"});
+
