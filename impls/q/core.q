@@ -3,6 +3,7 @@ add_core_ns: {[env];
   env};
 
 isseq_container: {[ty]; (ty ~ `list) or (ty ~ `vector)};
+isseq_value: {[ty]; (ty ~ `list) or (ty ~ `vector) or (ty ~ `string)};
 uninhabited: {[ty]; (`true`false`nil?ty) <> 3};
 
 vequals: {[x; y];
@@ -25,9 +26,10 @@ hashmapequals: {[lmap; rmap];
 
 with_uninhabited_nil:{$[x ~ (); (`nil; x); $[null first x; (`nil; ()); x]]};
 
+is_fakefn: {[fn]; ((first fn) ~ `function) or ((first fn) ~ `macro)};
 apply:{[fn;arg];
   strip_tco: {[x]; $[(first x) ~ `tco; EVAL[x @ 1; x @ 2]; x]};
-  fn:$[(first fn) ~ `macro; last fn; fn];
+  fn:$[is_fakefn fn; last fn; fn];
   strip_tco fn[arg]};
 
 map_from:{[x]; $[x ~ (); ([k:()] k:(); v:()); x]};
@@ -124,10 +126,20 @@ core_ns: (
     $[(last first xs) ~ (); list ();
       list first each (value last first xs)[`v]]};
   "readline"; {[xs]; str rl (last first xs)};
-  "time-ms"; {[xs]; throw "nyi"};
-  "meta"; {[xs]; throw "nyi"};
-  "with-meta"; {[xs]; throw "nyi"};
-  "number?"; {[xs]; throw "nyi"};
-  "seq"; {[xs]; throw "nyi"};
-  "conj"; {[xs]; throw "nyi"});
+  "time-ms"; {[xs]; number ("j"$((.z.P - 1970.01.01D00:00:00) % 1000000))};
+  "meta"; {[xs]; $[(count first xs) = 3; (first xs) @ 1; (`nil; ())]};
+  "with-meta"; {[xs];
+    $[isfn[first xs]; (`function; xs @ 1; first xs); (first first xs; xs @ 1; last first xs)]};
+  "number?"; {[xs]; bool ((first first xs) ~ `number)};
+  "seq"; {[xs];
+    $[isseq_value[first first xs]; $[
+        notempty last first xs; list ($[(first first xs) ~ `string; {str enlist x}; (::)] each (last first xs));
+        (`nil; ())];
+      throw "not a sequence"]};
+  "conj"; {[xs]; 
+    $[(first first xs) ~ `list; list ((reverse tail xs), last first xs);
+      $[(first first xs) ~ `vector; vec ((last first xs), tail xs);
+      throw "not a collection"]]};
+  "q-eval"; {[xs];
+    fromvalue eval parse last first xs});
 

@@ -43,5 +43,17 @@ vec: {[x]; (`vector; x)};
 keyword: {[x]; (`keyword; x)};
 
 mvalue: {[x]; $[((type x) = (type "")); str x; x]};
+fromvalue: {[x];
+  t:type x;
+  $[(t = 0h) or (t = 7h); list fromvalue each x;
+    t = 1h; list fromvalue each x;
+    t = -1h; bool x;
+    t = 2h; str string x;
+    t = -7h; number x;
+    t = 10h; str x;
+    t = 101h; (`nil; ());
+    (t > 76) and (t < 97); list fromvalue each x;
+    (t > 99) and (t < 112); x;
+    str string x]};
 
 issymbol:{((first x) ~ `symbol) and strequals[last x; y]};

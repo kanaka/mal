@@ -11,7 +11,7 @@ eval_ast: {[ast; env]; ty: first ast; $[ty ~ `symbol; env_get[env; last ast];
                                         ast]};
 exec_or_fail: {[evald; syms];
   fst:first evald;
-  $[(first fst) ~ `macro; last fst; fst][tail evald]};
+  $[is_fakefn fst; last fst; fst][tail evald]};
 eval_list: {evald: last eval_ast[x; y]; exec_or_fail[evald; x]};
 eval_toplevel_list: {[ast; env];
   head:first last ast;
