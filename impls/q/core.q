@@ -14,6 +14,7 @@ vequals: {[x; y];
     / TODO: Implement hashmap equality
     xty = `hashmap; hashmapequals[last x; last y];
     xty = `string; strequals[last x; last y];
+    xty = `symbol; strequals[last x; last y];
     xty = `keyword; strequals[last x; last y];
     uninhabited xty; 1b;
     (last x) = (last y)]};
@@ -47,4 +48,7 @@ core_ns: (
   "deref"; {[xs]; get_atom last first xs};
   "reset!"; {[xs];
     set_atom[last first xs; xs @ 1];
-    xs @ 1});
+    xs @ 1};
+  "cons"; {[xs]; list ((enlist first xs), (last last xs))};
+  "concat"; {[xs]; list (,/)(,/)(skip[1;] each xs)};
+  "vec"; {[xs]; vec last first xs});

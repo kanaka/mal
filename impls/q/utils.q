@@ -33,3 +33,7 @@ bool: {[x];($[x; `true; `false]; ())};
 number: {[x];(`number; x)};
 list: {[x]; (`list; x)};
 str: {[x]; (`string; x)};
+symbol: {[x]; (`symbol; x)};
+vec: {[x]; (`vector; x)};
+
+issymbol:{((first x) ~ `symbol) and strequals[last x; y]};
