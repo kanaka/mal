@@ -22,11 +22,12 @@ vequals: {[x; y];
 / TODO: Unordered?
 hashmapequals: {[lmap; rmap];
   $[(count lmap) <> (count rmap); 0b;
-    $[all over {vequals[first first x; first first y]}'[key lmap; key rmap]; 1b; 0b]]};
+    $[notempty lmap; $[all over {vequals[first first x; first first y]}'[key lmap; key rmap]; 1b; 0b]; 1b]]};
 
 with_uninhabited_nil:{$[x ~ (); (`nil; x); $[null first x; (`nil; ()); x]]};
 
 is_fakefn: {[fn]; ((first fn) ~ `function) or ((first fn) ~ `macro)};
+is_macro: {[fn]; ((first fn) ~ `macro)};
 apply:{[fn;arg];
   strip_tco: {[x]; $[(first x) ~ `tco; EVAL[x @ 1; x @ 2]; x]};
   fn:$[is_fakefn fn; last fn; fn];
@@ -99,7 +100,8 @@ core_ns: (
   "string?"; {[xs]; bool ((first first xs) ~ `string)};
   "map?"; {[xs]; bool ((first first xs) ~ `hashmap)};
   "vector?"; {[xs]; bool ((first first xs) ~ `vector)};
-  "fn?"; {[xs]; bool isfn[first xs]};
+  "fn?"; {[xs]; bool (isfn[first xs] or ((first first xs) ~ `function))};
+  "macro?"; {[xs]; bool is_macro first xs};
   "sequential?"; {[xs]; bool (isseq_container (first first xs))};
   "symbol"; {[xs]; symbol last first xs};
   "keyword"; {[xs]; keyword last first xs};
@@ -135,7 +137,7 @@ core_ns: (
     $[isseq_value[first first xs]; $[
         notempty last first xs; list ($[(first first xs) ~ `string; {str enlist x}; (::)] each (last first xs));
         (`nil; ())];
-      throw "not a sequence"]};
+      (`nil; ())]};
   "conj"; {[xs]; 
     $[(first first xs) ~ `list; list ((reverse tail xs), last first xs);
       $[(first first xs) ~ `vector; vec ((last first xs), tail xs);

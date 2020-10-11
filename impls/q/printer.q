@@ -1,5 +1,9 @@
 isfn:{t:type x; (100h = t) or (104h = t)};
-pr_str: {[x;readably]; $[isfn[x]; "<#fn>"; (printmap (x @ 0))[x; readably]]};
+/ Really confusing behaviour: `"a"' is *not* a string, it is a char!
+/ but "ab" *is* a string, and its type is 10h (unlike char, which is -10h).
+
+ensure_string:{$[(type x) = -10h; enlist x; x]};
+pr_str: {[x;readably]; $[isfn[x]; "<#fn>"; ensure_string (printmap (x @ 0))[x; readably]]};
 
 prhmap: {[x;y]; "{", $[notempty x; (({x," ",y}/) {(pr_str[(first x`k); x`y]), " ", (pr_str[(first x`v); x`y])} each select y,k,v from x); ""], "}"};
 prlist: {[x;y;z]; (first z), (({x," ",y}/) {pr_str[x`v; x`y]} each select y,v from []flip (enlist `v)!(enlist x)), (last z)};
