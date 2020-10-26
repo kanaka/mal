@@ -196,8 +196,7 @@ function evalMal(ast: MalType, env: Env): MalType {
                         if (f.type !== Node.Function) {
                             throw new Error(`unexpected token type: ${f.type}, expected: function`);
                         }
-                        f.isMacro = true;
-                        return env.set(key, f);
+                        return env.set(key, f.toMacro());
                     }
                     case "macroexpand": {
                         return macroexpand(ast.list[1], env);
