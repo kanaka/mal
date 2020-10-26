@@ -37,6 +37,9 @@ export const ns: Map<MalSymbol, MalFunction> = (() => {
             return new MalBoolean(v.type === Node.Symbol);
         },
         keyword(v: MalType) {
+            if (v.type === Node.Keyword) {
+                return v;
+            }
             if (v.type !== Node.String) {
                 throw new Error(`unexpected symbol: ${v.type}, expected: string`);
             }
