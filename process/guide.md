@@ -96,7 +96,7 @@ cd mal
 * Make a new directory for your implementation. For example, if your
 language is called "quux":
 ```
-mkdir quux
+mkdir impls/quux
 ```
 
 * Modify the top level Makefile to allow the tests to be run against
@@ -106,7 +106,7 @@ mkdir quux
 ```
 IMPLS = ... quux ...
 ...
-quux_STEP_TO_PROG = mylang/$($(1)).qx
+quux_STEP_TO_PROG = impls/quux/$($(1)).qx
 ```
 
 * Add a "run" script to your implementation directory that listens to
@@ -219,7 +219,7 @@ the file extension for that language is "qx".
 
 This step is basically just creating a skeleton of your interpreter.
 
-* Create a `step0_repl.qx` file in `quux/`.
+* Create a `step0_repl.qx` file in `impls/quux/`.
 
 * Add the 4 trivial functions `READ`, `EVAL`, `PRINT`, and `rep`
   (read-eval-print). `READ`, `EVAL`, and `PRINT` are basically just
@@ -1690,14 +1690,15 @@ implementation.
     strings.
 * For interop with the target language, add this core function:
   * `quux-eval`: takes a string, evaluates it in the target language,
-    and returns the result converted to the relevant Mal type. You
-    may also add other interop functions as you see fit; Clojure, for
+    and returns the result converted to the relevant Mal type. You may
+    also add other interop functions as you see fit; Clojure, for
     example, has a function called `.` which allows calling Java
     methods. If the target language is a static language, consider
     using FFI or some language-specific reflection mechanism, if
     available. The tests for `quux-eval` and any other interop
-    function should be added in `quux/tests/stepA_mal.mal` (see the
-    [tests for `lua-eval`](../lua/tests/stepA_mal.mal) as an example).
+    function should be added in `impls/quux/tests/stepA_mal.mal` (see
+    the [tests for `lua-eval`](../impls/lua/tests/stepA_mal.mal) as an
+    example).
 
 ### Next Steps
 
