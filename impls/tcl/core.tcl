@@ -33,7 +33,11 @@ proc mal_string_q {a} {
 }
 
 proc mal_keyword {a} {
-    keyword_new [obj_val [lindex $a 0]]
+    lassign $a a0
+    if {[keyword_q $a0]} {
+        return $a0
+    }
+    keyword_new [obj_val $a0]
 }
 
 proc mal_keyword_q {a} {
