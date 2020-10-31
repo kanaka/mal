@@ -37,6 +37,9 @@ export const ns: Map<MalSymbol, MalFunction> = (() => {
             return new MalBoolean(v.type === Node.Symbol);
         },
         keyword(v: MalType) {
+            if (v.type === Node.Keyword) {
+                return v;
+            }
             if (v.type !== Node.String) {
                 throw new Error(`unexpected symbol: ${v.type}, expected: string`);
             }
@@ -93,7 +96,7 @@ export const ns: Map<MalSymbol, MalFunction> = (() => {
             if (v.type !== Node.String) {
                 throw new Error(`unexpected symbol: ${v.type}, expected: string`);
             }
-            const content = fs.readFileSync(v.v, "UTF-8");
+            const content = fs.readFileSync(v.v, "utf-8");
             return new MalString(content);
         },
 
