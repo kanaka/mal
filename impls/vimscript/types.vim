@@ -255,8 +255,8 @@ endfunction
 
 function MarkAsMacro(funcobj)
   let fn = a:funcobj.val
-  let fn.is_macro = 1
-  return a:funcobj
+  let mac = {"ast": fn.ast, "env": fn.env, "params": fn.params, "is_macro": 1}
+  return ObjNewWithMeta("function", mac, g:MalNil)
 endfunction
 
 function NewFn(ast, env, params)
