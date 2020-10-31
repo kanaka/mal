@@ -291,11 +291,12 @@ architecture test of step8_macros is
           next; -- TCO
 
         elsif a0.string_val.all = "defmacro!" then
-          EVAL(ast.seq_val(2), env, val, sub_err);
+          EVAL(ast.seq_val(2), env, fn, sub_err);
           if sub_err /= null then
             err := sub_err;
             return;
           end if;
+          new_fn(fn.func_val.f_body, fn.func_val.f_args, fn.func_val.f_env, val);
           val.func_val.f_is_macro := true;
           env_set(env, ast.seq_val(1), val);
           result := val;
