@@ -58,7 +58,10 @@
             (set remove true))
       (when remove
         (buffer/popn buf 1))
-      (buffer/push-string buf "]"))))
+      (buffer/push-string buf "]"))
+    #
+    :function
+    (buffer/push-string buf "#<function>")))
 
 (comment
 

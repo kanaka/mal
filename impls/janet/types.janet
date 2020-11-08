@@ -1,6 +1,21 @@
+(defn make-nil
+  []
+  {:tag :nil
+   :content "nil"})
+
+(defn make-boolean
+  [bool]
+  {:tag :boolean
+   :content (string bool)})
+
 (defn make-number
   [a-str]
   {:tag :number
+   :content a-str})
+
+(defn make-string
+  [a-str]
+  {:tag :string
    :content a-str})
 
 (defn make-symbol
@@ -22,3 +37,8 @@
   [items]
   {:tag :vector
    :content items})
+
+(defn make-function
+  [a-fn]
+  {:tag :function
+   :content a-fn})
