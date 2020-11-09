@@ -39,6 +39,9 @@
    :content items})
 
 (defn make-function
-  [a-fn]
+  [a-fn &opt ast params env]
   {:tag :function
-   :content a-fn})
+   :content a-fn
+   :ast ast
+   :params params
+   :env env})
