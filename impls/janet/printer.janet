@@ -61,7 +61,13 @@
       (buffer/push-string buf "]"))
     #
     :function
-    (buffer/push-string buf "#<function>")))
+    (buffer/push-string buf "#<function>")
+    #
+    :atom
+    (do
+      (buffer/push-string buf "(atom ")
+      (code* (ast :content) buf print_readably)
+      (buffer/push-string buf ")"))))
 
 (comment
 

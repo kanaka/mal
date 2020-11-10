@@ -1,5 +1,6 @@
 (import ./types :prefix "")
 (import ./printer)
+(import ./reader)
 
 (defn arith-fn
   [op]
@@ -151,6 +152,71 @@
       (print (string buf))
       (make-nil))))
 
+(def read-string
+  (make-function
+    (fn [asts]
+      (reader/read_str ((in asts 0) :content)))))
+
+(def mal-slurp
+  (make-function
+    (fn [asts]
+      (let [a-str ((in asts 0) :content)]
+        (if (not (os/stat a-str))
+          (error (string "File not found: " a-str))
+          # XXX: escaping?
+          (make-string (slurp a-str)))))))
+
+(def create-atom
+  (make-function
+    (fn [asts]
+      (make-atom (in asts 0)))))
+
+(defn atom?*
+  [ast]
+  (= (ast :tag) :atom))
+
+(def atom?
+  (make-function
+    (fn [asts]
+      (if (atom?* (in asts 0))
+        (make-boolean true)
+        (make-boolean false)))))
+
+(defn deref*
+  [ast]
+  (if (not (atom?* ast))
+    (error (string "Expected atom, got: " (ast :tag)))
+    (ast :content)))
+
+(def deref
+  (make-function
+    (fn [asts]
+      (let [ast (in asts 0)]
+        (deref* ast)))))
+
+(defn reset!*
+  [atom-ast val-ast]
+  (put atom-ast
+       :content val-ast)
+  val-ast)
+
+(def reset!
+  (make-function
+    (fn [asts]
+      (let [atom-ast (in asts 0)
+            val-ast (in asts 1)]
+        (reset!* atom-ast val-ast)))))
+
+(def swap!
+  (make-function
+    (fn [asts]
+      (let [atom-ast (in asts 0)
+            fn-ast (in asts 1)
+            args-asts (slice asts 2)
+            inner-ast (deref* atom-ast)]
+        (reset!* atom-ast
+                 ((fn-ast :content) [inner-ast ;args-asts]))))))
+
 (def ns
   {(make-symbol "+") (arith-fn +)
    (make-symbol "-") (arith-fn -)
@@ -168,4 +234,12 @@
    (make-symbol "pr-str") pr-str
    (make-symbol "str") str
    (make-symbol "prn") prn
-   (make-symbol "println") println})
+   (make-symbol "println") println
+   (make-symbol "read-string") read-string
+   (make-symbol "slurp") mal-slurp
+   (make-symbol "atom") create-atom
+   (make-symbol "atom?") atom?
+   (make-symbol "deref") deref
+   (make-symbol "reset!") reset!
+   (make-symbol "swap!") swap!
+})

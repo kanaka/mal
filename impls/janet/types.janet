@@ -45,3 +45,8 @@
    :ast ast
    :params params
    :env env})
+
+(defn make-atom
+  [ast]
+  @{:tag :atom
+    :content ast})
