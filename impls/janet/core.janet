@@ -31,6 +31,14 @@
   [ast]
   (= (ast :tag) :vector))
 
+(def create-vector
+  (make-function
+    (fn [asts]
+      (let [ast (in asts 0)]
+        (if (is-vector?* ast)
+          ast
+          (make-vector (ast :content)))))))
+
 (def is-vector?
   (make-function
     (fn [asts]
@@ -217,6 +225,71 @@
         (reset!* atom-ast
                  ((fn-ast :content) [inner-ast ;args-asts]))))))
 
+(defn cons*
+  [head-ast tail-ast]
+  [head-ast ;(tail-ast :content)])
+
+(def cons
+  (make-function
+    (fn [asts]
+      (let [head-ast (in asts 0)
+            tail-ast (in asts 1)]
+        (make-list (cons* head-ast tail-ast))))))
+
+(defn concat*
+  [& list-asts]
+  (reduce (fn [acc list-ast]
+            [;acc ;(list-ast :content)])
+          []
+          list-asts))
+
+(def concat
+  (make-function
+    (fn [asts]
+      (make-list (concat* ;asts)))))
+
+(defn starts-with
+  [ast name]
+  (when (and (not (is-empty?* ast))
+             (is-list?* ast))
+    (let [head-ast (in (ast :content) 0)]
+      (and (= :symbol (head-ast :tag))
+           (= name (head-ast :content))))))
+
+(var quasiquote* nil)
+
+(defn qq-iter
+  [ast]
+  (if (is-empty?* ast)
+    (make-list ())
+    (let [elt (in (ast :content) 0)
+          acc (qq-iter (make-list (slice (ast :content) 1)))]
+      (if (starts-with elt "splice-unquote")
+        (make-list [(make-symbol "concat")
+                    (in (elt :content) 1)
+                    acc])
+        (make-list [(make-symbol "cons")
+                    (quasiquote* elt)
+                    acc])))))
+
+(varfn quasiquote*
+  [ast]
+  (cond
+    (starts-with ast "unquote")
+    (in (ast :content) 1)
+    ##
+    (is-list?* ast)
+    (qq-iter ast)
+    ##
+    (is-vector?* ast)
+    (make-list [(make-symbol "vec") (qq-iter ast)])
+    ##
+    (or (= :symbol (ast :tag))
+        (= :hash-map (ast :tag)))
+    (make-list [(make-symbol "quote") ast])
+    ##
+    ast))
+
 (def ns
   {(make-symbol "+") (arith-fn +)
    (make-symbol "-") (arith-fn -)
@@ -224,6 +297,8 @@
    (make-symbol "/") (arith-fn /)
    (make-symbol "list") create-list
    (make-symbol "list?") is-list?
+   (make-symbol "vec") create-vector
+   (make-symbol "vector?") is-vector?
    (make-symbol "empty?") is-empty?
    (make-symbol "count") count-elts
    (make-symbol "=") equals?
@@ -242,4 +317,6 @@
    (make-symbol "deref") deref
    (make-symbol "reset!") reset!
    (make-symbol "swap!") swap!
+   (make-symbol "cons") cons
+   (make-symbol "concat") concat
 })
