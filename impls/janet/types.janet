@@ -40,11 +40,12 @@
 
 (defn make-function
   [a-fn &opt ast params env]
-  {:tag :function
-   :content a-fn
-   :ast ast
-   :params params
-   :env env})
+  @{:tag :function
+    :content a-fn
+    :ast ast
+    :params params
+    :env env
+    :is-macro false})
 
 (defn make-atom
   [ast]

@@ -290,6 +290,48 @@
     ##
     ast))
 
+(defn nth*
+  [coll-ast num-ast]
+  (let [elts (coll-ast :content)
+        n-elts (length elts)
+        i (scan-number (num-ast :content))]
+    (if (< i n-elts)
+      (in elts i)
+      (error (string "Index out of range: " i)))))
+
+(def nth
+  (make-function
+    (fn [asts]
+      (let [coll-ast (in asts 0)
+            num-ast (in asts 1)]
+        (nth* coll-ast num-ast)))))
+
+(defn first*
+  [coll-or-nil-ast]
+  (if (or (= (coll-or-nil-ast :tag) :nil)
+          (is-empty?* coll-or-nil-ast))
+    (make-nil)
+    (in (coll-or-nil-ast :content) 0)))
+
+(def mal-first
+  (make-function
+    (fn [asts]
+      (let [coll-or-nil-ast (in asts 0)]
+        (first* coll-or-nil-ast)))))
+
+(defn rest*
+  [coll-or-nil-ast]
+  (if (or (= (coll-or-nil-ast :tag) :nil)
+          (is-empty?* coll-or-nil-ast))
+    (make-list [])
+    (make-list (slice (coll-or-nil-ast :content) 1))))
+
+(def rest
+  (make-function
+    (fn [asts]
+      (let [coll-or-nil-ast (in asts 0)]
+        (rest* coll-or-nil-ast)))))
+
 (def ns
   {(make-symbol "+") (arith-fn +)
    (make-symbol "-") (arith-fn -)
@@ -319,4 +361,7 @@
    (make-symbol "swap!") swap!
    (make-symbol "cons") cons
    (make-symbol "concat") concat
+   (make-symbol "nth") nth
+   (make-symbol "first") mal-first
+   (make-symbol "rest") rest
 })
