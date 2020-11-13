@@ -49,4 +49,5 @@
   [env sym]
   (if-let [goal-env (env-find env sym)]
     (get-in goal-env [:data sym])
-    (error (string (sym :content) " not found." ))))
+    # XXX: would like to use throw* from core
+    (error (make-string (string "'" (sym :content) "'" " not found" )))))

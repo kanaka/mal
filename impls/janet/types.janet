@@ -8,6 +8,11 @@
   {:tag :boolean
    :content (string bool)})
 
+(defn make-keyword
+  [a-str]
+  {:tag :keyword
+   :content a-str})
+
 (defn make-number
   [a-str]
   {:tag :number
@@ -25,8 +30,11 @@
 
 (defn make-hash-map
   [items]
-  {:tag :hash-map
-   :content items})
+  (let [a-struct (if (dictionary? items)
+                   items
+                   (struct ;items))]
+    {:tag :hash-map
+     :content a-struct}))
 
 (defn make-list
   [items]
@@ -51,3 +59,8 @@
   [ast]
   @{:tag :atom
     :content ast})
+
+(defn make-exception
+  [ast]
+  {:tag :exception
+   :content ast})

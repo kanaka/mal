@@ -41,8 +41,10 @@
     (do
       (buffer/push-string buf "{")
       (var remove false)
-      (each elt (ast :content)
-            (code* elt buf print_readably)
+      (eachp [k v] (ast :content)
+            (code* k buf print_readably)
+            (buffer/push-string buf " ")
+            (code* v buf print_readably)
             (buffer/push-string buf " ")
             (set remove true))
       (when remove
@@ -67,7 +69,12 @@
     (do
       (buffer/push-string buf "(atom ")
       (code* (ast :content) buf print_readably)
-      (buffer/push-string buf ")"))))
+      (buffer/push-string buf ")"))
+    #
+    :exception
+    (do
+      (buffer/push-string buf "Exception ")
+      (code* (ast :content) buf print_readably))))
 
 (comment
 

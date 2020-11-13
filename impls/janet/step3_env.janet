@@ -30,8 +30,8 @@
     (env-get env ast)
     #
     :hash-map
-    (make-hash-map (map |(EVAL $0 env)
-                        (ast :content)))
+    (make-hash-map (struct ;(map |(EVAL $0 env)
+                                 (kvs (ast :content)))))
     #
     :list
     (make-list (map |(EVAL $0 env)
@@ -84,7 +84,10 @@
   (let [ds (READ code-str)]
     (when ds
       (PRINT
-        (EVAL ds repl_env)))))
+        (try
+          (EVAL ds repl_env)
+          ([err]
+           (make-exception err)))))))
 
 # getline gives problems
 (defn getstdin [prompt buf]

@@ -10,10 +10,12 @@
                   :string :list :vector :hash-map
                   :deref :quasiquote :quote :splice-unquote :unquote
                   :with-meta)
-    :name-char (if-not (set " \f\n\r\t,[]{}()'`~^@\"`;")
+    :name-char (if-not (set " \f\n\r\t,[]{}()'`~^@\";")
                        1)
-    :boolean (choice "false" "true")
-    :nil "nil"
+    :boolean (sequence (choice "false" "true")
+                       (not :name-char))
+    :nil (sequence "nil"
+                   (not :name-char))
     :number (drop (cmt
                    (capture (some :name-char))
                    ,scan-number))
@@ -122,13 +124,19 @@
                         :content [{:tag :symbol
                                    :content (string kwd)}
                                   ;(slice $& 0 -2)]})))
-    (each kwd [:hash-map :list :vector]
+    (each kwd [:list :vector]
           (put cg kwd
                (tuple # array needs to be converted
                  ;(put (array ;(in cg kwd))
                        2 ~(cmt (capture ,(get-in cg [kwd 2]))
                                ,|{:tag (keyword kwd)
                                   :content (slice $& 0 -2)})))))
+    (put cg :hash-map
+         (tuple # array needs to be converted
+           ;(put (array ;(in cg :hash-map))
+                 2 ~(cmt (capture ,(get-in cg [:hash-map 2]))
+                         ,|{:tag :hash-map
+                            :content (struct ;(slice $& 0 -2))}))))
     (put cg :with-meta
             ~(cmt (capture ,(in cg :with-meta))
                   ,|{:tag :list
@@ -174,17 +182,19 @@
 
   (peg/match enlive-grammar "^{:a 1} [:x :y]")
   ``
-  '@[{:content ({:content ({:content ":x"
+  '@[{:content ({:content "with-meta"
+                 :tag :symbol}
+                {:content ({:content ":x"
                             :tag :keyword}
                            {:content ":y"
                             :tag :keyword})
                  :tag :vector}
-                {:content ({:content ":a"
+                {:content {{:content ":a"
                             :tag :keyword}
                            {:content "1"
-                            :tag :number})
+                            :tag :number}}
                  :tag :hash-map})
-      :tag :with-meta} "^{:a 1} [:x :y]"]
+      :tag :list} "^{:a 1} [:x :y]"]
   ``
 
   (peg/match enlive-grammar ";; hi")

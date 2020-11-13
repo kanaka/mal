@@ -32,8 +32,8 @@
     #
     :hash-map
     {:tag :hash-map
-     :content (map |(EVAL $0 env)
-                   (ast :content))}
+     :content (struct ;(map |(EVAL $0 env)
+                            (kvs (ast :content))))}
     #
     :list
     {:tag :list
