@@ -679,11 +679,50 @@
           ##
           (throw* (make-string "Expected list, vector, hash-map, or fn")))))))
 
-# XXX
-#(def janet-eval
-#  (make-function
-#    (fn [asts]
-#      )))
+(defn janet-eval*
+  [janet-val]
+  (case (type janet-val)
+    :nil
+    (make-nil)
+    ##
+    :boolean
+    (make-boolean janet-val)
+    ##
+    :number # XXX: there may be some incompatibilities
+    (make-number janet-val)
+    ##
+    :string
+    (make-string janet-val)
+    ##
+    :keyword # XXX: there may be some incompatibilities
+    (make-keyword (string ":" janet-val))
+    ##
+    :symbol # XXX: there may be some incompatibilities
+    (make-symbol (string janet-val))
+    ##
+    :tuple
+    (make-list (map janet-eval* janet-val))
+    ##
+    :array
+    (make-list (map janet-eval* janet-val))
+    ##
+    :struct
+    (make-hash-map (struct ;(map janet-eval* (kvs janet-val))))
+    ##
+    :table
+    (make-hash-map (struct ;(map janet-eval* (kvs janet-val))))
+    ##
+    (throw* (make-string (string "Unsupported type: " (type janet-val))))))
+
+(def janet-eval
+  (make-function
+    (fn [asts]
+      (let [str-ast (in asts 0)
+            res (try
+                  (eval-string (str-ast :content)) # XXX: escaping?
+                  ([err]
+                   (throw* (make-string (string "Eval failed: " err)))))]
+        (janet-eval* res)))))
 
 (def unimplemented throw)
 
@@ -749,8 +788,7 @@
    (make-symbol "conj") conj
    (make-symbol "seq") mal-seq
    (make-symbol "macro?") mal-macro?
-   #(make-symbol "janet-eval") janet-eval
-   (make-symbol "janet-eval") unimplemented
+   (make-symbol "janet-eval") janet-eval
    ##
    (make-symbol "type") mal-type
 })
