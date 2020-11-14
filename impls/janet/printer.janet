@@ -16,7 +16,7 @@
     :keyword
     (buffer/push-string buf (ast :content))
     :number
-    (buffer/push-string buf (ast :content))
+    (buffer/push-string buf (string (ast :content)))
     :string
     (if print_readably
       (buffer/push-string buf (string "\""
@@ -80,7 +80,7 @@
 
   (let [buf @""]
     (code* {:tag :number
-            :content "1"}
+            :content 1}
       buf))
   # => @"1"
 
@@ -95,7 +95,7 @@
 (comment
 
   (pr_str {:tag :number
-           :content "1"}
+           :content 1}
     false)
   # => @"1"
 

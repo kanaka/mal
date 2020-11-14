@@ -14,9 +14,9 @@
    :content a-str})
 
 (defn make-number
-  [a-str]
+  [a-num]
   {:tag :number
-   :content a-str})
+   :content a-num})
 
 (defn make-string
   [a-str]

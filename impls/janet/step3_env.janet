@@ -10,8 +10,8 @@
 (defn arith-fn
   [op]
   (fn [ast-1 ast-2]
-    (make-number (string (op (scan-number (ast-1 :content))
-                             (scan-number (ast-2 :content)))))))
+    (make-number (op (ast-1 :content)
+                     (ast-2 :content)))))
 
 (def repl_env
   (let [env (make-env)]

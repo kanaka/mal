@@ -12,8 +12,8 @@
     (fn [asts]
       (let [ast-1 (in asts 0)
             ast-2 (in asts 1)]
-        (make-number (string (op (scan-number (ast-1 :content))
-                                 (scan-number (ast-2 :content)))))))))
+        (make-number (op (ast-1 :content)
+                         (ast-2 :content)))))))
 
 (def create-list
   (make-function
@@ -68,8 +68,8 @@
       (let [ast (in asts 0)]
         (let [tag (ast :tag)]
           (if (= tag :nil)
-            (make-number "0")
-            (make-number (string (length (ast :content))))))))))
+            (make-number 0)
+            (make-number (length (ast :content)))))))))
 
 
 (defn cmp-fn
@@ -78,8 +78,8 @@
     (fn [asts]
       (let [ast-1 (in asts 0)
             ast-2 (in asts 1)]
-        (let [val-1 (scan-number (ast-1 :content))
-              val-2 (scan-number (ast-2 :content))]
+        (let [val-1 (ast-1 :content)
+              val-2 (ast-2 :content)]
           (if (op val-1 val-2)
             (make-boolean true)
             (make-boolean false)))))))
@@ -223,8 +223,8 @@
 
 (defn starts-with
   [ast name]
-  (when (and (not (is-empty?* ast))
-             (list?* ast))
+  (when (and (list?* ast)
+             (not (is-empty?* ast)))
     (let [head-ast (in (ast :content) 0)]
       (and (= :symbol (head-ast :tag))
            (= name (head-ast :content))))))
@@ -267,7 +267,7 @@
   [coll-ast num-ast]
   (let [elts (coll-ast :content)
         n-elts (length elts)
-        i (scan-number (num-ast :content))]
+        i (num-ast :content)]
     (if (< i n-elts)
       (in elts i)
       (throw* (make-string (string "Index out of range: " i))))))
@@ -603,9 +603,7 @@
 (def time-ms
   (make-function
     (fn [asts]
-      # XXX: hack to get test to pass :(
-      (os/sleep 1)
-      (make-number (string (os/time))))))
+      (make-number (os/clock)))))
 
 (def conj
   (make-function

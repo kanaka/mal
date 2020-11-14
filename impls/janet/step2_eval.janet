@@ -10,8 +10,8 @@
   [op]
   (fn [ast-1 ast-2]
     {:tag :number
-     :content (string (op (scan-number (ast-1 :content))
-                          (scan-number (ast-2 :content))))}))
+     :content (op (ast-1 :content)
+                  (ast-2 :content))}))
 
 (def repl_env
   {"+" (arith-fn +)

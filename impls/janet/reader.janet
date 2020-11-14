@@ -104,7 +104,7 @@
 (def enlive-grammar
   (let [cg (table ;(kvs grammar))]
     (each kwd [# :comment # XX: don't capture comments
-               :boolean :keyword :nil :number
+               :boolean :keyword :nil
                :symbol
                # :ws # XXX: dont' capture whitespace
               ]
@@ -112,6 +112,10 @@
                ~(cmt (capture ,(in cg kwd))
                      ,|{:tag (keyword kwd)
                         :content $})))
+    (put cg :number
+            ~(cmt (capture ,(in cg :number))
+                  ,|{:tag :number
+                     :content (scan-number $)}))
     (put cg :string
             ~(cmt (capture ,(in cg :string))
                   ,|{:tag :string
@@ -150,22 +154,61 @@
 (comment
 
   (peg/match enlive-grammar "nil")
+  # => @[{:content "nil" :tag :nil} "nil"]
 
   (peg/match enlive-grammar "true")
+  # => @[{:content "true" :tag :boolean} "true"]
 
   (peg/match enlive-grammar ":hi")
+  # => @[{:content ":hi" :tag :keyword} ":hi"]
 
   (peg/match enlive-grammar "sym")
+  # => @[{:content "sym" :tag :symbol} "sym"]
 
   (peg/match enlive-grammar "'a")
+  ``
+  '@[{:content ({:content "quote"
+                 :tag :symbol}
+                {:content "a"
+                 :tag :symbol})
+      :tag :list} "'a"]
+  ``
 
   (peg/match enlive-grammar "@a")
+  ``
+  '@[{:content ({:content "deref"
+                 :tag :symbol}
+                {:content "a"
+                 :tag :symbol})
+      :tag :list} "@a"]
+  ``
 
   (peg/match enlive-grammar "`a")
+  ``
+  '@[{:content ({:content "quasiquote"
+                 :tag :symbol}
+                {:content "a"
+                 :tag :symbol})
+      :tag :list} "`a"]
+  ``
 
   (peg/match enlive-grammar "~a")
+  ``
+  '@[{:content ({:content "unquote"
+                 :tag :symbol}
+                {:content "a"
+                 :tag :symbol})
+      :tag :list} "~a"]
+  ``
 
   (peg/match enlive-grammar "~@a")
+  ``
+  '@[{:content ({:content "splice-unquote"
+                 :tag :symbol}
+                {:content "a"
+                 :tag :symbol})
+      :tag :list} "~@a"]
+  ``
 
   (peg/match enlive-grammar "(a b c)")
   ``
@@ -179,6 +222,18 @@
   ``
 
   (peg/match enlive-grammar "(a [:x :y] c)")
+  ``
+  '@[{:content ({:content "a"
+                 :tag :symbol}
+                {:content ({:content ":x"
+                            :tag :keyword}
+                           {:content ":y"
+                            :tag :keyword})
+                 :tag :vector}
+                {:content "c"
+                 :tag :symbol})
+      :tag :list} "(a [:x :y] c)"]
+  ``
 
   (peg/match enlive-grammar "^{:a 1} [:x :y]")
   ``
@@ -198,14 +253,25 @@
   ``
 
   (peg/match enlive-grammar ";; hi")
+  # => @[";; hi"]
 
   (peg/match enlive-grammar "[:x ;; hi\n :y]")
+  ``
+  '@[{:content ({:content ":x"
+                 :tag :keyword}
+                {:content ":y"
+                 :tag :keyword})
+      :tag :vector} "[:x ;; hi\n :y]"]
+  ``
 
   (peg/match enlive-grammar "  7  ")
+  # => @[{:content 7 :tag :number} "  7  "]
 
   (peg/match enlive-grammar "  abc  ")
+  # => @[{:content "abc" :tag :symbol} "  abc  "]
 
   (peg/match enlive-grammar "  \nabc  ")
+  # => @[{:content "abc" :tag :symbol} "  \nabc  "]
 
   )
 
@@ -226,9 +292,20 @@
 (comment
 
   (read_str "(+ 1 2)")
+  ``
+  '{:content ({:content "+"
+               :tag :symbol}
+              {:content 1
+               :tag :number}
+              {:content 2
+               :tag :number})
+    :tag :list}
+  ``
 
   (read_str ";; hello")
+  # => nil
 
   (read_str "\"1\"")
+  # => {:content "1" :tag :string}
 
   )
