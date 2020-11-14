@@ -109,6 +109,7 @@
                       (make-function (fn [args]
                                        (EVAL body
                                          (make-env env params args)))
+                                     nil false
                                      body params env)))
             ##
             (let [eval-list ((eval_ast ast env) :content)

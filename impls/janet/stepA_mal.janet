@@ -121,6 +121,24 @@
           ## tco
           (set ast (core/quasiquote* (in (ast :content) 1)))
           ##
+          "try*"
+          (let [res
+                (try
+                  (EVAL (in (ast :content) 1) env)
+                  ([err]
+                   (if-let [maybe-catch-ast (get (ast :content) 2)]
+                     (if (not (core/starts-with maybe-catch-ast "catch*"))
+                       (make-exception err)
+                       (let [catch-asts (maybe-catch-ast :content)
+                             # XXX: assert appropriate length?
+                             catch-sym-ast (in catch-asts 1)
+                             catch-body-ast (in catch-asts 2)]
+                         (EVAL catch-body-ast (make-env env
+                                                        [catch-sym-ast]
+                                                        [err]))))
+                     (make-exception err))))]
+            (return result res))
+          ##
           "do"
           (let [most-do-body-forms (slice (ast :content) 1 -2)
                 last-body-form (last (ast :content))
@@ -172,7 +190,10 @@
   (let [ds (READ code-str)]
     (when ds
       (PRINT
-        (EVAL ds repl_env)))))
+        (try
+          (EVAL ds repl_env)
+          ([err]
+           (make-exception err)))))))
 
 (rep "(def! not (fn* (a) (if a false true)))")
 
@@ -202,6 +223,10 @@
               (cons 'cond (rest (rest xs)))))))
 ``)
 
+(env-set repl_env
+         (make-symbol "*host-language*")
+         (make-string "janet"))
+
 # getline gives problems
 (defn getstdin [prompt buf]
   (file/write stdout prompt)
@@ -222,6 +247,7 @@
         (string "(load-file \"" (in args 1) "\")")) # XXX: escaping?
       (do
         (var buf nil)
+        (rep "(println (str \"Mal [\" *host-language* \"]\"))")
         (while true
           (set buf @"")
           (getstdin "user> " buf)

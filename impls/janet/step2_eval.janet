@@ -1,5 +1,6 @@
 (import ./reader :prefix "")
 (import ./printer :prefix "")
+(import ./types :prefix "")
 
 (defn READ
   [code-str]
@@ -28,7 +29,7 @@
           val (env name)]
       (if val
         val
-        (error (string "unbound symbol: " name))))
+        (error (make-string (string "unbound symbol: " name)))))
     #
     :hash-map
     {:tag :hash-map

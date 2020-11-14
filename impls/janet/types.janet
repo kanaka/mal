@@ -29,31 +29,40 @@
    :content a-str})
 
 (defn make-hash-map
-  [items]
+  [items &opt meta]
+  (default meta (make-nil))
   (let [a-struct (if (dictionary? items)
                    items
                    (struct ;items))]
     {:tag :hash-map
-     :content a-struct}))
+     :content a-struct
+     :meta meta}))
 
 (defn make-list
-  [items]
+  [items &opt meta]
+  (default meta (make-nil))
   {:tag :list
-   :content items})
+   :content items
+   :meta meta})
 
 (defn make-vector
-  [items]
+  [items &opt meta]
+  (default meta (make-nil))
   {:tag :vector
-   :content items})
+   :content items
+   :meta meta})
 
 (defn make-function
-  [a-fn &opt ast params env]
-  @{:tag :function
-    :content a-fn
-    :ast ast
-    :params params
-    :env env
-    :is-macro false})
+  [a-fn &opt meta is-macro ast params env]
+  (default meta (make-nil))
+  (default is-macro false)
+  {:tag :function
+   :content a-fn
+   :meta meta
+   :is-macro is-macro
+   :ast ast
+   :params params
+   :env env})
 
 (defn make-atom
   [ast]

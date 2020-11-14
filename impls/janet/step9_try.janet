@@ -16,7 +16,7 @@
 
 (defn is_macro_call
   [ast env]
-  (when (and (core/mal-list?* ast)
+  (when (and (core/list?* ast)
              (not (core/is-empty?* ast)))
     (when-let [head-ast (in (ast :content) 0)]
       (when (= :symbol (head-ast :tag))
@@ -87,12 +87,15 @@
           ##
           "defmacro!"
           (let [def-name (in (ast :content) 1)
-                def-val (EVAL (in (ast :content) 2) env)]
-            (put def-val
-              :is-macro true)
+                def-val (EVAL (in (ast :content) 2) env)
+                macro-ast (make-function (def-val :content)
+                                         (def-val :meta)
+                                         true
+                                         nil nil
+                                         (def-val :env))]
             (env-set env
-              def-name def-val)
-            (return result def-val))
+                     def-name macro-ast)
+            (return result macro-ast))
           ##
           "macroexpand"
           (return result (macroexpand (in (ast :content) 1) env))
@@ -165,7 +168,8 @@
               (make-function (fn [args]
                                (EVAL body
                                  (make-env env params args)))
-                body params env)))
+                             nil false
+                             body params env)))
           ##
           (let [eval-list ((eval_ast ast env) :content)
                 f (first eval-list)

@@ -211,7 +211,15 @@
 
 (defn read_str
   [code-str]
-  (let [[parsed _] (peg/match enlive-grammar code-str)]
+  (let [[parsed _]
+        (try
+          (peg/match enlive-grammar code-str)
+          ([err]
+           # XXX
+           [{:tag :exception
+             :content {:tag :string
+                       :content err}}
+            "peg/match exception"]))]
     (when (= (type parsed) :struct)
       parsed)))
 
