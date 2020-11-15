@@ -10,10 +10,9 @@
   [op]
   (make-function
     (fn [asts]
-      (let [ast-1 (in asts 0)
-            ast-2 (in asts 1)]
-        (make-number (op (ast-1 :content)
-                         (ast-2 :content)))))))
+      (make-number
+        (op ;(map |($ :content)
+                  asts))))))
 
 (def create-list
   (make-function
