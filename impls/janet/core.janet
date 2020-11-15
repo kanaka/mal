@@ -324,8 +324,8 @@
 (def mal-map
   (make-function
     (fn [asts]
-      (assert (< 1 (length asts))
-              "map requires at least 2 arguments")
+      (when (< (length asts) 2)
+        (throw* (make-string "map requires at least 2 arguments")))
       (let [the-fn ((in asts 0) :content)
             coll ((in asts 1) :content)]
         (make-list (map |(the-fn [$])
