@@ -687,6 +687,9 @@
       (let [coll-ast (in asts 0)
             item-asts (slice asts 1)]
         (cond
+          (nil?* coll-ast)
+          (make-list [;(reverse item-asts)])
+          ##
           (list?* coll-ast)
           (make-list [;(reverse item-asts) ;(coll-ast :content)])
           ##
