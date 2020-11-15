@@ -26,6 +26,8 @@
 (def mal-list?
   (make-function
     (fn [asts]
+      (when (< (length asts) 1)
+        (throw* (make-string "list? requires 1 argument")))
       (if (list?* (in asts 0))
         (make-boolean true)
         (make-boolean false)))))
@@ -37,14 +39,23 @@
 (def create-vector
   (make-function
     (fn [asts]
+      (when (< (length asts) 1)
+        (throw* (make-string "vec requires 1 argument")))
       (let [ast (in asts 0)]
-        (if (vector?* ast)
+        (cond
+          (vector?* ast)
           ast
-          (make-vector (ast :content)))))))
+          ##
+          (list?* ast)
+          (make-vector (ast :content))
+          ##
+          (throw* (make-string "vec requires a vector or list")))))))
 
 (def mal-vector?
   (make-function
     (fn [asts]
+      (when (< (length asts) 1)
+        (throw* (make-string "vector? requires 1 argument")))
       (if (vector?* (in asts 0))
         (make-boolean true)
         (make-boolean false)))))
@@ -56,19 +67,22 @@
 (def is-empty?
   (make-function
     (fn [asts]
-      (let [ast (in asts 0)]
-        (if (is-empty?* ast)
-          (make-boolean true)
-          (make-boolean false))))))
+      (when (< (length asts) 1)
+        (throw* (make-string "empty? requires 1 argument")))
+      (if (is-empty?* (in asts 0))
+        (make-boolean true)
+        (make-boolean false)))))
 
 (def count-elts
   (make-function
     (fn [asts]
-      (let [ast (in asts 0)]
-        (let [tag (ast :tag)]
-          (if (= tag :nil)
-            (make-number 0)
-            (make-number (length (ast :content)))))))))
+      (when (< (length asts) 1)
+        (throw* (make-string "count requires 1 argument")))
+      (let [ast (in asts 0)
+            tag (ast :tag)]
+        (if (= tag :nil)
+          (make-number 0)
+          (make-number (length (ast :content))))))))
 
 (defn cmp-fn
   [op]
@@ -128,13 +142,17 @@
 (def read-string
   (make-function
     (fn [asts]
+      (when (< (length asts) 1)
+        (throw* (make-string "read-string requires 1 argument")))
       (if-let [res (reader/read_str ((in asts 0) :content))]
         res
-        (throw* (make-string "Blank Line"))))))
+        (throw* (make-string "No code content"))))))
 
 (def mal-slurp
   (make-function
     (fn [asts]
+      (when (< (length asts) 1)
+        (throw* (make-string "slurp requires 1 argument")))
       (let [a-str ((in asts 0) :content)]
         (if (not (os/stat a-str))
           (throw* (string "File not found: " a-str))
@@ -144,6 +162,8 @@
 (def create-atom
   (make-function
     (fn [asts]
+      (when (< (length asts) 1)
+        (throw* (make-string "atom requires 1 argument")))
       (make-atom (in asts 0)))))
 
 (defn atom?*
@@ -153,6 +173,8 @@
 (def mal-atom?
   (make-function
     (fn [asts]
+      (when (< (length asts) 1)
+        (throw* (make-string "atom? requires 1 argument")))
       (if (atom?* (in asts 0))
         (make-boolean true)
         (make-boolean false)))))
@@ -166,6 +188,8 @@
 (def deref
   (make-function
     (fn [asts]
+      (when (< (length asts) 1)
+        (throw* (make-string "deref requires 1 argument")))
       (let [ast (in asts 0)]
         (deref* ast)))))
 
@@ -178,6 +202,8 @@
 (def reset!
   (make-function
     (fn [asts]
+      (when (< (length asts) 2)
+        (throw* (make-string "reset! requires 2 arguments")))
       (let [atom-ast (in asts 0)
             val-ast (in asts 1)]
         (reset!* atom-ast val-ast)))))
@@ -185,6 +211,8 @@
 (def swap!
   (make-function
     (fn [asts]
+      (when (< (length asts) 2)
+        (throw* (make-string "swap! requires at least 2 arguments")))
       (let [atom-ast (in asts 0)
             fn-ast (in asts 1)
             args-asts (slice asts 2)
@@ -199,6 +227,8 @@
 (def cons
   (make-function
     (fn [asts]
+      (when (< (length asts) 2)
+        (throw* (make-string "cons requires 2 arguments")))
       (let [head-ast (in asts 0)
             tail-ast (in asts 1)]
         (make-list (cons* head-ast tail-ast))))))
@@ -269,6 +299,8 @@
 (def nth
   (make-function
     (fn [asts]
+      (when (< (length asts) 2)
+        (throw* (make-string "nth requires 2 arguments")))
       (let [coll-ast (in asts 0)
             num-ast (in asts 1)]
         (nth* coll-ast num-ast)))))
@@ -283,6 +315,8 @@
 (def mal-first
   (make-function
     (fn [asts]
+      (when (< (length asts) 1)
+        (throw* (make-string "first requires 1 argument")))
       (let [coll-or-nil-ast (in asts 0)]
         (first* coll-or-nil-ast)))))
 
@@ -296,18 +330,24 @@
 (def rest
   (make-function
     (fn [asts]
+      (when (< (length asts) 1)
+        (throw* (make-string "rest requires 1 argument")))
       (let [coll-or-nil-ast (in asts 0)]
         (rest* coll-or-nil-ast)))))
 
 (def throw
   (make-function
     (fn [asts]
+      (when (< (length asts) 1)
+        (throw* (make-string "throw requires 1 argument")))
       (throw* (in asts 0)))))
 
 # (apply F A B [C D]) is equivalent to (F A B C D)
 (def mal-apply
   (make-function
     (fn [asts]
+      (when (< (length asts) 1)
+        (throw* (make-string "apply requires at least 1 argument")))
       (let [the-fn ((in asts 0) :content)] # e.g. F
         (if (= (length asts) 1)
           (the-fn [])
@@ -332,6 +372,8 @@
 (def mal-nil?
   (make-function
     (fn [asts]
+      (when (< (length asts) 1)
+        (throw* (make-string "nil? requires 1 argument")))
       (if (nil?* (in asts 0))
         (make-boolean true)
         (make-boolean false)))))
@@ -344,6 +386,8 @@
 (def mal-true?
   (make-function
     (fn [asts]
+      (when (< (length asts) 1)
+        (throw* (make-string "true? requires 1 argument")))
       (if (true?* (in asts 0))
         (make-boolean true)
         (make-boolean false)))))
@@ -356,6 +400,8 @@
 (def mal-false?
   (make-function
     (fn [asts]
+      (when (< (length asts) 1)
+        (throw* (make-string "false? requires 1 argument")))
       (if (false?* (in asts 0))
         (make-boolean true)
         (make-boolean false)))))
@@ -367,18 +413,17 @@
 (def mal-symbol?
   (make-function
     (fn [asts]
+      (when (< (length asts) 1)
+        (throw* (make-string "symbol? requires 1 argument")))
       (if (symbol?* (in asts 0))
         (make-boolean true)
         (make-boolean false)))))
 
-(def mal-type
-  (make-function
-    (fn [asts]
-      (make-keyword ((in asts 0) :tag)))))
-
 (def create-symbol
   (make-function
     (fn [asts]
+      (when (< (length asts) 1)
+        (throw* (make-string "symbol requires 1 argument")))
       (make-symbol ((in asts 0) :content)))))
 
 (defn keyword?*
@@ -392,6 +437,8 @@
 (def create-keyword
   (make-function
     (fn [asts]
+      (when (< (length asts) 1)
+        (throw* (make-string "keyword requires 1 argument")))
       (let [arg-ast (in asts 0)]
         (cond
           (keyword?* arg-ast)
@@ -405,6 +452,8 @@
 (def mal-keyword?
   (make-function
     (fn [asts]
+      (when (< (length asts) 1)
+        (throw* (make-string "keyword? requires 1 argument")))
       (if (keyword?* (in asts 0))
         (make-boolean true)
         (make-boolean false)))))
@@ -412,6 +461,8 @@
 (def mal-string?
   (make-function
     (fn [asts]
+      (when (< (length asts) 1)
+        (throw* (make-string "string? requires 1 argument")))
       (if (string?* (in asts 0))
         (make-boolean true)
         (make-boolean false)))))
@@ -424,6 +475,8 @@
 (def mal-sequential?
   (make-function
     (fn [asts]
+      (when (< (length asts) 1)
+        (throw* (make-string "sequential? requires 1 argument")))
       (if (or (list?* (in asts 0))
               (vector?* (in asts 0)))
         (make-boolean true)
@@ -441,6 +494,8 @@
 (def mal-map?
   (make-function
     (fn [asts]
+      (when (< (length asts) 1)
+        (throw* (make-string "map? requires 1 argument")))
       (if (hash-map?* (in asts 0))
         (make-boolean true)
         (make-boolean false)))))
@@ -448,6 +503,8 @@
 (def assoc
   (make-function
     (fn [asts]
+      (when (< (length asts) 3)
+        (throw* (make-string "assoc requires at least 3 arguments")))
       (let [item-table (table ;(kvs ((in asts 0) :content)))
             kv-asts (slice asts 1 -1)]
         (each [key-ast val-ast] (partition 2 kv-asts)
@@ -457,6 +514,8 @@
 (def dissoc
   (make-function
     (fn [asts]
+      (when (< (length asts) 2)
+        (throw* (make-string "dissoc requires at least 2 arguments")))
       (let [item-table (table ;(kvs ((in asts 0) :content)))
             key-asts (slice asts 1 -1)]
         (each key-ast key-asts
@@ -466,6 +525,8 @@
 (def mal-get
   (make-function
     (fn [asts]
+      (when (< (length asts) 2)
+        (throw* (make-string "get requires 2 arguments")))
       (let [item-struct ((in asts 0) :content)
             key-ast (in asts 1)]
         (if-let [val-ast (get item-struct key-ast)]
@@ -475,6 +536,8 @@
 (def contains?
   (make-function
     (fn [asts]
+      (when (< (length asts) 2)
+        (throw* (make-string "contains? requires 2 arguments")))
       (let [item-struct ((in asts 0) :content)
             key-ast (in asts 1)]
         (if-let [val-ast (get item-struct key-ast)]
@@ -484,12 +547,16 @@
 (def mal-keys
   (make-function
     (fn [asts]
+      (when (< (length asts) 1)
+        (throw* (make-string "keys requires 1 argument")))
       (let [item-struct ((in asts 0) :content)]
         (make-list (keys item-struct))))))
 
 (def mal-vals
   (make-function
     (fn [asts]
+      (when (< (length asts) 1)
+        (throw* (make-string "vals requires 1 argument")))
       (let [item-struct ((in asts 0) :content)]
         (make-list (values item-struct))))))
 
@@ -539,6 +606,8 @@
 (def equals?
   (make-function
     (fn [asts]
+      (when (< (length asts) 2)
+        (throw* (make-string "equals? requires 2 arguments")))
       (let [ast-1 (in asts 0)
             ast-2 (in asts 1)]
         (if (equals?* ast-1 ast-2)
@@ -548,6 +617,8 @@
 (def readline
   (make-function
     (fn [asts]
+      (when (< (length asts) 1)
+        (throw* (make-string "readline requires 1 argument")))
       (let [prompt ((in asts 0) :content)
             buf @""]
         (file/write stdout prompt)
@@ -564,6 +635,8 @@
 (def mal-number?
   (make-function
     (fn [asts]
+      (when (< (length asts) 1)
+        (throw* (make-string "number? requires 1 argument")))
       (if (number?* (in asts 0))
         (make-boolean true)
         (make-boolean false)))))
@@ -575,6 +648,8 @@
 (def mal-fn?
   (make-function
     (fn [asts]
+      (when (< (length asts) 1)
+        (throw* (make-string "fn? requires 1 argument")))
       (let [target-ast (in asts 0)]
         (if (and (fn?* target-ast)
                  (not (target-ast :is-macro)))
@@ -589,6 +664,8 @@
 (def mal-macro?
   (make-function
     (fn [asts]
+      (when (< (length asts) 1)
+        (throw* (make-string "macro? requires 1 argument")))
       (let [the-ast (in asts 0)]
         (if (macro?* the-ast)
           (make-boolean true)
@@ -602,6 +679,8 @@
 (def conj
   (make-function
     (fn [asts]
+      (when (< (length asts) 2)
+        (throw* (make-string "conj requires at least 2 arguments")))
       (let [coll-ast (in asts 0)
             item-asts (slice asts 1)]
         (cond
@@ -616,6 +695,8 @@
 (def mal-seq
   (make-function
     (fn [asts]
+      (when (< (length asts) 1)
+        (throw* (make-string "seq requires 1 argument")))
       (let [arg-ast (in asts 0)]
         (cond
           (list?* arg-ast)
@@ -643,6 +724,8 @@
 (def meta
   (make-function
     (fn [asts]
+      (when (< (length asts) 1)
+        (throw* (make-string "meta requires 1 argument")))
       ((in asts 0) :meta))))
 
 (defn copy-function
@@ -656,6 +739,8 @@
 (def with-meta
   (make-function
     (fn [asts]
+      (when (< (length asts) 2)
+        (throw* (make-string "with-meta requires 2 arguments")))
       (let [target-ast (in asts 0)
             meta-ast (in asts 1)]
         (cond
@@ -711,12 +796,23 @@
 (def janet-eval
   (make-function
     (fn [asts]
+      (when (< (length asts) 1)
+        (throw* (make-string "janet-eval requires 1 argument")))
       (let [str-ast (in asts 0)
             res (try
                   (eval-string (str-ast :content)) # XXX: escaping?
                   ([err]
                    (throw* (make-string (string "Eval failed: " err)))))]
         (janet-eval* res)))))
+
+##
+
+(def mal-type
+  (make-function
+    (fn [asts]
+      (when (< (length asts) 1)
+        (throw* (make-string "type requires 1 argument")))
+      (make-keyword ((in asts 0) :tag)))))
 
 (def unimplemented throw)
 
