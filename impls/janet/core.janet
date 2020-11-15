@@ -58,14 +58,26 @@
         (make-boolean true)
         (make-boolean false)))))
 
+(defn nil?*
+  [ast]
+  (= :nil (ast :tag)))
+
+(def mal-nil?
+  (make-function
+    (fn [asts]
+      (when (< (length asts) 1)
+        (throw* (make-string "nil? requires 1 argument")))
+      (if (nil?* (in asts 0))
+        (make-boolean true)
+        (make-boolean false)))))
+
 (def mal-count
   (make-function
     (fn [asts]
       (when (< (length asts) 1)
         (throw* (make-string "count requires 1 argument")))
-      (let [ast (in asts 0)
-            tag (ast :tag)]
-        (if (= tag :nil)
+      (let [ast (in asts 0)]
+        (if (nil?* ast)
           (make-number 0)
           (make-number (length (ast :content))))))))
 
@@ -250,7 +262,7 @@
 
 (defn first*
   [coll-or-nil-ast]
-  (if (or (= (coll-or-nil-ast :tag) :nil)
+  (if (or (nil?* coll-or-nil-ast)
           (empty?* coll-or-nil-ast))
     (make-nil)
     (in (coll-or-nil-ast :content) 0)))
@@ -265,7 +277,7 @@
 
 (defn rest*
   [coll-or-nil-ast]
-  (if (or (= (coll-or-nil-ast :tag) :nil)
+  (if (or (nil?* coll-or-nil-ast)
           (empty?* coll-or-nil-ast))
     (make-list [])
     (make-list (slice (coll-or-nil-ast :content) 1))))
@@ -307,19 +319,6 @@
             coll ((in asts 1) :content)]
         (make-list (map |(the-fn [$])
                         coll))))))
-
-(defn nil?*
-  [ast]
-  (= :nil (ast :tag)))
-
-(def mal-nil?
-  (make-function
-    (fn [asts]
-      (when (< (length asts) 1)
-        (throw* (make-string "nil? requires 1 argument")))
-      (if (nil?* (in asts 0))
-        (make-boolean true)
-        (make-boolean false)))))
 
 (def mal-vec
   (make-function
