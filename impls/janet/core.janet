@@ -800,12 +800,15 @@
     (fn [asts]
       (when (< (length asts) 1)
         (throw* (make-string "janet-eval requires 1 argument")))
-      (let [str-ast (in asts 0)
-            res (try
-                  (eval-string (str-ast :content)) # XXX: escaping?
-                  ([err]
-                   (throw* (make-string (string "Eval failed: " err)))))]
-        (janet-eval* res)))))
+      (let [head-ast (in asts 0)]
+        (when (not (string?* head-ast))
+          (throw* (make-string
+                    "janet-eval first argument should be a string")))
+        (let [res (try
+                    (eval-string (head-ast :content)) # XXX: escaping?
+                    ([err]
+                     (throw* (make-string (string "Eval failed: " err)))))]
+          (janet-eval* res))))))
 
 ##
 
