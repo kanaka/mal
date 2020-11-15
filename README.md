@@ -78,6 +78,7 @@ FAQ](docs/FAQ.md) where I attempt to answer some common questions.
 | [Haxe](#haxe-neko-python-c-and-javascript) (Neko, Python, C++, &amp; JS) | [Joel Martin](https://github.com/kanaka) |
 | [Hy](#hy) | [Joel Martin](https://github.com/kanaka)  |
 | [Io](#io) | [Dov Murik](https://github.com/dubek) |
+| [Janet|(#janet) | [sogaiu](https://github.com/sogaiu) |
 | [Java](#java-17) | [Joel Martin](https://github.com/kanaka)  |
 | [JavaScript](#javascriptnode) ([Demo](http://kanaka.github.io/mal)) | [Joel Martin](https://github.com/kanaka) |
 | [jq](#jq) | [Ali MohammadPur](https://github.com/alimpfard) |
@@ -577,6 +578,15 @@ The Io implementation of mal has been tested with Io version 20110905.
 ```
 cd impls/io
 io ./stepX_YYY.io
+```
+
+### Janet
+
+The Janet implementation of mal has been tested with Janet version 1.12.2.
+
+```
+cd impls/janet
+janet ./stepX_YYY.janet
 ```
 
 ### Java 1.7
