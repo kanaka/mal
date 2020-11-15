@@ -70,18 +70,13 @@
             (make-number 0)
             (make-number (length (ast :content)))))))))
 
-
 (defn cmp-fn
   [op]
   (make-function
     (fn [asts]
-      (let [ast-1 (in asts 0)
-            ast-2 (in asts 1)]
-        (let [val-1 (ast-1 :content)
-              val-2 (ast-2 :content)]
-          (if (op val-1 val-2)
-            (make-boolean true)
-            (make-boolean false)))))))
+      (if (op ;(map |($ :content) asts))
+        (make-boolean true)
+        (make-boolean false)))))
 
 (def pr-str
   (make-function
