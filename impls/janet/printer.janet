@@ -73,7 +73,7 @@
     #
     :exception
     (do
-      (buffer/push-string buf "Exception ")
+      (buffer/push-string buf "Error: ")
       (code* (ast :content) buf print_readably))))
 
 (comment
