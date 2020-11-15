@@ -732,7 +732,13 @@
     (fn [asts]
       (when (< (length asts) 1)
         (throw* (make-string "meta requires 1 argument")))
-      ((in asts 0) :meta))))
+      (let [head-ast (in asts 0)]
+        (if (or (list?* head-ast)
+                (vector?* head-ast)
+                (hash-map?* head-ast)
+                (fn?* head-ast))
+          ((in asts 0) :meta)
+          (make-nil))))))
 
 (defn spawn-function
   [fn-ast overrides]
