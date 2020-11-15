@@ -14,7 +14,7 @@
         (op ;(map |($ :content)
                   asts))))))
 
-(def create-list
+(def mal-list
   (make-function
     (fn [asts]
       (make-list asts))))
@@ -36,7 +36,7 @@
   [ast]
   (= (ast :tag) :vector))
 
-(def create-vector
+(def mal-vec
   (make-function
     (fn [asts]
       (when (< (length asts) 1)
@@ -60,20 +60,20 @@
         (make-boolean true)
         (make-boolean false)))))
 
-(defn is-empty?*
+(defn empty?*
   [ast]
   (empty? (ast :content)))
 
-(def is-empty?
+(def mal-empty?
   (make-function
     (fn [asts]
       (when (< (length asts) 1)
         (throw* (make-string "empty? requires 1 argument")))
-      (if (is-empty?* (in asts 0))
+      (if (empty?* (in asts 0))
         (make-boolean true)
         (make-boolean false)))))
 
-(def count-elts
+(def mal-count
   (make-function
     (fn [asts]
       (when (< (length asts) 1)
@@ -92,7 +92,7 @@
         (make-boolean true)
         (make-boolean false)))))
 
-(def pr-str
+(def mal-pr-str
   (make-function
     (fn [asts]
       (def buf @"")
@@ -104,7 +104,7 @@
         (buffer/popn buf 1))
       (make-string (string buf)))))
 
-(def str
+(def mal-str
   (make-function
     (fn [asts]
       (def buf @"")
@@ -113,7 +113,7 @@
               (buffer/push-string buf (printer/pr_str ast false))))
       (make-string (string buf)))))
 
-(def prn
+(def mal-prn
   (make-function
     (fn [asts]
       (def buf @"")
@@ -126,7 +126,7 @@
       (print (string buf))
       (make-nil))))
 
-(def println
+(def mal-println
   (make-function
     (fn [asts]
       (def buf @"")
@@ -139,7 +139,7 @@
       (print (string buf))
       (make-nil))))
 
-(def read-string
+(def mal-read-string
   (make-function
     (fn [asts]
       (when (< (length asts) 1)
@@ -159,7 +159,7 @@
           # XXX: escaping?
           (make-string (slurp a-str)))))))
 
-(def create-atom
+(def mal-atom
   (make-function
     (fn [asts]
       (when (< (length asts) 1)
@@ -185,7 +185,7 @@
     (throw* (make-string (string "Expected atom, got: " (ast :tag))))
     (ast :content)))
 
-(def deref
+(def mal-deref
   (make-function
     (fn [asts]
       (when (< (length asts) 1)
@@ -199,7 +199,7 @@
        :content val-ast)
   val-ast)
 
-(def reset!
+(def mal-reset!
   (make-function
     (fn [asts]
       (when (< (length asts) 2)
@@ -208,7 +208,7 @@
             val-ast (in asts 1)]
         (reset!* atom-ast val-ast)))))
 
-(def swap!
+(def mal-swap!
   (make-function
     (fn [asts]
       (when (< (length asts) 2)
@@ -224,7 +224,7 @@
   [head-ast tail-ast]
   [head-ast ;(tail-ast :content)])
 
-(def cons
+(def mal-cons
   (make-function
     (fn [asts]
       (when (< (length asts) 2)
@@ -240,7 +240,7 @@
           []
           list-asts))
 
-(def concat
+(def mal-concat
   (make-function
     (fn [asts]
       (make-list (concat* ;asts)))))
@@ -254,7 +254,7 @@
       (in elts i)
       (throw* (make-string (string "Index out of range: " i))))))
 
-(def nth
+(def mal-nth
   (make-function
     (fn [asts]
       (when (< (length asts) 2)
@@ -266,7 +266,7 @@
 (defn first*
   [coll-or-nil-ast]
   (if (or (= (coll-or-nil-ast :tag) :nil)
-          (is-empty?* coll-or-nil-ast))
+          (empty?* coll-or-nil-ast))
     (make-nil)
     (in (coll-or-nil-ast :content) 0)))
 
@@ -281,11 +281,11 @@
 (defn rest*
   [coll-or-nil-ast]
   (if (or (= (coll-or-nil-ast :tag) :nil)
-          (is-empty?* coll-or-nil-ast))
+          (empty?* coll-or-nil-ast))
     (make-list [])
     (make-list (slice (coll-or-nil-ast :content) 1))))
 
-(def rest
+(def mal-rest
   (make-function
     (fn [asts]
       (when (< (length asts) 1)
@@ -293,7 +293,7 @@
       (let [coll-or-nil-ast (in asts 0)]
         (rest* coll-or-nil-ast)))))
 
-(def throw
+(def mal-throw
   (make-function
     (fn [asts]
       (when (< (length asts) 1)
@@ -377,7 +377,7 @@
         (make-boolean true)
         (make-boolean false)))))
 
-(def create-symbol
+(def mal-symbol
   (make-function
     (fn [asts]
       (when (< (length asts) 1)
@@ -392,7 +392,7 @@
   [ast]
   (= (ast :tag) :string))
 
-(def create-keyword
+(def mal-keyword
   (make-function
     (fn [asts]
       (when (< (length asts) 1)
@@ -425,7 +425,7 @@
         (make-boolean true)
         (make-boolean false)))))
 
-(def create-vector-from-items
+(def mal-vector
   (make-function
     (fn [asts]
       (make-vector asts))))
@@ -440,7 +440,7 @@
         (make-boolean true)
         (make-boolean false)))))
 
-(def create-hash-map
+(def mal-hash-map
   (make-function
     (fn [asts]
       (when (= 1 (% (length asts) 2))
@@ -461,7 +461,7 @@
         (make-boolean true)
         (make-boolean false)))))
 
-(def assoc
+(def mal-assoc
   (make-function
     (fn [asts]
       (when (< (length asts) 3)
@@ -479,7 +479,7 @@
                   (put item-table key-ast val-ast))
             (make-hash-map (table/to-struct item-table))))))))
 
-(def dissoc
+(def mal-dissoc
   (make-function
     (fn [asts]
       (when (< (length asts) 2)
@@ -515,7 +515,7 @@
               val-ast
               (make-nil))))))))
 
-(def contains?
+(def mal-contains?
   (make-function
     (fn [asts]
       (when (< (length asts) 2)
@@ -606,7 +606,7 @@
                           (break)))
                   (not found-unequal))))))))))
 
-(def equals?
+(def mal-=
   (make-function
     (fn [asts]
       (when (< (length asts) 2)
@@ -617,7 +617,7 @@
           (make-boolean true)
           (make-boolean false))))))
 
-(def readline
+(def mal-readline
   (make-function
     (fn [asts]
       (when (< (length asts) 1)
@@ -674,12 +674,12 @@
           (make-boolean true)
           (make-boolean false))))))
 
-(def time-ms
+(def mal-time-ms
   (make-function
     (fn [asts]
       (make-number (os/clock)))))
 
-(def conj
+(def mal-conj
   (make-function
     (fn [asts]
       (when (< (length asts) 2)
@@ -706,17 +706,17 @@
       (let [arg-ast (in asts 0)]
         (cond
           (list?* arg-ast)
-          (if (is-empty?* arg-ast)
+          (if (empty?* arg-ast)
             (make-nil)
             arg-ast)
           ##
           (vector?* arg-ast)
-          (if (is-empty?* arg-ast)
+          (if (empty?* arg-ast)
             (make-nil)
             (make-list (arg-ast :content)))
           ##
           (string?* arg-ast)
-          (if (is-empty?* arg-ast)
+          (if (empty?* arg-ast)
             (make-nil)
             (let [str-asts (map |(make-string (string/from-bytes $))
                                 (arg-ast :content))]
@@ -727,7 +727,7 @@
           ##
           (throw* (make-string "Expected list, vector, string, or nil")))))))
 
-(def meta
+(def mal-meta
   (make-function
     (fn [asts]
       (when (< (length asts) 1)
@@ -738,7 +738,7 @@
   [fn-ast overrides]
   (merge fn-ast overrides))
 
-(def with-meta
+(def mal-with-meta
   (make-function
     (fn [asts]
       (when (< (length asts) 2)
@@ -795,7 +795,7 @@
     ##
     (throw* (make-string (string "Unsupported type: " (type janet-val))))))
 
-(def janet-eval
+(def mal-janet-eval
   (make-function
     (fn [asts]
       (when (< (length asts) 1)
@@ -816,71 +816,71 @@
         (throw* (make-string "type requires 1 argument")))
       (make-keyword ((in asts 0) :tag)))))
 
-(def unimplemented throw)
+(def unimplemented mal-throw)
 
 (def ns
   {(make-symbol "+") (arith-fn +)
    (make-symbol "-") (arith-fn -)
    (make-symbol "*") (arith-fn *)
    (make-symbol "/") (arith-fn /)
-   (make-symbol "list") create-list
+   (make-symbol "list") mal-list
    (make-symbol "list?") mal-list?
-   (make-symbol "vec") create-vector
+   (make-symbol "vec") mal-vec
    (make-symbol "vector?") mal-vector?
-   (make-symbol "empty?") is-empty?
-   (make-symbol "count") count-elts
-   (make-symbol "=") equals?
+   (make-symbol "empty?") mal-empty?
+   (make-symbol "count") mal-count
+   (make-symbol "=") mal-=
    (make-symbol "<") (cmp-fn <)
    (make-symbol "<=") (cmp-fn <=)
    (make-symbol ">") (cmp-fn >)
    (make-symbol ">=") (cmp-fn >=)
-   (make-symbol "pr-str") pr-str
-   (make-symbol "str") str
-   (make-symbol "prn") prn
-   (make-symbol "println") println
-   (make-symbol "read-string") read-string
+   (make-symbol "pr-str") mal-pr-str
+   (make-symbol "str") mal-str
+   (make-symbol "prn") mal-prn
+   (make-symbol "println") mal-println
+   (make-symbol "read-string") mal-read-string
    (make-symbol "slurp") mal-slurp
-   (make-symbol "atom") create-atom
+   (make-symbol "atom") mal-atom
    (make-symbol "atom?") mal-atom?
-   (make-symbol "deref") deref
-   (make-symbol "reset!") reset!
-   (make-symbol "swap!") swap!
-   (make-symbol "cons") cons
-   (make-symbol "concat") concat
-   (make-symbol "nth") nth
+   (make-symbol "deref") mal-deref
+   (make-symbol "reset!") mal-reset!
+   (make-symbol "swap!") mal-swap!
+   (make-symbol "cons") mal-cons
+   (make-symbol "concat") mal-concat
+   (make-symbol "nth") mal-nth
    (make-symbol "first") mal-first
-   (make-symbol "rest") rest
-   (make-symbol "throw") throw
+   (make-symbol "rest") mal-rest
+   (make-symbol "throw") mal-throw
    (make-symbol "apply") mal-apply
    (make-symbol "map") mal-map
    (make-symbol "nil?") mal-nil?
    (make-symbol "true?") mal-true?
    (make-symbol "false?") mal-false?
    (make-symbol "symbol?") mal-symbol?
-   (make-symbol "symbol") create-symbol
-   (make-symbol "keyword") create-keyword
+   (make-symbol "symbol") mal-symbol
+   (make-symbol "keyword") mal-keyword
    (make-symbol "keyword?") mal-keyword?
-   (make-symbol "vector") create-vector-from-items
+   (make-symbol "vector") mal-vector
    (make-symbol "sequential?") mal-sequential?
-   (make-symbol "hash-map") create-hash-map
+   (make-symbol "hash-map") mal-hash-map
    (make-symbol "map?") mal-map?
-   (make-symbol "assoc") assoc
-   (make-symbol "dissoc") dissoc
+   (make-symbol "assoc") mal-assoc
+   (make-symbol "dissoc") mal-dissoc
    (make-symbol "get") mal-get
-   (make-symbol "contains?") contains?
+   (make-symbol "contains?") mal-contains?
    (make-symbol "keys") mal-keys
    (make-symbol "vals") mal-vals
-   (make-symbol "readline") readline
-   (make-symbol "time-ms") time-ms
-   (make-symbol "meta") meta
-   (make-symbol "with-meta") with-meta
+   (make-symbol "readline") mal-readline
+   (make-symbol "time-ms") mal-time-ms
+   (make-symbol "meta") mal-meta
+   (make-symbol "with-meta") mal-with-meta
    (make-symbol "fn?") mal-fn?
    (make-symbol "string?") mal-string?
    (make-symbol "number?") mal-number?
-   (make-symbol "conj") conj
+   (make-symbol "conj") mal-conj
    (make-symbol "seq") mal-seq
    (make-symbol "macro?") mal-macro?
-   (make-symbol "janet-eval") janet-eval
+   (make-symbol "janet-eval") mal-janet-eval
    ##
    (make-symbol "type") mal-type
 })

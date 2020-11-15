@@ -17,7 +17,7 @@
 (defn is_macro_call
   [ast env]
   (when (and (core/list?* ast)
-             (not (core/is-empty?* ast)))
+             (not (core/empty?* ast)))
     (when-let [head-ast (in (ast :content) 0)]
       (when (= :symbol (head-ast :tag))
         (when (env-find env head-ast)
@@ -61,7 +61,7 @@
 (defn starts-with
   [ast name]
   (when (and (core/list?* ast)
-             (not (core/is-empty?* ast)))
+             (not (core/empty?* ast)))
     (let [head-ast (in (ast :content) 0)]
       (and (= :symbol (head-ast :tag))
            (= name (head-ast :content))))))
@@ -70,7 +70,7 @@
 
 (defn qq-iter
   [ast]
-  (if (core/is-empty?* ast)
+  (if (core/empty?* ast)
     (make-list ())
     (let [elt (in (ast :content) 0)
           acc (qq-iter (make-list (slice (ast :content) 1)))]
