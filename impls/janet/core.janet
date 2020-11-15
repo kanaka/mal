@@ -36,21 +36,6 @@
   [ast]
   (= (ast :tag) :vector))
 
-(def mal-vec
-  (make-function
-    (fn [asts]
-      (when (< (length asts) 1)
-        (throw* (make-string "vec requires 1 argument")))
-      (let [ast (in asts 0)]
-        (cond
-          (vector?* ast)
-          ast
-          ##
-          (list?* ast)
-          (make-vector (ast :content))
-          ##
-          (throw* (make-string "vec requires a vector or list")))))))
-
 (def mal-vector?
   (make-function
     (fn [asts]
@@ -335,6 +320,24 @@
       (if (nil?* (in asts 0))
         (make-boolean true)
         (make-boolean false)))))
+
+(def mal-vec
+  (make-function
+    (fn [asts]
+      (when (< (length asts) 1)
+        (throw* (make-string "vec requires 1 argument")))
+      (let [ast (in asts 0)]
+        (cond
+          (vector?* ast)
+          ast
+          ##
+          (list?* ast)
+          (make-vector (ast :content))
+          ##
+          (nil?* ast)
+          (make-vector ())
+          ##
+          (throw* (make-string "vec requires a vector, list, or nil")))))))
 
 (defn true?*
   [ast]
