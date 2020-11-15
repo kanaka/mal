@@ -443,6 +443,9 @@
 (def create-hash-map
   (make-function
     (fn [asts]
+      (when (= 1 (% (length asts) 2))
+        (throw* (make-string
+                  "hash-map requires an even number of arguments")))
       (make-hash-map asts))))
 
 (defn hash-map?*
@@ -463,60 +466,102 @@
     (fn [asts]
       (when (< (length asts) 3)
         (throw* (make-string "assoc requires at least 3 arguments")))
-      (let [item-table (table ;(kvs ((in asts 0) :content)))
-            kv-asts (slice asts 1 -1)]
-        (each [key-ast val-ast] (partition 2 kv-asts)
-          (put item-table key-ast val-ast))
-        (make-hash-map (table/to-struct item-table))))))
+      (let [head-ast (in asts 0)]
+        (when (not (or (hash-map?* head-ast)
+                       (nil?* head-ast)))
+          (throw* (make-string
+                    "assoc first argument should be a hash-map or nil")))
+        (if (nil?* head-ast)
+          (make-nil)
+          (let [item-table (table ;(kvs (head-ast :content)))
+                kv-asts (slice asts 1 -1)]
+            (each [key-ast val-ast] (partition 2 kv-asts)
+                  (put item-table key-ast val-ast))
+            (make-hash-map (table/to-struct item-table))))))))
 
 (def dissoc
   (make-function
     (fn [asts]
       (when (< (length asts) 2)
         (throw* (make-string "dissoc requires at least 2 arguments")))
-      (let [item-table (table ;(kvs ((in asts 0) :content)))
-            key-asts (slice asts 1 -1)]
-        (each key-ast key-asts
-              (put item-table key-ast nil))
-        (make-hash-map (table/to-struct item-table))))))
+      (let [head-ast (in asts 0)]
+        (when (not (or (hash-map?* head-ast)
+                       (nil?* head-ast)))
+          (throw* (make-string
+                    "dissoc first argument should be a hash-map or nil")))
+        (if (nil?* head-ast)
+          (make-nil)
+          (let [item-table (table ;(kvs (head-ast :content)))
+                key-asts (slice asts 1 -1)]
+            (each key-ast key-asts
+                  (put item-table key-ast nil))
+            (make-hash-map (table/to-struct item-table))))))))
 
 (def mal-get
   (make-function
     (fn [asts]
       (when (< (length asts) 2)
         (throw* (make-string "get requires 2 arguments")))
-      (let [item-struct ((in asts 0) :content)
-            key-ast (in asts 1)]
-        (if-let [val-ast (get item-struct key-ast)]
-          val-ast
-          (make-nil))))))
+      (let [head-ast (in asts 0)]
+        (when (not (or (hash-map?* head-ast)
+                       (nil?* head-ast)))
+          (throw* (make-string
+                    "get first argument should be a hash-map or nil")))
+        (if (nil?* head-ast)
+          (make-nil)
+          (let [item-struct (head-ast :content)
+                key-ast (in asts 1)]
+            (if-let [val-ast (get item-struct key-ast)]
+              val-ast
+              (make-nil))))))))
 
 (def contains?
   (make-function
     (fn [asts]
       (when (< (length asts) 2)
         (throw* (make-string "contains? requires 2 arguments")))
-      (let [item-struct ((in asts 0) :content)
-            key-ast (in asts 1)]
-        (if-let [val-ast (get item-struct key-ast)]
-          (make-boolean true)
-          (make-boolean false))))))
+      (let [head-ast (in asts 0)]
+        (when (not (or (hash-map?* head-ast)
+                       (nil?* head-ast)))
+          (throw* (make-string
+                    "contains? first argument should be a hash-map or nil")))
+        (if (nil?* head-ast)
+          (make-nil)
+          (let [item-struct (head-ast :content)
+                key-ast (in asts 1)]
+            (if-let [val-ast (get item-struct key-ast)]
+              (make-boolean true)
+              (make-boolean false))))))))
 
 (def mal-keys
   (make-function
     (fn [asts]
       (when (< (length asts) 1)
         (throw* (make-string "keys requires 1 argument")))
-      (let [item-struct ((in asts 0) :content)]
-        (make-list (keys item-struct))))))
+      (let [head-ast (in asts 0)]
+        (when (not (or (hash-map?* head-ast)
+                       (nil?* head-ast)))
+          (throw* (make-string
+                    "keys first argument should be a hash-map or nil")))
+        (if (nil?* head-ast)
+          (make-nil)
+          (let [item-struct (head-ast :content)]
+            (make-list (keys item-struct))))))))
 
 (def mal-vals
   (make-function
     (fn [asts]
       (when (< (length asts) 1)
         (throw* (make-string "vals requires 1 argument")))
-      (let [item-struct ((in asts 0) :content)]
-        (make-list (values item-struct))))))
+      (let [head-ast (in asts 0)]
+        (when (not (or (hash-map?* head-ast)
+                       (nil?* head-ast)))
+          (throw* (make-string
+                    "vals first argument should be a hash-map or nil")))
+        (if (nil?* head-ast)
+          (make-nil)
+          (let [item-struct (head-ast :content)]
+            (make-list (values item-struct))))))))
 
 # XXX: likely this could be simpler
 (defn equals?*
