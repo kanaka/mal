@@ -245,48 +245,6 @@
     (fn [asts]
       (make-list (concat* ;asts)))))
 
-(defn starts-with
-  [ast name]
-  (when (and (list?* ast)
-             (not (is-empty?* ast)))
-    (let [head-ast (in (ast :content) 0)]
-      (and (= :symbol (head-ast :tag))
-           (= name (head-ast :content))))))
-
-(var quasiquote* nil)
-
-(defn qq-iter
-  [ast]
-  (if (is-empty?* ast)
-    (make-list ())
-    (let [elt (in (ast :content) 0)
-          acc (qq-iter (make-list (slice (ast :content) 1)))]
-      (if (starts-with elt "splice-unquote")
-        (make-list [(make-symbol "concat")
-                    (in (elt :content) 1)
-                    acc])
-        (make-list [(make-symbol "cons")
-                    (quasiquote* elt)
-                    acc])))))
-
-(varfn quasiquote*
-  [ast]
-  (cond
-    (starts-with ast "unquote")
-    (in (ast :content) 1)
-    ##
-    (list?* ast)
-    (qq-iter ast)
-    ##
-    (vector?* ast)
-    (make-list [(make-symbol "vec") (qq-iter ast)])
-    ##
-    (or (= :symbol (ast :tag))
-        (= :hash-map (ast :tag)))
-    (make-list [(make-symbol "quote") ast])
-    ##
-    ast))
-
 (defn nth*
   [coll-ast num-ast]
   (let [elts (coll-ast :content)

@@ -58,6 +58,48 @@
     #
     ast))
 
+(defn starts-with
+  [ast name]
+  (when (and (core/list?* ast)
+             (not (core/is-empty?* ast)))
+    (let [head-ast (in (ast :content) 0)]
+      (and (= :symbol (head-ast :tag))
+           (= name (head-ast :content))))))
+
+(var quasiquote* nil)
+
+(defn qq-iter
+  [ast]
+  (if (core/is-empty?* ast)
+    (make-list ())
+    (let [elt (in (ast :content) 0)
+          acc (qq-iter (make-list (slice (ast :content) 1)))]
+      (if (starts-with elt "splice-unquote")
+        (make-list [(make-symbol "concat")
+                    (in (elt :content) 1)
+                    acc])
+        (make-list [(make-symbol "cons")
+                    (quasiquote* elt)
+                    acc])))))
+
+(varfn quasiquote*
+  [ast]
+  (cond
+    (starts-with ast "unquote")
+    (in (ast :content) 1)
+    ##
+    (core/list?* ast)
+    (qq-iter ast)
+    ##
+    (core/vector?* ast)
+    (make-list [(make-symbol "vec") (qq-iter ast)])
+    ##
+    (or (= :symbol (ast :tag))
+        (= :hash-map (ast :tag)))
+    (make-list [(make-symbol "quote") ast])
+    ##
+    ast))
+
 (varfn EVAL
   [ast-param env-param]
   (var ast ast-param)
@@ -115,11 +157,11 @@
           ##
           "quasiquoteexpand"
           ## tco
-          (return result (core/quasiquote* (in (ast :content) 1)))
+          (return result (quasiquote* (in (ast :content) 1)))
           ##
           "quasiquote"
           ## tco
-          (set ast (core/quasiquote* (in (ast :content) 1)))
+          (set ast (quasiquote* (in (ast :content) 1)))
           ##
           "try*"
           (let [res
@@ -127,12 +169,13 @@
                   (EVAL (in (ast :content) 1) env)
                   ([err]
                    (if-let [maybe-catch-ast (get (ast :content) 2)]
-                     (if (not (core/starts-with maybe-catch-ast "catch*"))
+                     (if (not (starts-with maybe-catch-ast "catch*"))
                        (make-exception err)
                        (let [catch-asts (maybe-catch-ast :content)
                              # XXX: assert appropriate length?
                              catch-sym-ast (in catch-asts 1)
                              catch-body-ast (in catch-asts 2)]
+                         # XXX: what if this fails?
                          (EVAL catch-body-ast (make-env env
                                                         [catch-sym-ast]
                                                         [err]))))
