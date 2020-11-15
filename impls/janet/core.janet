@@ -613,7 +613,7 @@
   (make-function
     (fn [asts]
       (when (< (length asts) 2)
-        (throw* (make-string "equals? requires 2 arguments")))
+        (throw* (make-string "= requires 2 arguments")))
       (let [ast-1 (in asts 0)
             ast-2 (in asts 1)]
         (if (equals?* ast-1 ast-2)
