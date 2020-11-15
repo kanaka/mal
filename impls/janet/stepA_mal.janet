@@ -130,11 +130,8 @@
           "defmacro!"
           (let [def-name (in (ast :content) 1)
                 def-val (EVAL (in (ast :content) 2) env)
-                macro-ast (make-function (def-val :content)
-                                         (def-val :meta)
-                                         true
-                                         nil nil
-                                         (def-val :env))]
+                macro-ast (core/spawn-function def-val
+                                               {:is-macro true})]
             (env-set env
                      def-name macro-ast)
             (return result macro-ast))

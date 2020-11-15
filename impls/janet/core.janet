@@ -734,13 +734,9 @@
         (throw* (make-string "meta requires 1 argument")))
       ((in asts 0) :meta))))
 
-(defn copy-function
-  [fn-ast meta-ast]
-  (let [fn-attr (fn-ast :content)
-        is-macro-attr (fn-ast :is-macro)
-        env-attr (fn-ast :env)]
-    (make-function fn-attr
-                   meta-ast is-macro-attr nil nil env-attr)))
+(defn spawn-function
+  [fn-ast overrides]
+  (merge fn-ast overrides))
 
 (def with-meta
   (make-function
@@ -760,7 +756,7 @@
           (make-hash-map (target-ast :content) meta-ast)
           ##
           (fn?* target-ast)
-          (copy-function target-ast meta-ast)
+          (spawn-function target-ast {:meta meta-ast})
           ##
           (throw* (make-string "Expected list, vector, hash-map, or fn")))))))
 
