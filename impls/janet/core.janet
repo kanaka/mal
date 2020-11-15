@@ -314,12 +314,12 @@
 (def mal-apply
   (make-function
     (fn [asts]
-      (assert (< 1 (length asts))
-              "apply requires at least 2 arguments")
-      (let [the-fn ((in asts 0) :content) # r.g. F
-            last-asts ((get (slice asts -2) 0) :content) # e.g. [C D]
-            args-asts (slice asts 1 -2)] # e.g. [A B]
-        (the-fn [;args-asts ;last-asts])))))
+      (let [the-fn ((in asts 0) :content)] # e.g. F
+        (if (= (length asts) 1)
+          (the-fn [])
+          (let [last-asts ((get (slice asts -2) 0) :content) # e.g. [C D]
+                args-asts (slice asts 1 -2)] # e.g. [A B]
+            (the-fn [;args-asts ;last-asts])))))))
 
 (def mal-map
   (make-function
