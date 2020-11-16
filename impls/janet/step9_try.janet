@@ -124,7 +124,7 @@
           (let [def-name (in (ast :content) 1)
                 def-val (EVAL (in (ast :content) 2) env)]
             (env-set env
-              def-name def-val)
+                     def-name def-val)
             (return result def-val))
           ##
           "defmacro!"
@@ -147,7 +147,7 @@
                 bindings ((in (ast :content) 1) :content)]
             (each [let-name let-val] (partition 2 bindings)
                   (env-set new-env
-                    let-name (EVAL let-val new-env)))
+                           let-name (EVAL let-val new-env)))
             ## tco
             (set ast (in (ast :content) 2))
             (set env new-env))
@@ -194,8 +194,8 @@
                 cond-type (cond-res :tag)
                 cond-val (cond-res :content)]
             (if (or (= cond-type :nil)
-                  (and (= cond-type :boolean)
-                    (= cond-val "false")))
+                    (and (= cond-type :boolean)
+                         (= cond-val "false")))
               (if-let [else-ast (get (ast :content) 3)]
                 ## tco
                 (set ast else-ast)
