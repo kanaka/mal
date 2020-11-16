@@ -1,34 +1,28 @@
 (import ./types :prefix "")
 
-# based on janet's take-until
-(defn split-before-and-where
-  "Split ind before first position matching pred, and report on where.
-   If there was no split, report index as nil."
-  [pred ind]
-  (def use-str (bytes? ind))
-  (def f (if use-str string/slice tuple/slice))
-  (def len (length ind))
-  (def i (find-index pred ind))
-  (def end (if (nil? i) len i))
-  [(f ind 0 end) (f ind end) i])
-
-# XXX: probably could be simplified
 (defn make-env
   [&opt outer binds exprs]
   (default binds [])
   (default exprs [])
-  (def [new-binds split-idx]
-    (let [[normal-binds args i]
-          (split-before-and-where (fn [sym-ast]
-                                    (= (sym-ast :content) "&"))
-                                   binds)]
-      (if i
-        [(array/concat (array ;normal-binds) (in args 1)) i]
-        [normal-binds nil])))
+  (def n-binds (length binds))
+  (var found-amp false)
+  (var idx 0)
+  (while (and (not found-amp)
+              (< idx n-binds))
+    (def c-bind (in binds idx))
+    (when (= (c-bind :content) "&")
+      (set found-amp true)
+      (break))
+    (++ idx))
+  (def new-binds
+    (if found-amp
+      (array/concat (array ;(slice binds 0 idx))
+                    (in binds (inc idx)))
+      binds))
   (def new-exprs
-    (if split-idx
-      (array/concat (array ;(slice exprs 0 split-idx))
-                    (array (make-list (slice exprs split-idx))))
+    (if found-amp
+      (array/concat (array ;(slice exprs 0 idx))
+                    (array (make-list (slice exprs idx))))
       exprs))
   @{:data (zipcoll new-binds new-exprs)
     :outer outer})
