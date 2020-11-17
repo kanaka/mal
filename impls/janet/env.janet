@@ -24,6 +24,7 @@
       (array/concat (array ;(slice exprs 0 idx))
                     (array (make-list (slice exprs idx))))
       exprs))
+  # XXX: would length mismatches of new-binds / new-exprs ever be an issue?
   @{:data (zipcoll new-binds new-exprs)
     :outer outer})
 
