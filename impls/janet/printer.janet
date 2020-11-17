@@ -1,3 +1,5 @@
+(import ./types :as t)
+
 (defn escape
   [a-str]
   (->> (buffer a-str)
@@ -8,40 +10,40 @@
 
 (defn code*
   [ast buf print_readably]
-  (case (ast :tag)
-    :boolean
-    (buffer/push-string buf (ast :content))
-    :nil
-    (buffer/push-string buf (ast :content))
-    :keyword
-    (buffer/push-string buf (ast :content))
-    :number
-    (buffer/push-string buf (string (ast :content)))
-    :string
+  (cond
+    (or (t/boolean?* ast)
+        (t/nil?* ast)
+        (t/keyword?* ast)
+        (t/symbol?* ast))
+    (buffer/push-string buf (t/get-value ast))
+    ##
+    (t/number?* ast)
+    (buffer/push-string buf (string (t/get-value ast)))
+    ##
+    (t/string?* ast)
     (if print_readably
       (buffer/push-string buf (string "\""
-                                      (escape (ast :content))
+                                      (escape (t/get-value ast))
                                       "\""))
-      (buffer/push-string buf (ast :content)))
-    :symbol
-    (buffer/push-string buf (ast :content))
-    #
-    :list
+      (buffer/push-string buf (t/get-value ast)))
+    ##
+    (t/list?* ast)
     (do
       (buffer/push-string buf "(")
       (var remove false)
-      (each elt (ast :content)
+      (each elt (t/get-value ast)
             (code* elt buf print_readably)
             (buffer/push-string buf " ")
             (set remove true))
       (when remove
         (buffer/popn buf 1))
       (buffer/push-string buf ")"))
-    :hash-map
+    ##
+    (t/hash-map?* ast)
     (do
       (buffer/push-string buf "{")
       (var remove false)
-      (eachp [k v] (ast :content)
+      (eachp [k v] (t/get-value ast)
             (code* k buf print_readably)
             (buffer/push-string buf " ")
             (code* v buf print_readably)
@@ -50,38 +52,37 @@
       (when remove
         (buffer/popn buf 1))
       (buffer/push-string buf "}"))
-    :vector
+    ##
+    (t/vector?* ast)
     (do
       (buffer/push-string buf "[")
       (var remove false)
-      (each elt (ast :content)
+      (each elt (t/get-value ast)
             (code* elt buf print_readably)
             (buffer/push-string buf " ")
             (set remove true))
       (when remove
         (buffer/popn buf 1))
       (buffer/push-string buf "]"))
-    #
-    :function
+    ## XXX: what about macro?
+    (t/fn?* ast)
     (buffer/push-string buf "#<function>")
-    #
-    :atom
+    ##
+    (t/atom?* ast)
     (do
       (buffer/push-string buf "(atom ")
-      (code* (ast :content) buf print_readably)
+      (code* (t/get-value ast) buf print_readably)
       (buffer/push-string buf ")"))
-    #
-    :exception
+    ##
+    (t/exception?* ast)
     (do
       (buffer/push-string buf "Error: ")
-      (code* (ast :content) buf print_readably))))
+      (code* (t/get-value ast) buf print_readably))))
 
 (comment
 
   (let [buf @""]
-    (code* {:tag :number
-            :content 1}
-      buf))
+    (code* (make-number 1) buf false))
   # => @"1"
 
   )
@@ -94,9 +95,7 @@
 
 (comment
 
-  (pr_str {:tag :number
-           :content 1}
-    false)
+  (pr_str (make-number 1) false)
   # => @"1"
 
   )

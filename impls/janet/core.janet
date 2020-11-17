@@ -1,4 +1,4 @@
-(import ./types :prefix "")
+(import ./types :as t)
 (import ./printer)
 (import ./reader)
 
@@ -6,473 +6,366 @@
   [ast]
   (error ast))
 
-(defn nil?*
-  [ast]
-  (= :nil (ast :tag)))
-
-(defn true?*
-  [ast]
-  (and (= :boolean (ast :tag))
-       (= "true" (ast :content))))
-
-(defn false?*
-  [ast]
-  (and (= :boolean (ast :tag))
-       (= "false" (ast :content))))
-
-(defn number?*
-  [ast]
-  (= (ast :tag) :number))
-
-(defn symbol?*
-  [ast]
-  (= :symbol (ast :tag)))
-
-(defn keyword?*
-  [ast]
-  (= (ast :tag) :keyword))
-
-(defn string?*
-  [ast]
-  (= (ast :tag) :string))
-
-(defn list?*
-  [ast]
-  (= (ast :tag) :list))
-
-(defn vector?*
-  [ast]
-  (= (ast :tag) :vector))
-
-(defn hash-map?*
-  [ast]
-  (= (ast :tag) :hash-map))
-
-(defn fn?*
-  [ast]
-  (= (ast :tag) :function))
-
-(defn macro?*
-  [ast]
-  (and (fn?* ast)
-       (ast :is-macro)))
-
-(defn atom?*
-  [ast]
-  (= (ast :tag) :atom))
-
-(defn empty?*
-  [ast]
-  (empty? (ast :content)))
-
-# XXX: likely this could be simpler
-(defn equals?*
-  [ast-1 ast-2]
-  (let [tag-1 (ast-1 :tag)
-        tag-2 (ast-2 :tag)]
-    (if (and (not= tag-1 tag-2)
-             # XXX: not elegant
-             (not (and (= tag-1 :list) (= tag-2 :vector)))
-             (not (and (= tag-2 :list) (= tag-1 :vector))))
-      false
-      (let [val-1 (ast-1 :content)
-            val-2 (ast-2 :content)]
-        # XXX: when not a collection...
-        (if (and (not (list?* ast-1))
-                 (not (vector?* ast-1))
-                 (not (hash-map?* ast-1)))
-          (= val-1 val-2)
-          (if (not= (length val-1) (length val-2))
-            false
-            (if (and (not (hash-map?* ast-1))
-                     (not (hash-map?* ast-2)))
-              (do
-                (var found-unequal false)
-                (each [v1 v2] (partition 2 (interleave val-1 val-2))
-                      (when (not (equals?* v1 v2))
-                        (set found-unequal true)
-                        (break)))
-                (not found-unequal))
-              (if (or (not (hash-map?* ast-1))
-                      (not (hash-map?* ast-2)))
-                false
-                (do
-                  (var found-unequal false)
-                  (each [k1 k2] (partition 2 (interleave (keys val-1)
-                                                         (keys val-2)))
-                        (when (not (equals?* k1 k2))
-                          (set found-unequal true)
-                          (break))
-                        (when (not (equals?* (val-1 k1) (val-2 k2)))
-                          (set found-unequal true)
-                          (break)))
-                  (not found-unequal))))))))))
-
 (defn deref*
   [ast]
-  (if (not (atom?* ast))
-    (throw* (make-string (string "Expected atom, got: " (ast :tag))))
-    (ast :content)))
+  (if (not (t/atom?* ast))
+    (throw* (t/make-string (string "Expected atom, got: " (t/get-type ast))))
+    (t/get-value ast)))
 
 (defn reset!*
   [atom-ast val-ast]
-  (put atom-ast
-       :content val-ast)
+  (t/set-atom-value! atom-ast val-ast)
   val-ast)
 
 (defn cons*
   [head-ast tail-ast]
-  [head-ast ;(tail-ast :content)])
+  [head-ast ;(t/get-value tail-ast)])
 
 (defn concat*
   [& list-asts]
   (reduce (fn [acc list-ast]
-            [;acc ;(list-ast :content)])
+            [;acc ;(t/get-value list-ast)])
           []
           list-asts))
 
 (defn nth*
   [coll-ast num-ast]
-  (let [elts (coll-ast :content)
+  (let [elts (t/get-value coll-ast)
         n-elts (length elts)
-        i (num-ast :content)]
+        i (t/get-value num-ast)]
     (if (< i n-elts)
       (in elts i)
-      (throw* (make-string (string "Index out of range: " i))))))
+      (throw* (t/make-string (string "Index out of range: " i))))))
 
 (defn first*
   [coll-or-nil-ast]
-  (if (or (nil?* coll-or-nil-ast)
-          (empty?* coll-or-nil-ast))
-    (make-nil)
-    (in (coll-or-nil-ast :content) 0)))
+  (if (or (t/nil?* coll-or-nil-ast)
+          (t/empty?* coll-or-nil-ast))
+    t/mal-nil
+    (in (t/get-value coll-or-nil-ast) 0)))
 
 (defn rest*
   [coll-or-nil-ast]
-  (if (or (nil?* coll-or-nil-ast)
-          (empty?* coll-or-nil-ast))
-    (make-list [])
-    (make-list (slice (coll-or-nil-ast :content) 1))))
+  (if (or (t/nil?* coll-or-nil-ast)
+          (t/empty?* coll-or-nil-ast))
+    (t/make-list [])
+    (t/make-list (slice (t/get-value coll-or-nil-ast) 1))))
 
 (defn janet-eval*
   [janet-val]
   (case (type janet-val)
     :nil
-    (make-nil)
+    t/mal-nil
     ##
     :boolean
-    (make-boolean janet-val)
+    (t/make-boolean janet-val)
     ##
     :number # XXX: there may be some incompatibilities
-    (make-number janet-val)
+    (t/make-number janet-val)
     ##
     :string
-    (make-string janet-val)
+    (t/make-string janet-val)
     ##
     :keyword # XXX: there may be some incompatibilities
-    (make-keyword (string ":" janet-val))
+    (t/make-keyword (string ":" janet-val))
     ##
     :symbol # XXX: there may be some incompatibilities
-    (make-symbol (string janet-val))
+    (t/make-symbol (string janet-val))
     ##
     :tuple
-    (make-list (map janet-eval* janet-val))
+    (t/make-list (map janet-eval* janet-val))
     ##
     :array
-    (make-list (map janet-eval* janet-val))
+    (t/make-list (map janet-eval* janet-val))
     ##
     :struct
-    (make-hash-map (struct ;(map janet-eval* (kvs janet-val))))
+    (t/make-hash-map (struct ;(map janet-eval* (kvs janet-val))))
     ##
     :table
-    (make-hash-map (struct ;(map janet-eval* (kvs janet-val))))
+    (t/make-hash-map (struct ;(map janet-eval* (kvs janet-val))))
     ##
-    (throw* (make-string (string "Unsupported type: " (type janet-val))))))
+    (throw* (t/make-string (string "Unsupported type: " (type janet-val))))))
 
 (defn arith-fn
   [op]
-  (make-function
+  (t/make-function
     (fn [asts]
-      (make-number
-        (op ;(map |($ :content)
+      (t/make-number
+        (op ;(map |(t/get-value $)
                   asts))))))
 
 (defn cmp-fn
   [op]
-  (make-function
+  (t/make-function
     (fn [asts]
-      (if (op ;(map |($ :content) asts))
-        (make-boolean true)
-        (make-boolean false)))))
-
-(defn spawn-function
-  [fn-ast overrides]
-  (merge fn-ast overrides))
+      (if (op ;(map |(t/get-value $) asts))
+        t/mal-true
+        t/mal-false))))
 
 (def mal-symbol
-  (make-function
+  (t/make-function
     (fn [asts]
       (when (< (length asts) 1)
-        (throw* (make-string "symbol requires 1 argument")))
-      (make-symbol ((in asts 0) :content)))))
+        (throw* (t/make-string "symbol requires 1 argument")))
+      (t/make-symbol (t/get-value (in asts 0))))))
 
 (def mal-keyword
-  (make-function
+  (t/make-function
     (fn [asts]
       (when (< (length asts) 1)
-        (throw* (make-string "keyword requires 1 argument")))
+        (throw* (t/make-string "keyword requires 1 argument")))
       (let [arg-ast (in asts 0)]
         (cond
-          (keyword?* arg-ast)
+          (t/keyword?* arg-ast)
           arg-ast
           ##
-          (string?* arg-ast)
-          (make-keyword (string ":" (arg-ast :content)))
+          (t/string?* arg-ast)
+          (t/make-keyword (string ":" (t/get-value arg-ast)))
           ##
-          (throw* (make-string "Expected string")))))))
+          (throw* (t/make-string "Expected string")))))))
 
 (def mal-list
-  (make-function
+  (t/make-function
     (fn [asts]
-      (make-list asts))))
+      (t/make-list asts))))
 
 (def mal-vector
-  (make-function
+  (t/make-function
     (fn [asts]
-      (make-vector asts))))
+      (t/make-vector asts))))
 
 (def mal-vec
-  (make-function
+  (t/make-function
     (fn [asts]
       (when (< (length asts) 1)
-        (throw* (make-string "vec requires 1 argument")))
+        (throw* (t/make-string "vec requires 1 argument")))
       (let [ast (in asts 0)]
         (cond
-          (vector?* ast)
+          (t/vector?* ast)
           ast
           ##
-          (list?* ast)
-          (make-vector (ast :content))
+          (t/list?* ast)
+          (t/make-vector (t/get-value ast))
           ##
-          (nil?* ast)
-          (make-vector ())
+          (t/nil?* ast)
+          (t/make-vector ())
           ##
-          (throw* (make-string "vec requires a vector, list, or nil")))))))
+          (throw* (t/make-string "vec requires a vector, list, or nil")))))))
 
 (def mal-hash-map
-  (make-function
+  (t/make-function
     (fn [asts]
       (when (= 1 (% (length asts) 2))
-        (throw* (make-string
+        (throw* (t/make-string
                   "hash-map requires an even number of arguments")))
-      (make-hash-map asts))))
+      (t/make-hash-map asts))))
 
 (def mal-atom
-  (make-function
+  (t/make-function
     (fn [asts]
       (when (< (length asts) 1)
-        (throw* (make-string "atom requires 1 argument")))
-      (make-atom (in asts 0)))))
+        (throw* (t/make-string "atom requires 1 argument")))
+      (t/make-atom (in asts 0)))))
 
 (def mal-nil?
-  (make-function
+  (t/make-function
     (fn [asts]
       (when (< (length asts) 1)
-        (throw* (make-string "nil? requires 1 argument")))
-      (if (nil?* (in asts 0))
-        (make-boolean true)
-        (make-boolean false)))))
+        (throw* (t/make-string "nil? requires 1 argument")))
+      (if (t/nil?* (in asts 0))
+        t/mal-true
+        t/mal-false))))
 
 (def mal-true?
-  (make-function
+  (t/make-function
     (fn [asts]
       (when (< (length asts) 1)
-        (throw* (make-string "true? requires 1 argument")))
-      (if (true?* (in asts 0))
-        (make-boolean true)
-        (make-boolean false)))))
+        (throw* (t/make-string "true? requires 1 argument")))
+      (if (t/true?* (in asts 0))
+        t/mal-true
+        t/mal-false))))
 
 (def mal-false?
-  (make-function
+  (t/make-function
     (fn [asts]
       (when (< (length asts) 1)
-        (throw* (make-string "false? requires 1 argument")))
-      (if (false?* (in asts 0))
-        (make-boolean true)
-        (make-boolean false)))))
+        (throw* (t/make-string "false? requires 1 argument")))
+      (if (t/false?* (in asts 0))
+        t/mal-true
+        t/mal-false))))
 
 (def mal-number?
-  (make-function
+  (t/make-function
     (fn [asts]
       (when (< (length asts) 1)
-        (throw* (make-string "number? requires 1 argument")))
-      (if (number?* (in asts 0))
-        (make-boolean true)
-        (make-boolean false)))))
+        (throw* (t/make-string "number? requires 1 argument")))
+      (if (t/number?* (in asts 0))
+        t/mal-true
+        t/mal-false))))
 
 (def mal-symbol?
-  (make-function
+  (t/make-function
     (fn [asts]
       (when (< (length asts) 1)
-        (throw* (make-string "symbol? requires 1 argument")))
-      (if (symbol?* (in asts 0))
-        (make-boolean true)
-        (make-boolean false)))))
+        (throw* (t/make-string "symbol? requires 1 argument")))
+      (if (t/symbol?* (in asts 0))
+        t/mal-true
+        t/mal-false))))
 
 (def mal-keyword?
-  (make-function
+  (t/make-function
     (fn [asts]
       (when (< (length asts) 1)
-        (throw* (make-string "keyword? requires 1 argument")))
-      (if (keyword?* (in asts 0))
-        (make-boolean true)
-        (make-boolean false)))))
+        (throw* (t/make-string "keyword? requires 1 argument")))
+      (if (t/keyword?* (in asts 0))
+        t/mal-true
+        t/mal-false))))
 
 (def mal-string?
-  (make-function
+  (t/make-function
     (fn [asts]
       (when (< (length asts) 1)
-        (throw* (make-string "string? requires 1 argument")))
-      (if (string?* (in asts 0))
-        (make-boolean true)
-        (make-boolean false)))))
+        (throw* (t/make-string "string? requires 1 argument")))
+      (if (t/string?* (in asts 0))
+        t/mal-true
+        t/mal-false))))
 
 (def mal-list?
-  (make-function
+  (t/make-function
     (fn [asts]
       (when (< (length asts) 1)
-        (throw* (make-string "list? requires 1 argument")))
-      (if (list?* (in asts 0))
-        (make-boolean true)
-        (make-boolean false)))))
+        (throw* (t/make-string "list? requires 1 argument")))
+      (if (t/list?* (in asts 0))
+        t/mal-true
+        t/mal-false))))
 
 (def mal-vector?
-  (make-function
+  (t/make-function
     (fn [asts]
       (when (< (length asts) 1)
-        (throw* (make-string "vector? requires 1 argument")))
-      (if (vector?* (in asts 0))
-        (make-boolean true)
-        (make-boolean false)))))
+        (throw* (t/make-string "vector? requires 1 argument")))
+      (if (t/vector?* (in asts 0))
+        t/mal-true
+        t/mal-false))))
 
 (def mal-map?
-  (make-function
+  (t/make-function
     (fn [asts]
       (when (< (length asts) 1)
-        (throw* (make-string "map? requires 1 argument")))
-      (if (hash-map?* (in asts 0))
-        (make-boolean true)
-        (make-boolean false)))))
+        (throw* (t/make-string "map? requires 1 argument")))
+      (if (t/hash-map?* (in asts 0))
+        t/mal-true
+        t/mal-false))))
 
 (def mal-fn?
-  (make-function
+  (t/make-function
     (fn [asts]
       (when (< (length asts) 1)
-        (throw* (make-string "fn? requires 1 argument")))
+        (throw* (t/make-string "fn? requires 1 argument")))
       (let [target-ast (in asts 0)]
-        (if (and (fn?* target-ast)
-                 (not (target-ast :is-macro)))
-          (make-boolean true)
-          (make-boolean false))))))
+        (if (and (t/fn?* target-ast)
+                 (not (t/get-is-macro target-ast)))
+          t/mal-true
+          t/mal-false)))))
 
 (def mal-macro?
-  (make-function
+  (t/make-function
     (fn [asts]
       (when (< (length asts) 1)
-        (throw* (make-string "macro? requires 1 argument")))
+        (throw* (t/make-string "macro? requires 1 argument")))
       (let [the-ast (in asts 0)]
-        (if (macro?* the-ast)
-          (make-boolean true)
-          (make-boolean false))))))
+        (if (t/macro?* the-ast)
+          t/mal-true
+          t/mal-false)))))
 
 (def mal-atom?
-  (make-function
+  (t/make-function
     (fn [asts]
       (when (< (length asts) 1)
-        (throw* (make-string "atom? requires 1 argument")))
-      (if (atom?* (in asts 0))
-        (make-boolean true)
-        (make-boolean false)))))
+        (throw* (t/make-string "atom? requires 1 argument")))
+      (if (t/atom?* (in asts 0))
+        t/mal-true
+        t/mal-false))))
 
 (def mal-sequential?
-  (make-function
+  (t/make-function
     (fn [asts]
       (when (< (length asts) 1)
-        (throw* (make-string "sequential? requires 1 argument")))
-      (if (or (list?* (in asts 0))
-              (vector?* (in asts 0)))
-        (make-boolean true)
-        (make-boolean false)))))
+        (throw* (t/make-string "sequential? requires 1 argument")))
+      (if (or (t/list?* (in asts 0))
+              (t/vector?* (in asts 0)))
+        t/mal-true
+        t/mal-false))))
 
 (def mal-=
-  (make-function
+  (t/make-function
     (fn [asts]
       (when (< (length asts) 2)
-        (throw* (make-string "= requires 2 arguments")))
+        (throw* (t/make-string "= requires 2 arguments")))
       (let [ast-1 (in asts 0)
             ast-2 (in asts 1)]
-        (if (equals?* ast-1 ast-2)
-          (make-boolean true)
-          (make-boolean false))))))
+        (if (t/equals?* ast-1 ast-2)
+          t/mal-true
+          t/mal-false)))))
 
 (def mal-empty?
-  (make-function
+  (t/make-function
     (fn [asts]
       (when (< (length asts) 1)
-        (throw* (make-string "empty? requires 1 argument")))
-      (if (empty?* (in asts 0))
-        (make-boolean true)
-        (make-boolean false)))))
+        (throw* (t/make-string "empty? requires 1 argument")))
+      (if (t/empty?* (in asts 0))
+        t/mal-true
+        t/mal-false))))
 
 (def mal-contains?
-  (make-function
+  (t/make-function
     (fn [asts]
       (when (< (length asts) 2)
-        (throw* (make-string "contains? requires 2 arguments")))
+        (throw* (t/make-string "contains? requires 2 arguments")))
       (let [head-ast (in asts 0)]
-        (when (not (or (hash-map?* head-ast)
-                       (nil?* head-ast)))
-          (throw* (make-string
+        (when (not (or (t/hash-map?* head-ast)
+                       (t/nil?* head-ast)))
+          (throw* (t/make-string
                     "contains? first argument should be a hash-map or nil")))
-        (if (nil?* head-ast)
-          (make-nil)
-          (let [item-struct (head-ast :content)
+        (if (t/nil?* head-ast)
+          t/mal-nil
+          (let [item-struct (t/get-value head-ast)
                 key-ast (in asts 1)]
             (if-let [val-ast (get item-struct key-ast)]
-              (make-boolean true)
-              (make-boolean false))))))))
+              t/mal-true
+              t/mal-false)))))))
 
 (def mal-deref
-  (make-function
+  (t/make-function
     (fn [asts]
       (when (< (length asts) 1)
-        (throw* (make-string "deref requires 1 argument")))
+        (throw* (t/make-string "deref requires 1 argument")))
       (let [ast (in asts 0)]
         (deref* ast)))))
 
 (def mal-reset!
-  (make-function
+  (t/make-function
     (fn [asts]
       (when (< (length asts) 2)
-        (throw* (make-string "reset! requires 2 arguments")))
+        (throw* (t/make-string "reset! requires 2 arguments")))
       (let [atom-ast (in asts 0)
             val-ast (in asts 1)]
         (reset!* atom-ast val-ast)))))
 
 (def mal-swap!
-  (make-function
+  (t/make-function
     (fn [asts]
       (when (< (length asts) 2)
-        (throw* (make-string "swap! requires at least 2 arguments")))
+        (throw* (t/make-string "swap! requires at least 2 arguments")))
       (let [atom-ast (in asts 0)
             fn-ast (in asts 1)
             args-asts (slice asts 2)
             inner-ast (deref* atom-ast)]
         (reset!* atom-ast
-                 ((fn-ast :content) [inner-ast ;args-asts]))))))
+                 ((t/get-value fn-ast) [inner-ast ;args-asts]))))))
 
 (def mal-pr-str
-  (make-function
+  (t/make-function
     (fn [asts]
       (def buf @"")
       (when (> (length asts) 0)
@@ -481,19 +374,19 @@
               (buffer/push-string buf " "))
         # remove extra space at end
         (buffer/popn buf 1))
-      (make-string (string buf)))))
+      (t/make-string (string buf)))))
 
 (def mal-str
-  (make-function
+  (t/make-function
     (fn [asts]
       (def buf @"")
       (when (> (length asts) 0)
         (each ast asts
               (buffer/push-string buf (printer/pr_str ast false))))
-      (make-string (string buf)))))
+      (t/make-string (string buf)))))
 
 (def mal-prn
-  (make-function
+  (t/make-function
     (fn [asts]
       (def buf @"")
       (when (> (length asts) 0)
@@ -503,10 +396,10 @@
         # remove extra space at end
         (buffer/popn buf 1))
       (print (string buf))
-      (make-nil))))
+      t/mal-nil)))
 
 (def mal-println
-  (make-function
+  (t/make-function
     (fn [asts]
       (def buf @"")
       (when (> (length asts) 0)
@@ -516,382 +409,371 @@
         # remove extra space at end
         (buffer/popn buf 1))
       (print (string buf))
-      (make-nil))))
+      t/mal-nil)))
 
 (def mal-read-string
-  (make-function
+  (t/make-function
     (fn [asts]
       (when (< (length asts) 1)
-        (throw* (make-string "read-string requires 1 argument")))
-      (if-let [res (reader/read_str ((in asts 0) :content))]
+        (throw* (t/make-string "read-string requires 1 argument")))
+      (if-let [res (reader/read_str (t/get-value (in asts 0)))]
         res
-        (throw* (make-string "No code content"))))))
+        (throw* (t/make-string "No code content"))))))
 
 (def mal-slurp
-  (make-function
+  (t/make-function
     (fn [asts]
       (when (< (length asts) 1)
-        (throw* (make-string "slurp requires 1 argument")))
-      (let [a-str ((in asts 0) :content)]
+        (throw* (t/make-string "slurp requires 1 argument")))
+      (let [a-str (t/get-value (in asts 0))]
         (if (not (os/stat a-str))
           (throw* (string "File not found: " a-str))
           # XXX: escaping?
-          (make-string (slurp a-str)))))))
+          (t/make-string (slurp a-str)))))))
 
 (def mal-count
-  (make-function
+  (t/make-function
     (fn [asts]
       (when (< (length asts) 1)
-        (throw* (make-string "count requires 1 argument")))
+        (throw* (t/make-string "count requires 1 argument")))
       (let [ast (in asts 0)]
-        (if (nil?* ast)
-          (make-number 0)
-          (make-number (length (ast :content))))))))
+        (if (t/nil?* ast)
+          (t/make-number 0)
+          (t/make-number (length (t/get-value ast))))))))
 
 (def mal-cons
-  (make-function
+  (t/make-function
     (fn [asts]
       (when (< (length asts) 2)
-        (throw* (make-string "cons requires 2 arguments")))
+        (throw* (t/make-string "cons requires 2 arguments")))
       (let [head-ast (in asts 0)
             tail-ast (in asts 1)]
-        (make-list (cons* head-ast tail-ast))))))
+        (t/make-list (cons* head-ast tail-ast))))))
 
 (def mal-concat
-  (make-function
+  (t/make-function
     (fn [asts]
-      (make-list (concat* ;asts)))))
+      (t/make-list (concat* ;asts)))))
 
 (def mal-nth
-  (make-function
+  (t/make-function
     (fn [asts]
       (when (< (length asts) 2)
-        (throw* (make-string "nth requires 2 arguments")))
+        (throw* (t/make-string "nth requires 2 arguments")))
       (let [coll-ast (in asts 0)
             num-ast (in asts 1)]
         (nth* coll-ast num-ast)))))
 
 (def mal-first
-  (make-function
+  (t/make-function
     (fn [asts]
       (when (< (length asts) 1)
-        (throw* (make-string "first requires 1 argument")))
+        (throw* (t/make-string "first requires 1 argument")))
       (let [coll-or-nil-ast (in asts 0)]
         (first* coll-or-nil-ast)))))
 
 (def mal-rest
-  (make-function
+  (t/make-function
     (fn [asts]
       (when (< (length asts) 1)
-        (throw* (make-string "rest requires 1 argument")))
+        (throw* (t/make-string "rest requires 1 argument")))
       (let [coll-or-nil-ast (in asts 0)]
         (rest* coll-or-nil-ast)))))
 
 (def mal-assoc
-  (make-function
+  (t/make-function
     (fn [asts]
       (when (< (length asts) 3)
-        (throw* (make-string "assoc requires at least 3 arguments")))
+        (throw* (t/make-string "assoc requires at least 3 arguments")))
       (let [head-ast (in asts 0)]
-        (when (not (or (hash-map?* head-ast)
-                       (nil?* head-ast)))
-          (throw* (make-string
+        (when (not (or (t/hash-map?* head-ast)
+                       (t/nil?* head-ast)))
+          (throw* (t/make-string
                     "assoc first argument should be a hash-map or nil")))
-        (if (nil?* head-ast)
-          (make-nil)
-          (let [item-table (table ;(kvs (head-ast :content)))
+        (if (t/nil?* head-ast)
+          t/mal-nil
+          (let [item-table (table ;(kvs (t/get-value head-ast)))
                 kv-asts (slice asts 1 -1)]
             (each [key-ast val-ast] (partition 2 kv-asts)
                   (put item-table key-ast val-ast))
-            (make-hash-map (table/to-struct item-table))))))))
+            (t/make-hash-map (table/to-struct item-table))))))))
 
 (def mal-dissoc
-  (make-function
+  (t/make-function
     (fn [asts]
       (when (< (length asts) 2)
-        (throw* (make-string "dissoc requires at least 2 arguments")))
+        (throw* (t/make-string "dissoc requires at least 2 arguments")))
       (let [head-ast (in asts 0)]
-        (when (not (or (hash-map?* head-ast)
-                       (nil?* head-ast)))
-          (throw* (make-string
+        (when (not (or (t/hash-map?* head-ast)
+                       (t/nil?* head-ast)))
+          (throw* (t/make-string
                     "dissoc first argument should be a hash-map or nil")))
-        (if (nil?* head-ast)
-          (make-nil)
-          (let [item-table (table ;(kvs (head-ast :content)))
+        (if (t/nil?* head-ast)
+          t/mal-nil
+          (let [item-table (table ;(kvs (t/get-value head-ast)))
                 key-asts (slice asts 1 -1)]
             (each key-ast key-asts
                   (put item-table key-ast nil))
-            (make-hash-map (table/to-struct item-table))))))))
+            (t/make-hash-map (table/to-struct item-table))))))))
 
 (def mal-get
-  (make-function
+  (t/make-function
     (fn [asts]
       (when (< (length asts) 2)
-        (throw* (make-string "get requires 2 arguments")))
+        (throw* (t/make-string "get requires 2 arguments")))
       (let [head-ast (in asts 0)]
-        (when (not (or (hash-map?* head-ast)
-                       (nil?* head-ast)))
-          (throw* (make-string
+        (when (not (or (t/hash-map?* head-ast)
+                       (t/nil?* head-ast)))
+          (throw* (t/make-string
                     "get first argument should be a hash-map or nil")))
-        (if (nil?* head-ast)
-          (make-nil)
-          (let [item-struct (head-ast :content)
+        (if (t/nil?* head-ast)
+          t/mal-nil
+          (let [item-struct (t/get-value head-ast)
                 key-ast (in asts 1)]
             (if-let [val-ast (get item-struct key-ast)]
               val-ast
-              (make-nil))))))))
+              t/mal-nil)))))))
 
 (def mal-keys
-  (make-function
+  (t/make-function
     (fn [asts]
       (when (< (length asts) 1)
-        (throw* (make-string "keys requires 1 argument")))
+        (throw* (t/make-string "keys requires 1 argument")))
       (let [head-ast (in asts 0)]
-        (when (not (or (hash-map?* head-ast)
-                       (nil?* head-ast)))
-          (throw* (make-string
+        (when (not (or (t/hash-map?* head-ast)
+                       (t/nil?* head-ast)))
+          (throw* (t/make-string
                     "keys first argument should be a hash-map or nil")))
-        (if (nil?* head-ast)
-          (make-nil)
-          (let [item-struct (head-ast :content)]
-            (make-list (keys item-struct))))))))
+        (if (t/nil?* head-ast)
+          t/mal-nil
+          (let [item-struct (t/get-value head-ast)]
+            (t/make-list (keys item-struct))))))))
 
 (def mal-vals
-  (make-function
+  (t/make-function
     (fn [asts]
       (when (< (length asts) 1)
-        (throw* (make-string "vals requires 1 argument")))
+        (throw* (t/make-string "vals requires 1 argument")))
       (let [head-ast (in asts 0)]
-        (when (not (or (hash-map?* head-ast)
-                       (nil?* head-ast)))
-          (throw* (make-string
+        (when (not (or (t/hash-map?* head-ast)
+                       (t/nil?* head-ast)))
+          (throw* (t/make-string
                     "vals first argument should be a hash-map or nil")))
-        (if (nil?* head-ast)
-          (make-nil)
-          (let [item-struct (head-ast :content)]
-            (make-list (values item-struct))))))))
+        (if (t/nil?* head-ast)
+          t/mal-nil
+          (let [item-struct (t/get-value head-ast)]
+            (t/make-list (values item-struct))))))))
 
 (def mal-conj
-  (make-function
+  (t/make-function
     (fn [asts]
       (when (< (length asts) 2)
-        (throw* (make-string "conj requires at least 2 arguments")))
+        (throw* (t/make-string "conj requires at least 2 arguments")))
       (let [coll-ast (in asts 0)
             item-asts (slice asts 1)]
         (cond
-          (nil?* coll-ast)
-          (make-list [;(reverse item-asts)])
+          (t/nil?* coll-ast)
+          (t/make-list [;(reverse item-asts)])
           ##
-          (list?* coll-ast)
-          (make-list [;(reverse item-asts) ;(coll-ast :content)])
+          (t/list?* coll-ast)
+          (t/make-list [;(reverse item-asts) ;(t/get-value coll-ast)])
           ##
-          (vector?* coll-ast)
-          (make-vector [;(coll-ast :content) ;item-asts])
+          (t/vector?* coll-ast)
+          (t/make-vector [;(t/get-value coll-ast) ;item-asts])
           ##
-          (throw* (make-string "Expected list or vector")))))))
+          (throw* (t/make-string "Expected list or vector")))))))
 
 (def mal-seq
-  (make-function
+  (t/make-function
     (fn [asts]
       (when (< (length asts) 1)
-        (throw* (make-string "seq requires 1 argument")))
+        (throw* (t/make-string "seq requires 1 argument")))
       (let [arg-ast (in asts 0)]
         (cond
-          (list?* arg-ast)
-          (if (empty?* arg-ast)
-            (make-nil)
+          (t/list?* arg-ast)
+          (if (t/empty?* arg-ast)
+            t/mal-nil
             arg-ast)
           ##
-          (vector?* arg-ast)
-          (if (empty?* arg-ast)
-            (make-nil)
-            (make-list (arg-ast :content)))
+          (t/vector?* arg-ast)
+          (if (t/empty?* arg-ast)
+            t/mal-nil
+            (t/make-list (t/get-value arg-ast)))
           ##
-          (string?* arg-ast)
-          (if (empty?* arg-ast)
-            (make-nil)
-            (let [str-asts (map |(make-string (string/from-bytes $))
-                                (arg-ast :content))]
-              (make-list str-asts)))
+          (t/string?* arg-ast)
+          (if (t/empty?* arg-ast)
+            t/mal-nil
+            (let [str-asts (map |(t/make-string (string/from-bytes $))
+                                (t/get-value arg-ast))]
+              (t/make-list str-asts)))
           ##
-          (nil?* arg-ast)
+          (t/nil?* arg-ast)
           arg-ast
           ##
-          (throw* (make-string "Expected list, vector, string, or nil")))))))
+          (throw* (t/make-string "Expected list, vector, string, or nil")))))))
 
 (def mal-map
-  (make-function
+  (t/make-function
     (fn [asts]
       (when (< (length asts) 2)
-        (throw* (make-string "map requires at least 2 arguments")))
-      (let [the-fn ((in asts 0) :content)
-            coll ((in asts 1) :content)]
-        (make-list (map |(the-fn [$])
+        (throw* (t/make-string "map requires at least 2 arguments")))
+      (let [the-fn (t/get-value (in asts 0))
+            coll (t/get-value (in asts 1))]
+        (t/make-list (map |(the-fn [$])
                         coll))))))
 
 # (apply F A B [C D]) is equivalent to (F A B C D)
 (def mal-apply
-  (make-function
+  (t/make-function
     (fn [asts]
       (when (< (length asts) 1)
-        (throw* (make-string "apply requires at least 1 argument")))
-      (let [the-fn ((in asts 0) :content)] # e.g. F
+        (throw* (t/make-string "apply requires at least 1 argument")))
+      (let [the-fn (t/get-value (in asts 0))] # e.g. F
         (if (= (length asts) 1)
           (the-fn [])
-          (let [last-asts ((get (slice asts -2) 0) :content) # e.g. [C D]
+          (let [last-asts (t/get-value (get (slice asts -2) 0)) # e.g. [C D]
                 args-asts (slice asts 1 -2)] # e.g. [A B]
             (the-fn [;args-asts ;last-asts])))))))
 
 (def mal-meta
-  (make-function
+  (t/make-function
     (fn [asts]
       (when (< (length asts) 1)
-        (throw* (make-string "meta requires 1 argument")))
+        (throw* (t/make-string "meta requires 1 argument")))
       (let [head-ast (in asts 0)]
-        (if (or (list?* head-ast)
-                (vector?* head-ast)
-                (hash-map?* head-ast)
-                (fn?* head-ast))
-          ((in asts 0) :meta)
-          (make-nil))))))
+        (if (or (t/list?* head-ast)
+                (t/vector?* head-ast)
+                (t/hash-map?* head-ast)
+                (t/fn?* head-ast))
+          (t/get-meta (in asts 0))
+          t/mal-nil)))))
 
 (def mal-with-meta
-  (make-function
+  (t/make-function
     (fn [asts]
       (when (< (length asts) 2)
-        (throw* (make-string "with-meta requires 2 arguments")))
+        (throw* (t/make-string "with-meta requires 2 arguments")))
       (let [target-ast (in asts 0)
             meta-ast (in asts 1)]
         (cond
-          (list?* target-ast)
-          (make-list (target-ast :content) meta-ast)
+          (t/list?* target-ast)
+          (t/make-list (t/get-value target-ast) meta-ast)
           ##
-          (vector?* target-ast)
-          (make-vector (target-ast :content) meta-ast)
+          (t/vector?* target-ast)
+          (t/make-vector (t/get-value target-ast) meta-ast)
           ##
-          (hash-map?* target-ast)
-          (make-hash-map (target-ast :content) meta-ast)
+          (t/hash-map?* target-ast)
+          (t/make-hash-map (t/get-value target-ast) meta-ast)
           ##
-          (fn?* target-ast)
-          (spawn-function target-ast {:meta meta-ast})
+          (t/fn?* target-ast)
+          (t/clone-with-meta target-ast meta-ast)
           ##
-          (throw* (make-string "Expected list, vector, hash-map, or fn")))))))
+          (throw* (t/make-string "Expected list, vector, hash-map, or fn")))))))
 
 (def mal-throw
-  (make-function
+  (t/make-function
     (fn [asts]
       (when (< (length asts) 1)
-        (throw* (make-string "throw requires 1 argument")))
+        (throw* (t/make-string "throw requires 1 argument")))
       (throw* (in asts 0)))))
 
 (def mal-readline
-  (make-function
+  (t/make-function
     (fn [asts]
       (when (< (length asts) 1)
-        (throw* (make-string "readline requires 1 argument")))
-      (let [prompt ((in asts 0) :content)
+        (throw* (t/make-string "readline requires 1 argument")))
+      (let [prompt (t/get-value (in asts 0))
             buf @""]
         (file/write stdout prompt)
         (file/flush stdout)
         (file/read stdin :line buf)
         (if (< 0 (length buf))
-          (make-string (string/trimr buf))
-          (make-nil))))))
+          (t/make-string (string/trimr buf))
+          t/mal-nil)))))
 
 (def mal-time-ms
-  (make-function
+  (t/make-function
     (fn [asts]
-      (make-number (os/clock)))))
+      (t/make-number (os/clock)))))
 
 (def mal-janet-eval
-  (make-function
+  (t/make-function
     (fn [asts]
       (when (< (length asts) 1)
-        (throw* (make-string "janet-eval requires 1 argument")))
+        (throw* (t/make-string "janet-eval requires 1 argument")))
       (let [head-ast (in asts 0)]
-        (when (not (string?* head-ast))
-          (throw* (make-string
+        (when (not (t/string?* head-ast))
+          (throw* (t/make-string
                     "janet-eval first argument should be a string")))
         (let [res (try
-                    (eval-string (head-ast :content)) # XXX: escaping?
+                    (eval-string (t/get-value head-ast)) # XXX: escaping?
                     ([err]
-                     (throw* (make-string (string "Eval failed: " err)))))]
+                     (throw* (t/make-string (string "Eval failed: " err)))))]
           (janet-eval* res))))))
-
-##
-
-(def mal-type
-  (make-function
-    (fn [asts]
-      (when (< (length asts) 1)
-        (throw* (make-string "type requires 1 argument")))
-      (make-keyword ((in asts 0) :tag)))))
 
 (def unimplemented mal-throw)
 
 (def ns
-  {(make-symbol "+") (arith-fn +)
-   (make-symbol "-") (arith-fn -)
-   (make-symbol "*") (arith-fn *)
-   (make-symbol "/") (arith-fn /)
-   (make-symbol "list") mal-list
-   (make-symbol "list?") mal-list?
-   (make-symbol "vec") mal-vec
-   (make-symbol "vector?") mal-vector?
-   (make-symbol "empty?") mal-empty?
-   (make-symbol "count") mal-count
-   (make-symbol "=") mal-=
-   (make-symbol "<") (cmp-fn <)
-   (make-symbol "<=") (cmp-fn <=)
-   (make-symbol ">") (cmp-fn >)
-   (make-symbol ">=") (cmp-fn >=)
-   (make-symbol "pr-str") mal-pr-str
-   (make-symbol "str") mal-str
-   (make-symbol "prn") mal-prn
-   (make-symbol "println") mal-println
-   (make-symbol "read-string") mal-read-string
-   (make-symbol "slurp") mal-slurp
-   (make-symbol "atom") mal-atom
-   (make-symbol "atom?") mal-atom?
-   (make-symbol "deref") mal-deref
-   (make-symbol "reset!") mal-reset!
-   (make-symbol "swap!") mal-swap!
-   (make-symbol "cons") mal-cons
-   (make-symbol "concat") mal-concat
-   (make-symbol "nth") mal-nth
-   (make-symbol "first") mal-first
-   (make-symbol "rest") mal-rest
-   (make-symbol "throw") mal-throw
-   (make-symbol "apply") mal-apply
-   (make-symbol "map") mal-map
-   (make-symbol "nil?") mal-nil?
-   (make-symbol "true?") mal-true?
-   (make-symbol "false?") mal-false?
-   (make-symbol "symbol?") mal-symbol?
-   (make-symbol "symbol") mal-symbol
-   (make-symbol "keyword") mal-keyword
-   (make-symbol "keyword?") mal-keyword?
-   (make-symbol "vector") mal-vector
-   (make-symbol "sequential?") mal-sequential?
-   (make-symbol "hash-map") mal-hash-map
-   (make-symbol "map?") mal-map?
-   (make-symbol "assoc") mal-assoc
-   (make-symbol "dissoc") mal-dissoc
-   (make-symbol "get") mal-get
-   (make-symbol "contains?") mal-contains?
-   (make-symbol "keys") mal-keys
-   (make-symbol "vals") mal-vals
-   (make-symbol "readline") mal-readline
-   (make-symbol "time-ms") mal-time-ms
-   (make-symbol "meta") mal-meta
-   (make-symbol "with-meta") mal-with-meta
-   (make-symbol "fn?") mal-fn?
-   (make-symbol "string?") mal-string?
-   (make-symbol "number?") mal-number?
-   (make-symbol "conj") mal-conj
-   (make-symbol "seq") mal-seq
-   (make-symbol "macro?") mal-macro?
-   (make-symbol "janet-eval") mal-janet-eval
-   ##
-   (make-symbol "type") mal-type
+  {(t/make-symbol "+") (arith-fn +)
+   (t/make-symbol "-") (arith-fn -)
+   (t/make-symbol "*") (arith-fn *)
+   (t/make-symbol "/") (arith-fn /)
+   (t/make-symbol "list") mal-list
+   (t/make-symbol "list?") mal-list?
+   (t/make-symbol "vec") mal-vec
+   (t/make-symbol "vector?") mal-vector?
+   (t/make-symbol "empty?") mal-empty?
+   (t/make-symbol "count") mal-count
+   (t/make-symbol "=") mal-=
+   (t/make-symbol "<") (cmp-fn <)
+   (t/make-symbol "<=") (cmp-fn <=)
+   (t/make-symbol ">") (cmp-fn >)
+   (t/make-symbol ">=") (cmp-fn >=)
+   (t/make-symbol "pr-str") mal-pr-str
+   (t/make-symbol "str") mal-str
+   (t/make-symbol "prn") mal-prn
+   (t/make-symbol "println") mal-println
+   (t/make-symbol "read-string") mal-read-string
+   (t/make-symbol "slurp") mal-slurp
+   (t/make-symbol "atom") mal-atom
+   (t/make-symbol "atom?") mal-atom?
+   (t/make-symbol "deref") mal-deref
+   (t/make-symbol "reset!") mal-reset!
+   (t/make-symbol "swap!") mal-swap!
+   (t/make-symbol "cons") mal-cons
+   (t/make-symbol "concat") mal-concat
+   (t/make-symbol "nth") mal-nth
+   (t/make-symbol "first") mal-first
+   (t/make-symbol "rest") mal-rest
+   (t/make-symbol "throw") mal-throw
+   (t/make-symbol "apply") mal-apply
+   (t/make-symbol "map") mal-map
+   (t/make-symbol "nil?") mal-nil?
+   (t/make-symbol "true?") mal-true?
+   (t/make-symbol "false?") mal-false?
+   (t/make-symbol "symbol?") mal-symbol?
+   (t/make-symbol "symbol") mal-symbol
+   (t/make-symbol "keyword") mal-keyword
+   (t/make-symbol "keyword?") mal-keyword?
+   (t/make-symbol "vector") mal-vector
+   (t/make-symbol "sequential?") mal-sequential?
+   (t/make-symbol "hash-map") mal-hash-map
+   (t/make-symbol "map?") mal-map?
+   (t/make-symbol "assoc") mal-assoc
+   (t/make-symbol "dissoc") mal-dissoc
+   (t/make-symbol "get") mal-get
+   (t/make-symbol "contains?") mal-contains?
+   (t/make-symbol "keys") mal-keys
+   (t/make-symbol "vals") mal-vals
+   (t/make-symbol "readline") mal-readline
+   (t/make-symbol "time-ms") mal-time-ms
+   (t/make-symbol "meta") mal-meta
+   (t/make-symbol "with-meta") mal-with-meta
+   (t/make-symbol "fn?") mal-fn?
+   (t/make-symbol "string?") mal-string?
+   (t/make-symbol "number?") mal-number?
+   (t/make-symbol "conj") mal-conj
+   (t/make-symbol "seq") mal-seq
+   (t/make-symbol "macro?") mal-macro?
+   (t/make-symbol "janet-eval") mal-janet-eval
 })

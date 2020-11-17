@@ -10,7 +10,7 @@
   (while (and (not found-amp)
               (< idx n-binds))
     (def c-bind (in binds idx))
-    (when (= (c-bind :content) "&")
+    (when (= (get-value c-bind) "&")
       (set found-amp true)
       (break))
     (++ idx))
@@ -45,4 +45,4 @@
   (if-let [goal-env (env-find env sym)]
     (get-in goal-env [:data sym])
     # XXX: would like to use throw* from core
-    (error (make-string (string "'" (sym :content) "'" " not found" )))))
+    (error (make-string (string "'" (get-value sym) "'" " not found" )))))

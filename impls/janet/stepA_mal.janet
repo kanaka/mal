@@ -1,6 +1,6 @@
 (import ./reader)
 (import ./printer :prefix "")
-(import ./types :prefix "")
+(import ./types :as t)
 (import ./env :prefix "")
 (import ./core)
 
@@ -16,21 +16,21 @@
 
 (defn is_macro_call
   [ast env]
-  (when (and (core/list?* ast)
-             (not (core/empty?* ast)))
-    (when-let [head-ast (in (ast :content) 0)]
-      (when (core/symbol?* head-ast)
-        (when (env-find env head-ast)
-          (let [target-ast (env-get env head-ast)]
-            (core/macro?* target-ast)))))))
+  (when (and (t/list?* ast)
+             (not (t/empty?* ast)))
+    (let [head-ast (in (t/get-value ast) 0)]
+      (when (and (t/symbol?* head-ast)
+                 (env-find env head-ast))
+        (let [target-ast (env-get env head-ast)]
+          (t/macro?* target-ast))))))
 
 (defn macroexpand
   [ast env]
   (var ast-var ast)
   (while (is_macro_call ast-var env)
-    (let [inner-asts (ast-var :content)
+    (let [inner-asts (t/get-value ast-var)
           head-ast (in inner-asts 0)
-          macro-fn ((env-get env head-ast) :content)
+          macro-fn (t/get-value (env-get env head-ast))
           args (drop 1 inner-asts)]
       (set ast-var (macro-fn args))))
   ast-var)
@@ -40,62 +40,62 @@
 (defn eval_ast
   [ast env]
   (cond
-    (core/symbol?* ast)
+    (t/symbol?* ast)
     (env-get env ast)
     #
-    (core/hash-map?* ast)
-    (make-hash-map (struct ;(map |(EVAL $0 env)
-                                 (kvs (ast :content)))))
+    (t/hash-map?* ast)
+    (t/make-hash-map (struct ;(map |(EVAL $0 env)
+                                   (kvs (t/get-value ast)))))
     #
-    (core/list?* ast)
-    (make-list (map |(EVAL $0 env)
-                    (ast :content)))
+    (t/list?* ast)
+    (t/make-list (map |(EVAL $0 env)
+                      (t/get-value ast)))
     #
-    (core/vector?* ast)
-    (make-vector (map |(EVAL $0 env)
-                      (ast :content)))
+    (t/vector?* ast)
+    (t/make-vector (map |(EVAL $0 env)
+                        (t/get-value ast)))
     #
     ast))
 
 (defn starts-with
   [ast name]
-  (when (and (core/list?* ast)
-             (not (core/empty?* ast)))
-    (let [head-ast (in (ast :content) 0)]
-      (and (core/symbol?* head-ast)
-           (= name (head-ast :content))))))
+  (when (and (t/list?* ast)
+             (not (t/empty?* ast)))
+    (let [head-ast (in (t/get-value ast) 0)]
+      (and (t/symbol?* head-ast)
+           (= name (t/get-value head-ast))))))
 
 (var quasiquote* nil)
 
 (defn qq-iter
   [ast]
-  (if (core/empty?* ast)
-    (make-list ())
-    (let [elt (in (ast :content) 0)
-          acc (qq-iter (make-list (slice (ast :content) 1)))]
+  (if (t/empty?* ast)
+    (t/make-list ())
+    (let [elt (in (t/get-value ast) 0)
+          acc (qq-iter (t/make-list (slice (t/get-value ast) 1)))]
       (if (starts-with elt "splice-unquote")
-        (make-list [(make-symbol "concat")
-                    (in (elt :content) 1)
-                    acc])
-        (make-list [(make-symbol "cons")
-                    (quasiquote* elt)
-                    acc])))))
+        (t/make-list [(t/make-symbol "concat")
+                      (in (t/get-value elt) 1)
+                      acc])
+        (t/make-list [(t/make-symbol "cons")
+                      (quasiquote* elt)
+                      acc])))))
 
 (varfn quasiquote*
   [ast]
   (cond
     (starts-with ast "unquote")
-    (in (ast :content) 1)
+    (in (t/get-value ast) 1)
     ##
-    (core/list?* ast)
+    (t/list?* ast)
     (qq-iter ast)
     ##
-    (core/vector?* ast)
-    (make-list [(make-symbol "vec") (qq-iter ast)])
+    (t/vector?* ast)
+    (t/make-list [(t/make-symbol "vec") (qq-iter ast)])
     ##
-    (or (core/symbol?* ast)
-        (core/hash-map?* ast))
-    (make-list [(make-symbol "quote") ast])
+    (or (t/symbol?* ast)
+        (t/hash-map?* ast))
+    (t/make-list [(t/make-symbol "quote") ast])
     ##
     ast))
 
@@ -105,116 +105,121 @@
   (var env env-param)
   (label result
     (while true
-      (when (not (core/list?* ast))
+      (when (not (t/list?* ast))
         (return result (eval_ast ast env)))
       ##
       (set ast (macroexpand ast env))
       ##
-      (when (not (core/list?* ast))
+      (when (not (t/list?* ast))
         (return result (eval_ast ast env)))
       ##
-      (when (core/empty?* ast)
+      (when (t/empty?* ast)
         (return result ast))
       ##
-      (let [ast-head (in (ast :content) 0)
-            head-name (ast-head :content)]
+      (let [ast-head (in (t/get-value ast) 0)
+            head-name (t/get-value ast-head)]
         (case head-name
           "def!"
-          (let [def-name (in (ast :content) 1)
-                def-val (EVAL (in (ast :content) 2) env)]
+          (let [def-name (in (t/get-value ast) 1)
+                def-val (EVAL (in (t/get-value ast) 2) env)]
             (env-set env
                      def-name def-val)
             (return result def-val))
           ##
           "defmacro!"
-          (let [def-name (in (ast :content) 1)
-                def-val (EVAL (in (ast :content) 2) env)
-                macro-ast (core/spawn-function def-val
-                                               {:is-macro true})]
+          (let [def-name (in (t/get-value ast) 1)
+                def-val (EVAL (in (t/get-value ast) 2) env)
+                macro-ast (t/macrofy def-val)]
             (env-set env
                      def-name macro-ast)
             (return result macro-ast))
           ##
           "macroexpand"
-          (return result (macroexpand (in (ast :content) 1) env))
+          (return result (macroexpand (in (t/get-value ast) 1) env))
           ##
           "let*"
           (let [new-env (make-env env)
-                bindings ((in (ast :content) 1) :content)]
+                bindings (t/get-value (in (t/get-value ast) 1))]
             (each [let-name let-val] (partition 2 bindings)
                   (env-set new-env
                            let-name (EVAL let-val new-env)))
             ## tco
-            (set ast (in (ast :content) 2))
+            (set ast (in (t/get-value ast) 2))
             (set env new-env))
           ##
           "quote"
-          (return result (in (ast :content) 1))
+          (return result (in (t/get-value ast) 1))
           ##
           "quasiquoteexpand"
           ## tco
-          (return result (quasiquote* (in (ast :content) 1)))
+          (return result (quasiquote* (in (t/get-value ast) 1)))
           ##
           "quasiquote"
           ## tco
-          (set ast (quasiquote* (in (ast :content) 1)))
+          (set ast (quasiquote* (in (t/get-value ast) 1)))
           ##
           "try*"
           (let [res
                 (try
-                  (EVAL (in (ast :content) 1) env)
+                  (EVAL (in (t/get-value ast) 1) env)
                   ([err]
-                   (if-let [maybe-catch-ast (get (ast :content) 2)]
-                     (if (not (starts-with maybe-catch-ast "catch*"))
-                       (make-exception err)
-                       (let [catch-asts (maybe-catch-ast :content)
-                             # XXX: assert appropriate length?
-                             catch-sym-ast (in catch-asts 1)
-                             catch-body-ast (in catch-asts 2)]
-                         (EVAL catch-body-ast (make-env env
-                                                        [catch-sym-ast]
-                                                        [err]))))
-                     (make-exception err))))]
+                   (if-let [maybe-catch-ast (get (t/get-value ast) 2)]
+                     (if (starts-with maybe-catch-ast "catch*")
+                       (let [catch-asts (t/get-value maybe-catch-ast)]
+                         (if (>= (length catch-asts) 2)
+                           (let [catch-sym-ast (in catch-asts 1)
+                                 catch-body-ast (in catch-asts 2)]
+                             (EVAL catch-body-ast (make-env env
+                                                            [catch-sym-ast]
+                                                            [err])))
+                           (t/make-exception
+                             (t/make-string
+                               "catch* requires at least 2 arguments"))))
+                       (t/make-exception
+                         (t/make-string
+                           "Expected catch* form")))
+                     # XXX: is this appropriate?  show error message?
+                     (t/make-exception err))))]
             (return result res))
           ##
           "do"
-          (let [most-do-body-forms (slice (ast :content) 1 -2)
-                last-body-form (last (ast :content))
-                res-ast (eval_ast (make-list most-do-body-forms) env)]
+          (let [most-do-body-forms (slice (t/get-value ast) 1 -2)
+                last-body-form (last (t/get-value ast))
+                res-ast (eval_ast (t/make-list most-do-body-forms) env)]
             ## tco
             (set ast last-body-form))
           ##
           "if"
-          (let [cond-res (EVAL (in (ast :content) 1) env)]
-            (if (or (core/nil?* cond-res)
-                    (core/false?* cond-res))
-              (if-let [else-ast (get (ast :content) 3)]
+          (let [cond-res (EVAL (in (t/get-value ast) 1) env)]
+            (if (or (t/nil?* cond-res)
+                    (t/false?* cond-res))
+              (if-let [else-ast (get (t/get-value ast) 3)]
                 ## tco
                 (set ast else-ast)
-                (return result (make-nil)))
+                (return result t/mal-nil))
               ## tco
-              (set ast (in (ast :content) 2))))
+              (set ast (in (t/get-value ast) 2))))
           ##
           "fn*"
-          (let [params ((in (ast :content) 1) :content)
-                body (in (ast :content) 2)]
+          (let [params (t/get-value (in (t/get-value ast) 1))
+                body (in (t/get-value ast) 2)]
             ## tco
             (return result
-              (make-function (fn [args]
-                               (EVAL body
-                                 (make-env env params args)))
-                             nil false
-                             body params env)))
+              (t/make-function (fn [args]
+                                 (EVAL body
+                                   (make-env env params args)))
+                               nil false
+                               body params env)))
           ##
-          (let [eval-list ((eval_ast ast env) :content)
+          (let [eval-list (t/get-value (eval_ast ast env))
                 f (first eval-list)
                 args (drop 1 eval-list)]
-            (if-let [body (f :ast)] ## tco
+            (if-let [body (t/get-ast f)] ## tco
               (do
                 (set ast body)
-                (set env (make-env (f :env) (f :params) args)))
+                (set env (make-env (t/get-env f) (t/get-params f) args)))
               (return result
-                ((f :content) args)))))))))
+                ((t/get-value f) args)))))))))
 
 (defn PRINT
   [ast]
@@ -228,14 +233,14 @@
         (try
           (EVAL ds repl_env)
           ([err]
-           (make-exception err)))))))
+           (t/make-exception err)))))))
 
 (rep "(def! not (fn* (a) (if a false true)))")
 
 (env-set repl_env
-         (make-symbol "eval")
-         (make-function (fn [asts]
-                          (EVAL (in asts 0) repl_env))))
+         (t/make-symbol "eval")
+         (t/make-function (fn [asts]
+                            (EVAL (in asts 0) repl_env))))
 
 (rep ``
   (def! load-file
@@ -259,8 +264,8 @@
 ``)
 
 (env-set repl_env
-         (make-symbol "*host-language*")
-         (make-string "janet"))
+         (t/make-symbol "*host-language*")
+         (t/make-string "janet"))
 
 # getline gives problems
 (defn getstdin [prompt buf]
@@ -275,8 +280,8 @@
                (drop 2 args)
                ())]
     (env-set repl_env
-             (make-symbol "*ARGV*")
-             (make-list (map make-string argv)))
+             (t/make-symbol "*ARGV*")
+             (t/make-list (map t/make-string argv)))
     (if (< 1 args-len)
       (rep
         (string "(load-file \"" (in args 1) "\")")) # XXX: escaping?

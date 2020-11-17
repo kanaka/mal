@@ -1,6 +1,6 @@
 (import ./reader)
 (import ./printer :prefix "")
-(import ./types :prefix "")
+(import ./types :as t)
 (import ./env :prefix "")
 (import ./core)
 
@@ -16,8 +16,8 @@
 
 (defn is_macro_call
   [ast env]
-  (when (and (core/list?* ast)
-             (not (core/empty?* ast)))
+  (when (and (t/list?* ast)
+             (not (t/empty?* ast)))
     (when-let [head-ast (in (ast :content) 0)]
       (when (= :symbol (head-ast :tag))
         (when (env-find env head-ast)
@@ -45,23 +45,23 @@
     (env-get env ast)
     #
     :hash-map
-    (make-hash-map (struct ;(map |(EVAL $0 env)
-                                 (kvs (ast :content)))))
+    (t/make-hash-map (struct ;(map |(EVAL $0 env)
+                                   (kvs (ast :content)))))
     #
     :list
-    (make-list (map |(EVAL $0 env)
-                    (ast :content)))
+    (t/make-list (map |(EVAL $0 env)
+                      (ast :content)))
     #
     :vector
-    (make-vector (map |(EVAL $0 env)
-                      (ast :content)))
+    (t/make-vector (map |(EVAL $0 env)
+                        (ast :content)))
     #
     ast))
 
 (defn starts-with
   [ast name]
-  (when (and (core/list?* ast)
-             (not (core/empty?* ast)))
+  (when (and (t/list?* ast)
+             (not (t/empty?* ast)))
     (let [head-ast (in (ast :content) 0)]
       (and (= :symbol (head-ast :tag))
            (= name (head-ast :content))))))
@@ -70,17 +70,17 @@
 
 (defn qq-iter
   [ast]
-  (if (core/empty?* ast)
-    (make-list ())
+  (if (t/empty?* ast)
+    (t/make-list ())
     (let [elt (in (ast :content) 0)
-          acc (qq-iter (make-list (slice (ast :content) 1)))]
+          acc (qq-iter (t/make-list (slice (ast :content) 1)))]
       (if (starts-with elt "splice-unquote")
-        (make-list [(make-symbol "concat")
-                    (in (elt :content) 1)
-                    acc])
-        (make-list [(make-symbol "cons")
-                    (quasiquote* elt)
-                    acc])))))
+        (t/make-list [(t/make-symbol "concat")
+                      (in (elt :content) 1)
+                      acc])
+        (t/make-list [(t/make-symbol "cons")
+                      (quasiquote* elt)
+                      acc])))))
 
 (varfn quasiquote*
   [ast]
@@ -88,15 +88,15 @@
     (starts-with ast "unquote")
     (in (ast :content) 1)
     ##
-    (core/list?* ast)
+    (t/list?* ast)
     (qq-iter ast)
     ##
-    (core/vector?* ast)
-    (make-list [(make-symbol "vec") (qq-iter ast)])
+    (t/vector?* ast)
+    (t/make-list [(t/make-symbol "vec") (qq-iter ast)])
     ##
     (or (= :symbol (ast :tag))
         (= :hash-map (ast :tag)))
-    (make-list [(make-symbol "quote") ast])
+    (t/make-list [(t/make-symbol "quote") ast])
     ##
     ast))
 
@@ -130,11 +130,11 @@
           "defmacro!"
           (let [def-name (in (ast :content) 1)
                 def-val (EVAL (in (ast :content) 2) env)
-                macro-ast (make-function (def-val :content)
-                                         (def-val :meta)
-                                         true
-                                         nil nil
-                                         (def-val :env))]
+                macro-ast (t/make-function (def-val :content)
+                                           (def-val :meta)
+                                           true
+                                           nil nil
+                                           (def-val :env))]
             (env-set env
                      def-name macro-ast)
             (return result macro-ast))
@@ -166,7 +166,7 @@
           "do"
           (let [most-do-body-forms (slice (ast :content) 1 -2)
                 last-body-form (last (ast :content))
-                res-ast (eval_ast (make-list most-do-body-forms) env)]
+                res-ast (eval_ast (t/make-list most-do-body-forms) env)]
             ## tco
             (set ast last-body-form))
           ##
@@ -180,7 +180,7 @@
               (if-let [else-ast (get (ast :content) 3)]
                 ## tco
                 (set ast else-ast)
-                (return result (make-nil)))
+                (return result t/mal-nil))
               ## tco
               (set ast (in (ast :content) 2))))
           ##
@@ -189,11 +189,11 @@
                 body (in (ast :content) 2)]
             ## tco
             (return result
-              (make-function (fn [args]
-                               (EVAL body
-                                 (make-env env params args)))
-                             nil false
-                             body params env)))
+              (t/make-function (fn [args]
+                                 (EVAL body
+                                   (make-env env params args)))
+                               nil false
+                               body params env)))
           ##
           (let [eval-list ((eval_ast ast env) :content)
                 f (first eval-list)
@@ -219,9 +219,9 @@
 (rep "(def! not (fn* (a) (if a false true)))")
 
 (env-set repl_env
-         (make-symbol "eval")
-         (make-function (fn [asts]
-                          (EVAL (in asts 0) repl_env))))
+         (t/make-symbol "eval")
+         (t/make-function (fn [asts]
+                            (EVAL (in asts 0) repl_env))))
 
 (rep ``
   (def! load-file
@@ -257,8 +257,8 @@
                (drop 2 args)
                ())]
     (env-set repl_env
-             (make-symbol "*ARGV*")
-             (make-list (map make-string argv)))
+             (t/make-symbol "*ARGV*")
+             (t/make-list (map t/make-string argv)))
     (if (< 1 args-len)
       (rep
         (string "(load-file \"" (in args 1) "\")")) # XXX: escaping?
