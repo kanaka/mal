@@ -1,70 +1,64 @@
-(import ./reader :prefix "")
-(import ./printer :prefix "")
-(import ./types :prefix "")
+(import ./reader)
+(import ./printer)
+(import ./types :as t)
 
 (defn READ
   [code-str]
-  (read_str code-str))
+  (reader/read_str code-str))
 
 (defn arith-fn
   [op]
   (fn [ast-1 ast-2]
-    {:tag :number
-     :content (op (ast-1 :content)
-                  (ast-2 :content))}))
+    (t/make-number (op (t/get-value ast-1)
+                       (t/get-value ast-2)))))
 
 (def repl_env
-  {"+" (arith-fn +)
-   "-" (arith-fn -)
-   "*" (arith-fn *)
-   "/" (arith-fn /)})
+  {(t/make-symbol "+") (arith-fn +)
+   (t/make-symbol "-") (arith-fn -)
+   (t/make-symbol "*") (arith-fn *)
+   (t/make-symbol "/") (arith-fn /)})
 
 (var EVAL nil)
 
 (defn eval_ast
   [ast env]
-  (case (ast :tag)
-    :symbol
-    (let [name (ast :content)
-          val (env name)]
-      (if val
-        val
-        (error (make-string (string "unbound symbol: " name)))))
+  (cond
+    (t/symbol?* ast)
+    (if-let [val (env ast)]
+      val
+      (error (t/make-string (string "unbound symbol: " (t/get-value ast)))))
     #
-    :hash-map
-    {:tag :hash-map
-     :content (struct ;(map |(EVAL $0 env)
-                            (kvs (ast :content))))}
+    (t/hash-map?* ast)
+    (t/make-hash-map (struct ;(map |(EVAL $0 env)
+                                   (kvs (t/get-value ast)))))
     #
-    :list
-    {:tag :list
-     :content (map |(EVAL $0 env)
-                   (ast :content))}
+    (t/list?* ast)
+    (t/make-list (map |(EVAL $0 env)
+                      (t/get-value ast)))
     #
-    :vector
-    {:tag :vector
-     :content (map |(EVAL $0 env)
-                   (ast :content))}
+    (t/vector?* ast)
+    (t/make-vector (map |(EVAL $0 env)
+                        (t/get-value ast)))
     #
     ast))
 
 (varfn EVAL
   [ast env]
   (cond
-    (not= :list (ast :tag))
+    (not (t/list?* ast))
     (eval_ast ast env)
     #
-    (empty? (ast :content))
+    (t/empty?* ast)
     ast
     #
-    (let [eval-list ((eval_ast ast env) :content)
-          head (first eval-list)
-          tail (drop 1 eval-list)]
-      (apply head tail))))
+    (let [eval-list (t/get-value (eval_ast ast env))
+          f (first eval-list)
+          args (drop 1 eval-list)]
+      (apply f args))))
 
 (defn PRINT
   [value]
-  (pr_str value true))
+  (printer/pr_str value true))
 
 (defn rep
   [code-str]

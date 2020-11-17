@@ -1,13 +1,13 @@
 (import ./reader)
-(import ./printer :prefix "")
-(import ./types :prefix "")
-(import ./env :prefix "")
+(import ./printer)
+(import ./types :as t)
+(import ./env :as e)
 (import ./core)
 
 (def repl_env
-  (let [env (make-env)]
+  (let [env (e/make-env)]
     (eachp [k v] core/ns
-      (env-set env k v))
+      (e/env-set env k v))
     env))
 
 (defn READ
@@ -18,91 +18,90 @@
 
 (defn eval_ast
   [ast env]
-  (case (ast :tag)
-    :symbol
-    (env-get env ast)
+  (cond
+    (t/symbol?* ast)
+    (e/env-get env ast)
     #
-    :hash-map
-    (make-hash-map (struct ;(map |(EVAL $0 env)
-                                 (kvs (ast :content)))))
+    (t/hash-map?* ast)
+    (t/make-hash-map (struct ;(map |(EVAL $0 env)
+                                   (kvs (t/get-value ast)))))
     #
-    :list
-    (make-list (map |(EVAL $0 env)
-                    (ast :content)))
+    (t/list?* ast)
+    (t/make-list (map |(EVAL $0 env)
+                      (t/get-value ast)))
     #
-    :vector
-    (make-vector (map |(EVAL $0 env)
-                      (ast :content)))
+    (t/vector?* ast)
+    (t/make-vector (map |(EVAL $0 env)
+                        (t/get-value ast)))
     #
     ast))
 
 (varfn EVAL
   [ast env]
   (cond
-    (not= :list (ast :tag))
+    (not (t/list?* ast))
     (eval_ast ast env)
     #
-    (empty? (ast :content))
+    (t/empty?* ast)
     ast
     #
-    (let [ast-head (in (ast :content) 0)
-          head-name (ast-head :content)]
+    (let [ast-head (first (t/get-value ast))
+          head-name (t/get-value ast-head)]
       (case head-name
         "def!"
-        (let [def-name (in (ast :content) 1)
-              def-val (EVAL (in (ast :content) 2) env)]
-          (env-set env
-                   def-name def-val)
+        (let [def-name (in (t/get-value ast) 1)
+              def-val (EVAL (in (t/get-value ast) 2) env)]
+          (e/env-set env
+                     def-name def-val)
           def-val)
         #
         "let*"
-        (let [new-env (make-env env)
-              bindings ((in (ast :content) 1) :content)]
+        (let [new-env (e/make-env env)
+              bindings (t/get-value (in (t/get-value ast) 1))]
           (each [let-name let-val] (partition 2 bindings)
-                (env-set new-env
-                         let-name (EVAL let-val new-env)))
-          (EVAL (in (ast :content) 2) new-env))
+                (e/env-set new-env
+                           let-name (EVAL let-val new-env)))
+          (EVAL (in (t/get-value ast) 2) new-env))
         #
         "do"
-        (let [do-body-forms (drop 1 (ast :content))
-              res-ast (eval_ast (make-list do-body-forms) env)]
-          (last (res-ast :content)))
+        (let [do-body-forms (drop 1 (t/get-value ast))
+              res-ast (eval_ast (t/make-list do-body-forms) env)]
+          (last (t/get-value res-ast)))
         #
         "if"
-        (let [cond-res (EVAL (in (ast :content) 1) env)
-              cond-type (cond-res :tag)
-              cond-val (cond-res :content)]
-          (if (or (= cond-type :nil)
-                  (and (= cond-type :boolean)
-                       (= cond-val "false")))
-            (if-let [else-ast (get (ast :content) 3)]
+        (let [cond-res (EVAL (in (t/get-value ast) 1) env)]
+          (if (or (t/nil?* cond-res)
+                  (t/false?* cond-res))
+            (if-let [else-ast (get (t/get-value ast) 3)]
               (EVAL else-ast env)
-              (make-nil))
-            (EVAL (in (ast :content) 2) env)))
+              t/mal-nil)
+            (EVAL (in (t/get-value ast) 2) env)))
         #
         "fn*"
-        (let [args ((in (ast :content) 1) :content)
-              body (in (ast :content) 2)]
-          (make-function (fn [params]
-                           (EVAL body
-                                 (make-env env args params)))))
+        (let [args (t/get-value (in (t/get-value ast) 1))
+              body (in (t/get-value ast) 2)]
+          (t/make-function (fn [params]
+                             (EVAL body
+                                   (e/make-env env args params)))))
         #
-        (let [eval-list ((eval_ast ast env) :content)
-              head (first eval-list)
-              tail (drop 1 eval-list)]
-          ((head :content) tail))
-        ))))
+        (let [eval-list (t/get-value (eval_ast ast env))
+              f (first eval-list)
+              args (drop 1 eval-list)]
+          ((t/get-value f) args))))))
 
 (defn PRINT
   [ast]
-  (pr_str ast true))
+  (printer/pr_str ast true))
 
 (defn rep
   [code-str]
   (let [ds (READ code-str)]
     (when ds
       (PRINT
-        (EVAL ds repl_env)))))
+        (try
+          (EVAL ds repl_env)
+          ([err]
+           (t/make-exception err)))))))
 
 (rep "(def! not (fn* (a) (if a false true)))")
 

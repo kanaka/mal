@@ -1,13 +1,13 @@
 (import ./reader)
-(import ./printer :prefix "")
+(import ./printer)
 (import ./types :as t)
-(import ./env :prefix "")
+(import ./env :as e)
 (import ./core)
 
 (def repl_env
-  (let [env (make-env)]
+  (let [env (e/make-env)]
     (eachp [k v] core/ns
-      (env-set env k v))
+      (e/env-set env k v))
     env))
 
 (defn READ
@@ -20,8 +20,8 @@
              (not (t/empty?* ast)))
     (let [head-ast (in (t/get-value ast) 0)]
       (when (and (t/symbol?* head-ast)
-                 (env-find env head-ast))
-        (let [target-ast (env-get env head-ast)]
+                 (e/env-find env head-ast))
+        (let [target-ast (e/env-get env head-ast)]
           (t/macro?* target-ast))))))
 
 (defn macroexpand
@@ -30,7 +30,7 @@
   (while (is_macro_call ast-var env)
     (let [inner-asts (t/get-value ast-var)
           head-ast (in inner-asts 0)
-          macro-fn (t/get-value (env-get env head-ast))
+          macro-fn (t/get-value (e/env-get env head-ast))
           args (drop 1 inner-asts)]
       (set ast-var (macro-fn args))))
   ast-var)
@@ -41,7 +41,7 @@
   [ast env]
   (cond
     (t/symbol?* ast)
-    (env-get env ast)
+    (e/env-get env ast)
     #
     (t/hash-map?* ast)
     (t/make-hash-map (struct ;(map |(EVAL $0 env)
@@ -122,27 +122,27 @@
           "def!"
           (let [def-name (in (t/get-value ast) 1)
                 def-val (EVAL (in (t/get-value ast) 2) env)]
-            (env-set env
-                     def-name def-val)
+            (e/env-set env
+                       def-name def-val)
             (return result def-val))
           ##
           "defmacro!"
           (let [def-name (in (t/get-value ast) 1)
                 def-val (EVAL (in (t/get-value ast) 2) env)
                 macro-ast (t/macrofy def-val)]
-            (env-set env
-                     def-name macro-ast)
+            (e/env-set env
+                       def-name macro-ast)
             (return result macro-ast))
           ##
           "macroexpand"
           (return result (macroexpand (in (t/get-value ast) 1) env))
           ##
           "let*"
-          (let [new-env (make-env env)
+          (let [new-env (e/make-env env)
                 bindings (t/get-value (in (t/get-value ast) 1))]
             (each [let-name let-val] (partition 2 bindings)
-                  (env-set new-env
-                           let-name (EVAL let-val new-env)))
+                  (e/env-set new-env
+                             let-name (EVAL let-val new-env)))
             ## tco
             (set ast (in (t/get-value ast) 2))
             (set env new-env))
@@ -169,9 +169,9 @@
                          (if (>= (length catch-asts) 2)
                            (let [catch-sym-ast (in catch-asts 1)
                                  catch-body-ast (in catch-asts 2)]
-                             (EVAL catch-body-ast (make-env env
-                                                            [catch-sym-ast]
-                                                            [err])))
+                             (EVAL catch-body-ast (e/make-env env
+                                                              [catch-sym-ast]
+                                                              [err])))
                            (t/make-exception
                              (t/make-string
                                "catch* requires at least 2 arguments"))))
@@ -207,7 +207,7 @@
             (return result
               (t/make-function (fn [args]
                                  (EVAL body
-                                   (make-env env params args)))
+                                   (e/make-env env params args)))
                                nil false
                                body params env)))
           ##
@@ -217,13 +217,13 @@
             (if-let [body (t/get-ast f)] ## tco
               (do
                 (set ast body)
-                (set env (make-env (t/get-env f) (t/get-params f) args)))
+                (set env (e/make-env (t/get-env f) (t/get-params f) args)))
               (return result
                 ((t/get-value f) args)))))))))
 
 (defn PRINT
   [ast]
-  (pr_str ast true))
+  (printer/pr_str ast true))
 
 (defn rep
   [code-str]
@@ -237,10 +237,10 @@
 
 (rep "(def! not (fn* (a) (if a false true)))")
 
-(env-set repl_env
-         (t/make-symbol "eval")
-         (t/make-function (fn [asts]
-                            (EVAL (in asts 0) repl_env))))
+(e/env-set repl_env
+           (t/make-symbol "eval")
+           (t/make-function (fn [asts]
+                              (EVAL (in asts 0) repl_env))))
 
 (rep ``
   (def! load-file
@@ -263,9 +263,9 @@
               (cons 'cond (rest (rest xs)))))))
 ``)
 
-(env-set repl_env
-         (t/make-symbol "*host-language*")
-         (t/make-string "janet"))
+(e/env-set repl_env
+           (t/make-symbol "*host-language*")
+           (t/make-string "janet"))
 
 # getline gives problems
 (defn getstdin [prompt buf]
@@ -279,9 +279,9 @@
         argv (if (<= 2 args-len)
                (drop 2 args)
                ())]
-    (env-set repl_env
-             (t/make-symbol "*ARGV*")
-             (t/make-list (map t/make-string argv)))
+    (e/env-set repl_env
+               (t/make-symbol "*ARGV*")
+               (t/make-list (map t/make-string argv)))
     (if (< 1 args-len)
       (rep
         (string "(load-file \"" (in args 1) "\")")) # XXX: escaping?

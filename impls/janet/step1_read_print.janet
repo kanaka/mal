@@ -1,9 +1,9 @@
-(import ./reader :prefix "")
-(import ./printer :prefix "")
+(import ./reader)
+(import ./printer)
 
 (defn READ
   [code-str]
-  (read_str code-str))
+  (reader/read_str code-str))
 
 (defn EVAL
   [ast]
@@ -11,7 +11,7 @@
 
 (defn PRINT
   [value]
-  (pr_str value true))
+  (printer/pr_str value true))
 
 (defn rep
   [code-str]

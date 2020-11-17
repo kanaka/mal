@@ -7,8 +7,8 @@
   ast)
 
 (defn PRINT
-  [value]
-  value)
+  [ast]
+  ast)
 
 (defn rep
   [code-str]

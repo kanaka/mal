@@ -1,83 +1,83 @@
-(import ./reader :prefix "")
-(import ./printer :prefix "")
-(import ./types :prefix "")
-(import ./env :prefix "")
+(import ./reader)
+(import ./printer)
+(import ./types :as t)
+(import ./env :as e)
 
 (defn READ
   [code-str]
-  (read_str code-str))
+  (reader/read_str code-str))
 
 (defn arith-fn
   [op]
   (fn [ast-1 ast-2]
-    (make-number (op (ast-1 :content)
-                     (ast-2 :content)))))
+    (t/make-number (op (t/get-value ast-1)
+                       (t/get-value ast-2)))))
 
 (def repl_env
-  (let [env (make-env)]
-    (env-set env (make-symbol "+") (arith-fn +))
-    (env-set env (make-symbol "-") (arith-fn -))
-    (env-set env (make-symbol "*") (arith-fn *))
-    (env-set env (make-symbol "/") (arith-fn /))
+  (let [env (e/make-env)]
+    (e/env-set env (t/make-symbol "+") (arith-fn +))
+    (e/env-set env (t/make-symbol "-") (arith-fn -))
+    (e/env-set env (t/make-symbol "*") (arith-fn *))
+    (e/env-set env (t/make-symbol "/") (arith-fn /))
     env))
 
 (var EVAL nil)
 
 (defn eval_ast
   [ast env]
-  (case (ast :tag)
-    :symbol
-    (env-get env ast)
+  (cond
+    (t/symbol?* ast)
+    (e/env-get env ast)
     #
-    :hash-map
-    (make-hash-map (struct ;(map |(EVAL $0 env)
-                                 (kvs (ast :content)))))
+    (t/hash-map?* ast)
+    (t/make-hash-map (struct ;(map |(EVAL $0 env)
+                                   (kvs (t/get-value ast)))))
     #
-    :list
-    (make-list (map |(EVAL $0 env)
-                    (ast :content)))
+    (t/list?* ast)
+    (t/make-list (map |(EVAL $0 env)
+                      (t/get-value ast)))
     #
-    :vector
-    (make-vector (map |(EVAL $0 env)
-                      (ast :content)))
+    (t/vector?* ast)
+    (t/make-vector (map |(EVAL $0 env)
+                        (t/get-value ast)))
     #
     ast))
 
 (varfn EVAL
   [ast env]
   (cond
-    (not= :list (ast :tag))
+    (not (t/list?* ast))
     (eval_ast ast env)
     #
-    (empty? (ast :content))
+    (t/empty?* ast)
     ast
     #
-    (let [ast-head (first (ast :content))
-          head-name (ast-head :content)]
+    (let [ast-head (first (t/get-value ast))
+          head-name (t/get-value ast-head)]
       (case head-name
         "def!"
-        (let [def-name (in (ast :content) 1)
-              def-val (EVAL (in (ast :content) 2) env)]
-          (env-set env
-                   def-name def-val)
+        (let [def-name (in (t/get-value ast) 1)
+              def-val (EVAL (in (t/get-value ast) 2) env)]
+          (e/env-set env
+                     def-name def-val)
           def-val)
         #
         "let*"
-        (let [new-env (make-env env)
-              bindings ((in (ast :content) 1) :content)]
+        (let [new-env (e/make-env env)
+              bindings (t/get-value (in (t/get-value ast) 1))]
           (each [let-name let-val] (partition 2 bindings)
-                (env-set new-env
-                         let-name (EVAL let-val new-env)))
-          (EVAL (in (ast :content) 2) new-env))
+                (e/env-set new-env
+                           let-name (EVAL let-val new-env)))
+          (EVAL (in (t/get-value ast) 2) new-env))
         #
-        (let [eval-list ((eval_ast ast env) :content)
-              head (first eval-list)
-              tail (drop 1 eval-list)]
-          (apply head tail))))))
+        (let [eval-list (t/get-value (eval_ast ast env))
+              f (first eval-list)
+              args (drop 1 eval-list)]
+          (apply f args))))))
 
 (defn PRINT
   [value]
-  (pr_str value true))
+  (printer/pr_str value true))
 
 (defn rep
   [code-str]
@@ -87,7 +87,7 @@
         (try
           (EVAL ds repl_env)
           ([err]
-           (make-exception err)))))))
+           (t/make-exception err)))))))
 
 # getline gives problems
 (defn getstdin [prompt buf]
