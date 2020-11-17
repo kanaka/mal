@@ -19,11 +19,10 @@
   (when (and (core/list?* ast)
              (not (core/empty?* ast)))
     (when-let [head-ast (in (ast :content) 0)]
-      (when (= :symbol (head-ast :tag))
+      (when (core/symbol?* head-ast)
         (when (env-find env head-ast)
           (let [target-ast (env-get env head-ast)]
-            (and (= :function (target-ast :tag))
-                 (target-ast :is-macro))))))))
+            (core/macro?* target-ast)))))))
 
 (defn macroexpand
   [ast env]
@@ -40,19 +39,19 @@
 
 (defn eval_ast
   [ast env]
-  (case (ast :tag)
-    :symbol
+  (cond
+    (core/symbol?* ast)
     (env-get env ast)
     #
-    :hash-map
+    (core/hash-map?* ast)
     (make-hash-map (struct ;(map |(EVAL $0 env)
                                  (kvs (ast :content)))))
     #
-    :list
+    (core/list?* ast)
     (make-list (map |(EVAL $0 env)
                     (ast :content)))
     #
-    :vector
+    (core/vector?* ast)
     (make-vector (map |(EVAL $0 env)
                       (ast :content)))
     #
@@ -63,7 +62,7 @@
   (when (and (core/list?* ast)
              (not (core/empty?* ast)))
     (let [head-ast (in (ast :content) 0)]
-      (and (= :symbol (head-ast :tag))
+      (and (core/symbol?* head-ast)
            (= name (head-ast :content))))))
 
 (var quasiquote* nil)
@@ -94,8 +93,8 @@
     (core/vector?* ast)
     (make-list [(make-symbol "vec") (qq-iter ast)])
     ##
-    (or (= :symbol (ast :tag))
-        (= :hash-map (ast :tag)))
+    (or (core/symbol?* ast)
+        (core/hash-map?* ast))
     (make-list [(make-symbol "quote") ast])
     ##
     ast))
@@ -106,15 +105,15 @@
   (var env env-param)
   (label result
     (while true
-      (when (not= :list (ast :tag))
+      (when (not (core/list?* ast))
         (return result (eval_ast ast env)))
       ##
       (set ast (macroexpand ast env))
       ##
-      (when (not= :list (ast :tag))
+      (when (not (core/list?* ast))
         (return result (eval_ast ast env)))
       ##
-      (when (empty? (ast :content))
+      (when (core/empty?* ast)
         (return result ast))
       ##
       (let [ast-head (in (ast :content) 0)
@@ -186,12 +185,9 @@
             (set ast last-body-form))
           ##
           "if"
-          (let [cond-res (EVAL (in (ast :content) 1) env)
-                cond-type (cond-res :tag)
-                cond-val (cond-res :content)]
-            (if (or (= cond-type :nil)
-                    (and (= cond-type :boolean)
-                         (= cond-val "false")))
+          (let [cond-res (EVAL (in (ast :content) 1) env)]
+            (if (or (core/nil?* cond-res)
+                    (core/false?* cond-res))
               (if-let [else-ast (get (ast :content) 3)]
                 ## tco
                 (set ast else-ast)
