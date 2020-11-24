@@ -93,6 +93,14 @@
   [ast]
   (= :hash-map (. ast :tag)))
 
+;;
+
+(fn empty?*
+  [ast]
+  (when (or (list?* ast)
+            (vector?* ast))
+    (= (length (get-value ast)) 0)))
+
 {
  :make-nil make-nil
  :make-boolean make-boolean
@@ -108,6 +116,8 @@
  :mal-true mal-true
  :mal-false mal-false
  ;;
+ :get-value get-value
+ ;;
  :nil?* nil?*
  :boolean?* boolean?*
  :number?* number?*
@@ -118,5 +128,5 @@
  :vector?* vector?*
  :hash-map?* hash-map?*
  ;;
- :get-value get-value
+ :empty?* empty?*
 }
