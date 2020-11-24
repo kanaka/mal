@@ -1,4 +1,5 @@
-(import ./types :prefix "")
+(import ./types :as t)
+(import ./utils :as u)
 
 (defn make-env
   [&opt outer binds exprs]
@@ -10,7 +11,7 @@
   (while (and (not found-amp)
               (< idx n-binds))
     (def c-bind (in binds idx))
-    (when (= (get-value c-bind) "&")
+    (when (= (t/get-value c-bind) "&")
       (set found-amp true)
       (break))
     (++ idx))
@@ -22,7 +23,7 @@
   (def new-exprs
     (if found-amp
       (array/concat (array ;(slice exprs 0 idx))
-                    (array (make-list (slice exprs idx))))
+                    (array (t/make-list (slice exprs idx))))
       exprs))
   # XXX: would length mismatches of new-binds / new-exprs ever be an issue?
   @{:data (zipcoll new-binds new-exprs)
@@ -44,5 +45,6 @@
   [env sym]
   (if-let [goal-env (env-find env sym)]
     (get-in goal-env [:data sym])
-    # XXX: would like to use throw* from core
-    (error (make-string (string "'" (get-value sym) "'" " not found" )))))
+    (u/throw*
+      (t/make-string
+        (string "'" (t/get-value sym) "'" " not found" )))))

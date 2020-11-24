@@ -203,10 +203,7 @@
 
 (defn rep
   [code-str]
-  (let [ds (READ code-str)]
-    (when ds
-      (PRINT
-        (EVAL ds repl_env)))))
+  (PRINT (EVAL (READ code-str) repl_env)))
 
 (rep "(def! not (fn* (a) (if a false true)))")
 
@@ -242,6 +239,17 @@
   (file/flush stdout)
   (file/read stdin :line buf))
 
+(defn handle-error
+  [err]
+  (cond
+    (t/nil?* err)
+    (print)
+    ##
+    (string? err)
+    (print err)
+    ##
+    (print (string "Error: " (PRINT err)))))
+
 (defn main
   [& args]
   (let [args-len (length args)
@@ -252,8 +260,11 @@
                (t/make-symbol "*ARGV*")
                (t/make-list (map t/make-string argv)))
     (if (< 1 args-len)
-      (rep
-        (string "(load-file \"" (in args 1) "\")")) # XXX: escaping?
+      (try
+        (rep
+          (string "(load-file \"" (in args 1) "\")")) # XXX: escaping?
+        ([err]
+         (handle-error err)))
       (do
         (var buf nil)
         (while true
@@ -264,4 +275,4 @@
             (try
               (print (rep buf))
               ([err]
-               (print err)))))))))
+               (handle-error err)))))))))

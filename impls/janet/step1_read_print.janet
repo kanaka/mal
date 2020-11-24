@@ -1,5 +1,6 @@
 (import ./reader)
 (import ./printer)
+(import ./types :as t)
 
 (defn READ
   [code-str]
@@ -15,15 +16,24 @@
 
 (defn rep
   [code-str]
-  (let [ds (READ code-str)]
-    (when ds
-      (PRINT (EVAL ds)))))
+  (PRINT (EVAL (READ code-str))))
 
 # getline gives problems
 (defn getstdin [prompt buf]
   (file/write stdout prompt)
   (file/flush stdout)
   (file/read stdin :line buf))
+
+(defn handle-error
+  [err]
+  (cond
+    (t/nil?* err)
+    (print)
+    ##
+    (string? err)
+    (print err)
+    ##
+    (print (string "Error: " (PRINT err)))))
 
 (defn main
   [& args]
@@ -36,4 +46,4 @@
       (try
         (print (rep buf))
         ([err]
-         (print err))))))
+         (handle-error err))))))

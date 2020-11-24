@@ -114,10 +114,7 @@
 
 (defn rep
   [code-str]
-  (let [ds (READ code-str)]
-    (when ds
-      (PRINT
-        (EVAL ds repl_env)))))
+  (PRINT (EVAL (READ code-str) repl_env)))
 
 (rep "(def! not (fn* (a) (if a false true)))")
 
@@ -126,6 +123,17 @@
   (file/write stdout prompt)
   (file/flush stdout)
   (file/read stdin :line buf))
+
+(defn handle-error
+  [err]
+  (cond
+    (t/nil?* err)
+    (print)
+    ##
+    (string? err)
+    (print err)
+    ##
+    (print (string "Error: " (PRINT err)))))
 
 (defn main
   [& args]
@@ -138,4 +146,4 @@
       (try
         (print (rep buf))
         ([err]
-         (print err))))))
+         (handle-error err))))))

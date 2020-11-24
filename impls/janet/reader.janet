@@ -1,3 +1,6 @@
+(import ./types :as t)
+(import ./utils :as u)
+
 (def grammar
   ~{:main (capture (some :input))
     :input (choice :gap :form)
@@ -281,13 +284,10 @@
         (try
           (peg/match enlive-grammar code-str)
           ([err]
-           # XXX
-           [{:tag :exception
-             :content {:tag :string
-                       :content err}}
-            "peg/match exception"]))]
-    (when (= (type parsed) :struct)
-      parsed)))
+           (u/throw* (t/make-string err))))]
+    (if (= (type parsed) :struct)
+      parsed
+      (u/throw* t/mal-nil))))
 
 (comment
 
