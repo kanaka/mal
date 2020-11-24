@@ -2,9 +2,33 @@
 (local u (require :utils))
 
 (fn make-env
-  [outer]
+  [outer binds exprs]
+  (local tbl {})
+  (when binds
+    (local n-binds (length binds))
+    (var found-amp false)
+    (var i 1)
+    (while (and (not found-amp)
+                (<= i n-binds))
+      (local c-bind (. binds i))
+      (if (= (t.get-value c-bind) "&")
+          (set found-amp true)
+          (set i (+ i 1))))
+    (if (not found-amp)
+        (for [j 1 n-binds]
+          (tset tbl
+                (t.get-value (. binds j))
+                (. exprs j)))
+        (do ; houston, there was an ampersand
+          (for [j 1 (- i 1)] ; things before &
+            (tset tbl
+                  (t.get-value (. binds j))
+                  (. exprs j)))
+          (tset tbl ; after &, put things in a list
+                (t.get-value (. binds (+ i 1)))
+                (t.make-list (u.slice exprs i -1))))))
   {:outer outer
-   :data {}})
+   :data tbl})
 
 (fn env-set
   [env sym-ast val-ast]
