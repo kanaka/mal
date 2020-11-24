@@ -195,6 +195,39 @@
             ;;
             (u.throw* (t.make-string "vec takes a vector, list, or nil")))))))
 
+(local mal-nth
+  (t.make-fn
+    (fn [asts]
+      (when (< (length asts) 2)
+        (u.throw* (t.make-string "nth takes 2 arguments")))
+      (let [elts (t.get-value (. asts 1))
+            i (t.get-value (. asts 2))]
+        (if (< i (length elts))
+            (. elts (+ i 1))
+            (u.throw* (t.make-string (.. "Index out of range: " i))))))))
+
+(local mal-first
+  (t.make-fn
+    (fn [asts]
+      (when (< (length asts) 1)
+        (u.throw* (t.make-string "first takes 1 argument")))
+      (let [coll-or-nil-ast (. asts 1)]
+        (if (or (t.nil?* coll-or-nil-ast)
+                (t.empty?* coll-or-nil-ast))
+            t.mal-nil
+            (. (t.get-value coll-or-nil-ast) 1))))))
+
+(local mal-rest
+  (t.make-fn
+    (fn [asts]
+      (when (< (length asts) 1)
+        (u.throw* (t.make-string "rest takes 1 argument")))
+      (let [coll-or-nil-ast (. asts 1)]
+        (if (or (t.nil?* coll-or-nil-ast)
+                (t.empty?* coll-or-nil-ast))
+            (t.make-list [])
+            (t.make-list (u.slice (t.get-value coll-or-nil-ast) 2 -1)))))))
+
 {"+" (t.make-fn (fn [asts]
                   (var total 0)
                   (each [i val (ipairs asts)]
@@ -270,4 +303,7 @@
  "cons" mal-cons
  "concat" mal-concat
  "vec" mal-vec
+ "nth" mal-nth
+ "first" mal-first
+ "rest" mal-rest
 }

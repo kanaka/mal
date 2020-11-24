@@ -46,12 +46,14 @@
    :content elts})
 
 (fn make-fn
-  [a-fn ast params env]
+  [a-fn ast params env is-macro]
+  (local is-macro (if is-macro is-macro false))
   {:tag :fn
    :content a-fn
    :ast ast
    :params params
-   :env env})
+   :env env
+   :is-macro is-macro})
 
 (fn make-atom
   [ast]
@@ -61,6 +63,36 @@
 (local mal-true (make-boolean true))
 
 (local mal-false (make-boolean false))
+
+;;
+
+(fn get-value
+  [ast]
+  (. ast :content))
+
+(fn get-type
+  [ast]
+  (. ast :tag))
+
+;;
+
+(fn get-is-macro
+  [ast]
+  (. ast :is-macro))
+
+(fn get-ast
+  [ast]
+  (. ast :ast))
+
+(fn get-params
+  [ast]
+  (. ast :params))
+
+(fn get-env
+  [ast]
+  (. ast :env))
+
+;;
 
 (fn nil?*
   [ast]
@@ -106,29 +138,21 @@
   [ast]
   (= :atom (. ast :tag)))
 
-;;
-
-(fn get-value
+(fn macro?*
   [ast]
-  (. ast :content))
-
-(fn get-type
-  [ast]
-  (. ast :tag))
+  (and (fn?* ast)
+       (get-is-macro ast)))
 
 ;;
 
-(fn get-ast
-  [ast]
-  (. ast :ast))
-
-(fn get-params
-  [ast]
-  (. ast :params))
-
-(fn get-env
-  [ast]
-  (. ast :env))
+(fn macrofy
+  [fn-ast]
+  (local macro-ast {})
+  (each [k v (pairs fn-ast)]
+    (tset macro-ast k v))
+  (tset macro-ast
+        :is-macro true)
+  macro-ast)
 
 ;;
 
@@ -241,6 +265,12 @@
  :mal-true mal-true
  :mal-false mal-false
  ;;
+ :get-value get-value
+ :get-is-macro get-is-macro
+ :get-ast get-ast
+ :get-params get-params
+ :get-env get-env
+ ;;
  :nil?* nil?*
  :boolean?* boolean?*
  :number?* number?*
@@ -252,11 +282,9 @@
  :hash-map?* hash-map?*
  :fn?* fn?*
  :atom?* atom?*
+ :macro?* macro?*
  ;;
- :get-value get-value
- :get-ast get-ast
- :get-params get-params
- :get-env get-env
+ :macrofy macrofy
  ;;
  :set-atom-value! set-atom-value!
  :deref* deref*
