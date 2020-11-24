@@ -159,6 +159,42 @@
         (t.reset!* atom-ast
                    ((t.get-value fn-ast) args-tbl))))))
 
+(local mal-cons
+  (t.make-fn
+    (fn [asts]
+      (when (< (length asts) 2)
+        (u.throw* (t.make-string "cons takes 2 arguments")))
+      (let [head-ast (. asts 1)
+            tail-ast (. asts 2)]
+        (t.make-list [head-ast
+                      (table.unpack (t.get-value tail-ast))])))))
+
+(local mal-concat
+  (t.make-fn
+    (fn [asts]
+      (local acc [])
+      (for [i 1 (length asts)]
+         (each [j elt (ipairs (t.get-value (. asts i)))]
+           (table.insert acc elt)))
+      (t.make-list acc))))
+
+(local mal-vec
+  (t.make-fn
+    (fn [asts]
+      (when (< (length asts) 1)
+        (u.throw* (t.make-string "vec takes 1 argument")))
+      (let [ast (. asts 1)]
+        (if (t.vector?* ast)
+            ast
+            ;;
+            (t.list?* ast)
+            (t.make-vector (t.get-value ast))
+            ;;
+            (t.nil?* ast)
+            (t.make-vector [])
+            ;;
+            (u.throw* (t.make-string "vec takes a vector, list, or nil")))))))
+
 {"+" (t.make-fn (fn [asts]
                   (var total 0)
                   (each [i val (ipairs asts)]
@@ -231,4 +267,7 @@
  "deref" mal-deref
  "reset!" mal-reset!
  "swap!" mal-swap!
+ "cons" mal-cons
+ "concat" mal-concat
+ "vec" mal-vec
 }
