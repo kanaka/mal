@@ -228,6 +228,305 @@
             (t.make-list [])
             (t.make-list (u.slice (t.get-value coll-or-nil-ast) 2 -1)))))))
 
+(local mal-throw
+  (t.make-fn
+    (fn [asts]
+      (when (< (length asts) 1)
+        (u.throw* (t.make-string "throw takes 1 argument")))
+      (u.throw* (. asts 1)))))
+
+;; (apply F A B [C D]) is equivalent to (F A B C D)
+(local mal-apply
+  (t.make-fn
+    (fn [asts]
+      (let [n-asts (length asts)]
+        (when (< n-asts 1)
+          (u.throw* (t.make-string "apply takes at least 1 argument")))
+        (let [the-fn (t.get-value (. asts 1))] ; e.g. F
+          (if (= n-asts 1)
+              (the-fn [])
+              (= n-asts 2)
+              (the-fn [(table.unpack (t.get-value (. asts 2)))])
+              (let [args-asts (u.slice asts 2 -2) ; e.g. [A B]
+                    last-asts (t.get-value (u.last asts)) ; e.g. [C D]
+                    fn-args-tbl []]
+                (each [i elt (ipairs args-asts)]
+                  (table.insert fn-args-tbl elt))
+                (each [i elt (ipairs last-asts)]
+                  (table.insert fn-args-tbl elt))
+                (the-fn fn-args-tbl))))))))
+
+(local mal-map
+  (t.make-fn
+    (fn [asts]
+      (when (< (length asts) 2)
+        (u.throw* (t.make-string "map takes at least 2 arguments")))
+      (let [the-fn (t.get-value (. asts 1))
+            coll (t.get-value (. asts 2))]
+        (t.make-list (u.map #(the-fn [$]) coll))))))
+
+(local mal-nil?
+  (t.make-fn
+    (fn [asts]
+      (when (< (length asts) 1)
+        (u.throw* (t.make-string "nil? takes 1 argument")))
+      (if (t.nil?* (. asts 1))
+          t.mal-true
+          t.mal-false))))
+
+(local mal-true?
+  (t.make-fn
+    (fn [asts]
+      (when (< (length asts) 1)
+        (u.throw* (t.make-string "true? takes 1 argument")))
+      (if (t.true?* (. asts 1))
+        t.mal-true
+        t.mal-false))))
+
+(local mal-false?
+  (t.make-fn
+    (fn [asts]
+      (when (< (length asts) 1)
+        (u.throw* (t.make-string "false? takes 1 argument")))
+      (if (t.false?* (. asts 1))
+        t.mal-true
+        t.mal-false))))
+
+(local mal-symbol?
+  (t.make-fn
+    (fn [asts]
+      (when (< (length asts) 1)
+        (u.throw* (t.make-string "symbol? takes 1 argument")))
+      (if (t.symbol?* (. asts 1))
+        t.mal-true
+        t.mal-false))))
+
+(local mal-symbol
+  (t.make-fn
+    (fn [asts]
+      (when (< (length asts) 1)
+        (u.throw* (t.make-string "symbol takes 1 argument")))
+      ;; XXX: check that type is string?
+      (t.make-symbol (t.get-value (. asts 1))))))
+
+(local mal-keyword
+  (t.make-fn
+    (fn [asts]
+      (when (< (length asts) 1)
+        (u.throw* (t.make-string "keyword takes 1 argument")))
+      (let [arg-ast (. asts 1)]
+        (if (t.keyword?* arg-ast)
+            arg-ast
+            ;;
+            (t.string?* arg-ast)
+            (t.make-keyword (.. ":" (t.get-value arg-ast)))
+            ;;
+            (u.throw* (t.make-string "Expected string")))))))
+
+(local mal-keyword?
+  (t.make-fn
+    (fn [asts]
+      (when (< (length asts) 1)
+        (u.throw* (t.make-string "keyword? takes 1 argument")))
+      (if (t.keyword?* (. asts 1))
+          t.mal-true
+          t.mal-false))))
+
+(local mal-vector
+  (t.make-fn
+    (fn [asts]
+      (t.make-vector asts))))
+
+(local mal-vector?
+  (t.make-fn
+    (fn [asts]
+      (when (< (length asts) 1)
+        (u.throw* (t.make-string "vector? takes 1 argument")))
+      (if (t.vector?* (. asts 1))
+          t.mal-true
+          t.mal-false))))
+
+(local mal-sequential?
+  (t.make-fn
+    (fn [asts]
+      (when (< (length asts) 1)
+        (u.throw* (t.make-string "sequential? takes 1 argument")))
+      (if (or (t.list?* (. asts 1))
+              (t.vector?* (. asts 1)))
+          t.mal-true
+          t.mal-false))))
+
+(local mal-map?
+  (t.make-fn
+    (fn [asts]
+      (when (< (length asts) 1)
+        (u.throw* (t.make-string "map? takes 1 argument")))
+      (if (t.hash-map?* (. asts 1))
+          t.mal-true
+          t.mal-false))))
+
+(local mal-hash-map
+  (t.make-fn
+    (fn [asts]
+      (when (= 1 (% (length asts) 2))
+        (u.throw* (t.make-string
+                   "hash-map takes an even number of arguments")))
+      (t.make-hash-map asts))))
+
+(local mal-assoc
+  (t.make-fn
+    (fn [asts]
+      (when (< (length asts) 3)
+        (u.throw* (t.make-string "assoc takes at least 3 arguments")))
+      (let [head-ast (. asts 1)]
+        (when (not (or (t.hash-map?* head-ast)
+                       (t.nil?* head-ast)))
+          (u.throw* (t.make-string
+                     "assoc first argument should be a hash-map or nil")))
+        (if (t.nil?* head-ast)
+            t.mal-nil
+            (let [item-tbl []
+                  kv-asts (u.slice asts 2 -1)
+                  hash-items (t.get-value head-ast)]
+              (for [i 1 (/ (length hash-items) 2)]
+                (let [key (. hash-items (- (* 2 i) 1))]
+                  (var idx 1)
+                  (var found false)
+                  (while (and (not found)
+                              (<= idx (length kv-asts)))
+                    (if (t.equals?* key (. kv-asts idx))
+                        (set found true)
+                        (set idx (+ idx 2))))
+                  (if (not found)
+                      (do
+                       (table.insert item-tbl key)
+                       (table.insert item-tbl (. hash-items (* 2 i))))
+                      (do
+                       (table.insert item-tbl key)
+                       (table.insert item-tbl (. kv-asts (+ idx 1)))
+                       (table.remove kv-asts (+ idx 1))
+                       (table.remove kv-asts idx)))))
+              (each [i elt (ipairs kv-asts)]
+                (table.insert item-tbl elt))
+              (t.make-hash-map item-tbl)))))))
+
+(local mal-dissoc
+  (t.make-fn
+    (fn [asts]
+      (when (< (length asts) 2)
+        (u.throw* (t.make-string "dissoc takes at least 2 arguments")))
+      (let [head-ast (. asts 1)]
+        (when (not (or (t.hash-map?* head-ast)
+                       (t.nil?* head-ast)))
+          (u.throw* (t.make-string
+                     "dissoc first argument should be a hash-map or nil")))
+        (if (t.nil?* head-ast)
+            t.mal-nil
+            (let [item-tbl []
+                  key-asts (u.slice asts 2 -1)
+                  hash-items (t.get-value head-ast)]
+              (for [i 1 (/ (length hash-items) 2)]
+                (let [key (. hash-items (- (* 2 i) 1))]
+                  (var idx 1)
+                  (var found false)
+                  (while (and (not found)
+                              (<= idx (length key-asts)))
+                    (if (t.equals?* key (. key-asts idx))
+                        (set found true)
+                        (set idx (+ idx 1))))
+                  (when (not found)
+                    (table.insert item-tbl key)
+                    (table.insert item-tbl (. hash-items (* 2 i))))))
+              (t.make-hash-map item-tbl)))))))
+
+(local mal-get
+  (t.make-fn
+    (fn [asts]
+      (when (< (length asts) 2)
+        (u.throw* (t.make-string "get takes 2 arguments")))
+      (let [head-ast (. asts 1)]
+        (when (not (or (t.hash-map?* head-ast)
+                       (t.nil?* head-ast)))
+          (u.throw* (t.make-string
+                     "get first argument should be a hash-map or nil")))
+        (if (t.nil?* head-ast)
+            t.mal-nil
+            (let [hash-items (t.get-value head-ast)
+                  key-ast (. asts 2)]
+              (var idx 1)
+              (var found false)
+              (while (and (not found)
+                          (<= idx (length hash-items)))
+                (if (t.equals?* key-ast (. hash-items idx))
+                    (set found true)
+                    (set idx (+ idx 1))))
+              (if found
+                  (. hash-items (+ idx 1))
+                  t.mal-nil)))))))
+
+(local mal-contains?
+  (t.make-fn
+    (fn [asts]
+      (when (< (length asts) 2)
+        (u.throw* (t.make-string "contains? takes 2 arguments")))
+      (let [head-ast (. asts 1)]
+        (when (not (or (t.hash-map?* head-ast)
+                       (t.nil?* head-ast)))
+          (u.throw* (t.make-string
+                     "contains? first argument should be a hash-map or nil")))
+        (if (t.nil?* head-ast)
+            t.mal-nil
+            (let [hash-items (t.get-value head-ast)
+                  key-ast (. asts 2)]
+              (var idx 1)
+              (var found false)
+              (while (and (not found)
+                          (<= idx (length hash-items)))
+                (if (t.equals?* key-ast (. hash-items idx))
+                    (set found true)
+                    (set idx (+ idx 1))))
+              (if found
+                  t.mal-true
+                  t.mal-false)))))))
+
+(local mal-keys
+  (t.make-fn
+    (fn [asts]
+      (when (< (length asts) 1)
+        (u.throw* (t.make-string "keys takes 1 argument")))
+      (let [head-ast (. asts 1)]
+        (when (not (or (t.hash-map?* head-ast)
+                       (t.nil?* head-ast)))
+          (u.throw* (t.make-string
+                     "keys first argument should be a hash-map or nil")))
+        (if (t.nil?* head-ast)
+            t.mal-nil
+            (let [item-tbl []
+                  hash-items (t.get-value head-ast)]
+              (for [i 1 (/ (length hash-items) 2)]
+                (let [key (. hash-items (- (* 2 i) 1))]
+                  (table.insert item-tbl key)))
+              (t.make-list item-tbl)))))))
+
+(local mal-vals
+  (t.make-fn
+    (fn [asts]
+      (when (< (length asts) 1)
+        (u.throw* (t.make-string "vals takes 1 argument")))
+      (let [head-ast (. asts 1)]
+        (when (not (or (t.hash-map?* head-ast)
+                       (t.nil?* head-ast)))
+          (u.throw* (t.make-string
+                     "vals first argument should be a hash-map or nil")))
+        (if (t.nil?* head-ast)
+            t.mal-nil
+            (let [item-tbl []
+                  hash-items (t.get-value head-ast)]
+              (for [i 1 (/ (length hash-items) 2)]
+                (let [value (. hash-items (* 2 i))]
+                  (table.insert item-tbl value)))
+              (t.make-list item-tbl)))))))
+
 {"+" (t.make-fn (fn [asts]
                   (var total 0)
                   (each [i val (ipairs asts)]
@@ -306,4 +605,25 @@
  "nth" mal-nth
  "first" mal-first
  "rest" mal-rest
+ "throw" mal-throw
+ "apply" mal-apply
+ "map" mal-map
+ "nil?" mal-nil?
+ "true?" mal-true?
+ "false?" mal-false?
+ "symbol?" mal-symbol?
+ "symbol" mal-symbol
+ "keyword" mal-keyword
+ "keyword?" mal-keyword?
+ "vector" mal-vector
+ "vector?" mal-vector?
+ "sequential?" mal-sequential?
+ "map?" mal-map?
+ "hash-map" mal-hash-map
+ "assoc" mal-assoc
+ "dissoc" mal-dissoc
+ "get" mal-get
+ "contains?" mal-contains?
+ "keys" mal-keys
+ "vals" mal-vals
 }
