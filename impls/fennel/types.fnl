@@ -46,9 +46,12 @@
    :content elts})
 
 (fn make-fn
-  [a-fn]
+  [a-fn ast params env]
   {:tag :fn
-   :content a-fn})
+   :content a-fn
+   :ast ast
+   :params params
+   :env env})
 
 (local mal-true (make-boolean true))
 
@@ -63,6 +66,20 @@
 (fn get-type
   [ast]
   (. ast :tag))
+
+;;
+
+(fn get-ast
+  [ast]
+  (. ast :ast))
+
+(fn get-params
+  [ast]
+  (. ast :params))
+
+(fn get-env
+  [ast]
+  (. ast :env))
 
 ;;
 
@@ -101,6 +118,10 @@
 (fn hash-map?*
   [ast]
   (= :hash-map (. ast :tag)))
+
+(fn fn?*
+  [ast]
+  (= :fn (. ast :tag)))
 
 ;;
 
@@ -194,6 +215,9 @@
  :mal-false mal-false
  ;;
  :get-value get-value
+ :get-ast get-ast
+ :get-params get-params
+ :get-env get-env
  ;;
  :nil?* nil?*
  :boolean?* boolean?*
@@ -204,6 +228,7 @@
  :list?* list?*
  :vector?* vector?*
  :hash-map?* hash-map?*
+ :fn?* fn?*
  ;;
  :empty?* empty?*
  :true?* true?*
