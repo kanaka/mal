@@ -1,6 +1,7 @@
 (local t (require :types))
 (local u (require :utils))
 (local printer (require :printer))
+(local reader (require :reader))
 
 (local mal-list
   (t.make-fn
@@ -92,6 +93,72 @@
       (print (table.concat buf))
       t.mal-nil)))
 
+(local mal-read-string
+  (t.make-fn
+    (fn [asts]
+      (when (< (length asts) 1)
+        (u.throw* (t.make-string "read-string takes 1 argument")))
+      (let [res (reader.read_str (t.get-value (. asts 1)))]
+        (if res
+            res
+            (u.throw* (t.make-string "No code content")))))))
+
+(local mal-slurp
+  (t.make-fn
+    (fn [asts]
+      (when (< (length asts) 1)
+        (u.throw* (t.make-string "slurp takes 1 argument")))
+      (let [a-str (t.get-value (. asts 1))]
+        ;; XXX: error handling?
+        (with-open [f (io.open a-str)]
+          ;; XXX: escaping?
+          (t.make-string (f:read "*a")))))))
+
+(local mal-atom
+  (t.make-fn
+    (fn [asts]
+      (when (< (length asts) 1)
+        (u.throw* (t.make-string "atom takes 1 argument")))
+      (t.make-atom (. asts 1)))))
+
+(local mal-atom?
+  (t.make-fn
+    (fn [asts]
+      (when (< (length asts) 1)
+        (u.throw* (t.make-string "atom? takes 1 argument")))
+      (if (t.atom?* (. asts 1))
+        t.mal-true
+        t.mal-false))))
+
+(local mal-deref
+  (t.make-fn
+    (fn [asts]
+      (when (< (length asts) 1)
+        (u.throw* (t.make-string "deref takes 1 argument")))
+      (let [ast (. asts 1)]
+        (t.deref* ast)))))
+
+(local mal-reset!
+  (t.make-fn
+    (fn [asts]
+      (when (< (length asts) 2)
+        (u.throw* (t.make-string "reset! takes 2 arguments")))
+      (let [atom-ast (. asts 1)
+            val-ast (. asts 2)]
+        (t.reset!* atom-ast val-ast)))))
+
+(local mal-swap!
+  (t.make-fn
+    (fn [asts]
+      (when (< (length asts) 2)
+        (u.throw* (t.make-string "swap! takes at least 2 arguments")))
+      (let [atom-ast (. asts 1)
+            fn-ast (. asts 2)
+            args-asts (u.slice asts 3 -1)
+            args-tbl [(t.deref* atom-ast) (table.unpack args-asts)]]
+        (t.reset!* atom-ast
+                   ((t.get-value fn-ast) args-tbl))))))
+
 {"+" (t.make-fn (fn [asts]
                   (var total 0)
                   (each [i val (ipairs asts)]
@@ -157,4 +224,11 @@
  "str" mal-str
  "prn" mal-prn
  "println" mal-println
+ "read-string" mal-read-string
+ "slurp" mal-slurp
+ "atom" mal-atom
+ "atom?" mal-atom?
+ "deref" mal-deref
+ "reset!" mal-reset!
+ "swap!" mal-swap!
 }

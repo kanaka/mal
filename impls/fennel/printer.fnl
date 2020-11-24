@@ -68,7 +68,13 @@
                (set remove true))
          (when remove
            (table.remove buf))
-         (table.insert buf "}")))
+         (table.insert buf "}"))
+        ;;
+        (t.atom?* ast)
+        (do
+         (table.insert buf "(atom ")
+         (code* (t.get-value ast) buf print_readably)
+         (table.insert buf ")")))
     buf))
 
 (fn pr_str

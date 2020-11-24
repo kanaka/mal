@@ -53,35 +53,14 @@
    :params params
    :env env})
 
+(fn make-atom
+  [ast]
+  {:tag :atom
+   :content ast})
+
 (local mal-true (make-boolean true))
 
 (local mal-false (make-boolean false))
-
-;;
-
-(fn get-value
-  [ast]
-  (. ast :content))
-
-(fn get-type
-  [ast]
-  (. ast :tag))
-
-;;
-
-(fn get-ast
-  [ast]
-  (. ast :ast))
-
-(fn get-params
-  [ast]
-  (. ast :params))
-
-(fn get-env
-  [ast]
-  (. ast :env))
-
-;;
 
 (fn nil?*
   [ast]
@@ -122,6 +101,53 @@
 (fn fn?*
   [ast]
   (= :fn (. ast :tag)))
+
+(fn atom?*
+  [ast]
+  (= :atom (. ast :tag)))
+
+;;
+
+(fn get-value
+  [ast]
+  (. ast :content))
+
+(fn get-type
+  [ast]
+  (. ast :tag))
+
+;;
+
+(fn get-ast
+  [ast]
+  (. ast :ast))
+
+(fn get-params
+  [ast]
+  (. ast :params))
+
+(fn get-env
+  [ast]
+  (. ast :env))
+
+;;
+
+(fn set-atom-value!
+  [atom-ast value-ast]
+  (tset atom-ast
+        :content value-ast))
+
+(fn deref*
+  [ast]
+  (if (not (atom?* ast))
+      ;; XXX
+      (error (.. "Expected atom, got: " (get-type ast)))
+      (get-value ast)))
+
+(fn reset!*
+  [atom-ast val-ast]
+  (set-atom-value! atom-ast val-ast)
+  val-ast)
 
 ;;
 
@@ -209,15 +235,11 @@
  :make-vector make-vector
  :make-hash-map make-hash-map
  :make-fn make-fn
+ :make-atom make-atom
  ;;
  :mal-nil mal-nil
  :mal-true mal-true
  :mal-false mal-false
- ;;
- :get-value get-value
- :get-ast get-ast
- :get-params get-params
- :get-env get-env
  ;;
  :nil?* nil?*
  :boolean?* boolean?*
@@ -229,6 +251,16 @@
  :vector?* vector?*
  :hash-map?* hash-map?*
  :fn?* fn?*
+ :atom?* atom?*
+ ;;
+ :get-value get-value
+ :get-ast get-ast
+ :get-params get-params
+ :get-env get-env
+ ;;
+ :set-atom-value! set-atom-value!
+ :deref* deref*
+ :reset!* reset!*
  ;;
  :empty?* empty?*
  :true?* true?*
