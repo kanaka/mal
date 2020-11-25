@@ -93,10 +93,45 @@
 
  )
 
+(fn reverse
+  [tbl]
+  (local new-tbl [])
+  (for [i (length tbl) 1 -1]
+    (table.insert new-tbl (. tbl i)))
+  new-tbl)
+
+(comment
+
+ (reverse [:a :b :c])
+ ;; => ["c" "b" "a"]
+
+ )
+
+(fn concat-two
+  [tbl-1 tbl-2]
+  (local new-tbl [])
+  (each [i elt (ipairs tbl-1)]
+    (table.insert new-tbl elt))
+  (each [i elt (ipairs tbl-2)]
+    (table.insert new-tbl elt))
+  new-tbl)
+
+(comment
+
+ (concat-two [:a :b :c] [:d :e :f])
+ ;; => ["a" "b" "c" "d" "e" "f"]
+
+ (concat-two {1 :a 2 :b 3 :c} {1 :d 2 :e 3 :f})
+ ;; => ["a" "b" "c" "d" "e" "f"]
+
+ )
+
 {
  :throw* throw*
  :slice slice
  :first first
  :last last
  :map map
+ :reverse reverse
+ :concat-two concat-two
 }

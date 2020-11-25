@@ -31,29 +31,37 @@
 (local mal-nil (make-nil))
 
 (fn make-list
-  [elts]
+  [elts md]
+  (local md (if md md mal-nil))
   {:tag :list
-   :content elts})
+   :content elts
+   :md md})
 
 (fn make-vector
-  [elts]
+  [elts md]
+  (local md (if md md mal-nil))
   {:tag :vector
-   :content elts})
+   :content elts
+   :md md})
 
 (fn make-hash-map
-  [elts]
+  [elts md]
+  (local md (if md md mal-nil))
   {:tag :hash-map
-   :content elts})
+   :content elts
+   :md md})
 
 (fn make-fn
-  [a-fn ast params env is-macro]
+  [a-fn ast params env is-macro md]
   (local is-macro (if is-macro is-macro false))
+  (local md (if md md mal-nil))
   {:tag :fn
    :content a-fn
    :ast ast
    :params params
    :env env
-   :is-macro is-macro})
+   :is-macro is-macro
+   :md md})
 
 (fn make-atom
   [ast]
@@ -73,6 +81,10 @@
 (fn get-type
   [ast]
   (. ast :tag))
+
+(fn get-md
+  [ast]
+  (. ast :md))
 
 ;;
 
@@ -153,6 +165,15 @@
   (tset macro-ast
         :is-macro true)
   macro-ast)
+
+(fn clone-with-meta
+  [fn-ast meta-ast]
+  (local new-fn-ast {})
+  (each [k v (pairs fn-ast)]
+    (tset new-fn-ast k v))
+  (tset new-fn-ast
+        :md meta-ast)
+  new-fn-ast)
 
 ;;
 
@@ -266,6 +287,7 @@
  :mal-false mal-false
  ;;
  :get-value get-value
+ :get-md get-md
  :get-is-macro get-is-macro
  :get-ast get-ast
  :get-params get-params
@@ -285,6 +307,7 @@
  :macro?* macro?*
  ;;
  :macrofy macrofy
+ :clone-with-meta clone-with-meta
  ;;
  :set-atom-value! set-atom-value!
  :deref* deref*

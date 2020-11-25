@@ -2,6 +2,7 @@
 (local u (require :utils))
 (local printer (require :printer))
 (local reader (require :reader))
+(local fennel (require :fennel))
 
 (local mal-list
   (t.make-fn
@@ -527,6 +528,179 @@
                   (table.insert item-tbl value)))
               (t.make-list item-tbl)))))))
 
+(local mal-readline
+  (t.make-fn
+    (fn [asts]
+      (when (< (length asts) 1)
+        (u.throw* (t.make-string "vals takes 1 argument")))
+      (let [prompt (t.get-value (. asts 1))]
+        (io.write prompt)
+        (io.flush)
+        (let [input (io.read)
+              trimmed (string.match input "^%s*(.-)%s*$")]
+          (if (> (length trimmed) 0)
+              (t.make-string trimmed)
+              t.mal-nil))))))
+
+(local mal-meta
+  (t.make-fn
+    (fn [asts]
+      (when (< (length asts) 1)
+        (u.throw* (t.make-string "meta takes 1 argument")))
+      (let [head-ast (. asts 1)]
+        (if (or (t.list?* head-ast)
+                (t.vector?* head-ast)
+                (t.hash-map?* head-ast)
+                (t.fn?* head-ast))
+            (t.get-md head-ast)
+            t.mal-nil)))))
+
+(local mal-with-meta
+  (t.make-fn
+    (fn [asts]
+      (when (< (length asts) 2)
+        (u.throw* (t.make-string "with-meta takes 2 arguments")))
+      (let [target-ast (. asts 1)
+            meta-ast (. asts 2)]
+        (if (t.list?* target-ast)
+            (t.make-list (t.get-value target-ast) meta-ast)
+            ;;
+            (t.vector?* target-ast)
+            (t.make-vector (t.get-value target-ast) meta-ast)
+            ;;
+            (t.hash-map?* target-ast)
+            (t.make-hash-map (t.get-value target-ast) meta-ast)
+            ;;
+            (t.fn?* target-ast)
+            (t.clone-with-meta target-ast meta-ast)
+            ;;
+            (u.throw*
+             (t.make-string "Expected list, vector, hash-map, or fn")))))))
+
+(local mal-string?
+  (t.make-fn
+    (fn [asts]
+      (when (< (length asts) 1)
+        (u.throw* (t.make-string "string? takes 1 argument")))
+      (t.make-boolean (t.string?* (. asts 1))))))
+
+(local mal-number?
+  (t.make-fn
+    (fn [asts]
+      (when (< (length asts) 1)
+        (u.throw* (t.make-string "number? takes 1 argument")))
+      (t.make-boolean (t.number?* (. asts 1))))))
+
+(local mal-fn?
+  (t.make-fn
+    (fn [asts]
+      (when (< (length asts) 1)
+        (u.throw* (t.make-string "fn? takes 1 argument")))
+      (let [target-ast (. asts 1)]
+        (if (and (t.fn?* target-ast)
+                 (not (t.get-is-macro target-ast)))
+            t.mal-true
+            t.mal-false)))))
+
+(local mal-macro?
+  (t.make-fn
+    (fn [asts]
+      (when (< (length asts) 1)
+        (u.throw* (t.make-string "macro? requires 1 argument")))
+      (let [the-ast (. asts 1)]
+        (if (t.macro?* the-ast)
+            t.mal-true
+            t.mal-false)))))
+
+(local mal-conj
+  (t.make-fn
+    (fn [asts]
+      (when (< (length asts) 2)
+        (u.throw* (t.make-string "conj takes at least 2 arguments")))
+      (let [coll-ast (. asts 1)
+            item-asts (u.slice asts 2 -1)]
+        (if (t.nil?* coll-ast)
+            (t.make-list (u.reverse item-asts))
+            ;;
+            (t.list?* coll-ast)
+            (t.make-list (u.concat-two (u.reverse item-asts)
+                                       (t.get-value coll-ast)))
+            ;;
+            (t.vector?* coll-ast)
+            (t.make-vector (u.concat-two (t.get-value coll-ast)
+                                         item-asts))
+            ;;
+            (u.throw* (t.make-string "Expected list, vector, or nil")))))))
+
+(local mal-seq
+  (t.make-fn
+    (fn [asts]
+      (when (< (length asts) 1)
+        (u.throw* (t.make-string "seq takes 1 argument")))
+      (let [arg-ast (. asts 1)]
+        (if (t.list?* arg-ast)
+            (if (t.empty?* arg-ast)
+                t.mal-nil
+                arg-ast)
+            ;;
+            (t.vector?* arg-ast)
+            (if (t.empty?* arg-ast)
+                t.mal-nil
+                (t.make-list (t.get-value arg-ast)))
+            ;;
+            (t.string?* arg-ast)
+            (let [a-str (t.get-value arg-ast)
+                  str-len (length a-str)]
+              (if (= str-len 0)
+                  t.mal-nil
+                  (do
+                   (local str-tbl [])
+                   (for [i 1 (length a-str)]
+                     (table.insert str-tbl
+                                   (t.make-string (string.sub a-str i i))))
+                   (t.make-list str-tbl))))
+            ;;
+            (t.nil?* arg-ast)
+            arg-ast
+            ;;
+            (u.throw*
+             (t.make-string "Expected list, vector, string, or nil")))))))
+
+(local mal-time-ms
+  (t.make-fn
+    (fn [asts]
+      (t.make-number (os.clock)))))
+
+(fn fennel-eval*
+  [fennel-val]
+  (if (= "nil" (type fennel-val))
+      t.mal-nil
+      (= "boolean" (type fennel-val))
+      (t.make-boolean fennel-val)
+      (= "string" (type fennel-val))
+      (t.make-string fennel-val)
+      (= "number" (type fennel-val))
+      (t.make-number fennel-val)
+      (= "table" (type fennel-val))
+      (t.make-list (u.map fennel-eval* fennel-val))
+      (u.throw*
+       (t.make-string (.. "Unsupported type: " (type fennel-val))))))
+
+(local mal-fennel-eval
+  (t.make-fn
+    (fn [asts]
+      (when (< (length asts) 1)
+        (u.throw* (t.make-string "fennel-eval takes 1 argument")))
+      (let [head-ast (. asts 1)]
+        (when (not (t.string?* head-ast))
+          (u.throw* (t.make-string
+                     "fennel-eval first argument should be a string")))
+        (let [(ok? result) (pcall fennel.eval (t.get-value head-ast))]
+          (if ok?
+              (fennel-eval* result)
+              (u.throw*
+               (t.make-string (.. "Eval failed: " result)))))))))
+
 {"+" (t.make-fn (fn [asts]
                   (var total 0)
                   (each [i val (ipairs asts)]
@@ -626,4 +800,15 @@
  "contains?" mal-contains?
  "keys" mal-keys
  "vals" mal-vals
+ "readline" mal-readline
+ "meta" mal-meta
+ "with-meta" mal-with-meta
+ "string?" mal-string?
+ "number?" mal-number?
+ "fn?" mal-fn?
+ "macro?" mal-macro?
+ "conj" mal-conj
+ "seq" mal-seq
+ "time-ms" mal-time-ms
+ "fennel-eval" mal-fennel-eval
 }
