@@ -677,7 +677,7 @@ Now go to the top level, run the step 3 tests and fix the errors.
 make "test^quux^step3"
 ```
 
-You mal implementation is still basically just a numeric calculator
+Your mal implementation is still basically just a numeric calculator
 with save/restore capability. But you have set the foundation for step
 4 where it will begin to feel like a real programming language.
 
