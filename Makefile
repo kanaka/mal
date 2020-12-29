@@ -90,7 +90,7 @@ DOCKERIZE =
 #
 
 IMPLS = ada ada.2 awk bash basic bbc-basic c chuck clojure coffee common-lisp cpp crystal cs d dart \
-	elisp elixir elm erlang es6 factor fantom forth fsharp go groovy gnu-smalltalk \
+	deno elisp elixir elm erlang es6 factor fantom forth fsharp go groovy gnu-smalltalk \
 	guile haskell haxe hy io java js jq julia kotlin livescript logo lua make mal \
 	matlab miniMAL nasm nim objc objpascal ocaml perl perl6 php picolisp pike plpgsql \
 	plsql powershell ps python python.2 r racket rexx rpython ruby rust scala scheme skew \
@@ -201,6 +201,7 @@ crystal_STEP_TO_PROG =       impls/crystal/$($(1))
 cs_STEP_TO_PROG =            impls/cs/$($(1)).exe
 d_STEP_TO_PROG =             impls/d/$($(1))
 dart_STEP_TO_PROG =          impls/dart/$($(1)).dart
+deno_STEP_TO_PROG =          impls/deno/$($(1)).ts
 elisp_STEP_TO_PROG =         impls/elisp/$($(1)).el
 elixir_STEP_TO_PROG =        impls/elixir/lib/mix/tasks/$($(1)).ex
 elm_STEP_TO_PROG =           impls/elm/$($(1)).js
