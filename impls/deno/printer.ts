@@ -29,8 +29,8 @@ export const prStr = (
           : v.value;
       case "MalBoolean":
       case "MalNumber":
-      case "MalAtom":
         return `${v.value}`;
+      case "MalKeyword":
       case "MalSymbol":
         return `${v.name}`;
       case "MalFunction":

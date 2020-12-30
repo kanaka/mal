@@ -2,12 +2,12 @@ export type MalType =
   | MalList
   | MalVector
   | MalHashMap
-  | MalAtom
   | MalNumber
   | MalString
   | MalBoolean
   | MalNil
   | MalSymbol
+  | MalKeyword
   | MalFunction;
 
 export type MalList = {
@@ -41,7 +41,7 @@ export const mkHashMap = (values: Array<[MalType, MalType]>): MalHashMap => {
   values.forEach(([k, v]) => {
     if (k.tag === "MalString") {
       items.push([`s${k.value}`, v]);
-    } else if (k.tag === "MalSymbol") {
+    } else if (k.tag === "MalKeyword") {
       items.push([`t${k.name}`, v]);
     } else {
       throw new Error(
@@ -57,15 +57,8 @@ export const mkHashMap = (values: Array<[MalType, MalType]>): MalHashMap => {
 
 export const mapValues = (malMap: MalHashMap): Array<[MalType, MalType]> =>
   [...malMap.items].map(([k, v]) =>
-    k.startsWith("s")
-      ? [{ tag: "MalString", value: k.substr(1) }, v]
-      : [{ tag: "MalSymbol", name: k.substr(1) }, v]
+    k.startsWith("s") ? [mkString(k.substr(1)), v] : [mkKeyword(k.substr(1)), v]
   );
-
-export type MalAtom = {
-  tag: "MalAtom";
-  value: string;
-};
 
 export type MalNumber = {
   tag: "MalNumber";
@@ -118,6 +111,16 @@ export type MalSymbol = {
 
 export const mkSymbol = (name: string): MalSymbol => ({
   tag: "MalSymbol",
+  name,
+});
+
+export type MalKeyword = {
+  tag: "MalKeyword";
+  name: string;
+};
+
+export const mkKeyword = (name: string): MalKeyword => ({
+  tag: "MalKeyword",
   name,
 });
 

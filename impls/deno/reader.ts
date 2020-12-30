@@ -4,6 +4,7 @@ import {
   MalVector,
   mkBoolean,
   mkHashMap,
+  mkKeyword,
   mkList,
   mkNumber,
   mkString,
@@ -170,6 +171,8 @@ const readAtom = (reader: Reader): MalType => {
     } else {
       throw new Error(`Syntax Error: EOF whilst expecting '"': ${token}`);
     }
+  } else if (token[0] === ":") {
+    return mkKeyword(token);
   } else {
     return mkSymbol(token);
   }
