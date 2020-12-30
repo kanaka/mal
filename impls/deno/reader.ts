@@ -71,6 +71,10 @@ const readForm = (reader: Reader): MalType => {
       return readSymbol(reader, "deref");
     case "^":
       return readMetaData(reader);
+    case ")":
+    case "]":
+    case "}":
+      throw new Error(`Syntax Error: Unexpected '${token}'`);
     default:
       return readAtom(reader);
   }
