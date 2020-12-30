@@ -7,24 +7,35 @@ export type MalType =
   | MalString
   | MalBoolean
   | MalNil
-  | MalSymbol;
+  | MalSymbol
+  | MalFunction;
 
 export type MalList = {
   tag: "MalList";
   items: Array<MalType>;
 };
 
+export const mkList = (items: Array<MalType>): MalList => ({
+  tag: "MalList",
+  items,
+});
+
 export type MalVector = {
   tag: "MalVector";
   items: Array<MalType>;
 };
+
+export const mkVector = (items: Array<MalType>): MalVector => ({
+  tag: "MalVector",
+  items,
+});
 
 export type MalHashMap = {
   tag: "MalHashMap";
   items: Map<string, MalType>;
 };
 
-export const mkMalMap = (values: Array<[MalType, MalType]>): MalHashMap => {
+export const mkHashMap = (values: Array<[MalType, MalType]>): MalHashMap => {
   const items: Array<[string, MalType]> = [];
 
   values.forEach(([k, v]) => {
@@ -34,7 +45,9 @@ export const mkMalMap = (values: Array<[MalType, MalType]>): MalHashMap => {
       items.push([`t${k.name}`, v]);
     } else {
       throw new Error(
-        `Precondition Error: Unable to use ${JSON.stringify(k)} as a hashmap key.`,
+        `Precondition Error: Unable to use ${
+          JSON.stringify(k)
+        } as a hashmap key.`,
       );
     }
   });
@@ -59,21 +72,60 @@ export type MalNumber = {
   value: number;
 };
 
+export const mkNumber = (value: number): MalNumber => ({
+  tag: "MalNumber",
+  value,
+});
+
+export const asNumber = (v: MalType): number => {
+  if (v.tag === "MalNumber") {
+    return v.value;
+  } else {
+    throw new Error(`Precondition Error: ${JSON.stringify(v)} is not a number`);
+  }
+};
+
 export type MalString = {
   tag: "MalString";
   value: string;
 };
+
+export const mkString = (value: string): MalString => ({
+  tag: "MalString",
+  value,
+});
 
 export type MalBoolean = {
   tag: "MalBoolean";
   value: boolean;
 };
 
+export const mkBoolean = (value: boolean): MalBoolean => ({
+  tag: "MalBoolean",
+  value,
+});
+
 export type MalNil = {
   tag: "MalNil";
 };
+
+export const nil: MalNil = ({ tag: "MalNil" });
 
 export type MalSymbol = {
   tag: "MalSymbol";
   name: string;
 };
+
+export const mkSymbol = (name: string): MalSymbol => ({
+  tag: "MalSymbol",
+  name,
+});
+
+export type MalFunction = {
+  tag: "MalFunction";
+  f: (args: Array<MalType>) => MalType;
+};
+
+export const mkFunction = (
+  f: (args: Array<MalType>) => MalType,
+): MalFunction => ({ tag: "MalFunction", f });

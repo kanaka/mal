@@ -1,10 +1,15 @@
 import {
-  MalAtom,
-  MalList,
   MalNumber,
   MalType,
   MalVector,
-  mkMalMap,
+  mkBoolean,
+  mkHashMap,
+  mkList,
+  mkNumber,
+  mkString,
+  mkSymbol,
+  mkVector,
+  nil,
 } from "./types.ts";
 
 interface Reader {
@@ -31,10 +36,8 @@ export const readStr = (input: string): MalType =>
   readForm(newReader(tokenize(input)));
 
 const tokenize = (input: string): Array<string> => {
-  const tokenPattern =
-    /[\s,]*(~@|[\[\]{}()'`~^@]|"(?:\\.|[^\\"])*"?|;.*|[^\s\[\]{}('"`,;)]*)/;
-
-  const regex = new RegExp(tokenPattern, "g");
+  const regex =
+    /[\s,]*(~@|[\[\]{}()'`~^@]|"(?:\\.|[^\\"])*"?|;.*|[^\s\[\]{}('"`,;)]*)/g;
 
   const tokens = [];
   while (true) {
@@ -81,18 +84,10 @@ const readForm = (reader: Reader): MalType => {
 };
 
 const readList = (reader: Reader): MalType =>
-  readCollection(
-    reader,
-    ")",
-    (items: Array<MalType>): MalType => ({ tag: "MalList", items }),
-  );
+  readCollection(reader, ")", mkList);
 
 const readVector = (reader: Reader): MalType =>
-  readCollection(
-    reader,
-    "]",
-    (items: Array<MalType>): MalType => ({ tag: "MalVector", items }),
-  );
+  readCollection(reader, "]", mkVector);
 
 const readHashMap = (
   reader: Reader,
@@ -107,7 +102,7 @@ const readHashMap = (
       args.push([items[lp], items[lp + 1]]);
     }
 
-    return mkMalMap(args);
+    return mkHashMap(args);
   };
 
   return readCollection(reader, "}", buildMap);
@@ -139,10 +134,7 @@ const readCollection = (
 const readSymbol = (reader: Reader, name: string): MalType => {
   reader.next();
 
-  return {
-    tag: "MalList",
-    items: [{ tag: "MalSymbol", name }, readForm(reader)],
-  };
+  return mkList([mkSymbol(name), readForm(reader)]);
 };
 
 const readMetaData = (reader: Reader): MalType => {
@@ -151,10 +143,7 @@ const readMetaData = (reader: Reader): MalType => {
   const v1 = readForm(reader);
   const v2 = readForm(reader);
 
-  return {
-    tag: "MalList",
-    items: [{ tag: "MalSymbol", name: "with-meta" }, v2, v1],
-  };
+  return mkList([mkSymbol("with-meta"), v2, v1]);
 };
 
 const readAtom = (reader: Reader): MalType => {
@@ -162,27 +151,26 @@ const readAtom = (reader: Reader): MalType => {
 
   if (token === undefined) {
     throw new Error(`Syntax Error: Unexpected EOF`);
-  } else if (token.match(/^[0-9]+$/)) {
-    return { tag: "MalNumber", value: parseInt(token) };
+  } else if (token.match(/^-?[0-9]+$/)) {
+    return mkNumber(parseInt(token));
   } else if (token == "false") {
-    return { tag: "MalBoolean", value: false };
+    return mkBoolean(false);
   } else if (token == "true") {
-    return { tag: "MalBoolean", value: true };
+    return mkBoolean(true);
   } else if (token == "nil") {
-    return { tag: "MalNil" };
+    return nil;
   } else if (token[0] === '"') {
     if (token.match(/^"(?:\\.|[^\\"])*"$/)) {
-      return {
-        tag: "MalString",
-        value: token.substr(1, token.length - 2).replaceAll("\\\\", "\\")
-          .replaceAll('\\"', '"').replaceAll("\\n", "\n"),
-      };
+      return mkString(
+        token.substr(1, token.length - 2).replaceAll("\\\\", "\\").replaceAll(
+          '\\"',
+          '"',
+        ).replaceAll("\\n", "\n"),
+      );
     } else {
       throw new Error(`Syntax Error: EOF whilst expecting '"': ${token}`);
     }
-  } else if (token[0] === ":") {
-    return { tag: "MalSymbol", name: token };
   } else {
-    return { tag: "MalAtom", value: token };
+    return mkSymbol(token);
   }
 };

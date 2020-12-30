@@ -33,6 +33,8 @@ export const prStr = (
         return `${v.value}`;
       case "MalSymbol":
         return `${v.name}`;
+      case "MalFunction":
+        return "#<function>";
     }
   };
 
