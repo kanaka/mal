@@ -58,7 +58,7 @@ const readForm = (reader: Reader): MalType => {
     case "[":
       return readVector(reader);
     case "{":
-      return readMap(reader);
+      return readHashMap(reader);
     case "'":
       return readSymbol(reader, "quote");
     case "`":
@@ -94,7 +94,7 @@ const readVector = (reader: Reader): MalType =>
     (items: Array<MalType>): MalType => ({ tag: "MalVector", items }),
   );
 
-const readMap = (
+const readHashMap = (
   reader: Reader,
 ): MalType => {
   const buildMap = (items: Array<MalType>): MalType => {

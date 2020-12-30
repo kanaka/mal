@@ -1,7 +1,7 @@
 export type MalType =
   | MalList
   | MalVector
-  | MalMap
+  | MalHashMap
   | MalAtom
   | MalNumber
   | MalString
@@ -19,12 +19,12 @@ export type MalVector = {
   items: Array<MalType>;
 };
 
-export type MalMap = {
-  tag: "MalMap";
+export type MalHashMap = {
+  tag: "MalHashMap";
   items: Map<string, MalType>;
 };
 
-export const mkMalMap = (values: Array<[MalType, MalType]>): MalMap => {
+export const mkMalMap = (values: Array<[MalType, MalType]>): MalHashMap => {
   const items: Array<[string, MalType]> = [];
 
   values.forEach(([k, v]) => {
@@ -33,12 +33,21 @@ export const mkMalMap = (values: Array<[MalType, MalType]>): MalMap => {
     } else if (k.tag === "MalSymbol") {
       items.push([`t${k.name}`, v]);
     } else {
-      throw new Error(`Precondition Error: Unable to use ${JSON.stringify(k)} as a map key.`);
+      throw new Error(
+        `Precondition Error: Unable to use ${JSON.stringify(k)} as a hashmap key.`,
+      );
     }
   });
 
-  return { tag: "MalMap", items: new Map(items) };
+  return { tag: "MalHashMap", items: new Map(items) };
 };
+
+export const mapValues = (malMap: MalHashMap): Array<[MalType, MalType]> =>
+  [...malMap.items].map(([k, v]) =>
+    k.startsWith("s")
+      ? [{ tag: "MalString", value: k.substr(1) }, v]
+      : [{ tag: "MalSymbol", name: k.substr(1) }, v]
+  );
 
 export type MalAtom = {
   tag: "MalAtom";

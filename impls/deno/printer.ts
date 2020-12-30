@@ -1,4 +1,4 @@
-import { MalType } from "./types.ts";
+import { MalType, mapValues } from "./types.ts";
 
 export const prStr = (
   v: MalType,
@@ -10,14 +10,10 @@ export const prStr = (
         return `(${v.items.map(prStrReadably).join(" ")})`;
       case "MalVector":
         return `[${v.items.map(prStrReadably).join(" ")}]`;
-      case "MalMap":
+      case "MalHashMap":
         return `{${
-          [...v.items].map(([k, v]) =>
-            `${
-              k.startsWith("s")
-                ? prStrReadably({ tag: "MalString", value: k.substr(1) })
-                : prStrReadably({ tag: "MalSymbol", name: k.substr(1) })
-            } ${prStrReadably(v)}`
+          mapValues(v).map(([k, v]) =>
+            `${prStrReadably(k)} ${prStrReadably(v)}`
           ).join(" ")
         }}`;
       case "MalNil":
