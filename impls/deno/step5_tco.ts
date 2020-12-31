@@ -26,24 +26,78 @@ const isNamedSymbol = (ast: MalType.MalType, name: string): boolean =>
   ast.tag === "MalSymbol" && ast.name === name;
 
 const evaluate = (ast: MalType.MalType, env: Env.Env): MalType.MalType => {
-  if (ast.tag === "MalList") {
-    if (ast.items.length === 0) {
-      return ast;
-    } else if (isNamedSymbol(ast.items[0], "def!")) {
-      return evaluateDefBang(ast, env);
-    } else if (isNamedSymbol(ast.items[0], "do")) {
-      return evaluateDo(ast, env);
-    } else if (isNamedSymbol(ast.items[0], "fn*")) {
-      return evaluateFnStar(ast, env);
-    } else if (isNamedSymbol(ast.items[0], "if")) {
-      return evaluateIf(ast, env);
-    } else if (isNamedSymbol(ast.items[0], "let*")) {
-      return evaluateLetStar(ast, env);
+  while (true) {
+    if (ast.tag === "MalList") {
+      if (ast.items.length === 0) {
+        return ast;
+      }
+
+      if (ast.items[0].tag === "MalSymbol") {
+        switch (ast.items[0].name) {
+          case "def!":
+            return evaluateDefBang(ast, env);
+          case "do":
+            ast = evaluateDo(ast, env);
+            continue;
+          case "fn*":
+            return evaluateFnStar(ast, env);
+          case "if":
+            ast = evaluateIf(ast, env);
+            continue;
+          case "let*": {
+            const bindings = ast.items[1];
+
+            if (bindings.tag !== "MalList" && bindings.tag !== "MalVector") {
+              throw new Error(
+                `Invalid Argument: let* requires a list of bindings: ${
+                  JSON.stringify(bindings)
+                }`,
+              );
+            }
+
+            const innerEnv = Env.mkEnv(env);
+            for (let lp = 0; lp < bindings.items.length; lp += 2) {
+              const name = bindings.items[lp];
+              const value = bindings.items[lp + 1] ?? MalType.nil;
+
+              if (name.tag !== "MalSymbol") {
+                throw new Error(
+                  `Invalid Argument: let* binding requires a symbol name: ${
+                    JSON.stringify(name)
+                  }`,
+                );
+              }
+
+              Env.set(name, evaluate(value, innerEnv), innerEnv);
+            }
+
+            ast = ast.items[2];
+            env = innerEnv;
+            continue;
+          }
+        }
+      }
+
+      const evalList = evaluate_ast(ast, env);
+
+      if (evalList.tag === "MalList" || evalList.tag === "MalVector") {
+        const [callerItem, ...callerArgs] = evalList.items;
+
+        if (callerItem !== undefined) {
+          if (callerItem.tag === "MalInternalFunction") {
+            return callerItem.fn(callerArgs);
+          } else if (callerItem.tag === "MalFunction") {
+            ast = callerItem.body;
+            env = Env.mkEnv(callerItem.env, callerItem.params, callerArgs);
+            continue;
+          }
+        }
+      }
+
+      throw new Error(`Unable to invoke: ${JSON.stringify(evalList)}`);
     } else {
-      return evaluateFunctionInvocation(ast, env);
+      return evaluate_ast(ast, env);
     }
-  } else {
-    return evaluate_ast(ast, env);
   }
 };
 
@@ -67,18 +121,8 @@ const evaluateDo = (
   ast: MalType.MalList,
   env: Env.Env,
 ): MalType.MalType => {
-  const result = evaluate_ast(MalType.mkList(ast.items.slice(1)), env);
-
-  if (result.tag !== "MalList") {
-    throw new Error(
-      `Invalid Argument: do expected a list: ${JSON.stringify(result)}`,
-    );
-  }
-  if (result.items.length === 0) {
-    throw new Error("Invalid Argument: do expected a non-empty list");
-  }
-
-  return result.items[result.items.length - 1];
+  evaluate_ast(MalType.mkList(ast.items.slice(1, ast.items.length - 2)), env);
+  return ast.items[ast.items.length - 1];
 };
 
 const evaluateFnStar = (
@@ -110,10 +154,7 @@ const evaluateFnStar = (
     }
   });
 
-  const fn = (args: Array<MalType.MalType>): MalType.MalType =>
-    evaluate(body, Env.mkEnv(env, formalParameters, args));
-
-  return MalType.mkInternalFunction(fn);
+  return MalType.mkFunction(body, formalParameters, env);
 };
 
 const evaluateIf = (
@@ -140,67 +181,10 @@ const evaluateIf = (
   if (
     ifGuard.tag === "MalNil" || ifGuard.tag === "MalBoolean" && !ifGuard.value
   ) {
-    return ast.items.length === 4 ? evaluate(ast.items[3], env) : MalType.nil;
+    return ast.items.length === 4 ? ast.items[3] : MalType.nil;
   } else {
-    return evaluate(ast.items[2], env);
+    return ast.items[2];
   }
-};
-
-const evaluateLetStar = (
-  ast: MalType.MalList,
-  env: Env.Env,
-): MalType.MalType => {
-  const bindings = ast.items[1];
-
-  if (bindings.tag !== "MalList" && bindings.tag !== "MalVector") {
-    throw new Error(
-      `Invalid Argument: let* requires a list of bindings: ${
-        JSON.stringify(bindings)
-      }`,
-    );
-  }
-
-  const innerEnv = Env.mkEnv(env);
-  for (let lp = 0; lp < bindings.items.length; lp += 2) {
-    const name = bindings.items[lp];
-    const value = bindings.items[lp + 1] ?? MalType.nil;
-
-    if (name.tag !== "MalSymbol") {
-      throw new Error(
-        `Invalid Argument: let* binding requires a symbol name: ${
-          JSON.stringify(name)
-        }`,
-      );
-    }
-
-    Env.set(name, evaluate(value, innerEnv), innerEnv);
-  }
-
-  return evaluate(ast.items[2], innerEnv);
-};
-
-const evaluateFunctionInvocation = (
-  ast: MalType.MalList,
-  env: Env.Env,
-): MalType.MalType => {
-  const evalList = evaluate_ast(ast, env);
-
-  if (evalList.tag === "MalList" || evalList.tag === "MalVector") {
-    const [callerItem, ...callerArgs] = evalList.items;
-
-    if (callerItem !== undefined) {
-      if (callerItem.tag === "MalInternalFunction") {
-        return callerItem.fn(callerArgs);
-      } else if (callerItem.tag === "MalFunction") {
-        return evaluate(
-          callerItem.body,
-          Env.mkEnv(callerItem.env, callerItem.params, callerArgs),
-        );
-      }
-    }
-  }
-
-  throw new Error(`Unable to invoke: ${JSON.stringify(evalList)}`);
 };
 
 const print = (exp: MalType.MalType): string => Printer.prStr(exp);

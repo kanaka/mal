@@ -7,7 +7,7 @@ const replEnv = Env.mkEnv();
 
 Env.set(
   MalType.mkSymbol("+"),
-  MalType.mkFunction(([a, b]) =>
+  MalType.mkInternalFunction(([a, b]) =>
     MalType.mkNumber(MalType.asNumber(a) + MalType.asNumber(b))
   ),
   replEnv,
@@ -15,7 +15,7 @@ Env.set(
 
 Env.set(
   MalType.mkSymbol("-"),
-  MalType.mkFunction(([a, b]) =>
+  MalType.mkInternalFunction(([a, b]) =>
     MalType.mkNumber(MalType.asNumber(a) - MalType.asNumber(b))
   ),
   replEnv,
@@ -23,7 +23,7 @@ Env.set(
 
 Env.set(
   MalType.mkSymbol("*"),
-  MalType.mkFunction(([a, b]) =>
+  MalType.mkInternalFunction(([a, b]) =>
     MalType.mkNumber(MalType.asNumber(a) * MalType.asNumber(b))
   ),
   replEnv,
@@ -31,7 +31,7 @@ Env.set(
 
 Env.set(
   MalType.mkSymbol("/"),
-  MalType.mkFunction(([a, b]) =>
+  MalType.mkInternalFunction(([a, b]) =>
     MalType.mkNumber(MalType.asNumber(a) / MalType.asNumber(b))
   ),
   replEnv,
@@ -133,14 +133,13 @@ const evaluateFunctionInvocation = (
     const [callerItem, ...callerArgs] = evalList.items;
 
     if (callerItem !== undefined) {
-      if (callerItem.tag === "MalFunction") {
-        return callerItem.f(callerArgs);
-      } else if (callerItem.tag === "MalSymbol") {
-        const binding = Env.get(callerItem, env);
-
-        if (binding.tag === "MalFunction") {
-          return binding.f(callerArgs);
-        }
+      if (callerItem.tag === "MalInternalFunction") {
+        return callerItem.fn(callerArgs);
+      } else if (callerItem.tag === "MalFunction") {
+        return evaluate(
+          callerItem.body,
+          Env.mkEnv(callerItem.env, callerItem.params, callerArgs),
+        );
       }
     }
   }

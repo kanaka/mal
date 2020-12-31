@@ -1,3 +1,5 @@
+import * as Env from "./env.ts";
+
 export type MalType =
   | MalList
   | MalVector
@@ -8,6 +10,7 @@ export type MalType =
   | MalNil
   | MalSymbol
   | MalKeyword
+  | MalInternalFunction
   | MalFunction;
 
 export type MalList = {
@@ -124,21 +127,37 @@ export const mkKeyword = (name: string): MalKeyword => ({
   name,
 });
 
+export type MalInternalFunction = {
+  tag: "MalInternalFunction";
+  fn: (args: Array<MalType>) => MalType;
+};
+
+export const mkInternalFunction = (
+  fn: (args: Array<MalType>) => MalType,
+): MalInternalFunction => ({ tag: "MalInternalFunction", fn });
+
 export type MalFunction = {
   tag: "MalFunction";
-  f: (args: Array<MalType>) => MalType;
+  body: MalType;
+  params: Array<MalSymbol>;
+  env: Env.Env;
 };
 
 export const mkFunction = (
-  f: (args: Array<MalType>) => MalType,
-): MalFunction => ({ tag: "MalFunction", f });
+  body: MalType,
+  params: Array<MalSymbol>,
+  env: Env.Env,
+): MalFunction => ({
+  tag: "MalFunction",
+  body,
+  params,
+  env,
+});
 
 export const equals = (a: MalType, b: MalType): boolean => {
   switch (a.tag) {
     case "MalBoolean":
       return b.tag === "MalBoolean" && a.value === b.value;
-    case "MalFunction":
-      return false;
     case "MalHashMap":
       return b.tag === "MalHashMap" && hashMapEquals(a, b);
     case "MalKeyword":

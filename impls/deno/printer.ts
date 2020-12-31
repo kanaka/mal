@@ -33,6 +33,7 @@ export const prStr = (
       case "MalKeyword":
       case "MalSymbol":
         return `${v.name}`;
+      case "MalInternalFunction":
       case "MalFunction":
         return "#<function>";
     }
