@@ -6,7 +6,7 @@ import * as Reader from "./reader.ts";
 const replEnv = Env.mkEnv();
 
 Env.set(
-  "+",
+  MalType.mkSymbol("+"),
   MalType.mkFunction(([a, b]) =>
     MalType.mkNumber(MalType.asNumber(a) + MalType.asNumber(b))
   ),
@@ -14,7 +14,7 @@ Env.set(
 );
 
 Env.set(
-  "-",
+  MalType.mkSymbol("-"),
   MalType.mkFunction(([a, b]) =>
     MalType.mkNumber(MalType.asNumber(a) - MalType.asNumber(b))
   ),
@@ -22,7 +22,7 @@ Env.set(
 );
 
 Env.set(
-  "*",
+  MalType.mkSymbol("*"),
   MalType.mkFunction(([a, b]) =>
     MalType.mkNumber(MalType.asNumber(a) * MalType.asNumber(b))
   ),
@@ -30,7 +30,7 @@ Env.set(
 );
 
 Env.set(
-  "/",
+  MalType.mkSymbol("/"),
   MalType.mkFunction(([a, b]) =>
     MalType.mkNumber(MalType.asNumber(a) / MalType.asNumber(b))
   ),
@@ -41,7 +41,7 @@ const read = (str: string): MalType.MalType => Reader.readStr(str);
 
 const evaluate_ast = (ast: MalType.MalType, env: Env.Env): MalType.MalType => {
   if (ast.tag === "MalSymbol") {
-    const binding = Env.find(ast.name, env);
+    const binding = Env.find(ast, env);
 
     if (binding === undefined) {
       throw new Error(`Unknown Symbol: ${ast.name}`);
@@ -75,7 +75,7 @@ const evaluate = (ast: MalType.MalType, env: Env.Env): MalType.MalType => {
           if (callerItem.tag === "MalFunction") {
             return callerItem.f(callerArgs);
           } else if (callerItem.tag === "MalSymbol") {
-            const binding = Env.find(callerItem.name, env);
+            const binding = Env.find(callerItem, env);
 
             if (binding !== undefined && binding.tag === "MalFunction") {
               return binding.f(callerArgs);

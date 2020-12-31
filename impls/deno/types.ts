@@ -132,3 +132,70 @@ export type MalFunction = {
 export const mkFunction = (
   f: (args: Array<MalType>) => MalType,
 ): MalFunction => ({ tag: "MalFunction", f });
+
+export const equals = (a: MalType, b: MalType): boolean => {
+  switch (a.tag) {
+    case "MalBoolean":
+      return b.tag === "MalBoolean" && a.value === b.value;
+    case "MalFunction":
+      return false;
+    case "MalHashMap":
+      return b.tag === "MalHashMap" && hashMapEquals(a, b);
+    case "MalKeyword":
+      return b.tag === "MalKeyword" && a.name === b.name;
+    case "MalList":
+    case "MalVector":
+      return (b.tag === "MalList" || b.tag === "MalVector") && seqEquals(a, b);
+    case "MalNil":
+      return b.tag === "MalNil";
+    case "MalNumber":
+      return b.tag === "MalNumber" && a.value === b.value;
+    case "MalString":
+      return b.tag === "MalString" && a.value === b.value;
+    case "MalSymbol":
+      return b.tag === "MalSymbol" && a.name === b.name;
+    default:
+      return false;
+  }
+};
+
+const hashMapEquals = (a: MalHashMap, b: MalHashMap): boolean => {
+  const as = a.items;
+  const bs = b.items;
+
+  if (as.size !== bs.size) {
+    return false;
+  }
+
+  as.forEach((value, key) => {
+    if (!bs.has(key)) return false;
+
+    const bValue = bs.get(key);
+
+    if (bValue === undefined || !equals(value, bValue)) {
+      return false;
+    }
+  });
+
+  return true;
+};
+
+const seqEquals = (
+  a: MalList | MalVector,
+  b: MalList | MalVector,
+): boolean => {
+  const as = a.items;
+  const bs = b.items;
+
+  if (as.length !== bs.length) {
+    return false;
+  }
+
+  for (let loop = 0; loop < as.length; loop += 1) {
+    if (!equals(as[loop], bs[loop])) {
+      return false;
+    }
+  }
+
+  return true;
+};
