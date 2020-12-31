@@ -121,7 +121,7 @@ const evaluateDo = (
   ast: MalType.MalList,
   env: Env.Env,
 ): MalType.MalType => {
-  evaluate_ast(MalType.mkList(ast.items.slice(1, ast.items.length - 2)), env);
+  evaluate_ast(MalType.mkList(ast.items.slice(1, ast.items.length - 1)), env);
   return ast.items[ast.items.length - 1];
 };
 
