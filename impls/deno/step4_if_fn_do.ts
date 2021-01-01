@@ -209,10 +209,12 @@ const rep = (str: string, env: Env.Env): string =>
   print(evaluate(read(str), env));
 
 const initReplEnv = () => {
+  const ns = Core.ns(evaluate);
+
   const env = Env.mkEnv(
     undefined,
-    Core.ns.map(([n]) => MalType.mkSymbol(n)),
-    Core.ns.map(([, t]) => t),
+    ns.map(([n]) => MalType.mkSymbol(n)),
+    ns.map(([, t]) => t),
   );
 
   rep("(def! not (fn* (a) (if a false true)))", env);

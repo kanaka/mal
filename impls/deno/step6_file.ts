@@ -22,6 +22,9 @@ const evaluate_ast = (ast: MalType.MalType, env: Env.Env): MalType.MalType => {
   }
 };
 
+const isNamedSymbol = (ast: MalType.MalType, name: string): boolean =>
+  ast.tag === "MalSymbol" && ast.name === name;
+
 const evaluate = (ast: MalType.MalType, env: Env.Env): MalType.MalType => {
   while (true) {
     if (ast.tag === "MalList") {
@@ -198,14 +201,27 @@ const initReplEnv = () => {
     ns.map(([, t]) => t),
   );
 
+  Env.set(
+    MalType.mkSymbol("eval"),
+    MalType.mkInternalFunction(([a]) => {
+      if (a === undefined) {
+        return MalType.nil;
+      }
+      return evaluate(a, env);
+    }),
+    env,
+  );
+
   rep("(def! not (fn* (a) (if a false true)))", env);
+  rep(
+    '(def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) "\nnil)")))))',
+    env,
+  );
 
   return env;
 };
 
-const repl = () => {
-  const env = initReplEnv();
-
+const repl = (env: Env.Env) => {
   while (true) {
     const value = prompt("user>");
 
@@ -216,9 +232,26 @@ const repl = () => {
     try {
       console.log(rep(value, env));
     } catch (e) {
-      console.error(e.message);
+      if (e.message !== "Reader Error: No input") {
+        console.error(e.message);
+      }
     }
   }
 };
 
-repl();
+if (Deno.args.length > 0) {
+  const env = initReplEnv();
+
+  Env.set(
+    MalType.mkSymbol("*ARGV*"),
+    MalType.mkList(Deno.args.slice(1).map(MalType.mkString)),
+    env,
+  );
+
+  rep(`(load-file "${Deno.args[0]}")`, env);
+} else {
+  const env = initReplEnv();
+  Env.set(MalType.mkSymbol("*ARGV*"), MalType.mkList([]), env);
+
+  repl(env);
+}

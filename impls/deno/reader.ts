@@ -45,7 +45,7 @@ const tokenize = (input: string): Array<string> => {
     const tokenResults = regex.exec(input);
     if (tokenResults === null || tokenResults[0] === "") {
       break;
-    } else if (tokenResults[1] !== ";") {
+    } else if (tokenResults[1][0] !== ";") {
       tokens.push(tokenResults[1]);
     }
   }
@@ -57,6 +57,8 @@ const readForm = (reader: Reader): MalType => {
   const token = reader.peek();
 
   switch (token) {
+    case undefined:
+      throw new Error("Reader Error: No input");
     case "(":
       return readList(reader);
     case "[":
@@ -163,10 +165,10 @@ const readAtom = (reader: Reader): MalType => {
   } else if (token[0] === '"') {
     if (token.match(/^"(?:\\.|[^\\"])*"$/)) {
       return mkString(
-        token.substr(1, token.length - 2).replace(/\\(.)/g, (_, c: string) =>
-          c == "n"
-            ? "\n"
-            : c),
+        token.substr(1, token.length - 2).replace(
+          /\\(.)/g,
+          (_, c: string) => c == "n" ? "\n" : c,
+        ),
       );
     } else {
       throw new Error(`Syntax Error: EOF whilst expecting '"': ${token}`);

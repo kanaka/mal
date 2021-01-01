@@ -1,7 +1,11 @@
+import * as Env from "./env.ts";
 import * as MalType from "./types.ts";
 import * as Printer from "./printer.ts";
+import * as Reader from "./reader.ts";
 
-export const ns: Array<[string, MalType.MalType]> = [
+export const ns = (
+  evaluate: (ast: MalType.MalType, env: Env.Env) => MalType.MalType,
+): Array<[string, MalType.MalType]> => [
   [
     "+",
     MalType.mkInternalFunction(([a, b]) =>
@@ -99,7 +103,9 @@ export const ns: Array<[string, MalType.MalType]> = [
 
   [
     "=",
-    MalType.mkInternalFunction(([a, b]) => MalType.mkBoolean(MalType.equals(a, b))),
+    MalType.mkInternalFunction(([a, b]) =>
+      MalType.mkBoolean(MalType.equals(a, b))
+    ),
   ],
   [
     "<",
@@ -124,5 +130,124 @@ export const ns: Array<[string, MalType.MalType]> = [
     MalType.mkInternalFunction(([a, b]) =>
       MalType.mkBoolean(MalType.asNumber(a) >= MalType.asNumber(b))
     ),
+  ],
+
+  [
+    "read-string",
+    MalType.mkInternalFunction(([s]) => {
+      if (s === undefined) {
+        return MalType.nil;
+      } else if (s.tag === "MalString") {
+        return Reader.readStr(s.value);
+      } else {
+        throw new Error(
+          `Invalid Argument: read-string requires a string argument: ${
+            JSON.stringify(s)
+          }`,
+        );
+      }
+    }),
+  ],
+  [
+    "slurp",
+    MalType.mkInternalFunction(([s]) => {
+      if (s === undefined) {
+        throw new Error(
+          `Invalid Argument: slurp requires a single string argument`,
+        );
+      } else if (s.tag === "MalString") {
+        return MalType.mkString(Deno.readTextFileSync(s.value));
+      } else {
+        throw new Error(
+          `Invalid Argument: slurp requires a string argument: ${
+            JSON.stringify(s)
+          }`,
+        );
+      }
+    }),
+  ],
+
+  [
+    "atom",
+    MalType.mkInternalFunction(([v]) => {
+      return MalType.mkAtom(v ?? MalType.nil);
+    }),
+  ],
+  [
+    "atom?",
+    MalType.mkInternalFunction(([v]) => {
+      return MalType.mkBoolean(v !== undefined && v.tag === "MalAtom");
+    }),
+  ],
+  [
+    "deref",
+    MalType.mkInternalFunction(([v]) => {
+      if (v === undefined) {
+        throw new Error(
+          `Invalid Argument: deref requires a single atom argument`,
+        );
+      } else if (v.tag === "MalAtom") {
+        return v.value;
+      } else {
+        throw new Error(
+          `Invalid Argument: deref requires an atom argument: ${
+            JSON.stringify(v)
+          }`,
+        );
+      }
+    }),
+  ],
+  [
+    "reset!",
+    MalType.mkInternalFunction(([a, v]) => {
+      if (a === undefined) {
+        throw new Error(`Invalid Argument: reset! requires an atom argument`);
+      } else if (a.tag !== "MalAtom") {
+        throw new Error(
+          `Invalid Argument: reset! requires an atom argument: ${
+            JSON.stringify(a)
+          }`,
+        );
+      }
+      a.value = v ?? MalType.nil;
+
+      return a.value;
+    }),
+  ],
+  [
+    "swap!",
+    MalType.mkInternalFunction(([a, f, ...args]) => {
+      if (a === undefined) {
+        throw new Error(`Invalid Argument: swap! requires an atom argument`);
+      } else if (a.tag !== "MalAtom") {
+        throw new Error(
+          `Invalid Argument: swap! requires an atom argument: ${
+            JSON.stringify(a)
+          }`,
+        );
+      }
+
+      if (f === undefined) {
+        throw new Error(
+          `Invalid Argument: swap! requires an function argument`,
+        );
+      } else if (f.tag !== "MalFunction" && f.tag !== "MalInternalFunction") {
+        throw new Error(
+          `Invalid Argument: swap! requires a function argument: ${
+            JSON.stringify(a)
+          }`,
+        );
+      }
+
+      args = [a.value, ...(args ?? [])];
+
+      if (f.tag === "MalFunction") {
+        a.value = evaluate(f.body, Env.mkEnv(f.env, f.params, args));
+      } else {
+        a.value = f.fn(args);
+      }
+
+      return a.value;
+    }),
   ],
 ];

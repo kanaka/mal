@@ -27,6 +27,8 @@ export const prStr = (
             )
           }"`
           : v.value;
+      case "MalAtom":
+        return `(atom ${prStrReadably(v.value)})`;
       case "MalBoolean":
       case "MalNumber":
         return `${v.value}`;

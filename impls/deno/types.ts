@@ -1,17 +1,25 @@
 import * as Env from "./env.ts";
 
 export type MalType =
-  | MalList
-  | MalVector
+  | MalAtom
+  | MalBoolean
+  | MalFunction
   | MalHashMap
+  | MalInternalFunction
+  | MalKeyword
+  | MalList
+  | MalNil
   | MalNumber
   | MalString
-  | MalBoolean
-  | MalNil
   | MalSymbol
-  | MalKeyword
-  | MalInternalFunction
-  | MalFunction;
+  | MalVector;
+
+export type MalAtom = {
+  tag: "MalAtom";
+  value: MalType;
+};
+
+export const mkAtom = (value: MalType): MalAtom => ({ tag: "MalAtom", value });
 
 export type MalList = {
   tag: "MalList";
