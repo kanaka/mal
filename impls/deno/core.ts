@@ -250,4 +250,67 @@ export const ns = (
       return a.value;
     }),
   ],
+
+  [
+    "cons",
+    MalType.mkInternalFunction(([a, b]) => {
+      if (a === undefined || b === undefined) {
+        throw new Error(`Invalid Argument: cons requires two arguments`);
+      }
+
+      if (b.tag === "MalNil") {
+        return MalType.mkList([a]);
+      } else if (b.tag !== "MalList" && b.tag !== "MalVector") {
+        throw new Error(
+          `Invalid Argument: cons second argument must be a list: ${
+            JSON.stringify(b)
+          }`,
+        );
+      }
+
+      return MalType.mkList([a, ...b.items]);
+    }),
+  ],
+  [
+    "concat",
+    MalType.mkInternalFunction((lst) => {
+      const result: Array<MalType.MalType> = [];
+
+      lst.forEach((i) => {
+        if (i.tag === "MalNil") {
+          // do nothing
+        } else if (i.tag === "MalList" || i.tag === "MalVector") {
+          i.items.forEach((e) => result.push(e));
+        } else {
+          throw new Error(
+            `Invalid Argument: concat argument must be a list: ${
+              JSON.stringify(i)
+            }`,
+          );
+        }
+      });
+
+      return MalType.mkList(result);
+    }),
+  ],
+  [
+    "vec",
+    MalType.mkInternalFunction(([v]) => {
+      if (v === undefined) {
+        throw new Error("Invalid Argument: vec requires a single argument");
+      }
+
+      if (v.tag === "MalVector") {
+        return v;
+      } else if (v.tag === "MalList") {
+        return MalType.mkVector(v.items);
+      } else {
+        throw new Error(
+          `Invalid Argument: vec requires a single list or vector argument: ${
+            JSON.stringify(v)
+          }`,
+        );
+      }
+    }),
+  ],
 ];
