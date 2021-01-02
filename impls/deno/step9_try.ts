@@ -7,26 +7,27 @@ import * as Reader from "./reader.ts";
 const read = (str: string): MalType.MalType => Reader.readStr(str);
 
 const evaluate_ast = (ast: MalType.MalType, env: Env.Env): MalType.MalType => {
-  if (ast.tag === "MalSymbol") {
-    return Env.get(ast, env);
-  } else if (ast.tag === "MalList") {
-    return MalType.mkList(ast.items.map((i) => evaluate(i, env)));
-  } else if (ast.tag === "MalVector") {
-    return MalType.mkVector(ast.items.map((i) => evaluate(i, env)));
-  } else if (ast.tag === "MalHashMap") {
-    return MalType.mkHashMap(
-      MalType.mapKeyValues(ast).map(([k, v]) => [k, evaluate(v, env)]),
-    );
-  } else {
-    return ast;
+  switch (ast.tag) {
+    case "MalSymbol":
+      return Env.get(ast, env);
+    case "MalList":
+      return MalType.mkList(ast.items.map((i) => evaluate(i, env)));
+    case "MalVector":
+      return MalType.mkVector(ast.items.map((i) => evaluate(i, env)));
+    case "MalHashMap":
+      return MalType.mkHashMap(
+        MalType.mapKeyValues(ast).map(([k, v]) => [k, evaluate(v, env)]),
+      );
+    default:
+      return ast;
   }
 };
 
-const isNamedSymbol = (ast: MalType.MalType, name: string): boolean =>
-  ast.tag === "MalSymbol" && ast.name === name;
-
 const evaluate = (ast: MalType.MalType, env: Env.Env): MalType.MalType => {
   while (true) {
+    // console.log(Printer.prStr(ast));
+
+    ast = macroExpand(ast, env);
     if (ast.tag === "MalList") {
       if (ast.items.length === 0) {
         return ast;
@@ -36,6 +37,8 @@ const evaluate = (ast: MalType.MalType, env: Env.Env): MalType.MalType => {
         switch (ast.items[0].name) {
           case "def!":
             return evaluateDefBang(ast, env);
+          case "defmacro!":
+            return evaluateDefMacroBang(ast, env);
           case "do":
             ast = evaluateDo(ast, env);
             continue;
@@ -75,6 +78,61 @@ const evaluate = (ast: MalType.MalType, env: Env.Env): MalType.MalType => {
             env = innerEnv;
             continue;
           }
+          case "macroexpand":
+            return macroExpand(ast.items[1], env);
+          case "quasiquote":
+            ast = evaluateQuasiQuote(ast.items[1]);
+            continue;
+          case "quasiquoteexpand":
+            return evaluateQuasiQuote(ast.items[1]);
+          case "quote":
+            return ast.items[1];
+          case "try*": {
+            if (ast.items.length === 2) {
+              return evaluate(ast.items[1], env);
+            }
+
+            if (ast.items.length === 3) {
+              const catchItem = ast.items[2];
+
+              if (
+                (catchItem.tag === "MalList" ||
+                  catchItem.tag === "MalVector") && catchItem.items.length === 3
+              ) {
+                const catchKeyword = catchItem.items[0];
+                const catchSymbol = catchItem.items[1];
+                const catchBody = catchItem.items[2];
+                if (
+                  catchKeyword.tag === "MalSymbol" &&
+                  catchKeyword.name === "catch*" &&
+                  catchSymbol.tag === "MalSymbol"
+                ) {
+                  try {
+                    return evaluate(ast.items[1], env);
+                  } catch (e) {
+                    const ep = e.tag !== undefined && e.tag.startsWith("Mal")
+                      ? e
+                      : e.message !== undefined
+                      ? MalType.mkString(e.message)
+                      : MalType.mkString(JSON.stringify(e));
+
+                    env = Env.mkEnv(
+                      env,
+                      [catchSymbol],
+                      [ep],
+                    );
+                    ast = catchBody;
+                    continue;
+                  }
+                }
+              }
+            }
+            throw new Error(
+              `Invalid Argument: try* is not in a valid form: ${
+                JSON.stringify(ast)
+              }`,
+            );
+          }
         }
       }
 
@@ -101,6 +159,38 @@ const evaluate = (ast: MalType.MalType, env: Env.Env): MalType.MalType => {
   }
 };
 
+const macroExpand = (ast: MalType.MalType, env: Env.Env): MalType.MalType => {
+  const macroFunction = (
+    ast: MalType.MalType,
+    env: Env.Env,
+  ): [MalType.MalFunction, Array<MalType.MalType>] | undefined => {
+    if (
+      (ast.tag === "MalList" || ast.tag === "MalVector") &&
+      ast.items.length > 0 && ast.items[0].tag === "MalSymbol"
+    ) {
+      const value = Env.find(ast.items[0], env);
+
+      return value !== undefined && value.tag === "MalFunction" && value.isMacro
+        ? [value, ast.items.slice(1)]
+        : undefined;
+    } else {
+      return undefined;
+    }
+  };
+
+  while (true) {
+    const macro = macroFunction(ast, env);
+    if (macro === undefined) {
+      return ast;
+    } else {
+      ast = evaluate(
+        macro[0].body,
+        Env.mkEnv(macro[0].env, macro[0].params, macro[1]),
+      );
+    }
+  }
+};
+
 const evaluateDefBang = (
   ast: MalType.MalList,
   env: Env.Env,
@@ -112,6 +202,27 @@ const evaluateDefBang = (
   }
 
   const result = evaluate(ast.items[2], env);
+  Env.set(ast.items[1], result, env);
+
+  return result;
+};
+
+const evaluateDefMacroBang = (
+  ast: MalType.MalList,
+  env: Env.Env,
+): MalType.MalType => {
+  if (ast.items[1].tag !== "MalSymbol") {
+    throw new Error(
+      `Invalid Argument: defmacro! requires a symbol name: ${ast.items[1]}`,
+    );
+  }
+
+  const result = evaluate(ast.items[2], env);
+
+  if (result.tag === "MalFunction") {
+    result.isMacro = true;
+  }
+
   Env.set(ast.items[1], result, env);
 
   return result;
@@ -187,6 +298,49 @@ const evaluateIf = (
   }
 };
 
+const evaluateQuasiQuote = (ast: MalType.MalType): MalType.MalType => {
+  const startsWith = (
+    items: Array<MalType.MalType>,
+    symbolName: string,
+  ): boolean => (items.length == 2 && items[0].tag === "MalSymbol" &&
+    items[0].name === symbolName);
+
+  const loop = (
+    element: MalType.MalType,
+    accumulator: MalType.MalList,
+  ): MalType.MalList =>
+    (element.tag == "MalList" && startsWith(element.items, "splice-unquote"))
+      ? MalType.mkList(
+        [MalType.mkSymbol("concat"), element.items[1], accumulator],
+      )
+      : MalType.mkList(
+        [MalType.mkSymbol("cons"), evaluateQuasiQuote(element), accumulator],
+      );
+
+  const foldr = (xs: MalType.MalType[]): MalType.MalList => {
+    let acc = MalType.mkList([]);
+    for (let i = xs.length - 1; i >= 0; i -= 1) {
+      acc = loop(xs[i], acc);
+    }
+    return acc;
+  };
+
+  switch (ast.tag) {
+    case "MalSymbol":
+      return MalType.mkList([MalType.mkSymbol("quote"), ast]);
+    case "MalHashMap":
+      return MalType.mkList([MalType.mkSymbol("quote"), ast]);
+    case "MalList":
+      return (startsWith(ast.items, "unquote"))
+        ? ast.items[1]
+        : foldr(ast.items);
+    case "MalVector":
+      return MalType.mkList([MalType.mkSymbol("vec"), foldr(ast.items)]);
+    default:
+      return ast;
+  }
+};
+
 const print = (exp: MalType.MalType): string => Printer.prStr(exp);
 
 const rep = (str: string, env: Env.Env): string =>
@@ -217,6 +371,10 @@ const initReplEnv = () => {
     '(def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) "\nnil)")))))',
     env,
   );
+  rep(
+    "(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))",
+    env,
+  );
 
   return env;
 };
@@ -233,7 +391,8 @@ const repl = (env: Env.Env) => {
       console.log(rep(value, env));
     } catch (e) {
       if (e.message !== "Reader Error: No input") {
-        console.error(e.message);
+        const message = (e.tag !== undefined) ? Printer.prStr(e) : e.message;
+        console.error(`Exception: ${message}`);
       }
     }
   }

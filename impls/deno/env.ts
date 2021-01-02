@@ -49,7 +49,7 @@ export const get = (name: MalType.MalSymbol, env: Env): MalType.MalType => {
   const result = find(name, env);
 
   if (result === undefined) {
-    throw new Error(`Undefined Symbol: ${name.name} not found`);
+    throw new Error(`'${name.name}' not found`);
   } else {
     return result;
   }

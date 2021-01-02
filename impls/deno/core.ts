@@ -375,4 +375,294 @@ export const ns = (
         : MalType.mkList(v.items.slice(1));
     }),
   ],
+
+  [
+    "throw",
+    MalType.mkInternalFunction(([v]) => {
+      if (
+        v === undefined
+      ) {
+        throw new Error(
+          "Invalid Argument: throw parameter 0: expected",
+        );
+      }
+
+      throw v;
+    }),
+  ],
+
+  [
+    "apply",
+    MalType.mkInternalFunction(([f, ...rest]) => {
+      if (
+        f === undefined ||
+        f.tag !== "MalInternalFunction" && f.tag !== "MalFunction"
+      ) {
+        throw new Error(
+          "Invalid Argument: apply parameter 0: expected function",
+        );
+      }
+
+      const items: Array<MalType.MalType> = [];
+
+      rest.forEach((v) => {
+        if (v.tag === "MalList" || v.tag == "MalVector") {
+          v.items.forEach((i) => items.push(i));
+        } else {
+          items.push(v);
+        }
+      });
+
+      if (f.tag === "MalInternalFunction") {
+        return f.fn(items);
+      } else {
+        const ast = f.body;
+        const env = Env.mkEnv(f.env, f.params, items);
+        return evaluate(ast, env);
+      }
+    }),
+  ],
+  [
+    "map",
+    MalType.mkInternalFunction(([f, seq]) => {
+      if (
+        f === undefined ||
+        f.tag !== "MalInternalFunction" && f.tag !== "MalFunction"
+      ) {
+        throw new Error(
+          "Invalid Argument: map parameter 0: expected function",
+        );
+      }
+      if (
+        seq === undefined || seq.tag !== "MalList" && seq.tag !== "MalVector"
+      ) {
+        throw new Error(
+          "Invalid Argument: map parameter 1: expected sequence",
+        );
+      }
+
+      const fn = f.tag === "MalInternalFunction"
+        ? f.fn
+        : (args: Array<MalType.MalType>): MalType.MalType =>
+          evaluate(f.body, Env.mkEnv(f.env, f.params, args));
+
+      const mappedItems = seq.items.map((p) => fn([p]));
+
+      return MalType.mkList(mappedItems);
+    }),
+  ],
+  [
+    "nil?",
+    MalType.mkInternalFunction(([v]) => {
+      return MalType.mkBoolean(v !== undefined && v.tag === "MalNil");
+    }),
+  ],
+  [
+    "true?",
+    MalType.mkInternalFunction(([v]) => {
+      return MalType.mkBoolean(
+        v !== undefined && v.tag === "MalBoolean" && v.value,
+      );
+    }),
+  ],
+  [
+    "false?",
+    MalType.mkInternalFunction(([v]) => {
+      return MalType.mkBoolean(
+        v !== undefined && v.tag === "MalBoolean" && !v.value,
+      );
+    }),
+  ],
+  [
+    "symbol?",
+    MalType.mkInternalFunction(([v]) => {
+      return MalType.mkBoolean(v !== undefined && v.tag === "MalSymbol");
+    }),
+  ],
+  [
+    "symbol",
+    MalType.mkInternalFunction(([v]) => {
+      if (v === undefined) {
+        throw new Error(
+          "Invalid Argument: symbol parameter 0: expected string or symbol",
+        );
+      }
+      if (v.tag === "MalSymbol") {
+        return v;
+      } else if (v.tag === "MalString") {
+        return MalType.mkSymbol(v.value);
+      } else {
+        throw new Error(
+          `Invalid Argument: symbol parameter 0: expected string or symbol: ${
+            JSON.stringify(v)
+          }`,
+        );
+      }
+    }),
+  ],
+  [
+    "keyword",
+    MalType.mkInternalFunction(([v]) => {
+      if (v === undefined) {
+        throw new Error(
+          "Invalid Argument: symbol parameter 0: expected string or keyword",
+        );
+      }
+      if (v.tag === "MalKeyword") {
+        return v;
+      } else if (v.tag === "MalString") {
+        return MalType.mkKeyword(`:${v.value}`);
+      } else {
+        throw new Error(
+          `Invalid Argument: keyword parameter 0: expected string or keyword: ${
+            JSON.stringify(v)
+          }`,
+        );
+      }
+    }),
+  ],
+  [
+    "keyword?",
+    MalType.mkInternalFunction(([v]) => {
+      return MalType.mkBoolean(v !== undefined && v.tag === "MalKeyword");
+    }),
+  ],
+  [
+    "vector",
+    MalType.mkInternalFunction((lst) => {
+      return MalType.mkVector(lst);
+    }),
+  ],
+  [
+    "vector?",
+    MalType.mkInternalFunction(([v]) => {
+      return MalType.mkBoolean(v !== undefined && v.tag === "MalVector");
+    }),
+  ],
+  [
+    "sequential?",
+    MalType.mkInternalFunction(([v]) =>
+      MalType.mkBoolean(
+        v !== undefined && (v.tag === "MalVector" || v.tag === "MalList"),
+      )
+    ),
+  ],
+  [
+    "hash-map",
+    MalType.mkInternalFunction((items) =>
+      MalType.mkHashMap(mkHashPairs(items, "hash-map"))
+    ),
+  ],
+  [
+    "map?",
+    MalType.mkInternalFunction(([v]) =>
+      MalType.mkBoolean(v !== undefined && v.tag === "MalHashMap")
+    ),
+  ],
+  [
+    "assoc",
+    MalType.mkInternalFunction(([m, ...items]) => {
+      if (m === undefined || m.tag !== "MalHashMap") {
+        throw new Error(
+          "Invalid Argument: assoc parameter 0: expected a hash map",
+        );
+      }
+      return MalType.mapAssoc(m, mkHashPairs(items ?? [], "assoc"));
+    }),
+  ],
+  [
+    "dissoc",
+    MalType.mkInternalFunction(([m, ...items]) => {
+      if (m === undefined || m.tag !== "MalHashMap") {
+        throw new Error(
+          "Invalid Argument: dissoc parameter 0: expected a hash map",
+        );
+      }
+
+      return MalType.mapDissoc(m, items);
+    }),
+  ],
+  [
+    "get",
+    MalType.mkInternalFunction(([m, key]) => {
+      if (m === undefined || m.tag !== "MalHashMap" && m.tag !== "MalNil") {
+        throw new Error(
+          "Invalid Argument: get parameter 0: expected a hash map",
+        );
+      }
+
+      if (
+        key === undefined ||
+        (key.tag !== "MalKeyword" && key.tag !== "MalString")
+      ) {
+        throw new Error(
+          "Invalid Argument: get parameter 1: expected a keyword or string",
+        );
+      }
+
+      return m.tag === "MalNil" ? MalType.nil : MalType.mapGet(m, key);
+    }),
+  ],
+  [
+    "contains?",
+    MalType.mkInternalFunction(([m, key]) => {
+      if (m === undefined || m.tag !== "MalHashMap") {
+        throw new Error(
+          "Invalid Argument: contains? parameter 0: expected a hash map",
+        );
+      }
+      if (
+        key === undefined ||
+        (key.tag !== "MalKeyword" && key.tag !== "MalString")
+      ) {
+        throw new Error(
+          "Invalid Argument: contains? parameter 1: expected a keyword or string",
+        );
+      }
+
+      return MalType.mapContains(m, key);
+    }),
+  ],
+  [
+    "keys",
+    MalType.mkInternalFunction(([m]) => {
+      if (m === undefined || m.tag !== "MalHashMap") {
+        throw new Error(
+          "Invalid Argument: contains? parameter 0: expected a hash map",
+        );
+      }
+
+      return MalType.mkList(MalType.mapKeys(m));
+    }),
+  ],
+  [
+    "vals",
+    MalType.mkInternalFunction(([m]) => {
+      if (m === undefined || m.tag !== "MalHashMap") {
+        throw new Error(
+          "Invalid Argument: contains? parameter 0: expected a hash map",
+        );
+      }
+
+      return MalType.mkList(MalType.mapValues(m));
+    }),
+  ],
 ];
+
+const mkHashPairs = (
+  items: Array<MalType.MalType>,
+  procedureName: string,
+): Array<[MalType.MalType, MalType.MalType]> => {
+  const args: Array<[MalType.MalType, MalType.MalType]> = [];
+
+  if (items.length % 2 === 1) {
+    throw new Error(
+      `Invalid Argument: ${procedureName}: Odd number of arguments`,
+    );
+  }
+  for (let lp = 0; lp < items.length; lp += 2) {
+    args.push([items[lp], items[lp + 1]]);
+  }
+
+  return args;
+};

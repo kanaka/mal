@@ -1,4 +1,4 @@
-import { MalType, mapValues } from "./types.ts";
+import { MalType, mapKeyValues } from "./types.ts";
 
 export const prStr = (
   v: MalType,
@@ -12,7 +12,7 @@ export const prStr = (
         return `[${v.items.map(prStrReadably).join(" ")}]`;
       case "MalHashMap":
         return `{${
-          mapValues(v).map(([k, v]) =>
+          mapKeyValues(v).map(([k, v]) =>
             `${prStrReadably(k)} ${prStrReadably(v)}`
           ).join(" ")
         }}`;

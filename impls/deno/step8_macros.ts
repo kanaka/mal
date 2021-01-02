@@ -16,7 +16,7 @@ const evaluate_ast = (ast: MalType.MalType, env: Env.Env): MalType.MalType => {
       return MalType.mkVector(ast.items.map((i) => evaluate(i, env)));
     case "MalHashMap":
       return MalType.mkHashMap(
-        MalType.mapValues(ast).map(([k, v]) => [k, evaluate(v, env)]),
+        MalType.mapKeyValues(ast).map(([k, v]) => [k, evaluate(v, env)]),
       );
     default:
       return ast;

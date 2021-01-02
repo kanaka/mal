@@ -46,30 +46,68 @@ export type MalHashMap = {
   items: Map<string, MalType>;
 };
 
-export const mkHashMap = (values: Array<[MalType, MalType]>): MalHashMap => {
-  const items: Array<[string, MalType]> = [];
+export const mkHashMap = (values: Array<[MalType, MalType]>): MalHashMap => ({
+  tag: "MalHashMap",
+  items: new Map(values.map(([k, v]) => [mapHashMapKey(k), v])),
+});
+
+export const mapAssoc = (
+  malMap: MalHashMap,
+  values: Array<[MalType, MalType]>,
+): MalHashMap => {
+  const result = new Map(malMap.items);
 
   values.forEach(([k, v]) => {
-    if (k.tag === "MalString") {
-      items.push([`s${k.value}`, v]);
-    } else if (k.tag === "MalKeyword") {
-      items.push([`t${k.name}`, v]);
-    } else {
-      throw new Error(
-        `Precondition Error: Unable to use ${
-          JSON.stringify(k)
-        } as a hashmap key.`,
-      );
-    }
+    result.set(mapHashMapKey(k), v);
   });
 
-  return { tag: "MalHashMap", items: new Map(items) };
+  return { tag: "MalHashMap", items: result };
 };
 
-export const mapValues = (malMap: MalHashMap): Array<[MalType, MalType]> =>
-  [...malMap.items].map(([k, v]) =>
-    k.startsWith("s") ? [mkString(k.substr(1)), v] : [mkKeyword(k.substr(1)), v]
-  );
+export const mapDissoc = (
+  malMap: MalHashMap,
+  values: Array<MalType>,
+): MalHashMap => {
+  const result = new Map(malMap.items);
+
+  values.forEach((k) => {
+    result.delete(mapHashMapKey(k));
+  });
+
+  return { tag: "MalHashMap", items: result };
+};
+
+export const mapGet = (malMap: MalHashMap, key: MalType): MalType =>
+  malMap.items.get(mapHashMapKey(key)) ?? nil;
+
+export const mapContains = (malMap: MalHashMap, key: MalType): MalType =>
+  mkBoolean(malMap.items.get(mapHashMapKey(key)) !== undefined);
+
+export const mapKeys = (malMap: MalHashMap): Array<MalType> =>
+  [...malMap.items].map(([k, _]) => reverseMapHashMapKey(k));
+
+export const mapValues = (malMap: MalHashMap): Array<MalType> =>
+  [...malMap.items].map(([_, v]) => v);
+
+export const mapKeyValues = (malMap: MalHashMap): Array<[MalType, MalType]> =>
+  [...malMap.items].map(([k, v]) => [reverseMapHashMapKey(k), v]);
+
+const mapHashMapKey = (k: MalType): string => {
+  if (k.tag === "MalString") {
+    return `s${k.value}`;
+  } else if (k.tag === "MalKeyword") {
+    return `t${k.name}`;
+  } else {
+    throw new Error(
+      `Precondition Error: Unable to use ${
+        JSON.stringify(k)
+      } as a hashmap key.`,
+    );
+  }
+};
+
+const reverseMapHashMapKey = (k: string): MalString | MalKeyword =>
+  k.startsWith("s") ? mkString(k.substr(1)) : mkKeyword(k.substr(1));
 
 export type MalNumber = {
   tag: "MalNumber";
@@ -104,10 +142,12 @@ export type MalBoolean = {
   value: boolean;
 };
 
-export const mkBoolean = (value: boolean): MalBoolean => ({
-  tag: "MalBoolean",
-  value,
-});
+const booleanTrue: MalBoolean = { tag: "MalBoolean", value: true };
+
+const booleanFalse: MalBoolean = { tag: "MalBoolean", value: false };
+
+export const mkBoolean = (value: boolean): MalBoolean =>
+  value ? booleanTrue : booleanFalse;
 
 export type MalNil = {
   tag: "MalNil";
@@ -197,7 +237,7 @@ const hashMapEquals = (a: MalHashMap, b: MalHashMap): boolean => {
     return false;
   }
 
-  as.forEach((value, key) => {
+  for (let [key, value] of as) {
     if (!bs.has(key)) return false;
 
     const bValue = bs.get(key);
@@ -205,7 +245,7 @@ const hashMapEquals = (a: MalHashMap, b: MalHashMap): boolean => {
     if (bValue === undefined || !equals(value, bValue)) {
       return false;
     }
-  });
+  }
 
   return true;
 };
