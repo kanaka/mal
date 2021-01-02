@@ -149,17 +149,20 @@ export type MalFunction = {
   body: MalType;
   params: Array<MalSymbol>;
   env: Env.Env;
+  isMacro: boolean;
 };
 
 export const mkFunction = (
   body: MalType,
   params: Array<MalSymbol>,
   env: Env.Env,
+  isMacro: boolean = false,
 ): MalFunction => ({
   tag: "MalFunction",
   body,
   params,
   env,
+  isMacro,
 });
 
 export const equals = (a: MalType, b: MalType): boolean => {

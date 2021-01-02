@@ -313,4 +313,66 @@ export const ns = (
       }
     }),
   ],
+  [
+    "nth",
+    MalType.mkInternalFunction(([l, i]) => {
+      if (l === undefined || l.tag !== "MalList" && l.tag !== "MalVector") {
+        throw new Error(
+          `Invalid Argument: nth parameter 0: expected list or vector: ${
+            JSON.stringify(i)
+          }`,
+        );
+      }
+      if (i === undefined || i.tag !== "MalNumber") {
+        throw new Error(
+          `Invalid Argument: nth parameter 1: expected number: ${
+            JSON.stringify(i)
+          }`,
+        );
+      }
+
+      const result = l.items[i.value];
+      if (result === undefined) {
+        throw new Error(
+          `Index Out Of Range: nth: ${i.value} exceeds bounds of ${
+            JSON.stringify(l)
+          }`,
+        );
+      } else {
+        return result;
+      }
+    }),
+  ],
+  [
+    "first",
+    MalType.mkInternalFunction(([v]) => {
+      if (
+        v === undefined ||
+        v.tag !== "MalList" && v.tag !== "MalVector" && v.tag !== "MalNil"
+      ) {
+        throw new Error(
+          "Invalid Argument: first parameter 0: expected list, vector or nil",
+        );
+      }
+
+      return v.tag === "MalNil" ? MalType.nil : v.items[0] ?? MalType.nil;
+    }),
+  ],
+  [
+    "rest",
+    MalType.mkInternalFunction(([v]) => {
+      if (
+        v === undefined ||
+        v.tag !== "MalList" && v.tag !== "MalVector" && v.tag !== "MalNil"
+      ) {
+        throw new Error(
+          "Invalid Argument: rest parameter 0: expected list, vector or nil",
+        );
+      }
+
+      return v.tag === "MalNil"
+        ? MalType.mkList([])
+        : MalType.mkList(v.items.slice(1));
+    }),
+  ],
 ];
