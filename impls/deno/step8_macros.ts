@@ -25,91 +25,86 @@ const evaluate_ast = (ast: MalType.MalType, env: Env.Env): MalType.MalType => {
 
 const evaluate = (ast: MalType.MalType, env: Env.Env): MalType.MalType => {
   while (true) {
+    ast = macroExpand(ast, env);
     if (ast.tag === "MalList") {
-      ast = macroExpand(ast, env);
+      if (ast.items.length === 0) {
+        return ast;
+      }
 
-      if (ast.tag === "MalList") {
-        if (ast.items.length === 0) {
-          return ast;
-        }
+      if (ast.items[0].tag === "MalSymbol") {
+        switch (ast.items[0].name) {
+          case "def!":
+            return evaluateDefBang(ast, env);
+          case "defmacro!":
+            return evaluateDefMacroBang(ast, env);
+          case "do":
+            ast = evaluateDo(ast, env);
+            continue;
+          case "fn*":
+            return evaluateFnStar(ast, env);
+          case "if":
+            ast = evaluateIf(ast, env);
+            continue;
+          case "let*": {
+            const bindings = ast.items[1];
 
-        if (ast.items[0].tag === "MalSymbol") {
-          switch (ast.items[0].name) {
-            case "def!":
-              return evaluateDefBang(ast, env);
-            case "defmacro!":
-              return evaluateDefMacroBang(ast, env);
-            case "do":
-              ast = evaluateDo(ast, env);
-              continue;
-            case "fn*":
-              return evaluateFnStar(ast, env);
-            case "if":
-              ast = evaluateIf(ast, env);
-              continue;
-            case "let*": {
-              const bindings = ast.items[1];
+            if (bindings.tag !== "MalList" && bindings.tag !== "MalVector") {
+              throw new Error(
+                `Invalid Argument: let* requires a list of bindings: ${
+                  JSON.stringify(bindings)
+                }`,
+              );
+            }
 
-              if (bindings.tag !== "MalList" && bindings.tag !== "MalVector") {
+            const innerEnv = Env.mkEnv(env);
+            for (let lp = 0; lp < bindings.items.length; lp += 2) {
+              const name = bindings.items[lp];
+              const value = bindings.items[lp + 1] ?? MalType.nil;
+
+              if (name.tag !== "MalSymbol") {
                 throw new Error(
-                  `Invalid Argument: let* requires a list of bindings: ${
-                    JSON.stringify(bindings)
+                  `Invalid Argument: let* binding requires a symbol name: ${
+                    JSON.stringify(name)
                   }`,
                 );
               }
 
-              const innerEnv = Env.mkEnv(env);
-              for (let lp = 0; lp < bindings.items.length; lp += 2) {
-                const name = bindings.items[lp];
-                const value = bindings.items[lp + 1] ?? MalType.nil;
-
-                if (name.tag !== "MalSymbol") {
-                  throw new Error(
-                    `Invalid Argument: let* binding requires a symbol name: ${
-                      JSON.stringify(name)
-                    }`,
-                  );
-                }
-
-                Env.set(name, evaluate(value, innerEnv), innerEnv);
-              }
-
-              ast = ast.items[2];
-              env = innerEnv;
-              continue;
+              Env.set(name, evaluate(value, innerEnv), innerEnv);
             }
-            case "macroexpand":
-              return macroExpand(ast.items[1], env);
-            case "quasiquote":
-              ast = evaluateQuasiQuote(ast.items[1]);
-              continue;
-            case "quasiquoteexpand":
-              return evaluateQuasiQuote(ast.items[1]);
-            case "quote":
-              return ast.items[1];
+
+            ast = ast.items[2];
+            env = innerEnv;
+            continue;
           }
+          case "macroexpand":
+            return macroExpand(ast.items[1], env);
+          case "quasiquote":
+            ast = evaluateQuasiQuote(ast.items[1]);
+            continue;
+          case "quasiquoteexpand":
+            return evaluateQuasiQuote(ast.items[1]);
+          case "quote":
+            return ast.items[1];
         }
-
-        const evalList = evaluate_ast(ast, env);
-
-        if (evalList.tag === "MalList" || evalList.tag === "MalVector") {
-          const [callerItem, ...callerArgs] = evalList.items;
-
-          if (callerItem !== undefined) {
-            if (callerItem.tag === "MalInternalFunction") {
-              return callerItem.fn(callerArgs);
-            } else if (callerItem.tag === "MalFunction") {
-              ast = callerItem.body;
-              env = Env.mkEnv(callerItem.env, callerItem.params, callerArgs);
-              continue;
-            }
-          }
-        }
-
-        throw new Error(`Unable to invoke: ${JSON.stringify(evalList)}`);
-      } else {
-        return evaluate_ast(ast, env);
       }
+
+      const evalList = evaluate_ast(ast, env);
+
+      if (evalList.tag === "MalList" || evalList.tag === "MalVector") {
+        const [callerItem, ...callerArgs] = evalList.items;
+
+        if (callerItem !== undefined) {
+          if (callerItem.tag === "MalInternalFunction") {
+            return callerItem.fn(callerArgs);
+          } else if (callerItem.tag === "MalFunction") {
+            ast = callerItem.body;
+            env = Env.mkEnv(callerItem.env, callerItem.params, callerArgs);
+            continue;
+          }
+        }
+      }
+
+      throw new Error(`Unable to invoke: ${JSON.stringify(evalList)}`);
     } else {
       return evaluate_ast(ast, env);
     }
