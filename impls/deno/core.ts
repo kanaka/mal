@@ -73,49 +73,6 @@ const __ns = (
     return MalType.mkNumber(asNumber(a) / asNumber(b));
   },
 
-  "pr_str": ([v]: Array<MalType.MalType>): MalType.MalType => {
-    console.log(Printer.prStr(v, true));
-    return MalType.nil;
-  },
-
-  println: (args: Array<MalType.MalType>): MalType.MalType => {
-    console.log(args.map((v) => Printer.prStr(v, false)).join(" "));
-    return MalType.nil;
-  },
-
-  prn: (args: Array<MalType.MalType>): MalType.MalType => {
-    console.log(args.map((v) => Printer.prStr(v, true)).join(" "));
-    return MalType.nil;
-  },
-
-  "pr-str": (args: Array<MalType.MalType>): MalType.MalType =>
-    MalType.mkString(args.map((v) => Printer.prStr(v, true)).join(" ")),
-
-  str: (args: Array<MalType.MalType>): MalType.MalType =>
-    MalType.mkString(args.map((v) => Printer.prStr(v, false)).join("")),
-
-  list: MalType.mkList,
-
-  "list?": ([v]: Array<MalType.MalType>): MalType.MalType => {
-    validateArgument(0, v);
-
-    return MalType.mkBoolean(v.tag === "MalList");
-  },
-
-  "empty?": ([v]: Array<MalType.MalType>): MalType.MalType => {
-    validateArgument(0, v, ["MalList", "MalVector"]);
-
-    return MalType.mkBoolean(asSeq(v).items.length === 0);
-  },
-
-  count: ([v]: Array<MalType.MalType>): MalType.MalType => {
-    validateArgument(0, v, ["MalList", "MalVector", "MalNil"]);
-
-    return (v.tag === "MalNil")
-      ? MalType.mkNumber(0)
-      : MalType.mkNumber(asSeq(v).items.length);
-  },
-
   "=": ([a, b]: Array<MalType.MalType>): MalType.MalType =>
     MalType.mkBoolean(MalType.equals(a, b)),
 
@@ -147,121 +104,6 @@ const __ns = (
     return MalType.mkBoolean(asNumber(a) >= asNumber(b));
   },
 
-  "read-string": ([s]: Array<MalType.MalType>): MalType.MalType => {
-    if (s === undefined) {
-      return MalType.nil;
-    }
-
-    validateArgument(0, s, "MalString");
-
-    return Reader.readStr(asString(s));
-  },
-
-  slurp: ([s]: Array<MalType.MalType>): MalType.MalType => {
-    validateArgument(0, s, "MalString");
-
-    return MalType.mkString(Deno.readTextFileSync(asString(s)));
-  },
-
-  atom: ([v]: Array<MalType.MalType>): MalType.MalType =>
-    MalType.mkAtom(v ?? MalType.nil),
-
-  "atom?": ([v]: Array<MalType.MalType>): MalType.MalType =>
-    MalType.mkBoolean(v !== undefined && v.tag === "MalAtom"),
-
-  deref: ([v]: Array<MalType.MalType>): MalType.MalType => {
-    validateArgument(0, v, "MalAtom");
-
-    return asAtom(v).value;
-  },
-
-  "reset!": ([a, v]: Array<MalType.MalType>): MalType.MalType => {
-    validateArgument(0, a, "MalAtom");
-
-    asAtom(a).value = v ?? MalType.nil;
-
-    return asAtom(a).value;
-  },
-
-  "swap!": ([a, f, ...args]: Array<MalType.MalType>): MalType.MalType => {
-    validateArgument(0, a, "MalAtom");
-    validateArgument(1, f, ["MalFunction", "MalInternalFunction"]);
-
-    const ap = asAtom(a);
-
-    args = [ap.value, ...(args ?? [])];
-
-    if (f.tag === "MalFunction") {
-      ap.value = evaluate(f.body, Env.mkEnv(f.env, f.params, args));
-    } else if (f.tag === "MalInternalFunction") {
-      ap.value = f.fn(args);
-    }
-
-    return ap.value;
-  },
-
-  cons: ([a, b]: Array<MalType.MalType>): MalType.MalType => {
-    validateArgument(0, a);
-    validateArgument(1, b, ["MalNil", "MalList", "MalVector"]);
-
-    return MalType.mkList([a, ...asSeq(b).items]);
-  },
-
-  concat: (lst: Array<MalType.MalType>): MalType.MalType => {
-    const result: Array<MalType.MalType> = [];
-
-    lst.forEach((v, i) => {
-      validateArgument(i, v, ["MalNil", "MalList", "MalVector"]);
-      if (v.tag !== "MalNil") {
-        asSeq(v).items.forEach((e) => result.push(e));
-      }
-    });
-
-    return MalType.mkList(result);
-  },
-
-  vec: ([v]: Array<MalType.MalType>): MalType.MalType => {
-    validateArgument(0, v, ["MalList", "MalVector"]);
-
-    return (v.tag === "MalVector") ? v : MalType.mkVector(asSeq(v).items);
-  },
-
-  nth: ([l, i]: Array<MalType.MalType>): MalType.MalType => {
-    validateArgument(0, l, ["MalList", "MalVector", "MalNil"]);
-    validateArgument(1, i, "MalNumber");
-
-    const result = asSeq(l).items[asNumber(i)];
-    if (result === undefined) {
-      throw new Error(
-        `Index Out Of Range: nth: ${asNumber(i)} exceeds bounds of ${
-          JSON.stringify(l)
-        }`,
-      );
-    } else {
-      return result;
-    }
-  },
-
-  first: ([v]: Array<MalType.MalType>): MalType.MalType => {
-    validateArgument(0, v, ["MalList", "MalVector", "MalNil"]);
-
-    return v.tag === "MalNil" ? MalType.nil : asSeq(v).items[0] ?? MalType.nil;
-  },
-
-  rest: ([v]: Array<MalType.MalType>): MalType.MalType => {
-    validateArgument(0, v, ["MalList", "MalVector", "MalNil"]);
-
-    return v.tag === "MalNil"
-      ? MalType.mkList([])
-      : MalType.mkList(asSeq(v).items.slice(1));
-  },
-
-  throw: ([v]: Array<MalType.MalType>): MalType.MalType => {
-    validateArgument(0, v);
-
-    throw v;
-  },
-
   apply: ([f, ...rest]: Array<MalType.MalType>): MalType.MalType => {
     validateArgument(0, f, ["MalFunction", "MalInternalFunction"]);
 
@@ -286,6 +128,133 @@ const __ns = (
     }
   },
 
+  assoc: ([m, ...items]: Array<MalType.MalType>): MalType.MalType => {
+    validateArgument(0, m, "MalHashMap");
+
+    return MalType.mapAssoc(asHashMap(m), mkHashPairs(items ?? [], "assoc"));
+  },
+
+  atom: ([v]: Array<MalType.MalType>): MalType.MalType =>
+    MalType.mkAtom(v ?? MalType.nil),
+
+  "atom?": ([v]: Array<MalType.MalType>): MalType.MalType =>
+    MalType.mkBoolean(v !== undefined && v.tag === "MalAtom"),
+
+  concat: (lst: Array<MalType.MalType>): MalType.MalType => {
+    const result: Array<MalType.MalType> = [];
+
+    lst.forEach((v, i) => {
+      validateArgument(i, v, ["MalNil", "MalList", "MalVector"]);
+      if (v.tag !== "MalNil") {
+        asSeq(v).items.forEach((e) => result.push(e));
+      }
+    });
+
+    return MalType.mkList(result);
+  },
+
+  conj: ([c, ...es]: Array<MalType.MalType>): MalType.MalType => {
+    validateArgument(0, c, ["MalList", "MalVector"]);
+
+    return (es === undefined)
+      ? c
+      : (c.tag === "MalList")
+      ? MalType.mkList([...es.reverse(), ...c.items])
+      : MalType.mkVector([...asSeq(c).items, ...es]);
+  },
+
+  cons: ([a, b]: Array<MalType.MalType>): MalType.MalType => {
+    validateArgument(0, a);
+    validateArgument(1, b, ["MalNil", "MalList", "MalVector"]);
+
+    return MalType.mkList([a, ...asSeq(b).items]);
+  },
+
+  "contains?": ([m, key]: Array<MalType.MalType>): MalType.MalType => {
+    validateArgument(0, m, "MalHashMap");
+    validateArgument(1, key, ["MalKeyword", "MalString"]);
+
+    return MalType.mapContains(asHashMap(m), key);
+  },
+
+  count: ([v]: Array<MalType.MalType>): MalType.MalType => {
+    validateArgument(0, v, ["MalList", "MalVector", "MalNil"]);
+
+    return (v.tag === "MalNil")
+      ? MalType.mkNumber(0)
+      : MalType.mkNumber(asSeq(v).items.length);
+  },
+
+  deref: ([v]: Array<MalType.MalType>): MalType.MalType => {
+    validateArgument(0, v, "MalAtom");
+
+    return asAtom(v).value;
+  },
+
+  dissoc: ([m, ...items]: Array<MalType.MalType>): MalType.MalType => {
+    validateArgument(0, m, "MalHashMap");
+
+    return MalType.mapDissoc(asHashMap(m), items);
+  },
+
+  "empty?": ([v]: Array<MalType.MalType>): MalType.MalType => {
+    validateArgument(0, v, ["MalList", "MalVector"]);
+
+    return MalType.mkBoolean(asSeq(v).items.length === 0);
+  },
+
+  "false?": ([v]: Array<MalType.MalType>): MalType.MalType =>
+    MalType.mkBoolean(v !== undefined && v.tag === "MalBoolean" && !v.value),
+
+  first: ([v]: Array<MalType.MalType>): MalType.MalType => {
+    validateArgument(0, v, ["MalList", "MalVector", "MalNil"]);
+
+    return v.tag === "MalNil" ? MalType.nil : asSeq(v).items[0] ?? MalType.nil;
+  },
+
+  "fn?": ([v]: Array<MalType.MalType>): MalType.MalType =>
+    MalType.mkBoolean(
+      v !== undefined &&
+        (v.tag === "MalFunction" && !v.isMacro ||
+          v.tag === "MalInternalFunction"),
+    ),
+
+  get: ([m, key]: Array<MalType.MalType>): MalType.MalType => {
+    validateArgument(0, m, ["MalHashMap", "MalNil"]);
+    validateArgument(1, key, ["MalKeyword", "MalString"]);
+
+    return m.tag === "MalNil" ? MalType.nil : MalType.mapGet(asHashMap(m), key);
+  },
+
+  "hash-map": (items: Array<MalType.MalType>): MalType.MalType =>
+    MalType.mkHashMap(mkHashPairs(items, "hash-map")),
+
+  keys: ([m]: Array<MalType.MalType>): MalType.MalType => {
+    validateArgument(0, m, "MalHashMap");
+
+    return MalType.mkList(MalType.mapKeys(asHashMap(m)));
+  },
+
+  keyword: ([v]: Array<MalType.MalType>): MalType.MalType => {
+    validateArgument(0, v, ["MalKeyword", "MalString"]);
+
+    return (v.tag === "MalKeyword") ? v : MalType.mkKeyword(`:${asString(v)}`);
+  },
+
+  "keyword?": ([v]: Array<MalType.MalType>): MalType.MalType =>
+    MalType.mkBoolean(v !== undefined && v.tag === "MalKeyword"),
+
+  list: MalType.mkList,
+
+  "list?": ([v]: Array<MalType.MalType>): MalType.MalType => {
+    validateArgument(0, v);
+
+    return MalType.mkBoolean(v.tag === "MalList");
+  },
+
+  "macro?": ([v]: Array<MalType.MalType>): MalType.MalType =>
+    MalType.mkBoolean(v !== undefined && v.tag === "MalFunction" && v.isMacro),
+
   map: ([f, seq]: Array<MalType.MalType>): MalType.MalType => {
     validateArgument(0, f, ["MalFunction", "MalInternalFunction"]);
     validateArgument(1, seq, ["MalList", "MalVector"]);
@@ -300,103 +269,9 @@ const __ns = (
     return MalType.mkList(mappedItems);
   },
 
-  "nil?": ([v]: Array<MalType.MalType>): MalType.MalType =>
-    MalType.mkBoolean(v !== undefined && v.tag === "MalNil"),
-
-  "true?": ([v]: Array<MalType.MalType>): MalType.MalType =>
-    MalType.mkBoolean(v !== undefined && v.tag === "MalBoolean" && v.value),
-
-  "false?": ([v]: Array<MalType.MalType>): MalType.MalType =>
-    MalType.mkBoolean(v !== undefined && v.tag === "MalBoolean" && !v.value),
-
-  "symbol?": ([v]: Array<MalType.MalType>): MalType.MalType =>
-    MalType.mkBoolean(v !== undefined && v.tag === "MalSymbol"),
-
-  symbol: ([v]: Array<MalType.MalType>): MalType.MalType => {
-    validateArgument(0, v, ["MalSymbol", "MalString"]);
-
-    return (v.tag === "MalSymbol") ? v : MalType.mkSymbol(asString(v));
-  },
-
-  keyword: ([v]: Array<MalType.MalType>): MalType.MalType => {
-    validateArgument(0, v, ["MalKeyword", "MalString"]);
-
-    return (v.tag === "MalKeyword") ? v : MalType.mkKeyword(`:${asString(v)}`);
-  },
-
-  "keyword?": ([v]: Array<MalType.MalType>): MalType.MalType =>
-    MalType.mkBoolean(v !== undefined && v.tag === "MalKeyword"),
-
-  "string?": ([v]: Array<MalType.MalType>): MalType.MalType =>
-    MalType.mkBoolean(v !== undefined && v.tag === "MalString"),
-
-  "number?": ([v]: Array<MalType.MalType>): MalType.MalType =>
-    MalType.mkBoolean(v !== undefined && v.tag === "MalNumber"),
-
-  vector: MalType.mkVector,
-
-  "vector?": ([v]: Array<MalType.MalType>): MalType.MalType =>
-    MalType.mkBoolean(v !== undefined && v.tag === "MalVector"),
-
-  "sequential?": ([v]: Array<MalType.MalType>): MalType.MalType =>
-    MalType.mkBoolean(
-      v !== undefined && (v.tag === "MalVector" || v.tag === "MalList"),
-    ),
-
-  "hash-map": (items: Array<MalType.MalType>): MalType.MalType =>
-    MalType.mkHashMap(mkHashPairs(items, "hash-map")),
-
   "map?": ([v]: Array<MalType.MalType>): MalType.MalType =>
     MalType.mkBoolean(v !== undefined && v.tag === "MalHashMap"),
 
-  assoc: ([m, ...items]: Array<MalType.MalType>): MalType.MalType => {
-    validateArgument(0, m, "MalHashMap");
-
-    return MalType.mapAssoc(asHashMap(m), mkHashPairs(items ?? [], "assoc"));
-  },
-
-  dissoc: ([m, ...items]: Array<MalType.MalType>): MalType.MalType => {
-    validateArgument(0, m, "MalHashMap");
-
-    return MalType.mapDissoc(asHashMap(m), items);
-  },
-
-  get: ([m, key]: Array<MalType.MalType>): MalType.MalType => {
-    validateArgument(0, m, ["MalHashMap", "MalNil"]);
-    validateArgument(1, key, ["MalKeyword", "MalString"]);
-
-    return m.tag === "MalNil" ? MalType.nil : MalType.mapGet(asHashMap(m), key);
-  },
-
-  "contains?": ([m, key]: Array<MalType.MalType>): MalType.MalType => {
-    validateArgument(0, m, "MalHashMap");
-    validateArgument(1, key, ["MalKeyword", "MalString"]);
-
-    return MalType.mapContains(asHashMap(m), key);
-  },
-
-  keys: ([m]: Array<MalType.MalType>): MalType.MalType => {
-    validateArgument(0, m, "MalHashMap");
-
-    return MalType.mkList(MalType.mapKeys(asHashMap(m)));
-  },
-
-  vals: ([m]: Array<MalType.MalType>): MalType.MalType => {
-    validateArgument(0, m, "MalHashMap");
-
-    return MalType.mkList(MalType.mapValues(asHashMap(m)));
-  },
-
-  readline: ([prompt]: Array<MalType.MalType>): MalType.MalType => {
-    validateArgument(0, prompt, "MalString");
-
-    const text = readline(`${asString(prompt)}> `);
-
-    return text === undefined ? MalType.nil : MalType.mkString(text);
-  },
-
-  "time-ms": (_: Array<MalType.MalType>): MalType.MalType =>
-    MalType.mkNumber(performance.now()),
   meta: ([v]: Array<MalType.MalType>): MalType.MalType => {
     if (v === undefined) {
       return MalType.nil;
@@ -414,22 +289,79 @@ const __ns = (
     }
   },
 
-  "with-meta": ([v, m]: Array<MalType.MalType>): MalType.MalType => {
-    validateArgument(0, v);
-    validateArgument(1, m);
+  "nil?": ([v]: Array<MalType.MalType>): MalType.MalType =>
+    MalType.mkBoolean(v !== undefined && v.tag === "MalNil"),
 
-    return MalType.withMeta(v, m);
+  nth: ([l, i]: Array<MalType.MalType>): MalType.MalType => {
+    validateArgument(0, l, ["MalList", "MalVector", "MalNil"]);
+    validateArgument(1, i, "MalNumber");
+
+    const result = asSeq(l).items[asNumber(i)];
+    if (result === undefined) {
+      throw new Error(
+        `Index Out Of Range: nth: ${asNumber(i)} exceeds bounds of ${
+          JSON.stringify(l)
+        }`,
+      );
+    } else {
+      return result;
+    }
   },
 
-  "fn?": ([v]: Array<MalType.MalType>): MalType.MalType =>
-    MalType.mkBoolean(
-      v !== undefined &&
-        (v.tag === "MalFunction" && !v.isMacro ||
-          v.tag === "MalInternalFunction"),
-    ),
+  "number?": ([v]: Array<MalType.MalType>): MalType.MalType =>
+    MalType.mkBoolean(v !== undefined && v.tag === "MalNumber"),
 
-  "macro?": ([v]: Array<MalType.MalType>): MalType.MalType =>
-    MalType.mkBoolean(v !== undefined && v.tag === "MalFunction" && v.isMacro),
+  "pr_str": ([v]: Array<MalType.MalType>): MalType.MalType => {
+    console.log(Printer.prStr(v, true));
+    return MalType.nil;
+  },
+
+  println: (args: Array<MalType.MalType>): MalType.MalType => {
+    console.log(args.map((v) => Printer.prStr(v, false)).join(" "));
+    return MalType.nil;
+  },
+
+  "pr-str": (args: Array<MalType.MalType>): MalType.MalType =>
+    MalType.mkString(args.map((v) => Printer.prStr(v, true)).join(" ")),
+
+  prn: (args: Array<MalType.MalType>): MalType.MalType => {
+    console.log(args.map((v) => Printer.prStr(v, true)).join(" "));
+    return MalType.nil;
+  },
+
+  "read-string": ([s]: Array<MalType.MalType>): MalType.MalType => {
+    if (s === undefined) {
+      return MalType.nil;
+    }
+
+    validateArgument(0, s, "MalString");
+
+    return Reader.readStr(asString(s));
+  },
+
+  readline: ([prompt]: Array<MalType.MalType>): MalType.MalType => {
+    validateArgument(0, prompt, "MalString");
+
+    const text = readline(`${asString(prompt)}> `);
+
+    return text === undefined ? MalType.nil : MalType.mkString(text);
+  },
+
+  "reset!": ([a, v]: Array<MalType.MalType>): MalType.MalType => {
+    validateArgument(0, a, "MalAtom");
+
+    asAtom(a).value = v ?? MalType.nil;
+
+    return asAtom(a).value;
+  },
+
+  rest: ([v]: Array<MalType.MalType>): MalType.MalType => {
+    validateArgument(0, v, ["MalList", "MalVector", "MalNil"]);
+
+    return v.tag === "MalNil"
+      ? MalType.mkList([])
+      : MalType.mkList(asSeq(v).items.slice(1));
+  },
 
   seq: ([s]: Array<MalType.MalType>): MalType.MalType => {
     validateArgument(0, s, ["MalList", "MalVector", "MalNil", "MalString"]);
@@ -449,14 +381,83 @@ const __ns = (
     }
   },
 
-  conj: ([c, ...es]: Array<MalType.MalType>): MalType.MalType => {
-    validateArgument(0, c, ["MalList", "MalVector"]);
+  "sequential?": ([v]: Array<MalType.MalType>): MalType.MalType =>
+    MalType.mkBoolean(
+      v !== undefined && (v.tag === "MalVector" || v.tag === "MalList"),
+    ),
 
-    return (es === undefined)
-      ? c
-      : (c.tag === "MalList")
-      ? MalType.mkList([...es.reverse(), ...c.items])
-      : MalType.mkVector([...asSeq(c).items, ...es]);
+  slurp: ([s]: Array<MalType.MalType>): MalType.MalType => {
+    validateArgument(0, s, "MalString");
+
+    return MalType.mkString(Deno.readTextFileSync(asString(s)));
+  },
+
+  str: (args: Array<MalType.MalType>): MalType.MalType =>
+    MalType.mkString(args.map((v) => Printer.prStr(v, false)).join("")),
+
+  symbol: ([v]: Array<MalType.MalType>): MalType.MalType => {
+    validateArgument(0, v, ["MalSymbol", "MalString"]);
+
+    return (v.tag === "MalSymbol") ? v : MalType.mkSymbol(asString(v));
+  },
+
+  "string?": ([v]: Array<MalType.MalType>): MalType.MalType =>
+    MalType.mkBoolean(v !== undefined && v.tag === "MalString"),
+
+  "symbol?": ([v]: Array<MalType.MalType>): MalType.MalType =>
+    MalType.mkBoolean(v !== undefined && v.tag === "MalSymbol"),
+
+  "swap!": ([a, f, ...args]: Array<MalType.MalType>): MalType.MalType => {
+    validateArgument(0, a, "MalAtom");
+    validateArgument(1, f, ["MalFunction", "MalInternalFunction"]);
+
+    const ap = asAtom(a);
+
+    args = [ap.value, ...(args ?? [])];
+
+    if (f.tag === "MalFunction") {
+      ap.value = evaluate(f.body, Env.mkEnv(f.env, f.params, args));
+    } else if (f.tag === "MalInternalFunction") {
+      ap.value = f.fn(args);
+    }
+
+    return ap.value;
+  },
+
+  throw: ([v]: Array<MalType.MalType>): MalType.MalType => {
+    validateArgument(0, v);
+
+    throw v;
+  },
+
+  "time-ms": (_: Array<MalType.MalType>): MalType.MalType =>
+    MalType.mkNumber(performance.now()),
+
+  "true?": ([v]: Array<MalType.MalType>): MalType.MalType =>
+    MalType.mkBoolean(v !== undefined && v.tag === "MalBoolean" && v.value),
+
+  vals: ([m]: Array<MalType.MalType>): MalType.MalType => {
+    validateArgument(0, m, "MalHashMap");
+
+    return MalType.mkList(MalType.mapValues(asHashMap(m)));
+  },
+
+  vec: ([v]: Array<MalType.MalType>): MalType.MalType => {
+    validateArgument(0, v, ["MalList", "MalVector"]);
+
+    return (v.tag === "MalVector") ? v : MalType.mkVector(asSeq(v).items);
+  },
+
+  vector: MalType.mkVector,
+
+  "vector?": ([v]: Array<MalType.MalType>): MalType.MalType =>
+    MalType.mkBoolean(v !== undefined && v.tag === "MalVector"),
+
+  "with-meta": ([v, m]: Array<MalType.MalType>): MalType.MalType => {
+    validateArgument(0, v);
+    validateArgument(1, m);
+
+    return MalType.withMeta(v, m);
   },
 });
 
