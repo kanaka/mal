@@ -3,6 +3,8 @@ import * as Env from "./env.ts";
 import * as MalType from "./types.ts";
 import * as Printer from "./printer.ts";
 import * as Reader from "./reader.ts";
+import { readline } from "./readline.ts";
+
 
 const read = (str: string): MalType.MalType => Reader.readStr(str);
 
@@ -271,10 +273,12 @@ const initReplEnv = () => {
 
 const repl = (env: Env.Env) => {
   while (true) {
-    const value = prompt("user>");
+    const value = readline("user> ");
 
-    if (value === null) {
+    if (value === undefined) {
       break;
+    } else if (value === "") {
+      continue;
     }
 
     try {

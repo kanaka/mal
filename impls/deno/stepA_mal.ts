@@ -26,6 +26,8 @@ const evaluate_ast = (ast: MalType.MalType, env: Env.Env): MalType.MalType => {
 
 const evaluate = (ast: MalType.MalType, env: Env.Env): MalType.MalType => {
   while (true) {
+    // console.log(Printer.prStr(ast));
+
     ast = macroExpand(ast, env);
     if (ast.tag === "MalList") {
       if (ast.items.length === 0) {
@@ -86,6 +88,52 @@ const evaluate = (ast: MalType.MalType, env: Env.Env): MalType.MalType => {
             return evaluateQuasiQuote(ast.items[1]);
           case "quote":
             return ast.items[1];
+          case "try*": {
+            if (ast.items.length === 2) {
+              return evaluate(ast.items[1], env);
+            }
+
+            if (ast.items.length === 3) {
+              const catchItem = ast.items[2];
+
+              if (
+                (catchItem.tag === "MalList" ||
+                  catchItem.tag === "MalVector") && catchItem.items.length === 3
+              ) {
+                const catchKeyword = catchItem.items[0];
+                const catchSymbol = catchItem.items[1];
+                const catchBody = catchItem.items[2];
+                if (
+                  catchKeyword.tag === "MalSymbol" &&
+                  catchKeyword.name === "catch*" &&
+                  catchSymbol.tag === "MalSymbol"
+                ) {
+                  try {
+                    return evaluate(ast.items[1], env);
+                  } catch (e) {
+                    const ep = e.tag !== undefined && e.tag.startsWith("Mal")
+                      ? e
+                      : e.message !== undefined
+                      ? MalType.mkString(e.message)
+                      : MalType.mkString(JSON.stringify(e));
+
+                    env = Env.mkEnv(
+                      env,
+                      [catchSymbol],
+                      [ep],
+                    );
+                    ast = catchBody;
+                    continue;
+                  }
+                }
+              }
+            }
+            throw new Error(
+              `Invalid Argument: try* is not in a valid form: ${
+                JSON.stringify(ast)
+              }`,
+            );
+          }
         }
       }
 
@@ -170,10 +218,16 @@ const evaluateDefMacroBang = (
     );
   }
 
-  const result = evaluate(ast.items[2], env);
+  let result = evaluate(ast.items[2], env);
 
   if (result.tag === "MalFunction") {
-    result.isMacro = true;
+    result = MalType.mkFunction(
+      result.body,
+      result.params,
+      result.env,
+      true,
+      result.meta,
+    );
   }
 
   Env.set(ast.items[1], result, env);
@@ -328,13 +382,15 @@ const initReplEnv = () => {
     "(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))",
     env,
   );
+  rep('(def! *host-language* "deno")', env);
 
   return env;
 };
 
 const repl = (env: Env.Env) => {
   while (true) {
-    const value = readline("user> ");
+    const prompt = "user> ";
+    const value = readline(prompt);
 
     if (value === undefined) {
       break;
@@ -346,7 +402,8 @@ const repl = (env: Env.Env) => {
       console.log(rep(value, env));
     } catch (e) {
       if (e.message !== "Reader Error: No input") {
-        console.error(e.message);
+        const message = (e.tag !== undefined) ? Printer.prStr(e) : e.message;
+        console.error(`Exception: ${message}`);
       }
     }
   }
@@ -366,5 +423,6 @@ if (Deno.args.length > 0) {
   const env = initReplEnv();
   Env.set(MalType.mkSymbol("*ARGV*"), MalType.mkList([]), env);
 
+  rep(`(println (str "Mal [" *host-language* "]"))`, env);
   repl(env);
 }

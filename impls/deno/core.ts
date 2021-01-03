@@ -2,6 +2,7 @@ import * as Env from "./env.ts";
 import * as MalType from "./types.ts";
 import * as Printer from "./printer.ts";
 import * as Reader from "./reader.ts";
+import { readline } from "./readline.ts";
 
 export const ns = (
   evaluate: (ast: MalType.MalType, env: Env.Env) => MalType.MalType,
@@ -528,6 +529,18 @@ export const ns = (
     }),
   ],
   [
+    "string?",
+    MalType.mkInternalFunction(([v]) => {
+      return MalType.mkBoolean(v !== undefined && v.tag === "MalString");
+    }),
+  ],
+  [
+    "number?",
+    MalType.mkInternalFunction(([v]) => {
+      return MalType.mkBoolean(v !== undefined && v.tag === "MalNumber");
+    }),
+  ],
+  [
     "vector",
     MalType.mkInternalFunction((lst) => {
       return MalType.mkVector(lst);
@@ -645,6 +658,138 @@ export const ns = (
       }
 
       return MalType.mkList(MalType.mapValues(m));
+    }),
+  ],
+
+  [
+    "readline",
+    MalType.mkInternalFunction(([prompt]) => {
+      if (prompt === undefined || prompt.tag !== "MalString") {
+        throw new Error(
+          "Invalid Argument: readline parameter 0: expected a string",
+        );
+      }
+
+      const text = readline(`${prompt.value}> `);
+
+      return text === undefined ? MalType.nil : MalType.mkString(text);
+    }),
+  ],
+
+  [
+    "time-ms",
+    MalType.mkInternalFunction((_) => MalType.mkNumber(performance.now())),
+  ],
+  [
+    "meta",
+    MalType.mkInternalFunction(([v]) => {
+      if (v === undefined) {
+        return MalType.nil;
+      } else {
+        switch (v.tag) {
+          case "MalFunction":
+          case "MalHashMap":
+          case "MalInternalFunction":
+          case "MalList":
+          case "MalVector":
+            return v.meta ?? MalType.nil;
+          default:
+            return MalType.nil;
+        }
+      }
+    }),
+  ],
+  [
+    "with-meta",
+    MalType.mkInternalFunction(([v, m]) => {
+      if (v === undefined || m === undefined) {
+        throw MalType.mkList(
+          [
+            MalType.mkSymbol("IncorrectParameter"),
+            MalType.mkString("with-meta"),
+          ],
+        );
+      }
+      return MalType.withMeta(v, m);
+    }),
+  ],
+  [
+    "fn?",
+    MalType.mkInternalFunction(([v]) =>
+      MalType.mkBoolean(
+        v !== undefined &&
+          (v.tag === "MalFunction" && !v.isMacro ||
+            v.tag === "MalInternalFunction"),
+      )
+    ),
+  ],
+  [
+    "macro?",
+    MalType.mkInternalFunction(([v]) =>
+      MalType.mkBoolean(v !== undefined && v.tag === "MalFunction" && v.isMacro)
+    ),
+  ],
+  [
+    "seq",
+    MalType.mkInternalFunction(([s]) => {
+      if (s === undefined) {
+        throw MalType.mkList(
+          [
+            MalType.mkSymbol("IncorrectParameter"),
+            MalType.mkString("seq"),
+          ],
+        );
+      }
+
+      if (s.tag === "MalList") {
+        return s.items.length === 0 ? MalType.nil : s;
+      } else if (s.tag === "MalVector") {
+        return s.items.length === 0 ? MalType.nil : MalType.mkList(s.items);
+      } else if (s.tag === "MalNil") {
+        return s;
+      } else if (s.tag === "MalString") {
+        return s.value.length === 0
+          ? MalType.nil
+          : MalType.mkList(s.value.split("").map((e) => MalType.mkString(e)));
+      } else {
+        throw MalType.mkList(
+          [
+            MalType.mkSymbol("IncorrectParameter"),
+            MalType.mkString("seq"),
+          ],
+        );
+      }
+    }),
+  ],
+  [
+    "conj",
+    MalType.mkInternalFunction(([c, ...es]) => {
+      if (c === undefined) {
+        throw MalType.mkList(
+          [
+            MalType.mkSymbol("IncorrectParameter"),
+            MalType.mkString("conj"),
+          ],
+        );
+      }
+      if (es === undefined) {
+        return c;
+      } else if (c.tag === "MalList") {
+        return MalType.mkList([...es.reverse(), ...c.items]);
+      } else if (c.tag === "MalVector") {
+        return MalType.mkVector([...c.items, ...es]);
+      } else {
+        throw MalType.mkList(
+          [
+            MalType.mkSymbol("IncorrectParameterType"),
+            MalType.mkString("conj"),
+            MalType.mkList(
+              [MalType.mkSymbol("list"), MalType.mkSymbol("vector")],
+            ),
+            MalType.mkString(c.tag),
+          ],
+        );
+      }
     }),
   ],
 ];

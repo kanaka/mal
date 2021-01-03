@@ -21,34 +21,55 @@ export type MalAtom = {
 
 export const mkAtom = (value: MalType): MalAtom => ({ tag: "MalAtom", value });
 
-export type MalList = {
-  tag: "MalList";
-  items: Array<MalType>;
+export type MalBoolean = {
+  tag: "MalBoolean";
+  value: boolean;
 };
 
-export const mkList = (items: Array<MalType>): MalList => ({
-  tag: "MalList",
-  items,
-});
+const booleanTrue: MalBoolean = { tag: "MalBoolean", value: true };
 
-export type MalVector = {
-  tag: "MalVector";
-  items: Array<MalType>;
+const booleanFalse: MalBoolean = { tag: "MalBoolean", value: false };
+
+export const mkBoolean = (value: boolean): MalBoolean =>
+  value ? booleanTrue : booleanFalse;
+
+export type MalFunction = {
+  tag: "MalFunction";
+  body: MalType;
+  params: Array<MalSymbol>;
+  env: Env.Env;
+  isMacro: boolean;
+  meta?: MalType;
 };
 
-export const mkVector = (items: Array<MalType>): MalVector => ({
-  tag: "MalVector",
-  items,
+export const mkFunction = (
+  body: MalType,
+  params: Array<MalSymbol>,
+  env: Env.Env,
+  isMacro: boolean = false,
+  meta?: MalType,
+): MalFunction => ({
+  tag: "MalFunction",
+  body,
+  params,
+  env,
+  isMacro,
+  meta,
 });
 
 export type MalHashMap = {
   tag: "MalHashMap";
   items: Map<string, MalType>;
+  meta?: MalType;
 };
 
-export const mkHashMap = (values: Array<[MalType, MalType]>): MalHashMap => ({
+export const mkHashMap = (
+  values: Array<[MalType, MalType]>,
+  meta?: MalType,
+): MalHashMap => ({
   tag: "MalHashMap",
   items: new Map(values.map(([k, v]) => [mapHashMapKey(k), v])),
+  meta,
 });
 
 export const mapAssoc = (
@@ -61,7 +82,7 @@ export const mapAssoc = (
     result.set(mapHashMapKey(k), v);
   });
 
-  return { tag: "MalHashMap", items: result };
+  return { tag: "MalHashMap", items: result, meta: malMap.meta };
 };
 
 export const mapDissoc = (
@@ -74,7 +95,7 @@ export const mapDissoc = (
     result.delete(mapHashMapKey(k));
   });
 
-  return { tag: "MalHashMap", items: result };
+  return { tag: "MalHashMap", items: result, meta: malMap.meta };
 };
 
 export const mapGet = (malMap: MalHashMap, key: MalType): MalType =>
@@ -109,6 +130,45 @@ const mapHashMapKey = (k: MalType): string => {
 const reverseMapHashMapKey = (k: string): MalString | MalKeyword =>
   k.startsWith("s") ? mkString(k.substr(1)) : mkKeyword(k.substr(1));
 
+export type MalInternalFunction = {
+  tag: "MalInternalFunction";
+  fn: (args: Array<MalType>) => MalType;
+  meta?: MalType;
+};
+
+export const mkInternalFunction = (
+  fn: (args: Array<MalType>) => MalType,
+  meta?: MalType,
+): MalInternalFunction => ({ tag: "MalInternalFunction", fn, meta });
+
+export type MalKeyword = {
+  tag: "MalKeyword";
+  name: string;
+};
+
+export const mkKeyword = (name: string): MalKeyword => ({
+  tag: "MalKeyword",
+  name,
+});
+
+export type MalList = {
+  tag: "MalList";
+  items: Array<MalType>;
+  meta?: MalType;
+};
+
+export const mkList = (items: Array<MalType>, meta?: MalType): MalList => ({
+  tag: "MalList",
+  items,
+  meta,
+});
+
+export type MalNil = {
+  tag: "MalNil";
+};
+
+export const nil: MalNil = ({ tag: "MalNil" });
+
 export type MalNumber = {
   tag: "MalNumber";
   value: number;
@@ -137,24 +197,6 @@ export const mkString = (value: string): MalString => ({
   value,
 });
 
-export type MalBoolean = {
-  tag: "MalBoolean";
-  value: boolean;
-};
-
-const booleanTrue: MalBoolean = { tag: "MalBoolean", value: true };
-
-const booleanFalse: MalBoolean = { tag: "MalBoolean", value: false };
-
-export const mkBoolean = (value: boolean): MalBoolean =>
-  value ? booleanTrue : booleanFalse;
-
-export type MalNil = {
-  tag: "MalNil";
-};
-
-export const nil: MalNil = ({ tag: "MalNil" });
-
 export type MalSymbol = {
   tag: "MalSymbol";
   name: string;
@@ -165,44 +207,16 @@ export const mkSymbol = (name: string): MalSymbol => ({
   name,
 });
 
-export type MalKeyword = {
-  tag: "MalKeyword";
-  name: string;
+export type MalVector = {
+  tag: "MalVector";
+  items: Array<MalType>;
+  meta?: MalType;
 };
 
-export const mkKeyword = (name: string): MalKeyword => ({
-  tag: "MalKeyword",
-  name,
-});
-
-export type MalInternalFunction = {
-  tag: "MalInternalFunction";
-  fn: (args: Array<MalType>) => MalType;
-};
-
-export const mkInternalFunction = (
-  fn: (args: Array<MalType>) => MalType,
-): MalInternalFunction => ({ tag: "MalInternalFunction", fn });
-
-export type MalFunction = {
-  tag: "MalFunction";
-  body: MalType;
-  params: Array<MalSymbol>;
-  env: Env.Env;
-  isMacro: boolean;
-};
-
-export const mkFunction = (
-  body: MalType,
-  params: Array<MalSymbol>,
-  env: Env.Env,
-  isMacro: boolean = false,
-): MalFunction => ({
-  tag: "MalFunction",
-  body,
-  params,
-  env,
-  isMacro,
+export const mkVector = (items: Array<MalType>, meta?: MalType): MalVector => ({
+  tag: "MalVector",
+  items,
+  meta,
 });
 
 export const equals = (a: MalType, b: MalType): boolean => {
@@ -268,4 +282,28 @@ const seqEquals = (
   }
 
   return true;
+};
+
+export const withMeta = (
+  v: MalType,
+  m: MalType,
+): MalType => {
+  switch (v.tag) {
+    case "MalFunction":
+      return mkFunction(v.body, v.params, v.env, v.isMacro, m);
+    case "MalHashMap":
+      return {
+        tag: "MalHashMap",
+        items: new Map(v.items),
+        meta: m,
+      };
+    case "MalInternalFunction":
+      return mkInternalFunction(v.fn, m);
+    case "MalList":
+      return mkList(v.items, m);
+    case "MalVector":
+      return mkVector(v.items, m);
+    default:
+      return v;
+  }
 };
