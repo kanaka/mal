@@ -281,6 +281,7 @@ false
 ;=>1
 ;;; Hopefully less problematic characters
 1; &()*+,-./:;<=>?@[]^_{|}~
+;=>1
 
 ;; FIXME: These tests have no reasons to be optional, but...
 ;; fantom fails this one
