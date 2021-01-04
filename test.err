@@ -1,0 +1,1823 @@
+[0m[1m[31merror[0m: Could not create TypeScript compiler cache location: "/deno/.cache/deno/gen"
+Check the permission of the directory.
+[0m[1m[31merror[0m: Could not create TypeScript compiler cache location: "/deno/.cache/deno/gen"
+Check the permission of the directory.
+[0m[1m[31merror[0m: Could not create TypeScript compiler cache location: "/deno/.cache/deno/gen"
+Check the permission of the directory.
+[0m[32mCheck[0m file:///mal/impls/deno/step0_repl.ts
+user> abcABC123
+abcABC123
+user> hello mal world
+hello mal world
+user> []{}"'* ;:()
+[]{}"'* ;:()
+user> hello world abcdefghijklmnopqrstuvwxyz ABCDEFGHIJKLMNOPQRSTUVWXYZ 0123456789 (;:() []{}"'* ;:() []{}"'* ;:() []{}"'*)
+hello world abcdefghijklmnopqrstuvwxyz ABCDEFGHIJKLMNOPQRSTUVWXYZ 0123456789 (;:() []{}"'* ;:() []{}"'* ;:() []{}"'*)
+user> !
+!
+user> &
+&
+user> +
++
+user> ,
+,
+user> -
+-
+user> /
+/
+user> <
+<
+user> =
+=
+user> >
+>
+user> ?
+?
+user> @
+@
+user> ^
+^
+user> _
+_
+user> `
+`
+user> ~
+~
+user> #
+#
+user> $
+$
+user> %
+%
+user> .
+.
+user> |
+|
+user> 
+[0m[32mCheck[0m file:///mal/impls/deno/step1_read_print.ts
+user> 1
+1
+user> 7
+7
+user>   7   
+7
+user> -123
+-123
+user> +
++
+user> abc
+abc
+user>    abc   
+abc
+user> abc5
+abc5
+user> abc-def
+abc-def
+user> -
+-
+user> -abc
+-abc
+user> ->>
+->>
+user> (+ 1 2)
+(+ 1 2)
+user> ()
+()
+user> ( )
+()
+user> (nil)
+(nil)
+user> ((3 4))
+((3 4))
+user> (+ 1 (+ 2 3))
+(+ 1 (+ 2 3))
+user>   ( +   1   (+   2 3   )   )  
+(+ 1 (+ 2 3))
+user> (* 1 2)
+(* 1 2)
+user> (** 1 2)
+(** 1 2)
+user> (* -3 6)
+(* -3 6)
+user> (()())
+(() ())
+user> (1 2, 3,,,,),,
+(1 2 3)
+user> nil
+nil
+user> true
+true
+user> false
+false
+user> "abc"
+"abc"
+user>    "abc"   
+"abc"
+user> "abc (with parens)"
+"abc (with parens)"
+user> "abc\"def"
+"abc\"def"
+user> ""
+""
+user> "\\"
+"\\"
+user> "\\\\\\\\\\\\\\\\\\"
+"\\\\\\\\\\\\\\\\\\"
+user> "&"
+"&"
+user> "'"
+"'"
+user> "("
+"("
+user> ")"
+")"
+user> "*"
+"*"
+user> "+"
+"+"
+user> ","
+","
+user> "-"
+"-"
+user> "/"
+"/"
+user> ":"
+":"
+user> ";"
+";"
+user> "<"
+"<"
+user> "="
+"="
+user> ">"
+">"
+user> "?"
+"?"
+user> "@"
+"@"
+user> "["
+"["
+user> "]"
+"]"
+user> "^"
+"^"
+user> "_"
+"_"
+user> "`"
+"`"
+user> "{"
+"{"
+user> "}"
+"}"
+user> "~"
+"~"
+user> (1 2
+Syntax Error: EOF whilst expecting ')'
+user> [1 2
+Syntax Error: EOF whilst expecting ']'
+user> "abc
+Syntax Error: EOF whilst expecting '"': "abc
+user> "
+Syntax Error: EOF whilst expecting '"': "
+user> "\"
+Syntax Error: EOF whilst expecting '"': "\"
+user> "\\\\\\\\\\\\\\\\\\\"
+Syntax Error: EOF whilst expecting '"': "\\\\\\\\\\\\\\\\\\\"
+user> (1 "abc
+Syntax Error: EOF whilst expecting '"': "abc
+user> (1 "abc"
+Syntax Error: EOF whilst expecting ')'
+user> '1
+(quote 1)
+user> '(1 2 3)
+(quote (1 2 3))
+user> `1
+(quasiquote 1)
+user> `(1 2 3)
+(quasiquote (1 2 3))
+user> ~1
+(unquote 1)
+user> ~(1 2 3)
+(unquote (1 2 3))
+user> `(1 ~a 3)
+(quasiquote (1 (unquote a) 3))
+user> ~@(1 2 3)
+(splice-unquote (1 2 3))
+user> :kw
+:kw
+user> (:kw1 :kw2 :kw3)
+(:kw1 :kw2 :kw3)
+user> [+ 1 2]
+[+ 1 2]
+user> []
+[]
+user> [ ]
+[]
+user> [[3 4]]
+[[3 4]]
+user> [+ 1 [+ 2 3]]
+[+ 1 [+ 2 3]]
+user>   [ +   1   [+   2 3   ]   ]  
+[+ 1 [+ 2 3]]
+user> ([])
+([])
+user> {}
+{}
+user> { }
+{}
+user> {"abc" 1}
+{"abc" 1}
+user> {"a" {"b" 2}}
+{"a" {"b" 2}}
+user> {"a" {"b" {"c" 3}}}
+{"a" {"b" {"c" 3}}}
+user> {  "a"  {"b"   {  "cde"     3   }  }}
+{"a" {"b" {"cde" 3}}}
+user> {"a1" 1 "a2" 2 "a3" 3}
+{"a1" 1 "a2" 2 "a3" 3}
+user> {  :a  {:b   {  :cde     3   }  }}
+{:a {:b {:cde 3}}}
+user> {"1" 1}
+{"1" 1}
+user> ({})
+({})
+user>  ;; whole line comment (not an exception)
+Reader Error: No input
+user> 1 ; comment after expression
+1
+user> 1; comment after expression
+1
+user> @a
+(deref a)
+user> ^{"a" 1} [1 2 3]
+(with-meta [1 2 3] {"a" 1})
+user> "\n"
+"\n"
+user> "#"
+"#"
+user> "$"
+"$"
+user> "%"
+"%"
+user> "."
+"."
+user> "\\"
+"\\"
+user> "|"
+"|"
+user> 1;!
+1
+user> 1;"
+1
+user> 1;#
+1
+user> 1;$
+1
+user> 1;%
+1
+user> 1;'
+1
+user> 1;\
+1
+user> 1;\\
+1
+user> 1;\\\
+1
+user> 1;`
+1
+user> 1; &()*+,-./:;<=>?@[]^_{|}~
+1
+user> "!"
+"!"
+user> 
+[0m[32mCheck[0m file:///mal/impls/deno/step2_eval.ts
+user> (+ 1 2)
+3
+user> (+ 5 (* 2 3))
+11
+user> (- (+ 5 (* 2 3)) 3)
+8
+user> (/ (- (+ 5 (* 2 3)) 3) 4)
+2
+user> (/ (- (+ 515 (* 87 311)) 302) 27)
+1010
+user> (* -3 6)
+-18
+user> (/ (- (+ 515 (* -87 311)) 296) 27)
+-994
+user> (abc 1 2 3)
+Unknown Symbol: abc
+user> ()
+()
+user> [1 2 (+ 1 2)]
+[1 2 3]
+user> {"a" (+ 7 8)}
+{"a" 15}
+user> {:a (+ 7 8)}
+{:a 15}
+user> []
+[]
+user> {}
+{}
+user> 
+[0m[32mCheck[0m file:///mal/impls/deno/step3_env.ts
+user> (+ 1 2)
+3
+user> (/ (- (+ 5 (* 2 3)) 3) 4)
+2
+user> (def! x 3)
+3
+user> x
+3
+user> (def! x 4)
+4
+user> x
+4
+user> (def! y (+ 1 7))
+8
+user> y
+8
+user> (def! mynum 111)
+111
+user> (def! MYNUM 222)
+222
+user> mynum
+111
+user> MYNUM
+222
+user> (abc 1 2 3)
+'abc' not found
+user> (def! w 123)
+123
+user> (def! w (abc))
+'abc' not found
+user> w
+123
+user> (let* (z 9) z)
+9
+user> (let* (x 9) x)
+9
+user> x
+4
+user> (let* (z (+ 2 3)) (+ 1 z))
+6
+user> (let* (p (+ 2 3) q (+ 2 p)) (+ p q))
+12
+user> (def! y (let* (z 7) z))
+7
+user> y
+7
+user> (def! a 4)
+4
+user> (let* (q 9) q)
+9
+user> (let* (q 9) a)
+4
+user> (let* (z 2) (let* (q 9) a))
+4
+user> (let* [z 9] z)
+9
+user> (let* [p (+ 2 3) q (+ 2 p)] (+ p q))
+12
+user> (let* (a 5 b 6) [3 4 a [b 7] 8])
+[3 4 5 [6 7] 8]
+user> 
+[0m[32mCheck[0m file:///mal/impls/deno/step4_if_fn_do.ts
+user> (list)
+()
+user> (list? (list))
+true
+user> (empty? (list))
+true
+user> (empty? (list 1))
+false
+user> (list 1 2 3)
+(1 2 3)
+user> (count (list 1 2 3))
+3
+user> (count (list))
+0
+user> (count nil)
+0
+user> (if (> (count (list 1 2 3)) 3) 89 78)
+78
+user> (if (>= (count (list 1 2 3)) 3) 89 78)
+89
+user> (if true 7 8)
+7
+user> (if false 7 8)
+8
+user> (if false 7 false)
+false
+user> (if true (+ 1 7) (+ 1 8))
+8
+user> (if false (+ 1 7) (+ 1 8))
+9
+user> (if nil 7 8)
+8
+user> (if 0 7 8)
+7
+user> (if (list) 7 8)
+7
+user> (if (list 1 2 3) 7 8)
+7
+user> (= (list) nil)
+false
+user> (if false (+ 1 7))
+nil
+user> (if nil 8)
+nil
+user> (if nil 8 7)
+7
+user> (if true (+ 1 7))
+8
+user> (= 2 1)
+false
+user> (= 1 1)
+true
+user> (= 1 2)
+false
+user> (= 1 (+ 1 1))
+false
+user> (= 2 (+ 1 1))
+true
+user> (= nil 1)
+false
+user> (= nil nil)
+true
+user> (> 2 1)
+true
+user> (> 1 1)
+false
+user> (> 1 2)
+false
+user> (>= 2 1)
+true
+user> (>= 1 1)
+true
+user> (>= 1 2)
+false
+user> (< 2 1)
+false
+user> (< 1 1)
+false
+user> (< 1 2)
+true
+user> (<= 2 1)
+false
+user> (<= 1 1)
+true
+user> (<= 1 2)
+true
+user> (= 1 1)
+true
+user> (= 0 0)
+true
+user> (= 1 0)
+false
+user> (= true true)
+true
+user> (= false false)
+true
+user> (= nil nil)
+true
+user> (= (list) (list))
+true
+user> (= (list 1 2) (list 1 2))
+true
+user> (= (list 1) (list))
+false
+user> (= (list) (list 1))
+false
+user> (= 0 (list))
+false
+user> (= (list) 0)
+false
+user> (= (list nil) (list))
+false
+user> (+ 1 2)
+3
+user> ( (fn* (a b) (+ b a)) 3 4)
+7
+user> ( (fn* () 4) )
+4
+user> ( (fn* (f x) (f x)) (fn* (a) (+ 1 a)) 7)
+8
+user> ( ( (fn* (a) (fn* (b) (+ a b))) 5) 7)
+12
+user> (def! gen-plus5 (fn* () (fn* (b) (+ 5 b))))
+#<function>
+user> (def! plus5 (gen-plus5))
+#<function>
+user> (plus5 7)
+12
+user> (def! gen-plusX (fn* (x) (fn* (b) (+ x b))))
+#<function>
+user> (def! plus7 (gen-plusX 7))
+#<function>
+user> (plus7 8)
+15
+user> (do (prn 101))
+101
+nil
+user> (do (prn 102) 7)
+102
+7
+user> (do (prn 101) (prn 102) (+ 1 2))
+101
+102
+3
+user> (do (def! a 6) 7 (+ a 8))
+14
+user> a
+6
+user> (def! DO (fn* (a) 7))
+#<function>
+user> (DO 3)
+7
+user> (def! sumdown (fn* (N) (if (> N 0) (+ N (sumdown  (- N 1))) 0)))
+#<function>
+user> (sumdown 1)
+1
+user> (sumdown 2)
+3
+user> (sumdown 6)
+21
+user> (def! fib (fn* (N) (if (= N 0) 1 (if (= N 1) 1 (+ (fib (- N 1)) (fib (- N 2)))))))
+#<function>
+user> (fib 1)
+1
+user> (fib 2)
+2
+user> (fib 4)
+5
+user> (let* (cst (fn* (n) (if (= n 0) nil (cst (- n 1))))) (cst 1))
+nil
+user> (let* (f (fn* (n) (if (= n 0) 0 (g (- n 1)))) g (fn* (n) (f n))) (f 2))
+0
+user> (if "" 7 8)
+7
+user> (= "" "")
+true
+user> (= "abc" "abc")
+true
+user> (= "abc" "")
+false
+user> (= "" "abc")
+false
+user> (= "abc" "def")
+false
+user> (= "abc" "ABC")
+false
+user> (= (list) "")
+false
+user> (= "" (list))
+false
+user> ( (fn* (& more) (count more)) 1 2 3)
+3
+user> ( (fn* (& more) (list? more)) 1 2 3)
+true
+user> ( (fn* (& more) (count more)) 1)
+1
+user> ( (fn* (& more) (count more)) )
+0
+user> ( (fn* (& more) (list? more)) )
+true
+user> ( (fn* (a & more) (count more)) 1 2 3)
+2
+user> ( (fn* (a & more) (count more)) 1)
+0
+user> ( (fn* (a & more) (list? more)) 1)
+true
+user> (not false)
+true
+user> (not nil)
+true
+user> (not true)
+false
+user> (not "a")
+false
+user> (not 0)
+false
+user> ""
+""
+user> "abc"
+"abc"
+user> "abc  def"
+"abc  def"
+user> "\""
+"\""
+user> "abc\ndef\nghi"
+"abc\ndef\nghi"
+user> "abc\\def\\ghi"
+"abc\\def\\ghi"
+user> "\\n"
+"\\n"
+user> (pr-str)
+""
+user> (pr-str "")
+"\"\""
+user> (pr-str "abc")
+"\"abc\""
+user> (pr-str "abc  def" "ghi jkl")
+"\"abc  def\" \"ghi jkl\""
+user> (pr-str "\"")
+"\"\\\"\""
+user> (pr-str (list 1 2 "abc" "\"") "def")
+"(1 2 \"abc\" \"\\\"\") \"def\""
+user> (pr-str "abc\ndef\nghi")
+"\"abc\\ndef\\nghi\""
+user> (pr-str "abc\\def\\ghi")
+"\"abc\\\\def\\\\ghi\""
+user> (pr-str (list))
+"()"
+user> (str)
+""
+user> (str "")
+""
+user> (str "abc")
+"abc"
+user> (str "\"")
+"\""
+user> (str 1 "abc" 3)
+"1abc3"
+user> (str "abc  def" "ghi jkl")
+"abc  defghi jkl"
+user> (str "abc\ndef\nghi")
+"abc\ndef\nghi"
+user> (str "abc\\def\\ghi")
+"abc\\def\\ghi"
+user> (str (list 1 2 "abc" "\"") "def")
+"(1 2 abc \")def"
+user> (str (list))
+"()"
+user> (prn)
+
+nil
+user> (prn "")
+""
+nil
+user> (prn "abc")
+"abc"
+nil
+user> (prn "abc  def" "ghi jkl")
+"abc  def" "ghi jkl"
+nil
+user> (prn "\"")
+"\""
+nil
+user> (prn "abc\ndef\nghi")
+"abc\ndef\nghi"
+nil
+user> (prn "abc\\def\\ghi")
+"abc\\def\\ghi"
+nil
+user> nil
+nil
+user> (prn (list 1 2 "abc" "\"") "def")
+(1 2 "abc" "\"") "def"
+nil
+user> (println)
+
+nil
+user> (println "")
+
+nil
+user> (println "abc")
+abc
+nil
+user> (println "abc  def" "ghi jkl")
+abc  def ghi jkl
+nil
+user> (println "\"")
+"
+nil
+user> (println "abc\ndef\nghi")
+abc
+def
+ghi
+nil
+user> (println "abc\\def\\ghi")
+abc\def\ghi
+nil
+user> (println (list 1 2 "abc" "\"") "def")
+(1 2 abc ") def
+nil
+user> (= :abc :abc)
+true
+user> (= :abc :def)
+false
+user> (= :abc ":abc")
+false
+user> (= (list :abc) (list :abc))
+true
+user> (if [] 7 8)
+7
+user> (pr-str [1 2 "abc" "\""] "def")
+"[1 2 \"abc\" \"\\\"\"] \"def\""
+user> (pr-str [])
+"[]"
+user> (str [1 2 "abc" "\""] "def")
+"[1 2 abc \"]def"
+user> (str [])
+"[]"
+user> (count [1 2 3])
+3
+user> (empty? [1 2 3])
+false
+user> (empty? [])
+true
+user> (list? [4 5 6])
+false
+user> (= [] (list))
+true
+user> (= [7 8] [7 8])
+true
+user> (= [:abc] [:abc])
+true
+user> (= (list 1 2) [1 2])
+true
+user> (= (list 1) [])
+false
+user> (= [] [1])
+false
+user> (= 0 [])
+false
+user> (= [] 0)
+false
+user> (= [] "")
+false
+user> (= "" [])
+false
+user> ( (fn* [] 4) )
+4
+user> ( (fn* [f x] (f x)) (fn* [a] (+ 1 a)) 7)
+8
+user> (= [(list)] (list []))
+true
+user> (= [1 2 (list 3 4 [5 6])] (list 1 2 [3 4 (list 5 6)]))
+true
+user> 
+[0m[32mCheck[0m file:///mal/impls/deno/step5_tco.ts
+user> (def! sum2 (fn* (n acc) (if (= n 0) acc (sum2 (- n 1) (+ n acc)))))
+#<function>
+user> (sum2 10 0)
+55
+user> (def! res2 nil)
+nil
+user> (def! res2 (sum2 10000 0))
+50005000
+user> res2
+50005000
+user> (def! foo (fn* (n) (if (= n 0) 0 (bar (- n 1)))))
+#<function>
+user> (def! bar (fn* (n) (if (= n 0) 0 (foo (- n 1)))))
+#<function>
+user> (foo 10000)
+0
+user> 
+[0m[32mCheck[0m file:///mal/impls/deno/step6_file.ts
+user> (do (do 1 2))
+2
+user> (read-string "(1 2 (3 4) nil)")
+(1 2 (3 4) nil)
+user> (= nil (read-string "nil"))
+true
+user> (read-string "(+ 2 3)")
+(+ 2 3)
+user> (read-string "\"\n\"")
+"\n"
+user> (read-string "7 ;; comment")
+7
+user> (read-string ";; comment")
+user> (eval (read-string "(+ 2 3)"))
+5
+user> (slurp "../tests/test.txt")
+"A line of text\n"
+user> (slurp "../tests/test.txt")
+"A line of text\n"
+user> (load-file "../tests/inc.mal")
+nil
+user> (inc1 7)
+8
+user> (inc2 7)
+9
+user> (inc3 9)
+12
+user> (def! inc3 (fn* (a) (+ 3 a)))
+#<function>
+user> (def! a (atom 2))
+(atom 2)
+user> (atom? a)
+true
+user> (atom? 1)
+false
+user> (deref a)
+2
+user> (reset! a 3)
+3
+user> (deref a)
+3
+user> (swap! a inc3)
+6
+user> (deref a)
+6
+user> (swap! a (fn* (a) a))
+6
+user> (swap! a (fn* (a) (* 2 a)))
+12
+user> (swap! a (fn* (a b) (* a b)) 10)
+120
+user> (swap! a + 3)
+123
+user> (def! inc-it (fn* (a) (+ 1 a)))
+#<function>
+user> (def! atm (atom 7))
+(atom 7)
+user> (def! f (fn* () (swap! atm inc-it)))
+#<function>
+user> (f)
+8
+user> (f)
+9
+user> (def! g (let* (atm (atom 0)) (fn* () (deref atm))))
+#<function>
+user> (def! atm (atom 1))
+(atom 1)
+user> (g)
+0
+user> (load-file "../tests/computations.mal")
+nil
+user> (sumdown 2)
+3
+user> (fib 2)
+1
+user> (def! atm (atom 9))
+(atom 9)
+user> @atm
+9
+user> (def! g (fn* [] 78))
+#<function>
+user> (g)
+78
+user> (def! g (fn* [a] (+ a 78)))
+#<function>
+user> (g 3)
+81
+user> (list? *ARGV*)
+true
+user> *ARGV*
+()
+user> (let* (b 12) (do (eval (read-string "(def! aa 7)")) aa ))
+7
+user> (load-file "../tests/incB.mal")
+nil
+user> (inc4 7)
+11
+user> (inc5 7)
+12
+user> (load-file "../tests/incC.mal")
+nil
+user> mymap
+{"a" 1}
+user> (def! a 1)
+1
+user> (let* (a 2) (eval (read-string "a")))
+1
+user> (read-string "1;!")
+1
+user> (read-string "1;\"")
+1
+user> (read-string "1;#")
+1
+user> (read-string "1;$")
+1
+user> (read-string "1;%")
+1
+user> (read-string "1;'")
+1
+user> (read-string "1;\\")
+1
+user> (read-string "1;\\\\")
+1
+user> (read-string "1;\\\\\\")
+1
+user> (read-string "1;`")
+1
+user> (read-string "1; &()*+,-./:;<=>?@[]^_{|}~")
+1
+user> 
+[0m[32mCheck[0m file:///mal/impls/deno/step7_quote.ts
+user> (cons 1 (list))
+(1)
+user> (cons 1 (list 2))
+(1 2)
+user> (cons 1 (list 2 3))
+(1 2 3)
+user> (cons (list 1) (list 2 3))
+((1) 2 3)
+user> (def! a (list 2 3))
+(2 3)
+user> (cons 1 a)
+(1 2 3)
+user> a
+(2 3)
+user> (concat)
+()
+user> (concat (list 1 2))
+(1 2)
+user> (concat (list 1 2) (list 3 4))
+(1 2 3 4)
+user> (concat (list 1 2) (list 3 4) (list 5 6))
+(1 2 3 4 5 6)
+user> (concat (concat))
+()
+user> (concat (list) (list))
+()
+user> (def! a (list 1 2))
+(1 2)
+user> (def! b (list 3 4))
+(3 4)
+user> (concat a b (list 5 6))
+(1 2 3 4 5 6)
+user> a
+(1 2)
+user> b
+(3 4)
+user> (quote 7)
+7
+user> (quote (1 2 3))
+(1 2 3)
+user> (quote (1 2 (3 4)))
+(1 2 (3 4))
+user> (quasiquote nil)
+nil
+user> (quasiquote 7)
+7
+user> (quasiquote a)
+a
+user> (quasiquote {"a" b})
+{"a" b}
+user> (quasiquote ())
+()
+user> (quasiquote (1 2 3))
+(1 2 3)
+user> (quasiquote (a))
+(a)
+user> (quasiquote (1 2 (3 4)))
+(1 2 (3 4))
+user> (quasiquote (nil))
+(nil)
+user> (quasiquote (1 ()))
+(1 ())
+user> (quasiquote (() 1))
+(() 1)
+user> (quasiquote (1 () 2))
+(1 () 2)
+user> (quasiquote (()))
+(())
+user> (quasiquote (unquote 7))
+7
+user> (def! a 8)
+8
+user> (quasiquote a)
+a
+user> (quasiquote (unquote a))
+8
+user> (quasiquote (1 a 3))
+(1 a 3)
+user> (quasiquote (1 (unquote a) 3))
+(1 8 3)
+user> (def! b (quote (1 "b" "d")))
+(1 "b" "d")
+user> (quasiquote (1 b 3))
+(1 b 3)
+user> (quasiquote (1 (unquote b) 3))
+(1 (1 "b" "d") 3)
+user> (quasiquote ((unquote 1) (unquote 2)))
+(1 2)
+user> (let* (x 0) (quasiquote (unquote x)))
+0
+user> (def! c (quote (1 "b" "d")))
+(1 "b" "d")
+user> (quasiquote (1 c 3))
+(1 c 3)
+user> (quasiquote (1 (splice-unquote c) 3))
+(1 1 "b" "d" 3)
+user> (quasiquote (1 (splice-unquote c)))
+(1 1 "b" "d")
+user> (quasiquote ((splice-unquote c) 2))
+(1 "b" "d" 2)
+user> (quasiquote ((splice-unquote c) (splice-unquote c)))
+(1 "b" "d" 1 "b" "d")
+user> (= (quote abc) (quote abc))
+true
+user> (= (quote abc) (quote abcd))
+false
+user> (= (quote abc) "abc")
+false
+user> (= "abc" (quote abc))
+false
+user> (= "abc" (str (quote abc)))
+true
+user> (= (quote abc) nil)
+false
+user> (= nil (quote abc))
+false
+user> '7
+7
+user> '(1 2 3)
+(1 2 3)
+user> '(1 2 (3 4))
+(1 2 (3 4))
+user> (cons 1 [])
+(1)
+user> (cons [1] [2 3])
+([1] 2 3)
+user> (cons 1 [2 3])
+(1 2 3)
+user> (concat [1 2] (list 3 4) [5 6])
+(1 2 3 4 5 6)
+user> (concat [1 2])
+(1 2)
+user> `7
+7
+user> `(1 2 3)
+(1 2 3)
+user> `(1 2 (3 4))
+(1 2 (3 4))
+user> `(nil)
+(nil)
+user> `~7
+7
+user> (def! a 8)
+8
+user> `(1 ~a 3)
+(1 8 3)
+user> (def! b '(1 "b" "d"))
+(1 "b" "d")
+user> `(1 b 3)
+(1 b 3)
+user> `(1 ~b 3)
+(1 (1 "b" "d") 3)
+user> (def! c '(1 "b" "d"))
+(1 "b" "d")
+user> `(1 c 3)
+(1 c 3)
+user> `(1 ~@c 3)
+(1 1 "b" "d" 3)
+user> (vec (list))
+[]
+user> (vec (list 1))
+[1]
+user> (vec (list 1 2))
+[1 2]
+user> (vec [])
+[]
+user> (vec [1 2])
+[1 2]
+user> (def! a (list 1 2))
+(1 2)
+user> (vec a)
+[1 2]
+user> a
+(1 2)
+user> ((fn* (q) (quasiquote ((unquote q) (quote (unquote q))))) (quote (fn* (q) (quasiquote ((unquote q) (quote (unquote q)))))))
+((fn* (q) (quasiquote ((unquote q) (quote (unquote q))))) (quote (fn* (q) (quasiquote ((unquote q) (quote (unquote q)))))))
+user> (quasiquote [])
+[]
+user> (quasiquote [[]])
+[[]]
+user> (quasiquote [()])
+[()]
+user> (quasiquote ([]))
+([])
+user> (def! a 8)
+8
+user> `[1 a 3]
+[1 a 3]
+user> (quasiquote [a [] b [c] d [e f] g])
+[a [] b [c] d [e f] g]
+user> `[~a]
+[8]
+user> `[(~a)]
+[(8)]
+user> `([~a])
+([8])
+user> `[a ~a a]
+[a 8 a]
+user> `([a ~a a])
+([a 8 a])
+user> `[(a ~a a)]
+[(a 8 a)]
+user> (def! c '(1 "b" "d"))
+(1 "b" "d")
+user> `[~@c]
+[1 "b" "d"]
+user> `[(~@c)]
+[(1 "b" "d")]
+user> `([~@c])
+([1 "b" "d"])
+user> `[1 ~@c 3]
+[1 1 "b" "d" 3]
+user> `([1 ~@c 3])
+([1 1 "b" "d" 3])
+user> `[(1 ~@c 3)]
+[(1 1 "b" "d" 3)]
+user> `(0 unquote)
+(0 unquote)
+user> `(0 splice-unquote)
+(0 splice-unquote)
+user> `[unquote 0]
+[unquote 0]
+user> `[splice-unquote 0]
+[splice-unquote 0]
+user> (quasiquoteexpand nil)
+nil
+user> (quasiquoteexpand 7)
+7
+user> (quasiquoteexpand a)
+(quote a)
+user> (quasiquoteexpand {"a" b})
+(quote {"a" b})
+user> (quasiquoteexpand ())
+()
+user> (quasiquoteexpand (1 2 3))
+(cons 1 (cons 2 (cons 3 ())))
+user> (quasiquoteexpand (a))
+(cons (quote a) ())
+user> (quasiquoteexpand (1 2 (3 4)))
+(cons 1 (cons 2 (cons (cons 3 (cons 4 ())) ())))
+user> (quasiquoteexpand (nil))
+(cons nil ())
+user> (quasiquoteexpand (1 ()))
+(cons 1 (cons () ()))
+user> (quasiquoteexpand (() 1))
+(cons () (cons 1 ()))
+user> (quasiquoteexpand (1 () 2))
+(cons 1 (cons () (cons 2 ())))
+user> (quasiquoteexpand (()))
+(cons () ())
+user> (quasiquoteexpand (f () g (h) i (j k) l))
+(cons (quote f) (cons () (cons (quote g) (cons (cons (quote h) ()) (cons (quote i) (cons (cons (quote j) (cons (quote k) ())) (cons (quote l) ())))))))
+user> (quasiquoteexpand (unquote 7))
+7
+user> (quasiquoteexpand a)
+(quote a)
+user> (quasiquoteexpand (unquote a))
+a
+user> (quasiquoteexpand (1 a 3))
+(cons 1 (cons (quote a) (cons 3 ())))
+user> (quasiquoteexpand (1 (unquote a) 3))
+(cons 1 (cons a (cons 3 ())))
+user> (quasiquoteexpand (1 b 3))
+(cons 1 (cons (quote b) (cons 3 ())))
+user> (quasiquoteexpand (1 (unquote b) 3))
+(cons 1 (cons b (cons 3 ())))
+user> (quasiquoteexpand ((unquote 1) (unquote 2)))
+(cons 1 (cons 2 ()))
+user> (quasiquoteexpand (a (splice-unquote (b c)) d))
+(cons (quote a) (concat (b c) (cons (quote d) ())))
+user> (quasiquoteexpand (1 c 3))
+(cons 1 (cons (quote c) (cons 3 ())))
+user> (quasiquoteexpand (1 (splice-unquote c) 3))
+(cons 1 (concat c (cons 3 ())))
+user> (quasiquoteexpand (1 (splice-unquote c)))
+(cons 1 (concat c ()))
+user> (quasiquoteexpand ((splice-unquote c) 2))
+(concat c (cons 2 ()))
+user> (quasiquoteexpand ((splice-unquote c) (splice-unquote c)))
+(concat c (concat c ()))
+user> (quasiquoteexpand [])
+(vec ())
+user> (quasiquoteexpand [[]])
+(vec (cons (vec ()) ()))
+user> (quasiquoteexpand [()])
+(vec (cons () ()))
+user> (quasiquoteexpand ([]))
+(cons (vec ()) ())
+user> (quasiquoteexpand [1 a 3])
+(vec (cons 1 (cons (quote a) (cons 3 ()))))
+user> (quasiquoteexpand [a [] b [c] d [e f] g])
+(vec (cons (quote a) (cons (vec ()) (cons (quote b) (cons (vec (cons (quote c) ())) (cons (quote d) (cons (vec (cons (quote e) (cons (quote f) ()))) (cons (quote g) ()))))))))
+user> 
+[0m[32mCheck[0m file:///mal/impls/deno/step8_macros.ts
+user> (defmacro! one (fn* () 1))
+#<function>
+user> (one)
+1
+user> (defmacro! two (fn* () 2))
+#<function>
+user> (two)
+2
+user> (defmacro! unless (fn* (pred a b) `(if ~pred ~b ~a)))
+#<function>
+user> (unless false 7 8)
+7
+user> (unless true 7 8)
+8
+user> (defmacro! unless2 (fn* (pred a b) (list 'if (list 'not pred) a b)))
+#<function>
+user> (unless2 false 7 8)
+7
+user> (unless2 true 7 8)
+8
+user> (macroexpand (one))
+1
+user> (macroexpand (unless PRED A B))
+(if PRED B A)
+user> (macroexpand (unless2 PRED A B))
+(if (not PRED) A B)
+user> (macroexpand (unless2 2 3 4))
+(if (not 2) 3 4)
+user> (defmacro! identity (fn* (x) x))
+#<function>
+user> (let* (a 123) (macroexpand (identity a)))
+a
+user> (let* (a 123) (identity a))
+123
+user> ()
+()
+user> `(1)
+(1)
+user> (not (= 1 1))
+false
+user> (not (= 1 2))
+true
+user> (nth (list 1) 0)
+1
+user> (nth (list 1 2) 1)
+2
+user> (nth (list 1 2 nil) 2)
+nil
+user> (def! x "x")
+"x"
+user> (def! x (nth (list 1 2) 2))
+Index Out Of Range: nth: 2 exceeds bounds of {"tag":"MalList","items":[{"tag":"MalNumber","value":1},{"tag":"MalNumber","value":2}]}
+user> x
+"x"
+user> (first (list))
+nil
+user> (first (list 6))
+6
+user> (first (list 7 8 9))
+7
+user> (rest (list))
+()
+user> (rest (list 6))
+()
+user> (rest (list 7 8 9))
+(8 9)
+user> (macroexpand (cond))
+nil
+user> (cond)
+nil
+user> (macroexpand (cond X Y))
+(if X Y (cond))
+user> (cond true 7)
+7
+user> (cond false 7)
+nil
+user> (macroexpand (cond X Y Z T))
+(if X Y (cond Z T))
+user> (cond true 7 true 8)
+7
+user> (cond false 7 true 8)
+8
+user> (cond false 7 false 8 "else" 9)
+9
+user> (cond false 7 (= 2 2) 8 "else" 9)
+8
+user> (cond false 7 false 8 false 9)
+nil
+user> (let* (x (cond false "no" true "yes")) x)
+"yes"
+user> (nth [1] 0)
+1
+user> (nth [1 2] 1)
+2
+user> (nth [1 2 nil] 2)
+nil
+user> (def! x "x")
+"x"
+user> (def! x (nth [1 2] 2))
+Index Out Of Range: nth: 2 exceeds bounds of {"tag":"MalVector","items":[{"tag":"MalNumber","value":1},{"tag":"MalNumber","value":2}]}
+user> x
+"x"
+user> (first [])
+nil
+user> (first nil)
+nil
+user> (first [10])
+10
+user> (first [10 11 12])
+10
+user> (rest [])
+()
+user> (rest nil)
+()
+user> (rest [10])
+()
+user> (rest [10 11 12])
+(11 12)
+user> (rest (cons 10 [11 12]))
+(11 12)
+user> (let* [x (cond false "no" true "yes")] x)
+"yes"
+user> (def! x 2)
+2
+user> (defmacro! a (fn* [] x))
+#<function>
+user> (a)
+2
+user> (let* (x 3) (a))
+2
+user> 
+[0m[32mCheck[0m file:///mal/impls/deno/step9_try.ts
+user> (throw "err1")
+Exception: "err1"
+user> (try* 123 (catch* e 456))
+123
+user> (try* abc (catch* exc (prn "exc is:" exc)))
+"exc is:" "'abc' not found"
+nil
+user> (try* (abc 1 2) (catch* exc (prn "exc is:" exc)))
+"exc is:" "'abc' not found"
+nil
+user> (try* (nth () 1) (catch* exc (prn "exc is:" exc)))
+"exc is:" "Index Out Of Range: nth: 1 exceeds bounds of {\"tag\":\"MalList\",\"items\":[]}"
+nil
+user> (try* (throw "my exception") (catch* exc (do (prn "exc:" exc) 7)))
+"exc:" "my exception"
+7
+user> (try* (do (try* "t1" (catch* e "c1")) (throw "e1")) (catch* e "c2"))
+"c2"
+user> (try* (try* (throw "e1") (catch* e (throw "e2"))) (catch* e "c2"))
+"c2"
+user> (try* (map throw (list "my err")) (catch* exc exc))
+"my err"
+user> (symbol? 'abc)
+true
+user> (symbol? "abc")
+false
+user> (nil? nil)
+true
+user> (nil? true)
+false
+user> (true? true)
+true
+user> (true? false)
+false
+user> (true? true?)
+false
+user> (false? false)
+true
+user> (false? true)
+false
+user> (apply + (list 2 3))
+5
+user> (apply + 4 (list 5))
+9
+user> (apply prn (list 1 2 "3" (list)))
+1 2 "3" ()
+nil
+user> (apply prn 1 2 (list "3" (list)))
+1 2 "3" ()
+nil
+user> (apply list (list))
+()
+user> (apply symbol? (list (quote two)))
+true
+user> (apply (fn* (a b) (+ a b)) (list 2 3))
+5
+user> (apply (fn* (a b) (+ a b)) 4 (list 5))
+9
+user> (def! nums (list 1 2 3))
+(1 2 3)
+user> (def! double (fn* (a) (* 2 a)))
+#<function>
+user> (double 3)
+6
+user> (map double nums) 
+(2 4 6)
+user> (map (fn* (x) (symbol? x)) (list 1 (quote two) "three"))
+(false true false)
+user> (throw {:msg "err2"})
+Exception: {:msg "err2"}
+user> (symbol? :abc)
+false
+user> (symbol? 'abc)
+true
+user> (symbol? "abc")
+false
+user> (symbol? (symbol "abc"))
+true
+user> (keyword? :abc)
+true
+user> (keyword? 'abc)
+false
+user> (keyword? "abc")
+false
+user> (keyword? "")
+false
+user> (keyword? (keyword "abc"))
+true
+user> (symbol "abc")
+abc
+user> (keyword "abc")
+:abc
+user> (sequential? (list 1 2 3))
+true
+user> (sequential? [15])
+true
+user> (sequential? sequential?)
+false
+user> (sequential? nil)
+false
+user> (sequential? "abc")
+false
+user> (apply + 4 [5])
+9
+user> (apply prn 1 2 ["3" 4])
+1 2 "3" 4
+nil
+user> (apply list [])
+()
+user> (apply (fn* (a b) (+ a b)) [2 3])
+5
+user> (apply (fn* (a b) (+ a b)) 4 [5])
+9
+user> (map (fn* (a) (* 2 a)) [1 2 3])
+(2 4 6)
+user> (map (fn* [& args] (list? args)) [1 2])
+(true true)
+user> (vector? [10 11])
+true
+user> (vector? '(12 13))
+false
+user> (vector 3 4 5)
+[3 4 5]
+user> (map? {})
+true
+user> (map? '())
+false
+user> (map? [])
+false
+user> (map? 'abc)
+false
+user> (map? :abc)
+false
+user> (hash-map "a" 1)
+{"a" 1}
+user> {"a" 1}
+{"a" 1}
+user> (assoc {} "a" 1)
+{"a" 1}
+user> (get (assoc (assoc {"a" 1 } "b" 2) "c" 3) "a")
+1
+user> (def! hm1 (hash-map))
+{}
+user> (map? hm1)
+true
+user> (map? 1)
+false
+user> (map? "abc")
+false
+user> (get nil "a")
+nil
+user> (get hm1 "a")
+nil
+user> (contains? hm1 "a")
+false
+user> (def! hm2 (assoc hm1 "a" 1))
+{"a" 1}
+user> (get hm1 "a")
+nil
+user> (contains? hm1 "a")
+false
+user> (get hm2 "a")
+1
+user> (contains? hm2 "a")
+true
+user> (keys hm1)
+()
+user> (keys hm2)
+("a")
+user> (keys {"1" 1})
+("1")
+user> (vals hm1)
+()
+user> (vals hm2)
+(1)
+user> (count (keys (assoc hm2 "b" 2 "c" 3)))
+3
+user> (get {:abc 123} :abc)
+123
+user> (contains? {:abc 123} :abc)
+true
+user> (contains? {:abcd 123} :abc)
+false
+user> (assoc {} :bcd 234)
+{:bcd 234}
+user> (keyword? (nth (keys {:abc 123 :def 456}) 0))
+true
+user> (keyword? (nth (vals {"a" :abc "b" :def}) 0))
+true
+user> (def! hm4 (assoc {:a 1 :b 2} :a 3 :c 1))
+{:a 3 :b 2 :c 1}
+user> (get hm4 :a)
+3
+user> (get hm4 :b)
+2
+user> (get hm4 :c)
+1
+user> (contains? {:abc nil} :abc)
+true
+user> (assoc {} :bcd nil)
+{:bcd nil}
+user> (str "A" {:abc "val"} "Z")
+"A{:abc val}Z"
+user> (str true "." false "." nil "." :keyw "." 'symb)
+"true.false.nil.:keyw.symb"
+user> (pr-str "A" {:abc "val"} "Z")
+"\"A\" {:abc \"val\"} \"Z\""
+user> (pr-str true "." false "." nil "." :keyw "." 'symb)
+"true \".\" false \".\" nil \".\" :keyw \".\" symb"
+user> (def! s (str {:abc "val1" :def "val2"}))
+"{:abc val1 :def val2}"
+user> (cond (= s "{:abc val1 :def val2}") true (= s "{:def val2 :abc val1}") true)
+true
+user> (def! p (pr-str {:abc "val1" :def "val2"}))
+"{:abc \"val1\" :def \"val2\"}"
+user> (cond (= p "{:abc \"val1\" :def \"val2\"}") true (= p "{:def \"val2\" :abc \"val1\"}") true)
+true
+user> (apply (fn* (& more) (list? more)) [1 2 3])
+true
+user> (apply (fn* (& more) (list? more)) [])
+true
+user> (apply (fn* (a & more) (list? more)) [1])
+true
+user> (try* xyz)
+Exception: 'xyz' not found
+user> (try* (throw (list 1 2 3)) (catch* exc (do (prn "err:" exc) 7)))
+"err:" (1 2 3)
+7
+user> (def! hm3 (assoc hm2 "b" 2))
+{"a" 1 "b" 2}
+user> (count (keys hm3))
+2
+user> (count (vals hm3))
+2
+user> (dissoc hm3 "a")
+{"b" 2}
+user> (dissoc hm3 "a" "b")
+{}
+user> (dissoc hm3 "a" "b" "c")
+{}
+user> (count (keys hm3))
+2
+user> (dissoc {:cde 345 :fgh 456} :cde)
+{:fgh 456}
+user> (dissoc {:cde nil :fgh 456} :cde)
+{:fgh 456}
+user> (= {} {})
+true
+user> (= {:a 11 :b 22} (hash-map :b 22 :a 11))
+true
+user> (= {:a 11 :b [22 33]} (hash-map :b [22 33] :a 11))
+true
+user> (= {:a 11 :b {:c 33}} (hash-map :b {:c 33} :a 11))
+true
+user> (= {:a 11 :b 22} (hash-map :b 23 :a 11))
+false
+user> (= {:a 11 :b 22} (hash-map :a 11))
+false
+user> (= {:a [11 22]} {:a (list 11 22)})
+true
+user> (= {:a 11 :b 22} (list :a 11 :b 22))
+false
+user> (= {} [])
+false
+user> (= [] {})
+false
+user> (keyword :abc)
+:abc
+user> (keyword? (first (keys {":abc" 123 ":def" 456})))
+false
+user> 
+[0m[32mCheck[0m file:///mal/impls/deno/stepA_mal.ts
+Mal [deno]
+user> (readline "mal-user> ")
+mal-user> > "hello"
+"\"hello\""
+user> (= "something bogus" *host-language*)
+false
+user> (def! e (atom {"+" +}))
+(atom {"+" #<function>})
+user> (swap! e assoc "-" -)
+{"+" #<function> "-" #<function>}
+user> ( (get @e "+") 7 8)
+15
+user> ( (get @e "-") 11 8)
+3
+user> (swap! e assoc "foo" (list))
+{"+" #<function> "-" #<function> "foo" ()}
+user> (get @e "foo")
+()
+user> (swap! e assoc "bar" '(1 2 3))
+{"+" #<function> "-" #<function> "foo" () "bar" (1 2 3)}
+user> (get @e "bar")
+(1 2 3)
+user> (do (list time-ms string? number? seq conj meta with-meta fn?) nil)
+nil
+user> (meta (fn* (a) a))
+nil
+user> (meta (with-meta (fn* (a) a) {"b" 1}))
+{"b" 1}
+user> (meta (with-meta (fn* (a) a) "abc"))
+"abc"
+user> (def! l-wm (with-meta (fn* (a) a) {"b" 2}))
+#<function>
+user> (meta l-wm)
+{"b" 2}
+user> (meta (with-meta l-wm {"new_meta" 123}))
+{"new_meta" 123}
+user> (meta l-wm)
+{"b" 2}
+user> (def! f-wm (with-meta (fn* [a] (+ 1 a)) {"abc" 1}))
+#<function>
+user> (meta f-wm)
+{"abc" 1}
+user> (meta (with-meta f-wm {"new_meta" 123}))
+{"new_meta" 123}
+user> (meta f-wm)
+{"abc" 1}
+user> (def! f-wm2 ^{"abc" 1} (fn* [a] (+ 1 a)))
+#<function>
+user> (meta f-wm2)
+{"abc" 1}
+user> (meta +)
+nil
+user> (def! gen-plusX (fn* (x) (with-meta (fn* (b) (+ x b)) {"meta" 1})))
+#<function>
+user> (def! plus7 (gen-plusX 7))
+#<function>
+user> (def! plus8 (gen-plusX 8))
+#<function>
+user> (plus7 8)
+15
+user> (meta plus7)
+{"meta" 1}
+user> (meta plus8)
+{"meta" 1}
+user> (meta (with-meta plus7 {"meta" 2}))
+{"meta" 2}
+user> (meta plus8)
+{"meta" 1}
+user> (string? "")
+true
+user> (string? 'abc)
+false
+user> (string? "abc")
+true
+user> (string? :abc)
+false
+user> (string? (keyword "abc"))
+false
+user> (string? 234)
+false
+user> (string? nil)
+false
+user> (number? 123)
+true
+user> (number? -1)
+true
+user> (number? nil)
+false
+user> (number? false)
+false
+user> (number? "123")
+false
+user> (def! add1 (fn* (x) (+ x 1)))
+#<function>
+user> (fn? +)
+true
+user> (fn? add1)
+true
+user> (fn? cond)
+false
+user> (fn? "+")
+false
+user> (fn? :+)
+false
+user> (fn? ^{"ismacro" true} (fn* () 0))
+true
+user> (macro? cond)
+true
+user> (macro? +)
+false
+user> (macro? add1)
+false
+user> (macro? "+")
+false
+user> (macro? :+)
+false
+user> (macro? {})
+false
+user> (conj (list) 1)
+(1)
+user> (conj (list 1) 2)
+(2 1)
+user> (conj (list 2 3) 4)
+(4 2 3)
+user> (conj (list 2 3) 4 5 6)
+(6 5 4 2 3)
+user> (conj (list 1) (list 2 3))
+((2 3) 1)
+user> (conj [] 1)
+[1]
+user> (conj [1] 2)
+[1 2]
+user> (conj [2 3] 4)
+[2 3 4]
+user> (conj [2 3] 4 5 6)
+[2 3 4 5 6]
+user> (conj [1] [2 3])
+[1 [2 3]]
+user> (seq "abc")
+("a" "b" "c")
+user> (apply str (seq "this is a test"))
+"this is a test"
+user> (seq '(2 3 4))
+(2 3 4)
+user> (seq [2 3 4])
+(2 3 4)
+user> (seq "")
+nil
+user> (seq '())
+nil
+user> (seq [])
+nil
+user> (seq nil)
+nil
+user> (meta [1 2 3])
+nil
+user> (with-meta [1 2 3] {"a" 1})
+[1 2 3]
+user> (meta (with-meta [1 2 3] {"a" 1}))
+{"a" 1}
+user> (vector? (with-meta [1 2 3] {"a" 1}))
+true
+user> (meta (with-meta [1 2 3] "abc"))
+"abc"
+user> (with-meta [] "abc")
+[]
+user> (meta (with-meta (list 1 2 3) {"a" 1}))
+{"a" 1}
+user> (list? (with-meta (list 1 2 3) {"a" 1}))
+true
+user> (with-meta (list) {"a" 1})
+()
+user> (empty? (with-meta (list) {"a" 1}))
+true
+user> (meta (with-meta {"abc" 123} {"a" 1}))
+{"a" 1}
+user> (map? (with-meta {"abc" 123} {"a" 1}))
+true
+user> (with-meta {} {"a" 1})
+{}
+user> (def! l-wm (with-meta [4 5 6] {"b" 2}))
+[4 5 6]
+user> (meta l-wm)
+{"b" 2}
+user> (meta (with-meta l-wm {"new_meta" 123}))
+{"new_meta" 123}
+user> (meta l-wm)
+{"b" 2}
+user> (meta +)
+nil
+user> (def! f-wm3 ^{"def" 2} +)
+#<function>
+user> (meta f-wm3)
+{"def" 2}
+user> (meta +)
+nil
+user> (load-file "../tests/computations.mal")
+nil
+user> (def! start-time (time-ms))
+2663.663896
+user> (= start-time 0)
+false
+user> (sumdown 10) ; Waste some time
+55
+user> (> (time-ms) start-time)
+true
+user> (def! f (fn* [x] (number? x)))
+#<function>
+user> (defmacro! m f)
+#<function>
+user> (f (+ 1 1))
+true
+user> (m (+ 1 1))
+false
+user> 
