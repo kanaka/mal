@@ -36,7 +36,8 @@ if [ "${NO_SELF_HOST_PERF}" -a "${DO_SELF_HOST}" -a "${ACTION}" = "perf" ]; then
 fi
 
 raw_mode_var=${MAL_IMPL:-${IMPL}}_MODE
-mode_var=${raw_mode_var/./__}
+mode_var=${raw_mode_var/-/__}
+mode_var=${mode_var/./__}
 mode_val=${!mode_var}
 
 MAKE="make ${mode_val:+${mode_var}=${mode_val}}"
@@ -47,7 +48,7 @@ if [ -z "${NO_DOCKER}" ]; then
     img_impl=$(echo "${MAL_IMPL:-${IMPL}}" | tr '[:upper:]' '[:lower:]')
     # We could just use make DOCKERIZE=1 instead but that does add
     # non-trivial startup overhead for each step.
-    MAKE="docker run -it -u $(id -u) -v `pwd`:/mal kanaka/mal-test-${img_impl%%-mal} ${MAKE}"
+    MAKE="docker run -i -u $(id -u) -v `pwd`:/mal kanaka/mal-test-${img_impl%%-mal} ${MAKE}"
 fi
 
 case "${ACTION}" in
