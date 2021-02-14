@@ -29,6 +29,7 @@ bool ReadLine::get(const String& prompt, String& out)
     append_history(1, m_historyPath.c_str());
 
     out = line;
+    free(line);
 
     return true;
 }
