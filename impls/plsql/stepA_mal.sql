@@ -38,37 +38,48 @@ FUNCTION MAIN(args varchar DEFAULT '()') RETURN integer IS
     FUNCTION EVAL(orig_ast integer, orig_env integer) RETURN integer;
     FUNCTION do_builtin(fn integer, args mal_vals) RETURN integer;
 
-    FUNCTION is_pair(ast integer) RETURN BOOLEAN IS
+    FUNCTION starts_with(lst integer, sym varchar) RETURNS BOOLEAN IS
+        a0 integer;
     BEGIN
-        RETURN M(ast).type_id IN (8,9) AND types.count(M, ast) > 0;
-    END;
-
-    FUNCTION quasiquote(ast integer) RETURN integer IS
-        a0   integer;
-        a00  integer;
-    BEGIN
-        IF NOT is_pair(ast) THEN
-            RETURN types.list(M, types.symbol(M, 'quote'), ast);
-        ELSE
-            a0 := types.nth(M, ast, 0);
-            IF M(a0).type_id = 7 AND
-               TREAT(m(a0) AS mal_str_T).val_str = 'unquote' THEN
-                RETURN types.nth(M, ast, 1);
-            ELSIF is_pair(a0) THEN
-                a00 := types.nth(M, a0, 0);
-                IF M(a00).type_id = 7 AND
-                   TREAT(M(a00) AS mal_str_T).val_str = 'splice-unquote' THEN
-                    RETURN types.list(M, types.symbol(M, 'concat'),
-                                         types.nth(M, a0, 1),
-                                         quasiquote(types.slice(M, ast, 1)));
-                END IF;
-            END IF;
-            RETURN types.list(M, types.symbol(M, 'cons'),
-                                 quasiquote(a0),
-                                 quasiquote(types.slice(M, ast, 1)));
+        IF TREAT(M(lst) AS mal_seq_T).val_seq.COUNT = 2 THEN
+            a0 := types.nth(M, ast, 0)
+            RETURN M(a0).type_id = 7 AND TREAT(M(a0) AS mal_str_T).val_str = sym;
         END IF;
+        RETURN FALSE;
     END;
 
+    FUNCTION qq_loop(elt integer, acc integer) RETURNS integer IS
+    BEGIN
+        IF M(elt).type_id = 8 AND starts_with(elt, 'splice-unquote') THEN
+            RETURN types._list(M, types.symbol('concat'), types.nth(M, a0, 1), acc);
+        END IF;
+        RETURN types.list(M, types.symbol('cons'), quasiquote(elt), acc);
+    END;
+
+    FUNCTION qq_foldr(xs integer[]) RETURNS integer IS
+        acc integer := types.list(M);
+    BEGIN
+        FOR i IN REVERSE 0 .. types._count(xs) - 1 LOOP
+            acc := qq_loop(types.nth(M, xs, i), acc);
+        END LOOP;
+        RETURN acc;
+    END;
+
+    FUNCTION quasiquote(ast integer) RETURNS integer IS
+    BEGIN
+        CASE
+        WHEN M(ast).type_id IN (7, 10) THEN
+            RETURN types.list(M, types.symbol('quote'), ast);
+        WHEN M(ast).type_id = 9 THEN
+            RETURN types._list(types.symbol('vec'), qq_folr(ast));
+        WHEN M(ast).type_id /= 8 THEN
+            RETURN ast;
+        WHEN starts_with(ast, 'unquote') THEN
+            RETURN types.nth(M, ast, 1);
+        ELSE
+            RETURN qq_foldr(ast);
+        END CASE;
+    END; $$ LANGUAGE plpgsql;
 
     FUNCTION is_macro_call(ast integer, env integer) RETURN BOOLEAN IS
         a0   integer;
@@ -201,6 +212,8 @@ FUNCTION MAIN(args varchar DEFAULT '()') RETURN integer IS
             ast := types.nth(M, ast, 2); -- TCO
         WHEN a0sym = 'quote' THEN
             RETURN types.nth(M, ast, 1);
+        WHEN a0sym = 'quasiquoteexpand' THEN
+            RETURN quasiquote(types.nth(M, ast, 1));
         WHEN a0sym = 'quasiquote' THEN
             RETURN EVAL(quasiquote(types.nth(M, ast, 1)), env);
         WHEN a0sym = 'defmacro!' THEN

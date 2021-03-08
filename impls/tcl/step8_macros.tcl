@@ -9,24 +9,49 @@ proc READ str {
     read_str $str
 }
 
-proc is_pair {ast} {
-    expr {[sequential_q $ast] && [llength [obj_val $ast]] > 0}
+proc starts_with {lst sym} {
+    if {[llength $lst] != 2} {
+        return 0
+    }
+    lassign [lindex $lst 0] a0
+    return [symbol_q $a0] && [expr {[obj_val $a0] == $sym}]
+}
+proc qq_loop {elt acc} {
+    if {[list_q $elt] && [starts_with [obj_val $elt] "splice-unquote"]} {
+        return [list_new [list [symbol_new "concat"] [lindex [obj_val $elt] 1] $acc]]
+    } else {
+        return [list_new [list [symbol_new "cons"] [quasiquote $elt] $acc]]
+    }
+}
+proc qq_foldr {xs} {
+    set acc [list_new []]
+    for {set i [expr {[llength $xs] - 1}]} {0 <= $i} {incr i -1} {
+        set acc [qq_loop [lindex $xs $i] $acc]
+    }
+    return $acc
 }
 
 proc quasiquote {ast} {
-    if {![is_pair $ast]} {
-        return [list_new [list [symbol_new "quote"] $ast]]
-    }
-    lassign [obj_val $ast] a0 a1
-    if {[symbol_q $a0] && [obj_val $a0] == "unquote"} {
-        return $a1
-    }
-    lassign [obj_val $a0] a00 a01
-    set rest [list_new [lrange [obj_val $ast] 1 end]]
-    if {[is_pair $a0] && [symbol_q $a00] && [obj_val $a00] == "splice-unquote"} {
-        return [list_new [list [symbol_new "concat"] $a01 [quasiquote $rest]]]
-    } else {
-        return [list_new [list [symbol_new "cons"] [quasiquote $a0] [quasiquote $rest]]]
+    switch [obj_type $ast] {
+        "symbol" {
+            return [list_new [list [symbol_new "quote"] $ast]]
+        }
+        "hashmap" {
+            return [list_new [list [symbol_new "quote"] $ast]]
+        }
+        "vector" {
+            return [list_new [list [symbol_new "vec"] [qq_foldr [obj_val $ast]]]]
+        }
+        "list" {
+            if {[starts_with [obj_val $ast] "unquote"]} {
+                return [lindex [obj_val $ast] 1]
+            } else {
+                return [qq_foldr [obj_val $ast]]
+            }
+        }
+        default {
+            return $ast
+        }
     }
 }
 
@@ -128,16 +153,16 @@ proc EVAL {ast env} {
             "quote" {
                 return $a1
             }
+            "quasiquoteexpand" {
+                return [quasiquote $a1]
+            }
             "quasiquote" {
                 set ast [quasiquote $a1]
             }
             "defmacro!" {
                 set varname [obj_val $a1]
                 set value [EVAL $a2 $env]
-                set fn [obj_val $value]
-                dict set fn is_macro 1
-                obj_set_val $value $fn
-                return [$env set $varname $value]
+                return [$env set $varname [macro_new $value]]
             }
             "macroexpand" {
                 return [macroexpand $a1 $env]

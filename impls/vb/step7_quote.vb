@@ -20,32 +20,45 @@ Namespace Mal
         End Function
 
         ' eval
-        Shared Function is_pair(x As MalVal) As Boolean
-            return TypeOf x Is MalList AndAlso _
-                   DirectCast(x,MalList).size() > 0
+        Shared Function starts_with(ast As Malval, sym As String) As MalVal
+            If ast.list_Q() Then
+                Const lst As MalList = DirectCast(ast, MalList)
+                If 0 < lst.size() Then
+                    Const fst As MalSymbol = TryCast(lst(0), MalSymbol)
+                    If fst IsNot Nothing AndAlso fst.getName() = sym Then
+                        return lst(1)
+                    End If
+                End If
+            End If
+            return Nothing
         End Function
 
         Shared Function quasiquote(ast As MalVal) As MalVal
-            If not is_pair(ast) Then
+            If TypeOf ast Is Mal.types.MalSymbol or Typeof ast Is Mal.types.MalHashMap Then
                 return New MalList(New MalSymbol("quote"), ast)
-            Else
-                Dim a0 As MalVal = DirectCast(ast,MalList)(0)
-                If TypeOf a0 Is MalSymbol AndAlso _
-                    DirectCast(a0,MalSymbol).getName() = "unquote" Then
-                    return DirectCast(ast,MalList)(1)
-                Else If is_pair(a0) Then
-                    Dim a00 As MalVal = DirectCast(a0,MalList)(0)
-                    If TypeOf a00 is MalSymbol AndAlso _
-                        DirectCast(a00,MalSymbol).getName() = "splice-unquote" Then
-                        return New MalList(New MalSymbol("concat"),
-                                           DirectCast(a0,MalList)(1),
-                                           quasiquote(DirectCast(ast,MalList).rest()))
-                    End If
-                End If
-                return New MalList(New MalSymbol("cons"),
-                                   quasiquote(a0),
-                                   quasiquote(DirectCast(ast,MalList).rest()))
             End If
+            Const source As MalList = TryCast(ast, MalList)
+            If source Is Nothing Then
+                return ast
+            End If
+            Const unquoted As MalVal = starts_with(ast, "unquote")
+            If unquoted IsNot Nothing Then
+                return unquoted
+            End If
+            Dim result As MalList = New MalList()
+            For i As Integer = source.size()-1 To 0 Step -1
+                Const elt As MalVal = source(i)
+                Const splice_unquoted As MalVal = starts_with(elt, "splice-unquote")
+                If splice_unquoted IsNot Nothing Then
+                    result = New MalList(New MalSymbol("concat"), splice_unquoted, result)
+                Else
+                    result = New MalList(New MalSymbol("cons"), quasiquote(elt), result)
+                End If
+            Next
+            If TypeOf ast Is MalVector Then
+                result = New MalList(New MalSymbol("vec"), result)
+            End If
+            return result
         End Function
 
 
@@ -131,6 +144,8 @@ Namespace Mal
                 env = let_env
             Case "quote"
                 return ast(1)
+            Case "quasiquoteexpand"
+                return quasiquote(ast(1))
             Case "quasiquote"
                 orig_ast = quasiquote(ast(1))
             Case "do"

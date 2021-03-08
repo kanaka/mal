@@ -317,6 +317,15 @@ BEGIN
     RETURN types._list(result);
 END; $$ LANGUAGE plpgsql;
 
+CREATE FUNCTION core.vec(args integer[]) RETURNS integer AS $$
+BEGIN
+    IF types._vector_Q(args[1]) THEN
+        RETURN args[1];
+    ELSE
+        RETURN types._vector(types._valueToArray(args[1]));
+    END IF;
+END; $$ LANGUAGE plpgsql;
+
 CREATE FUNCTION core.nth(args integer[]) RETURNS integer AS $$
 DECLARE
     idx  integer;
@@ -553,6 +562,7 @@ INSERT INTO envs.env (env_id, outer_id, data)
         'sequential?', types._function('core.sequential_Q'),
         'cons',        types._function('core.cons'),
         'concat',      types._function('core.concat'),
+        'vec',         types._function('core.vec'),
         'nth',         types._function('core.nth'),
         'first',       types._function('core.first'),
         'rest',        types._function('core.rest'),

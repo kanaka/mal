@@ -106,6 +106,10 @@ function concat(...)
     return List:new(new_lst)
 end
 
+function vec(a)
+    return types.Vector:new(a)
+end
+
 function nth(seq, idx)
     if idx+1 <= #seq then
         return seq[idx+1]
@@ -295,6 +299,7 @@ M.ns = {
     ['sequential?'] = types._sequential_Q,
     cons = cons,
     concat = concat,
+    vec = vec,
     nth = nth,
     first = first,
     rest = rest,

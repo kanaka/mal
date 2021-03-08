@@ -12,6 +12,13 @@ MalCore := Object clone do(
         res
     )
 
+    vec := block(a,
+        coll := a at(0)
+        coll type switch(
+            "MalVector", coll,
+            "MalList",   MalVector with(coll),
+             Exception raise("vec: arg type")))
+
     nth := block(a,
         if(a at(1) < a at(0) size,
             a at(0) at(a at(1)),
@@ -122,6 +129,7 @@ MalCore := Object clone do(
         "sequential?", block(a, if(a at(0) ?isSequential, true, false)),
         "cons",   block(a, MalList with(list(a at(0)) appendSeq(a at(1)))),
         "concat", block(a, MalList with(a reduce(appendSeq, list()))),
+        "vec",    vec,
         "nth",    nth,
         "first",  block(a, a at(0) ifNil(return nil) first),
         "rest",   block(a, a at(0) ifNil(return MalList with(list())) rest),

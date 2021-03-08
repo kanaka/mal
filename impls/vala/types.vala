@@ -286,8 +286,3 @@ class Mal.Atom : Mal.Val {
         visit(v);
     }
 }
-
-bool is_pair(Mal.Val v) {
-    var listlike = v as Mal.Listlike;
-    return listlike != null && listlike.iter().nonempty();
-}

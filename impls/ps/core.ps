@@ -324,6 +324,7 @@ end } def
     (sequential?) { 0 _nth _sequential? }
     (cons)    { cons }
     (concat)  { do_concat }
+    (vec)     { 0 _nth /data get _vector_from_array }
     (nth)     { nth }
     (first)   { first }
     (rest)    { rest }

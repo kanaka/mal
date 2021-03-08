@@ -20,20 +20,19 @@
     (eval-ast ast env)))
 
 (defun eval-ast (ast env)
-  (let ((type (mal-type ast))
-        (value (mal-value ast)))
-    (cond
-     ((eq type 'symbol)
+  (let ((value (mal-value ast)))
+    (cl-case (mal-type ast)
+     (symbol
       (let ((definition (gethash value env)))
         (or definition (error "Definition not found"))))
-     ((eq type 'list)
+     (list
       (mal-list (mapcar (lambda (item) (EVAL item env)) value)))
-     ((eq type 'vector)
+     (vector
       (mal-vector (vconcat (mapcar (lambda (item) (EVAL item env)) value))))
-     ((eq type 'map)
+     (map
       (let ((map (copy-hash-table value)))
-        (maphash (lambda (key value)
-                   (puthash key (EVAL value env) map))
+        (maphash (lambda (key val)
+                   (puthash key (EVAL val env) map))
                  map)
         (mal-map map)))
      (t
@@ -67,14 +66,12 @@
                ;; empty input, carry on
                )
               (unterminated-sequence
-               (let* ((type (cadr err))
-                      (end
-                       (cond
-                        ((eq type 'string) ?\")
-                        ((eq type 'list) ?\))
-                        ((eq type 'vector) ?\])
-                        ((eq type 'map) ?}))))
-                 (princ (format "Expected '%c', got EOF\n" end))))
+               (princ (format "Expected '%c', got EOF\n"
+                              (cl-case (cadr err)
+                                (string ?\")
+                                (list   ?\))
+                                (vector ?\])
+                                (map    ?})))))
               (error ; catch-all
                (println (error-message-string err))
                (backtrace)))

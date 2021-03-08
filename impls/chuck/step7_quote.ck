@@ -27,50 +27,52 @@ fun MalObject READ(string input)
     return Reader.read_str(input);
 }
 
-fun int isPair(MalObject m)
+fun int starts_with(MalObject a[], string sym)
 {
-    if( (m.type == "list" || m.type == "vector") &&
-        Util.sequenceToMalObjectArray(m).size() > 0 )
-    {
-        return true;
-    }
-    else
+    if (a.size() != 2)
     {
         return false;
     }
+    a[0] @=> MalObject a0;
+    return a0.type == "symbol" && (a0$MalSymbol).value() == sym;
 }
-
+fun MalList qq_loop(MalObject elt, MalList acc)
+{
+    if( elt.type == "list" && starts_with ((elt$MalList).value(), "splice-unquote") )
+    {
+        return MalList.create([MalSymbol.create("concat"), (elt$MalList).value()[1], acc]);
+    }
+    return MalList.create([MalSymbol.create("cons"), quasiquote(elt), acc]);
+}
+fun MalList qq_foldr(MalObject a[])
+{
+    MalObject empty[0];  //  empty, but typed
+    MalList.create(empty) @=> MalList acc;
+    for( a.size() - 1 => int i; 0 <= i; i-- )
+    {
+        qq_loop(a[i], acc) @=> acc;
+    }
+    return acc;
+}
 fun MalObject quasiquote(MalObject ast)
 {
-    if( !isPair(ast) )
+    ast.type => string type;
+    if (type == "list") {
+        if (starts_with((ast$MalList).value(), "unquote"))
+        {
+            return (ast$MalList).value()[1];
+        }
+        return qq_foldr((ast$MalList).value());
+    }
+    if (type == "vector")
+    {
+        return MalList.create([MalSymbol.create("vec"), qq_foldr((ast$MalVector).value())]);
+    }
+    if (type == "symbol" || type == "hashmap")
     {
         return MalList.create([MalSymbol.create("quote"), ast]);
     }
-
-    Util.sequenceToMalObjectArray(ast) @=> MalObject a[];
-    a[0] @=> MalObject a0;
-
-    if( a0.type == "symbol" && (a0$MalSymbol).value() == "unquote" )
-    {
-        return a[1];
-    }
-
-    if( isPair(a0) )
-    {
-        Util.sequenceToMalObjectArray(a0) @=> MalObject a0_[];
-        a0_[0] @=> MalObject a0_0;
-
-        if( a0_0.type == "symbol" && (a0_0$MalSymbol).value() == "splice-unquote" )
-        {
-            return MalList.create(
-                [MalSymbol.create("concat"), a0_[1],
-                 quasiquote(MalList.create(MalObject.slice(a, 1)))]);
-        }
-    }
-
-    return MalList.create(
-        [MalSymbol.create("cons"), quasiquote(a[0]),
-         quasiquote(MalList.create(MalObject.slice(a, 1)))]);
+    return ast;
 }
 
 fun MalObject EVAL(MalObject m, Env env)
@@ -131,6 +133,10 @@ fun MalObject EVAL(MalObject m, Env env)
             else if( a0 == "quote" )
             {
                 return ast[1];
+            }
+            else if( a0 == "quasiquoteexpand" )
+            {
+                return quasiquote(ast[1]);
             }
             else if( a0 == "quasiquote" )
             {

@@ -151,6 +151,16 @@ func mal_concat(a)
   return MalList(val=&seq)
 }
 
+func mal_vec(a)
+{
+  if (numberof(a) == 1) {
+    type = structof(*a(1))
+    if (type == MalVector) return *(a(1))
+    if (type == MalList)   return MalVector(val=a(1)->val)
+  }
+  return MalError(message="vec: requires a sequence")
+}
+
 func mal_nth(a)
 {
   index = a(2)->val
@@ -344,6 +354,7 @@ h_set, core_ns, "vals",        mal_vals
 h_set, core_ns, "sequential?", mal_sequential_q
 h_set, core_ns, "cons",        mal_cons
 h_set, core_ns, "concat",      mal_concat
+h_set, core_ns, "vec",         mal_vec
 h_set, core_ns, "nth",         mal_nth
 h_set, core_ns, "first",       mal_first
 h_set, core_ns, "rest",        mal_rest

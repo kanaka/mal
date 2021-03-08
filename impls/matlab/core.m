@@ -278,6 +278,7 @@ classdef core
             n('sequential?') = @(a) type_utils.sequential_Q(a);
             n('cons') = @(a,b) core.cons(a,b);
             n('concat') = @(varargin) core.concat(varargin{:});
+            n('vec') = @(a) types.Vector(a.data{:});
             n('nth') = @(a,b) core.nth(a,b);
             n('first') = @(a) core.first(a);
             n('rest') = @(a) core.rest(a);

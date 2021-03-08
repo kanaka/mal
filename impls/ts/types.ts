@@ -367,6 +367,18 @@ export class MalFunction {
 
     private constructor() { }
 
+    toMacro() {
+        const f = new MalFunction();
+        f.func = this.func;
+        f.ast = this.ast;
+        f.env = this.env;
+        f.params = this.params;
+        f.isMacro = true;
+        f.meta = this.meta;
+
+        return f;
+    }
+
     withMeta(meta: MalType) {
         const f = new MalFunction();
         f.func = this.func;

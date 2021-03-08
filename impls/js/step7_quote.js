@@ -13,23 +13,26 @@ function READ(str) {
 }
 
 // eval
-function is_pair(x) {
-    return types._sequential_Q(x) && x.length > 0;
-}
-
-function quasiquote(ast) {
-    if (!is_pair(ast)) {
-        return [types._symbol("quote"), ast];
-    } else if (types._symbol_Q(ast[0]) && ast[0].value === 'unquote') {
-        return ast[1];
-    } else if (is_pair(ast[0]) && ast[0][0].value === 'splice-unquote') {
-        return [types._symbol("concat"),
-                ast[0][1],
-                quasiquote(ast.slice(1))];
+function qqLoop (acc, elt) {
+    if (types._list_Q(elt) && elt.length
+        && types._symbol_Q(elt[0]) && elt[0].value == 'splice-unquote') {
+        return [types._symbol("concat"), elt[1], acc];
     } else {
-        return [types._symbol("cons"),
-                quasiquote(ast[0]),
-                quasiquote(ast.slice(1))];
+        return [types._symbol("cons"), quasiquote (elt), acc];
+    }
+}
+function quasiquote(ast) {
+    if (types._list_Q(ast) && 0<ast.length
+        && types._symbol_Q(ast[0]) && ast[0].value == 'unquote') {
+        return ast[1];
+    } else if (types._list_Q(ast)) {
+        return ast.reduceRight(qqLoop,[]);
+    } else if (types._vector_Q(ast)) {
+        return [types._symbol("vec"), ast.reduceRight(qqLoop,[])];
+    } else if (types._symbol_Q(ast) || types._hash_map_Q(ast)) {
+        return [types._symbol("quote"), ast];
+    } else {
+        return ast;
     }
 }
 
@@ -80,6 +83,8 @@ function _EVAL(ast, env) {
         break;
     case "quote":
         return a1;
+    case "quasiquoteexpand":
+        return quasiquote(a1);
     case "quasiquote":
         ast = quasiquote(a1);
         break;

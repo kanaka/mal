@@ -175,6 +175,15 @@ proc function_new {body env binds} {
     obj_new "function" $funcdict $::mal_nil
 }
 
+proc macro_new {funcobj} {
+    set fn [obj_val $funcobj]
+    set body [dict get $fn body]
+    set env [dict get $fn env]
+    set binds [dict get $fn binds]
+    set funcdict [dict create body $body env $env binds $binds is_macro 1]
+    obj_new "function" $funcdict $::mal_nil
+}
+
 proc function_q {obj} {
     expr {[obj_type $obj] == "function"}
 }

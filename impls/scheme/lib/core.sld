@@ -187,6 +187,11 @@
 
     (cons . ,(lambda (x xs) (mal-list (cons x (->list (mal-value xs))))))
     (concat . ,(lambda args (mal-list (apply append (map (lambda (arg) (->list (mal-value arg))) args)))))
+    (vec . ,(lambda (x)
+              (case (mal-type x)
+                ((vector) x)
+                ((list)   (mal-vector (list->vector (mal-value x))))
+                (else     (error "seq expects a sequence")))))
     (nth . ,(lambda (x n) (let ((items (->list (mal-value x)))
                                 (index (mal-value n)))
                             (if (< index (length items))

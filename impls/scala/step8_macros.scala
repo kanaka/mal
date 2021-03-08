@@ -9,30 +9,40 @@ object step8_macros {
   }
 
   // eval
-  def is_pair(x: Any): Boolean = {
-    types._sequential_Q(x) && x.asInstanceOf[MalList].value.length > 0
+  def quasiquote_loop(elts: List[Any]): MalList = {
+    var acc = _list()
+    for (elt <- elts.reverse) {
+      if (types._list_Q(elt)) {
+        elt.asInstanceOf[MalList].value match {
+          case Symbol("splice-unquote") :: x :: Nil => {
+            acc = _list(Symbol("concat"), x, acc)
+          }
+          case _ => {
+            acc = _list(Symbol("cons"), quasiquote(elt), acc)
+          }
+        }
+      } else {
+        acc = _list(Symbol("cons"), quasiquote(elt), acc)
+      }
+    }
+    return acc
   }
 
   def quasiquote(ast: Any): Any = {
-    if (!is_pair(ast)) {
-      return _list(Symbol("quote"), ast)
-    } else {
-      val a0 = ast.asInstanceOf[MalList](0)
-      if (types._symbol_Q(a0) &&
-          a0.asInstanceOf[Symbol].name == "unquote") {
-        return ast.asInstanceOf[MalList](1)
-      } else if (is_pair(a0)) {
-        val a00 = a0.asInstanceOf[MalList](0)
-        if (types._symbol_Q(a00) &&
-            a00.asInstanceOf[Symbol].name == "splice-unquote") {
-          return _list(Symbol("concat"),
-                       a0.asInstanceOf[MalList](1),
-                       quasiquote(ast.asInstanceOf[MalList].drop(1)))
+    ast match {
+      //  Test vectors before they match MalList.
+      case v: MalVector => {
+        _list(Symbol("vec"), quasiquote_loop(v.value))
+      }
+      case l: MalList => {
+        l.value match {
+          case Symbol("unquote") :: x :: Nil => x
+          case _ => quasiquote_loop(l.value)
         }
       }
-      return _list(Symbol("cons"),
-                   quasiquote(a0),
-                   quasiquote(ast.asInstanceOf[MalList].drop(1)))
+      case _ : Symbol     => _list(Symbol("quote"), ast)
+      case _ : MalHashMap => _list(Symbol("quote"), ast)
+      case _ => ast
     }
   }
 
@@ -109,6 +119,9 @@ object step8_macros {
       }
       case Symbol("quote") :: a1 :: Nil => {
         return a1
+      }
+      case Symbol("quasiquoteexpand") :: a1 :: Nil => {
+        return quasiquote(a1)
       }
       case Symbol("quasiquote") :: a1 :: Nil => {
         ast = quasiquote(a1)  // continue loop (TCO)

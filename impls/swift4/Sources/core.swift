@@ -94,6 +94,7 @@ let ns: [String: ([MalData]) throws -> MalData] =
         },
      "cons":    { args in [args[0]] + args[1].listForm },
      "concat":  { $0.reduce([]) { (result, array ) in result + array.listForm } },
+     "vec":  { Vector($0[0].listForm) },
      
      "nth":     { args in
         let list = args[0].listForm, i = args[1] as! Int

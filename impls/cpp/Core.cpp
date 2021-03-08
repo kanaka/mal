@@ -509,6 +509,13 @@ BUILTIN("vals")
     return hash->values();
 }
 
+BUILTIN("vec")
+{
+    CHECK_ARGS_IS(1);
+    ARG(malSequence, s);
+    return mal::vector(s->begin(), s->end());
+}
+
 BUILTIN("vector")
 {
     return mal::vector(argsBegin, argsEnd);

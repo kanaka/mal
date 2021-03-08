@@ -143,6 +143,13 @@ fn vals(a: MalArgs) -> MalRet {
     }
 }
 
+fn vec(a: MalArgs) -> MalRet {
+    match a[0] {
+        List(ref v, _) | Vector(ref v, _) => Ok(vector!(v.to_vec())),
+        _ => error("non-seq passed to vec"),
+    }
+}
+
 fn cons(a: MalArgs) -> MalRet {
     match a[1].clone() {
         List(v, _) | Vector(v, _) => {
@@ -321,6 +328,7 @@ pub fn ns() -> Vec<(&'static str, MalVal)> {
         ("contains?", func(contains_q)),
         ("keys", func(keys)),
         ("vals", func(vals)),
+        ("vec", func(vec)),
         ("cons", func(cons)),
         ("concat", func(concat)),
         ("empty?", func(|a| a[0].empty_q())),

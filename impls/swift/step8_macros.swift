@@ -63,10 +63,12 @@ private let kValIf            = make_symbol("if")
 private let kValLet           = make_symbol("let*")
 private let kValMacroExpand   = make_symbol("macroexpand")
 private let kValQuasiQuote    = make_symbol("quasiquote")
+private let kValQuasiQuoteExp = make_symbol("quasiquoteexpand")
 private let kValQuote         = make_symbol("quote")
 private let kValSpliceUnquote = make_symbol("splice-unquote")
 private let kValUnquote       = make_symbol("unquote")
 private let kValTry           = make_symbol("try*")
+private let kValVec           = make_symbol("vec")
 
 private let kSymbolArgv          = as_symbol(kValArgv)
 private let kSymbolConcat        = as_symbol(kValConcat)
@@ -80,9 +82,11 @@ private let kSymbolIf            = as_symbol(kValIf)
 private let kSymbolLet           = as_symbol(kValLet)
 private let kSymbolMacroExpand   = as_symbol(kValMacroExpand)
 private let kSymbolQuasiQuote    = as_symbol(kValQuasiQuote)
+private let kSymbolQuasiQuoteExp = as_symbol(kValQuasiQuoteExp)
 private let kSymbolQuote         = as_symbol(kValQuote)
 private let kSymbolSpliceUnquote = as_symbol(kValSpliceUnquote)
 private let kSymbolUnquote       = as_symbol(kValUnquote)
+private let kSymbolVec           = as_symbol(kValVec)
 
 func substring(s: String, _ begin: Int, _ end: Int) -> String {
     return s[s.startIndex.advancedBy(begin) ..< s.startIndex.advancedBy(end)]
@@ -92,15 +96,6 @@ func substring(s: String, _ begin: Int, _ end: Int) -> String {
 //
 private func READ(str: String) throws -> MalVal {
     return try read_str(str)
-}
-
-// Return whether or not `val` is a non-empty list.
-//
-private func is_pair(val: MalVal) -> Bool {
-    if let seq = as_sequenceQ(val) {
-        return !seq.isEmpty
-    }
-    return false
 }
 
 // Expand macros for as long as the expression looks like a macro invocation.
@@ -122,42 +117,18 @@ private func macroexpand(var ast: MalVal, _ env: Environment) throws -> MalVal {
     }
 }
 
+// Return whether or not `ast` is a list and first element is the required symbol.
+//
+private func starts_with(ast: MalVal, sym: MalSymbol) -> MalVal? {
+    if let list = as_listQ(ast) where 1 < list.count,
+       let a0 = as_symbolQ(try! list.nth(0)) where a0 == sym {
+        return try! list.nth(1)
+    } else {
+        return nil
+    }
+}
+
 // Evaluate `quasiquote`, possibly recursing in the process.
-//
-// As with quote, unquote, and splice-unquote, quasiquote takes a single
-// parameter, typically a list. In the general case, this list is processed
-// recursively as:
-//
-//  (quasiquote (first rest...)) -> (cons (quasiquote first) (quasiquote rest))
-//
-// In the processing of the parameter passed to it, quasiquote handles three
-// special cases:
-//
-//  *   If the parameter is an atom or an empty list, the following expression
-//      is formed and returned for evaluation:
-//
-//          (quasiquote atom-or-empty-list) -> (quote atom-or-empty-list)
-//
-//  *   If the first element of the non-empty list is the symbol "unquote"
-//      followed by a second item, the second item is returned as-is:
-//
-//          (quasiquote (unquote fred)) -> fred
-//
-//  *   If the first element of the non-empty list is another list containing
-//      the symbol "splice-unquote" followed by a list, that list is catenated
-//      with the quasiquoted result of the remaining items in the non-empty
-//      parent list:
-//
-//          (quasiquote (splice-unquote list) rest...) -> (items-from-list items-from-quasiquote(rest...))
-//
-// Note the inconsistent handling between "quote" and "splice-quote". The former
-// is handled when this function is handed a list that starts with "quote",
-// whereas the latter is handled when this function is handled a list whose
-// first element is a list that starts with "splice-quote". The handling of the
-// latter is forced by the need to incorporate the results of (splice-quote
-// list) with the remaining items of the list containing that splice-quote
-// expression. However, it's not clear to me why the handling of "unquote" is
-// not handled similarly, for consistency's sake.
 //
 private func quasiquote(qq_arg: MalVal) throws -> MalVal {
 
@@ -165,8 +136,12 @@ private func quasiquote(qq_arg: MalVal) throws -> MalVal {
     //
     // Return: (quote <argument>)
 
-    if !is_pair(qq_arg) {
+    if is_symbol(qq_arg) || is_hashmap(qq_arg) {
         return make_list_from(kValQuote, qq_arg)
+    }
+
+    guard let seq = as_sequenceQ(qq_arg) else {
+        return qq_arg
     }
 
     // The argument is a non-empty list -- that is (item rest...)
@@ -176,31 +151,22 @@ private func quasiquote(qq_arg: MalVal) throws -> MalVal {
     //
     // Return: item
 
-    let qq_list = as_sequence(qq_arg)
-    if let sym = as_symbolQ(qq_list.first()) where sym == kSymbolUnquote {
-        return qq_list.count >= 2 ? try! qq_list.nth(1) : make_nil()
+    if let x = starts_with(qq_arg, sym: kSymbolUnquote) {
+        return x
     }
 
-    // If the first item from the list is itself a non-empty list starting with
-    // "splice-unquote"-- that is, ((splice-unquote item ignored...) rest...):
-    //
-    // Return: (concat item quasiquote(rest...))
-
-    if is_pair(qq_list.first()) {
-        let qq_list_item0 = as_sequence(qq_list.first())
-        if let sym = as_symbolQ(qq_list_item0.first()) where sym == kSymbolSpliceUnquote {
-            let result = try quasiquote(qq_list.rest())
-            return make_list_from(kValConcat, try! qq_list_item0.nth(1), result)
+    var result = make_list_from()
+    for elt in seq.reverse() {
+        if let x = starts_with(elt, sym: kSymbolSpliceUnquote) {
+            result = make_list_from(kValConcat, x, result)
+        } else {
+            result = make_list_from(kValCons, try quasiquote (elt), result)
         }
     }
-
-    // General case: (item rest...):
-    //
-    // Return: (cons (quasiquote item) (quasiquote (rest...))
-
-    let first = try quasiquote(qq_list.first())
-    let rest = try quasiquote(qq_list.rest())
-    return make_list_from(kValCons, first, rest)
+    if is_vector(qq_arg) {
+        return make_list_from(kValVec, result)
+    }
+    return result
 }
 
 // Perform a simple evaluation of the `ast` object. If it's a symbol,
@@ -363,6 +329,15 @@ private func eval_quote(list: MalSequence, _ env: Environment) throws -> TCOVal 
     return TCOVal(make_nil())
 }
 
+// EVALuate "quasiquoteexpand".
+//
+private func eval_quasiquoteexp(list: MalSequence) throws -> TCOVal {
+    if list.count < 2 {
+        try throw_error("quasiquoteexpand: arg count")
+    }
+    return TCOVal(try! quasiquote(try! list.nth(1)))
+}
+
 // EVALuate "quasiquote".
 //
 private func eval_quasiquote(list: MalSequence, _ env: Environment) throws -> TCOVal {
@@ -446,6 +421,7 @@ private func EVAL(var ast: MalVal, var _ env: Environment) throws -> MalVal {
                 case kSymbolFn:             res = try eval_fn(list, env)
                 case kSymbolQuote:          res = try eval_quote(list, env)
                 case kSymbolQuasiQuote:     res = try eval_quasiquote(list, env)
+                case kSymbolQuasiQuoteExp:  res = try eval_quasiquoteexp(list)
                 case kSymbolMacroExpand:    res = try eval_macroexpand(list, env)
                 default:                    res = TCOVal()
             }

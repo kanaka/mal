@@ -131,7 +131,7 @@ foreach obj_val :seq [
 end
 
 to sequentialp :obj
-output or ((obj_type :obj) = "list) ((obj_type :obj) = "vector)
+output memberp obj_type :obj [list vector]
 end
 
 to equal_sequential_q :a :b
@@ -168,8 +168,4 @@ output cond [
     ]]
   [else "false]
 ]
-end
-
-to symbolnamedp :name :obj
-output and ((obj_type :obj) = "symbol) ((obj_val :obj) = :name)
 end

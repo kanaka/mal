@@ -6,26 +6,40 @@ function ret = READ(str)
 end
 
 % eval
-function ret = is_pair(ast)
-    ret = type_utils.sequential_Q(ast) && length(ast) > 0;
+function ret = starts_with(ast, sym)
+    ret = length(ast);
+    if ret
+        first = ast.get(1);
+        ret = isa(first,'types.Symbol') && strcmp(first.name, sym);
+    end
+end
+
+function ret = quasiquote_loop(ast)
+    ret = types.List();
+    for i=length(ast):-1:1
+        elt = ast.get(i)
+        if isa(elt, 'types.List') && starts_with(elt, 'splice-unquote')
+            ret = types.List(types.Symbol('concat'), elt.get(2), ret);
+        else
+            ret = types.List(types.Symbol('cons'), quasiquote(elt), ret);
+        end
+    end
 end
 
 function ret = quasiquote(ast)
-    if ~is_pair(ast)
+    switch class(ast)
+    case 'types.List'
+        if starts_with(ast, 'unquote')
+            ret = ast.get(2);
+        else
+            ret = quasiquote_loop(ast);
+        end
+    case 'types.Vector'
+        ret = types.List(types.Symbol('vec'), quasiquote_loop(ast));
+    case {'types.Symbol', 'types.HashMap'}
         ret = types.List(types.Symbol('quote'), ast);
-    elseif isa(ast.get(1),'types.Symbol') && ...
-           strcmp(ast.get(1).name, 'unquote')
-        ret = ast.get(2);
-    elseif is_pair(ast.get(1)) && ...
-           isa(ast.get(1).get(1),'types.Symbol') && ...
-           strcmp(ast.get(1).get(1).name, 'splice-unquote')
-        ret = types.List(types.Symbol('concat'), ...
-                         ast.get(1).get(2), ...
-                         quasiquote(ast.slice(2)));
-    else
-        ret = types.List(types.Symbol('cons'), ...
-                         quasiquote(ast.get(1)), ...
-                         quasiquote(ast.slice(2)));
+    otherwise
+        ret = ast;
     end
 end
 
@@ -111,6 +125,9 @@ function ret = EVAL(ast, env)
         ast = ast.get(3); % TCO
     case 'quote'
         ret = ast.get(2);
+        return;
+    case 'quasiquoteexpand'
+        ret = quasiquote(ast.get(2));
         return;
     case 'quasiquote'
         ast = quasiquote(ast.get(2)); % TCO

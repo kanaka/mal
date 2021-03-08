@@ -171,6 +171,7 @@
    ["`", "sequential?"], "sequential?",
    ["`", "cons"], "cons",
    ["`", "concat"], "concat",
+   ["`", "vec"], "vectorl",
    ["`", "nth"], "_nth",
    ["`", "first"], "_first",
    ["`", "rest"], "_rest",

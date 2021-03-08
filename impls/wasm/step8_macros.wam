@@ -8,55 +8,85 @@
   )
 
   ;; EVAL
-  (func $is_pair (param $ast i32) (result i32)
-    (LET $type ($TYPE $ast))
-    (AND (OR (i32.eq $type (global.get $LIST_T))
-             (i32.eq $type (global.get $VECTOR_T)))
-         (i32.ne ($VAL0 $ast) 0))
-  )
+
 
   (func $QUASIQUOTE (param $ast i32) (result i32)
-    (LET $res 0 $sym 0 $second 0 $third 0)
-    (if (i32.eqz ($is_pair $ast)) ;; QQ_QUOTE
-      (then
-        (local.set $sym ($STRING (global.get $SYMBOL_T) "quote"))
-        ;; ['quote ast]
-        (local.set $res ($LIST2 $sym $ast))
-        ($RELEASE $sym))
-      (else
-        (local.set $res ($MEM_VAL1_ptr $ast))
-        (if (AND (i32.eq ($TYPE $res) (global.get $SYMBOL_T))
-                 (i32.eqz ($strcmp "unquote" ($to_String $res))))
-          (then
-            ;; ast[1]
-            (local.set $res ($INC_REF ($MEM_VAL1_ptr ($MEM_VAL0_ptr $ast)))))
-        (else (if (AND ($is_pair $res)
-                       (i32.eq ($TYPE ($MEM_VAL1_ptr $res))
-                               (global.get $SYMBOL_T))
-                       (i32.eqz ($strcmp "splice-unquote"
-                                         ($to_String ($MEM_VAL1_ptr $res)))))
-          (then
-            ;; ['concat, ast[0][1], quasiquote(ast[1..])]
-            (local.set $sym ($STRING (global.get $SYMBOL_T) "concat"))
-            (local.set $second
-                       ($MEM_VAL1_ptr ($MEM_VAL0_ptr ($MEM_VAL1_ptr $ast))))
-            (local.set $third ($QUASIQUOTE ($MEM_VAL0_ptr $ast)))
-            (local.set $res ($LIST3 $sym $second $third))
-            ;; release inner quasiquoted since outer list take ownership
-            ($RELEASE $third)
-            ($RELEASE $sym))
-          (else
-            ;; ['cons, quasiquote(ast[0]), quasiquote(ast[1..])]
-            (local.set $sym ($STRING (global.get $SYMBOL_T) "cons"))
-            (local.set $second ($QUASIQUOTE ($MEM_VAL1_ptr $ast)))
-            (local.set $third ($QUASIQUOTE ($MEM_VAL0_ptr $ast)))
-            (local.set $res ($LIST3 $sym $second $third))
-            ;; release inner quasiquoted since outer list takes ownership
-            ($RELEASE $third)
-            ($RELEASE $second)
-            ($RELEASE $sym)))))))
-    $res
-  )
+    (LET $type ($TYPE $ast) $res 0 $sym 0 $second 0)
+
+    ;; symbol or map -> ('quote ast)
+    (if (OR (i32.eq $type (global.get $SYMBOL_T))
+            (i32.eq $type (global.get $HASHMAP_T)))
+    (then
+      (local.set $sym ($STRING (global.get $SYMBOL_T) "quote"))
+      (local.set $res ($LIST2 $sym $ast))
+      ($RELEASE $sym)
+      (return $res)))
+
+    ;; [xs..] -> ('vec (processed like a list))
+    (if (i32.eq $type (global.get $VECTOR_T)) (then
+      (local.set $sym ($STRING (global.get $SYMBOL_T) "vec"))
+      (local.set $second ($qq_foldr $ast))
+      (local.set $res ($LIST2 $sym $second))
+      ($RELEASE $sym)
+      ($RELEASE $second)
+      (return $res)))
+
+    ;; If ast is not affected by eval, return it unchanged.
+    (if (i32.ne $type (global.get $LIST_T)) (then
+      (return ($INC_REF $ast))))
+
+    ;; (unquote x) -> x
+    (local.set $second ($qq_unquote $ast "unquote"))
+    (if $second (then
+      (return ($INC_REF $second))))
+
+    ;; ast is a normal list, iterate on its elements
+    (return ($qq_foldr $ast)))
+
+  ;; Helper for quasiquote.
+  ;; If the given list ast contains at least two elements and starts
+  ;; with the given symbol, return the second element. Else return 0.
+  (func $qq_unquote (param $ast i32) (param $sym i32) (result i32)
+    (LET $car 0 $cdr 0)
+    (if ($VAL0 $ast) (then
+      (local.set $car ($MEM_VAL1_ptr $ast))
+      (if (i32.eq ($TYPE $car) (global.get $SYMBOL_T)) (then
+        (if (i32.eqz ($strcmp ($to_String $car) $sym)) (then
+          (local.set $cdr ($MEM_VAL0_ptr $ast))
+          (if ($VAL0 $cdr) (then
+            (return ($MEM_VAL1_ptr $cdr))))))))))
+    (return 0))
+
+  ;; Iteration on sequences for quasiquote (right reduce/fold).
+  (func $qq_foldr (param $xs i32) (result i32)
+    (if ($VAL0 $xs) (then
+      (return ($qq_loop ($MEM_VAL1_ptr $xs) ($qq_foldr ($MEM_VAL0_ptr $xs)))))
+    (else
+      (return ($INC_REF (global.get $EMPTY_LIST))))))
+
+  ;; Transition function for quasiquote right fold/reduce.
+  (func $qq_loop (param $elt i32) (param $acc i32) (result i32)
+    (LET $sym 0 $second 0 $res 0)
+
+    ;; If elt is ('splice-unquote x) -> ('concat, x, acc)
+    (if (i32.eq ($TYPE $elt) (global.get $LIST_T)) (then
+      (local.set $second ($qq_unquote $elt "splice-unquote"))
+      (if $second (then
+        (local.set $sym    ($STRING (global.get $SYMBOL_T) "concat"))
+        (local.set $res    ($LIST3 $sym $second $acc))
+        ;; release inner quasiquoted since outer list takes ownership
+        ($RELEASE $sym)
+        (return $res)))))
+
+    ;; normal elt -> ('cons, (quasiquoted x), acc)
+    (local.set $sym    ($STRING (global.get $SYMBOL_T) "cons"))
+    (local.set $second ($QUASIQUOTE $elt))
+    (local.set $res    ($LIST3 $sym $second $acc))
+    ;; release inner quasiquoted since outer list takes ownership
+    ($RELEASE $second)
+    ($RELEASE $sym)
+    (return $res))
+
 
   (global $mac_stack (mut i32) (i32.const 0))
   (global $mac_stack_top (mut i32) (i32.const -1))
@@ -292,6 +322,10 @@
       (then
         (local.set $res ($INC_REF ($MEM_VAL1_ptr ($MEM_VAL0_ptr $ast))))
         (br $EVAL_return))
+    (else (if (i32.eqz ($strcmp "quasiquoteexpand" $a0sym))
+      (then
+        (local.set $res ($QUASIQUOTE ($MEM_VAL1_ptr ($MEM_VAL0_ptr $ast))))
+        (br $EVAL_return))
     (else (if (i32.eqz ($strcmp "quasiquote" $a0sym))
       (then
         (local.set $ast ($QUASIQUOTE ($MEM_VAL1_ptr ($MEM_VAL0_ptr $ast))))
@@ -405,7 +439,7 @@
         ($THROW_STR_1 "apply of non-function type: %d\n" $ftype)
         (local.set $res 0)
         ($RELEASE $f_args)
-        (br $EVAL_return)))))))))))))))))))))))
+        (br $EVAL_return)))))))))))))))))))))))))
 
     ) ;; end of TCO_loop
     ) ;; end of EVAL_return

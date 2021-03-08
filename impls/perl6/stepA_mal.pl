@@ -20,22 +20,33 @@ sub eval_ast ($ast, $env) {
   }
 }
 
-sub is_pair ($ast) {
-  return so $ast ~~ MalList|MalVector && $ast.elems;
+sub qqLoop ($ast) {
+  my $acc = MalList([]);
+  for |$ast.val.reverse -> $elt {
+    if $elt ~~ MalList && $elt.elems == 2 && $elt[0] ~~ MalSymbol
+      && $elt[0].val eq 'splice-unquote'
+    {
+      $acc = MalList([MalSymbol('concat'), $elt[1], $acc]);
+    }
+    else {
+      $acc = MalList([MalSymbol('cons'), quasiquote($elt), $acc]);
+    }
+  }
+  return $acc;
 }
 
 sub quasiquote ($ast) {
-  if !is_pair($ast) {
-    return MalList([MalSymbol('quote'), $ast]);
-  }
-  elsif $ast[0] ~~ MalSymbol && $ast[0].val eq 'unquote' {
-    return $ast[1];
-  }
-  elsif is_pair($ast[0]) && $ast[0][0] ~~ MalSymbol && $ast[0][0].val eq 'splice-unquote' {
-    return MalList([MalSymbol('concat'), $ast[0][1], quasiquote(MalList([$ast[1..*]]))]);
-  }
-  else {
-    return MalList([MalSymbol('cons'), quasiquote($ast[0]), quasiquote(MalList([$ast[1..*]]))]);
+  given $ast {
+    when MalList {
+      if $ast.elems == 2 && $ast[0] ~~ MalSymbol && $ast[0].val eq 'unquote' {
+        $ast[1]
+      } else {
+        qqLoop($ast);
+      }
+    }
+    when MalVector            { MalList([MalSymbol('vec'), qqLoop($ast)]) }
+    when MalSymbol|MalHashMap { MalList([MalSymbol('quote'), $ast]) }
+    default                   { $ast }
   }
 }
 
@@ -93,6 +104,7 @@ sub eval ($ast is copy, $env is copy) {
         return MalFunction($a2, $env, @binds, &fn);
       }
       when 'quote' { return $a1 }
+      when 'quasiquoteexpand' { return quasiquote($a1) }
       when 'quasiquote' { $ast = quasiquote($a1) }
       when 'defmacro!' {
         my $func = eval($a2, $env);

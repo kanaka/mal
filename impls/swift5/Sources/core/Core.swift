@@ -161,6 +161,18 @@ private extension Func {
         return .list(values)
     }
 
+    static let vec = Func { args in
+        guard args.count == 1 else { throw MalError.invalidArguments("vec") }
+        switch args[0] {
+        case let .list(values, _):
+             return .vector(values)
+        case let .vector(values, _):
+            return args[0]
+        default:
+            throw MalError.invalidArguments("vec")
+        }
+    }
+
     static let nth = Func { args in
         guard args.count == 2 else { throw MalError.invalidArguments("nth") }
         guard case let .number(index) = args[1] else { throw MalError.invalidArguments("nth") }
@@ -513,6 +525,7 @@ private let data: [String: Expr] = [
     "swap!": .function(.swap),
     "cons": .function(.cons),
     "concat": .function(.concat),
+    "vec": .function(.vec),
     "nth": .function(.nth),
     "first": .function(.first),
     "rest": .function(.rest),

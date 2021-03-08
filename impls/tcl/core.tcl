@@ -33,7 +33,11 @@ proc mal_string_q {a} {
 }
 
 proc mal_keyword {a} {
-    keyword_new [obj_val [lindex $a 0]]
+    lassign $a a0
+    if {[keyword_q $a0]} {
+        return $a0
+    }
+    keyword_new [obj_val $a0]
 }
 
 proc mal_keyword_q {a} {
@@ -234,6 +238,17 @@ proc mal_concat {a} {
         set res [concat $res [obj_val $lst]]
     }
     list_new $res
+}
+
+proc mal_vec {a} {
+    lassign $a a0
+    if {[vector_q $a0]} {
+        return $a0
+    } elseif {[list_q $a0]} {
+        return [vector_new [obj_val $a0]]
+    } else {
+        error "vec requires list or vector"
+    }
 }
 
 proc mal_nth {a} {
@@ -438,6 +453,7 @@ set core_ns [dict create \
     "sequential?"  [nativefunction_new mal_sequential_q] \
     "cons"         [nativefunction_new mal_cons] \
     "concat"       [nativefunction_new mal_concat] \
+    "vec"          [nativefunction_new mal_vec] \
     "nth"          [nativefunction_new mal_nth] \
     "first"        [nativefunction_new mal_first] \
     "rest"         [nativefunction_new mal_rest] \

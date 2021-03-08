@@ -355,6 +355,16 @@ fn atom_swap(args: MalLinkedList) MalError!*MalType {
     return new_mal;
 }
 
+pub fn vec(a1: *const MalType) MalError!*MalType {
+    const ll = switch(a1.data) {
+        .List   => |l| l,
+        .Vector => |v| v,
+        else    => return MalError.TypeError,
+    };
+    const copy = try linked_list.deepcopy(Allocator, ll);
+    return MalType.new_vector(Allocator, copy);
+}
+
 pub fn cons(a1: *const MalType, a2: *const MalType) MalError!*MalType {
     // TODO: do we need this for vectors?
     const old_ll = try a2.const_sequence_linked_list();
@@ -807,6 +817,7 @@ pub const core_namespace = [_] CorePair {
     CorePair { .name = "deref", .func = CorePairData {.Fn1 = &deref} },
     CorePair { .name = "reset!", .func = CorePairData {.Fn2 = &atom_reset} },
     CorePair { .name = "swap!", .func = CorePairData {.FVar = &atom_swap} },
+    CorePair { .name = "vec", .func = CorePairData {.Fn1 = &vec} },
     CorePair { .name = "cons", .func = CorePairData {.Fn2 = &cons} },
     CorePair { .name = "concat", .func = CorePairData {.FVar = &concat} },
     CorePair { .name = "rest", .func = CorePairData {.Fn1 = &rest } },

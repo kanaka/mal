@@ -37,15 +37,6 @@ def wrap2(kind; opts):
         value: .
     };
 
-def isPair:
-    if (.kind == "list" or .kind == "vector") then
-        .value | length > 0
-    else
-        false
-    end;
-
-def isPair(x):
-    x | isPair;
 
 def find_free_references(keys):
     def _refs:

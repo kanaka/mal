@@ -10,6 +10,6 @@ typedef struct {
     int arg_cnt;
 } core_ns_entry;
 
-extern core_ns_entry core_ns[61];
+extern core_ns_entry core_ns[62];
 
 #endif

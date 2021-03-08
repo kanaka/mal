@@ -256,6 +256,10 @@ private func fn_concat(args: MalVarArgs) throws -> MalVal {
     return result
 }
 
+private func fn_vec(seq: MalSequence) throws -> MalVal {
+    return make_vector(seq)
+}
+
 private func fn_nth(list: MalSequence, index: MalIntType) throws -> MalVal {
     return try list.nth(index)
 }
@@ -738,6 +742,7 @@ let ns: [String: MalBuiltin.Signature] = [
     "sequential?":  { try unwrap_args($0, forFunction: fn_sequentialQ) },
     "cons":         { try unwrap_args($0, forFunction: fn_cons) },
     "concat":       { try unwrap_args($0, forFunction: fn_concat) },
+    "vec":          { try unwrap_args($0, forFunction: fn_vec) },
     "nth":          { try unwrap_args($0, forFunction: fn_nth) },
     "first":        { try unwrap_args($0, forFunction: fn_first) },
     "rest":         { try unwrap_args($0, forFunction: fn_rest) },

@@ -1,3 +1,5 @@
+(require 'cl-lib)
+
 ;; HACK: `text-quoting-style' prettifies quotes in error messages on
 ;; Emacs 25, but no longer does from 26 upwards...
 (when (= emacs-major-version 25)
@@ -33,29 +35,28 @@
       (nreverse output))))
 
 (defun read-form ()
-  (let ((token (peek)))
-    (cond
-     ((string= token "'")
+  (pcase (peek)
+    ("'"
       (read-quote))
-     ((string= token "`")
+    ("`"
       (read-quasiquote))
-     ((string= token "~")
+    ("~"
       (read-unquote))
-     ((string= token "~@")
+    ("~@"
       (read-splice-unquote))
-     ((string= token "@")
+    ("@"
       (read-deref))
-     ((string= token "^")
+    ("^"
       (read-with-meta))
-     ((string= token "(")
+    ("("
       (read-list))
-     ((string= token "[")
+    ("["
       (read-vector))
-     ((string= token "{")
+    ("{"
       (read-map))
-     (t
+    (_
       ;; assume anything else is an atom
-      (read-atom)))))
+      (read-atom))))
 
 (defun read-simple-reader-macro (symbol)
   (next) ; pop reader macro token

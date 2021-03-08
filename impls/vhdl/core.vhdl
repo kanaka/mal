@@ -375,6 +375,15 @@ package body core is
     new_seq_obj(mal_list, seq, result);
   end procedure fn_concat;
 
+  procedure fn_vec(args: inout mal_val_ptr; result: out mal_val_ptr; err: out mal_val_ptr) is
+  begin
+    if args.seq_val(0).val_type = mal_vector then
+      result := args.seq_val(0);
+    else
+      new_seq_obj(mal_vector, args.seq_val(0).seq_val, result);
+    end if;
+  end procedure fn_vec;
+
   procedure fn_nth(args: inout mal_val_ptr; result: out mal_val_ptr; err: out mal_val_ptr) is
     variable lst_seq: mal_seq_ptr := args.seq_val(0).seq_val;
     variable index: integer := args.seq_val(1).number_val;
@@ -581,6 +590,7 @@ package body core is
     elsif f.all = "sequential?" then fn_sequential_q(args, result, err);
     elsif f.all = "cons"        then fn_cons(args, result, err);
     elsif f.all = "concat"      then fn_concat(args, result, err);
+    elsif f.all = "vec"         then fn_vec(args, result, err);
     elsif f.all = "nth"         then fn_nth(args, result, err);
     elsif f.all = "first"       then fn_first(args, result, err);
     elsif f.all = "rest"        then fn_rest(args, result, err);
@@ -654,6 +664,7 @@ package body core is
     define_core_function(e, "sequential?");
     define_core_function(e, "cons");
     define_core_function(e, "concat");
+    define_core_function(e, "vec");
     define_core_function(e, "nth");
     define_core_function(e, "first");
     define_core_function(e, "rest");

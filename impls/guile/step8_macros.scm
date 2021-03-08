@@ -44,6 +44,19 @@
     (EVAL (car ast) env)
     (eval_seq (cdr ast) env))))
 
+(define (qqIter elt acc)
+  (match elt
+    (('splice-unquote x) (list 'concat x acc))
+    (else                (list 'cons (_quasiquote elt) acc))))
+(define (_quasiquote ast)
+  (match ast
+    (('unquote x)    x)
+    ( (xs ...)       (fold-right qqIter '() xs))
+    (#(xs ...)       (list 'vec (fold-right qqIter '() xs)))
+    ((? hash-table?) (list 'quote ast))
+    ((? symbol?)     (list 'quote ast))
+    (else            ast)))
+
 (define (is_macro_call ast env)
   (and (list? ast)
        (> (length ast) 0)
@@ -67,20 +80,6 @@
        ((null? (cdr next))
         (throw 'mal-error (format #f "let*: Invalid binding form '~a'" kvs))) 
        (else (lp (cddr next) (cons (car next) k) (cons (cadr next) v))))))
-  (define (_quasiquote obj)
-    (match obj
-      ((('unquote unq) rest ...) `(cons ,unq ,(_quasiquote rest)))
-      (('unquote unq) unq)
-      ((('splice-unquote unqsp) rest ...) `(concat ,unqsp ,(_quasiquote rest)))
-      ((head rest ...) (list 'cons (_quasiquote head) (_quasiquote rest)))
-      (else `(quote ,obj))))
-  ;; NOTE: I wish I can use (while #t ...) for that, but this is not Lispy, which means
-  ;;       it'll bring some trouble in control flow. We have to use continuations to return
-  ;;       and use non-standard `break' feature. In a word, not elegant at all.
-  ;;       The named let loop is natural for Scheme, but it looks a bit cheating. But NO!
-  ;;       Such kind of loop is actually `while loop' in Scheme, I don't take advantage of
-  ;;       TCO in Scheme to implement TCO, but it's the same principle with normal loop.
-  ;;       If you're Lispy enough, there's no recursive at all while you saw named let loop.
   (let tco-loop((ast ast) (env env)) ; expand as possible
     (let ((ast (_macroexpand ast env)))
       (match ast
@@ -92,7 +91,8 @@
            ((env 'set) k c)))
         (('macroexpand obj) (_macroexpand obj env))
         (('quote obj) obj)
-        (('quasiquote obj) (EVAL (_quasiquote (->list obj)) env))
+        (('quasiquoteexpand obj) (_quasiquote obj))
+        (('quasiquote obj) (EVAL (_quasiquote obj) env))
         (('def! k v) ((env 'set) k (EVAL v env)))
         (('let* kvs body)
          (let* ((new-env (make-Env #:outer env))

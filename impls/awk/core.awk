@@ -628,6 +628,24 @@ function core_concat(idx,    new_idx, new_len, len, i, lst, lst_idx, lst_len, j)
 	return "(" new_idx
 }
 
+function core_vec(idx,    new_idx, len)
+{
+	len = types_heap[idx]["len"]
+	if (len != 2)
+		return "!\"Invalid argument length for builtin function 'vec'. Expects exactly 1 argument, supplied " (len - 1) "."
+	idx = types_heap[idx][1]
+	if (idx !~ /^[([]/) {
+		return "!\"Incompatible type for argument 1 of builtin function 'vec'. Expects list or vector, supplied " types_typename(idx) "."
+	}
+	idx = substr(idx, 2)
+	len = types_heap[idx]["len"]
+	new_idx = types_allocate()
+	types_heap[new_idx]["len"] = len
+	while (len--)
+		types_addref(types_heap[new_idx][len] = types_heap[idx][len])
+	return "[" new_idx
+}
+
 function core_nth(idx,    lst, num, n, lst_idx)
 {
 	if (types_heap[idx]["len"] != 3) {
@@ -1078,6 +1096,7 @@ function core_init()
 
 	core_ns["'list"] = "&core_list"
 	core_ns["'list?"] = "&core_listp"
+	core_ns["'vec"] = "&core_vec"
 	core_ns["'vector"] = "&core_vector"
 	core_ns["'vector?"] = "&core_vectorp"
 	core_ns["'hash-map"] = "&core_hash_map"

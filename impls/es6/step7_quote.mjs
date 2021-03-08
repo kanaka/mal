@@ -1,6 +1,6 @@
 import rl from './node_readline.js'
 const readline = rl.readline
-import { _list_Q, _malfunc, _malfunc_Q } from './types'
+import { _list_Q, _malfunc, _malfunc_Q, Vector } from './types'
 import { BlankException, read_str } from './reader'
 import { pr_str } from './printer'
 import { new_env, env_set, env_get } from './env'
@@ -10,24 +10,29 @@ import { core_ns } from './core'
 const READ = str => read_str(str)
 
 // eval
-const is_pair = x => Array.isArray(x) && x.length > 0
-
-const quasiquote = ast => {
-    if (!is_pair(ast)) {
-        return [Symbol.for('quote'), ast]
-    } else if (ast[0] === Symbol.for('unquote')) {
-        return ast[1]
-    } else if (is_pair(ast[0]) && ast[0][0] === Symbol.for('splice-unquote')) {
-        return [Symbol.for('concat'),
-                ast[0][1],
-                quasiquote(ast.slice(1))]
+const qq_loop = (acc, elt) => {
+    if (_list_Q(elt) && elt.length == 2
+        && elt[0] === Symbol.for('splice-unquote')) {
+        return [Symbol.for('concat'), elt[1], acc]
     } else {
-        return [Symbol.for('cons'),
-                quasiquote(ast[0]),
-                quasiquote(ast.slice(1))]
+        return [Symbol.for('cons'), quasiquote (elt), acc]
     }
 }
-
+const quasiquote = ast => {
+    if (_list_Q(ast)) {
+        if (ast.length == 2 && ast[0] === Symbol.for('unquote')) {
+            return ast[1]
+        } else {
+            return ast.reduceRight(qq_loop, [])
+        }
+    } else if (ast instanceof Vector) {
+        return [Symbol.for('vec'), ast.reduceRight(qq_loop, [])]
+    } else if (typeof ast === 'symbol' || ast instanceof Map) {
+        return [Symbol.for('quote'), ast]
+    } else {
+        return ast
+    }
+}
 const eval_ast = (ast, env) => {
     if (typeof ast === 'symbol') {
         return env_get(env, ast)
@@ -62,6 +67,8 @@ const EVAL = (ast, env) => {
             break // continue TCO loop
         case 'quote':
             return a1
+        case 'quasiquoteexpand':
+            return quasiquote(a1)
         case 'quasiquote':
             ast = quasiquote(a1)
             break // continue TCO loop

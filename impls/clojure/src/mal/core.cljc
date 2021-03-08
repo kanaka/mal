@@ -72,6 +72,7 @@
    ['vals (fn [hm] (let [vs (vals hm)] (if (nil? vs) '() vs)))]
 
    ['sequential? sequential?]
+   ['vec vec]
    ['cons cons]
    ['concat #(apply list (apply concat %&))]
    ['nth nth]

@@ -51,6 +51,7 @@
    ['sequential? sequential?]
    ['cons cons]
    ['concat concat]
+   ['vec vec]
    ['nth nth]
    ['first first]
    ['rest rest]

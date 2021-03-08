@@ -201,6 +201,9 @@ NSObject * wrap_tf(BOOL val) {
         }
         return res;
     },
+    @"vec": ^(NSArray *args){
+        return [MalVector fromArray:args[0]];
+    },
     @"nth": ^(NSArray *args){
         NSArray * lst = (NSArray *)args[0];
         int idx = [(NSNumber *)args[1] intValue];

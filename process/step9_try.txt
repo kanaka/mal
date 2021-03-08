@@ -3,7 +3,6 @@ import types, reader, printer, env, core
 
 READ(str): return reader.read_str(str)
 
-pair?(ast): return ... // true if non-empty sequence
 quasiquote(ast): return ... // quasiquote
 
 macro?(ast, env): return ... // true if macro call
@@ -114,6 +113,7 @@ ns = {'=:        equal?,
       'sequential? sequential?,
       'cons:     (a) -> concat([a[0]], a[1]),
       'concat:   (a) -> reduce(concat, [], a),
+      'vec:      (l) -> l converted to vector,
       'nth:      (a) -> a[0][a[1]] OR raise "nth: index out of range",
       'first:    (a) -> a[0][0] OR nil,
       'rest:     (a) -> a[0][1..] OR list(),

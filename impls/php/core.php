@@ -97,6 +97,16 @@ function concat() {
     return $l;
 }
 
+function vec($a) {
+    if (_vector_Q($a)) {
+        return $a;
+    } else {
+        $v = new VectorClass();
+        $v->exchangeArray($a->getArrayCopy());
+        return $v;
+    }
+}
+
 function nth($seq, $idx) {
     if ($idx < $seq->count()) {
         return $seq[$idx];
@@ -252,6 +262,7 @@ $core_ns = array(
     'sequential?'=> function ($a) { return _sequential_Q($a); },
     'cons'=>   function ($a, $b) { return cons($a, $b); },
     'concat'=> function () { return call_user_func_array('concat', func_get_args()); },
+    'vec'=>    function ($a) { return vec($a, $b); },
     'nth'=>    function ($a, $b) { return nth($a, $b); },
     'first'=>  function ($a) { return first($a); },
     'rest'=>   function ($a) { return rest($a); },

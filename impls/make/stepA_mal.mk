@@ -18,19 +18,24 @@ $(if $(READLINE_EOF)$(__ERROR),,$(call READ_STR,$(if $(1),$(1),$(call READLINE,"
 endef
 
 # EVAL: evaluate the parameter
-IS_PAIR = $(if $(call _sequential?,$(1)),$(if $(call _EQ,0,$(call _count,$(1))),,true),)
 
-define QUASIQUOTE
-$(strip \
-  $(if $(call _NOT,$(call IS_PAIR,$(1))),\
-    $(call _list,$(call _symbol,quote) $(1)),\
-    $(if $(call _EQ,unquote,$($(call _nth,$(1),0)_value)),\
-      $(call _nth,$(1),1),\
-      $(if $(and $(call IS_PAIR,$(call _nth,$(1),0)),$(call _EQ,splice-unquote,$($(call _nth,$(call _nth,$(1),0),0)_value))),\
-        $(call _list,$(call _symbol,concat) $(call _nth,$(call _nth,$(1),0),1) $(call QUASIQUOTE,$(call srest,$(1)))),\
-        $(call _list,$(call _symbol,cons) $(call QUASIQUOTE,$(call _nth,$(1),0)) $(call QUASIQUOTE,$(call srest,$(1))))))))
-endef
+# elt, accumulator list -> new accumulator list
+QQ_LOOP = $(call _list,\
+  $(if $(and $(_list?),$(call _EQ,splice-unquote,$($(sfirst)_value))),\
+    $(call _symbol,concat) $(call _nth,$1,1),\
+    $(call _symbol,cons) $(QUASIQUOTE))\
+  $2)
 
+# list or vector source -> right folded list
+QQ_FOLD = $(if $(_empty?),$(call _list,),$(call QQ_LOOP,$(sfirst),$(call QQ_FOLD,$(srest))))
+
+QUASIQUOTE = $(strip \
+  $(if $(_list?),                $(if $(call _EQ,unquote,$($(sfirst)_value)),\
+                                   $(call _nth,$1,1),\
+                                   $(QQ_FOLD)),\
+  $(if $(_vector?),              $(call _list,$(call _symbol,vec) $(QQ_FOLD)),\
+  $(if $(_symbol?)$(_hash_map?), $(call _list,$(call _symbol,quote) $1),\
+                                 $1))))
 define IS_MACRO_CALL
 $(if $(call _list?,$(1)),$(if $(call ENV_FIND,$(2),$($(call _nth,$(1),0)_value)),$(_macro_$(call ENV_GET,$(2),$($(call _nth,$(1),0)_value))),),)
 endef
@@ -90,6 +95,8 @@ $(if $(__ERROR),,\
           $(call EVAL,$(a2),$(call LET,$(a1),$(call ENV,$(2)))))),\
     $(if $(call _EQ,quote,$($(a0)_value)),\
       $(call _nth,$(1),1),\
+    $(if $(call _EQ,quasiquoteexpand,$($(a0)_value)),\
+      $(call QUASIQUOTE,$(call _nth,$(1),1)),\
     $(if $(call _EQ,quasiquote,$($(a0)_value)),\
       $(call EVAL,$(call QUASIQUOTE,$(call _nth,$(1),1)),$(2)),\
     $(if $(call _EQ,defmacro!,$($(a0)_value)),\
@@ -136,7 +143,7 @@ $(if $(__ERROR),,\
         $(and $(EVAL_DEBUG),$(info invoke: $(call _pr_str,$(el))))\
         $(foreach f,$(call sfirst,$(el)),\
           $(foreach args,$(call srest,$(el)),\
-            $(call apply,$(f),$(args))))))))))))))))))
+            $(call apply,$(f),$(args)))))))))))))))))))
 endef
 
 define EVAL

@@ -54,7 +54,10 @@ val ns = hashMapOf(
             MalList(mutableList)
         }),
         envPair("concat", { a: ISeq -> MalList(a.seq().flatMap({ it -> (it as ISeq).seq() }).toCollection(LinkedList<MalType>())) }),
-
+        envPair("vec", { a: ISeq ->
+            val list = a.first() as? ISeq ?: throw MalException("vec requires a sequence")
+            MalVector(list)
+        }),
         envPair("nth", { a: ISeq ->
             val list = a.nth(0) as? ISeq ?: throw MalException("nth requires a list as its first parameter")
             val index = a.nth(1) as? MalInteger ?: throw MalException("nth requires an integer as its second parameter")

@@ -182,6 +182,7 @@ core_ns <- list(
     "sequential?"=.sequential_q,
     "cons"=cons,
     "concat"=do_concat,
+    "vec"=new.vectorl,
     "nth"=nth,
     "first"=function(a) if (.nil_q(a) || length(a) < 1) nil else a[[1]],
     "rest"=function(a) if (.nil_q(a)) new.list() else new.listl(slice(a,2)),

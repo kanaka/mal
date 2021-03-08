@@ -67,6 +67,7 @@ class Core {
       "sequential?": fn { |a| a[0] is MalSequential },
       "cons":        fn { |a| MalList.new([a[0]] + a[1].elements) },
       "concat":      fn { |a| MalList.new(a.reduce([]) { |acc,e| acc + e.elements }) },
+      "vec":         fn { |a| MalVector.new(a[0].elements) },
       "nth":         fn { |a| a[1] < a[0].count ? a[0][a[1]] : Fiber.abort("nth: index out of range") },
       "first":       fn { |a| a[0] == null ? null : a[0].first },
       "rest":        fn { |a| a[0] == null ? MalList.new([]) : a[0].rest },

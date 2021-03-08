@@ -22,34 +22,48 @@ func READ(str string) (MalType, error) {
 }
 
 // eval
-func is_pair(x MalType) bool {
-	slc, e := GetSlice(x)
-	if e != nil {
-		return false
+func starts_with(xs []MalType, sym string) bool {
+	if 0 < len(xs) {
+		switch s := xs[0].(type) {
+		case Symbol:
+			return s.Val == sym
+		default:
+		}
 	}
-	return len(slc) > 0
+	return false
+}
+
+func qq_loop(xs []MalType) MalType {
+	acc := NewList()
+	for i := len(xs) - 1; 0<=i; i -= 1 {
+		elt := xs[i]
+		switch e := elt.(type) {
+		case List:
+			if starts_with(e.Val, "splice-unquote") {
+				acc = NewList(Symbol{"concat"}, e.Val[1], acc)
+				continue
+			}
+		default:
+		}
+		acc = NewList(Symbol{"cons"}, quasiquote(elt), acc)
+	}
+	return acc
 }
 
 func quasiquote(ast MalType) MalType {
-	if !is_pair(ast) {
-		return List{[]MalType{Symbol{"quote"}, ast}, nil}
-	} else {
-		slc, _ := GetSlice(ast)
-		a0 := slc[0]
-		if Symbol_Q(a0) && (a0.(Symbol).Val == "unquote") {
-			return slc[1]
-		} else if is_pair(a0) {
-			slc0, _ := GetSlice(a0)
-			a00 := slc0[0]
-			if Symbol_Q(a00) && (a00.(Symbol).Val == "splice-unquote") {
-				return List{[]MalType{Symbol{"concat"},
-					slc0[1],
-					quasiquote(List{slc[1:], nil})}, nil}
-			}
+	switch a := ast.(type) {
+	case Vector:
+		return NewList(Symbol{"vec"}, qq_loop(a.Val))
+	case HashMap, Symbol:
+		return NewList(Symbol{"quote"}, ast)
+	case List:
+		if starts_with(a.Val,"unquote") {
+			return a.Val[1]
+		} else {
+			return qq_loop(a.Val)
 		}
-		return List{[]MalType{Symbol{"cons"},
-			quasiquote(a0),
-			quasiquote(List{slc[1:], nil})}, nil}
+	default:
+		return ast
 	}
 }
 
@@ -210,6 +224,8 @@ func EVAL(ast MalType, env EnvType) (MalType, error) {
 			env = let_env
 		case "quote":
 			return a1, nil
+		case "quasiquoteexpand":
+			return quasiquote(a1), nil
 		case "quasiquote":
 			ast = quasiquote(a1)
 		case "defmacro!":

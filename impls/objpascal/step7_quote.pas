@@ -28,39 +28,47 @@ begin
 end;
 
 // eval
-function is_pair(x: TMal) : Boolean;
+
+function starts_with(Ast: TMal; Sym: String) : Boolean;
+var
+   Arr : TMalArray;
+   A0  : TMal;
 begin
-    is_pair := _sequential_Q(x) and (Length((x as TMalList).Val) > 0);
+   if Ast.ClassType <> TMalList then Exit (False);
+   Arr := (Ast as TMalList).Val;
+   if Length (Arr) = 0 then Exit (False);
+   A0 := Arr [0];
+   starts_with := (A0.ClassType = TMalSymbol) and ((A0 as TMalSymbol).Val = Sym);
 end;
 
 function quasiquote(Ast: TMal) : TMal;
 var
-    Arr, Arr0 : TMalArray;
-    A0, A00   : TMal;
+    Arr      : TMalArray;
+    Res, Elt : TMal;
+    I        : longint;
 begin
-    if not is_pair(Ast) then
-        Exit(_list(TMalSymbol.Create('quote'), Ast))
-    else
+    if Ast is TMalSymbol or Ast is TMalHashMap then
+        Exit(_list(TMalSymbol.Create('quote'), Ast));
+
+    if not (Ast is TMalList) then
+        Exit(Ast);
+
+    Arr := (Ast as TMalList).Val;
+    if starts_with (Ast, 'unquote') then Exit(Arr[1]);
+
+    Res := _list();
+    for I := 1 to Length(Arr) do
     begin
-        Arr := (Ast as TMalList).Val;
-        A0  := Arr[0];
-        if (A0 is TMalSymbol) and
-           ((A0 as TMalSymbol).Val = 'unquote') then
-            Exit(Arr[1])
-        else if is_pair(A0) then
-        begin
-            Arr0 := (Arr[0] as TMalList).Val;
-            A00 := Arr0[0];
-            if (A00 is TMalSymbol) and
-               ((A00 as TMalSymbol).Val = 'splice-unquote') then
-                Exit(_list(TMalSymbol.Create('concat'),
-                           Arr0[1],
-                           quasiquote((Ast as TMalList).Rest)));
-        end;
-        quasiquote := _list(TMalSymbol.Create('cons'),
-                            quasiquote(A0),
-                            quasiquote((Ast as TMalList).Rest));
+        Elt := Arr [Length(Arr) - I];
+        if starts_with (Elt, 'splice-unquote') then
+            Res := _list(TMalSymbol.Create('concat'), (Elt as TMalList).Val[1], Res)
+        else
+            Res := _list(TMalSymbol.Create('cons'), quasiquote (Elt), Res);
     end;
+    if Ast.ClassType <> TMalList then
+        Exit(_list(TMalSymbol.Create('vec'), Res))
+    else
+        Exit(Res);
 end;
 
 
@@ -152,6 +160,8 @@ begin
         end;
     'quote':
         Exit(Arr[1]);
+    'quasiquoteexpand':
+        Exit(quasiquote(Arr[1]));
     'quasiquote':
         Ast := quasiquote(Arr[1]);
     'do':

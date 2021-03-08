@@ -125,6 +125,13 @@ Map<MalSymbol, MalBuiltin> ns = <MalSymbol, MalBuiltin>{
     }
     return new MalList(results);
   }),
+  new MalSymbol('vec'): new MalBuiltin((List<MalType> args) {
+    if (args.length == 1) {
+      if (args[0] is MalVector) return args[0];
+      if (args[0] is MalList)   return new MalVector(args[0].elements);
+    }
+    throw new MalException(new MalString("vec: wrong arguments"));
+  }),
   new MalSymbol('nth'): new MalBuiltin((List<MalType> args) {
     var indexable = args[0] as MalIterable;
     var index = args[1] as MalInt;

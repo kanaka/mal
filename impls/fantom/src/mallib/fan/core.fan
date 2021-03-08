@@ -92,6 +92,7 @@ class Core
       "sequential?": MalFunc { MalTypes.toMalBool(it[0] is MalSeq) },
       "cons":        MalFunc { MalList([it[0]].addAll((it[1] as MalSeq).value)) },
       "concat":      MalFunc(#concat.func),
+      "vec":         MalFunc { MalVector((it[0] as MalSeq).value) },
       "nth":         MalFunc { (it[0] as MalSeq).nth((it[1] as MalInteger).value) },
       "first":       MalFunc { (it[0] as MalSeq)?.first ?: MalNil.INSTANCE },
       "rest":        MalFunc { (it[0] as MalSeq)?.rest ?: MalList([,]) },

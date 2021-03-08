@@ -23,26 +23,34 @@ sub READ {
 }
 
 # eval
-sub is_pair {
-    my ($x) = @_;
-    return $x->isa('Mal::Sequence') && @$x;
+sub starts_with {
+    my ($ast, $sym) = @_;
+    return @$ast && $ast->[0]->isa('Mal::Symbol') && ${$ast->[0]} eq $sym;
 }
-
+sub quasiquote_loop {
+    my ($ast) = @_;
+    my $res = Mal::List->new([]);
+    foreach my $elt (reverse @$ast) {
+        if ($elt->isa('Mal::List') and starts_with($elt, 'splice-unquote')) {
+            $res = Mal::List->new([Mal::Symbol->new('concat'), $elt->[1], $res]);
+        } else {
+            $res = Mal::List->new([Mal::Symbol->new('cons'), quasiquote($elt), $res]);
+        }
+    }
+    return $res;
+}
 sub quasiquote {
     my ($ast) = @_;
-    if (!is_pair($ast)) {
+    if ($ast->isa('Mal::Vector')) {
+        return Mal::List->new([Mal::Symbol->new('vec'), quasiquote_loop($ast)]);
+    } elsif ($ast->isa('Mal::HashMap') or $ast->isa('Mal::Symbol')) {
         return Mal::List->new([Mal::Symbol->new("quote"), $ast]);
-    } elsif ($ast->[0]->isa('Mal::Symbol') && ${$ast->[0]} eq 'unquote') {
+    } elsif (!$ast->isa('Mal::List')) {
+        return $ast;
+    } elsif (starts_with($ast, 'unquote')) {
         return $ast->[1];
-    } elsif (is_pair($ast->[0]) && $ast->[0]->[0]->isa('Mal::Symbol') &&
-             ${$ast->[0]->[0]} eq 'splice-unquote') {
-        return Mal::List->new([Mal::Symbol->new("concat"),
-                          $ast->[0]->[1],
-                          quasiquote($ast->rest())]);
     } else {
-        return Mal::List->new([Mal::Symbol->new("cons"),
-                          quasiquote($ast->[0]),
-                          quasiquote($ast->rest())]);
+        return quasiquote_loop($ast);
     }
 }
 
@@ -116,6 +124,9 @@ sub EVAL {
         }
         when ('quote') {
             return $ast->[1];
+        }
+        when ('quasiquoteexpand') {
+            return quasiquote($ast->[1]);
         }
         when ('quasiquote') {
             @_ = (quasiquote($ast->[1]), $env);

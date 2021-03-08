@@ -88,6 +88,9 @@
       <malval kind="function" name="concat">
         <is_macro>false</is_macro>
       </malval>
+      <malval kind="function" name="vec">
+        <is_macro>false</is_macro>
+      </malval>
       <malval kind="function" name="nth">
         <is_macro>false</is_macro>
       </malval>
@@ -389,6 +392,13 @@
               </value>
             </xsl:variable>
             <xsl:sequence select="$result"/>
+          </xsl:when>
+          <xsl:when test="$func/malval/@name = 'vec'">
+            <value>
+              <malval kind="vector">
+                <xsl:sequence select="$args/value/malval/lvalue/malval[1]/lvalue"/>
+              </malval>
+            </value>
           </xsl:when>
           <xsl:when test="$func/malval/@name = 'nth'">
             <value>

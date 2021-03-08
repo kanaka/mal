@@ -20,45 +20,76 @@ architecture test of stepA_mal is
     read_str(str, ast, err);
   end procedure mal_READ;
 
-  procedure is_pair(ast: inout mal_val_ptr; pair: out boolean) is
+  procedure starts_with(lst : inout mal_val_ptr;
+                        sym : in    string;
+                        res :   out boolean) is
   begin
-    pair := is_sequential_type(ast.val_type) and ast.seq_val'length > 0;
-  end procedure is_pair;
+    res := lst.seq_val.all'length = 2
+       and lst.seq_val.all (lst.seq_val.all'low).val_type = mal_symbol
+       and lst.seq_val.all (lst.seq_val.all'low).string_val.all = sym;
+  end starts_with;
 
-  procedure quasiquote(ast: inout mal_val_ptr; result: out mal_val_ptr) is
-    variable ast_pair, a0_pair: boolean;
-    variable seq: mal_seq_ptr;
-    variable a0, rest: mal_val_ptr;
+  -- Forward declaration
+  procedure quasiquote(ast:    inout mal_val_ptr;
+                       result:   out mal_val_ptr);
+
+  procedure qq_loop(elt : inout mal_val_ptr;
+                    acc : inout mal_val_ptr) is
+    variable sw  : boolean     := elt.val_type = mal_list;
+    variable seq : mal_seq_ptr := new mal_seq(0 to 2);
   begin
-    is_pair(ast, ast_pair);
-    if not ast_pair then
-      seq := new mal_seq(0 to 1);
-      new_symbol("quote", seq(0));
-      seq(1) := ast;
-      new_seq_obj(mal_list, seq, result);
-      return;
+    if sw then
+      starts_with(elt, "splice-unquote", sw);
     end if;
-    a0 := ast.seq_val(0);
-    if a0.val_type = mal_symbol and a0.string_val.all = "unquote" then
-      result := ast.seq_val(1); 
+    if sw then
+      new_symbol("concat", seq(0));
+      seq(1) := elt.seq_val(1);
     else
-      is_pair(a0, a0_pair);
-      if a0_pair and a0.seq_val(0).val_type = mal_symbol and a0.seq_val(0).string_val.all = "splice-unquote" then
-        seq := new mal_seq(0 to 2);
-        new_symbol("concat", seq(0));
-        seq(1) := a0.seq_val(1);
-        seq_drop_prefix(ast, 1, rest);
-        quasiquote(rest, seq(2));
-        new_seq_obj(mal_list, seq, result);
-      else
-        seq := new mal_seq(0 to 2);
-        new_symbol("cons", seq(0));
-        quasiquote(a0, seq(1));
-        seq_drop_prefix(ast, 1, rest);
-        quasiquote(rest, seq(2));
-        new_seq_obj(mal_list, seq, result);
-      end if;
+      new_symbol("cons", seq(0));
+      quasiquote(elt, seq(1));
     end if;
+    seq(2) := acc;
+    new_seq_obj(mal_list, seq, acc);
+  end qq_loop;
+
+  procedure qq_foldr (xs  : inout mal_seq_ptr;
+                      res :   out mal_val_ptr) is
+    variable seq : mal_seq_ptr := new mal_seq(0 to -1);
+    variable acc : mal_val_ptr;
+  begin
+    new_seq_obj(mal_list, seq, acc);
+    for i in xs'reverse_range loop
+      qq_loop (xs(i), acc);
+    end loop;
+    res := acc;
+  end procedure qq_foldr;
+
+  procedure quasiquote(ast:    inout mal_val_ptr;
+                       result:   out mal_val_ptr) is
+    variable sw  : boolean;
+    variable seq : mal_seq_ptr;
+  begin
+    case ast.val_type is
+      when mal_list =>
+        starts_with(ast, "unquote", sw);
+        if sw then
+          result := ast.seq_val(1);
+        else
+          qq_foldr(ast.seq_val, result);
+        end if;
+      when mal_vector =>
+        seq := new mal_seq(0 to 1);
+        new_symbol("vec", seq(0));
+        qq_foldr(ast.seq_val, seq(1));
+        new_seq_obj(mal_list, seq, result);
+      when mal_symbol | mal_hashmap =>
+        seq := new mal_seq(0 to 1);
+        new_symbol("quote", seq(0));
+        seq(1) := ast;
+        new_seq_obj(mal_list, seq, result);
+      when others =>
+        result := ast;
+    end case;
   end procedure quasiquote;
 
   -- Forward declaration
@@ -291,16 +322,21 @@ architecture test of stepA_mal is
           result := ast.seq_val(1);
           return;
 
+        elsif a0.string_val.all = "quasiquoteexpand" then
+          quasiquote(ast.seq_val(1), result);
+          return;
+
         elsif a0.string_val.all = "quasiquote" then
           quasiquote(ast.seq_val(1), ast);
           next; -- TCO
 
         elsif a0.string_val.all = "defmacro!" then
-          EVAL(ast.seq_val(2), env, val, sub_err);
+          EVAL(ast.seq_val(2), env, fn, sub_err);
           if sub_err /= null then
             err := sub_err;
             return;
           end if;
+          new_fn(fn.func_val.f_body, fn.func_val.f_args, fn.func_val.f_env, val);
           val.func_val.f_is_macro := true;
           env_set(env, ast.seq_val(1), val);
           result := val;

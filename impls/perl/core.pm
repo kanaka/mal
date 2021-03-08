@@ -217,6 +217,7 @@ sub pl_STAR {
     'rest'        => sub { $_[0]->rest() },
     'cons'        => \&cons,
     'concat'      => sub { Mal::List->new([map @$_, @_]) },
+    'vec'         => sub { Mal::Vector->new([@{$_[0]}]) },
     'empty?'      => sub { @{$_[0]} ? $false : $true },
     'count'       => sub { Mal::Integer->new(scalar(@{$_[0]})) },
     'apply'       => \&apply,

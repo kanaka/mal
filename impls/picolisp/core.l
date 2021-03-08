@@ -133,6 +133,7 @@
 
      (cons . `(MAL-fn '((X Seq) (MAL-list (cons X (MAL-value Seq))))))
      (concat . `(MAL-fn '(@ (MAL-list (apply append (mapcar MAL-value (rest)))))))
+     (vec . `(MAL-fn '((Seq) (MAL-vector (MAL-value Seq)))))
 
      (nth . `(MAL-fn MAL-nth))
      (first . `(MAL-fn '((X) (if (MAL-seq? X) (or (car (MAL-value X)) *MAL-nil) *MAL-nil))))

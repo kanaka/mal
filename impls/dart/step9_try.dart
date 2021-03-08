@@ -58,31 +58,33 @@ MalType macroexpand(MalType ast, Env env) {
   return ast;
 }
 
-MalType quasiquote(MalType ast) {
-  bool isPair(MalType ast) {
-    return ast is MalIterable && ast.isNotEmpty;
-  }
+bool starts_with(MalType ast, String sym) {
+  return ast is MalList && ast.length == 2 && ast.first == new MalSymbol(sym);
+}
 
-  if (!isPair(ast)) {
+MalType qq_loop(List<MalType> xs) {
+  var acc = new MalList([]);
+  for (var i=xs.length-1; 0<=i; i-=1) {
+    if (starts_with(xs[i], "splice-unquote")) {
+      acc = new MalList([new MalSymbol("concat"), (xs[i] as MalList)[1], acc]);
+    } else {
+      acc = new MalList([new MalSymbol("cons"), quasiquote(xs[i]), acc]);
+    }
+  }
+  return acc;
+}
+
+MalType quasiquote(MalType ast) {
+  if (starts_with(ast, "unquote")) {
+    return (ast as MalList).elements[1];
+  } else if (ast is MalList) {
+    return qq_loop(ast.elements);
+  } else if (ast is MalVector) {
+    return new MalList([new MalSymbol("vec"), qq_loop(ast.elements)]);
+  } else if (ast is MalSymbol || ast is MalHashMap) {
     return new MalList([new MalSymbol("quote"), ast]);
   } else {
-    var list = ast as MalIterable;
-    if (list.first == new MalSymbol("unquote")) {
-      return list[1];
-    } else if (isPair(list.first) &&
-        (list.first as MalIterable).first == new MalSymbol("splice-unquote")) {
-      return new MalList([
-        new MalSymbol("concat"),
-        (list.first as MalIterable)[1],
-        quasiquote(new MalList(list.sublist(1)))
-      ]);
-    } else {
-      return new MalList([
-        new MalSymbol("cons"),
-        quasiquote(list[0]),
-        quasiquote(new MalList(list.sublist(1)))
-      ]);
-    }
+    return ast;
   }
 }
 
@@ -184,6 +186,8 @@ MalType EVAL(MalType ast, Env env) {
                     EVAL(args[1], new Env(env, params, funcArgs)));
           } else if (symbol.value == "quote") {
             return args.single;
+          } else if (symbol.value == "quasiquoteexpand") {
+            return quasiquote(args.first);
           } else if (symbol.value == "quasiquote") {
             ast = quasiquote(args.first);
             continue;

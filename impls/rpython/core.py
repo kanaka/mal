@@ -232,6 +232,13 @@ def count(args):
 def sequential_Q(args):
     return wrap_tf(types._sequential_Q(args[0]))
 
+def vec(args):
+    seq = args[0]
+    if isinstance(seq, MalList):
+        return MalVector(seq.values)
+    else:
+        throw_str("vec called on non-sequence")
+
 def cons(args):
     x, seq = args[0], args[1]
     if not isinstance(seq, MalList):
@@ -413,6 +420,7 @@ ns = {
         'vals': vals,
 
         'sequential?': sequential_Q,
+        'vec': vec,
         'cons': cons,
         'concat': concat,
         'nth': nth,

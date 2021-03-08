@@ -9,81 +9,93 @@ function READ(str)
 	return reader_read_str(str)
 }
 
-function is_pair(ast)
+# Return 0, an error or the unquote argument (second element of ast).
+function starts_with(ast, sym,    idx, len)
 {
-	return ast ~ /^[([]/ && types_heap[substr(ast, 2)]["len"] != 0
+	if (ast !~ /^\(/)
+		return 0
+	idx = substr(ast, 2)
+	len = types_heap[idx]["len"]
+	if (!len || types_heap[idx][0] != sym)
+		return 0
+	if (len != 2)
+		return  "!\"'" sym "' expects 1 argument, not " (len - 1) "."
+	return types_heap[idx][1]
 }
 
-function quasiquote(ast,    i, len, new_idx, idx, lst_idx, first, first_idx, verb, ret)
+function quasiquote(ast,    new_idx, ret, ast_idx, elt_i, elt, previous)
 {
-	if (!is_pair(ast)) {
+	if (ast !~ /^[(['{]/) {
+		return ast
+	}
+	if (ast ~ /['\{]/) {
 		new_idx = types_allocate()
 		types_heap[new_idx][0] = "'quote"
 		types_heap[new_idx][1] = ast
 		types_heap[new_idx]["len"] = 2
 		return "(" new_idx
 	}
-	idx = substr(ast, 2)
-	first = types_heap[idx][0]
-	if (first == "'unquote") {
-		if (types_heap[idx]["len"] != 2) {
-			len = types_heap[idx]["len"]
-			types_release(ast)
-			return "!\"Invalid argument length for 'unquote'. Expects exactly 1 argument, supplied " (len - 1) "."
-		}
-		types_addref(ret = types_heap[idx][1])
+	ret = starts_with(ast, "'unquote")
+	if (ret ~ /^!/) {
 		types_release(ast)
 		return ret
 	}
-
-	first_idx = substr(first, 2)
-	if (is_pair(first) && types_heap[first_idx][0] == "'splice-unquote") {
-		if (types_heap[first_idx]["len"] != 2) {
-			len = types_heap[first_idx]["len"]
-			types_release(ast)
-			return "!\"Invalid argument length for 'splice-unquote'. Expects exactly 1 argument, supplied " (len - 1) "."
-		}
-		types_addref(first = types_heap[first_idx][1])
-		verb = "'concat"
-	} else {
-		types_addref(first)
-		first = quasiquote(first)
-		if (first ~ /^!/) {
-			types_release(ast)
-			return first
-		}
-		verb = "'cons"
-	}
-	lst_idx = types_allocate()
-	len = types_heap[idx]["len"]
-	for (i = 1; i < len; ++i) {
-		types_addref(types_heap[lst_idx][i - 1] = types_heap[idx][i])
-	}
-	types_heap[lst_idx]["len"] = len - 1
-	types_release(ast)
-	ret = quasiquote("(" lst_idx)
-	if (ret ~ /^!/) {
-		types_release(first)
+	if (ret) {
+		types_addref(ret)
+		types_release(ast)
 		return ret
 	}
-
 	new_idx = types_allocate()
-	types_heap[new_idx][0] = verb
-	types_heap[new_idx][1] = first
-	types_heap[new_idx][2] = ret
-	types_heap[new_idx]["len"] = 3
+	types_heap[new_idx]["len"] = 0
+	ast_idx = substr(ast, 2)
+	for (elt_i=types_heap[ast_idx]["len"]-1; 0<=elt_i; elt_i--) {
+		elt = types_heap[ast_idx][elt_i]
+		ret = starts_with(elt, "'splice-unquote")
+		if (ret ~ /^!/) {
+			types_release("(" new_idx)
+			types_release(ast)
+			return ret
+		}
+		if (ret) {
+			previous = "(" new_idx
+			new_idx = types_allocate()
+			types_heap[new_idx][0] = "'concat"
+			types_heap[new_idx][1] = types_addref(ret)
+			types_heap[new_idx][2] = previous
+			types_heap[new_idx]["len"] = 3
+		} else {
+			ret = quasiquote(types_addref(elt))
+			if (ret ~ /^!/) {
+				types_release(ast)
+				return ret
+			}
+			previous = "(" new_idx
+			new_idx = types_allocate()
+			types_heap[new_idx][0] = "'cons"
+			types_heap[new_idx][1] = ret
+			types_heap[new_idx][2] = previous
+			types_heap[new_idx]["len"] = 3
+		}
+	}
+	if (ast ~ /^\[/) {
+		previous = "(" new_idx
+		new_idx = types_allocate()
+		types_heap[new_idx][0] = "'vec"
+		types_heap[new_idx][1] = previous
+		types_heap[new_idx]["len"] = 2
+	}
+	types_release(ast)
 	return "(" new_idx
 }
 
-function is_macro_call(ast, env,    sym, ret, f)
+function is_macro_call(ast, env,    idx, len, sym, f)
 {
-	if (!is_pair(ast)) {
-		return 0
-	}
-	sym = types_heap[substr(ast, 2)][0]
-	if (sym !~ /^'/) {
-		return 0
-	}
+	if (ast !~ /^\(/) return 0
+	idx = substr(ast, 2)
+	len = types_heap[idx]["len"]
+	if (len == 0) return 0
+	sym = types_heap[idx][0]
+	if (sym !~ /^'/) return 0
 	f = env_get(env, sym)
 	return f ~ /^\$/ && types_heap[substr(f, 2)]["is_macro"]
 }
@@ -447,6 +459,15 @@ function EVAL(ast, env,    body, new_ast, ret, idx, len, f, f_idx, ret_body, ret
 			types_release(ast)
 			env_release(env)
 			return body
+		case "'quasiquoteexpand":
+			env_release(env)
+			if (len != 2) {
+				types_release(ast)
+				return "!\"Invalid argument length for 'quasiquoteexpand'. Expects exactly 1 argument, supplied " (len - 1) "."
+			}
+			types_addref(body = types_heap[idx][1])
+			types_release(ast)
+			return quasiquote(body)
 		case "'quasiquote":
 			if (len != 2) {
 				types_release(ast)

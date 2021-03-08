@@ -10,7 +10,7 @@ public class Core
  "pr-str", "str", "prn", "println",
  "read-string", "slurp",
  "atom", "atom?", "deref", "reset!", "swap!",
- "cons", "concat",
+ "vec", "cons", "concat",
  "nth", "first", "rest",
  "throw",
  "apply", "map",
@@ -52,6 +52,7 @@ new MalDeref @=> Core.ns["deref"];
 new MalDoReset @=> Core.ns["reset!"];
 new MalDoSwap @=> Core.ns["swap!"];
 
+new MalVec @=> Core.ns["vec"];
 new MalCons @=> Core.ns["cons"];
 new MalConcat @=> Core.ns["concat"];
 

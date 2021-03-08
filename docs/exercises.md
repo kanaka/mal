@@ -37,7 +37,7 @@ make REGRESS=1 TEST_OPTS='--hard --pre-eval=\(load-file\ \"../answer.mal\"\)' te
 
 - Implement `>`, `<=` and `>=` with `<`.
 
-- Implement `hash-map`, `list`, `prn` and `swap!` as non-recursive
+- Implement `list`, `vec`, `prn`, `hash-map` and `swap!` as non-recursive
   functions.
 
 - Implement `count`, `nth`, `map`, `concat` and `conj` with the empty

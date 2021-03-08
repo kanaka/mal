@@ -133,6 +133,9 @@
         (apply (mal-data-value fn)
                (append (list (mal-data-value atom)) args))))
 
+(defmal vec (list)
+  (make-mal-vector (listify (mal-data-value list))))
+
 (defmal cons (element list)
   (make-mal-list (cons element (listify (mal-data-value list)))))
 

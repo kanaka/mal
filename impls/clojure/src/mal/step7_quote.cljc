@@ -13,22 +13,25 @@
 
 ;; eval
 (declare EVAL)
-(defn is-pair [x]
-  (and (sequential? x) (> (count x) 0)))
 
+(declare quasiquote)
+(defn starts_with [ast sym]
+  (and (seq? ast)
+       (= (first ast) sym)))
+(defn qq-iter [seq]
+  (if (empty? seq)
+    ()
+    (let [elt (first seq)
+          acc (qq-iter (rest seq))]
+      (if (starts_with elt 'splice-unquote)
+        (list 'concat (second elt)     acc)
+        (list 'cons   (quasiquote elt) acc)))))
 (defn quasiquote [ast]
-  (cond
-    (not (is-pair ast))
-    (list 'quote ast)
-
-    (= 'unquote (first ast))
-    (second ast)
-
-    (and (is-pair (first ast)) (= 'splice-unquote (ffirst ast)))
-    (list 'concat (-> ast first second) (quasiquote (rest ast)))
-
-    :else
-    (list 'cons (quasiquote (first ast)) (quasiquote (rest ast)))))
+  (cond (starts_with ast 'unquote)    (second ast)
+        (seq? ast)                    (qq-iter ast)
+        (vector? ast)                 (list 'vec (qq-iter ast))
+        (or (symbol? ast) (map? ast)) (list 'quote ast)
+        :else                         ast))
 
 (defn eval-ast [ast env]
   (cond
@@ -68,6 +71,9 @@
 
               'quote
               a1
+
+              'quasiquoteexpand
+              (quasiquote a1)
 
               'quasiquote
               (recur (quasiquote a1) env)

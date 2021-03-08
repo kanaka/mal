@@ -13,27 +13,42 @@ function READ($str) {
 }
 
 // eval
-function is_pair($x) {
-    return _sequential_Q($x) and count($x) > 0;
+function qq_loop($elt, $acc) {
+    if (_list_Q($elt)
+        and count($elt) == 2
+        and _symbol_Q($elt[0])
+        and $elt[0]->value === 'splice-unquote') {
+        return _list(_symbol("concat"), $elt[1], $acc);
+    } else {
+        return _list(_symbol("cons"), quasiquote($elt), $acc);
+    }
+}
+
+function qq_foldr($xs) {
+    $acc = _list();
+    for ($i=count($xs)-1; 0<=$i; $i-=1) {
+        $acc = qq_loop($xs[$i], $acc);
+    }
+    return $acc;
 }
 
 function quasiquote($ast) {
-    if (!is_pair($ast)) {
+    if (_vector_Q($ast)) {
+        return _list(_symbol("vec"), qq_foldr($ast));
+    } elseif (_symbol_Q($ast) or _hash_map_Q($ast)) {
         return _list(_symbol("quote"), $ast);
-    } elseif (_symbol_Q($ast[0]) && $ast[0]->value === 'unquote') {
+    } elseif (!_list_Q($ast)) {
+        return $ast;
+    } elseif (count($ast) == 2 and _symbol_Q($ast[0]) and $ast[0]->value === 'unquote') {
         return $ast[1];
-    } elseif (is_pair($ast[0]) && _symbol_Q($ast[0][0]) &&
-              $ast[0][0]->value === 'splice-unquote') {
-        return _list(_symbol("concat"), $ast[0][1],
-                     quasiquote($ast->slice(1)));
     } else {
-        return _list(_symbol("cons"), quasiquote($ast[0]),
-                     quasiquote($ast->slice(1)));
+        return qq_foldr($ast);
     }
 }
 
 function is_macro_call($ast, $env) {
-    return is_pair($ast) &&
+    return _list_Q($ast) &&
+           count($ast) >0 &&
            _symbol_Q($ast[0]) &&
            $env->find($ast[0]) &&
            $env->get($ast[0])->ismacro;
@@ -104,6 +119,8 @@ function MAL_EVAL($ast, $env) {
         break; // Continue loop (TCO)
     case "quote":
         return $ast[1];
+    case "quasiquoteexpand":
+        return quasiquote($ast[1]);
     case "quasiquote":
         $ast = quasiquote($ast[1]);
         break; // Continue loop (TCO)

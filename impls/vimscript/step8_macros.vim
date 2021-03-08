@@ -9,22 +9,39 @@ function READ(str)
   return ReadStr(a:str)
 endfunction
 
-function PairQ(obj)
-  return SequentialQ(a:obj) && !EmptyQ(a:obj)
+function StartsWith(ast, sym)
+  if EmptyQ(a:ast)
+     return 0
+  endif
+  let fst = ListFirst(a:ast)
+  return SymbolQ(fst) && fst.val == a:sym
 endfunction
 
+function QuasiquoteLoop(xs)
+  let revlist = reverse(copy(a:xs))
+  let acc = ListNew([])
+  for elt in revlist
+     if ListQ(elt) && StartsWith(elt, "splice-unquote")
+       let acc = ListNew([SymbolNew("concat"), ListNth(elt, 1), acc])
+     else
+       let acc = ListNew([SymbolNew("cons"), Quasiquote(elt), acc])
+     endif
+   endfor
+   return acc
+ endfunction
+
 function Quasiquote(ast)
-  if !PairQ(a:ast)
+  if VectorQ(a:ast)
+    return ListNew([SymbolNew("vec"), QuasiquoteLoop(a:ast.val)])
+  elseif SymbolQ(a:ast) || HashQ(a:ast)
     return ListNew([SymbolNew("quote"), a:ast])
-  endif
-  let a0 = ListFirst(a:ast)
-  if SymbolQ(a0) && a0.val == "unquote"
+  elseif !ListQ(a:ast)
+    return a:ast
+  elseif StartsWith(a:ast, "unquote")
     return ListNth(a:ast, 1)
-  elseif PairQ(a0) && SymbolQ(ListFirst(a0)) && ListFirst(a0).val == "splice-unquote"
-    return ListNew([SymbolNew("concat"), ListNth(a0, 1), Quasiquote(ListRest(a:ast))])
   else
-    return ListNew([SymbolNew("cons"), Quasiquote(a0), Quasiquote(ListRest(a:ast))])
-  end
+    return QuasiquoteLoop(a:ast.val)
+  endif
 endfunction
 
 function IsMacroCall(ast, env)
@@ -112,6 +129,8 @@ function EVAL(ast, env)
       " TCO
     elseif first_symbol == "quote"
       return ListNth(ast, 1)
+    elseif first_symbol == "quasiquoteexpand"
+      return Quasiquote(ListNth(ast, 1))
     elseif first_symbol == "quasiquote"
       let ast = Quasiquote(ListNth(ast, 1))
       " TCO
