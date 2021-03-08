@@ -89,7 +89,7 @@ DOCKERIZE =
 # Implementation specific settings
 #
 
-IMPLS = ada ada.2 awk bash basic bbc-basic c chuck clojure coffee common-lisp cpp crystal cs d dart \
+IMPLS = ada ada.2 awk bash basic bbc-basic c chuck clojure coffee common-lisp cpp crystal cs cs.2 d dart \
 	elisp elixir elm erlang es6 factor fantom forth fsharp go groovy gnu-smalltalk \
 	guile haskell haxe hy io java js jq julia kotlin livescript logo lua make mal \
 	matlab miniMAL nasm nim objc objpascal ocaml perl perl6 php picolisp pike plpgsql \
@@ -199,6 +199,7 @@ common-lisp_STEP_TO_PROG =   impls/common-lisp/$($(1))
 cpp_STEP_TO_PROG =           impls/cpp/$($(1))
 crystal_STEP_TO_PROG =       impls/crystal/$($(1))
 cs_STEP_TO_PROG =            impls/cs/$($(1)).exe
+cs.2_STEP_TO_PROG =          impls/cs.2/bin/Debug/net5.0/$($(1)).dll
 d_STEP_TO_PROG =             impls/d/$($(1))
 dart_STEP_TO_PROG =          impls/dart/$($(1)).dart
 elisp_STEP_TO_PROG =         impls/elisp/$($(1)).el
