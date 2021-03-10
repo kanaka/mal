@@ -420,6 +420,9 @@ public class stepE_macros {
         @Child private MalNode fnNode;
         @Children private MalNode[] argNodes;
         @Child private InvokeNode invokeNode;
+        @CompilationFinal private boolean initialized = false;
+        @CompilationFinal private boolean usingCachedFn;
+        @CompilationFinal private MalFunction cachedFn;
 
         ApplyNode(MalLanguage language, MalList list, boolean tailPosition, LexicalScope scope) {
             super(list);
@@ -464,6 +467,20 @@ public class stepE_macros {
         @Override
         public Object executeGeneric(VirtualFrame frame, MalEnv env) {
             var fn = (MalFunction)fnNode.executeGeneric(frame, env);
+            if (!initialized) {
+                CompilerDirectives.transferToInterpreterAndInvalidate();
+                initialized = true;
+                cachedFn = fn;
+                usingCachedFn = true;
+            }
+            if (usingCachedFn) {
+                if (fn != cachedFn) {
+                    CompilerDirectives.transferToInterpreterAndInvalidate();
+                    usingCachedFn = false;
+                } else {
+                    fn = cachedFn;
+                }
+            }
             if (fn.isMacro) {
                 var expanded = applyMacro(env, fn);
                 if (isInlinableMacro(fn)) {
