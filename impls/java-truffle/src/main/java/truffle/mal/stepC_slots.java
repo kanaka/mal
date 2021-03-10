@@ -381,6 +381,9 @@ public class stepC_slots {
         @Child private MalNode fnNode;
         @Children private MalNode[] argNodes;
         @Child private InvokeNode invokeNode;
+        @CompilationFinal private boolean initialized = false;
+        @CompilationFinal private boolean usingCachedFn;
+        @CompilationFinal private MalFunction cachedFn;
 
         ApplyNode(MalLanguage language, MalList list, boolean tailPosition, LexicalScope scope) {
             super(list);
@@ -415,6 +418,20 @@ public class stepC_slots {
         @Override
         public Object executeGeneric(VirtualFrame frame, MalEnv env) {
             var fn = (MalFunction)fnNode.executeGeneric(frame, env);
+            if (!initialized) {
+                CompilerDirectives.transferToInterpreterAndInvalidate();
+                initialized = true;
+                cachedFn = fn;
+                usingCachedFn = true;
+            }
+            if (usingCachedFn) {
+                if (fn != cachedFn) {
+                    CompilerDirectives.transferToInterpreterAndInvalidate();
+                    usingCachedFn = false;
+                } else {
+                    fn = cachedFn;
+                }
+            }
             if (fn.isMacro) {
                 // Mal's macro semantics are... interesting. To preserve them in the
                 // general case, we must re-expand a macro each time it's applied.
