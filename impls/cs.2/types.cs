@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 namespace mal
@@ -15,6 +16,11 @@ namespace mal
         {
             this.items = items;
             this.openingBracket = openingBracket;
+        }
+
+        public bool isList()
+        {
+            return this.openingBracket == "(";
         }
     }
 
@@ -54,6 +60,25 @@ namespace mal
         public MalHashmap(Dictionary<MalType, MalType> values)
         {
             this.values = values;
+        }
+    }
+
+    class MalFunction : MalType
+    {
+        public Func<IList<MalType>, MalType> function { get; }
+        public MalFunction(Func<IList<MalType>, MalType> function)
+        {
+            this.function = function;
+        }
+    }
+
+    class MalKeyword : MalType
+    {
+        public string name { get; }
+
+        public MalKeyword(string name)
+        {
+            this.name = name;
         }
     }
 }

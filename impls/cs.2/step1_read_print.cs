@@ -31,7 +31,7 @@ namespace mal
         static void Main(string[] args)
         {
             // TESTS
-            var test = rep("^{a 1} [1 2 3]");
+            // var test = rep("^{a 1} [1 2 3]");
 
             string line = null;
             do

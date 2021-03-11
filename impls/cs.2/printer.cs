@@ -1,4 +1,5 @@
 using System;
+using System.Text;
 using System.Collections.Generic;
 
 namespace mal
@@ -37,12 +38,12 @@ namespace mal
                 if (print_readably)
                 {
                     string value = ((MalString)malType).value;
-                    string output = "";
+                    StringBuilder output = new StringBuilder();
                     foreach (char c in value)
                     {
-                        output += ESCAPE.GetValueOrDefault(c, c.ToString());
+                        output.Append(ESCAPE.GetValueOrDefault(c, c.ToString()));
                     }
-                    return string.Format("\"{0}\"", output);
+                    return string.Format("\"{0}\"", output.ToString());
                 }
                 else
                 {
@@ -51,15 +52,23 @@ namespace mal
             }
             else if (malType is MalHashmap)
             {
-                MalHashmap hashMap = (MalHashmap) malType;
+                MalHashmap hashMap = (MalHashmap)malType;
                 List<string> strings = new List<string>();
-                foreach (var kv in hashMap.values)
+                foreach (var keyValuePair in hashMap.values)
                 {
-                    strings.Add(pr_str(kv.Key, true));
-                    strings.Add(pr_str(kv.Value, true));
+                    strings.Add(pr_str(keyValuePair.Key, true));
+                    strings.Add(pr_str(keyValuePair.Value, true));
                 }
                 string joined = string.Join(" ", strings);
                 return string.Format("{0}{1}{2}", "{", joined, "}");
+            }
+            else if (malType is MalKeyword)
+            {
+                return ((MalKeyword)malType).name;
+            }
+            else if (malType is MalFunction)
+            {
+                return "<MalFunction>";
             }
             else
             {

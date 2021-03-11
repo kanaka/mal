@@ -30,7 +30,6 @@ namespace mal
         {
             if (position >= tokens.Count)
             {
-                // throw new ArgumentOutOfRangeException("Went beyond all the tokens");
                 return null;
             }
             else
@@ -78,7 +77,7 @@ namespace mal
                 reader.next(); // drop the '^'
                 MalHashmap metadata = read_hashmap(reader);
                 MalType value = read_form(reader);
-                List<MalType> items = new List<MalType>(){ new MalSymbol("with-meta"), value, metadata};
+                List<MalType> items = new List<MalType>() { new MalSymbol("with-meta"), value, metadata };
                 MalList listWithMeta = new MalList(items);
                 return listWithMeta;
             }
@@ -124,7 +123,7 @@ namespace mal
             string peeked = null;
             do
             {
-                var item = read_form(reader);
+                MalType item = read_form(reader);
                 if (item != null)
                 {
                     items.Add(item);
@@ -155,7 +154,7 @@ namespace mal
             for (int i = 0; i < kvs.items.Count; i += 2)
             {
                 MalType key = kvs.items[i];
-                MalType val = kvs.items[i+1];
+                MalType val = kvs.items[i + 1];
                 pairs.Add(key, val);
             }
             return new MalHashmap(pairs);
@@ -164,7 +163,11 @@ namespace mal
         {
             // Attempt to parse a number first
             string item = reader.next();
-            if (item.StartsWith("\""))
+            if (item.StartsWith(":"))
+            {
+                return new MalKeyword(item);
+            }
+            else if (item.StartsWith("\""))
             {
                 if (item.Length > 1 && item.EndsWith("\""))
                 {

@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>exe</OutputType>
+    <TargetFramework>net5.0</TargetFramework>
+    <StartupObject>mal.step2_eval</StartupObject>
+  </PropertyGroup>
+
+</Project>
