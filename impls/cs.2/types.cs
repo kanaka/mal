@@ -41,6 +41,16 @@ namespace mal
         {
             this.value = value;
         }
+
+        public override int GetHashCode()
+        {
+            return value.GetHashCode();
+        }
+
+        public override bool Equals(object other)
+        {
+            return ((other is MalSymbol) && ((MalSymbol)other).value == value);
+        }
     }
 
     class MalString : MalType
@@ -79,6 +89,16 @@ namespace mal
         public MalKeyword(string name)
         {
             this.name = name;
+        }
+
+        public override int GetHashCode()
+        {
+            return name.GetHashCode();
+        }
+
+        public override bool Equals(object other)
+        {
+            return ((other is MalKeyword) && ((MalKeyword)other).name == name);
         }
     }
 }
