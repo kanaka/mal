@@ -16,6 +16,10 @@ namespace mal
         {
             {"'", "quote"}, {"`", "quasiquote"}, {"~", "unquote"}, {"~@", "splice-unquote"}, {"@", "deref"}
         };
+        static Dictionary<string, MalType> LITERALS = new Dictionary<string, MalType>()
+        {
+            {"nil", MalNil.MAL_NIL}, {"true", MalBoolean.MAL_TRUE}, {"false", MalBoolean.MAL_FALSE}
+        };
 
         IList<string> tokens;
         int position;
@@ -166,6 +170,10 @@ namespace mal
             if (item.StartsWith(":"))
             {
                 return new MalKeyword(item);
+            }
+            else if (LITERALS.ContainsKey(item))
+            {
+                return LITERALS.GetValueOrDefault(item);
             }
             else if (item.StartsWith("\""))
             {

@@ -1,6 +1,7 @@
 using System;
-using System.Text;
 using System.Collections.Generic;
+using System.Linq;
+using System.Text;
 
 namespace mal
 {
@@ -17,11 +18,7 @@ namespace mal
             {
                 MalList malList = (MalList)malType;
                 string closingBracket = (malList.openingBracket == "(") ? ")" : "]";
-                IList<string> strings = new List<string>();
-                foreach (MalType item in malList.items)
-                {
-                    strings.Add(pr_str(item));
-                }
+                List<string> strings = malList.items.Select(it => pr_str(it, print_readably)).ToList();
                 string joined = string.Join(" ", strings);
                 return string.Format("{0}{1}{2}", malList.openingBracket, joined, closingBracket);
             }
@@ -47,7 +44,7 @@ namespace mal
                 }
                 else
                 {
-                    return string.Format("\"{0}\"", ((MalString)malType).value);
+                    return ((MalString)malType).value;
                 }
             }
             else if (malType is MalHashmap)
@@ -68,7 +65,15 @@ namespace mal
             }
             else if (malType is MalFunction)
             {
-                return "<MalFunction>";
+                return "#<function>";
+            }
+            else if (malType is MalBoolean)
+            {
+                return ((MalBoolean)malType).value ? "true" : "false";
+            }
+            else if (malType is MalNil)
+            {
+                return "nil";
             }
             else
             {
