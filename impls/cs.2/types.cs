@@ -200,4 +200,20 @@ namespace mal
             return string.Format("<MalBoolean {0}>", value.ToString());
         }
     }
+
+    class MalFnTco : MalType
+    {
+        public MalType ast { get; set; }
+        public List<MalSymbol> @params { get; set; } // 'params' is a reserved word
+        public Env env { get; set; }
+        public MalFunction fn { get; set; }
+
+        public MalFnTco(MalType ast, List<MalSymbol> @params, Env env, MalFunction fn)
+        {
+            this.ast = ast;
+            this.@params = @params;
+            this.env = env;
+            this.fn = fn;
+        }
+    }
 }

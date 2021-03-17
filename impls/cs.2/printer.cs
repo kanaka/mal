@@ -67,6 +67,10 @@ namespace mal
             {
                 return "#<function>";
             }
+            else if (malType is MalFnTco)
+            {
+                return "#<functionTco>";
+            }
             else if (malType is MalBoolean)
             {
                 return ((MalBoolean)malType).value ? "true" : "false";
