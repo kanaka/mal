@@ -79,6 +79,11 @@ namespace mal
             {
                 return "nil";
             }
+            else if (malType is MalAtom)
+            {
+                MalAtom atom = (MalAtom)malType;
+                return string.Format("(atom {0})", pr_str(atom.value, print_readably));
+            }
             else
             {
                 throw new Exception(string.Format("Unknown type to print: {0}", malType.ToString()));

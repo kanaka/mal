@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Text;
 
 namespace mal
 {
@@ -52,6 +54,52 @@ namespace mal
                     Console.WriteLine(string.Join(" ", printed));
                     return MalNil.MAL_NIL;
                 })},
+
+            // Step 6
+            {"read-string",
+                new MalFunction((IList<MalType> args) => {
+                    MalString arg = (MalString)args[0];
+                    return Reader.read_str(arg.value);
+                })},
+
+            {"slurp",
+                new MalFunction((IList<MalType> args) => {
+                    MalString malFilename = (MalString)args[0];
+                    string path = malFilename.value;
+                    string contents = File.ReadAllText(path);
+                    return new MalString(contents);
+                })},
+
+            {"atom", new MalFunction((IList<MalType> args) => { return new MalAtom(args[0]); })},
+
+            {"atom?", new MalFunction((IList<MalType> args) => {
+                return (args[0] is MalAtom) ? MalBoolean.MAL_TRUE : MalBoolean.MAL_FALSE;
+                })},
+
+            {"deref", new MalFunction((IList<MalType> args) => { return ((MalAtom)args[0]).value; })},
+
+            {"reset!", new MalFunction((IList<MalType> args) => {
+                MalAtom atom = (MalAtom)args[0];
+                MalType newValue = args[1];
+                atom.value = newValue;
+                return newValue;
+            })},
+
+            {"swap!", new MalFunction((IList<MalType> args) => {
+                MalAtom atom = (MalAtom)args[0];
+                List<MalType> fnArgs = new List<MalType>(){ atom.value };
+                fnArgs.AddRange(args.Skip(2).ToList());
+                MalType fnOrFnTco = args[1];
+                MalType newValue = MalNil.MAL_NIL;
+                if (fnOrFnTco is MalFunction) {
+                    newValue = ((MalFunction)fnOrFnTco).function(fnArgs);
+                } else {
+                    newValue = ((MalFnTco)fnOrFnTco).fn.function(fnArgs);
+                }
+                atom.value = newValue;
+                return newValue;
+            })},
+
         };
     }
 }

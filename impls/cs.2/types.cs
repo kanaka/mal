@@ -216,4 +216,14 @@ namespace mal
             this.fn = fn;
         }
     }
+
+    class MalAtom : MalType
+    {
+        public MalType value { get; set; }
+
+        public MalAtom(MalType value)
+        {
+            this.value = value;
+        }
+    }
 }
