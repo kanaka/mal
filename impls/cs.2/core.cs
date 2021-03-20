@@ -100,6 +100,36 @@ namespace mal
                 return newValue;
             })},
 
+            // Step 7
+            {"cons",
+                new MalFunction((IList<MalType> args) => {
+                    MalType head = args[0];
+                    MalList rest = (MalList)args[1];
+                    List<MalType> newList = new List<MalType>(){ head };
+                    newList.AddRange(rest.items);
+                    return new MalList(newList);
+                })},
+
+            {"concat",
+                new MalFunction((IList<MalType> args) => {
+                    List<MalType> newList = new List<MalType>();
+                    foreach (MalType arg in args)
+                    {
+                        if (arg is MalList)
+                        {
+                            MalList argList = (MalList)arg;
+                            newList.AddRange(argList.items);
+                        }
+                    }
+                    return new MalList(newList);
+                })},
+
+            {"vec",
+                new MalFunction((IList<MalType> args) => {
+                    MalList head = (MalList)args[0];
+                    return new MalList(head.items, "[");
+                })},
+
         };
     }
 }
