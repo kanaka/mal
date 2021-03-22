@@ -105,6 +105,10 @@ namespace mal
             {
                 return read_hashmap(reader);
             }
+            else if (first == "[")
+            {
+                return read_vector(reader);
+            }
             else if (CLOSING_BRACKETS.ContainsKey(first))
             {
                 return read_list(reader);
@@ -139,12 +143,18 @@ namespace mal
             var closing = reader.next();
             if (closing == closingBracket)
             {
-                return new MalList(items, openingBracket);
+                return new MalList(items);
             }
             else
             {
                 throw new Exception("Expression has unbalanced parenthesis");
             }
+        }
+
+        static MalVector read_vector(Reader reader)
+        {
+            MalList values = read_list(reader);
+            return new MalVector(values.items);
         }
 
         static MalHashmap read_hashmap(Reader reader)

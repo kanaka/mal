@@ -41,15 +41,15 @@ namespace mal
                         }
                         else if (firstSymbol.value == "let*")
                         {
-                            MalList bindings = (MalList)astList.items[1];
-                            MalType expression = astList.items[2];
-                            Env newEnv = new Env(env);
-                            for (int i = 0; i < bindings.items.Count; i += 2)
-                            {
-                                MalSymbol name = (MalSymbol)bindings.items[i];
-                                MalType value = EVAL(bindings.items[i + 1], newEnv);
-                                newEnv.data.Add(name, value);
-                            }
+                                MalSeq bindings = (MalSeq)astList.items[1];
+                                MalType expression = astList.items[2];
+                                Env newEnv = new Env(env);
+                                for (int i = 0; i < bindings.items.Count; i += 2)
+                                {
+                                    MalSymbol name = (MalSymbol)bindings.items[i];
+                                    MalType value = EVAL(bindings.items[i + 1], newEnv);
+                                    newEnv.data.Add(name, value);
+                                }
                             return EVAL(expression, newEnv);
                         }
                         else if (firstSymbol.value == "do")
@@ -72,7 +72,7 @@ namespace mal
                         }
                         else if (firstSymbol.value == "fn*")
                         {
-                            MalList argNames = (MalList)astList.items[1];
+                            MalSeq argNames = (MalSeq)astList.items[1];
                             MalType funcBody = astList.items[2];
                             List<MalSymbol> argSymbs = new List<MalSymbol>();
                             foreach (MalType arg in argNames.items) { if (arg is MalSymbol) argSymbs.Add((MalSymbol)arg); }
@@ -87,18 +87,11 @@ namespace mal
 
                     }
 
+                    // Function application
                     MalList evaluated = (MalList)(eval_ast(ast, env));
-                    if (astList.isList())
-                    {
-                        // Function application
-                        MalFunction func = (MalFunction)evaluated.items[0];
-                        MalType retVal = func.function(evaluated.items.Skip(1).ToList());
-                        return retVal;
-                    }
-                    else
-                    {
-                        return evaluated; // vector
-                    }
+                    MalFunction func = (MalFunction)evaluated.items[0];
+                    MalType retVal = func.function(evaluated.items.Skip(1).ToList());
+                    return retVal;
                 }
             }
         }
@@ -127,7 +120,13 @@ namespace mal
             {
                 MalList astList = (MalList)ast;
                 List<MalType> evaluated = astList.items.Select(item => EVAL(item, env)).ToList();
-                return new MalList(evaluated, astList.openingBracket); // important: preserve the bracket
+                return new MalList(evaluated);
+            }
+            else if (ast is MalVector)
+            {
+                MalVector astVector = (MalVector)ast;
+                List<MalType> evaluated = astVector.items.Select(item => EVAL(item, env)).ToList();
+                return new MalVector(evaluated);
             }
             else if (ast is MalHashmap)
             {

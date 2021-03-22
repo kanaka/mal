@@ -28,7 +28,7 @@ namespace mal
                 else
                 {
                     MalList evaluated = (MalList)(eval_ast(ast, env));
-                    if (astList.isList())
+                    if (astList is MalList)
                     {
                         MalFunction func = (MalFunction)evaluated.items[0];
                         MalType retVal = func.function(evaluated.items.Skip(1).ToList());
@@ -73,7 +73,13 @@ namespace mal
             {
                 MalList astList = (MalList)ast;
                 List<MalType> evaluated = astList.items.Select(item => EVAL(item, env)).ToList();
-                return new MalList(evaluated, astList.openingBracket); // important: preserve the bracket
+                return new MalList(evaluated);
+            }
+            else if (ast is MalVector)
+            {
+                MalVector astVector = (MalVector)ast;
+                List<MalType> evaluated = astVector.items.Select(item => EVAL(item, env)).ToList();
+                return new MalVector(evaluated);
             }
             else if (ast is MalHashmap)
             {

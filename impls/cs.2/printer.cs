@@ -14,13 +14,13 @@ namespace mal
 
         public static string pr_str(MalType malType, bool print_readably = false)
         {
-            if (malType is MalList)
+            if (malType is MalSeq)
             {
-                MalList malList = (MalList)malType;
-                string closingBracket = (malList.openingBracket == "(") ? ")" : "]";
-                List<string> strings = malList.items.Select(it => pr_str(it, print_readably)).ToList();
+                MalSeq malSeq = (MalSeq)malType;
+                string closing = (malSeq is MalList) ? ")" : "]";
+                List<string> strings = malSeq.items.Select(it => pr_str(it, print_readably)).ToList();
                 string joined = string.Join(" ", strings);
-                return string.Format("{0}{1}{2}", malList.openingBracket, joined, closingBracket);
+                return string.Format("{0}{1}{2}", malSeq.openingBracket, joined, closing);
             }
             else if (malType is MalInteger)
             {

@@ -5,25 +5,19 @@ namespace mal
 {
     public class MalType { }
 
-    public class MalList : MalType
+    public class MalSeq : MalType
     {
         public IList<MalType> items { get; }
         public string openingBracket { get; }
-
-        public MalList(IList<MalType> items, string openingBracket = "(")
+        public MalSeq(IList<MalType> items, string openingBracket)
         {
             this.items = items;
             this.openingBracket = openingBracket;
         }
 
-        public bool isList()
-        {
-            return this.openingBracket == "(";
-        }
-
         public override string ToString()
         {
-            return string.Format("<MalList {0}>", items.ToString());
+            return string.Format("<{0} {1}>", this.GetType().Name, items.ToString());
         }
 
         public override int GetHashCode()
@@ -33,14 +27,28 @@ namespace mal
 
         public override bool Equals(object other)
         {
-            if (other is not MalList) return false;
-            MalList otherList = (MalList)other;
-            if (otherList.items.Count != items.Count) return false;
+            if (other is not MalSeq) return false;
+            IList<MalType> otherItems = ((MalSeq)other).items;
+            if (otherItems.Count != items.Count) return false;
             for (int i = 0; i < items.Count; i++)
             {
-                if (!items[i].Equals(otherList.items[i])) return false;
+                if (!items[i].Equals(otherItems[i])) return false;
             }
             return true;
+        }
+    }
+
+    public class MalVector : MalSeq
+    {
+        public MalVector(IList<MalType> items) : base(items, "[")
+        {
+        }
+    }
+
+    public class MalList : MalSeq
+    {
+        public MalList(IList<MalType> items) : base(items, "(")
+        {
         }
     }
 

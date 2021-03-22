@@ -41,7 +41,7 @@ namespace mal
                         }
                         else if (firstSymbol.value == "let*")
                         {
-                            MalList bindings = (MalList)astList.items[1];
+                            MalSeq bindings = (MalSeq)astList.items[1];
                             MalType expression = astList.items[2];
                             Env newEnv = new Env(env);
                             for (int i = 0; i < bindings.items.Count; i += 2)
@@ -50,23 +50,17 @@ namespace mal
                                 MalType value = EVAL(bindings.items[i + 1], newEnv);
                                 newEnv.data.Add(name, value);
                             }
+
                             return EVAL(expression, newEnv);
                         }
 
                     }
 
+                    // Function application
                     MalList evaluated = (MalList)(eval_ast(ast, env));
-                    if (astList.isList())
-                    {
-                        // Function application
-                        MalFunction func = (MalFunction)evaluated.items[0];
-                        MalType retVal = func.function(evaluated.items.Skip(1).ToList());
-                        return retVal;
-                    }
-                    else
-                    {
-                        return evaluated; // vector
-                    }
+                    MalFunction func = (MalFunction)evaluated.items[0];
+                    MalType retVal = func.function(evaluated.items.Skip(1).ToList());
+                    return retVal;
                 }
             }
         }
@@ -95,7 +89,13 @@ namespace mal
             {
                 MalList astList = (MalList)ast;
                 List<MalType> evaluated = astList.items.Select(item => EVAL(item, env)).ToList();
-                return new MalList(evaluated, astList.openingBracket); // important: preserve the bracket
+                return new MalList(evaluated);
+            }
+            else if (ast is MalVector)
+            {
+                MalVector astVector = (MalVector)ast;
+                List<MalType> evaluated = astVector.items.Select(item => EVAL(item, env)).ToList();
+                return new MalVector(evaluated);
             }
             else if (ast is MalHashmap)
             {
@@ -136,6 +136,7 @@ namespace mal
 
             // TESTS
             // var test = rep("(let* (c 2) (+ 1 c))");
+            rep("(let* [z 9] z)");
 
             string line = null;
             do

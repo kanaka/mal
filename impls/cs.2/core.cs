@@ -11,13 +11,13 @@ namespace mal
         public static Dictionary<string, MalFunction> ns = new Dictionary<string, MalFunction>()
         {
             {"list", new MalFunction((IList<MalType> args) => new MalList(args)) },
-            {"list?", new MalFunction((IList<MalType> args) =>
-                ((args[0] is MalList) && ((MalList)args[0]).isList())? MalBoolean.MAL_TRUE : MalBoolean.MAL_FALSE)},
+            {"list?", new MalFunction((IList<MalType> args) => (args[0] is MalList) ? MalBoolean.MAL_TRUE : MalBoolean.MAL_FALSE)},
             {"empty?", new MalFunction((IList<MalType> args) =>
-                ((args[0] is MalList) && ((MalList)args[0]).items.Count == 0)? MalBoolean.MAL_TRUE : MalBoolean.MAL_FALSE)},
+                (args[0] is MalSeq && ((MalSeq)args[0]).items.Count == 0) ? MalBoolean.MAL_TRUE : MalBoolean.MAL_FALSE
+            )},
             {"count", new MalFunction((IList<MalType> args) => {
                 if (args.Count == 0 || args[0] == MalNil.MAL_NIL) return new MalInteger(0);
-                else return new MalInteger( ((MalList)args[0]).items.Count );
+                else return new MalInteger( ((MalSeq)args[0]).items.Count );
             })},
             {"+", new MalFunction((IList<MalType> args) => new MalInteger(((MalInteger)args[0]).value + ((MalInteger)args[1]).value))},
             {"-", new MalFunction((IList<MalType> args) => new MalInteger(((MalInteger)args[0]).value - ((MalInteger)args[1]).value))},
@@ -90,7 +90,7 @@ namespace mal
                 List<MalType> fnArgs = new List<MalType>(){ atom.value };
                 fnArgs.AddRange(args.Skip(2).ToList());
                 MalType fnOrFnTco = args[1];
-                MalType newValue = MalNil.MAL_NIL;
+                MalType newValue;
                 if (fnOrFnTco is MalFunction) {
                     newValue = ((MalFunction)fnOrFnTco).function(fnArgs);
                 } else {
@@ -104,7 +104,7 @@ namespace mal
             {"cons",
                 new MalFunction((IList<MalType> args) => {
                     MalType head = args[0];
-                    MalList rest = (MalList)args[1];
+                    MalSeq rest = (MalSeq)args[1];
                     List<MalType> newList = new List<MalType>(){ head };
                     newList.AddRange(rest.items);
                     return new MalList(newList);
@@ -115,9 +115,9 @@ namespace mal
                     List<MalType> newList = new List<MalType>();
                     foreach (MalType arg in args)
                     {
-                        if (arg is MalList)
+                        if (arg is MalSeq)
                         {
-                            MalList argList = (MalList)arg;
+                            MalSeq argList = (MalSeq)arg;
                             newList.AddRange(argList.items);
                         }
                     }
@@ -126,8 +126,8 @@ namespace mal
 
             {"vec",
                 new MalFunction((IList<MalType> args) => {
-                    MalList head = (MalList)args[0];
-                    return new MalList(head.items, "[");
+                    MalSeq head = (MalSeq)args[0];
+                    return new MalVector(head.items);
                 })},
 
         };

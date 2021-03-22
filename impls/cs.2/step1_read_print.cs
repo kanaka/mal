@@ -32,6 +32,7 @@ namespace mal
         {
             // TESTS
             // var test = rep("^{a 1} [1 2 3]");
+            rep("[+ 1 2]");
 
             string line = null;
             do
