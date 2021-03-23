@@ -111,7 +111,8 @@ namespace mal
                             }
                             else if (firstSymbol.value == "quasiquote")
                             {
-                                return EVAL(quasiquote(astList.items[1]), env);
+                                ast = quasiquote(astList.items[1]);
+                                continue;
                             }
 
                         }
@@ -144,28 +145,30 @@ namespace mal
 
         static MalType quasiquote(MalType ast)
         {
-            if (ast is MalList)
+            if (ast is MalSeq)
             {
-                MalList astList = (MalList)ast;
-                if (astList.items.Count > 0)
+                MalSeq astSeq = (MalSeq)ast;
+                if (ast is MalList && astSeq.items.Count > 0)
                 {
-                    MalType head = astList.items[0];
+                    MalType head = astSeq.items[0];
                     if (head is MalSymbol && ((MalSymbol)head).value == "unquote")
                     {
-                        return astList.items[1];
+                        return astSeq.items[1];
                     }
                 }
 
                 List<MalType> result = new List<MalType>();
 
                 // Iterate over each element elt of ast in reverse order
-                for (int i = astList.items.Count - 1; i >= 0; i--)
+                for (int i = astSeq.items.Count - 1; i >= 0; i--)
                 {
-                    MalType elt = astList.items[i];
+                    MalType elt = astSeq.items[i];
 
                     // If elt is a list starting with the "splice-unquote" symbol
                     if (elt is MalList && ((MalList)elt).items.Count >= 2 && ((MalList)elt).items[0].Equals(new MalSymbol("splice-unquote")))
                     {
+                        // replace the current result with a list containing: the "concat" symbol,
+                        // the second element of elt, then the previous result.
                         result = new List<MalType>(){
                             new MalSymbol("concat"),
                             ((MalList)elt).items[1],
@@ -174,6 +177,8 @@ namespace mal
                     }
                     else
                     {
+                        // replace the current result with a list containing: the "cons" symbol,
+                        // the result of calling quasiquote with elt as argument, then the previous result
                         result = new List<MalType>()
                         {
                             new MalSymbol("cons"),
@@ -183,6 +188,13 @@ namespace mal
                     }
                 }
 
+                if (ast is MalVector)
+                {
+                    // when ast is a vector, return a list containing: the "vec" symbol,
+                    // then the result of processing ast as if it were a list not starting with quote
+                    result = new List<MalType>() { new MalSymbol("vec"), new MalList(result) };
+                }
+
                 return new MalList(result);
             }
             else if (ast is MalHashmap || ast is MalSymbol)
@@ -190,7 +202,7 @@ namespace mal
                 // If ast is a map or a symbol, return a list containing: the "quote" symbol, then ast
                 return new MalList(new List<MalType>() { new MalSymbol("quote"), ast });
             }
-            else return ast;
+            else return ast; // Else return ast unchanged
         }
 
         static string PRINT(MalType input)
@@ -267,8 +279,7 @@ namespace mal
             repl_env.data.Add(new MalSymbol("*ARGV*"), new MalList(malArgs));
 
             // TESTS
-            // rep("(load-file \"../../tests/computations.mal\")");
-            rep("(quasiquote [])");
+            // rep("`[unquote 0]");
 
             string line = null;
             do

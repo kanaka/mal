@@ -127,6 +127,7 @@ namespace mal
             {"vec",
                 new MalFunction((IList<MalType> args) => {
                     MalSeq head = (MalSeq)args[0];
+                    if (head is MalVector) return head;
                     return new MalVector(head.items);
                 })},
 
