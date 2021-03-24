@@ -1,13 +1,11 @@
-STEPS = step0_repl.sml
-
-STEP_BINS = $(STEPS:%.sml=%)
+STEP_BINS = step0_repl
 
 all: $(STEP_BINS)
 
-$(STEP_BINS): %: %.sml
-	mosmlc $< main.sml -o $@
+step0_repl: step0_repl.mlb step0_repl.sml main.sml
+	mlton -output $@ $<
 
 clean:
-	rm -f $(STEP_BINS) *.ui *.uo
+	rm -f $(STEP_BINS)
 
 .PHONY: all clean
