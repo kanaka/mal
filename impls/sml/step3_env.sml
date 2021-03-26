@@ -5,10 +5,13 @@ fun READ s =
     readStr s
 
 fun EVAL e (LIST (SYMBOL "def!"::args)) = eval_def e args
+  | EVAL e (LIST (SYMBOL "let*"::args)) = eval_let e args
   | EVAL e (ast as (LIST (_::_)))       = (e, eval_apply e ast)
   | EVAL e ast                          = (e, eval_ast e ast)
 
-and eval_ast e (LIST l)   = LIST (List.map (#2 o (EVAL e)) l)
+and EVAL' e ast = (#2 o EVAL e) ast
+
+and eval_ast e (LIST l)   = LIST (List.map (EVAL' e) l)
   | eval_ast e (SYMBOL s) = valOrElse (lookup e s) (fn _ => raise NotDefined ("symbol '" ^ s ^ "' not found"))
   | eval_ast e ast        = ast
 
@@ -17,8 +20,15 @@ and eval_apply e ast =
         LIST ((FN f)::args) => f args
         | _ => raise NotApplicable "eval_apply needs a non-empty list"
 
-and eval_def e [SYMBOL s, ast] = let val (_, v) = EVAL e ast in (def s v e, v) end
-  | eval_def _ _ = raise NotApplicable "define needs a symbol and a value"
+and eval_def e [SYMBOL s, ast] = let val v = EVAL' e ast in (def s v e, v) end
+  | eval_def _ _  = raise NotApplicable "def! needs a symbol and a form to evaluate"
+
+and eval_let e [LIST bindings, ast] = (e, EVAL' (bind bindings e) ast)
+  | eval_let _ _ = raise NotApplicable "let* needs a list of bindings and a form to evaluate"
+
+and bind (SYMBOL s::v::rest) e = def s (EVAL' e v) e |> bind rest
+  | bind []                  e = e
+  | bind _ _ = raise NotApplicable "bindings must be a list of symbol/form pairs"
 
 fun PRINT f =
     prStr f
@@ -39,20 +49,20 @@ fun malMinus (INT b, INT a) = INT (a - b)
 fun malDiv   (INT b, INT a) = INT (a div b)
   | malDiv _ = raise NotApplicable "can only divide integers"
 
-val initEnv =
-  [] |> set "+"
-        (FN (foldl malPlus (INT 0)))
-     |> set "*"
-        (FN (foldl malTimes (INT 1)))
-     |> set "-"
-        (FN (fn [x]   => malMinus (x, INT 0)
-              | x::xs => foldr malMinus x xs
-              | _     => raise NotApplicable "'-' requires arguments"))
-     |> set "/"
-        (FN (fn [x]   => malDiv (x, INT 1)
-              | x::xs => foldr malDiv x xs
-              | _     => raise NotApplicable "'/' requires arguments"))
-     |> ENV
+val initEnv = ENV [] |> bind [
+    SYMBOL "+",
+    FN (foldl malPlus (INT 0)),
+    SYMBOL "*",
+    FN (foldl malTimes (INT 1)),
+    SYMBOL "-",
+    FN (fn [x]   => malMinus (x, INT 0)
+         | x::xs => foldr malMinus x xs
+         | _     => raise NotApplicable "'-' requires arguments"),
+    SYMBOL "/",
+    FN (fn [x]   => malDiv (x, INT 1)
+         | x::xs => foldr malDiv x xs
+         | _     => raise NotApplicable "'/' requires arguments")
+]
 
 fun repl () = repl' initEnv
 
