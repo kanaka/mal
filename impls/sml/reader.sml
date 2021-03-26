@@ -1,3 +1,7 @@
+exception Nothing
+exception SyntaxError of string
+exception ReaderError of string
+
 structure Ss = Substring
 
 datatype token =
@@ -26,10 +30,6 @@ fun tokenString SPACE         = "SPACE"
   | tokenString CARET         = "CARET"
   | tokenString AT            = "AT"
   | tokenString (ATOM s)      = "ATOM (" ^ s ^ ")"
-
-exception Nothing
-exception SyntaxError of string
-exception ReaderError of string
 
 datatype reader = READER of token list
 
