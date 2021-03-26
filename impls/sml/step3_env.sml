@@ -1,40 +1,38 @@
 exception NotDefined of string
 exception NotApplicable of string
 
-fun READ s =
+fun read s =
     readStr s
 
-fun EVAL e (LIST (SYMBOL "def!"::args)) = eval_def e args
-  | EVAL e (LIST (SYMBOL "let*"::args)) = eval_let e args
-  | EVAL e (ast as (LIST (_::_)))       = (e, eval_apply e ast)
-  | EVAL e ast                          = (e, eval_ast e ast)
+fun eval e (LIST (SYMBOL "def!"::args)) = evalDef e args
+  | eval e (LIST (SYMBOL "let*"::args)) = evalLet e args
+  | eval e (LIST (a::args))             = (e, evalApply e (eval' e a) args)
+  | eval e (SYMBOL s)                   = (e, evalSymbol e s)
+  | eval e ast                          = (e, ast)
 
-and EVAL' e ast = (#2 o EVAL e) ast
+and eval' e ast = (#2 o eval e) ast
 
-and eval_ast e (LIST l)   = LIST (List.map (EVAL' e) l)
-  | eval_ast e (SYMBOL s) = valOrElse (lookup e s) (fn _ => raise NotDefined ("symbol '" ^ s ^ "' not found"))
-  | eval_ast e ast        = ast
+and evalDef e [SYMBOL s, ast] = let val v = eval' e ast in (def s v e, v) end
+  | evalDef _ _               = raise NotApplicable "def! needs a symbol and a form to evaluate"
 
-and eval_apply e ast =
-    case eval_ast e ast of
-        LIST ((FN f)::args) => f args
-        | _ => raise NotApplicable "eval_apply needs a non-empty list"
+and evalLet e [LIST bs, ast] = (e, eval' (bind bs e) ast)
+  | evalLet _ _              = raise NotApplicable "let* needs a list of bindings and a form to evaluate"
 
-and eval_def e [SYMBOL s, ast] = let val v = EVAL' e ast in (def s v e, v) end
-  | eval_def _ _  = raise NotApplicable "def! needs a symbol and a form to evaluate"
+and evalApply e (FN f) args = f (map (eval' e) args)
+  | evalApply _ a      args = raise NotApplicable (prStr a ^ " is not applicable on " ^ prStr (LIST args))
 
-and eval_let e [LIST bindings, ast] = (e, EVAL' (bind bindings e) ast)
-  | eval_let _ _ = raise NotApplicable "let* needs a list of bindings and a form to evaluate"
+and evalSymbol e s = valOrElse (lookup e s)
+                               (fn _ => raise NotDefined ("symbol '" ^ s ^ "' not found"))
 
-and bind (SYMBOL s::v::rest) e = def s (EVAL' e v) e |> bind rest
+and bind (SYMBOL s::v::rest) e = def s (eval' e v) e |> bind rest
   | bind []                  e = e
   | bind _ _ = raise NotApplicable "bindings must be a list of symbol/form pairs"
 
-fun PRINT f =
+fun print f =
     prStr f
 
 fun rep e s =
-    s |> READ |> EVAL e |> (fn (e, v) => (e, PRINT v))
+    s |> read |> eval e |> (fn (e, v) => (e, print v))
     handle Nothing           => (e, "")
          | SyntaxError msg   => (e, "SYNTAX ERROR: " ^ msg)
          | NotApplicable msg => (e, "CANNOT APPLY: " ^ msg)
