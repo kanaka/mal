@@ -1386,10 +1386,10 @@ implementation. Let us continue!
 ```
 "(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))"
 ```
-    * Note that `cond` calls the `throw` function when `cond` is
-      called with an odd number of args. The `throw` function is
-      implemented in the next step, but it will still serve it's
-      purpose here by causing an undefined symbol error.
+  * Note that `cond` calls the `throw` function when `cond` is
+    called with an odd number of args. The `throw` function is
+    implemented in the next step, but it will still serve it's
+    purpose here by causing an undefined symbol error.
 
 
 <a name="step9"></a>
