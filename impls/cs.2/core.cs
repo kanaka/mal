@@ -131,6 +131,29 @@ namespace mal
                     return new MalVector(head.items);
                 })},
 
+            {"nth",
+                new MalFunction((IList<MalType> args) => {
+                    MalSeq seq = (MalSeq)args[0];
+                    MalInteger index = (MalInteger)args[1];
+                    return seq.items[index.value];
+                })},
+
+            {"first",
+                new MalFunction((IList<MalType> args) => {
+                    if (args[0] == MalNil.MAL_NIL) return MalNil.MAL_NIL;
+                    MalSeq seq = (MalSeq)args[0];
+                    if (seq == null || seq.items.Count == 0) return MalNil.MAL_NIL;
+                    return seq.items[0];
+                })},
+
+            {"rest",
+                new MalFunction((IList<MalType> args) => {
+                    if (args[0] == MalNil.MAL_NIL) return new MalList(new List<MalType>());
+                    MalSeq seq = (MalSeq)args[0];
+                    if (args[0] == MalNil.MAL_NIL || seq == null || seq.items.Count == 0) return new MalList(new List<MalType>());
+                    return new MalList( seq.items.Skip(1).ToList() );
+                })},
+
         };
     }
 }

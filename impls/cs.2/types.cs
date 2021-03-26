@@ -151,9 +151,12 @@ namespace mal
     class MalFunction : MalType
     {
         public Func<IList<MalType>, MalType> function { get; }
+        public bool is_macro { get; set; }
+
         public MalFunction(Func<IList<MalType>, MalType> function)
         {
             this.function = function;
+            this.is_macro = false;
         }
     }
 
@@ -215,6 +218,7 @@ namespace mal
         public List<MalSymbol> @params { get; set; } // 'params' is a reserved word
         public Env env { get; set; }
         public MalFunction fn { get; set; }
+        public bool is_macro { get; set; }
 
         public MalFnTco(MalType ast, List<MalSymbol> @params, Env env, MalFunction fn)
         {
