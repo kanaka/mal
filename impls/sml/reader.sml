@@ -27,6 +27,7 @@ fun tokenString SPACE         = "SPACE"
   | tokenString AT            = "AT"
   | tokenString (ATOM s)      = "ATOM (" ^ s ^ ")"
 
+exception Nothing
 exception SyntaxError of string
 exception ReaderError of string
 
@@ -87,11 +88,7 @@ fun scanToken ss =
         Option.composePartial (applyScanner, findScanner) scanners
     end
 
-fun tokenize s =
-    s |> Ss.full
-      |> tokenize' []
-      |> List.filter (fn x => x <> SPACE)
-      |> takeWhile (fn COMMENT _ => false | _ => true)
+fun tokenize s = tokenize' [] (Ss.full s)
 and tokenize' acc ss =
     case scanToken ss of
         SOME (token, rest) => tokenize' (token::acc) rest
@@ -118,5 +115,11 @@ and readForm r =
     then readList [] (rest r)
     else readAtom r
 
+fun clean ts =
+    ts |> List.filter (fn x => x <> SPACE)
+       |> takeWhile (fn COMMENT _ => false | _ => true)
+
 fun readStr s =
-    s |> tokenize |> READER |> readForm |> #1
+    case tokenize s |> clean of
+        [] => raise Nothing
+        | ts => ts |> READER |> readForm |> #1
