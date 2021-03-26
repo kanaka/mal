@@ -10,6 +10,7 @@ fun PRINT f =
 fun rep s =
     s |> READ |> EVAL |> PRINT
     handle SyntaxError msg => "SYNTAX ERROR: " ^ msg
+         | Nothing         => ""
 
 fun repl () =
     let open TextIO
