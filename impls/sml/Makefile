@@ -1,4 +1,4 @@
-STEP_BINS = step0_repl step1_read_print step2_eval
+STEP_BINS = step0_repl step1_read_print step2_eval step3_env
 
 all: $(STEP_BINS)
 
@@ -9,6 +9,9 @@ step1_read_print: step1_read_print.mlb step1_read_print.sml reader.sml printer.s
 	mlton -output $@ $<
 
 step2_eval: step2_eval.mlb step2_eval.sml env.sml reader.sml printer.sml types.sml util.sml main.sml
+	mlton -output $@ $<
+
+step3_env: step3_env.mlb step3_env.sml env.sml reader.sml printer.sml types.sml util.sml main.sml
 	mlton -output $@ $<
 
 clean:
