@@ -9,5 +9,10 @@ fun get (d:mal_defs) s =
 fun set s v (d:mal_defs) =
     (s, v) :: (d |> List.filter (not o eq s o #1))
 
-fun lookup (INNER (d, out)) s = (case get d s of NONE => lookup out s | x => x)
+fun def s v (INNER (d, out)) = INNER (set s v d, out)
+  | def s v (ENV d)          = ENV (set s v d)
+
+fun let_in s v out = INNER (set s v [], out)
+
+fun lookup (INNER (d, out)) s = optOrElse (get d s) (fn _ => lookup out s)
   | lookup (ENV d)          s = get d s
