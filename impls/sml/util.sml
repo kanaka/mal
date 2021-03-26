@@ -5,3 +5,9 @@ and takeWhile' f acc []      = rev acc
 infix 3 |> fun x |> f = f x
 
 fun eq a b = a = b
+
+fun optOrElse NONE b = b ()
+  | optOrElse a    _ = a
+
+fun valOrElse (SOME x) _ = x
+  | valOrElse a        b = b ()
