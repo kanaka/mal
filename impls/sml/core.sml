@@ -45,7 +45,7 @@ val coreCmp = [
 (* TODO: variadic versions? *)
 val coreMath = [
     SYMBOL "+", FN (intFun "+" (op +)   INT),
-    SYMBOL "*", FN (intFun "*" (op *)   INT),
+    SYMBOL "*", FN (intFun "*" (op * )  INT), (* mosml can't parse*)
     SYMBOL "-", FN (intFun "-" (op -)   INT),
     SYMBOL "/", FN (intFun "/" (op div) INT)
 ]
