@@ -4,6 +4,9 @@ datatype mal_type = NIL
                   | INT of int
                   | LIST of mal_type list
                   | FN of mal_type list -> mal_type
+                  | CLOSURE of mal_env -> mal_type list -> mal_type
+
+and mal_env = ENV of (string * mal_type) list
 
 fun truthy (BOOL false) = false
   | truthy NIL          = false
