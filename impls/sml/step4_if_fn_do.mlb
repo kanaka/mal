@@ -5,6 +5,7 @@ local
     printer.sml
     reader.sml
     env.sml
+    core.sml
     step4_if_fn_do.sml
 in
     main.sml

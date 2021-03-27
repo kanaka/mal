@@ -1,11 +1,12 @@
-exception NotDefined of string
-exception NotApplicable of string
-
 fun read s =
     readStr s
 
+(* TODO def! evaluated inside other forms *)
 fun eval e (LIST (SYMBOL "def!"::args)) = evalDef e args
-  | eval e (LIST (SYMBOL "let*"::args)) = evalLet e args
+  | eval e (LIST (SYMBOL "let*"::args)) = (e, evalLet e args)
+  | eval e (LIST (SYMBOL "do"::args))   = (e, evalDo e args)
+  | eval e (LIST (SYMBOL "if"::args))   = (e, evalIf e args)
+  | eval e (LIST (SYMBOL "fn*"::args))  = (e, evalFn e args)
   | eval e (LIST (a::args))             = (e, evalApply e (eval' e a) args)
   | eval e (SYMBOL s)                   = (e, evalSymbol e s)
   | eval e ast                          = (e, ast)
@@ -15,8 +16,18 @@ and eval' e ast = (#2 o eval e) ast
 and evalDef e [SYMBOL s, ast] = let val v = eval' e ast in (def s v e, v) end
   | evalDef _ _               = raise NotApplicable "def! needs a symbol and a form to evaluate"
 
-and evalLet e [LIST bs, ast] = (e, eval' (bind bs e) ast)
+and evalLet e [LIST bs, ast] = eval' (bind bs e) ast
   | evalLet _ _              = raise NotApplicable "let* needs a list of bindings and a form to evaluate"
+
+and evalDo e (args as _::_) = map (eval' e) args |> List.last
+  | evalDo _ _              = raise NotApplicable "do needs at least one argument"
+
+and evalIf e [c,a,b] = if truthy (eval' e c) then (eval' e a) else (eval' e b)
+  | evalIf e [c,a]   = if truthy (eval' e c) then (eval' e a) else NIL
+  | evalIf _ _       = raise NotApplicable "if needs two or three arguments"
+
+and evalFn e [(LIST binds),body] = FN (fn (exprs) => eval' (bind (interleave binds exprs) e) body)
+  | evalFn _ _                   = raise NotApplicable "fn* needs a list of bindings and a body"
 
 and evalApply e (FN f) args = f (map (eval' e) args)
   | evalApply _ a      args = raise NotApplicable (prStr a ^ " is not applicable on " ^ prStr (LIST args))
@@ -38,29 +49,7 @@ fun rep e s =
          | NotApplicable msg => (e, "CANNOT APPLY: " ^ msg)
          | NotDefined msg    => (e, "NOT DEFINED: " ^ msg)
 
-fun malPlus  (INT a, INT b) = INT (a + b)
-  | malPlus _ = raise NotApplicable "can only add integers"
-fun malTimes (INT a, INT b) = INT (a * b)
-  | malTimes _ = raise NotApplicable "can only multiply integers"
-fun malMinus (INT b, INT a) = INT (a - b)
-  | malMinus _ = raise NotApplicable "can only subtract integers"
-fun malDiv   (INT b, INT a) = INT (a div b)
-  | malDiv _ = raise NotApplicable "can only divide integers"
-
-val initEnv = ENV [] |> bind [
-    SYMBOL "+",
-    FN (foldl malPlus (INT 0)),
-    SYMBOL "*",
-    FN (foldl malTimes (INT 1)),
-    SYMBOL "-",
-    FN (fn [x]   => malMinus (x, INT 0)
-         | x::xs => foldr malMinus x xs
-         | _     => raise NotApplicable "'-' requires arguments"),
-    SYMBOL "/",
-    FN (fn [x]   => malDiv (x, INT 1)
-         | x::xs => foldr malDiv x xs
-         | _     => raise NotApplicable "'/' requires arguments")
-]
+val initEnv = ENV [] |> bind coreNs
 
 fun repl () = repl' initEnv
 
