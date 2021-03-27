@@ -1,33 +1,6 @@
 exception NotDefined of string
 exception NotApplicable of string
 
-fun malPlus  (INT a, INT b) = INT (a + b)
-  | malPlus _ = raise NotApplicable "can only add integers"
-fun malTimes (INT a, INT b) = INT (a * b)
-  | malTimes _ = raise NotApplicable "can only multiply integers"
-fun malMinus (INT b, INT a) = INT (a - b)
-  | malMinus _ = raise NotApplicable "can only subtract integers"
-fun malDiv   (INT b, INT a) = INT (a div b)
-  | malDiv _ = raise NotApplicable "can only divide integers"
-
-val coreMath = [
-    SYMBOL "+",
-    FN (foldl malPlus (INT 0)),
-
-    SYMBOL "*",
-    FN (foldl malTimes (INT 1)),
-
-    SYMBOL "-",
-    FN (fn [x]   => malMinus (x, INT 0)
-         | x::xs => foldr malMinus x xs
-         | _     => raise NotApplicable "'-' requires arguments"),
-
-    SYMBOL "/",
-    FN (fn [x]   => malDiv (x, INT 1)
-         | x::xs => foldr malDiv x xs
-         | _     => raise NotApplicable "'/' requires arguments")
-]
-
 val coreList = [
     SYMBOL "list",
     FN (fn args => LIST args),
@@ -44,11 +17,35 @@ val coreList = [
 
     SYMBOL "count",
     FN (fn [LIST l] => INT (length l)
+         | [NIL]    => INT 0
          | _        => raise NotApplicable "count requires a list")
 ]
 
+fun intFun n f r [INT a, INT b] = r (f (a, b))
+  | intFun n _ _ _              = raise NotApplicable ("'" ^ n ^ "' requires two integer arguments")
+
+(* TODO: variadic versions? *)
+val coreCmp = [
+    SYMBOL "=",
+    FN (fn [a, b] => BOOL (malEq (a, b))
+         | _      => raise NotApplicable "'=' requires two arguments"),
+
+    SYMBOL "<",  FN (intFun "<"  (op <)  BOOL),
+    SYMBOL "<=", FN (intFun "<=" (op <=) BOOL),
+    SYMBOL ">=", FN (intFun ">=" (op >=) BOOL),
+    SYMBOL ">",  FN (intFun ">"  (op >)  BOOL)
+]
+
+(* TODO: variadic versions? *)
+val coreMath = [
+    SYMBOL "+", FN (intFun "+" (op +)   INT),
+    SYMBOL "*", FN (intFun "*" (op *)   INT),
+    SYMBOL "-", FN (intFun "-" (op -)   INT),
+    SYMBOL "/", FN (intFun "/" (op div) INT)
+]
 
 val coreNs = List.concat [
     coreList,
+    coreCmp,
     coreMath
 ]
