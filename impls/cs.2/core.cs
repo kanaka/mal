@@ -17,6 +17,7 @@ namespace mal
             )},
             {"count", new MalFunction((IList<MalType> args) => {
                 if (args.Count == 0 || args[0] == MalNil.MAL_NIL) return new MalInteger(0);
+                if (args[0] is MalHashmap) return new MalInteger( ((MalHashmap)args[0]).values.Count );
                 else return new MalInteger( ((MalSeq)args[0]).items.Count );
             })},
             {"+", new MalFunction((IList<MalType> args) => new MalInteger(((MalInteger)args[0]).value + ((MalInteger)args[1]).value))},
@@ -131,10 +132,13 @@ namespace mal
                     return new MalVector(head.items);
                 })},
 
+            // Step 8
+
             {"nth",
                 new MalFunction((IList<MalType> args) => {
                     MalSeq seq = (MalSeq)args[0];
                     MalInteger index = (MalInteger)args[1];
+                    if (index.value > seq.items.Count - 1) throw new MalException(new MalString("index out of bounds"));
                     return seq.items[index.value];
                 })},
 
@@ -152,6 +156,167 @@ namespace mal
                     MalSeq seq = (MalSeq)args[0];
                     if (args[0] == MalNil.MAL_NIL || seq == null || seq.items.Count == 0) return new MalList(new List<MalType>());
                     return new MalList( seq.items.Skip(1).ToList() );
+                })},
+
+            // Step 9
+
+            {"throw",
+                new MalFunction((IList<MalType> args) => {
+                    throw new MalException(args[0]);
+                })},
+
+            {"apply",
+                new MalFunction((IList<MalType> args) => {
+                    MalType fnOrTco = args[0];
+                    Func<IList<MalType>, MalType> fn = (fnOrTco is MalFunction) ? ((MalFunction)fnOrTco).function : ((MalFnTco)fnOrTco).fn.function;
+                    List<MalType> fnArgs = args.Skip(1).ToList();
+                    if (args[args.Count - 1] is MalSeq)
+                    {
+                        MalSeq lastElem = (MalSeq)args[args.Count - 1];
+                        fnArgs = args.Skip(1).Take(args.Count - 2).ToList(); // all but first and last
+                        fnArgs.AddRange( lastElem.items ); // add all elements of the last item
+                    }
+                    return fn(fnArgs);
+                })},
+
+            {"map",
+                new MalFunction((IList<MalType> args) => {
+                    MalType fnOrTco = args[0];
+                    Func<IList<MalType>, MalType> fn = (fnOrTco is MalFunction) ? ((MalFunction)fnOrTco).function : ((MalFnTco)fnOrTco).fn.function;
+                    MalSeq xs = (MalSeq)args[1];
+                    List<MalType> mapped = xs.items.Select(x => fn( new List<MalType>(){x} )).ToList();
+                    return new MalList(mapped);
+                })},
+
+            {"symbol",
+                new MalFunction((IList<MalType> args) => {
+                    MalString name = (MalString)args[0];
+                    return new MalSymbol(name.value);
+                })},
+
+            {"symbol?",
+                new MalFunction((IList<MalType> args) => {
+                    MalType x = args[0];
+                    return (x is MalSymbol) ? MalBoolean.MAL_TRUE : MalBoolean.MAL_FALSE;
+                })},
+
+            {"keyword",
+                new MalFunction((IList<MalType> args) => {
+                    MalType name = args[0];
+                    return new MalKeyword(printer.pr_str(name));
+                })},
+
+            {"keyword?",
+                new MalFunction((IList<MalType> args) => {
+                    MalType x = args[0];
+                    return (x is MalKeyword) ? MalBoolean.MAL_TRUE : MalBoolean.MAL_FALSE;
+                })},
+
+            {"vector",
+                new MalFunction((IList<MalType> args) => {
+                    return new MalVector(args);
+                })},
+
+            {"vector?",
+                new MalFunction((IList<MalType> args) => {
+                    MalType x = args[0];
+                    return (x is MalVector) ? MalBoolean.MAL_TRUE : MalBoolean.MAL_FALSE;
+                })},
+
+            {"sequential?",
+                new MalFunction((IList<MalType> args) => {
+                    MalType x = args[0];
+                    return (x is MalSeq) ? MalBoolean.MAL_TRUE : MalBoolean.MAL_FALSE;
+                })},
+
+            {"hash-map",
+                new MalFunction((IList<MalType> args) => {
+                    Dictionary<MalType, MalType> dict = new Dictionary<MalType, MalType>();
+                    for (int i = 0; i < args.Count; i += 2)
+                    {
+                        MalType key = args[i];
+                        MalType val = args[i+1];
+                        if (dict.ContainsKey(key)) dict.Remove(key);
+                        dict.Add(key, val);
+                    }
+                    return new MalHashmap( dict );
+                })},
+
+            {"map?",
+                new MalFunction((IList<MalType> args) => {
+                    MalType x = args[0];
+                    return (x is MalHashmap) ? MalBoolean.MAL_TRUE : MalBoolean.MAL_FALSE;
+                })},
+
+            {"assoc",
+                new MalFunction((IList<MalType> args) => {
+                    MalHashmap baseMap = (MalHashmap)args[0];
+                    Dictionary<MalType, MalType> dict = new Dictionary<MalType, MalType>(baseMap.values);
+                    for (int i = 1; i < args.Count; i += 2)
+                    {
+                        MalType key = args[i];
+                        MalType val = args[i+1];
+                        if (dict.ContainsKey(key)) dict.Remove(key);
+                        dict.Add(key, val);
+                    }
+                    return new MalHashmap( dict );
+                })},
+
+            {"dissoc",
+                new MalFunction((IList<MalType> args) => {
+                    MalHashmap baseMap = (MalHashmap)args[0];
+                    Dictionary<MalType, MalType> dict = new Dictionary<MalType, MalType>(baseMap.values);
+                    for (int i = 1; i < args.Count; i++)
+                    {
+                        MalType key = args[i];
+                        if (dict.ContainsKey(key)) dict.Remove(key);
+                    }
+                    return new MalHashmap( dict );
+                })},
+
+            {"get",
+                new MalFunction((IList<MalType> args) => {
+                    if (args[0] is not MalHashmap) return MalNil.MAL_NIL;
+                    MalHashmap m = (MalHashmap)args[0];
+                    MalType k = args[1];
+                    return (m.values.ContainsKey(k)) ? m.values.GetValueOrDefault(k) : MalNil.MAL_NIL;
+                })},
+
+            {"contains?",
+                new MalFunction((IList<MalType> args) => {
+                    MalHashmap m = (MalHashmap)args[0];
+                    MalType k = args[1];
+                    return (m.values.ContainsKey(k)) ? MalBoolean.MAL_TRUE : MalBoolean.MAL_FALSE;
+                })},
+
+            {"keys",
+                new MalFunction((IList<MalType> args) => {
+                    MalHashmap m = (MalHashmap)args[0];
+                    return new MalList( m.values.Keys.ToList() );
+                })},
+
+            {"vals",
+                new MalFunction((IList<MalType> args) => {
+                    MalHashmap m = (MalHashmap)args[0];
+                    return new MalList( m.values.Values.ToList() );
+                })},
+
+            {"nil?",
+                new MalFunction((IList<MalType> args) => {
+                    MalType x = args[0];
+                    return (x == MalNil.MAL_NIL) ? MalBoolean.MAL_TRUE : MalBoolean.MAL_FALSE;
+                })},
+
+            {"true?",
+                new MalFunction((IList<MalType> args) => {
+                    MalType x = args[0];
+                    return (x == MalBoolean.MAL_TRUE) ? MalBoolean.MAL_TRUE : MalBoolean.MAL_FALSE;
+                })},
+
+            {"false?",
+                new MalFunction((IList<MalType> args) => {
+                    MalType x = args[0];
+                    return (x == MalBoolean.MAL_FALSE) ? MalBoolean.MAL_TRUE : MalBoolean.MAL_FALSE;
                 })},
 
         };

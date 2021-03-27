@@ -10,7 +10,7 @@ namespace mal
         static Regex TOKENIZER_INSTANCE = new Regex(TOKENIZER_REGEX);
         static Dictionary<char, string> UNESCAPE = new Dictionary<char, string>()
         {
-            {'n', "\n"}, {'"', "\""}, {'\\', "\\"} // TODO add \t and others
+            {'n', "\n"}, {'"', "\""}, {'\\', "\\"}, {'t', "\t"}
         };
         static Dictionary<string, string> QUOTING = new Dictionary<string, string>()
         {
@@ -76,6 +76,7 @@ namespace mal
         public static MalType read_form(Reader reader)
         {
             string first = reader.peek();
+            if (first == null) return null; // signal that we don't want to print back
             if (first == "^") // expect two other forms
             {
                 reader.next(); // drop the '^'
@@ -179,7 +180,7 @@ namespace mal
             string item = reader.next();
             if (item.StartsWith(":"))
             {
-                return new MalKeyword(item);
+                return new MalKeyword(item.Substring(1));
             }
             else if (LITERALS.ContainsKey(item))
             {

@@ -56,7 +56,7 @@ namespace mal
             }
             else
             {
-                throw new Exception(string.Format("Value for '{0}' not found", key.value));
+                throw new MalException(new MalString(string.Format("'{0}' not found", key.value)));
             }
         }
 

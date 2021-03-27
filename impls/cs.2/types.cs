@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace mal
 {
-    public class MalType { }
+    public interface MalType { }
 
     public class MalSeq : MalType
     {
@@ -142,7 +142,8 @@ namespace mal
             foreach (var kv in values)
             {
                 MalType key = kv.Key;
-                if (values.GetValueOrDefault(key) != otherMap.values.GetValueOrDefault(key)) return false;
+                MalType val = kv.Value;
+                if (!val.Equals(otherMap.values.GetValueOrDefault(key))) return false;
             }
             return true;
         }
@@ -166,7 +167,7 @@ namespace mal
 
         public MalKeyword(string name)
         {
-            this.name = name;
+            this.name = (name.StartsWith(":")) ? name.Substring(1) : name;
         }
 
         public override int GetHashCode()
@@ -236,6 +237,16 @@ namespace mal
         public MalAtom(MalType value)
         {
             this.value = value;
+        }
+    }
+
+    class MalException : Exception, MalType
+    {
+        public MalType cause { get; }
+
+        public MalException(MalType value): base()
+        {
+            this.cause = value;
         }
     }
 }

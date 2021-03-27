@@ -53,15 +53,15 @@ namespace mal
                 List<string> strings = new List<string>();
                 foreach (var keyValuePair in hashMap.values)
                 {
-                    strings.Add(pr_str(keyValuePair.Key, true));
-                    strings.Add(pr_str(keyValuePair.Value, true));
+                    strings.Add(pr_str(keyValuePair.Key, print_readably));
+                    strings.Add(pr_str(keyValuePair.Value, print_readably));
                 }
                 string joined = string.Join(" ", strings);
                 return string.Format("{0}{1}{2}", "{", joined, "}");
             }
             else if (malType is MalKeyword)
             {
-                return ((MalKeyword)malType).name;
+                return string.Format(":{0}", ((MalKeyword)malType).name);
             }
             else if (malType is MalFunction)
             {
@@ -83,6 +83,11 @@ namespace mal
             {
                 MalAtom atom = (MalAtom)malType;
                 return string.Format("(atom {0})", pr_str(atom.value, print_readably));
+            }
+            else if (malType is MalException)
+            {
+                MalException ex = (MalException)malType;
+                return string.Format(pr_str(ex.cause, print_readably));
             }
             else
             {
