@@ -4,3 +4,7 @@ datatype mal_type = NIL
                   | INT of int
                   | LIST of mal_type list
                   | FN of mal_type list -> mal_type
+
+fun truthy (BOOL false) = false
+  | truthy NIL          = false
+  | truthy _            = true

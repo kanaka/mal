@@ -11,3 +11,6 @@ fun optOrElse NONE b = b ()
 
 fun valOrElse (SOME x) _ = x
   | valOrElse a        b = b ()
+
+fun interleave (x::xs) (y::ys) = x :: y :: interleave xs ys
+  | interleave _       _       = []
