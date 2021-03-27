@@ -28,6 +28,27 @@ val coreMath = [
          | _     => raise NotApplicable "'/' requires arguments")
 ]
 
+val coreList = [
+    SYMBOL "list",
+    FN (fn args => LIST args),
+
+    SYMBOL "list?",
+    FN (fn [LIST _] => BOOL true
+         | [_]      => BOOL false
+         | _        => raise NotApplicable "list? requires one argument"),
+
+    SYMBOL "empty?",
+    FN (fn [LIST []] => BOOL true
+         | [LIST _]  => BOOL false
+         | _         => raise NotApplicable "empty? requires a list"),
+
+    SYMBOL "count",
+    FN (fn [LIST l] => INT (length l)
+         | _        => raise NotApplicable "count requires a list")
+]
+
+
 val coreNs = List.concat [
+    coreList,
     coreMath
 ]
