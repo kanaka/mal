@@ -21,6 +21,12 @@ val coreList = [
          | _        => raise NotApplicable "count requires a list")
 ]
 
+val coreIo = [
+    SYMBOL "prn",
+    FN (fn [x] => (TextIO.print ((prStr x) ^ "\n"); NIL)
+         | _   => raise NotApplicable "'prn' requires one argument")
+]
+
 fun intFun n f r [INT a, INT b] = r (f (a, b))
   | intFun n _ _ _              = raise NotApplicable ("'" ^ n ^ "' requires two integer arguments")
 
@@ -46,6 +52,7 @@ val coreMath = [
 
 val coreNs = List.concat [
     coreList,
+    coreIo,
     coreCmp,
     coreMath
 ]
