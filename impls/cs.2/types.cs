@@ -5,7 +5,17 @@ namespace mal
 {
     public interface MalType { }
 
-    public class MalSeq : MalType
+    public class MalMeta : MalType, ICloneable
+    {
+        public MalType meta { get; set; }
+
+
+        // Shallow clone: https://stackoverflow.com/a/2023231
+        public MalMeta Clone() { return (MalMeta)this.MemberwiseClone(); }
+        object ICloneable.Clone() { return Clone(); }
+    }
+
+    public class MalSeq : MalMeta
     {
         public IList<MalType> items { get; }
         public string openingBracket { get; }
@@ -52,10 +62,10 @@ namespace mal
         }
     }
 
-    class MalInteger : MalType
+    class MalInteger : MalMeta
     {
-        public int value { get; }
-        public MalInteger(int value)
+        public long value { get; }
+        public MalInteger(long value)
         {
             this.value = value;
         }
@@ -76,7 +86,7 @@ namespace mal
         }
     }
 
-    class MalSymbol : MalType
+    class MalSymbol : MalMeta
     {
         public string value { get; }
 
@@ -101,7 +111,7 @@ namespace mal
         }
     }
 
-    class MalString : MalType
+    class MalString : MalMeta
     {
         public string value { get; }
 
@@ -126,7 +136,7 @@ namespace mal
         }
     }
 
-    class MalHashmap : MalType
+    class MalHashmap : MalMeta
     {
         public Dictionary<MalType, MalType> values { get; }
 
@@ -149,11 +159,10 @@ namespace mal
         }
     }
 
-    class MalFunction : MalType
+    class MalFunction : MalMeta
     {
         public Func<IList<MalType>, MalType> function { get; }
         public bool is_macro { get; set; }
-
         public MalFunction(Func<IList<MalType>, MalType> function)
         {
             this.function = function;
@@ -213,7 +222,7 @@ namespace mal
         }
     }
 
-    class MalFnTco : MalType
+    class MalFnTco : MalMeta
     {
         public MalType ast { get; set; }
         public List<MalSymbol> @params { get; set; } // 'params' is a reserved word
@@ -230,7 +239,7 @@ namespace mal
         }
     }
 
-    class MalAtom : MalType
+    class MalAtom : MalMeta
     {
         public MalType value { get; set; }
 

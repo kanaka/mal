@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.RegularExpressions;
 
 namespace mal
@@ -77,6 +78,11 @@ namespace mal
         {
             string first = reader.peek();
             if (first == null) return null; // signal that we don't want to print back
+            if (first.StartsWith(";")){
+                // drop the token if it's a comment, continue with the next token
+                reader.next();
+                return read_form(reader);
+            }
             if (first == "^") // expect two other forms
             {
                 reader.next(); // drop the '^'
@@ -148,7 +154,7 @@ namespace mal
             }
             else
             {
-                throw new Exception("Expression has unbalanced parenthesis");
+                throw new MalException(new MalString("Expression has unbalanced parenthesis"));
             }
         }
 
@@ -163,7 +169,7 @@ namespace mal
             MalList kvs = read_list(reader);
             if (kvs.items.Count % 2 == 1)
             {
-                throw new Exception("Hashmap needs an even number of forms");
+                throw new MalException(new MalString("Hashmap needs an even number of forms"));
             }
             Dictionary<MalType, MalType> pairs = new Dictionary<MalType, MalType>();
             for (int i = 0; i < kvs.items.Count; i += 2)
@@ -196,7 +202,7 @@ namespace mal
                 }
                 else
                 {
-                    throw new Exception("String contains unbalanced quotes");
+                    throw new MalException(new MalString("String contains unbalanced quotes"));
                 }
             }
             try
@@ -230,7 +236,7 @@ namespace mal
                     }
                     else
                     {
-                        throw new Exception("String contains unbalanced escaped characters");
+                        throw new MalException(new MalString("String contains unbalanced escaped characters"));
                     }
                 }
                 else
@@ -241,7 +247,7 @@ namespace mal
             }
             if (escaping)
             {
-                throw new Exception("String contains unbalanced escaped characters");
+                throw new MalException(new MalString("String contains unbalanced escaped characters"));
             }
             return output;
         }

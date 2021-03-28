@@ -89,6 +89,7 @@ namespace mal
                 MalException ex = (MalException)malType;
                 return string.Format(pr_str(ex.cause, print_readably));
             }
+            else if (malType == null) return "";
             else
             {
                 throw new Exception(string.Format("Unknown type to print: {0}", malType.ToString()));

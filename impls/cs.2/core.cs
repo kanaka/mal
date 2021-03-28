@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
 
 namespace mal
 {
@@ -139,7 +138,7 @@ namespace mal
                     MalSeq seq = (MalSeq)args[0];
                     MalInteger index = (MalInteger)args[1];
                     if (index.value > seq.items.Count - 1) throw new MalException(new MalString("index out of bounds"));
-                    return seq.items[index.value];
+                    return seq.items[(int)index.value];
                 })},
 
             {"first",
@@ -317,6 +316,98 @@ namespace mal
                 new MalFunction((IList<MalType> args) => {
                     MalType x = args[0];
                     return (x == MalBoolean.MAL_FALSE) ? MalBoolean.MAL_TRUE : MalBoolean.MAL_FALSE;
+                })},
+
+            // Step A
+            {"readline",
+                new MalFunction((IList<MalType> args) => {
+                    Console.Write(printer.pr_str(args[0]));
+                    string line = Console.ReadLine();
+                    return (line == null) ? MalNil.MAL_NIL : new MalString(line);
+                })},
+
+            {"time-ms",
+                new MalFunction((IList<MalType> args) => {
+                    return new MalInteger(DateTimeOffset.Now.ToUnixTimeMilliseconds());
+                })},
+
+            {"conj",
+                new MalFunction((IList<MalType> args) => {
+                    MalSeq coll = (MalSeq)args[0];
+                    // MalType elem = args[1];
+                    List<MalType> items = new List<MalType>();
+                    if (coll is MalList)
+                    {
+                        items.AddRange(args.Skip(1).Reverse().ToList());
+                        items.AddRange(coll.items);
+                    }
+                    else
+                    {
+                        items.AddRange(coll.items);
+                        items.AddRange(args.Skip(1).ToList());
+                    }
+                    return (coll is MalList) ? new MalList(items) : new MalVector(items);
+                })},
+
+            {"string?",
+                new MalFunction((IList<MalType> args) => {
+                    return (args[0] is MalString) ? MalBoolean.MAL_TRUE : MalBoolean.MAL_FALSE;
+                })},
+
+            {"number?",
+                new MalFunction((IList<MalType> args) => {
+                    return (args[0] is MalInteger) ? MalBoolean.MAL_TRUE : MalBoolean.MAL_FALSE;
+                })},
+
+            {"fn?",
+                new MalFunction((IList<MalType> args) => {
+                    if (args[0] is MalFunction && !((MalFunction)args[0]).is_macro) return MalBoolean.MAL_TRUE;
+                    if (args[0] is MalFnTco && !((MalFnTco)args[0]).is_macro) return MalBoolean.MAL_TRUE;
+                    else return MalBoolean.MAL_FALSE;
+                })},
+
+            {"macro?",
+                new MalFunction((IList<MalType> args) => {
+                    if (args[0] is MalFunction && ((MalFunction)args[0]).is_macro) return MalBoolean.MAL_TRUE;
+                    if (args[0] is MalFnTco && ((MalFnTco)args[0]).is_macro) return MalBoolean.MAL_TRUE;
+                    else return MalBoolean.MAL_FALSE;
+                })},
+
+            {"seq",
+                new MalFunction((IList<MalType> args) => {
+                    if (args[0] is MalList && ((MalList)args[0]).items.Count > 0) return args[0];
+                    if (args[0] is MalVector && ((MalVector)args[0]).items.Count > 0) return new MalList( ((MalVector)args[0]).items );
+                    if (args[0] is MalString && ((MalString)args[0]).value.Length > 0)
+                    {
+                        string value = ((MalString)args[0]).value;
+                        List<MalType> strings = new List<MalType>();
+                        strings.AddRange (value.ToCharArray().Select(c => new MalString(c.ToString())).ToList() );
+                        return new MalList(strings);
+                    }
+                    else return MalNil.MAL_NIL;
+                })},
+
+            {"with-meta",
+                new MalFunction((IList<MalType> args) => {
+                    MalType arg = args[0];
+                    MalType meta = args[1];
+                    if (arg is MalMeta) {
+                        MalMeta orig = (MalMeta)arg;
+                        MalMeta clone = (MalMeta)(orig.Clone());
+                        clone.meta = meta;
+                        return clone;
+                    }
+                    return arg;
+                })},
+
+            {"meta",
+                new MalFunction((IList<MalType> args) => {
+                    if (args[0] is MalMeta)
+                    {
+                        MalMeta mm = (MalMeta)args[0];
+                        if (mm.meta != null) return mm.meta;
+                    }
+                    return MalNil.MAL_NIL;
                 })},
 
         };
