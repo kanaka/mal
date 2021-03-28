@@ -3,9 +3,9 @@ fun read s =
 
 (* TODO def! evaluated inside other forms *)
 fun eval e (LIST (SYMBOL "def!"::args)) = evalDef e args
+  | eval e (LIST (SYMBOL "do"::args))   = evalDo e args
+  | eval e (LIST (SYMBOL "if"::args))   = evalIf e args
   | eval e (LIST (SYMBOL "let*"::args)) = (e, evalLet e args)
-  | eval e (LIST (SYMBOL "do"::args))   = (e, evalDo e args)
-  | eval e (LIST (SYMBOL "if"::args))   = (e, evalIf e args)
   | eval e (LIST (SYMBOL "fn*"::args))  = (e, evalFn e args)
   | eval e (LIST (a::args))             = (e, evalApply e (eval' e a) args)
   | eval e (SYMBOL s)                   = (e, evalSymbol e s)
@@ -19,11 +19,11 @@ and evalDef e [SYMBOL s, ast] = let val v = eval' e ast in (def s v e, v) end
 and evalLet e [LIST bs, ast] = eval' (bind bs e) ast
   | evalLet _ _              = raise NotApplicable "let* needs a list of bindings and a form to evaluate"
 
-and evalDo e (args as _::_) = map (eval' e) args |> List.last
-  | evalDo _ _              = raise NotApplicable "do needs at least one argument"
+and evalDo e (x::xs) = foldl (fn (x, (e,_)) => eval e x) (eval e x) xs
+  | evalDo _ _       = raise NotApplicable "do needs at least one argument"
 
-and evalIf e [c,a,b] = if truthy (eval' e c) then (eval' e a) else (eval' e b)
-  | evalIf e [c,a]   = if truthy (eval' e c) then (eval' e a) else NIL
+and evalIf e [c,a,b] = eval e c |> (fn (e,c) => eval e (if truthy c then a else b))
+  | evalIf e [c,a]   = evalIf e [c,a,NIL]
   | evalIf _ _       = raise NotApplicable "if needs two or three arguments"
 
 and evalFn c [(LIST binds),body] = CLOSURE (fn (e) => fn (exprs) => eval' (bind (interleave binds exprs) (wrap e c)) body)
