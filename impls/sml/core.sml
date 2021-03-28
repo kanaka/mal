@@ -27,27 +27,35 @@ val coreIo = [
          | _   => raise NotApplicable "'prn' requires one argument")
 ]
 
-fun intFun n f r [INT a, INT b] = r (f (a, b))
-  | intFun n _ _ _              = raise NotApplicable ("'" ^ n ^ "' requires two integer arguments")
+fun arithFolder n f (INT next, INT prev) = INT (f (prev, next))
+  | arithFolder n _ _                    = raise NotApplicable ("'" ^ n ^ "' requires integer arguments")
 
-(* TODO: variadic versions? *)
+fun cmpFolder n c (INT next, (INT prev, acc)) = (INT next, acc andalso (c (prev, next)))
+  | cmpFolder n _ _                           = raise NotApplicable ("'" ^ n ^ "' requires integer arguments")
+
+fun cmpFold n c (x::xs) = foldl (cmpFolder n c) (x, true) xs |> #2 |> BOOL
+  | cmpFold n _ _       = raise NotApplicable ("'" ^ n ^ "' requires arguments")
+
+fun eqFolder (next, (prev, acc)) = (next, acc andalso (malEq (next, prev)))
+
 val coreCmp = [
-    SYMBOL "=",
-    FN (fn [a, b] => BOOL (malEq (a, b))
-         | _      => raise NotApplicable "'=' requires two arguments"),
+    SYMBOL "=", 
+    FN (fn (x::xs) => foldl eqFolder (x, true) xs |> #2 |> BOOL
+         | _       => raise NotApplicable "'=' requires arguments"),
 
-    SYMBOL "<",  FN (intFun "<"  (op <)  BOOL),
-    SYMBOL "<=", FN (intFun "<=" (op <=) BOOL),
-    SYMBOL ">=", FN (intFun ">=" (op >=) BOOL),
-    SYMBOL ">",  FN (intFun ">"  (op >)  BOOL)
+    SYMBOL "<",  FN (cmpFold "<" (op <)),
+    SYMBOL "<=", FN (cmpFold "<=" (op <=)),
+    SYMBOL ">=", FN (cmpFold ">=" (op >=)),
+    SYMBOL ">",  FN (cmpFold ">" (op >))
 ]
 
-(* TODO: variadic versions? *)
 val coreMath = [
-    SYMBOL "+", FN (intFun "+" (op +)   INT),
-    SYMBOL "*", FN (intFun "*" (op * )  INT), (* mosml can't parse*)
-    SYMBOL "-", FN (intFun "-" (op -)   INT),
-    SYMBOL "/", FN (intFun "/" (op div) INT)
+    SYMBOL "+", FN (fn args => foldl (arithFolder "+" (op +)) (INT 0) args),
+    SYMBOL "*", FN (fn args => foldl (arithFolder "*" (op * )) (INT 1) args),
+    SYMBOL "/", FN (fn (x::xs) => foldl (arithFolder "/" (op div)) x xs
+                      | _      => raise NotApplicable "'/' requires arguments"),
+    SYMBOL "-", FN (fn (x::xs) => foldl (arithFolder "-" (op -)) x xs
+                      | _      => raise NotApplicable "'-' requires arguments")
 ]
 
 val coreNs = List.concat [
