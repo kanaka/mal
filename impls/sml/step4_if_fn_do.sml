@@ -1,7 +1,6 @@
 fun read s =
     readStr s
 
-(* TODO def! evaluated inside other forms *)
 fun eval e (LIST (SYMBOL "def!"::args)) = evalDef e args
   | eval e (LIST (SYMBOL "do"::args))   = evalDo e args
   | eval e (LIST (SYMBOL "if"::args))   = evalIf e args
