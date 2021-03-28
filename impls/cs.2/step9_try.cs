@@ -356,8 +356,15 @@ namespace mal
 
             // ARGV
             List<MalType> malArgs = new List<MalType>();
-            malArgs.AddRange(args.Select(arg => new MalString(arg)).ToList());
+            malArgs.AddRange(args.Skip(1).Select(arg => new MalString(arg)).ToList());
             repl_env.data.Add(new MalSymbol("*ARGV*"), new MalList(malArgs));
+
+            // if called with arguments, treat first as a script name
+            if (args.Length > 0)
+            {
+                rep("(load-file \"" + args[0] + "\")");
+                return;
+            }
 
             // TESTS
             // rep("`[unquote 0]");
