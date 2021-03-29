@@ -66,3 +66,5 @@ fun repl () =
             )
             | NONE => ()
     ) end
+
+fun main () = repl ()
