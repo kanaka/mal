@@ -51,9 +51,7 @@ fun rep e s =
 
 val initEnv = ENV [] |> bind coreNs
 
-fun repl () = repl' initEnv
-
-and repl' e =
+fun repl e =
     let open TextIO
     in (
         print("user> ");
@@ -62,7 +60,9 @@ and repl' e =
                 let val (e', s) = rep e line
                     val _ = print(s ^ "\n")
                 in
-                    repl' e'
+                    repl e'
                 end
             | NONE => ()
     ) end
+
+fun main () = repl initEnv

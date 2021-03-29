@@ -1,1 +1,1 @@
-val _ = repl ()
+val _ = main ()
