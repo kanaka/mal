@@ -24,6 +24,8 @@ matlab_MODE = octave
 python_MODE = python
 # scheme (chibi, kawa, gauche, chicken, sagittarius, cyclone, foment)
 scheme_MODE = chibi
+# sml (polyml, mlton, mosml)
+sml_MODE = polyml
 # wasmtime wasmer lucet wax  node warpy  wace_libc
 wasm_MODE = wasmtime
 
