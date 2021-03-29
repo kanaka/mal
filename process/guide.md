@@ -1661,11 +1661,11 @@ implementation.
   * `meta`: this takes a single mal function/list/vector/hash-map argument
     and returns the value of the metadata attribute.
   * `with-meta`: this function takes two arguments. The first argument
-    is a mal function/list/vector/hash-map and the second argument is
-    another mal value/type to set as metadata. A copy of the mal function is
-    returned that has its `meta` attribute set to the second argument.
-    Note that it is important that the environment and macro attribute
-    of mal function are retained when it is copied.
+    is a mal value and the second argument is another mal value/type
+    to set as metadata. A copy of the mal value is returned that has
+    its `meta` attribute set to the second argument.  Note that when
+    copying a mal function, it is important that the environment and
+    macro attribute are retained.
   * Add a reader-macro that expands the token "^" to
     return a new list that contains the symbol "with-meta" and the
     result of reading the next next form (2nd argument) (`read_form`) and the
