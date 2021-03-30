@@ -21,7 +21,16 @@ val coreList = [
          | _        => raise NotApplicable "count requires a list")
 ]
 
+(* N.B. adds extra newline at end *)
+fun slurp lines strm = case TextIO.inputLine strm of
+    SOME l => slurp (l::lines) strm
+    | NONE => rev lines
+
 val coreIo = [
+    SYMBOL "slurp",
+    FN (fn [STRING filename] => (slurp [] (TextIO.openIn filename) |> String.concat |> STRING handle Io => NIL)
+         | _ => raise NotApplicable "'slurp' requires a string filename"),
+
     SYMBOL "prn",
     FN (fn [x] => (TextIO.print ((prStr x) ^ "\n"); NIL)
          | _   => raise NotApplicable "'prn' requires one argument")
@@ -58,9 +67,16 @@ val coreMath = [
                       | _      => raise NotApplicable "'-' requires arguments")
 ]
 
+val coreMeta = [
+    SYMBOL "read-string",
+    FN (fn [STRING s] => readStr s
+         | _ => raise NotApplicable "'read-string' requires a string")
+]
+
 val coreNs = List.concat [
     coreList,
     coreIo,
     coreCmp,
+    coreMeta,
     coreMath
 ]
