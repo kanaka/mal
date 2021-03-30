@@ -14,6 +14,7 @@ datatype token =
     | CARET
     | AT
     | ATOM of string
+    | STR_ATOM of string
 
 fun tokenString SPACE         = "SPACE"
   | tokenString (COMMENT s)   = "COMMENT (" ^ s ^ ")"
@@ -30,6 +31,7 @@ fun tokenString SPACE         = "SPACE"
   | tokenString CARET         = "CARET"
   | tokenString AT            = "AT"
   | tokenString (ATOM s)      = "ATOM (" ^ s ^ ")"
+  | tokenString (STR_ATOM s)  = "STR_ATOM \"" ^ s ^ "\""
 
 datatype reader = READER of token list
 
@@ -74,6 +76,18 @@ fun scanSpecial ss =
         Option.composePartial (findToken, Ss.getc) ss
     end
 
+fun scanString ss =
+    Ss.getc ss
+        |> Option.mapPartial (fn (#"\"", rest) => spanString rest rest | _ => NONE)
+
+and spanString from to = case Ss.getc to of
+    SOME (#"\\", rest)   => Ss.getc rest |> Option.mapPartial (fn (_, more) => spanString from more)
+    | SOME (#"\"", rest) => SOME (STR_ATOM (spanString' from to), rest)
+    | SOME (_, rest)     => spanString from rest
+    | NONE => raise SyntaxError "end of input reached when parsing string literal"
+and spanString' from stop =
+    Ss.span (from, Ss.slice (stop, 0, SOME 0)) |> Ss.string
+
 fun scanAtom ss =
     let fun isAtomChar c = Char.isGraph c andalso (findSpecial c = NONE)
         val (tok, rest) = Ss.splitl isAtomChar ss in
@@ -81,7 +95,7 @@ fun scanAtom ss =
     end
 
 fun scanToken ss =
-    let val scanners = [scanSpace, scanComment, scanSpecial, scanAtom]
+    let val scanners = [scanSpace, scanComment, scanSpecial, scanString, scanAtom]
         val findScanner = List.find (fn f => isSome (f ss))
         fun applyScanner s = s ss
     in
@@ -99,11 +113,14 @@ fun makeAtom "nil" = NIL
   | makeAtom "false" = BOOL false
   | makeAtom s = case Int.fromString s of SOME i => INT i | NONE => SYMBOL s
 
-fun readAtom r =
-    case next r of
-        SOME (ATOM a, r') => (makeAtom a, r')
-        | SOME (token, _) => raise SyntaxError ("unexpected token reading atom: " ^ (tokenString token))
-        | NONE => raise SyntaxError "end of input reached when reading atom"
+fun readAtom r = case next r of
+    SOME (ATOM "nil", r')     => (NIL, r')
+    | SOME (ATOM "true", r')  => (BOOL true, r')
+    | SOME (ATOM "false", r') => (BOOL false, r')
+    | SOME (ATOM s, r')       => (Int.fromString s |> Option.map INT |> valIfNone (fn _ => SYMBOL s), r')
+    | SOME (STR_ATOM s, r')   => (malUnescape s |> STRING, r')
+    | SOME (token, _) => raise SyntaxError ("unexpected token reading atom: " ^ (tokenString token))
+    | NONE => raise SyntaxError "end of input reached when reading atom"
 
 fun readList acc r =
     if peek r = SOME PAREN_RIGHT
@@ -122,4 +139,4 @@ fun clean ts =
 fun readStr s =
     case tokenize s |> clean of
         [] => raise Nothing
-        | ts => ts |> READER |> readForm |> #1
+        | ts => ts |> READER |> readForm |> #1 (* TODO: check line is empty after *)
