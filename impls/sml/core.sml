@@ -26,14 +26,21 @@ fun slurp lines strm = case TextIO.inputLine strm of
     SOME l => slurp (l::lines) strm
     | NONE => rev lines
 
+fun malPrint s = (
+    TextIO.print (s ^ "\n");
+    NIL
+)
+
 val coreIo = [
     SYMBOL "slurp",
     FN (fn [STRING filename] => (slurp [] (TextIO.openIn filename) |> String.concat |> STRING handle Io => NIL)
          | _ => raise NotApplicable "'slurp' requires a string filename"),
 
     SYMBOL "prn",
-    FN (fn [x] => (TextIO.print ((prStr x) ^ "\n"); NIL)
-         | _   => raise NotApplicable "'prn' requires one argument")
+    FN (fn args => args |> List.map prReadableStr |> String.concatWith " " |> malPrint),
+
+    SYMBOL "println",
+    FN (fn args => args |> List.map prStr         |> String.concatWith " " |> malPrint)
 ]
 
 fun arithFolder n f (INT next, INT prev) = INT (f (prev, next))
@@ -73,10 +80,19 @@ val coreMeta = [
          | _ => raise NotApplicable "'read-string' requires a string")
 ]
 
+val coreString = [
+    SYMBOL "pr-str",
+    FN (fn args => args |> List.map prReadableStr |> String.concatWith " " |> STRING),
+
+    SYMBOL "str",
+    FN (fn args => args |> List.map prStr         |> String.concatWith ""  |> STRING)
+]
+
 val coreNs = List.concat [
     coreList,
     coreIo,
     coreCmp,
     coreMeta,
+    coreString,
     coreMath
 ]
