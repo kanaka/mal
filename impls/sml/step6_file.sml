@@ -50,6 +50,11 @@ fun rep e s =
          | NotDefined msg    => (e, "NOT DEFINED: " ^ msg)
 
 val initEnv = ENV [] |> bind coreNs
+  |> bind [
+    SYMBOL "eval",
+    CLOSURE (fn (e) => fn ([x]) => eval' e x
+                        | _ => raise NotApplicable "'eval' requires one argument")
+  ]
 
 fun repl e =
     let open TextIO
@@ -65,4 +70,10 @@ fun repl e =
             | NONE => ()
     ) end
 
-fun main () = repl initEnv
+val prelude = "                                                \
+\(def!                                                         \
+\  load-file                                                   \
+\  (fn* (f)                                                    \
+\    (eval (read-string (str \"(do \" (slurp f) \"\nnil)\")))))"
+
+fun main () = (rep initEnv prelude) |> #1 |> repl
