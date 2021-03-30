@@ -12,5 +12,21 @@ fun optOrElse NONE b = b ()
 fun valOrElse (SOME x) _ = x
   | valOrElse a        b = b ()
 
+fun valIfNone _ (SOME a) = a
+  | valIfNone b _        = b ()
+
 fun interleave (x::xs) (y::ys) = x :: y :: interleave xs ys
   | interleave _       _       = []
+
+fun malEscape s = String.translate (fn #"\"" => "\\\""
+                                     | #"\n" => "\\n"
+                                     | #"\\" => "\\\\"
+                                     | c => String.str c) s
+
+fun malUnescape s = malUnescape' (String.explode s)
+and malUnescape' (#"\\"::(#"\""::rest)) = "\"" ^ malUnescape' rest
+  | malUnescape' (#"\\"::(#"n" ::rest)) = "\n" ^ malUnescape' rest
+  | malUnescape' (#"\\"::(#"\\"::rest)) = "\\" ^ malUnescape' rest
+  | malUnescape' (c::rest)              = (String.str c) ^ malUnescape' rest
+  | malUnescape' ([])                   = ""
+

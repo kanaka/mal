@@ -2,6 +2,7 @@ datatype mal_type = NIL
                   | SYMBOL of string
                   | BOOL of bool
                   | INT of int
+                  | STRING of string
                   | LIST of mal_type list
                   | FN of mal_type list -> mal_type
                   | CLOSURE of mal_env -> mal_type list -> mal_type
@@ -16,5 +17,6 @@ fun malEq (     NIL, NIL)      = true
   | malEq (SYMBOL a, SYMBOL b) = a = b
   | malEq (  BOOL a, BOOL b)   = a = b
   | malEq (   INT a, INT b)    = a = b
+  | malEq (STRING a, STRING b) = a = b
   | malEq (  LIST a, LIST b)   = ListPair.allEq malEq (a, b)
   | malEq _                    = false

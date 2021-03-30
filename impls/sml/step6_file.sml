@@ -40,7 +40,7 @@ and bind (SYMBOL s::v::rest) e = def s (eval' e v) e |> bind rest
   | bind _ _ = raise NotApplicable "bindings must be a list of symbol/form pairs"
 
 fun print f =
-    prStr f
+    prReadableStr f
 
 fun rep e s =
     s |> read |> eval e |> (fn (e, v) => (e, print v))
