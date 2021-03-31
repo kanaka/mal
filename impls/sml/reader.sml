@@ -13,8 +13,8 @@ datatype token =
     | QUOTE | BACK_TICK | TILDE | TILDE_AT
     | CARET
     | AT
-    | ATOM of string
-    | STR_ATOM of string
+    | LIT_ATOM of string
+    | LIT_STR of string
 
 fun tokenString SPACE         = "SPACE"
   | tokenString (COMMENT s)   = "COMMENT (" ^ s ^ ")"
@@ -30,8 +30,8 @@ fun tokenString SPACE         = "SPACE"
   | tokenString TILDE_AT      = "TILDE_AT"
   | tokenString CARET         = "CARET"
   | tokenString AT            = "AT"
-  | tokenString (ATOM s)      = "ATOM (" ^ s ^ ")"
-  | tokenString (STR_ATOM s)  = "STR_ATOM \"" ^ s ^ "\""
+  | tokenString (LIT_ATOM s)  = "LIT_ATOM (" ^ s ^ ")"
+  | tokenString (LIT_STR s)   = "LIT_STR \"" ^ s ^ "\""
 
 datatype reader = READER of token list
 
@@ -82,7 +82,7 @@ fun scanString ss =
 
 and spanString from to = case Ss.getc to of
     SOME (#"\\", rest)   => Ss.getc rest |> Option.mapPartial (fn (_, more) => spanString from more)
-    | SOME (#"\"", rest) => SOME (STR_ATOM (spanString' from to), rest)
+    | SOME (#"\"", rest) => SOME (LIT_STR (spanString' from to), rest)
     | SOME (_, rest)     => spanString from rest
     | NONE => raise SyntaxError "end of input reached when parsing string literal"
 and spanString' from stop =
@@ -91,7 +91,7 @@ and spanString' from stop =
 fun scanAtom ss =
     let fun isAtomChar c = Char.isGraph c andalso (findSpecial c = NONE)
         val (tok, rest) = Ss.splitl isAtomChar ss in
-        if Ss.isEmpty tok then NONE else SOME (ATOM (Ss.string tok), rest)
+        if Ss.isEmpty tok then NONE else SOME (LIT_ATOM (Ss.string tok), rest)
     end
 
 fun scanToken ss =
@@ -108,17 +108,12 @@ and tokenize' acc ss =
         SOME (token, rest) => tokenize' (token::acc) rest
         | NONE => rev acc
 
-fun makeAtom "nil" = NIL
-  | makeAtom "true" = BOOL true
-  | makeAtom "false" = BOOL false
-  | makeAtom s = case Int.fromString s of SOME i => INT i | NONE => SYMBOL s
-
 fun readAtom r = case next r of
-    SOME (ATOM "nil", r')     => (NIL, r')
-    | SOME (ATOM "true", r')  => (BOOL true, r')
-    | SOME (ATOM "false", r') => (BOOL false, r')
-    | SOME (ATOM s, r')       => (Int.fromString s |> Option.map INT |> valIfNone (fn _ => SYMBOL s), r')
-    | SOME (STR_ATOM s, r')   => (malUnescape s |> STRING, r')
+    SOME (LIT_ATOM "nil", r')     => (NIL, r')
+    | SOME (LIT_ATOM "true", r')  => (BOOL true, r')
+    | SOME (LIT_ATOM "false", r') => (BOOL false, r')
+    | SOME (LIT_ATOM s, r')       => (Int.fromString s |> Option.map INT |> valIfNone (fn _ => SYMBOL s), r')
+    | SOME (LIT_STR s, r')        => (malUnescape s |> STRING, r')
     | SOME (token, _) => raise SyntaxError ("unexpected token reading atom: " ^ (tokenString token))
     | NONE => raise SyntaxError "end of input reached when reading atom"
 

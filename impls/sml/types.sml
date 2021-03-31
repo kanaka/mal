@@ -4,6 +4,7 @@ datatype mal_type = NIL
                   | INT of int
                   | STRING of string
                   | LIST of mal_type list
+                  | ATOM of mal_type ref
                   | FN of mal_type list -> mal_type
                   | FN4 of mal_env -> mal_type list -> mal_type
                   | FN6 of mal_env -> mal_type list -> (mal_env * mal_type)
