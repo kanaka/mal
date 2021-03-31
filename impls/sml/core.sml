@@ -88,11 +88,37 @@ val coreString = [
     FN (fn args => args |> List.map prStr         |> String.concatWith ""  |> STRING)
 ]
 
+val coreAtom = [
+    SYMBOL "atom",
+    FN (fn [x] => ATOM (ref x)
+         | _ => raise NotApplicable "'atom' requires one argument"),
+
+    SYMBOL "atom?",
+    FN (fn [ATOM _] => BOOL true
+         | [_]      => BOOL false
+         | _ => raise NotApplicable "'atom?' requires one argument"),
+
+    SYMBOL "deref",
+    FN (fn [ATOM a] => !a
+         | _ => raise NotApplicable "'deref' requires an atom argument"),
+
+    SYMBOL "reset!",
+    FN (fn [ATOM a, x] => (a := x; x)
+         | _ => raise NotApplicable "'reset!' requires an atom argument"),
+
+    SYMBOL "swap!",
+    FN6 (fn e => (fn (ATOM a::(FN f)::args)  => let val x      = f   ((!a)::args) in (a := x; (e, x))  end
+                   | (ATOM a::(FN4 f)::args) => let val x      = f e ((!a)::args) in (a := x; (e, x))  end
+                   | (ATOM a::(FN6 f)::args) => let val (e',x) = f e ((!a)::args) in (a := x; (e', x)) end
+                   | _ => raise NotApplicable "'reset!' requires an atom argument"))
+]
+
 val coreNs = List.concat [
     coreList,
     coreIo,
     coreCmp,
     coreMeta,
     coreString,
+    coreAtom,
     coreMath
 ]

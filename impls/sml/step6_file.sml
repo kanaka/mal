@@ -25,6 +25,7 @@ and evalIf e [c,a,b] = eval e c |> (fn (e,c) => eval e (if truthy c then a else 
   | evalIf e [c,a]   = evalIf e [c,a,NIL]
   | evalIf _ _       = raise NotApplicable "if needs two or three arguments"
 
+(* TODO: Wrapping, binding, and mutating an env must be separate things *)
 and evalFn c [(LIST binds),body] = FN6 (fn (e) => fn (exprs) => eval (bind (interleave binds exprs) (wrap e c)) body)
   | evalFn _ _                   = raise NotApplicable "fn* needs a list of bindings and a body"
 
