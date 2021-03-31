@@ -5,7 +5,8 @@ datatype mal_type = NIL
                   | STRING of string
                   | LIST of mal_type list
                   | FN of mal_type list -> mal_type
-                  | CLOSURE of mal_env -> mal_type list -> mal_type
+                  | FN4 of mal_env -> mal_type list -> mal_type
+                  | FN6 of mal_env -> mal_type list -> (mal_env * mal_type)
 
 and mal_env = ENV of (string * mal_type) list
 

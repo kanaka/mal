@@ -6,7 +6,8 @@ fun prStr NIL          = "nil"
   | prStr (STRING s)   = s
   | prStr (LIST l)     = "(" ^ (String.concatWith " " (map prStr l)) ^ ")" (* N.B. not tail recursive *)
   | prStr (FN _)       = "#<function>"
-  | prStr (CLOSURE _)  = "#<closure>"
+  | prStr (FN4 _)      = "#<function>"
+  | prStr (FN6 _)      = "#<function>"
 
 fun prReadableStr (STRING s) = "\"" ^ (malEscape s) ^ "\""
   | prReadableStr (LIST l)   = "(" ^ (String.concatWith " " (map prReadableStr l)) ^ ")" (* N.B. not tail recursive *)

@@ -6,7 +6,7 @@ fun eval e (LIST (SYMBOL "def!"::args)) = evalDef e args
   | eval e (LIST (SYMBOL "if"::args))   = evalIf e args
   | eval e (LIST (SYMBOL "let*"::args)) = (e, evalLet e args)
   | eval e (LIST (SYMBOL "fn*"::args))  = (e, evalFn e args)
-  | eval e (LIST (a::args))             = (e, evalApply e (eval' e a) args)
+  | eval e (LIST (a::args))             = evalApply e (eval' e a) args
   | eval e (SYMBOL s)                   = (e, evalSymbol e s)
   | eval e ast                          = (e, ast)
 
@@ -25,12 +25,13 @@ and evalIf e [c,a,b] = eval e c |> (fn (e,c) => eval e (if truthy c then a else 
   | evalIf e [c,a]   = evalIf e [c,a,NIL]
   | evalIf _ _       = raise NotApplicable "if needs two or three arguments"
 
-and evalFn c [(LIST binds),body] = CLOSURE (fn (e) => fn (exprs) => eval' (bind (interleave binds exprs) (wrap e c)) body)
+and evalFn c [(LIST binds),body] = FN6 (fn (e) => fn (exprs) => eval (bind (interleave binds exprs) (wrap e c)) body)
   | evalFn _ _                   = raise NotApplicable "fn* needs a list of bindings and a body"
 
-and evalApply e (CLOSURE (f)) args = f e (map (eval' e) args)
-  | evalApply e (FN f)        args = f (map (eval' e) args)
-  | evalApply _ x             args = raise NotApplicable (prStr x ^ " is not applicable on " ^ prStr (LIST args))
+and evalApply e (FN4 (f)) args = (e, f e (map (eval' e) args))
+  | evalApply e (FN6 (f)) args = f e (map (eval' e) args)
+  | evalApply e (FN f)    args = (e, f (map (eval' e) args))
+  | evalApply _ x         args = raise NotApplicable (prStr x ^ " is not applicable on " ^ prStr (LIST args))
 
 and evalSymbol e s = valOrElse (lookup e s)
                                (fn _ => raise NotDefined ("symbol '" ^ s ^ "' not found"))
@@ -52,8 +53,8 @@ fun rep e s =
 val initEnv = ENV [] |> bind coreNs
   |> bind [
     SYMBOL "eval",
-    CLOSURE (fn (e) => fn ([x]) => eval' e x
-                        | _ => raise NotApplicable "'eval' requires one argument")
+    FN6 (fn (e) => fn ([x]) => eval e x
+                    | _ => raise NotApplicable "'eval' requires one argument")
   ]
 
 fun repl e =

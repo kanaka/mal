@@ -25,12 +25,12 @@ and evalIf e [c,a,b] = eval e c |> (fn (e,c) => eval e (if truthy c then a else 
   | evalIf e [c,a]   = evalIf e [c,a,NIL]
   | evalIf _ _       = raise NotApplicable "if needs two or three arguments"
 
-and evalFn c [(LIST binds),body] = CLOSURE (fn (e) => fn (exprs) => eval' (bind (interleave binds exprs) (wrap e c)) body)
+and evalFn c [(LIST binds),body] = FN4 (fn (e) => fn (exprs) => eval' (bind (interleave binds exprs) (wrap e c)) body)
   | evalFn _ _                   = raise NotApplicable "fn* needs a list of bindings and a body"
 
-and evalApply e (CLOSURE (f)) args = f e (map (eval' e) args)
-  | evalApply e (FN f)        args = f (map (eval' e) args)
-  | evalApply _ x             args = raise NotApplicable (prStr x ^ " is not applicable on " ^ prStr (LIST args))
+and evalApply e (FN4 (f)) args = f e (map (eval' e) args)
+  | evalApply e (FN f)    args = f (map (eval' e) args)
+  | evalApply _ x         args = raise NotApplicable (prStr x ^ " is not applicable on " ^ prStr (LIST args))
 
 and evalSymbol e s = valOrElse (lookup e s)
                                (fn _ => raise NotDefined ("symbol '" ^ s ^ "' not found"))
