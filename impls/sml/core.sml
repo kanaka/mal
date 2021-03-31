@@ -33,7 +33,7 @@ fun malPrint s = (
 
 val coreIo = [
     SYMBOL "slurp",
-    FN (fn [STRING filename] => (slurp [] (TextIO.openIn filename) |> String.concat |> STRING handle Io => NIL)
+    FN (fn [STRING filename] => (slurp [] (TextIO.openIn filename) |> String.concat |> STRING handle IO.Io _ => NIL)
          | _ => raise NotApplicable "'slurp' requires a string filename"),
 
     SYMBOL "prn",
