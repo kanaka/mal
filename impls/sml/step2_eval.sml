@@ -40,7 +40,7 @@ fun malMinus (INT b, INT a) = INT (a - b)
 fun malDiv   (INT b, INT a) = INT (a div b)
   | malDiv _ = raise NotApplicable "can only divide integers"
 
-val initEnv = ENV [
+val initEnv = ENV (NS (ref [
     ("+", FN (foldl malPlus (INT 0))),
     ("*", FN (foldl malTimes (INT 1))),
     ("-", FN (
@@ -53,7 +53,7 @@ val initEnv = ENV [
          | x::xs => foldr malDiv x xs
          | _ => raise NotApplicable "'/' requires at least one argument"
     ))
-]
+]))
 
 fun repl () =
     let open TextIO

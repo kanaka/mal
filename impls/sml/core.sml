@@ -24,7 +24,7 @@ val coreList = [
 (* N.B. adds extra newline at end *)
 fun slurp lines strm = case TextIO.inputLine strm of
     SOME l => slurp (l::lines) strm
-    | NONE => rev lines
+    | NONE => (TextIO.closeIn strm; rev lines)
 
 fun malPrint s = (
     TextIO.print (s ^ "\n");
@@ -107,10 +107,9 @@ val coreAtom = [
          | _ => raise NotApplicable "'reset!' requires an atom argument"),
 
     SYMBOL "swap!",
-    FN6 (fn e => (fn (ATOM a::(FN f)::args)  => let val x      = f   ((!a)::args) in (a := x; (e, x))  end
-                   | (ATOM a::(FN4 f)::args) => let val x      = f e ((!a)::args) in (a := x; (e, x))  end
-                   | (ATOM a::(FN6 f)::args) => let val (e',x) = f e ((!a)::args) in (a := x; (e', x)) end
-                   | _ => raise NotApplicable "'reset!' requires an atom argument"))
+    CLOSURE (fn e => (fn (ATOM a::(FN f)::args)      => let val x = f   ((!a)::args) in (a := x; x)  end
+                       | (ATOM a::(CLOSURE f)::args) => let val x = f e ((!a)::args) in (a := x; x)  end
+                       | _ => raise NotApplicable "'reset!' requires an atom argument"))
 ]
 
 val coreNs = List.concat [
