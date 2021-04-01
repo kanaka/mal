@@ -70,11 +70,17 @@ val prelude = "                                                \
 \    (eval (read-string (str \"(do \" (slurp f) \"\nnil)\")))))"
 
 fun main () = (
-  bind [
-    SYMBOL "eval",
-    FN (fn ([x]) => eval initEnv x
-         | _ => raise NotApplicable "'eval' requires one argument")
-  ] initEnv;
-  rep initEnv prelude;
-  repl initEnv
+    bind [
+        SYMBOL "eval",
+        FN (fn ([x]) => eval initEnv x
+             | _ => raise NotApplicable "'eval' requires one argument")
+    ] initEnv;
+    rep initEnv prelude;
+    case CommandLine.arguments () of
+        prog::args => (
+            def "*ARGV*" (LIST (map STRING args)) initEnv;
+            rep initEnv ("(load-file \"" ^ prog ^ "\")");
+            ()
+        )
+        | _ => repl initEnv
 )
