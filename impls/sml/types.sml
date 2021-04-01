@@ -6,10 +6,12 @@ datatype mal_type = NIL
                   | LIST of mal_type list
                   | ATOM of mal_type ref
                   | FN of mal_type list -> mal_type
-                  | FN4 of mal_env -> mal_type list -> mal_type
-                  | FN6 of mal_env -> mal_type list -> (mal_env * mal_type)
+                  | CLOSURE of mal_env -> mal_type list -> mal_type
 
-and mal_env = ENV of (string * mal_type) list
+and mal_ns = NS of (string * mal_type) list ref
+
+and mal_env = ENV of mal_ns
+            | INNER of mal_ns * mal_env
 
 fun truthy (BOOL false) = false
   | truthy NIL          = false
