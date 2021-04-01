@@ -63,11 +63,12 @@ fun scanSpace ss =
         if Ss.isEmpty tok then NONE else SOME (SPACE, rest)
     end
 
-fun scanComment ss =
-    if Ss.isPrefix ";" ss
-    then SOME (Ss.slice (ss, 1, NONE) |> Ss.string |> COMMENT,
-               Ss.slice (ss, Ss.size ss, SOME 0))
-    else NONE
+fun scanComment ss = case Ss.getc ss of
+    SOME (#";", rest) =>
+        let val (comment, rest) = Ss.splitl (fn (c) => c <> #"\n") rest in
+            SOME (COMMENT (Ss.string comment), rest)
+        end
+    | _ => NONE
 
 fun scanSpecial ss =
     if Ss.isPrefix "~@" ss
@@ -129,7 +130,7 @@ and readForm r =
 
 fun clean ts =
     ts |> List.filter (fn x => x <> SPACE)
-       |> takeWhile (fn COMMENT _ => false | _ => true)
+       |> List.filter (fn COMMENT _ => false | _ => true)
 
 fun readStr s =
     case tokenize s |> clean of
