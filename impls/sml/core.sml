@@ -107,9 +107,8 @@ val coreAtom = [
          | _ => raise NotApplicable "'reset!' requires an atom argument"),
 
     SYMBOL "swap!",
-    CLOSURE (fn e => (fn (ATOM a::(FN f)::args)      => let val x = f   ((!a)::args) in (a := x; x)  end
-                       | (ATOM a::(CLOSURE f)::args) => let val x = f e ((!a)::args) in (a := x; x)  end
-                       | _ => raise NotApplicable "'reset!' requires an atom argument"))
+    FN (fn (ATOM a::(FN f)::args) => let val x = f ((!a)::args) in (a := x; x) end
+         | _ => raise NotApplicable "'reset!' requires an atom argument")
 ]
 
 val coreNs = List.concat [
