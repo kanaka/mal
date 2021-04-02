@@ -113,21 +113,35 @@ fun readAtom r = case next r of
     SOME (LIT_ATOM "nil", r')     => (NIL, r')
     | SOME (LIT_ATOM "true", r')  => (BOOL true, r')
     | SOME (LIT_ATOM "false", r') => (BOOL false, r')
-    | SOME (LIT_ATOM s, r')       => (Int.fromString s |> Option.map INT |> valIfNone (fn _ => SYMBOL s), r')
+    | SOME (LIT_ATOM s, r')       => (Int.fromString s |> Option.map INT
+                                     |> optIfNone (fn () => Option.filter (String.isPrefix ":") s |> Option.map (KEYWORD o (triml 1)))
+                                     |> valIfNone (fn () => SYMBOL s), r')
     | SOME (LIT_STR s, r')        => (malUnescape s |> STRING, r')
     | SOME (token, _) => raise SyntaxError ("unexpected token reading atom: " ^ (tokenString token))
     | NONE => raise SyntaxError "end of input reached when reading atom"
 
-fun readList acc r =
+fun readForm r =
+    case peek r of
+        SOME PAREN_LEFT => readList [] (rest r)
+        | SOME BRACKET_LEFT => readVector [] (rest r)
+        | SOME BRACE_LEFT => readMap [] (rest r)
+        | SOME AT       => let val (a, r') = readAtom (rest r) in (LIST [SYMBOL "deref", a], r') end
+        | _             => readAtom r
+
+and readList acc r =
     if peek r = SOME PAREN_RIGHT
     then (LIST (rev acc), (rest r))
     else let val (a, r') = readForm r in readList (a::acc) r' end
 
-and readForm r =
-    case peek r of
-        SOME PAREN_LEFT => readList [] (rest r)
-        | SOME AT       => let val (a, r') = readAtom (rest r) in (LIST [SYMBOL "deref", a], r') end
-        | _             => readAtom r
+and readVector acc r =
+    if peek r = SOME BRACKET_RIGHT
+    then (VECTOR (rev acc), (rest r))
+    else let val (a, r') = readForm r in readVector (a::acc) r' end
+
+and readMap acc r =
+    if peek r = SOME BRACE_RIGHT
+    then (MAP (rev acc), (rest r))
+    else let val (k, r') = readForm r val (v, r'') = readForm r' in readMap (malAssoc acc k v) r'' end
 
 fun clean ts =
     ts |> List.filter (fn x => x <> SPACE)
