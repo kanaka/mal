@@ -1,6 +1,12 @@
 exception NotDefined of string
 exception NotApplicable of string
 
+fun collectLists ls = collectLists' ls []
+and collectLists' (LIST l::rest)   acc = collectLists' rest (l::acc)
+  | collectLists' (VECTOR v::rest) acc = collectLists' rest (v::acc)
+  | collectLists' []               acc = SOME (rev acc)
+  | collectLists' _                _   = NONE
+
 val coreList = [
     SYMBOL "list",
     FN (fn args => LIST args),
@@ -21,7 +27,17 @@ val coreList = [
     FN (fn [LIST l]   => INT (length l)
          | [VECTOR v] => INT (length v)
          | [NIL]      => INT 0
-         | _          => raise NotApplicable "count requires a list")
+         | _          => raise NotApplicable "count requires a list"),
+
+    SYMBOL "cons",
+    FN (fn [hd,LIST tl]   => LIST (hd::tl)
+         | [hd,VECTOR tl] => LIST (hd::tl)
+         | _              => raise NotApplicable "cons requires an element and a list or vector"),
+
+    SYMBOL "concat",
+    FN (fn args => case collectLists args of
+            SOME ls => LIST (List.concat ls)
+            | NONE  => raise NotApplicable "concat requires an element and a list or vector")
 ]
 
 (* N.B. adds extra newline at end *)
