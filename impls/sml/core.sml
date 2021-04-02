@@ -11,14 +11,17 @@ val coreList = [
          | _        => raise NotApplicable "list? requires one argument"),
 
     SYMBOL "empty?",
-    FN (fn [LIST []] => BOOL true
-         | [LIST _]  => BOOL false
-         | _         => raise NotApplicable "empty? requires a list"),
+    FN (fn [LIST []]   => BOOL true
+         | [LIST _]    => BOOL false
+         | [VECTOR []] => BOOL true
+         | [VECTOR _]  => BOOL false
+         | _           => raise NotApplicable "empty? requires a list"),
 
     SYMBOL "count",
-    FN (fn [LIST l] => INT (length l)
-         | [NIL]    => INT 0
-         | _        => raise NotApplicable "count requires a list")
+    FN (fn [LIST l]   => INT (length l)
+         | [VECTOR v] => INT (length v)
+         | [NIL]      => INT 0
+         | _          => raise NotApplicable "count requires a list")
 ]
 
 (* N.B. adds extra newline at end *)

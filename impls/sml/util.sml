@@ -12,11 +12,16 @@ fun optOrElse NONE b = b ()
 fun valOrElse (SOME x) _ = x
   | valOrElse a        b = b ()
 
+fun optIfNone b NONE = b ()
+  | optIfNone _ a    = a
+
 fun valIfNone _ (SOME a) = a
   | valIfNone b _        = b ()
 
 fun interleave (x::xs) (y::ys) = x :: y :: interleave xs ys
   | interleave _       _       = []
+
+fun triml k s = String.extract (s, k, NONE)
 
 fun malEscape s = String.translate (fn #"\"" => "\\\""
                                      | #"\n" => "\\n"

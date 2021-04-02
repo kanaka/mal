@@ -12,9 +12,11 @@ fun EVAL e ast =
 
 and eval_ast e ast =
     case ast of
-        SYMBOL s => (case lookup e s of SOME v => v | NONE => raise NotDefined ("unable to resolve symbol '" ^ s ^ "'"))
-        | LIST l => LIST (List.map (EVAL e) l)
-        | _      => ast
+        SYMBOL s   => (case lookup e s of SOME v => v | NONE => raise NotDefined ("unable to resolve symbol '" ^ s ^ "'"))
+        | LIST l   => LIST (List.map (EVAL e) l)
+        | VECTOR v => VECTOR (List.map (EVAL e) v)
+        | MAP m    => MAP (List.map (fn (k, v) => (EVAL e k, EVAL e v)) m)
+        | _        => ast
 
 and eval_apply e ast =
     case eval_ast e ast of
@@ -22,7 +24,7 @@ and eval_apply e ast =
         | _ => raise NotApplicable "eval_apply needs a non-empty list"
 
 fun PRINT f =
-    prStr f
+    prReadableStr f
 
 fun rep e s =
     s |> READ |> EVAL e |> PRINT
