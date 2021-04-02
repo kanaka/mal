@@ -92,5 +92,8 @@ fun main () = (
             rep initEnv ("(load-file \"" ^ prog ^ "\")");
             ()
         )
-        | _ => repl initEnv
+        | args => (
+            def "*ARGV*" (LIST (map STRING args)) initEnv;
+            repl initEnv
+        )
 )
