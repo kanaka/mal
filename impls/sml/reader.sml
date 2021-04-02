@@ -124,9 +124,10 @@ fun readList acc r =
     else let val (a, r') = readForm r in readList (a::acc) r' end
 
 and readForm r =
-    if peek r = SOME PAREN_LEFT
-    then readList [] (rest r)
-    else readAtom r
+    case peek r of
+        SOME PAREN_LEFT => readList [] (rest r)
+        | SOME AT       => let val (a, r') = readAtom (rest r) in (LIST [SYMBOL "deref", a], r') end
+        | _             => readAtom r
 
 fun clean ts =
     ts |> List.filter (fn x => x <> SPACE)
