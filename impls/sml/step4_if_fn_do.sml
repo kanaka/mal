@@ -29,7 +29,7 @@ and evalIf e [c,a,b] = if truthy (eval e c) then eval e a else eval e b
 and evalFn e [(LIST binds),body]   = makeFn e binds body
   | evalFn e [(VECTOR binds),body] = makeFn e binds body
   | evalFn _ _                     = raise NotApplicable "fn* needs a list of bindings and a body"
-and makeFn e binds body = FN (fn (exprs) => eval (bind (interleave binds exprs) (inside e)) body)
+and makeFn e binds body = FN (fn (exprs) => eval (bind' binds exprs (inside e)) body)
 
 and evalApply e (FN f) args = f (map (eval e) args)
   | evalApply _ x      args = raise NotApplicable (prStr x ^ " is not applicable on " ^ prStr (LIST args))
@@ -40,6 +40,11 @@ and evalSymbol e s = valOrElse (lookup e s)
 and bind (SYMBOL s::v::rest) e = (def s (eval e v) e; bind rest e)
   | bind []                  e = e
   | bind _ _ = raise NotApplicable "bindings must be a list of symbol/form pairs"
+
+and bind' [SYMBOL "&", SYMBOL s] vs      e = (def s (LIST (map (eval e) vs)) e; e)
+  | bind' (SYMBOL s::bs)         (v::vs) e = (def s (eval e v) e; bind' bs vs e)
+  | bind' []                     _       e = e
+  | bind' _ _ _ = raise NotApplicable "bindings must be a list of symbol/form pairs"
 
 fun print f =
     prReadableStr f
@@ -67,4 +72,10 @@ fun repl e =
             | NONE => ()
     ) end
 
-fun main () = repl initEnv
+val prelude = "                        \
+\(def! not (fn* (a) (if a false true)))"
+
+fun main () = (
+    rep initEnv ("(do " ^ prelude ^ " nil)");
+    repl initEnv
+)
