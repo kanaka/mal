@@ -5,7 +5,7 @@ fun EVAL f =
     f
 
 fun PRINT f =
-    prStr f
+    prReadableStr f
 
 fun rep s =
     s |> READ |> EVAL |> PRINT
