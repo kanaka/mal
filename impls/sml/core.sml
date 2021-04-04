@@ -37,7 +37,12 @@ val coreList = [
     SYMBOL "concat",
     FN (fn args => case collectLists args of
             SOME ls => LIST (List.concat ls)
-            | NONE  => raise NotApplicable "concat requires an element and a list or vector")
+            | NONE  => raise NotApplicable "concat requires an element and a list or vector"),
+
+    SYMBOL "vec",
+    FN (fn [LIST xs]       => VECTOR xs
+         | [v as VECTOR _] => v
+         | x  => raise NotApplicable "vec requires a list or vector")
 ]
 
 (* N.B. adds extra newline at end *)
