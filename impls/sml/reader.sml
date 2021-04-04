@@ -122,11 +122,15 @@ fun readAtom r = case next r of
 
 fun readForm r =
     case peek r of
-        SOME PAREN_LEFT => readList [] (rest r)
+        SOME PAREN_LEFT     => readList [] (rest r)
         | SOME BRACKET_LEFT => readVector [] (rest r)
-        | SOME BRACE_LEFT => readMap [] (rest r)
-        | SOME AT       => let val (a, r') = readAtom (rest r) in (LIST [SYMBOL "deref", a], r') end
-        | _             => readAtom r
+        | SOME BRACE_LEFT   => readMap [] (rest r)
+        | SOME AT           => let val (a, r') = readAtom (rest r) in (LIST [SYMBOL "deref", a], r') end
+        | SOME QUOTE        => let val (a, r') = readForm (rest r) in (LIST [SYMBOL "quote", a], r') end
+        | SOME BACK_TICK    => let val (a, r') = readForm (rest r) in (LIST [SYMBOL "quasiquote", a], r') end
+        | SOME TILDE        => let val (a, r') = readForm (rest r) in (LIST [SYMBOL "unquote", a], r') end
+        | SOME TILDE_AT     => let val (a, r') = readForm (rest r) in (LIST [SYMBOL "splice-unquote", a], r') end
+        | _                 => readAtom r
 
 and readList acc r =
     if peek r = SOME PAREN_RIGHT

@@ -1,16 +1,19 @@
 fun read s =
     readStr s
 
-fun eval e (LIST (SYMBOL "def!"::args)) = evalDef e args
-  | eval e (LIST (SYMBOL "let*"::args)) = evalLet e args
-  | eval e (LIST (SYMBOL "do"::args))   = evalDo e args
-  | eval e (LIST (SYMBOL "if"::args))   = evalIf e args
-  | eval e (LIST (SYMBOL "fn*"::args))  = evalFn e args
-  | eval e (LIST (a::args))             = evalApply e (eval e a) args
-  | eval e (SYMBOL s)                   = evalSymbol e s
-  | eval e (VECTOR v)                   = VECTOR (map (eval e) v)
-  | eval e (MAP m)                      = MAP (List.map (fn (k, v) => (eval e k, eval e v)) m)
-  | eval e ast                          = ast
+fun eval e (LIST (SYMBOL "def!"::args))             = evalDef e args
+  | eval e (LIST (SYMBOL "let*"::args))             = evalLet e args
+  | eval e (LIST (SYMBOL "do"::args))               = evalDo e args
+  | eval e (LIST (SYMBOL "if"::args))               = evalIf e args
+  | eval e (LIST (SYMBOL "fn*"::args))              = evalFn e args
+  | eval e (LIST (SYMBOL "quote"::args))            = evalQuote e args
+  | eval e (LIST (SYMBOL "quasiquote"::args))       = eval e (expandQuasiquote args)
+  | eval e (LIST (SYMBOL "quasiquoteexpand"::args)) = expandQuasiquote args
+  | eval e (LIST (a::args))                         = evalApply e (eval e a) args
+  | eval e (SYMBOL s)                               = evalSymbol e s
+  | eval e (VECTOR v)                               = VECTOR (map (eval e) v)
+  | eval e (MAP m)                                  = MAP (List.map (fn (k, v) => (eval e k, eval e v)) m)
+  | eval e ast                                      = ast
 
 and evalDef e [SYMBOL s, ast] = let val v = eval e ast in (def s v e; v) end
   | evalDef _ _               = raise NotApplicable "def! needs a symbol and a form to evaluate"
@@ -30,6 +33,19 @@ and evalFn e [(LIST binds),body]   = makeFn e binds body
   | evalFn e [(VECTOR binds),body] = makeFn e binds body
   | evalFn _ _                     = raise NotApplicable "fn* needs a list of bindings and a body"
 and makeFn e binds body = FN (fn (exprs) => eval (bind' binds exprs (inside e)) body)
+
+and evalQuote e [x] = x
+  | evalQuote _ _   = raise NotApplicable "quote needs one argument"
+
+and expandQuasiquote [LIST [SYMBOL "unquote", x]] = x
+  | expandQuasiquote [LIST l]        = LIST (foldr quasiFolder [] l)
+  | expandQuasiquote [VECTOR v]      = LIST [SYMBOL "vec", LIST (foldr quasiFolder [] v)]
+  | expandQuasiquote [m as MAP _]    = LIST [SYMBOL "quote", m]
+  | expandQuasiquote [s as SYMBOL _] = LIST [SYMBOL "quote", s]
+  | expandQuasiquote [x]             = x
+  | expandQuasiquote _   = raise NotApplicable "quasiquote needs one argument"
+and quasiFolder (LIST [SYMBOL "splice-unquote", x], acc) = [SYMBOL "concat", x, LIST acc]
+  | quasiFolder (x, acc)                                 = [SYMBOL "cons", expandQuasiquote [x], LIST acc]
 
 and evalApply e (FN f) args = f (map (eval e) args)
   | evalApply _ x      args = raise NotApplicable (prStr x ^ " is not applicable on " ^ prStr (LIST args))
