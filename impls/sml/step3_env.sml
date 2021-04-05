@@ -4,13 +4,15 @@ exception NotApplicable of string
 fun read s =
     readStr s
 
-fun eval e (LIST (SYMBOL "def!"::args)) = evalDef e args
-  | eval e (LIST (SYMBOL "let*"::args)) = evalLet e args
-  | eval e (LIST (a::args))             = evalApply e (eval e a) args
-  | eval e (SYMBOL s)                   = evalSymbol e s
-  | eval e (VECTOR v)                   = VECTOR (map (eval e) v)
-  | eval e (MAP m)                      = MAP (List.map (fn (k, v) => (eval e k, eval e v)) m)
-  | eval e ast                          = ast
+fun eval e (LIST (a::args)) = (case specialEval a of SOME special => special e args | _ => evalApply e (eval e a) args)
+  | eval e (SYMBOL s)       = evalSymbol e s
+  | eval e (VECTOR v)       = VECTOR (map (eval e) v)
+  | eval e (MAP m)          = MAP (List.map (fn (k, v) => (eval e k, eval e v)) m)
+  | eval e ast              = ast
+
+and specialEval (SYMBOL "def!") = SOME evalDef
+  | specialEval (SYMBOL "let*") = SOME evalLet
+  | specialEval _               = NONE
 
 and evalDef e [SYMBOL s, ast] = let val v = eval e ast in (def s v e; v) end
   | evalDef _ _               = raise NotApplicable "def! needs a symbol and a form to evaluate"
