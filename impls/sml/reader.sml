@@ -117,10 +117,11 @@ fun readAtom r = case next r of
                                      |> optIfNone (fn () => Option.filter (String.isPrefix ":") s |> Option.map (KEYWORD o (triml 1)))
                                      |> valIfNone (fn () => SYMBOL s), r')
     | SOME (LIT_STR s, r')        => (malUnescape s |> STRING, r')
+    | SOME (CARET, r')            => readWithMeta r'
     | SOME (token, _) => raise SyntaxError ("unexpected token reading atom: " ^ (tokenString token))
     | NONE => raise SyntaxError "end of input reached when reading atom"
 
-fun readForm r =
+and readForm r =
     case peek r of
         SOME PAREN_LEFT     => readList [] (rest r)
         | SOME BRACKET_LEFT => readVector [] (rest r)
@@ -131,6 +132,13 @@ fun readForm r =
         | SOME TILDE        => let val (a, r') = readForm (rest r) in (LIST [SYMBOL "unquote", a], r') end
         | SOME TILDE_AT     => let val (a, r') = readForm (rest r) in (LIST [SYMBOL "splice-unquote", a], r') end
         | _                 => readAtom r
+
+and readWithMeta r =
+    let val (m, r')  = readForm r
+        val (v, r'') = readForm r'
+    in
+        (LIST [SYMBOL "with-meta", v, m], r'')
+    end
 
 and readList acc r =
     if peek r = SOME PAREN_RIGHT
