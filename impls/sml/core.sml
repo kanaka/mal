@@ -118,7 +118,13 @@ val coreIo = [
     FN (fn args => args |> map prReadableStr |> String.concatWith " " |> malPrint),
 
     SYMBOL "println",
-    FN (fn args => args |> map prStr         |> String.concatWith " " |> malPrint)
+    FN (fn args => args |> map prStr         |> String.concatWith " " |> malPrint),
+
+    SYMBOL "readline",
+    FN (fn [STRING prompt] => (TextIO.print prompt;
+                               valOrElse (TextIO.inputLine TextIO.stdIn |> Option.map (STRING o (trimr 1)))
+                                         (fn () => NIL))
+         | _ => raise NotApplicable "readline requires a string")
 ]
 
 fun arithFolder n f (INT next, INT prev) = INT (f (prev, next))

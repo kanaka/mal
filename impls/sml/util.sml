@@ -26,6 +26,8 @@ fun identity x = x
 
 fun triml k s = String.extract (s, k, NONE)
 
+fun trimr k s = String.substring (s, 0, String.size s - k)
+
 fun malEscape s = String.translate (fn #"\"" => "\\\""
                                      | #"\n" => "\\n"
                                      | #"\\" => "\\\\"
