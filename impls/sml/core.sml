@@ -160,6 +160,21 @@ val coreException = [
           | _ => raise NotApplicable "'throw' requires one argument")
 ]
 
+fun splatArgs [LIST l]   = l
+  | splatArgs [VECTOR v] = v
+  | splatArgs (x::xs) = x::(splatArgs xs)
+
+val coreFn = [
+     SYMBOL "map",
+     FN (fn [FN f, LIST l]   => LIST (List.map (fn x => f [x]) l)
+          | [FN f, VECTOR v] => LIST (List.map (fn x => f [x]) v)
+          | x => raise NotApplicable "map requires a function and a list or vector"),
+
+     SYMBOL "apply",
+     FN (fn (FN f::args) => f (splatArgs args)
+          | x => raise NotApplicable "apply requires a function and a list or vector")
+]
+
 val coreNs = List.concat [
     coreList,
     coreIo,
@@ -168,5 +183,6 @@ val coreNs = List.concat [
     coreString,
     coreAtom,
     coreException,
+    coreFn,
     coreMath
 ]
