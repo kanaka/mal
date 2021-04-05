@@ -19,7 +19,10 @@ fun valIfNone _ (SOME a) = a
   | valIfNone b _        = b ()
 
 fun interleave (x::xs) (y::ys) = x :: y :: interleave xs ys
-  | interleave _       _       = []
+  | interleave []      ys      = ys
+  | interleave xs      []      = xs
+
+fun identity x = x
 
 fun triml k s = String.extract (s, k, NONE)
 
