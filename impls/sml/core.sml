@@ -44,24 +44,24 @@ val coreList = [
     SYMBOL "vec",
     FN (fn [LIST xs]       => VECTOR xs
          | [v as VECTOR _] => v
-         | x  => raise NotApplicable "vec requires a list or vector"),
+         | x => raise NotApplicable "vec requires a list or vector"),
 
     SYMBOL "nth",
     FN (fn [LIST l, INT n]   => (List.nth (l, n) handle Subscript => raise OutOfBounds "index out of bounds")
          | [VECTOR v, INT n] => (List.nth (v, n) handle Subscript => raise OutOfBounds "index out of bounds")
-         | x  => raise NotApplicable "nth requires a list or vector and an index"),
+         | x => raise NotApplicable "nth requires a list or vector and an index"),
 
     SYMBOL "first",
     FN (fn [LIST l]   => (case l of (x::_) => x | _ => NIL)
          | [VECTOR v] => (case v of (x::_) => x | _ => NIL)
          | [NIL]      => NIL
-         | x  => raise NotApplicable "first requires a list or vector or nil"),
+         | x => raise NotApplicable "first requires a list or vector or nil"),
 
     SYMBOL "rest",
     FN (fn [LIST l]   => (case l of (_::xs) => LIST xs | _ => LIST [])
          | [VECTOR v] => (case v of (_::xs) => LIST xs | _ => LIST [])
          | [NIL]      => LIST []
-         | x  => raise NotApplicable "rest requires a list or vector or nil")
+         | x => raise NotApplicable "rest requires a list or vector or nil")
 ]
 
 (* N.B. adds extra newline at end *)
