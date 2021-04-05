@@ -1,19 +1,21 @@
 fun read s =
     readStr s
 
-fun eval e (LIST (SYMBOL "def!"::args))             = evalDef e args
-  | eval e (LIST (SYMBOL "let*"::args))             = evalLet e args
-  | eval e (LIST (SYMBOL "do"::args))               = evalDo e args
-  | eval e (LIST (SYMBOL "if"::args))               = evalIf e args
-  | eval e (LIST (SYMBOL "fn*"::args))              = evalFn e args
-  | eval e (LIST (SYMBOL "quote"::args))            = evalQuote e args
-  | eval e (LIST (SYMBOL "quasiquote"::args))       = eval e (expandQuasiquote args)
-  | eval e (LIST (SYMBOL "quasiquoteexpand"::args)) = expandQuasiquote args
-  | eval e (LIST (a::args))                         = evalApply e (eval e a) args
-  | eval e (SYMBOL s)                               = evalSymbol e s
-  | eval e (VECTOR v)                               = VECTOR (map (eval e) v)
-  | eval e (MAP m)                                  = MAP (List.map (fn (k, v) => (eval e k, eval e v)) m)
-  | eval e ast                                      = ast
+fun eval e (LIST (a::args)) = (case specialEval a of SOME special => special e args | _ => evalApply e (eval e a) args)
+  | eval e (SYMBOL s)       = evalSymbol e s
+  | eval e (VECTOR v)       = VECTOR (map (eval e) v)
+  | eval e (MAP m)          = MAP (List.map (fn (k, v) => (eval e k, eval e v)) m)
+  | eval e ast              = ast
+
+and specialEval (SYMBOL "def!")             = SOME evalDef
+  | specialEval (SYMBOL "let*")             = SOME evalLet
+  | specialEval (SYMBOL "do")               = SOME evalDo
+  | specialEval (SYMBOL "if")               = SOME evalIf
+  | specialEval (SYMBOL "fn*")              = SOME evalFn
+  | specialEval (SYMBOL "quote")            = SOME evalQuote
+  | specialEval (SYMBOL "quasiquote")       = SOME evalQuasiquote
+  | specialEval (SYMBOL "quasiquoteexpand") = SOME (fn _ => expandQuasiquote)
+  | specialEval _                           = NONE
 
 and evalDef e [SYMBOL s, ast] = let val v = eval e ast in (def s v e; v) end
   | evalDef _ _               = raise NotApplicable "def! needs a symbol and a form to evaluate"
@@ -36,6 +38,8 @@ and makeFn e binds body = FN (fn (exprs) => eval (bind (interleave binds exprs) 
 
 and evalQuote e [x] = x
   | evalQuote _ _   = raise NotApplicable "quote needs one argument"
+
+and evalQuasiquote e args = eval e (expandQuasiquote args)
 
 and expandQuasiquote [LIST [SYMBOL "unquote", x]] = x
   | expandQuasiquote [LIST l]        = LIST (foldr quasiFolder [] l)
