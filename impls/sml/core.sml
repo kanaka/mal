@@ -1,5 +1,7 @@
 exception NotDefined of string
 exception NotApplicable of string
+exception OutOfBounds of string
+exception MalException of mal_type
 
 fun collectLists ls = collectLists' ls []
 and collectLists' (LIST l::rest)   acc = collectLists' rest (l::acc)
@@ -45,8 +47,8 @@ val coreList = [
          | x  => raise NotApplicable "vec requires a list or vector"),
 
     SYMBOL "nth",
-    FN (fn [LIST l, INT n]   => List.nth (l, n)
-         | [VECTOR v, INT n] => List.nth (v, n)
+    FN (fn [LIST l, INT n]   => (List.nth (l, n) handle Subscript => raise OutOfBounds "index out of bounds")
+         | [VECTOR v, INT n] => (List.nth (v, n) handle Subscript => raise OutOfBounds "index out of bounds")
          | x  => raise NotApplicable "nth requires a list or vector and an index"),
 
     SYMBOL "first",
@@ -152,6 +154,12 @@ val coreAtom = [
          | _ => raise NotApplicable "'reset!' requires an atom argument")
 ]
 
+val coreException = [
+     SYMBOL "throw",
+     FN (fn [x] => raise MalException x
+          | _ => raise NotApplicable "'throw' requires one argument")
+]
+
 val coreNs = List.concat [
     coreList,
     coreIo,
@@ -159,5 +167,6 @@ val coreNs = List.concat [
     coreMeta,
     coreString,
     coreAtom,
+    coreException,
     coreMath
 ]

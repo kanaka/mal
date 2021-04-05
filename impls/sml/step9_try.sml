@@ -19,6 +19,7 @@ and specialEval (SYMBOL "def!")             = SOME evalDef
   | specialEval (SYMBOL "quasiquoteexpand") = SOME (fn _ => expandQuasiquote)
   | specialEval (SYMBOL "defmacro!")        = SOME evalDefmacro
   | specialEval (SYMBOL "macroexpand")      = SOME expandMacro
+  | specialEval (SYMBOL "try*")             = SOME evalTry
   | specialEval _                           = NONE
 
 and evalDef e [SYMBOL s, ast] = let val v = eval e ast in (def s v e; v) end
@@ -64,11 +65,22 @@ and expandMacro e [(ast as LIST (SYMBOL s::args))] = (case lookup e s of SOME (M
   | expandMacro _ [ast]                            = ast
   | expandMacro _ _ = raise NotApplicable "macroexpand needs one argument"
 
+and evalTry e [a, LIST [SYMBOL "catch*", b, c]] = (eval e a handle ex => evalCatch (inside e) b ex c)
+  | evalTry e [a]                               = eval e a
+  | evalTry _ _ = raise NotApplicable "try* needs a form to evaluate"
+and evalCatch e b ex body = eval (bind (eval e) [b, STRING (exnString ex)] e) body
+
+and exnString (NotDefined msg)    = msg
+  | exnString (NotApplicable msg) = msg
+  | exnString (OutOfBounds msg)   = msg
+  | exnString (MalException x)    = prStr x
+  | exnString exn                 = exnMessage exn
+
 and evalApply e (FN f) args = f (map (eval e) args)
   | evalApply _ x      args = raise NotApplicable (prStr x ^ " is not applicable on " ^ prStr (LIST args))
 
 and evalSymbol e s = valOrElse (lookup e s)
-                               (fn _ => raise NotDefined ("symbol '" ^ s ^ "' not found"))
+                               (fn _ => raise NotDefined ("'" ^ s ^ "' not found"))
 
 and bind evl (SYMBOL "&"::v::(SYMBOL s)::vs) e = (def s (LIST (map evl (v::vs))) e; e)
   | bind _   [SYMBOL "&", SYMBOL s]          e = (def s (LIST []) e; e)
