@@ -1,7 +1,7 @@
 fun read s =
     readStr s
 
-fun eval e ast = eval' e (expandMacro e [ast])
+fun eval e ast = eval' e (expandMacro e [ast]) handle exn => exnVal exn (* TODO: temp handling to unblock self hosting testing *)
 
 and eval' e (LIST (a::args)) = (case specialEval a of SOME special => special e args | _ => evalApply e (eval e a) args)
   | eval' e (SYMBOL s)       = evalSymbol e s
