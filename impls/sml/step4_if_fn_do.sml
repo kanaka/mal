@@ -17,8 +17,8 @@ and specialEval (SYMBOL "def!") = SOME evalDef
 and evalDef e [SYMBOL s, ast] = let val v = eval e ast in (def s v e; v) end
   | evalDef _ _               = raise NotApplicable "def! needs a symbol and a form to evaluate"
 
-and evalLet e [LIST bs, ast]   = eval (bind bs (inside e)) ast
-  | evalLet e [VECTOR bs, ast] = eval (bind bs (inside e)) ast
+and evalLet e [LIST bs, ast]   = eval (bindLet bs (inside e)) ast
+  | evalLet e [VECTOR bs, ast] = eval (bindLet bs (inside e)) ast
   | evalLet _ _                = raise NotApplicable "let* needs a list of bindings and a form to evaluate"
 
 and evalDo e (x::xs) = foldl (fn (x, _) => eval e x) (eval e x) xs
@@ -39,11 +39,13 @@ and evalApply e (FN f) args = f (map (eval e) args)
 and evalSymbol e s = valOrElse (lookup e s)
                                (fn _ => raise NotDefined ("symbol '" ^ s ^ "' not found"))
 
-and bind (SYMBOL "&"::v::(SYMBOL s)::vs) e = (def s (LIST (map (eval e) (v::vs))) e; e)
-  | bind [SYMBOL "&", SYMBOL s]          e = (def s (LIST []) e; e)
-  | bind (SYMBOL s::v::rest)             e = (def s (eval e v) e; bind rest e)
-  | bind []                              e = e
-  | bind _ _ = raise NotApplicable "bindings must be a list of symbol/form pairs"
+and bindLet args e = bind' (eval e) args e
+and bind args e = bind' identity args e
+and bind' evl (SYMBOL "&"::v::(SYMBOL s)::vs) e = (def s (LIST (map evl (v::vs))) e; e)
+  | bind' _   [SYMBOL "&", SYMBOL s]          e = (def s (LIST []) e; e)
+  | bind' evl (SYMBOL s::v::rest)             e = (def s (evl v) e; bind' evl rest e)
+  | bind' _   []                              e = e
+  | bind' _ _ _ = raise NotApplicable "bindings must be a list of symbol/form pairs"
 
 fun print f =
     prReadableStr f

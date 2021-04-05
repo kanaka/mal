@@ -24,8 +24,8 @@ and specialEval (SYMBOL "def!")             = SOME evalDef
 and evalDef e [SYMBOL s, ast] = let val v = eval e ast in (def s v e; v) end
   | evalDef _ _               = raise NotApplicable "def! needs a symbol and a form to evaluate"
 
-and evalLet e [LIST bs, ast]   = let val e = inside e in eval (bind (eval e) bs e) ast end
-  | evalLet e [VECTOR bs, ast] = let val e = inside e in eval (bind (eval e) bs e) ast end
+and evalLet e [LIST bs, ast]   = eval (bindLet bs (inside e)) ast
+  | evalLet e [VECTOR bs, ast] = eval (bindLet bs (inside e)) ast
   | evalLet _ _                = raise NotApplicable "let* needs a list of bindings and a form to evaluate"
 
 and evalDo e (x::xs) = foldl (fn (x, _) => eval e x) (eval e x) xs
@@ -38,7 +38,7 @@ and evalIf e [c,a,b] = if truthy (eval e c) then eval e a else eval e b
 and evalFn e [(LIST binds),body]   = makeFn e binds body
   | evalFn e [(VECTOR binds),body] = makeFn e binds body
   | evalFn _ _                     = raise NotApplicable "fn* needs a list of bindings and a body"
-and makeFn e binds body = FN (fn (exprs) => eval (bind (eval e) (interleave binds exprs) (inside e)) body)
+and makeFn e binds body = FN (fn (exprs) => eval (bind (interleave binds exprs) (inside e)) body)
 
 and evalQuote e [x] = x
   | evalQuote _ _   = raise NotApplicable "quote needs one argument"
@@ -58,7 +58,7 @@ and quasiFolder (LIST [SYMBOL "splice-unquote", x], acc) = [SYMBOL "concat", x, 
 and evalDefmacro e [SYMBOL s, LIST [SYMBOL "fn*", LIST binds, body]]   = let val m = makeMacro e binds body in (def s m e; m) end
   | evalDefmacro e [SYMBOL s, LIST [SYMBOL "fn*", VECTOR binds, body]] = let val m = makeMacro e binds body in (def s m e; m) end
   | evalDefmacro _ _ = raise NotApplicable "defmacro! needs a name, a list of bindings, and a body"
-and makeMacro e binds body = MACRO (fn (exprs) => eval (bind identity (interleave binds exprs) (inside e)) body)
+and makeMacro e binds body = MACRO (fn (exprs) => eval (bind (interleave binds exprs) (inside e)) body)
 
 and expandMacro e [(ast as LIST (SYMBOL s::args))] = (case lookup e s of SOME (MACRO m) => m args | _ => ast)
   | expandMacro _ [ast]                            = ast
@@ -70,11 +70,13 @@ and evalApply e (FN f) args = f (map (eval e) args)
 and evalSymbol e s = valOrElse (lookup e s)
                                (fn _ => raise NotDefined ("symbol '" ^ s ^ "' not found"))
 
-and bind evl (SYMBOL "&"::v::(SYMBOL s)::vs) e = (def s (LIST (map evl (v::vs))) e; e)
-  | bind _   [SYMBOL "&", SYMBOL s]          e = (def s (LIST []) e; e)
-  | bind evl (SYMBOL s::v::rest)             e = (def s (evl v) e; bind evl rest e)
-  | bind _   []                              e = e
-  | bind _ _ _ = raise NotApplicable "bindings must be a list of symbol/form pairs"
+and bindLet args e = bind' (eval e) args e
+and bind args e = bind' identity args e
+and bind' evl (SYMBOL "&"::v::(SYMBOL s)::vs) e = (def s (LIST (map evl (v::vs))) e; e)
+  | bind' _   [SYMBOL "&", SYMBOL s]          e = (def s (LIST []) e; e)
+  | bind' evl (SYMBOL s::v::rest)             e = (def s (evl v) e; bind' evl rest e)
+  | bind' _   []                              e = e
+  | bind' _ _ _ = raise NotApplicable "bindings must be a list of symbol/form pairs"
 
 fun print f =
     prReadableStr f
@@ -87,7 +89,7 @@ fun rep e s =
          | NotDefined msg    => "NOT DEFINED: " ^ msg
          | e                 => "ERROR: " ^ (exnMessage e)
 
-val initEnv = ENV (NS (ref [])) |> bind identity coreNs
+val initEnv = ENV (NS (ref [])) |> bind coreNs
 
 fun repl e =
     let open TextIO
@@ -123,7 +125,7 @@ val prelude = "                                                \
 \                (cons 'cond (rest (rest xs)))))))"
 
 fun main () = (
-    bind identity [
+    bind [
         SYMBOL "eval",
         FN (fn ([x]) => eval initEnv x
              | _ => raise NotApplicable "'eval' requires one argument")
