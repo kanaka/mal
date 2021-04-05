@@ -102,7 +102,7 @@ fun rep e s =
          | MalException e    => "ERROR: " ^ (prStr e)
          | e                 => "ERROR: " ^ (exnMessage e)
 
-val initEnv = ENV (NS (ref [])) |> bind coreNs
+val replEnv = ENV (NS (ref [])) |> bind coreNs
 
 fun repl e =
     let open TextIO
@@ -140,18 +140,20 @@ val prelude = "                                                \
 fun main () = (
     bind [
         SYMBOL "eval",
-        FN (fn ([x]) => eval initEnv x
+        FN (fn ([x]) => eval replEnv x
              | _ => raise NotApplicable "'eval' requires one argument")
-    ] initEnv;
-    rep initEnv ("(do " ^ prelude ^ " nil)");
+    ] replEnv;
+    rep replEnv ("(do " ^ prelude ^ " nil)");
     case CommandLine.arguments () of
         prog::args => (
-            def "*ARGV*" (LIST (map STRING args)) initEnv;
-            rep initEnv ("(load-file \"" ^ prog ^ "\")");
+            def "*ARGV*" (LIST (map STRING args)) replEnv;
+            rep replEnv ("(load-file \"" ^ prog ^ "\")");
             ()
         )
         | args => (
-            def "*ARGV*" (LIST (map STRING args)) initEnv;
-            repl initEnv
+            def "*ARGV*" (LIST (map STRING args)) replEnv;
+            def "*host-language*" (STRING "sml") replEnv;
+            rep replEnv "(println (str \"Mal [\" *host-language* \"]\"))";
+            repl replEnv
         )
 )
