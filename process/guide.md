@@ -1261,7 +1261,7 @@ macros.
   return a list containing:
   the "vec" symbol,
   then the result of processing `ast` as if it were a list not
-  starting with `quote`.
+  starting with `unquote`.
 
 <a name="step8"></a>
 
