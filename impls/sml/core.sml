@@ -121,7 +121,23 @@ val coreCmp = [
 
     SYMBOL "symbol?",
     FN (fn [SYMBOL _] => BOOL true | [_] => BOOL false
-         | _ => raise NotApplicable "symbol? requires one argument")
+         | _ => raise NotApplicable "symbol? requires one argument"),
+
+    SYMBOL "keyword?",
+    FN (fn [KEYWORD _] => BOOL true | [_] => BOOL false
+         | _ => raise NotApplicable "keyword? requires one argument"),
+
+    SYMBOL "vector?",
+    FN (fn [VECTOR _] => BOOL true | [_] => BOOL false
+         | _ => raise NotApplicable "vector? requires one argument"),
+
+    SYMBOL "sequential?",
+    FN (fn [LIST _] => BOOL true | [VECTOR _] => BOOL true | [_] => BOOL false
+         | _ => raise NotApplicable "sequential? requires one argument"),
+
+    SYMBOL "map?",
+    FN (fn [MAP _] => BOOL true | [_] => BOOL false
+         | _ => raise NotApplicable "map? requires one argument")
 ]
 
 val coreMath = [
@@ -144,7 +160,15 @@ val coreString = [
     FN (fn args => args |> List.map prReadableStr |> String.concatWith " " |> STRING),
 
     SYMBOL "str",
-    FN (fn args => args |> List.map prStr         |> String.concatWith ""  |> STRING)
+    FN (fn args => args |> List.map prStr         |> String.concatWith ""  |> STRING),
+
+    SYMBOL "symbol",
+    FN (fn [STRING s] => SYMBOL s
+         | _ => raise NotApplicable "symbol requires a string"),
+
+    SYMBOL "keyword",
+    FN (fn [STRING s] => KEYWORD s
+         | _ => raise NotApplicable "keyword requires a string")
 ]
 
 val coreAtom = [
