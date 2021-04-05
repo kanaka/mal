@@ -9,7 +9,11 @@ and collectLists' (LIST l::rest)   acc = collectLists' rest (l::acc)
   | collectLists' []               acc = SOME (rev acc)
   | collectLists' _                _   = NONE
 
-val coreList = [
+fun buildMap (k::v::rest) acc = buildMap rest (malAssoc acc k v) 
+  | buildMap []           acc = MAP (rev acc)
+  | buildMap _ _ = raise NotApplicable "maps can only be constructed from an even number of arguments"
+
+val coreCollection = [
     SYMBOL "list",
     FN (fn args => LIST args),
 
@@ -61,7 +65,38 @@ val coreList = [
     FN (fn [LIST l]   => (case l of (_::xs) => LIST xs | _ => LIST [])
          | [VECTOR v] => (case v of (_::xs) => LIST xs | _ => LIST [])
          | [NIL]      => LIST []
-         | x => raise NotApplicable "rest requires a list or vector or nil")
+         | x => raise NotApplicable "rest requires a list or vector or nil"),
+
+    SYMBOL "vector",
+    FN (fn args => VECTOR args),
+
+    SYMBOL "hash-map",
+    FN (fn args => buildMap args []),
+
+    SYMBOL "assoc",
+    FN (fn (MAP m :: (args as _::_)) => buildMap args m
+         | _ => raise NotApplicable "assoc requires a map and some arguments to add"),
+
+    SYMBOL "dissoc",
+    FN (fn (MAP m :: (args as _::_)) => MAP (foldl (fn (k, acc) => malDissoc acc k) m args)
+         | _ => raise NotApplicable "dissoc requires a map and some arguments to remove"),
+
+    SYMBOL "get",
+    FN (fn [MAP m, k] => valOrElse (malGet m k) (fn () => NIL)
+         | [NIL, _] => NIL
+         | _ => raise NotApplicable "get requires a map and a key"),
+
+    SYMBOL "contains?",
+    FN (fn [MAP m, k] => BOOL (List.exists (fn (k', _) => malEq (k, k')) m)
+         | _ => raise NotApplicable "contains? requires a map and a key"),
+
+    SYMBOL "keys",
+    FN (fn [MAP m] => LIST (map #1 m)
+         | _ => raise NotApplicable "keys requires a map"),
+
+    SYMBOL "vals",
+    FN (fn [MAP m] => LIST (map #2 m)
+         | _ => raise NotApplicable "vals requires a map")
 ]
 
 (* N.B. adds extra newline at end *)
@@ -80,10 +115,10 @@ val coreIo = [
          | _ => raise NotApplicable "'slurp' requires a string filename"),
 
     SYMBOL "prn",
-    FN (fn args => args |> List.map prReadableStr |> String.concatWith " " |> malPrint),
+    FN (fn args => args |> map prReadableStr |> String.concatWith " " |> malPrint),
 
     SYMBOL "println",
-    FN (fn args => args |> List.map prStr         |> String.concatWith " " |> malPrint)
+    FN (fn args => args |> map prStr         |> String.concatWith " " |> malPrint)
 ]
 
 fun arithFolder n f (INT next, INT prev) = INT (f (prev, next))
@@ -157,17 +192,17 @@ val coreMeta = [
 
 val coreString = [
     SYMBOL "pr-str",
-    FN (fn args => args |> List.map prReadableStr |> String.concatWith " " |> STRING),
+    FN (fn args => args |> map prReadableStr |> String.concatWith " " |> STRING),
 
     SYMBOL "str",
-    FN (fn args => args |> List.map prStr         |> String.concatWith ""  |> STRING),
+    FN (fn args => args |> map prStr         |> String.concatWith ""  |> STRING),
 
     SYMBOL "symbol",
     FN (fn [STRING s] => SYMBOL s
          | _ => raise NotApplicable "symbol requires a string"),
 
     SYMBOL "keyword",
-    FN (fn [STRING s] => KEYWORD s
+    FN (fn [STRING s] => KEYWORD s | [kw as KEYWORD _] => kw
          | _ => raise NotApplicable "keyword requires a string")
 ]
 
@@ -217,7 +252,7 @@ val coreFn = [
 ]
 
 val coreNs = List.concat [
-    coreList,
+    coreCollection,
     coreIo,
     coreCmp,
     coreMeta,

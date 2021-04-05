@@ -38,4 +38,6 @@ and mapEq a b =
 
 and malGet m k = m |> List.find (fn (k',_) => malEq (k, k')) |> Option.map #2
 
-and malAssoc m k v = (k, v) :: (m |> List.filter (not o (fn (k', _) => malEq (k, k'))))
+and malAssoc m k v = (k, v) :: (malDissoc m k)
+
+and malDissoc m k = m |> List.filter (not o (fn (k', _) => malEq (k, k')))
