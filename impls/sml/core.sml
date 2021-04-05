@@ -105,7 +105,23 @@ val coreCmp = [
     SYMBOL "<",  FN (cmpFold "<" (op <)),
     SYMBOL "<=", FN (cmpFold "<=" (op <=)),
     SYMBOL ">=", FN (cmpFold ">=" (op >=)),
-    SYMBOL ">",  FN (cmpFold ">" (op >))
+    SYMBOL ">",  FN (cmpFold ">" (op >)),
+
+    SYMBOL "nil?",
+    FN (fn [NIL] => BOOL true | [_] => BOOL false
+         | _ => raise NotApplicable "nil? requires one argument"),
+
+    SYMBOL "true?",
+    FN (fn [BOOL true] => BOOL true | [_] => BOOL false
+         | _ => raise NotApplicable "true? requires one argument"),
+
+    SYMBOL "false?",
+    FN (fn [BOOL false] => BOOL true | [_] => BOOL false
+         | _ => raise NotApplicable "false? requires one argument"),
+
+    SYMBOL "symbol?",
+    FN (fn [SYMBOL _] => BOOL true | [_] => BOOL false
+         | _ => raise NotApplicable "symbol? requires one argument")
 ]
 
 val coreMath = [
@@ -162,7 +178,8 @@ val coreException = [
 
 fun splatArgs [LIST l]   = l
   | splatArgs [VECTOR v] = v
-  | splatArgs (x::xs) = x::(splatArgs xs)
+  | splatArgs (x::xs)    = x::(splatArgs xs)
+  | splatArgs []         = [] (* this should not happen but I see not harm in being exhaustive here *)
 
 val coreFn = [
      SYMBOL "map",
