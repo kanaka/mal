@@ -77,8 +77,11 @@ fun print f =
 
 fun rep e s =
     s |> read |> eval e |> print
-    handle Nothing => ""
-         | e       => "ERROR: " ^ (exnMessage e)
+    handle Nothing           => ""
+         | SyntaxError msg   => "SYNTAX ERROR: " ^ msg
+         | NotApplicable msg => "CANNOT APPLY: " ^ msg
+         | NotDefined msg    => "NOT DEFINED: " ^ msg
+         | e                 => "ERROR: " ^ (exnMessage e)
 
 val initEnv = ENV (NS (ref [])) |> bind identity coreNs
 
