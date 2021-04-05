@@ -9,6 +9,7 @@ datatype mal_type = NIL
                   | MAP of (mal_type * mal_type) list
                   | ATOM of mal_type ref
                   | FN of mal_type list -> mal_type
+                  | MACRO of mal_type list -> mal_type
 
 and mal_ns = NS of (string * mal_type) list ref
 
