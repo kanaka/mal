@@ -99,6 +99,7 @@ fun rep e s =
          | SyntaxError msg   => "SYNTAX ERROR: " ^ msg
          | NotApplicable msg => "CANNOT APPLY: " ^ msg
          | NotDefined msg    => "NOT DEFINED: " ^ msg
+         | MalException e    => "ERROR: " ^ (prStr e)
          | e                 => "ERROR: " ^ (exnMessage e)
 
 val initEnv = ENV (NS (ref [])) |> bind coreNs
