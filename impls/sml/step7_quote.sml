@@ -32,7 +32,7 @@ and evalIf e [c,a,b] = if truthy (eval e c) then eval e a else eval e b
 and evalFn e [(LIST binds),body]   = makeFn e binds body
   | evalFn e [(VECTOR binds),body] = makeFn e binds body
   | evalFn _ _                     = raise NotApplicable "fn* needs a list of bindings and a body"
-and makeFn e binds body = FN (fn (exprs) => eval (bind' binds exprs (inside e)) body)
+and makeFn e binds body = FN (fn (exprs) => eval (bind (interleave binds exprs) (inside e)) body)
 
 and evalQuote e [x] = x
   | evalQuote _ _   = raise NotApplicable "quote needs one argument"
@@ -53,14 +53,11 @@ and evalApply e (FN f) args = f (map (eval e) args)
 and evalSymbol e s = valOrElse (lookup e s)
                                (fn _ => raise NotDefined ("symbol '" ^ s ^ "' not found"))
 
-and bind (SYMBOL s::v::rest) e = (def s (eval e v) e; bind rest e)
-  | bind []                  e = e
+and bind (SYMBOL "&"::v::(SYMBOL s)::vs) e = (def s (LIST (map (eval e) (v::vs))) e; e)
+  | bind [SYMBOL "&", SYMBOL s]          e = (def s (LIST []) e; e)
+  | bind (SYMBOL s::v::rest)             e = (def s (eval e v) e; bind rest e)
+  | bind []                              e = e
   | bind _ _ = raise NotApplicable "bindings must be a list of symbol/form pairs"
-
-and bind' [SYMBOL "&", SYMBOL s] vs      e = (def s (LIST (map (eval e) vs)) e; e)
-  | bind' (SYMBOL s::bs)         (v::vs) e = (def s (eval e v) e; bind' bs vs e)
-  | bind' []                     _       e = e
-  | bind' _ _ _ = raise NotApplicable "bindings must be a list of symbol/form pairs"
 
 fun print f =
     prReadableStr f
