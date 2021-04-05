@@ -96,7 +96,13 @@ val coreCollection = [
 
     SYMBOL "vals",
     FN (fn [MAP m] => LIST (map #2 m)
-         | _ => raise NotApplicable "vals requires a map")
+         | _ => raise NotApplicable "vals requires a map"),
+
+     SYMBOL "seq",
+     FN (fn _ => raise NotDefined "seq is not yet implemented"),
+
+     SYMBOL "conj",
+     FN (fn _ => raise NotDefined "conj is not yet implemented")
 ]
 
 (* N.B. adds extra newline at end *)
@@ -124,7 +130,10 @@ val coreIo = [
     FN (fn [STRING prompt] => (TextIO.print prompt;
                                valOrElse (TextIO.inputLine TextIO.stdIn |> Option.map (STRING o (trimr 1)))
                                          (fn () => NIL))
-         | _ => raise NotApplicable "readline requires a string")
+         | _ => raise NotApplicable "readline requires a string"),
+
+     SYMBOL "time-ms", (* I mean, kind of io? *)
+     FN (fn _ => raise NotDefined "time-ms is not yet implemented")
 ]
 
 fun arithFolder n f (INT next, INT prev) = INT (f (prev, next))
@@ -178,7 +187,19 @@ val coreCmp = [
 
     SYMBOL "map?",
     FN (fn [MAP _] => BOOL true | [_] => BOOL false
-         | _ => raise NotApplicable "map? requires one argument")
+         | _ => raise NotApplicable "map? requires one argument"),
+
+    SYMBOL "fn?",
+    FN (fn [FN _] => BOOL true | [_] => BOOL false
+         | _ => raise NotApplicable "fn? requires one argument"),
+
+    SYMBOL "string?",
+    FN (fn [STRING _] => BOOL true | [_] => BOOL false
+         | _ => raise NotApplicable "string? requires one argument"),
+
+    SYMBOL "number?",
+    FN (fn [INT _] => BOOL true | [_] => BOOL false
+         | _ => raise NotApplicable "number? requires one argument")
 ]
 
 val coreMath = [
@@ -193,7 +214,13 @@ val coreMath = [
 val coreMeta = [
     SYMBOL "read-string",
     FN (fn [STRING s] => readStr s
-         | _ => raise NotApplicable "'read-string' requires a string")
+         | _ => raise NotApplicable "read-string requires a string"),
+
+     SYMBOL "meta",
+     FN (fn _ => raise NotDefined "meta is not yet implemented"),
+
+     SYMBOL "with-meta",
+     FN (fn _ => raise NotDefined "with-meta is not yet implemented")
 ]
 
 val coreString = [
