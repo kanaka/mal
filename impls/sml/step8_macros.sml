@@ -1,25 +1,29 @@
 fun read s =
     readStr s
 
-fun eval e (LIST (SYMBOL "def!"::args))             = evalDef e args
-  | eval e (LIST (SYMBOL "let*"::args))             = evalLet e args
-  | eval e (LIST (SYMBOL "do"::args))               = evalDo e args
-  | eval e (LIST (SYMBOL "if"::args))               = evalIf e args
-  | eval e (LIST (SYMBOL "fn*"::args))              = evalFn e args
-  | eval e (LIST (SYMBOL "quote"::args))            = evalQuote e args
-  | eval e (LIST (SYMBOL "quasiquote"::args))       = eval e (expandQuasiquote args)
-  | eval e (LIST (SYMBOL "quasiquoteexpand"::args)) = expandQuasiquote args
-  | eval e (LIST (a::args))                         = evalApply e (eval e a) args
-  | eval e (SYMBOL s)                               = evalSymbol e s
-  | eval e (VECTOR v)                               = VECTOR (map (eval e) v)
-  | eval e (MAP m)                                  = MAP (List.map (fn (k, v) => (eval e k, eval e v)) m)
-  | eval e ast                                      = ast
+fun eval e ast = eval' e (expandMacro e [ast])
+
+and eval' e (LIST (SYMBOL "def!"::args))             = evalDef e args
+  | eval' e (LIST (SYMBOL "let*"::args))             = evalLet e args
+  | eval' e (LIST (SYMBOL "do"::args))               = evalDo e args
+  | eval' e (LIST (SYMBOL "if"::args))               = evalIf e args
+  | eval' e (LIST (SYMBOL "fn*"::args))              = evalFn e args
+  | eval' e (LIST (SYMBOL "quote"::args))            = evalQuote e args
+  | eval' e (LIST (SYMBOL "quasiquote"::args))       = eval e (expandQuasiquote args)
+  | eval' e (LIST (SYMBOL "quasiquoteexpand"::args)) = expandQuasiquote args
+  | eval' e (LIST (SYMBOL "defmacro!"::args))        = evalDefmacro e args
+  | eval' e (LIST (SYMBOL "macroexpand"::args))      = expandMacro e args
+  | eval' e (LIST (a::args))                         = evalApply e (eval e a) args
+  | eval' e (SYMBOL s)                               = evalSymbol e s
+  | eval' e (VECTOR v)                               = VECTOR (map (eval e) v)
+  | eval' e (MAP m)                                  = MAP (List.map (fn (k, v) => (eval e k, eval e v)) m)
+  | eval' e ast                                      = ast
 
 and evalDef e [SYMBOL s, ast] = let val v = eval e ast in (def s v e; v) end
   | evalDef _ _               = raise NotApplicable "def! needs a symbol and a form to evaluate"
 
-and evalLet e [LIST bs, ast]   = eval (bind bs (inside e)) ast
-  | evalLet e [VECTOR bs, ast] = eval (bind bs (inside e)) ast
+and evalLet e [LIST bs, ast]   = eval (bindLet bs (inside e)) ast
+  | evalLet e [VECTOR bs, ast] = eval (bindLet bs (inside e)) ast
   | evalLet _ _                = raise NotApplicable "let* needs a list of bindings and a form to evaluate"
 
 and evalDo e (x::xs) = foldl (fn (x, _) => eval e x) (eval e x) xs
@@ -32,7 +36,7 @@ and evalIf e [c,a,b] = if truthy (eval e c) then eval e a else eval e b
 and evalFn e [(LIST binds),body]   = makeFn e binds body
   | evalFn e [(VECTOR binds),body] = makeFn e binds body
   | evalFn _ _                     = raise NotApplicable "fn* needs a list of bindings and a body"
-and makeFn e binds body = FN (fn (exprs) => eval (bind' binds exprs (inside e)) body)
+and makeFn e binds body = FN (fn (exprs) => eval (bindFn binds exprs (inside e)) body)
 
 and evalQuote e [x] = x
   | evalQuote _ _   = raise NotApplicable "quote needs one argument"
@@ -43,9 +47,18 @@ and expandQuasiquote [LIST [SYMBOL "unquote", x]] = x
   | expandQuasiquote [m as MAP _]    = LIST [SYMBOL "quote", m]
   | expandQuasiquote [s as SYMBOL _] = LIST [SYMBOL "quote", s]
   | expandQuasiquote [x]             = x
-  | expandQuasiquote _   = raise NotApplicable "quasiquote needs one argument"
+  | expandQuasiquote _               = raise NotApplicable "quasiquote needs one argument"
 and quasiFolder (LIST [SYMBOL "splice-unquote", x], acc) = [SYMBOL "concat", x, LIST acc]
   | quasiFolder (x, acc)                                 = [SYMBOL "cons", expandQuasiquote [x], LIST acc]
+
+and evalDefmacro e [SYMBOL s, LIST [SYMBOL "fn*", LIST binds, body]]   = let val m = makeMacro e binds body in (def s m e; m) end
+  | evalDefmacro e [SYMBOL s, LIST [SYMBOL "fn*", VECTOR binds, body]] = let val m = makeMacro e binds body in (def s m e; m) end
+  | evalDefmacro _ _ = raise NotApplicable "defmacro! needs a name, a list of bindings, and a body"
+and makeMacro e binds body = MACRO (fn (exprs) => eval (bindMacro binds exprs (inside e)) body)
+
+and expandMacro e [(ast as LIST (SYMBOL s::args))] = (case lookup e s of SOME (MACRO m) => m args | _ => ast)
+  | expandMacro _ [ast]                            = ast
+  | expandMacro _ _ = raise NotApplicable "macroexpand needs one argument"
 
 and evalApply e (FN f) args = f (map (eval e) args)
   | evalApply _ x      args = raise NotApplicable (prStr x ^ " is not applicable on " ^ prStr (LIST args))
@@ -53,26 +66,29 @@ and evalApply e (FN f) args = f (map (eval e) args)
 and evalSymbol e s = valOrElse (lookup e s)
                                (fn _ => raise NotDefined ("symbol '" ^ s ^ "' not found"))
 
-and bind (SYMBOL s::v::rest) e = (def s (eval e v) e; bind rest e)
-  | bind []                  e = e
-  | bind _ _ = raise NotApplicable "bindings must be a list of symbol/form pairs"
+and bindLet (SYMBOL s::v::rest) e = (def s (eval e v) e; bindLet rest e)
+  | bindLet []                  e = e
+  | bindLet _ _ = raise NotApplicable "bindings must be a list of symbol/form pairs"
 
-and bind' [SYMBOL "&", SYMBOL s] vs      e = (def s (LIST (map (eval e) vs)) e; e)
-  | bind' (SYMBOL s::bs)         (v::vs) e = (def s (eval e v) e; bind' bs vs e)
-  | bind' []                     _       e = e
-  | bind' _ _ _ = raise NotApplicable "bindings must be a list of symbol/form pairs"
+and bindFn [SYMBOL "&", SYMBOL s] vs      e = (def s (LIST (map (eval e) vs)) e; e)
+  | bindFn (SYMBOL s::bs)         (v::vs) e = (def s (eval e v) e; bindFn bs vs e)
+  | bindFn []                     _       e = e
+  | bindFn _ _ _ = raise NotApplicable "bindings must be a pair of symbol/form lists"
+
+and bindMacro [SYMBOL "&", SYMBOL s] vs      e = (def s (LIST vs) e; e)
+  | bindMacro (SYMBOL s::bs)         (v::vs) e = (def s v e; bindMacro bs vs e)
+  | bindMacro []                     _       e = e
+  | bindMacro _ _ _ = raise NotApplicable "bindings must be a pair of symbol/form lists"
 
 fun print f =
     prReadableStr f
 
 fun rep e s =
     s |> read |> eval e |> print
-    handle Nothing           => ""
-         | SyntaxError msg   => "SYNTAX ERROR: " ^ msg
-         | NotApplicable msg => "CANNOT APPLY: " ^ msg
-         | NotDefined msg    => "NOT DEFINED: " ^ msg
+    handle Nothing => ""
+         | e       => "ERROR: " ^ (exnMessage e)
 
-val initEnv = ENV (NS (ref [])) |> bind coreNs
+val initEnv = ENV (NS (ref [])) |> bindLet coreNs
 
 fun repl e =
     let open TextIO
@@ -89,14 +105,26 @@ fun repl e =
     ) end
 
 val prelude = "                                                \
+\\
 \(def! not (fn* (a) (if a false true)))                        \
+\\
 \(def!                                                         \
 \  load-file                                                   \
 \  (fn* (f)                                                    \
-\    (eval (read-string (str \"(do \" (slurp f) \"\nnil)\")))))"
+\    (eval (read-string (str \"(do \" (slurp f) \"\nnil)\")))))\
+\\
+\(defmacro!                                                    \
+\  cond                                                        \
+\  (fn* (& xs)                                                 \
+\    (if (> (count xs) 0)                                      \
+\        (list 'if (first xs)                                  \
+\                (if (> (count xs) 1)                          \
+\                  (nth xs 1)                                  \
+\                  (throw \"odd number of forms to cond\"))    \
+\                (cons 'cond (rest (rest xs)))))))"
 
 fun main () = (
-    bind [
+    bindLet [
         SYMBOL "eval",
         FN (fn ([x]) => eval initEnv x
              | _ => raise NotApplicable "'eval' requires one argument")

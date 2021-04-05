@@ -10,6 +10,7 @@ fun prStr NIL          = "nil"
   | prStr (VECTOR v)   = "[" ^ (String.concatWith " " (map prStr v)) ^ "]" (* N.B. not tail recursive *)
   | prStr (MAP m)      = "{" ^ (String.concatWith " " (map prKvp m)) ^ "}" (* N.B. not tail recursive *)
   | prStr (FN _)       = "#<function>"
+  | prStr (MACRO _)    = "#<macro>"
 and prKvp (k, v) = (prStr k) ^ " " ^ (prStr v)
 
 fun prReadableStr (STRING s) = "\"" ^ (malEscape s) ^ "\""
