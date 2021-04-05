@@ -68,13 +68,13 @@ and expandMacro e [(ast as LIST (SYMBOL s::args))] = (case lookup e s of SOME (M
 and evalTry e [a, LIST [SYMBOL "catch*", b, c]] = (eval e a handle ex => evalCatch (inside e) b ex c)
   | evalTry e [a]                               = eval e a
   | evalTry _ _ = raise NotApplicable "try* needs a form to evaluate"
-and evalCatch e b ex body = eval (bind [b, STRING (exnString ex)] e) body
+and evalCatch e b ex body = eval (bind [b, exnVal ex] e) body
 
-and exnString (NotDefined msg)    = msg
-  | exnString (NotApplicable msg) = msg
-  | exnString (OutOfBounds msg)   = msg
-  | exnString (MalException x)    = prStr x
-  | exnString exn                 = exnMessage exn
+and exnVal (MalException x)    = x
+  | exnVal (NotDefined msg)    = STRING msg
+  | exnVal (NotApplicable msg) = STRING msg
+  | exnVal (OutOfBounds msg)   = STRING msg
+  | exnVal exn                 = STRING (exnMessage exn)
 
 and evalApply e (FN f) args = f (map (eval e) args)
   | evalApply _ x      args = raise NotApplicable (prStr x ^ " is not applicable on " ^ prStr (LIST args))
