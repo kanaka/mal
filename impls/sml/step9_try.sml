@@ -56,10 +56,10 @@ and expandQuasiquote [LIST ([SYMBOL "unquote", x],_)] = x
 and quasiFolder (LIST ([SYMBOL "splice-unquote", x],_), acc) = [SYMBOL "concat", x, makeList acc]
   | quasiFolder (x, acc)                                     = [SYMBOL "cons", expandQuasiquote [x], makeList acc]
 
-and evalDefmacro e [SYMBOL s, LIST ([SYMBOL "fn*", LIST (binds,_), body],_)]   = let val m = makeMacro e binds body in (def s m e; m) end
-  | evalDefmacro e [SYMBOL s, LIST ([SYMBOL "fn*", VECTOR (binds,_), body],_)] = let val m = makeMacro e binds body in (def s m e; m) end
-  | evalDefmacro _ _ = raise NotApplicable "defmacro! needs a name, a list of bindings, and a body"
-and makeMacro e binds body = MACRO (fn (exprs) => eval (bind (interleave binds exprs) (inside e)) body)
+and evalDefmacro e [SYMBOL s, ast] = defMacro e s (eval e ast)
+  | evalDefmacro _ _ = raise NotApplicable "defmacro! needs a name, and a fn*"
+and defMacro e s (FN (f,_)) = let val m = MACRO f in (def s m e; m) end
+  | defMacro _ _ _ = raise NotApplicable "defmacro! needs a name, and a fn*"
 
 and expandMacro e [(ast as LIST (SYMBOL s::args, _))] = (case lookup e s of SOME (MACRO m) => m args | _ => ast)
   | expandMacro _ [ast]                               = ast
