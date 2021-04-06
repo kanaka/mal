@@ -4,25 +4,25 @@ exception NotApplicable of string
 fun read s =
     readStr s
 
-fun eval e (LIST (a::args)) = (case specialEval a of SOME special => special e args | _ => evalApply e (eval e a) args)
-  | eval e (SYMBOL s)       = evalSymbol e s
-  | eval e (VECTOR v)       = VECTOR (map (eval e) v)
-  | eval e (MAP m)          = MAP (List.map (fn (k, v) => (eval e k, eval e v)) m)
-  | eval e ast              = ast
+fun eval e (LIST (a::args,_)) = (case specialEval a of SOME special => special e args | _ => evalApply e (eval e a) args)
+  | eval e (SYMBOL s)         = evalSymbol e s
+  | eval e (VECTOR (v,_))     = VECTOR (map (eval e) v, NO_META)
+  | eval e (MAP (m,_))        = MAP (List.map (fn (k, v) => (eval e k, eval e v)) m, NO_META)
+  | eval e ast                = ast
 
 and specialEval (SYMBOL "def!") = SOME evalDef
   | specialEval (SYMBOL "let*") = SOME evalLet
   | specialEval _               = NONE
 
 and evalDef e [SYMBOL s, ast] = let val v = eval e ast in (def s v e; v) end
-  | evalDef _ _               = raise NotApplicable "def! needs a symbol and a form to evaluate"
+  | evalDef _ _ = raise NotApplicable "def! needs a symbol and a form to evaluate"
 
-and evalLet e [LIST bs, ast]   = eval (bind bs (inside e)) ast
-  | evalLet e [VECTOR bs, ast] = eval (bind bs (inside e)) ast
-  | evalLet _ _                = raise NotApplicable "let* needs a list of bindings and a form to evaluate"
+and evalLet e [LIST (bs,_), ast]   = eval (bind bs (inside e)) ast
+  | evalLet e [VECTOR (bs,_), ast] = eval (bind bs (inside e)) ast
+  | evalLet _ _ = raise NotApplicable "let* needs a list of bindings and a form to evaluate"
 
-and evalApply e (FN f) args = f (map (eval e) args)
-  | evalApply _ a      args = raise NotApplicable (prStr a ^ " is not applicable on " ^ prStr (LIST args))
+and evalApply e (FN (f,_)) args = f (map (eval e) args)
+  | evalApply _ a args = raise NotApplicable (prStr a ^ " is not applicable on " ^ prStr (LIST (args, NO_META)))
 
 and evalSymbol e s = valOrElse (lookup e s)
                                (fn _ => raise NotDefined ("symbol '" ^ s ^ "' not found"))
@@ -50,19 +50,21 @@ fun malMinus (INT b, INT a) = INT (a - b)
 fun malDiv   (INT b, INT a) = INT (a div b)
   | malDiv _ = raise NotApplicable "can only divide integers"
 
-val initEnv = ENV (NS (ref [])) |> bind [
+val replEnv = ENV (NS (ref [])) |> bind [
     SYMBOL "+",
-    FN (foldl malPlus (INT 0)),
+    FN (foldl malPlus (INT 0), NO_META),
     SYMBOL "*",
-    FN (foldl malTimes (INT 1)),
+    FN (foldl malTimes (INT 1), NO_META),
     SYMBOL "-",
     FN (fn [x]   => malMinus (x, INT 0)
          | x::xs => foldr malMinus x xs
-         | _     => raise NotApplicable "'-' requires arguments"),
+         | _ => raise NotApplicable "'-' requires arguments"
+        , NO_META),
     SYMBOL "/",
     FN (fn [x]   => malDiv (x, INT 1)
          | x::xs => foldr malDiv x xs
-         | _     => raise NotApplicable "'/' requires arguments")
+         | _ => raise NotApplicable "'/' requires arguments"
+        , NO_META)
 ]
 
 fun repl e =
@@ -79,4 +81,4 @@ fun repl e =
             | NONE => ()
     ) end
 
-fun main () = repl initEnv
+fun main () = repl replEnv
