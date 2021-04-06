@@ -4,34 +4,28 @@ exception NotApplicable of string
 fun READ s =
     readStr s
 
-fun EVAL e ast =
-    case ast of
-        LIST [] => ast
-        | LIST l => eval_apply e ast
-        | _    => eval_ast e ast
+fun EVAL e ast = case ast of
+    LIST (_::_,_) => eval_apply e ast
+    | _           => eval_ast e ast
 
-and eval_ast e ast =
-    case ast of
-        SYMBOL s   => (case lookup e s of SOME v => v | NONE => raise NotDefined ("unable to resolve symbol '" ^ s ^ "'"))
-        | LIST l   => LIST (List.map (EVAL e) l)
-        | VECTOR v => VECTOR (List.map (EVAL e) v)
-        | MAP m    => MAP (List.map (fn (k, v) => (EVAL e k, EVAL e v)) m)
-        | _        => ast
+and eval_ast e ast = case ast of
+    SYMBOL s       => (case lookup e s of SOME v => v | NONE => raise NotDefined ("unable to resolve symbol '" ^ s ^ "'"))
+    | LIST (l,_)   => LIST (List.map (EVAL e) l, NO_META)
+    | VECTOR (v,_) => VECTOR (List.map (EVAL e) v, NO_META)
+    | MAP (m,_)    => MAP (List.map (fn (k, v) => (EVAL e k, EVAL e v)) m, NO_META)
+    | _            => ast
 
-and eval_apply e ast =
-    case eval_ast e ast of
-        LIST ((FN f)::args) => f args
-        | _ => raise NotApplicable "eval_apply needs a non-empty list"
+and eval_apply e ast = case eval_ast e ast of
+    LIST ((FN (f,_))::args, _) => f args
+    | _ => raise NotApplicable "eval_apply needs a non-empty list"
 
 fun PRINT f =
     prReadableStr f
 
 fun rep e s =
     s |> READ |> EVAL e |> PRINT
-    handle Nothing           => ""
-         | SyntaxError msg   => "SYNTAX ERROR: " ^ msg
-         | NotApplicable msg => "CANNOT APPLY: " ^ msg
-         | NotDefined msg    => "NOT DEFINED: " ^ msg
+    handle Nothing => ""
+         | e       => "ERROR: " ^ (exnMessage e)
 
 fun malPlus  (INT a, INT b) = INT (a + b)
   | malPlus _ = raise NotApplicable "can only add integers"
@@ -42,18 +36,20 @@ fun malMinus (INT b, INT a) = INT (a - b)
 fun malDiv   (INT b, INT a) = INT (a div b)
   | malDiv _ = raise NotApplicable "can only divide integers"
 
-val initEnv = ENV (NS (ref [
-    ("+", FN (foldl malPlus (INT 0))),
-    ("*", FN (foldl malTimes (INT 1))),
+val replEnv = ENV (NS (ref [
+    ("+", FN (foldl malPlus (INT 0), NO_META)),
+    ("*", FN (foldl malTimes (INT 1), NO_META)),
     ("-", FN (
         fn [x]   => malMinus (x, INT 0)
          | x::xs => foldr malMinus x xs
          | _ => raise NotApplicable "'-' requires at least one argument"
+        , NO_META
     )),
     ("/", FN (
         fn [x]   => malDiv (x, INT 1)
          | x::xs => foldr malDiv x xs
          | _ => raise NotApplicable "'/' requires at least one argument"
+        , NO_META
     ))
 ]))
 
@@ -63,7 +59,7 @@ fun repl () =
         print("user> ");
         case inputLine(stdIn) of
             SOME(line) => (
-                print((rep initEnv line) ^ "\n");
+                print((rep replEnv line) ^ "\n");
                 repl ()
             )
             | NONE => ()

@@ -126,33 +126,33 @@ and readForm r =
         SOME PAREN_LEFT     => readList [] (rest r)
         | SOME BRACKET_LEFT => readVector [] (rest r)
         | SOME BRACE_LEFT   => readMap [] (rest r)
-        | SOME AT           => let val (a, r') = readAtom (rest r) in (LIST [SYMBOL "deref", a], r') end
-        | SOME QUOTE        => let val (a, r') = readForm (rest r) in (LIST [SYMBOL "quote", a], r') end
-        | SOME BACK_TICK    => let val (a, r') = readForm (rest r) in (LIST [SYMBOL "quasiquote", a], r') end
-        | SOME TILDE        => let val (a, r') = readForm (rest r) in (LIST [SYMBOL "unquote", a], r') end
-        | SOME TILDE_AT     => let val (a, r') = readForm (rest r) in (LIST [SYMBOL "splice-unquote", a], r') end
+        | SOME AT           => let val (a, r') = readAtom (rest r) in (makeList [SYMBOL "deref", a], r') end
+        | SOME QUOTE        => let val (a, r') = readForm (rest r) in (makeList [SYMBOL "quote", a], r') end
+        | SOME BACK_TICK    => let val (a, r') = readForm (rest r) in (makeList [SYMBOL "quasiquote", a], r') end
+        | SOME TILDE        => let val (a, r') = readForm (rest r) in (makeList [SYMBOL "unquote", a], r') end
+        | SOME TILDE_AT     => let val (a, r') = readForm (rest r) in (makeList [SYMBOL "splice-unquote", a], r') end
         | _                 => readAtom r
 
 and readWithMeta r =
     let val (m, r')  = readForm r
         val (v, r'') = readForm r'
     in
-        (LIST [SYMBOL "with-meta", v, m], r'')
+        (makeList [SYMBOL "with-meta", v, m], r'')
     end
 
 and readList acc r =
     if peek r = SOME PAREN_RIGHT
-    then (LIST (rev acc), (rest r))
+    then (LIST (rev acc, NO_META), (rest r))
     else let val (a, r') = readForm r in readList (a::acc) r' end
 
 and readVector acc r =
     if peek r = SOME BRACKET_RIGHT
-    then (VECTOR (rev acc), (rest r))
+    then (VECTOR (rev acc, NO_META), (rest r))
     else let val (a, r') = readForm r in readVector (a::acc) r' end
 
 and readMap acc r =
     if peek r = SOME BRACE_RIGHT
-    then (MAP (rev acc), (rest r))
+    then (MAP (rev acc, NO_META), (rest r))
     else let val (k, r') = readForm r val (v, r'') = readForm r' in readMap (malAssoc acc k v) r'' end
 
 fun clean ts =
@@ -162,4 +162,4 @@ fun clean ts =
 fun readStr s =
     case tokenize s |> clean of
         [] => raise Nothing
-        | ts => ts |> READER |> readForm |> #1 (* TODO: check line is empty after *)
+        | ts => ts |> READER |> readForm |> #1
