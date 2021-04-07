@@ -1,14 +1,14 @@
-fun READ s: string =
+fun read s: string =
     s
 
-fun EVAL s: string =
+fun eval s: string =
     s
 
-fun PRINT s: string =
+fun print s: string =
     s
 
 fun rep s: string =
-    (PRINT o EVAL o READ) s
+    (print o eval o read) s
 
 fun repl () =
     let open TextIO

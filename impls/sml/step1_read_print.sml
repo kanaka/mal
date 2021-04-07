@@ -1,14 +1,14 @@
-fun READ s =
+fun read s =
     readStr s
 
-fun EVAL f =
+fun eval f =
     f
 
-fun PRINT f =
+fun print f =
     prReadableStr f
 
 fun rep s =
-    s |> READ |> EVAL |> PRINT
+    s |> read |> eval |> print
     handle SyntaxError msg => "SYNTAX ERROR: " ^ msg
          | Nothing         => ""
 

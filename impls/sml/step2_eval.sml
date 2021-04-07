@@ -1,29 +1,29 @@
 exception NotDefined of string
 exception NotApplicable of string
 
-fun READ s =
+fun read s =
     readStr s
 
-fun EVAL e ast = case ast of
-    LIST (_::_,_) => eval_apply e ast
-    | _           => eval_ast e ast
+fun eval e ast = case ast of
+    LIST (_::_,_) => evalApply e ast
+    | _           => evalAst e ast
 
-and eval_ast e ast = case ast of
+and evalAst e ast = case ast of
     SYMBOL s       => (case lookup e s of SOME v => v | NONE => raise NotDefined ("unable to resolve symbol '" ^ s ^ "'"))
-    | LIST (l,_)   => LIST (List.map (EVAL e) l, NO_META)
-    | VECTOR (v,_) => VECTOR (List.map (EVAL e) v, NO_META)
-    | MAP (m,_)    => MAP (List.map (fn (k, v) => (EVAL e k, EVAL e v)) m, NO_META)
+    | LIST (l,_)   => LIST (List.map (eval e) l, NO_META)
+    | VECTOR (v,_) => VECTOR (List.map (eval e) v, NO_META)
+    | MAP (m,_)    => MAP (List.map (fn (k, v) => (eval e k, eval e v)) m, NO_META)
     | _            => ast
 
-and eval_apply e ast = case eval_ast e ast of
+and evalApply e ast = case evalAst e ast of
     LIST ((FN (f,_))::args, _) => f args
     | _ => raise NotApplicable "eval_apply needs a non-empty list"
 
-fun PRINT f =
+fun print f =
     prReadableStr f
 
 fun rep e s =
-    s |> READ |> EVAL e |> PRINT
+    s |> read |> eval e |> print
     handle Nothing => ""
          | e       => "ERROR: " ^ (exnMessage e)
 
