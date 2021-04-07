@@ -166,7 +166,7 @@ into the main repository:
 
 * Make sure the Travis build and test scripts pass locally:
   ```bash
-  IMPL=[IMPL_NAME] ./.travis_build.sh
+  ./.travis_test.sh build [IMPL_NAME]
   ./.travis_test.sh test [IMPL_NAME]
   ```
 
