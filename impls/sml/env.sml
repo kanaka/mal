@@ -8,7 +8,4 @@ fun def s v (ENV ns)        = set s v ns
 fun lookup (ENV ns)            s = get ns s
   | lookup (INNER (ns, outer)) s = optOrElse (get ns s) (fn () => lookup outer s)
 
-fun wrap outer (ENV ns)            = INNER (ns, outer)
-  | wrap outer (INNER (ns, inner)) = INNER (ns, wrap outer inner)
-
 fun inside outer = INNER (NS (ref []), outer)
