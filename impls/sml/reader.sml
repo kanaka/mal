@@ -126,18 +126,18 @@ and readForm r =
         SOME PAREN_LEFT     => readList [] (rest r)
         | SOME BRACKET_LEFT => readVector [] (rest r)
         | SOME BRACE_LEFT   => readMap [] (rest r)
-        | SOME AT           => let val (a, r') = readAtom (rest r) in (makeList [SYMBOL "deref", a], r') end
-        | SOME QUOTE        => let val (a, r') = readForm (rest r) in (makeList [SYMBOL "quote", a], r') end
-        | SOME BACK_TICK    => let val (a, r') = readForm (rest r) in (makeList [SYMBOL "quasiquote", a], r') end
-        | SOME TILDE        => let val (a, r') = readForm (rest r) in (makeList [SYMBOL "unquote", a], r') end
-        | SOME TILDE_AT     => let val (a, r') = readForm (rest r) in (makeList [SYMBOL "splice-unquote", a], r') end
+        | SOME AT           => let val (a, r') = readAtom (rest r) in (malList [SYMBOL "deref", a], r') end
+        | SOME QUOTE        => let val (a, r') = readForm (rest r) in (malList [SYMBOL "quote", a], r') end
+        | SOME BACK_TICK    => let val (a, r') = readForm (rest r) in (malList [SYMBOL "quasiquote", a], r') end
+        | SOME TILDE        => let val (a, r') = readForm (rest r) in (malList [SYMBOL "unquote", a], r') end
+        | SOME TILDE_AT     => let val (a, r') = readForm (rest r) in (malList [SYMBOL "splice-unquote", a], r') end
         | _                 => readAtom r
 
 and readWithMeta r =
     let val (m, r')  = readForm r
         val (v, r'') = readForm r'
     in
-        (makeList [SYMBOL "with-meta", v, m], r'')
+        (malList [SYMBOL "with-meta", v, m], r'')
     end
 
 and readList acc r =

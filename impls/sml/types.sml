@@ -34,17 +34,15 @@ fun malEq (         NIL, NIL)          = true
   | malEq (  LIST (a,_), VECTOR (b,_)) = ListPair.allEq malEq (a, b)
   | malEq (VECTOR (a,_), LIST (b,_))   = ListPair.allEq malEq (a, b)
   | malEq (   MAP (a,_), MAP (b,_))    = mapEq a b
-  | malEq _                      = false
+  | malEq _                            = false
 and mapEq a b =
     a |> List.map (fn (k,va) => (va, malGet b k)) |> List.all (fn (va,SOME vb) => malEq (va, vb) | _ => false) andalso
     b |> List.map (fn (k,vb) => (vb, malGet a k)) |> List.all (fn (vb,SOME va) => malEq (vb, va) | _ => false)
 
 and malGet m k = m |> List.find (fn (k',_) => malEq (k, k')) |> Option.map #2
-
 and malAssoc m k v = (k, v) :: (malDissoc m k)
-
 and malDissoc m k = m |> List.filter (not o (fn (k', _) => malEq (k, k')))
 
-and makeList l = LIST (l, NO_META)
-fun makeVector xs = VECTOR (xs, NO_META)
-fun makeMap kvps = MAP (kvps, NO_META)
+fun malList xs = LIST (xs, NO_META)
+fun malVector xs = VECTOR (xs, NO_META)
+fun malMap kvps = MAP (kvps, NO_META)
