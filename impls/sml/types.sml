@@ -46,3 +46,5 @@ and malAssoc m k v = (k, v) :: (malDissoc m k)
 and malDissoc m k = m |> List.filter (not o (fn (k', _) => malEq (k, k')))
 
 and makeList l = LIST (l, NO_META)
+fun makeVector xs = VECTOR (xs, NO_META)
+fun makeMap kvps = MAP (kvps, NO_META)
