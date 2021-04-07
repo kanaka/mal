@@ -8,7 +8,7 @@ exception MalException of mal_type
  *)
 
 fun buildMap (k::v::rest) acc = buildMap rest (malAssoc acc k v) 
-  | buildMap []           acc = makeMap (rev acc)
+  | buildMap []           acc = malMap (rev acc)
   | buildMap _ _ = raise NotApplicable "maps can only be constructed from an even number of arguments"
 
 fun collectLists ls = collectLists' ls []
@@ -121,22 +121,22 @@ val coreNs = List.concat [
     prim "swap!"  (fn (ATOM a::(FN (f,_))::args) => let val x = f ((!a)::args) in (a := x; x) end | _ => raise Domain),
 
     (* Listoids *)
-    prim "list"   (fn args => makeList args),
-    prim "vector" (fn args => makeVector (args)),
-    prim "vec"    (fn [LIST (xs,_)] => makeVector (xs) | [v as VECTOR _] => v | _ => raise Domain),
-    prim "concat" (fn args => makeList (List.concat (collectLists args))),
+    prim "list"   (fn args => malList args),
+    prim "vector" (fn args => malVector (args)),
+    prim "vec"    (fn [LIST (xs,_)] => malVector (xs) | [v as VECTOR _] => v | _ => raise Domain),
+    prim "concat" (fn args => malList (List.concat (collectLists args))),
     prim "cons"
-    (fn [hd, LIST (tl,_)]   => makeList (hd::tl)
-      | [hd, VECTOR (tl,_)] => makeList (hd::tl)
+    (fn [hd, LIST (tl,_)]   => malList (hd::tl)
+      | [hd, VECTOR (tl,_)] => malList (hd::tl)
       | _ => raise Domain),
     prim "conj"
-    (fn (LIST (l,_)::args)   => makeList (rev args @ l)
-      | (VECTOR (v,_)::args) => makeVector (v @ args)
+    (fn (LIST (l,_)::args)   => malList (rev args @ l)
+      | (VECTOR (v,_)::args) => malVector (v @ args)
       | _ => raise Domain),
     prim "seq"
     (fn [LIST ([],_)]   => NIL | [l as LIST _]  => l
-      | [VECTOR ([],_)] => NIL | [VECTOR (v,_)] => makeList v
-      | [STRING ""]     => NIL | [STRING s]     => String.explode s |> List.map (STRING o String.str) |> makeList
+      | [VECTOR ([],_)] => NIL | [VECTOR (v,_)] => malList v
+      | [STRING ""]     => NIL | [STRING s]     => String.explode s |> List.map (STRING o String.str) |> malList
       | [NIL]           => NIL
       | _ => raise Domain),
     prim "count"
@@ -154,13 +154,13 @@ val coreNs = List.concat [
       | [NIL]          => NIL
       | _ => raise Domain),
     prim "rest"
-    (fn [LIST (l,_)]   => makeList (case l of (_::xs) => xs | _ => [])
-      | [VECTOR (v,_)] => makeList (case v of (_::xs) => xs | _ => [])
-      | [NIL]          => makeList ([])
+    (fn [LIST (l,_)]   => malList (case l of (_::xs) => xs | _ => [])
+      | [VECTOR (v,_)] => malList (case v of (_::xs) => xs | _ => [])
+      | [NIL]          => malList ([])
       | _ => raise Domain),
     prim "map"
-    (fn [FN (f,_), LIST (l,_)]   => makeList (List.map (fn x => f [x]) l)
-      | [FN (f,_), VECTOR (v,_)] => makeList (List.map (fn x => f [x]) v)
+    (fn [FN (f,_), LIST (l,_)]   => malList (List.map (fn x => f [x]) l)
+      | [FN (f,_), VECTOR (v,_)] => malList (List.map (fn x => f [x]) v)
       | _ => raise Domain),
 
     (* Maps *)
@@ -169,13 +169,13 @@ val coreNs = List.concat [
     prim "assoc"
     (fn (MAP (m,_)::(args as _::_)) => buildMap args m | _ => raise Domain),
     prim "dissoc"
-    (fn (MAP (m,_)::(args as _::_)) => makeMap (foldl (fn (k, acc) => malDissoc acc k) m args) | _ => raise Domain),
+    (fn (MAP (m,_)::(args as _::_)) => malMap (foldl (fn (k, acc) => malDissoc acc k) m args) | _ => raise Domain),
     prim "get"
     (fn [MAP (m,_), k] => valOrElse (malGet m k) (fn () => NIL) | [NIL, _] => NIL | _ => raise Domain),
     prim "keys"
-    (fn [MAP (m,_)] => makeList (map #1 m) | _ => raise Domain),
+    (fn [MAP (m,_)] => malList (map #1 m) | _ => raise Domain),
     prim "vals"
-    (fn [MAP (m,_)] => makeList (map #2 m) | _ => raise Domain),
+    (fn [MAP (m,_)] => malList (map #2 m) | _ => raise Domain),
 
     (* Metaprogramming and metadata *)
     prim "read-string"

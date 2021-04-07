@@ -47,14 +47,14 @@ and evalQuote e [x] = x
 and evalQuasiquote e args = eval e (expandQuasiquote args)
 
 and expandQuasiquote [LIST ([SYMBOL "unquote", x],_)] = x
-  | expandQuasiquote [LIST (l,_)]    = makeList (foldr quasiFolder [] l)
-  | expandQuasiquote [VECTOR (v,_)]  = makeList [SYMBOL "vec", makeList (foldr quasiFolder [] v)]
-  | expandQuasiquote [m as MAP _]    = makeList [SYMBOL "quote", m]
-  | expandQuasiquote [s as SYMBOL _] = makeList [SYMBOL "quote", s]
+  | expandQuasiquote [LIST (l,_)]    = malList (foldr quasiFolder [] l)
+  | expandQuasiquote [VECTOR (v,_)]  = malList [SYMBOL "vec", malList (foldr quasiFolder [] v)]
+  | expandQuasiquote [m as MAP _]    = malList [SYMBOL "quote", m]
+  | expandQuasiquote [s as SYMBOL _] = malList [SYMBOL "quote", s]
   | expandQuasiquote [x]             = x
   | expandQuasiquote _ = raise NotApplicable "quasiquote needs one argument"
-and quasiFolder (LIST ([SYMBOL "splice-unquote", x],_), acc) = [SYMBOL "concat", x, makeList acc]
-  | quasiFolder (x, acc)                                     = [SYMBOL "cons", expandQuasiquote [x], makeList acc]
+and quasiFolder (LIST ([SYMBOL "splice-unquote", x],_), acc) = [SYMBOL "concat", x, malList acc]
+  | quasiFolder (x, acc)                                     = [SYMBOL "cons", expandQuasiquote [x], malList acc]
 
 and evalDefmacro e [SYMBOL s, ast] = defMacro e s (eval e ast)
   | evalDefmacro _ _ = raise NotApplicable "defmacro! needs a name, and a fn*"
@@ -77,15 +77,15 @@ and exnVal (MalException x)    = x
   | exnVal exn                 = STRING (exnMessage exn)
 
 and evalApply e (FN (f,_)) args = f (map (eval e) args)
-  | evalApply _ x args = raise NotApplicable (prStr x ^ " is not applicable on " ^ prStr (makeList args))
+  | evalApply _ x args = raise NotApplicable (prStr x ^ " is not applicable on " ^ prStr (malList args))
 
 and evalSymbol e s = valOrElse (lookup e s)
                                (fn _ => raise NotDefined ("'" ^ s ^ "' not found"))
 
 and bindLet args e = bind' (eval e) args e
 and bind args e = bind' identity args e
-and bind' evl (SYMBOL "&"::v::(SYMBOL s)::vs) e = (def s (makeList (map evl (v::vs))) e; e)
-  | bind' _   [SYMBOL "&", SYMBOL s]          e = (def s (makeList []) e; e)
+and bind' evl (SYMBOL "&"::v::(SYMBOL s)::vs) e = (def s (malList (map evl (v::vs))) e; e)
+  | bind' _   [SYMBOL "&", SYMBOL s]          e = (def s (malList []) e; e)
   | bind' evl (SYMBOL s::v::rest)             e = (def s (evl v) e; bind' evl rest e)
   | bind' _   []                              e = e
   | bind' _ _ _ = raise NotApplicable "bindings must be a list of symbol/form pairs"
@@ -146,12 +146,12 @@ fun main () = (
     rep replEnv ("(do " ^ prelude ^ " nil)");
     case CommandLine.arguments () of
         prog::args => (
-            def "*ARGV*" (makeList (map STRING args)) replEnv;
+            def "*ARGV*" (malList (map STRING args)) replEnv;
             rep replEnv ("(load-file \"" ^ prog ^ "\")");
             ()
         )
         | args => (
-            def "*ARGV*" (makeList (map STRING args)) replEnv;
+            def "*ARGV*" (malList (map STRING args)) replEnv;
             def "*host-language*" (STRING "sml") replEnv;
             rep replEnv "(println (str \"Mal [\" *host-language* \"]\"))";
             repl replEnv
