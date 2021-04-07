@@ -32,6 +32,11 @@ endif
 
 all: $(STEP_BINS)
 
+dist: mal
+
+mal: stepA_mal
+	cp $< $@
+
 .%.dep: %.mlb
 	@echo sml-deps -o $@ $<
 	$(eval DEPS := $(shell grep "\\.sml" $<))
