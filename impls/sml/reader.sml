@@ -78,8 +78,7 @@ fun scanSpecial ss =
     end
 
 fun scanString ss =
-    Ss.getc ss
-        |> Option.mapPartial (fn (#"\"", rest) => spanString rest rest | _ => NONE)
+    Ss.getc ss |> Option.mapPartial (fn (#"\"", rest) => spanString rest rest | _ => NONE)
 
 and spanString from to = case Ss.getc to of
     SOME (#"\\", rest)   => Ss.getc rest |> Option.mapPartial (fn (_, more) => spanString from more)
@@ -104,10 +103,9 @@ fun scanToken ss =
     end
 
 fun tokenize s = tokenize' [] (Ss.full s)
-and tokenize' acc ss =
-    case scanToken ss of
-        SOME (token, rest) => tokenize' (token::acc) rest
-        | NONE => rev acc
+and tokenize' acc ss = case scanToken ss of
+    SOME (token, rest) => tokenize' (token::acc) rest
+    | NONE             => rev acc
 
 fun readAtom r = case next r of
     SOME (LIT_ATOM "nil", r')     => (NIL, r')
@@ -121,17 +119,16 @@ fun readAtom r = case next r of
     | SOME (token, _) => raise SyntaxError ("unexpected token reading atom: " ^ (tokenString token))
     | NONE => raise SyntaxError "end of input reached when reading atom"
 
-and readForm r =
-    case peek r of
-        SOME PAREN_LEFT     => readList [] (rest r)
-        | SOME BRACKET_LEFT => readVector [] (rest r)
-        | SOME BRACE_LEFT   => readMap [] (rest r)
-        | SOME AT           => let val (a, r') = readAtom (rest r) in (malList [SYMBOL "deref", a], r') end
-        | SOME QUOTE        => let val (a, r') = readForm (rest r) in (malList [SYMBOL "quote", a], r') end
-        | SOME BACK_TICK    => let val (a, r') = readForm (rest r) in (malList [SYMBOL "quasiquote", a], r') end
-        | SOME TILDE        => let val (a, r') = readForm (rest r) in (malList [SYMBOL "unquote", a], r') end
-        | SOME TILDE_AT     => let val (a, r') = readForm (rest r) in (malList [SYMBOL "splice-unquote", a], r') end
-        | _                 => readAtom r
+and readForm r = case peek r of
+    SOME PAREN_LEFT     => readList [] (rest r)
+    | SOME BRACKET_LEFT => readVector [] (rest r)
+    | SOME BRACE_LEFT   => readMap [] (rest r)
+    | SOME AT           => let val (a, r') = readAtom (rest r) in (malList [SYMBOL "deref", a], r') end
+    | SOME QUOTE        => let val (a, r') = readForm (rest r) in (malList [SYMBOL "quote", a], r') end
+    | SOME BACK_TICK    => let val (a, r') = readForm (rest r) in (malList [SYMBOL "quasiquote", a], r') end
+    | SOME TILDE        => let val (a, r') = readForm (rest r) in (malList [SYMBOL "unquote", a], r') end
+    | SOME TILDE_AT     => let val (a, r') = readForm (rest r) in (malList [SYMBOL "splice-unquote", a], r') end
+    | _                 => readAtom r
 
 and readWithMeta r =
     let val (m, r')  = readForm r
@@ -159,7 +156,6 @@ fun clean ts =
     ts |> List.filter (fn x => x <> SPACE)
        |> List.filter (fn COMMENT _ => false | _ => true)
 
-fun readStr s =
-    case tokenize s |> clean of
-        [] => raise Nothing
-        | ts => ts |> READER |> readForm |> #1
+fun readStr s = case tokenize s |> clean of
+    []   => raise Nothing
+    | ts => ts |> READER |> readForm |> #1
