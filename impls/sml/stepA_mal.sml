@@ -138,6 +138,7 @@ val prelude = "                                                \
 \                (cons 'cond (rest (rest xs)))))))"
 
 fun main () = (
+    def "*host-language*" (STRING "sml") replEnv;
     bind [
         SYMBOL "eval",
         FN (fn ([x]) => eval replEnv x
@@ -152,7 +153,6 @@ fun main () = (
         )
         | args => (
             def "*ARGV*" (malList (map STRING args)) replEnv;
-            def "*host-language*" (STRING "sml") replEnv;
             rep replEnv "(println (str \"Mal [\" *host-language* \"]\"))";
             repl replEnv
         )
