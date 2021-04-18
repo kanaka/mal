@@ -140,13 +140,13 @@ val coreNs = List.concat [
       | [NIL]           => NIL
       | _ => raise Domain),
     prim "count"
-    (fn [LIST (l,_)]   => INT (length l)
-      | [VECTOR (v,_)] => INT (length v)
+    (fn [LIST (l,_)]   => INT (length l |> LargeInt.fromInt)
+      | [VECTOR (v,_)] => INT (length v |> LargeInt.fromInt)
       | [NIL]          => INT 0
       | _ => raise Domain),
     prim "nth"
-    (fn [LIST (l,_), INT n]   => (List.nth (l, n) handle Subscript => raise OutOfBounds "index out of bounds")
-      | [VECTOR (v,_), INT n] => (List.nth (v, n) handle Subscript => raise OutOfBounds "index out of bounds")
+    (fn [LIST (l,_), INT n]   => (List.nth (l, (Int.fromLarge n)) handle Subscript => raise OutOfBounds "index out of bounds")
+      | [VECTOR (v,_), INT n] => (List.nth (v, (Int.fromLarge n)) handle Subscript => raise OutOfBounds "index out of bounds")
       | _ => raise Domain),
     prim "first"
     (fn [LIST (l,_)]   => (case l of (x::_) => x | _ => NIL)
@@ -201,5 +201,5 @@ val coreNs = List.concat [
     prim "throw"
     (fn [x] => raise MalException x | _ => raise Domain),
     prim "time-ms"
-    (fn _ => INT (Time.now () |> Time.toMilliseconds |> Int.fromLarge))
+    (fn _ => INT (Time.now () |> Time.toMilliseconds))
 ]

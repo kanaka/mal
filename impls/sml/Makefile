@@ -21,7 +21,7 @@ ifeq ($(sml_MODE),mosml)
 SMLC        = mosmlc
 SMLCOUTFLAG = -o
 BUILD_FILE  = %.mlb
-build_args  = -toplevel $(shell grep "\\.sml" $1)
+build_args  = LargeInt.sml -toplevel $(shell grep "\\.sml" $1)
 endif
 ifeq ($(sml_MODE),polyml)
 SMLC        = polyc
