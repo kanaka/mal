@@ -1,0 +1,2 @@
+#!/bin/bash
+exec deno run --allow-all $(dirname $0)/${STEP:-stepA_mal}.ts "${@}"
