@@ -12,6 +12,7 @@
 .npm
 .node-gyp
 package-lock.json
+*.hhast.parser-cache
 .elm
 */experiments
 */node_modules
@@ -63,6 +64,7 @@ fsharp/*.mdb
 go/step*
 groovy/*.class
 groovy/mal.jar
+hack/vendor
 haskell/*.hi
 haskell/*.o
 haxe/*.n

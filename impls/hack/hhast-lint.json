@@ -1,0 +1,5 @@
+{
+  "roots": ["bin/", "src/"],
+  "builtinLinters": "all",
+  "disabledLinters": ["Facebook\\HHAST\\NoStringInterpolationLinter"]
+}

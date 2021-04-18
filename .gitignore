@@ -12,6 +12,7 @@
 .sbt
 .npm
 .node-gyp
+*.hhast.parser-cache
 package-lock.json
 */experiments
 node_modules

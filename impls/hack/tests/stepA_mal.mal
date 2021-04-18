@@ -1,0 +1,80 @@
+;; Testing basic Hack interop
+
+;;; hack-eval adds the string `"return "` to the beginning of the evaluated string
+;;; and a `";"` to the end of the evaluated string  and supplies that to Hack's
+;;; \eval() (which HHVM supports but Hack pretends doesn't exist - for good reasons).
+;;; If complex programs are needed those can be wrapped by an anonymous function which
+;;; is called immediately (see the foo = 8 example below).
+
+;; null to Mal
+(hack-eval "null")
+;=>nil
+
+;; int to Mal
+(hack-eval "7")
+;=>7
+
+;; string to Mal
+(hack-eval "'7'")
+;=>"7"
+(hack-eval "\"9\"")
+;=>"9"
+
+;; bool to Mal
+(hack-eval "123 === 123")
+;=>true
+(hack-eval "123 === 456")
+;=>false
+
+;; array to Mal
+(hack-eval "[7,8,9]")
+;=>(7 8 9)
+
+;; vec to Mal
+(hack-eval "vec[7,8,9]")
+;=>[7 8 9]
+
+;; dict to Mal
+(hack-eval "dict['abc' => 789]")
+;=>{"abc" 789}
+
+;; function expression
+(hack-eval "(() ==> {$foo = 8; return $foo;})()")
+;=>8
+
+;; calling Hack STL
+(hack-eval "C\is_empty(vec[])")
+;=>true
+
+;; function to Mal
+(hack-eval "$x ==> $x")
+;=>#<function>
+
+;; nil to Hack
+((hack-eval "$x ==> $x is null") nil)
+;=>true
+
+;; number to Hack
+((hack-eval "$x ==> $x * 2") 21)
+;=>42
+
+;; bool to Hack
+((hack-eval "$x ==> !$x") false)
+;=>true
+
+;; vector to Hack
+((hack-eval "$x ==> $x is vec<_> && C\count($x) === 3") [2 3 4])
+;=>true
+
+;; list to Hack
+((hack-eval "$x ==> $x is vec<_> && C\count($x) === 3") (list 2 3 4))
+;=>true
+
+;; hash-map to Hack
+((hack-eval "$x ==> $x is dict<_> && $x['a'] === 13") {"a" 13})
+;=>true
+
+;; fn to Hack
+((hack-eval "$f ==> 2 * $f(15)") (fn* [x] (* x 3)))
+;=>90
+
