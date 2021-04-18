@@ -1,4 +1,5 @@
-FROM ubuntu:bionic
+# We need focal for the Moscow ML PPA
+FROM ubuntu:focal
 
 ##########################################################
 # General requirements for testing or common across many
@@ -20,4 +21,11 @@ WORKDIR /mal
 # Specific implementation requirements
 ##########################################################
 
+RUN apt-get -y install software-properties-common
+
 RUN apt-get -y install polyml libpolyml-dev
+
+RUN apt-get -y install mlton
+
+RUN add-apt-repository -y ppa:kflarsen/mosml
+RUN apt-get -y install mosml
