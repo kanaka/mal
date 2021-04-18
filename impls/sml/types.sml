@@ -1,7 +1,7 @@
 datatype mal_type = NIL
                   | SYMBOL of string
                   | BOOL of bool
-                  | INT of int
+                  | INT of LargeInt.int
                   | STRING of string
                   | KEYWORD of string
                   | LIST of (mal_type list * mal_meta)

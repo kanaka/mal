@@ -3,7 +3,7 @@ fun prStr NIL            = "nil"
   | prStr (BOOL true)    = "true"
   | prStr (BOOL false)   = "false"
   | prStr (ATOM x)       = "#<atom> (" ^ (prStr (!x)) ^ ")"
-  | prStr (INT i)        = if i >= 0 then Int.toString i else "-" ^ (Int.toString (Int.abs i))
+  | prStr (INT i)        = if i >= 0 then LargeInt.toString i else "-" ^ (LargeInt.toString (LargeInt.abs i))
   | prStr (STRING s)     = s
   | prStr (KEYWORD s)    = ":" ^ s
   | prStr (LIST (l,_))   = "(" ^ (String.concatWith " " (map prStr l)) ^ ")" (* N.B. not tail recursive *)
