@@ -43,7 +43,7 @@ mode_val=${!mode_var}
 MAKE="make ${mode_val:+${mode_var}=${mode_val}}"
 
 # If NO_DOCKER is blank then launch use a docker image, otherwise use
-# the Travis image/tools directly.
+# the Travis/Github Actions image/tools directly.
 if [ -z "${NO_DOCKER}" ]; then
     img_impl=$(echo "${MAL_IMPL:-${IMPL}}" | tr '[:upper:]' '[:lower:]')
     # We could just use make DOCKERIZE=1 instead but that does add
