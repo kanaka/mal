@@ -691,7 +691,8 @@
 (def mal-time-ms
   (t/make-function
     (fn [asts]
-      (t/make-number (os/clock)))))
+      (t/make-number
+        (math/floor (* 1000 (os/clock)))))))
 
 (def mal-janet-eval
   (t/make-function
