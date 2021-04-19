@@ -669,7 +669,8 @@
 (local mal-time-ms
   (t.make-fn
     (fn [asts]
-      (t.make-number (os.clock)))))
+        (t.make-number
+         (math.floor (* 1000 (os.clock)))))))
 
 (fn fennel-eval*
   [fennel-val]
