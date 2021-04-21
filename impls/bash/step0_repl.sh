@@ -18,4 +18,3 @@ while true; do
     PRINT "${r}"
     echo "${r}"
 done
-
