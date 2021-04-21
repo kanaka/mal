@@ -670,7 +670,7 @@
   (t.make-fn
     (fn [asts]
         (t.make-number
-         (math.floor (* 1000 (os.clock)))))))
+         (math.floor (* 1000000 (os.clock)))))))
 
 (fn fennel-eval*
   [fennel-val]
