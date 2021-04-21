@@ -39,6 +39,7 @@ IMPL:
   - {IMPL: haxe, haxe_MODE: js}
   - {IMPL: hy}
   - {IMPL: io, NO_SELF_HOST_PERF: 1}  # perf OOM
+  - {IMPL: janet}
   - {IMPL: java}
   - {IMPL: jq}
   - {IMPL: js}
