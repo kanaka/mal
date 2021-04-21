@@ -41,7 +41,7 @@ guide](process/guide.md) there is also a [mal/make-a-lisp
 FAQ](docs/FAQ.md) where I attempt to answer some common questions.
 
 
-**3. Mal is implemented in 83 languages (86 different implementations and 106 runtime modes)**
+**3. Mal is implemented in 84 languages (87 different implementations and 107 runtime modes)**
 
 | Language | Creator |
 | -------- | ------- |
