@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import json
+import os
 import re
 import sys
 import yaml
@@ -8,6 +9,8 @@ import yaml
 IMPLS_FILE = "IMPLS.yml"
 RE_IGNORE = re.compile(r'(^LICENSE$|^README.md$|^docs/|^process/)')
 RE_IMPL = re.compile(r'^impls/(?!lib|tests)([^/]*)/')
+
+OVERRIDE_IMPLS = os.environ.get('OVERRIDE_IMPLS', '').split()
 
 def impl_text(impl):
     s = "IMPL=%s" % impl['IMPL']
@@ -22,15 +25,22 @@ code_changes = set([c for c in all_changes if not RE_IGNORE.search(c)])
 # actual changes to implementations
 impl_changes = set([c for c in all_changes if RE_IMPL.search(c)])
 # names of changed implementations
-changed_impls = set([RE_IMPL.search(c).groups()[0] for c in impl_changes])
+run_impls = set([RE_IMPL.search(c).groups()[0] for c in impl_changes])
+
+do_full = (len(code_changes) != len(impl_changes))
 
 # If we have non-implementation code changes then we will add all
 # implementations to the test matrix
-do_full = (len(code_changes) != len(impl_changes))
+if OVERRIDE_IMPLS:
+    run_impls = OVERRIDE_IMPLS
+    if 'all' in OVERRIDE_IMPLS:
+        do_full = True
 
+
+print("OVERRIDE_IMPLS: %s" % OVERRIDE_IMPLS)
 print("code_changes: %s (%d)" % (code_changes, len(code_changes)))
 print("impl_changes: %s (%d)" % (impl_changes, len(impl_changes)))
-print("changed_impls: %s (%d)" % (changed_impls, len(changed_impls)))
+print("run_impls: %s (%d)" % (run_impls, len(run_impls)))
 print("do_full: %s" % do_full)
 
 # Load the full implementation description file
@@ -40,7 +50,7 @@ all_impls = yaml.safe_load(open(IMPLS_FILE))
 linux_impls = []
 macos_impls = []
 for impl in all_impls['IMPL']:
-    if do_full or impl['IMPL'] in changed_impls:
+    if do_full or impl['IMPL'] in run_impls:
         if 'OS' in impl and impl['OS'] == 'macos':
             macos_impls.append(impl_text(impl))
         else:

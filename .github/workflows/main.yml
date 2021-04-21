@@ -1,6 +1,14 @@
 name: Build and Test
 
-on: [push, pull_request]
+on:
+  push: {}
+  pull_request: {}
+  workflow_dispatch:
+    inputs:
+      impls:
+        description: 'Space separated list of impls to test (or all)'
+        required: true
+        default: 'all'
 
 jobs:
   get-matrix:
@@ -13,9 +21,13 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - id: files
+        if: ${{ github.event_name != 'workflow_dispatch' }}
         uses: kanaka/get-changed-files@v1
       - id: get-matrix-step
-        run: ./get-ci-matrix.py ${{ steps.files.outputs.all }}
+        run: |
+          export OVERRIDE_IMPLS="${{ github.event.inputs.impls }}" # "
+          echo "OVERRIDE_IMPLS: ${OVERRIDE_IMPLS}"
+          ./get-ci-matrix.py ${{ steps.files.outputs.all }}
 
   linux:
     needs: get-matrix
