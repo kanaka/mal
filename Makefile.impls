@@ -33,7 +33,7 @@ wasm_MODE = wasmtime
 #
 
 IMPLS = ada ada.2 awk bash basic bbc-basic c chuck clojure coffee common-lisp cpp crystal cs d dart \
-	elisp elixir elm erlang es6 factor fantom forth fsharp go groovy gnu-smalltalk \
+	elisp elixir elm erlang es6 factor fantom fennel forth fsharp go groovy gnu-smalltalk \
 	guile haskell haxe hy io janet java js jq julia kotlin livescript logo lua make mal \
 	matlab miniMAL nasm nim objc objpascal ocaml perl perl6 php picolisp pike plpgsql \
 	plsql powershell prolog ps python python.2 r racket rexx rpython ruby rust scala scheme skew \
@@ -123,6 +123,7 @@ erlang_STEP_TO_PROG =        impls/erlang/$($(1))
 es6_STEP_TO_PROG =           impls/es6/$($(1)).mjs
 factor_STEP_TO_PROG =        impls/factor/$($(1))/$($(1)).factor
 fantom_STEP_TO_PROG =        impls/fantom/lib/fan/$($(1)).pod
+fenne_STEP_TO_PROG =         impls/fennel/$($(1)).fnl
 forth_STEP_TO_PROG =         impls/forth/$($(1)).fs
 fsharp_STEP_TO_PROG =        impls/fsharp/$($(1)).exe
 go_STEP_TO_PROG =            impls/go/$($(1))
