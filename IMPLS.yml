@@ -26,6 +26,7 @@ IMPL:
   - {IMPL: es6}
   - {IMPL: factor}
   - {IMPL: fantom}
+  - {IMPL: fennel}
   - {IMPL: forth}
   - {IMPL: fsharp}
   - {IMPL: go}
