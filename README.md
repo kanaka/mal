@@ -41,7 +41,7 @@ guide](process/guide.md) there is also a [mal/make-a-lisp
 FAQ](docs/FAQ.md) where I attempt to answer some common questions.
 
 
-**3. Mal is implemented in 84 languages (87 different implementations and 107 runtime modes)**
+**3. Mal is implemented in 85 languages (88 different implementations and 108 runtime modes)**
 
 | Language | Creator |
 | -------- | ------- |
@@ -69,6 +69,7 @@ FAQ](docs/FAQ.md) where I attempt to answer some common questions.
 | [F#](#f) | [Peter Stephens](https://github.com/pstephens) |
 | [Factor](#factor) | [Jordan Lewis](https://github.com/jordanlewis) |
 | [Fantom](#fantom) | [Dov Murik](https://github.com/dubek) |
+| [Fennel](#fennel) | [sogaiu](https://github.com/sogaiu) |
 | [Forth](#forth) | [Chris Houser](https://github.com/chouser) |
 | [GNU Guile](#gnu-guile-21) | [Mu Lei](https://github.com/NalaGinrut) |
 | [GNU Smalltalk](#gnu-smalltalk) | [Vasilij Schneidermann](https://github.com/wasamasa) |
@@ -481,6 +482,16 @@ The Fantom implementation of mal has been tested with Fantom 1.0.70.
 cd impls/fantom
 make lib/fan/stepX_YYY.pod
 STEP=stepX_YYY ./run
+```
+
+### Fennel
+
+The Fennel implementation of mal has been tested with Fennel version
+0.9.1 on Lua 5.4.
+
+```
+cd impls/fennel
+fennel ./stepX_YYY.fnl
 ```
 
 ### Forth
