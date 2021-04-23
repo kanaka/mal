@@ -50,11 +50,15 @@ all_impls = yaml.safe_load(open(IMPLS_FILE))
 linux_impls = []
 macos_impls = []
 for impl in all_impls['IMPL']:
-    if do_full or impl['IMPL'] in run_impls:
-        if 'OS' in impl and impl['OS'] == 'macos':
-            macos_impls.append(impl_text(impl))
-        else:
-            linux_impls.append(impl_text(impl))
+    targ = linux_impls
+    if 'OS' in impl and impl['OS'] == 'macos':
+        targ = macos_impls
+    # Run implementations with actual changes first before running
+    # other impls triggered by non-impl code changes
+    if impl['IMPL'] in run_impls:
+        targ.insert(0, impl_text(impl))
+    elif do_full:
+        targ.append(impl_text(impl))
 
 print("::set-output name=do-linux::%s" % json.dumps(len(linux_impls)>0))
 print("::set-output name=do-macos::%s" % json.dumps(len(macos_impls)>0))
