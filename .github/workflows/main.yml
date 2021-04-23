@@ -38,12 +38,21 @@ jobs:
       matrix: ${{ fromJson(needs.get-matrix.outputs.matrix-linux) }}
     steps:
       - uses: actions/checkout@v2
-      - name: IMPL testing
+      - name: Build
         run: |
           export ${{ matrix.IMPL }}
           ./ci.sh build ${IMPL}
+      - name: Tests
+        run: |
+          export ${{ matrix.IMPL }}
           ./ci.sh test ${IMPL}
+      - name: Regression Tests
+        run: |
+          export ${{ matrix.IMPL }}
           STEP=stepA REGRESS=1 HARD=1 OPTIONAL=0 ./ci.sh test ${IMPL}
+      - name: Performance Tests
+        run: |
+          export ${{ matrix.IMPL }}
           ./ci.sh perf ${IMPL}
 
   macos:
@@ -55,10 +64,19 @@ jobs:
       matrix: ${{ fromJson(needs.get-matrix.outputs.matrix-macos) }}
     steps:
       - uses: actions/checkout@v2
-      - name: IMPL testing
+      - name: Build
         run: |
           export ${{ matrix.IMPL }}
           ./ci.sh build ${IMPL}
+      - name: Tests
+        run: |
+          export ${{ matrix.IMPL }}
           ./ci.sh test ${IMPL}
+      - name: Regression Tests
+        run: |
+          export ${{ matrix.IMPL }}
           STEP=stepA REGRESS=1 HARD=1 OPTIONAL=0 ./ci.sh test ${IMPL}
+      - name: Performance Tests
+        run: |
+          export ${{ matrix.IMPL }}
           ./ci.sh perf ${IMPL}
