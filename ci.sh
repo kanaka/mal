@@ -7,8 +7,6 @@ IMPL=${2}
 
 # Environment variable configuration
 BUILD_IMPL=${BUILD_IMPL:-${IMPL}}
-log_prefix="../../${IMPL}-${ACTION}${REGRESS:+-regress}"
-TEST_OPTS="${TEST_OPTS} --log-file ${log_prefix}.log --debug-file ${log_prefix}.debug"
 
 if [ "${DO_SELF_HOST}" ]; then
     MAL_IMPL=${IMPL}
@@ -40,6 +38,12 @@ raw_mode_var=${MAL_IMPL:-${IMPL}}_MODE
 mode_var=${raw_mode_var/-/__}
 mode_var=${mode_var/./__}
 mode_val=${!mode_var}
+
+log_prefix="${ACTION}${REGRESS:+-regress}-${IMPL}${mode_val:+-${mode_val}}"
+TEST_OPTS="${TEST_OPTS} --debug-file ../../${log_prefix}.debug"
+
+# Log everything below this point:
+exec &> >(tee ./${log_prefix}.log)
 
 MAKE="make ${mode_val:+${mode_var}=${mode_val}}"
 
