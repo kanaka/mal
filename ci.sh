@@ -7,7 +7,7 @@ IMPL=${2}
 
 # Environment variable configuration
 BUILD_IMPL=${BUILD_IMPL:-${IMPL}}
-log_prefix="../../${ACTION}${REGRESS:+-regress}"
+log_prefix="../../${IMPL}-${ACTION}${REGRESS:+-regress}"
 TEST_OPTS="${TEST_OPTS} --log-file ${log_prefix}.log --debug-file ${log_prefix}.debug"
 
 if [ "${DO_SELF_HOST}" ]; then

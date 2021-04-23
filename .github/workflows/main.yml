@@ -42,7 +42,7 @@ jobs:
         run: |
           export ${{ matrix.IMPL }}
           ./ci.sh build ${IMPL}
-      - name: Tests
+      - name: Step Tests
         run: |
           export ${{ matrix.IMPL }}
           ./ci.sh test ${IMPL}
@@ -75,7 +75,7 @@ jobs:
         run: |
           export ${{ matrix.IMPL }}
           ./ci.sh build ${IMPL}
-      - name: Tests
+      - name: Step Tests
         run: |
           export ${{ matrix.IMPL }}
           ./ci.sh test ${IMPL}
