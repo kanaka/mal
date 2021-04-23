@@ -7,7 +7,8 @@ IMPL=${2}
 
 # Environment variable configuration
 BUILD_IMPL=${BUILD_IMPL:-${IMPL}}
-TEST_OPTS="${TEST_OPTS} --debug-file ../../${ACTION}.err"
+log_prefix="../../${ACTION}${REGRESS:+-regress}"
+TEST_OPTS="${TEST_OPTS} --log-file ${log_prefix}.log --debug-file ${log_prefix}.debug"
 
 if [ "${DO_SELF_HOST}" ]; then
     MAL_IMPL=${IMPL}
@@ -70,7 +71,7 @@ test|perf)
             ${OPTIONAL:+OPTIONAL=${OPTIONAL}} \
             ${ACTION}^${IMPL}${STEP:+^${STEP}}; then
         # print debug-file on error
-        cat ${ACTION}.err
+        cat ${log_prefix}.debug
         false
     fi
     ;;

@@ -54,6 +54,13 @@ jobs:
         run: |
           export ${{ matrix.IMPL }}
           ./ci.sh perf ${IMPL}
+      - name: Archive logs and debug output
+        uses: actions/upload-artifact@v2
+        with:
+          name: logs
+          path: |
+            *.log
+            *.debug
 
   macos:
     needs: get-matrix
@@ -80,3 +87,10 @@ jobs:
         run: |
           export ${{ matrix.IMPL }}
           ./ci.sh perf ${IMPL}
+      - name: Archive logs and debug output
+        uses: actions/upload-artifact@v2
+        with:
+          name: logs
+          path: |
+            *.log
+            *.debug
