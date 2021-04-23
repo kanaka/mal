@@ -42,7 +42,7 @@ process guide](process/guide.md) there is also a [mal/make-a-lisp
 FAQ](docs/FAQ.md) where I attempt to answer some common questions.
 
 
-**3. Mal is implemented in 86 languages (90 different implementations and 112 runtime modes)**
+**3. Mal is implemented in 86 languages (90 different implementations and 113 runtime modes)**
 
 | Language | Creator |
 | -------- | ------- |
@@ -83,6 +83,7 @@ FAQ](docs/FAQ.md) where I attempt to answer some common questions.
 | [Io](#io) | [Dov Murik](https://github.com/dubek) |
 | [Janet](#janet) | [sogaiu](https://github.com/sogaiu) |
 | [Java](#java-17) | [Joel Martin](https://github.com/kanaka)  |
+| [Java](#java-truffle) (Truffle/GraalVM) | [Matt McGill](https://github.com/mmcgill)
 | [JavaScript](#javascriptnode) ([Demo](http://kanaka.github.io/mal)) | [Joel Martin](https://github.com/kanaka) |
 | [jq](#jq) | [Ali MohammadPur](https://github.com/alimpfard) |
 | [Julia](#julia) | [Joel Martin](https://github.com/kanaka)  |
@@ -629,6 +630,19 @@ mvn compile
 mvn -quiet exec:java -Dexec.mainClass=mal.stepX_YYY
     # OR
 mvn -quiet exec:java -Dexec.mainClass=mal.stepX_YYY -Dexec.args="CMDLINE_ARGS"
+```
+
+### Java, using Truffle for GraalVM
+
+This Java implementation will run on OpenJDK, but can run
+as much as 30x faster on GraalVM thanks to the Truffle framework.
+It's been tested with OpenJDK 11, GraalVM CE 20.1.0, and
+GraalVM CE 21.1.0.
+
+```
+cd impls/java-truffle
+./gradlew build
+STEP=stepX_YYY ./run
 ```
 
 ### JavaScript/Node
