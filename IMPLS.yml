@@ -43,6 +43,7 @@ IMPL:
   - {IMPL: io, NO_SELF_HOST_PERF: 1}  # perf OOM
   - {IMPL: janet}
   - {IMPL: java}
+  - {IMPL: java-truffle}
   - {IMPL: jq}
   - {IMPL: js}
   - {IMPL: julia}
