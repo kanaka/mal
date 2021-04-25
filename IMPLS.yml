@@ -99,10 +99,10 @@ IMPL:
   - {IMPL: wasm, wasm_MODE: wasmtime,  NO_SELF_HOST_PERF: 1, NO_PERF: 1}
   - {IMPL: wasm, wasm_MODE: wasmer,    NO_SELF_HOST_PERF: 1, NO_PERF: 1}
   - {IMPL: wasm, wasm_MODE: lucet,     NO_SELF_HOST_PERF: 1, NO_PERF: 1}
-  - {IMPL: wasm, wasm_MODE: wax,       NO_SELF_HOST_PERF: 1}
+  #- {IMPL: wasm, wasm_MODE: wax,       NO_SELF_HOST_PERF: 1}  # Hangs on GH Actions
   - {IMPL: wasm, wasm_MODE: node,      NO_SELF_HOST_PERF: 1, NO_PERF: 1}
-  - {IMPL: wasm, wasm_MODE: warpy,     NO_SELF_HOST_PERF: 1}
-  - {IMPL: wasm, wasm_MODE: wace_libc, NO_SELF_HOST_PERF: 1}
+  #- {IMPL: wasm, wasm_MODE: warpy,     NO_SELF_HOST_PERF: 1}  # Hangs on GH Actions
+  #- {IMPL: wasm, wasm_MODE: wace_libc, NO_SELF_HOST_PERF: 1}  # Hangs on GH Actions
   - {IMPL: wren}
   - {IMPL: xslt}
   - {IMPL: yorick}
