@@ -274,7 +274,7 @@
     (t/nil?* err)
     (print)
     ##
-    (= (string? err))
+    (string? err)
     (print err)
     ##
     (print (string "Error: " (PRINT err)))))
