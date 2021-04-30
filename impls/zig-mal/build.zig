@@ -1,4 +1,5 @@
 const std = @import("std");
+const LibExeObjStep = std.build.LibExeObjStep;
 
 pub fn build(b: *std.build.Builder) void {
     // Standard target options allows the person running `zig build` to choose
@@ -11,18 +12,20 @@ pub fn build(b: *std.build.Builder) void {
     // between Debug, ReleaseSafe, ReleaseFast, and ReleaseSmall.
     const mode = b.standardReleaseOptions();
 
-    const exe = b.addExecutable("step0_repl", "src/step0_repl.zig");
-    exe.setTarget(target);
-    exe.setBuildMode(mode);
-    exe.setOutputDir(".");
-    exe.install();
-
-    const run_cmd = exe.run();
-    run_cmd.step.dependOn(b.getInstallStep());
-    if (b.args) |args| {
-        run_cmd.addArgs(args);
+    for ([_]*LibExeObjStep{
+        b.addExecutable("step0_repl", "src/step0_repl.zig"),
+        b.addExecutable("step1_read_print", "src/step1_read_print.zig"),
+    }) |exe| {
+        exe.setTarget(target);
+        exe.setBuildMode(mode);
+        exe.setOutputDir(".");
+        exe.install();
+        const run_cmd = exe.run();
+        run_cmd.step.dependOn(b.getInstallStep());
+        if (b.args) |args| {
+            run_cmd.addArgs(args);
+        }
+        const run_step = b.step(exe.name, exe.name);
+        run_step.dependOn(&run_cmd.step);
     }
-
-    const run_step = b.step(exe.name, exe.name);
-    run_step.dependOn(&run_cmd.step);
 }
