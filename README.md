@@ -182,6 +182,10 @@ The following implementations are maintained as separate projects:
 * [by Tim Morgan](https://github.com/seven1m/mal-rust)
 * [by vi](https://github.com/vi/mal-rust-vi) - using [Pest](https://pest.rs/) grammar, not using typical Mal infrastructure (cargo-ized steps and built-in converted tests).
 
+### Q
+
+* [by Ali Mohammad Pur](https://github.com/alimpfard/mal/tree/q/impls/q) - The Q implementation works fine but it requires a proprietary manual download that can't be Dockerized (or integrated into the mal CI pipeline) so for now it remains a separate project.
+
 
 ## Other mal Projects
 
