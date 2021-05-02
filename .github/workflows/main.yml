@@ -1,0 +1,96 @@
+name: Build and Test
+
+on:
+  push: {}
+  pull_request: {}
+  workflow_dispatch:
+    inputs:
+      impls:
+        description: 'Space separated list of impls to test (or all)'
+        required: true
+        default: 'all'
+
+jobs:
+  get-matrix:
+    runs-on: ubuntu-20.04
+    outputs:
+      do-linux: ${{ steps.get-matrix-step.outputs.do-linux }}
+      matrix-linux: ${{ steps.get-matrix-step.outputs.linux }}
+      do-macos: ${{ steps.get-matrix-step.outputs.do-macos }}
+      matrix-macos: ${{ steps.get-matrix-step.outputs.macos }}
+    steps:
+      - uses: actions/checkout@v2
+      - id: files
+        if: ${{ github.event_name != 'workflow_dispatch' }}
+        uses: kanaka/get-changed-files@v1
+      - id: get-matrix-step
+        run: |
+          export OVERRIDE_IMPLS="${{ github.event.inputs.impls }}" # "
+          echo "OVERRIDE_IMPLS: ${OVERRIDE_IMPLS}"
+          ./get-ci-matrix.py ${{ steps.files.outputs.all }}
+
+  linux:
+    needs: get-matrix
+    if: ${{ needs.get-matrix.outputs.do-linux == 'true' }}
+    runs-on: ubuntu-20.04
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.get-matrix.outputs.matrix-linux) }}
+    steps:
+      - uses: actions/checkout@v2
+      - name: Build
+        run: |
+          export ${{ matrix.IMPL }}
+          ./ci.sh build ${IMPL}
+      - name: Step Tests
+        run: |
+          export ${{ matrix.IMPL }}
+          ./ci.sh test ${IMPL}
+      - name: Regression Tests
+        run: |
+          export ${{ matrix.IMPL }}
+          STEP=stepA REGRESS=1 HARD=1 OPTIONAL=0 ./ci.sh test ${IMPL}
+      - name: Performance Tests
+        run: |
+          export ${{ matrix.IMPL }}
+          ./ci.sh perf ${IMPL}
+      - name: Archive logs and debug output
+        uses: actions/upload-artifact@v2
+        with:
+          name: logs
+          path: |
+            *.log
+            *.debug
+
+  macos:
+    needs: get-matrix
+    if: ${{ needs.get-matrix.outputs.do-macos == 'true' }}
+    runs-on: macos-10.15
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.get-matrix.outputs.matrix-macos) }}
+    steps:
+      - uses: actions/checkout@v2
+      - name: Build
+        run: |
+          export ${{ matrix.IMPL }}
+          ./ci.sh build ${IMPL}
+      - name: Step Tests
+        run: |
+          export ${{ matrix.IMPL }}
+          ./ci.sh test ${IMPL}
+      - name: Regression Tests
+        run: |
+          export ${{ matrix.IMPL }}
+          STEP=stepA REGRESS=1 HARD=1 OPTIONAL=0 ./ci.sh test ${IMPL}
+      - name: Performance Tests
+        run: |
+          export ${{ matrix.IMPL }}
+          ./ci.sh perf ${IMPL}
+      - name: Archive logs and debug output
+        uses: actions/upload-artifact@v2
+        with:
+          name: logs
+          path: |
+            *.log
+            *.debug

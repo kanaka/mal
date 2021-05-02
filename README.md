@@ -41,7 +41,7 @@ guide](process/guide.md) there is also a [mal/make-a-lisp
 FAQ](docs/FAQ.md) where I attempt to answer some common questions.
 
 
-**3. Mal is implemented in 82 languages (85 different implementations and 105 runtime modes)**
+**3. Mal is implemented in 85 languages (88 different implementations and 108 runtime modes)**
 
 | Language | Creator |
 | -------- | ------- |
@@ -69,6 +69,7 @@ FAQ](docs/FAQ.md) where I attempt to answer some common questions.
 | [F#](#f) | [Peter Stephens](https://github.com/pstephens) |
 | [Factor](#factor) | [Jordan Lewis](https://github.com/jordanlewis) |
 | [Fantom](#fantom) | [Dov Murik](https://github.com/dubek) |
+| [Fennel](#fennel) | [sogaiu](https://github.com/sogaiu) |
 | [Forth](#forth) | [Chris Houser](https://github.com/chouser) |
 | [GNU Guile](#gnu-guile-21) | [Mu Lei](https://github.com/NalaGinrut) |
 | [GNU Smalltalk](#gnu-smalltalk) | [Vasilij Schneidermann](https://github.com/wasamasa) |
@@ -78,6 +79,7 @@ FAQ](docs/FAQ.md) where I attempt to answer some common questions.
 | [Haxe](#haxe-neko-python-c-and-javascript) (Neko, Python, C++, &amp; JS) | [Joel Martin](https://github.com/kanaka) |
 | [Hy](#hy) | [Joel Martin](https://github.com/kanaka)  |
 | [Io](#io) | [Dov Murik](https://github.com/dubek) |
+| [Janet](#janet) | [sogaiu](https://github.com/sogaiu) |
 | [Java](#java-17) | [Joel Martin](https://github.com/kanaka)  |
 | [JavaScript](#javascriptnode) ([Demo](http://kanaka.github.io/mal)) | [Joel Martin](https://github.com/kanaka) |
 | [jq](#jq) | [Ali MohammadPur](https://github.com/alimpfard) |
@@ -104,6 +106,7 @@ FAQ](docs/FAQ.md) where I attempt to answer some common questions.
 | [PL/SQL](#plsql-oracle-sql-procedural-language) (Oracle) | [Joel Martin](https://github.com/kanaka) |
 | [PostScript](#postscript-level-23) | [Joel Martin](https://github.com/kanaka)  |
 | [PowerShell](#powershell) | [Joel Martin](https://github.com/kanaka)  |
+| [Prolog](#prolog-logical-language) | [Nicolas Boulenguez](https://github.com/asarhaddon) |
 | [Python](#python-2x-and-3x) (2.X &amp; 3.X) | [Joel Martin](https://github.com/kanaka) |
 | [Python #2](#python2-3x) (3.X) | [Gavin Lewis](https://github.com/epylar) |
 | [RPython](#rpython) | [Joel Martin](https://github.com/kanaka)  |
@@ -178,6 +181,10 @@ The following implementations are maintained as separate projects:
 
 * [by Tim Morgan](https://github.com/seven1m/mal-rust)
 * [by vi](https://github.com/vi/mal-rust-vi) - using [Pest](https://pest.rs/) grammar, not using typical Mal infrastructure (cargo-ized steps and built-in converted tests).
+
+### Q
+
+* [by Ali Mohammad Pur](https://github.com/alimpfard/mal/tree/q/impls/q) - The Q implementation works fine but it requires a proprietary manual download that can't be Dockerized (or integrated into the mal CI pipeline) so for now it remains a separate project.
 
 
 ## Other mal Projects
@@ -481,6 +488,16 @@ make lib/fan/stepX_YYY.pod
 STEP=stepX_YYY ./run
 ```
 
+### Fennel
+
+The Fennel implementation of mal has been tested with Fennel version
+0.9.1 on Lua 5.4.
+
+```
+cd impls/fennel
+fennel ./stepX_YYY.fnl
+```
+
 ### Forth
 
 ```
@@ -576,6 +593,15 @@ The Io implementation of mal has been tested with Io version 20110905.
 ```
 cd impls/io
 io ./stepX_YYY.io
+```
+
+### Janet
+
+The Janet implementation of mal has been tested with Janet version 1.12.2.
+
+```
+cd impls/janet
+janet ./stepX_YYY.janet
 ```
 
 ### Java 1.7
@@ -869,6 +895,17 @@ language. It has been tested with PowerShell 6.0.0 Alpha 9 on Linux.
 ```
 cd impls/powershell
 powershell ./stepX_YYY.ps1
+```
+
+### Prolog
+
+The Prolog implementation uses some constructs specific to SWI-Prolog,
+includes readline support and has been tested on Debian GNU/Linux with
+version 8.2.1.
+
+```
+cd impls/prolog
+swipl stepX_YYY
 ```
 
 ### Python (2.X and 3.X)

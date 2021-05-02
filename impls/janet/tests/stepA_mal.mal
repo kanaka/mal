@@ -1,0 +1,42 @@
+;; Testing basic Janet interop
+
+(janet-eval "7")
+;=>7
+
+(janet-eval "\"7\"")
+;=>"7"
+
+(janet-eval "nil")
+;=>nil
+
+(janet-eval "(= 123 123)")
+;=>true
+
+(janet-eval "(= 123 456)")
+;=>false
+
+(janet-eval ":my-keyword")
+;=>:my-keyword
+
+(janet-eval "'(7 8 9)")
+;=>(7 8 9)
+
+(janet-eval "{:abc 789}")
+;=>{:abc 789}
+
+(janet-eval "(print \"hello\")")
+;/hello
+;=>nil
+
+(janet-eval "(defn foo [] 8)")
+(janet-eval "(foo)")
+;=>8
+
+(janet-eval "(let [tup [:a 1 :b 2]] (struct ;tup))")
+;=>{:a 1 :b 2}
+
+(janet-eval "(do (def tbl @{}) (put tbl :x 8) tbl)")
+;=>{:x 8}
+
+(janet-eval "(do (var mut 1) (set mut 2) mut)")
+;=>2

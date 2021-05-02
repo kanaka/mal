@@ -164,10 +164,10 @@ into the main repository:
   make DOCKERIZE=1 MAL_IMPL=[IMPL_NAME] "test^mal"
   ```
 
-* Make sure the Travis build and test scripts pass locally:
+* Make sure the CI build and test scripts pass locally:
   ```bash
-  IMPL=[IMPL_NAME] ./.travis_build.sh
-  ./.travis_test.sh test [IMPL_NAME]
+  ./ci.sh build [IMPL_NAME]
+  ./ci.sh test [IMPL_NAME]
   ```
 
 * If you are creating a new implementation for an existing
