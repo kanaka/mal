@@ -41,7 +41,7 @@ guide](process/guide.md) there is also a [mal/make-a-lisp
 FAQ](docs/FAQ.md) where I attempt to answer some common questions.
 
 
-**3. Mal is implemented in 85 languages (88 different implementations and 108 runtime modes)**
+**3. Mal is implemented in 86 languages (89 different implementations and 111 runtime modes)**
 
 | Language | Creator |
 | -------- | ------- |
@@ -118,6 +118,7 @@ FAQ](docs/FAQ.md) where I attempt to answer some common questions.
 | [Scala](#scala) | [Joel Martin](https://github.com/kanaka)  |
 | [Scheme (R7RS)](#scheme-r7rs) | [Vasilij Schneidermann](https://github.com/wasamasa) |
 | [Skew](#skew) | [Dov Murik](https://github.com/dubek) |
+| [Standard ML](#sml) | [Fabian Bergström](https://github.com/fabjan) |
 | [Swift 2](#swift) | [Keith Rollin](https://github.com/keith-rollin) |
 | [Swift 3](#swift-3) | [Joel Martin](https://github.com/kanaka)  |
 | [Swift 4](#swift-4) | [陆遥](https://github.com/LispLY)  |
@@ -1034,6 +1035,27 @@ The Skew implementation of mal has been tested with Skew 0.7.42.
 cd impls/skew
 make
 node stepX_YYY.js
+```
+
+
+### Standard ML (Poly/ML, MLton, Moscow ML)
+
+The Standard ML implementation of mal requires an
+[SML97](https://github.com/SMLFamily/The-Definition-of-Standard-ML-Revised)
+implementation. The Makefile supports Poly/ML, MLton, Moscow ML, and has
+been tested with Poly/ML 5.8.1, MLton 20210117, and Moscow ML version 2.10.
+
+```
+cd impls/sml
+# Poly/ML
+make sml_MODE=polyml
+./stepX_YYY
+# MLton
+make sml_MODE=mlton
+./stepX_YYY
+# Moscow ML
+make sml_MODE=mosml
+./stepX_YYY
 ```
 
 
