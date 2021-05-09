@@ -3,8 +3,6 @@ const Allocator = std.mem.Allocator;
 
 const types = @import("./types.zig");
 const MalType = types.MalType;
-const Atom = MalType.Atom;
-const List = MalType.List;
 
 const TokenList = std.ArrayList([]const u8);
 
@@ -94,16 +92,16 @@ fn read_list(allocator: *Allocator, reader: *Reader) !MalType {
     } else |err| return error.ListNoClosingTag;
     // skip over the last ')' token in the list
     _ = reader.next();
-    return MalType{ .List = list };
+    return MalType{ .list = list };
 }
 
 fn read_atom(allocator: *Allocator, reader: *Reader) !MalType {
     return if (reader.next()) |token|
         // TODO: support other types of atoms
         if (std.fmt.parseInt(i32, token, 10)) |int|
-            MalType{ .Atom = .{ .Number = int } }
+            MalType{ .atom = .{ .number = int } }
         else |_err|
-            MalType{ .Atom = .{ .Symbol = token } }
+            MalType{ .atom = .{ .symbol = token } }
     else
         error.EndOfInput;
 }

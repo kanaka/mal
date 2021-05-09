@@ -19,9 +19,8 @@ pub fn build(b: *std.build.Builder) void {
         exe.setTarget(target);
         exe.setBuildMode(mode);
         exe.setOutputDir(".");
-        exe.install();
+        b.installArtifact(exe);
         const run_cmd = exe.run();
-        run_cmd.step.dependOn(b.getInstallStep());
         if (b.args) |args| {
             run_cmd.addArgs(args);
         }

@@ -10,11 +10,11 @@ pub fn pr_str(allocator: *Allocator, form: *const MalType) Error![]const u8 {
     // TODO: this needs a significant refactoring to work with an allocator
     // other than arena, not planned for deallocation
     return switch (form.*) {
-        .Atom => |atom| switch (atom) {
-            .Symbol => |symbol| symbol,
-            .Number => |number| try std.fmt.allocPrint(allocator, "{d}", .{number}),
+        .atom => |atom| switch (atom) {
+            .symbol => |symbol| symbol,
+            .number => |number| try std.fmt.allocPrint(allocator, "{d}", .{number}),
         },
-        .List => |list| {
+        .list => |list| {
             var printed_forms = std.ArrayList(u8).init(allocator);
             const writer = printed_forms.writer();
 
