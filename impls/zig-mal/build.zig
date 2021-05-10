@@ -15,6 +15,7 @@ pub fn build(b: *std.build.Builder) void {
     for ([_]*LibExeObjStep{
         b.addExecutable("step0_repl", "src/step0_repl.zig"),
         b.addExecutable("step1_read_print", "src/step1_read_print.zig"),
+        b.addExecutable("step2_eval", "src/step2_eval.zig"),
     }) |exe| {
         exe.setTarget(target);
         exe.setBuildMode(mode);
