@@ -246,7 +246,7 @@ int main(int argc, char** argv) {
     lst = list_push(lst, make_string(argv[i]));
   }
   env_set(repl_env, make_symbol("*ARGV*"), make_list(list_reverse(lst)));
-  env_set(repl_env, make_symbol("*host-language*"), make_string("c2"));
+  env_set(repl_env, make_symbol("*host-language*"), make_string("c.2"));
 
   /* run in script mode if a filename is given */
   if (argc > 1) {

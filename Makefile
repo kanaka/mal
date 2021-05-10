@@ -89,7 +89,7 @@ DOCKERIZE =
 # Implementation specific settings
 #
 
-IMPLS = ada ada.2 awk bash basic bbc-basic c c2 chuck clojure coffee common-lisp cpp crystal cs d dart \
+IMPLS = ada ada.2 awk bash basic bbc-basic c c.2 chuck clojure coffee common-lisp cpp crystal cs d dart \
 	elisp elixir elm erlang es6 factor fantom forth fsharp go groovy gnu-smalltalk \
 	guile haskell haxe hy io java js jq julia kotlin livescript logo lua make mal \
 	matlab miniMAL nasm nim objc objpascal ocaml perl perl6 php picolisp pike plpgsql \
@@ -192,7 +192,7 @@ bash_STEP_TO_PROG =          impls/bash/$($(1)).sh
 basic_STEP_TO_PROG =         $(basic_STEP_TO_PROG_$(basic_MODE))
 bbc-basic_STEP_TO_PROG =     impls/bbc-basic/$($(1)).bas
 c_STEP_TO_PROG =             impls/c/$($(1))
-c2_STEP_TO_PROG =             impls/c2/$($(1))
+c.2_STEP_TO_PROG =             impls/c.2/$($(1))
 chuck_STEP_TO_PROG =         impls/chuck/$($(1)).ck
 clojure_STEP_TO_PROG =       $(clojure_STEP_TO_PROG_$(clojure_MODE))
 coffee_STEP_TO_PROG =        impls/coffee/$($(1)).coffee
