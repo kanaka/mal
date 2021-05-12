@@ -41,7 +41,7 @@ guide](process/guide.md) there is also a [mal/make-a-lisp
 FAQ](docs/FAQ.md) where I attempt to answer some common questions.
 
 
-**3. Mal is implemented in 86 languages (89 different implementations and 111 runtime modes)**
+**3. Mal is implemented in 86 languages (90 different implementations and 112 runtime modes)**
 
 | Language | Creator |
 | -------- | ------- |
@@ -52,6 +52,7 @@ FAQ](docs/FAQ.md) where I attempt to answer some common questions.
 | [BASIC](#basic-c64-and-qbasic) (C64 &amp; QBasic) | [Joel Martin](https://github.com/kanaka) |
 | [BBC BASIC V](#bbc-basic-v) | [Ben Harris](https://github.com/bjh21) |
 | [C](#c) | [Joel Martin](https://github.com/kanaka)  |
+| [C.2](#c2) | [Duncan Watts](https://github.com/fungiblecog)  |
 | [C++](#c-1) | [Stephen Thirlwall](https://github.com/sdt) |
 | [C#](#c-2) | [Joel Martin](https://github.com/kanaka)  |
 | [ChucK](#chuck) | [Vasilij Schneidermann](https://github.com/wasamasa) |
@@ -295,6 +296,18 @@ cd impls/c
 make
 ./stepX_YYY
 ```
+
+### C.2
+
+The second C implementation of mal requires the following libraries (lib and
+header packages): libedit, libgc, libdl, and libffi.
+
+```
+cd impls/c.2
+make
+./stepX_YYY
+```
+
 
 ### C++
 
