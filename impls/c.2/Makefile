@@ -54,7 +54,7 @@ S8 = step8_macros
 S9 = step9_try
 SA = stepA_mal
 
-.PHONY all: $(S0) $(S1) $(S2) $(S3) $(S4) $(S5) $(S6) $(S7) $(S8) $(S9) $(SA)
+all: $(S0) $(S1) $(S2) $(S3) $(S4) $(S5) $(S6) $(S7) $(S8) $(S9) $(SA)
 
 $(S0): $(S0_SRC) $(S0_HEADERS)
 	$(CC) $(CFLAGS) $(S0_SRC) $(LIBS) -o $(S0)
