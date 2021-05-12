@@ -52,7 +52,7 @@ FAQ](docs/FAQ.md) where I attempt to answer some common questions.
 | [BASIC](#basic-c64-and-qbasic) (C64 &amp; QBasic) | [Joel Martin](https://github.com/kanaka) |
 | [BBC BASIC V](#bbc-basic-v) | [Ben Harris](https://github.com/bjh21) |
 | [C](#c) | [Joel Martin](https://github.com/kanaka)  |
-| [C.2](#c2) | [Duncan Watts](https://github.com/fungiblecog)  |
+| [C #2](#c2) | [Duncan Watts](https://github.com/fungiblecog)  |
 | [C++](#c-1) | [Stephen Thirlwall](https://github.com/sdt) |
 | [C#](#c-2) | [Joel Martin](https://github.com/kanaka)  |
 | [ChucK](#chuck) | [Vasilij Schneidermann](https://github.com/wasamasa) |
