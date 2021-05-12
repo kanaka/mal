@@ -7,6 +7,7 @@ IMPL:
   - {IMPL: basic, basic_MODE: qbasic, NO_SELF_HOST: 1}  # step4 OOM
   - {IMPL: bbc-basic}
   - {IMPL: c}
+  - {IMPL: c.2}
   - {IMPL: cpp}
   - {IMPL: coffee}
   - {IMPL: cs}
