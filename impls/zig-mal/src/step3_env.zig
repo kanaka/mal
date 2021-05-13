@@ -1,6 +1,7 @@
 const std = @import("std");
 const Allocator = std.mem.Allocator;
 
+const Env = @import("./env.zig").Env;
 const printer = @import("./printer.zig");
 const reader = @import("./reader.zig");
 const types = @import("./types.zig");
@@ -10,10 +11,7 @@ const MalValue = types.MalValue;
 const input_buffer_length = 256;
 const prompt = "user> ";
 
-fn READ(allocator: *Allocator, input: []const u8) !MalType {
-    const ast = try reader.read_str(allocator, input);
-    return ast;
-}
+// base environment functions
 
 fn add(a: i32, b: i32) i32 {
     return a + b;
@@ -28,30 +26,35 @@ fn multiply(a: i32, b: i32) i32 {
 }
 
 fn divide(a: i32, b: i32) i32 {
-    // TODO: use std.math.divFloor/divTrunc?
+    // TODO: use std.math.divFloor/divTrunc for runtime errors instead of
+    // undefined behavior when dividing by zero
     return @divFloor(a, b);
 }
 
-const fn_type = fn (a: i32, b: i32) i32;
-const ReplEnv = std.StringHashMap(fn_type);
+fn READ(allocator: *Allocator, input: []const u8) !MalType {
+    const ast = try reader.read_str(allocator, input);
+    return ast;
+}
 
 const EvalError = error{
+    EvalDefInvalidOperands,
+    EvalLetInvalidOperands,
     EvalInvalidOperand,
     EvalInvalidOperands,
-    EvalInvalidFunctionSymbol,
-    UnknownSymbol,
+    EvalInvalidSymbol,
+    EnvSymbolNotFound,
 } || Allocator.Error;
 
-fn eval_ast(allocator: *Allocator, ast: *const MalType, repl_env: ReplEnv) EvalError!MalValue {
+fn eval_ast(allocator: *Allocator, ast: *const MalType, env: *Env) EvalError!MalValue {
     switch (ast.*) {
         .atom => |atom| return switch (atom) {
             .number => |number| MalValue{ .mal_type = ast.* },
-            .symbol => |symbol| MalValue{ .function = .{ .op_2_number = (repl_env.get(symbol) orelse return error.UnknownSymbol) } },
+            .symbol => |symbol| env.get(symbol),
         },
         .list => |list| {
             var results = try MalValue.initListCapacity(allocator, list.items.len);
             for (list.items) |item| {
-                const result = try EVAL(allocator, &item, repl_env);
+                const result = try EVAL(allocator, &item, env);
                 try results.list.append(result);
             }
             return results;
@@ -59,13 +62,45 @@ fn eval_ast(allocator: *Allocator, ast: *const MalType, repl_env: ReplEnv) EvalE
     }
 }
 
-fn EVAL(allocator: *Allocator, ast: *const MalType, repl_env: ReplEnv) !MalValue {
+fn EVAL(allocator: *Allocator, ast: *const MalType, env: *Env) EvalError!MalValue {
     switch (ast.*) {
         .list => |list| if (list.items.len == 0) return MalValue{ .mal_type = ast.* } else {
-            const evaled_ast = try eval_ast(allocator, ast, repl_env);
+            const symbol = list.items[0].asSymbol() catch return error.EvalInvalidSymbol;
+
+            // apply phase
+
+            if (std.mem.eql(u8, symbol, "def!")) {
+                const rest = list.items[1..];
+                if (rest.len != 2) return error.EvalDefInvalidOperands;
+                const key_symbol = rest[0].asSymbol() catch return error.EvalDefInvalidOperands;
+
+                const evaled_value = try EVAL(allocator, &rest[1], env);
+                try env.set(key_symbol, evaled_value);
+                return evaled_value;
+            }
+
+            if (std.mem.eql(u8, symbol, "let*")) {
+                const rest = list.items[1..];
+                if (rest.len != 2) return error.EvalLetInvalidOperands;
+                const bindings = rest[0].asList() catch return error.EvalLetInvalidOperands;
+                if (@mod(bindings.items.len, 2) != 0) return error.EvalLetInvalidOperands;
+
+                var let_env = Env.init(allocator, env);
+                var i: usize = 0;
+                while (i < bindings.items.len) : (i += 2) {
+                    const current_bindings = bindings.items[i .. i + 2];
+                    const key_symbol = current_bindings[0].asSymbol() catch return error.EvalDefInvalidOperands;
+                    const evaled_value = try EVAL(allocator, &current_bindings[1], &let_env);
+                    try let_env.set(key_symbol, evaled_value);
+                }
+                const evaled_value = try EVAL(allocator, &rest[1], &let_env);
+                return evaled_value;
+            }
+
+            const evaled_ast = try eval_ast(allocator, ast, env);
             const evaled_items = evaled_ast.list.items;
 
-            const fn_symbol = evaled_items[0].asFunction() catch return error.EvalInvalidFunctionSymbol;
+            const fn_symbol = evaled_items[0].asFunction() catch return error.EvalInvalidSymbol;
 
             const fn_args = evaled_items[1..];
             // TODO: can probably be compile-time generated from function type info
@@ -78,7 +113,7 @@ fn EVAL(allocator: *Allocator, ast: *const MalType, repl_env: ReplEnv) !MalValue
                 },
             }
         },
-        else => return eval_ast(allocator, ast, repl_env),
+        else => return eval_ast(allocator, ast, env),
     }
 }
 
@@ -87,9 +122,15 @@ fn PRINT(allocator: *Allocator, ast: *const MalType) ![]const u8 {
     return output;
 }
 
-fn rep(allocator: *Allocator, input: []const u8, repl_env: ReplEnv) ![]const u8 {
+fn rep(allocator: *Allocator, input: []const u8, env: *Env) ![]const u8 {
     const ast = try READ(allocator, input);
-    const result = try EVAL(allocator, &ast, repl_env);
+    const result = try EVAL(allocator, &ast, env);
+
+    // var env_it = env.data.iterator();
+    // while (env_it.next()) |entry| {
+    //     std.debug.print("env {*} = {}\n", .{ entry.key, entry.value });
+    // }
+
     std.debug.assert(result == .mal_type);
     const output = try PRINT(allocator, &result.mal_type);
     return output;
@@ -101,13 +142,14 @@ pub fn main() anyerror!void {
     defer _ = gpa.deinit();
 
     // REPL environment
-    // TODO: use AutoHashMap or other HashMap variant?
-    var repl_env = ReplEnv.init(&gpa.allocator);
-    defer repl_env.deinit();
-    try repl_env.put("+", add);
-    try repl_env.put("-", subtract);
-    try repl_env.put("*", multiply);
-    try repl_env.put("/", divide);
+    var env = Env.init(&gpa.allocator, null);
+    try env.data.ensureCapacity(100);
+    defer env.deinit();
+
+    try env.set("+", MalValue.makeFunction(add));
+    try env.set("-", MalValue.makeFunction(subtract));
+    try env.set("*", MalValue.makeFunction(multiply));
+    try env.set("/", MalValue.makeFunction(divide));
 
     var input_buffer: [input_buffer_length]u8 = undefined;
     // initialize std io reader and writer
@@ -129,7 +171,7 @@ pub fn main() anyerror!void {
         defer arena.deinit();
 
         // read-eval-print
-        if (rep(&arena.allocator, line, repl_env)) |result|
+        if (rep(&arena.allocator, line, &env)) |result|
             try stdout.print("{s}\n", .{result})
         else |err| {
             const message = switch (err) {
@@ -137,10 +179,12 @@ pub fn main() anyerror!void {
                 error.ListNoClosingTag => "unbalanced list form, missing closing ')'",
                 error.StringLiteralNoClosingTag => "unbalanced string literal, missing closing '\"'",
                 error.TokensPastFormEnd => "found additional tokens past end of form",
+                error.EvalDefInvalidOperands => "Invalid def! operands",
+                error.EvalLetInvalidOperands => "Invalid let* operands",
                 error.EvalInvalidOperand => "Invalid operand",
                 error.EvalInvalidOperands => "Invalid operands, wrong function argument arity",
-                error.EvalInvalidFunctionSymbol => "tried to evaluate list where the first item is not a known function symbol",
-                error.UnknownSymbol => "tried to evaluate unknown symbol",
+                error.EvalInvalidSymbol => "tried to evaluate list where the first item is not a known function symbol or special form",
+                error.EnvSymbolNotFound => "symbol not found",
                 error.OutOfMemory => "out of memory",
             };
             try stderr.print("Error: {s}\n", .{message});

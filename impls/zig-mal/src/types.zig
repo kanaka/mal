@@ -22,7 +22,7 @@ pub const MalType = union(enum) {
     atom: Atom,
     list: List,
 
-    pub fn initNumber(num: Number) MalType {
+    pub fn makeNumber(num: Number) MalType {
         return .{ .atom = .{ .number = num } };
     }
 
@@ -85,8 +85,8 @@ pub const MalType = union(enum) {
     }
 };
 
-pub const MalTypeEval = union(enum) {
-    pub const List = std.ArrayList(MalTypeEval);
+pub const MalValue = union(enum) {
+    pub const List = std.ArrayList(MalValue);
     pub const Function = union(enum) {
         op_2_number: fn (a: MalType.Number, b: MalType.Number) MalType.Number,
     };
@@ -100,8 +100,17 @@ pub const MalTypeEval = union(enum) {
     list: List,
     function: Function,
 
-    pub fn initListCapacity(allocator: *Allocator, num: usize) !MalTypeEval {
-        return MalTypeEval{ .list = try List.initCapacity(allocator, num) };
+    pub fn initListCapacity(allocator: *Allocator, num: usize) !MalValue {
+        return MalValue{ .list = try List.initCapacity(allocator, num) };
+    }
+
+    pub fn makeFunction(fn_ptr: anytype) MalValue {
+        const type_info = @typeInfo(@TypeOf(fn_ptr));
+        std.debug.assert(type_info == .Fn);
+        return MalValue{ .function = switch (type_info.Fn.args.len) {
+            2 => .{ .op_2_number = fn_ptr },
+            else => unreachable,
+        } };
     }
 
     const Self = @This();
