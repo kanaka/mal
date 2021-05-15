@@ -3,6 +3,7 @@ const Allocator = std.mem.Allocator;
 
 const types = @import("./types.zig");
 const MalType = types.MalType;
+const Atom = MalType.Atom;
 
 const TokenList = std.ArrayList([]const u8);
 
@@ -96,14 +97,24 @@ fn read_list(allocator: *Allocator, reader: *Reader) !MalType {
 }
 
 fn read_atom(allocator: *Allocator, reader: *Reader) !MalType {
-    return if (reader.next()) |token|
-        // TODO: support other types of atoms
-        if (std.fmt.parseInt(i32, token, 10)) |int|
-            MalType{ .atom = .{ .number = int } }
-        else |_err|
-            MalType{ .atom = .{ .symbol = token } }
-    else
-        error.EndOfInput;
+    return MalType{
+        .atom = if (reader.next()) |token|
+            // TODO: support keyword
+            if (std.mem.eql(u8, token, "nil"))
+                .nil
+            else if (std.mem.eql(u8, token, "true"))
+                .t
+            else if (std.mem.eql(u8, token, "false"))
+                .f
+            else if (token[0] == '"')
+                Atom{ .string = token[1 .. token.len - 1] }
+            else if (std.fmt.parseInt(i32, token, 10)) |int|
+                Atom{ .number = int }
+            else |_err|
+                Atom{ .symbol = token }
+        else
+            return error.EndOfInput,
+    };
 }
 
 const TokenizeError = error{

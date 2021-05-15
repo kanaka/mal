@@ -45,8 +45,8 @@ const EvalError = error{
 fn eval_ast(allocator: *Allocator, ast: *const MalType, repl_env: ReplEnv) EvalError!MalValue {
     switch (ast.*) {
         .atom => |atom| return switch (atom) {
-            .number => |number| MalValue{ .mal_type = ast.* },
             .symbol => |symbol| MalValue{ .function = .{ .op_2_number = (repl_env.get(symbol) orelse return error.UnknownSymbol) } },
+            else => MalValue{ .mal_type = ast.* },
         },
         .list => |list| {
             var results = try MalValue.initListCapacity(allocator, list.items.len);

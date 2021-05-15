@@ -11,8 +11,12 @@ pub fn pr_str(allocator: *Allocator, form: *const MalType) Error![]const u8 {
     // other than arena, not planned for deallocation
     return switch (form.*) {
         .atom => |atom| switch (atom) {
-            .symbol => |symbol| symbol,
+            .nil => "nil",
+            .t => "true",
+            .f => "false",
             .number => |number| try std.fmt.allocPrint(allocator, "{d}", .{number}),
+            .string => |string| try std.fmt.allocPrint(allocator, "\"{s}\"", .{string}),
+            .symbol => |symbol| symbol,
         },
         .list => |list| {
             var printed_forms = std.ArrayList(u8).init(allocator);

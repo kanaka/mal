@@ -48,8 +48,8 @@ const EvalError = error{
 fn eval_ast(allocator: *Allocator, ast: *const MalType, env: *Env) EvalError!MalValue {
     switch (ast.*) {
         .atom => |atom| return switch (atom) {
-            .number => |number| MalValue{ .mal_type = ast.* },
             .symbol => |symbol| env.get(symbol),
+            else => MalValue{ .mal_type = ast.* },
         },
         .list => |list| {
             var results = try MalValue.initListCapacity(allocator, list.items.len);
@@ -143,7 +143,6 @@ pub fn main() anyerror!void {
 
     // REPL environment
     var env = Env.init(&gpa.allocator, null);
-    try env.data.ensureCapacity(100);
     defer env.deinit();
 
     try env.set("+", MalValue.makeFunction(add));

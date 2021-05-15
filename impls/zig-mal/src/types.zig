@@ -4,11 +4,15 @@ const Allocator = std.mem.Allocator;
 pub const MalType = union(enum) {
     pub const Number = i32;
     pub const Symbol = []const u8;
+    pub const String = []const u8;
     pub const Atom = union(enum) {
-        symbol: Symbol,
+        t,
+        f,
+        nil,
         number: Number,
-        // TODO: nil, true, false, string
         // TODO: keyword
+        string: String,
+        symbol: Symbol,
     };
     pub const List = std.ArrayList(MalType);
 
@@ -113,7 +117,27 @@ pub const MalValue = union(enum) {
         } };
     }
 
+    pub fn makeString(string: []const u8) MalValue {
+        return MalValue{ .mal_type = .{ .atom = .{ .string = string } } };
+    }
+
     const Self = @This();
+
+    pub fn deinit(self: Self, allocator: *Allocator) void {
+        if (self.getString()) |string| allocator.free(string);
+    }
+
+    pub fn copy(self: Self, allocator: *Allocator) !MalValue {
+        return if (self.getString()) |string| MalValue.makeString(try allocator.dupe(u8, string)) else self;
+    }
+
+    pub fn isString(self: Self) bool {
+        return self == .mal_type and self.mal_type == .atom and self.mal_type.atom == .string;
+    }
+
+    pub fn getString(self: Self) ?MalType.String {
+        return if (self.isString()) self.mal_type.atom.string else null;
+    }
 
     pub fn asNumber(self: Self) !MalType.Number {
         return switch (self) {
