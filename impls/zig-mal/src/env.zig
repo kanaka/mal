@@ -1,12 +1,11 @@
 const std = @import("std");
 const Allocator = std.mem.Allocator;
 
-const types = @import("types.zig");
-const MalValue = types.MalValue;
+const MalValue = @import("./types.zig").MalValue;
 
 pub const Env = struct {
     const Key = []const u8;
-    const Value = types.MalValue;
+    const Value = MalValue;
     // TODO: use AutoHashMap or other HashMap variant?
     const Data = std.StringHashMap(MalValue);
 
@@ -19,6 +18,21 @@ pub const Env = struct {
         return .{ .outer = outer, .data = Data.init(allocator) };
     }
 
+    pub fn initCapacity(allocator: *Allocator, outer: ?*const Env, size: u32) !Self {
+        var self = Self.init(allocator, outer);
+        try self.data.ensureCapacity(size);
+        return self;
+    }
+
+    pub fn initBindExprs(allocator: *Allocator, outer: ?*const Env, binds: []const Key, exprs: []const MalValue) !Self {
+        std.debug.assert(binds.len == exprs.len);
+        var self = try Self.initCapacity(allocator, outer, @intCast(u32, binds.len));
+        for (binds) |symbol, i| {
+            try self.set(symbol, exprs[i]);
+        }
+        return self;
+    }
+
     pub fn deinit(self: *Self) void {
         const allocator = self.data.allocator;
         var it = self.data.iterator();
@@ -29,6 +43,43 @@ pub const Env = struct {
         }
         self.data.deinit();
         self.* = undefined;
+    }
+
+    pub fn deinitAlloc(self: *Self, allocator: *Allocator) void {
+        var it = self.data.iterator();
+        while (it.next()) |entry| {
+            // free copied hash map keys and values
+            allocator.free(entry.key);
+            entry.value.deinit(allocator);
+        }
+        self.data.deinit();
+        allocator.destroy(self);
+        self.* = undefined;
+    }
+
+    pub fn copy(self: Self, allocator: *Allocator) !*Self {
+        // const data_copy = try self.data.clone();
+        var other_ptr = try allocator.create(Self);
+        other_ptr.* = try Self.initCapacity(allocator, self.outer, self.data.unmanaged.size);
+        var it = self.data.iterator();
+        while (it.next()) |entry| {
+            try other_ptr.set(entry.key, entry.value);
+        }
+        return other_ptr;
+    }
+
+    pub fn initChild(self: Self) !*Self {
+        const allocator = self.data.allocator;
+        var child_ptr = try allocator.create(Self);
+        child_ptr.* = Self.init(allocator, &self);
+        return child_ptr;
+    }
+
+    pub fn initChildBindExprs(self: *const Self, binds: []const Key, exprs: []const MalValue) !*Self {
+        const allocator = self.data.allocator;
+        var child_ptr = try allocator.create(Self);
+        child_ptr.* = try Self.initBindExprs(allocator, self, binds, exprs);
+        return child_ptr;
     }
 
     pub fn set(self: *Self, symbol: Key, value: MalValue) !void {
@@ -51,9 +102,9 @@ pub const Env = struct {
         get_or_put.value_ptr.* = value_copy;
     }
 
-    pub fn find(self: Self, symbol: Key) ?*const Self {
+    pub fn find(self: *const Self, symbol: Key) ?*const Self {
         return if (self.data.contains(symbol))
-            &self
+            self
         else if (self.outer) |outer| outer.find(symbol) else null;
     }
 

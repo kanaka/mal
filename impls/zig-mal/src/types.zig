@@ -1,6 +1,8 @@
 const std = @import("std");
 const Allocator = std.mem.Allocator;
 
+const Env = @import("env.zig").Env;
+
 pub const MalType = union(enum) {
     pub const Number = i32;
     pub const Symbol = []const u8;
@@ -30,6 +32,14 @@ pub const MalType = union(enum) {
         return .{ .atom = .{ .number = num } };
     }
 
+    pub fn makeString(string: []const u8) MalType {
+        return .{ .atom = .{ .string = string } };
+    }
+
+    pub fn makeSymbol(symbol: []const u8) MalType {
+        return .{ .atom = .{ .symbol = symbol } };
+    }
+
     pub fn initList(list: List) MalType {
         return .{ .list = list };
     }
@@ -44,15 +54,37 @@ pub const MalType = union(enum) {
 
     const Self = @This();
 
-    // pub fn listMap(self: Self, allocator: Allocator, mapFn: fn (element: *const MalType) !MalType) !MalType {
-    //     var results = List.initCapacity(allocator, list.items.len);
-    //     var results_list = results.asList();
-    //     for (self.asList()) |item| {
-    //         const result = try mapFn(allocator, item, repl_env);
-    //         try results_list.append(result);
-    //     }
-    //     return results;
-    // }
+    pub fn deinit(self: Self, allocator: *Allocator) void {
+        switch (self) {
+            .list => |list| {
+                for (list.items) |item| {
+                    item.deinit(allocator);
+                }
+                list.deinit();
+            },
+            .atom => |atom| switch (atom) {
+                .string, .symbol => |string_or_symbol| allocator.free(string_or_symbol),
+                else => {},
+            },
+        }
+    }
+
+    pub fn copy(self: Self, allocator: *Allocator) Allocator.Error!MalType {
+        return switch (self) {
+            .list => |list| blk: {
+                var list_copy = try List.initCapacity(allocator, list.items.len);
+                for (list.items) |item| {
+                    list_copy.appendAssumeCapacity(try item.copy(allocator));
+                }
+                break :blk .{ .list = list_copy };
+            },
+            .atom => |atom| switch (atom) {
+                .string => |string| makeString(try allocator.dupe(u8, string)),
+                .symbol => |symbol| makeSymbol(try allocator.dupe(u8, symbol)),
+                else => self,
+            },
+        };
+    }
 
     pub fn asAtom(self: Self) !Atom {
         return switch (self) {
@@ -92,7 +124,14 @@ pub const MalType = union(enum) {
 pub const MalValue = union(enum) {
     pub const List = std.ArrayList(MalValue);
     pub const Function = union(enum) {
+        const Parameters = std.ArrayList(MalType.Symbol);
+
         op_2_number: fn (a: MalType.Number, b: MalType.Number) MalType.Number,
+        closure: struct {
+            parameters: Parameters,
+            body: MalType,
+            env: *Env,
+        },
     };
 
     pub const EvalError = error{
@@ -124,11 +163,53 @@ pub const MalValue = union(enum) {
     const Self = @This();
 
     pub fn deinit(self: Self, allocator: Allocator) void {
-        if (self.getString()) |string| allocator.free(string);
+        switch (self) {
+            .mal_type => |mal_type| mal_type.deinit(allocator),
+            .list => |list| {
+                for (list.items) |item| {
+                    item.deinit(allocator);
+                }
+                list.deinit();
+            },
+            .function => |function| switch (function) {
+                .closure => |closure| {
+                    for (closure.parameters.items) |parameter| {
+                        allocator.free(parameter);
+                    }
+                    closure.parameters.deinit();
+                    closure.body.deinit(allocator);
+                    closure.env.deinitAlloc(allocator);
+                },
+                else => {},
+            },
+        }
     }
 
-    pub fn copy(self: Self, allocator: Allocator) !MalValue {
-        return if (self.getString()) |string| MalValue.makeString(try allocator.dupe(u8, string)) else self;
+    pub fn copy(self: Self, allocator: *Allocator) Allocator.Error!MalValue {
+        return switch (self) {
+            .mal_type => |mal_type| MalValue{ .mal_type = try mal_type.copy(allocator) },
+            .list => |list| blk: {
+                var list_copy = try List.initCapacity(allocator, list.items.len);
+                for (list.items) |item| {
+                    list_copy.appendAssumeCapacity(try item.copy(allocator));
+                }
+                break :blk MalValue{ .list = list_copy };
+            },
+            .function => |function| switch (function) {
+                .closure => |closure| blk: {
+                    var parameters_copy = try Function.Parameters.initCapacity(allocator, closure.parameters.items.len);
+                    for (closure.parameters.items) |item| {
+                        parameters_copy.appendAssumeCapacity(try std.mem.dupe(allocator, u8, item));
+                    }
+                    break :blk MalValue{ .function = .{ .closure = .{
+                        .parameters = parameters_copy,
+                        .body = try closure.body.copy(allocator),
+                        .env = try closure.env.copy(allocator),
+                    } } };
+                },
+                else => self,
+            },
+        };
     }
 
     pub fn isString(self: Self) bool {
@@ -159,3 +240,5 @@ pub const MalValue = union(enum) {
         };
     }
 };
+
+fn copyList(comptime T: type, src_list: std.ArrayList(T)) std.ArrayList(T) {}
