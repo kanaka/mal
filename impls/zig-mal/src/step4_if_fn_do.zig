@@ -1,6 +1,7 @@
 const std = @import("std");
 const Allocator = std.mem.Allocator;
 
+const core = @import("./core.zig");
 const debug = @import("./debug.zig");
 const Env = @import("./env.zig").Env;
 const printer = @import("./printer.zig");
@@ -12,48 +13,9 @@ const MalValue = types.MalValue;
 const input_buffer_length = 256;
 const prompt = "user> ";
 
-// base environment functions
-
-fn add(a: i32, b: i32) i32 {
-    return a + b;
-}
-
-fn subtract(a: i32, b: i32) i32 {
-    return a - b;
-}
-
-fn multiply(a: i32, b: i32) i32 {
-    return a * b;
-}
-
-fn divide(a: i32, b: i32) i32 {
-    // TODO: use std.math.divFloor/divTrunc for runtime errors instead of
-    // undefined behavior when dividing by zero
-    return @divFloor(a, b);
-}
-
 fn READ(allocator: *Allocator, input: []const u8) !MalType {
     const ast = try reader.read_str(allocator, input);
     return ast;
-}
-
-fn evalFunction(allocator: *Allocator, function: MalValue.Function, args: []const MalValue) !MalValue {
-    switch (function) {
-        // TODO: can probably be compile-time generated from function type info
-        .op_2_number => |op| {
-            if (args.len != 2) return error.EvalInvalidOperands;
-            const a = args[0].asNumber() catch return error.EvalInvalidOperand;
-            const b = args[1].asNumber() catch return error.EvalInvalidOperand;
-            return MalValue{ .mal_type = MalType.makeNumber(op(a, b)) };
-        },
-        .closure => |closure| {
-            // debug.println("creating closure EVAL environment");
-            var fn_env_ptr = try closure.env.initChildBindExprs(closure.parameters.items, args);
-            // debug.print_env(allocator, fn_env_ptr.*);
-            const result = try EVAL(allocator, &closure.body, fn_env_ptr);
-            return result;
-        },
-    }
 }
 
 const EvalError = error{
@@ -64,24 +26,7 @@ const EvalError = error{
     EvalNotSymbolOrFn,
     EnvSymbolNotFound,
     EvalInvalidFnParamsList,
-} || Allocator.Error;
-
-fn eval_ast(allocator: *Allocator, ast: *const MalType, env: *Env) EvalError!MalValue {
-    switch (ast.*) {
-        .atom => |atom| return switch (atom) {
-            .symbol => |symbol| env.get(symbol),
-            else => MalValue{ .mal_type = ast.* },
-        },
-        .list => |list| {
-            var results = try MalValue.initListCapacity(allocator, list.items.len);
-            for (list.items) |item| {
-                const result = try EVAL(allocator, &item, env);
-                results.list.appendAssumeCapacity(result);
-            }
-            return results;
-        },
-    }
-}
+} || Allocator.Error || MalValue.Function.Primitive.Error;
 
 fn EVAL(allocator: *Allocator, ast: *const MalType, env: *Env) EvalError!MalValue {
     // debug.println("EVAL");
@@ -161,6 +106,36 @@ fn EVAL(allocator: *Allocator, ast: *const MalType, env: *Env) EvalError!MalValu
     }
 }
 
+fn eval_ast(allocator: *Allocator, ast: *const MalType, env: *Env) EvalError!MalValue {
+    switch (ast.*) {
+        .atom => |atom| return switch (atom) {
+            .symbol => |symbol| env.get(symbol),
+            else => MalValue{ .mal_type = ast.* },
+        },
+        .list => |list| {
+            var results = try MalValue.initListCapacity(allocator, list.items.len);
+            for (list.items) |item| {
+                const result = try EVAL(allocator, &item, env);
+                results.list.appendAssumeCapacity(result);
+            }
+            return results;
+        },
+    }
+}
+
+fn evalFunction(allocator: *Allocator, function: MalValue.Function, args: []const MalValue) !MalValue {
+    switch (function) {
+        .primitive => |primitive| return primitive.eval(allocator, args),
+        .closure => |closure| {
+            // debug.println("creating closure EVAL environment");
+            var fn_env_ptr = try closure.env.initChildBindExprs(closure.parameters.items, args);
+            // debug.print_env(allocator, fn_env_ptr.*);
+            const result = try EVAL(allocator, &closure.body, fn_env_ptr);
+            return result;
+        },
+    }
+}
+
 fn PRINT(allocator: *Allocator, ast: *const MalValue) ![]const u8 {
     const output = try printer.pr_str(allocator, ast);
     return output;
@@ -184,10 +159,20 @@ pub fn main() anyerror!void {
     defer env.deinit();
     // debug.print_env(&gpa.allocator, env);
 
-    try env.set("+", MalValue.makeFunction(add));
-    try env.set("-", MalValue.makeFunction(subtract));
-    try env.set("*", MalValue.makeFunction(multiply));
-    try env.set("/", MalValue.makeFunction(divide));
+    try env.set("+", core.ns.@"+");
+    try env.set("-", core.ns.@"-");
+    try env.set("*", core.ns.@"*");
+    try env.set("/", core.ns.@"/");
+    try env.set("<", core.ns.@"<");
+    try env.set("<=", core.ns.@"<=");
+    try env.set(">", core.ns.@">");
+    try env.set(">=", core.ns.@">=");
+    try env.set("=", core.ns.@"=");
+    try env.set("list", core.ns.@"list");
+    try env.set("list?", core.ns.@"list?");
+    try env.set("empty?", core.ns.@"empty?");
+    try env.set("count", core.ns.@"count");
+    try env.set("prn", core.ns.@"prn");
 
     var input_buffer: [input_buffer_length]u8 = undefined;
     // initialize std io reader and writer
@@ -225,8 +210,13 @@ pub fn main() anyerror!void {
                 error.EvalNotSymbolOrFn => "tried to evaluate list where the first item is not a function or special form",
                 error.EnvSymbolNotFound => "symbol not found",
                 error.OutOfMemory => "out of memory",
+                else => @errorName(err),
             };
             try stderr.print("Error: {s}\n", .{message});
+            // print error return stack trace in debug build
+            if (@errorReturnTrace()) |trace| {
+                std.debug.dumpStackTrace(trace.*);
+            }
         }
     }
 }

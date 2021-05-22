@@ -10,7 +10,6 @@ pub fn pr_str(allocator: Allocator, value: *const MalValue) Error![]const u8 {
     // TODO: this needs a significant refactoring to work with an allocator
     // other than arena, not planned for deallocation
     return switch (value.*) {
-        else => "",
         // .function => "#<function>",
         .function => |function| switch (function) {
             .closure => |closure| {
@@ -55,6 +54,22 @@ pub fn pr_str(allocator: Allocator, value: *const MalValue) Error![]const u8 {
 
                 return printed_forms.items;
             },
+        },
+        .list => |list| {
+            var printed_values = std.ArrayList(u8).init(allocator);
+            const writer = printed_values.writer();
+
+            try writer.writeAll("(");
+            for (list.items) |item, index| {
+                const printed_item = try pr_str(allocator, &item);
+                try writer.writeAll(printed_item);
+                if (index < list.items.len - 1) {
+                    try writer.writeAll(" ");
+                }
+            }
+            try writer.writeAll(")");
+
+            return printed_values.items;
         },
     };
 }
