@@ -67,7 +67,7 @@ pub fn eql(a: *const MalValue, b: *const MalValue) bool {
 }
 
 pub fn prn(allocator: *Allocator, param: *const MalValue) Error!*MalValue {
-    const str = try printer.pr_str(allocator, param);
+    const str = try printer.pr_str(allocator, param, true);
     const stdout = std.io.getStdOut().writer();
     try stdout.print("{s}\n", .{str});
     // TODO: this shouldn't need to allocate

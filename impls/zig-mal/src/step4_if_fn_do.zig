@@ -137,7 +137,7 @@ fn evalFunction(allocator: *Allocator, function: MalValue.Function, args: []cons
 }
 
 fn PRINT(allocator: *Allocator, ast: *const MalValue) ![]const u8 {
-    const output = try printer.pr_str(allocator, ast);
+    const output = try printer.pr_str(allocator, ast, true);
     return output;
 }
 

@@ -96,7 +96,7 @@ fn read_list(allocator: Allocator, reader: *Reader) !MalType {
     return MalType{ .list = list };
 }
 
-fn read_atom(_: Allocator, reader: *Reader) !MalType {
+fn read_atom(allocator: Allocator, reader: *Reader) !MalType {
     return MalType{
         .atom = if (reader.next()) |token|
             // TODO: support keyword
@@ -107,7 +107,7 @@ fn read_atom(_: Allocator, reader: *Reader) !MalType {
             else if (std.mem.eql(u8, token, "false"))
                 .f
             else if (token[0] == '"')
-                Atom{ .string = token[1 .. token.len - 1] }
+                Atom{ .string = try replaceEscapeSequences(allocator, token[1 .. token.len - 1]) }
             else if (std.fmt.parseInt(i32, token, 10)) |int|
                 Atom{ .number = int }
             else |_|
@@ -117,9 +117,19 @@ fn read_atom(_: Allocator, reader: *Reader) !MalType {
     };
 }
 
-const TokenizeError = error{
-    StringLiteralNoClosingTag,
-};
+fn replaceEscapeSequences(allocator: *Allocator, str: []const u8) ![]const u8 {
+    var result = try allocator.dupe(u8, str);
+    var len = str.len;
+    // TODO: this is buggy and slow due to performing the replacements in order
+    // replace \" with "
+    len -= std.mem.replace(u8, result, "\\\"", "\"", result);
+    // replace \\ with \
+    len -= std.mem.replace(u8, result, "\\\\", "\\", result);
+    // replace \n with newline character
+    len -= std.mem.replace(u8, result, "\\n", "\n", result);
+    allocator.free(result[len..]);
+    return result[0..len];
+}
 
 // [\s,]*(~@|[\[\]{}()'`~^@]|"(?:\\.|[^\\"])*"?|;.*|[^\s\[\]{}('"`,;)]*)
 

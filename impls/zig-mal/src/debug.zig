@@ -15,7 +15,7 @@ pub fn print_ptr(str: []const u8, ptr: anytype) void {
 }
 
 pub fn print_ast(a: *Allocator, ast: *const MalType) void {
-    std.debug.print("ast: {s}\n", .{printer.pr_str(a, &MalValue{ .mal_type = ast.* })});
+    std.debug.print("ast: {s}\n", .{printer.pr_str(a, &MalValue{ .mal_type = ast.* }, true)});
 }
 
 pub fn print_env(a: *Allocator, env: Env) void {
@@ -23,13 +23,13 @@ pub fn print_env(a: *Allocator, env: Env) void {
 
     var env_it = env.data.iterator();
     while (env_it.next()) |entry| {
-        std.debug.print("  '{s}: {s}\n", .{ entry.key, printer.pr_str(a, &entry.value) });
+        std.debug.print("  '{s}: {s}\n", .{ entry.key, printer.pr_str(a, &entry.value, true) });
     }
     if (env.outer) |outer| {
         print_ptr("outer: ", env.outer.?);
         var outer_env_it = outer.data.iterator();
         while (outer_env_it.next()) |entry| {
-            std.debug.print("  '{s}: {s}\n", .{ entry.key, printer.pr_str(a, &entry.value) });
+            std.debug.print("  '{s}: {s}\n", .{ entry.key, printer.pr_str(a, &entry.value, true) });
         }
     } else println("outer: null");
     println("");
