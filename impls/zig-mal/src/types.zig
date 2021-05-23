@@ -269,7 +269,7 @@ pub const MalValue = union(enum) {
     }
 
     pub fn makeString(string: []const u8) MalValue {
-        return MalValue{ .mal_type = .{ .atom = .{ .string = string } } };
+        return .{ .mal_type = MalType.makeString(string) };
     }
 
     const Self = @This();

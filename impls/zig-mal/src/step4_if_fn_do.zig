@@ -20,6 +20,8 @@ fn READ(allocator: *Allocator, input: []const u8) !MalType {
 
 const EvalError = error{
     EvalDefInvalidOperands,
+    EvalDoInvalidOperands,
+    EvalIfInvalidOperands,
     EvalLetInvalidOperands,
     EvalInvalidOperand,
     EvalInvalidOperands,
@@ -72,6 +74,27 @@ fn EVAL(allocator: *Allocator, ast: *const MalType, env: *Env) EvalError!MalValu
                     }
                     const evaled_value = try EVAL(allocator, &rest[1], &let_env);
                     return evaled_value;
+                }
+
+                if (std.mem.eql(u8, symbol, "if")) {
+                    const rest = list.items[1..];
+                    if (rest.len != 2 and rest.len != 3) return error.EvalIfInvalidOperands;
+                    const condition = rest[0];
+                    const evaled_value = try EVAL(allocator, &condition, env);
+                    const boolean_value = if (evaled_value == .mal_type and evaled_value.mal_type == .atom and (evaled_value.mal_type.atom == .f or evaled_value.mal_type.atom == .nil)) false else true;
+                    const result = if (boolean_value) try EVAL(allocator, &rest[1], env) else if (rest.len == 3) try EVAL(allocator, &rest[2], env) else MalValue{ .mal_type = .{ .atom = .nil } };
+                    return result;
+                }
+
+                if (std.mem.eql(u8, symbol, "do")) {
+                    const do_len = list.items.len - 1;
+                    if (do_len < 1) return error.EvalDoInvalidOperands;
+                    const do_items = list.items[1..];
+                    for (do_items[0 .. do_len - 1]) |item| {
+                        _ = try EVAL(allocator, &item, env);
+                    }
+                    const result = try EVAL(allocator, &do_items[do_len - 1], env);
+                    return result;
                 }
 
                 if (std.mem.eql(u8, symbol, "fn*")) {
@@ -128,6 +151,9 @@ fn evalFunction(allocator: *Allocator, function: MalValue.Function, args: []cons
         .primitive => |primitive| return primitive.eval(allocator, args),
         .closure => |closure| {
             // debug.println("creating closure EVAL environment");
+            if (closure.parameters.items.len != args.len) {
+                return error.EvalInvalidOperands;
+            }
             var fn_env_ptr = try closure.env.initChildBindExprs(closure.parameters.items, args);
             // debug.print_env(allocator, fn_env_ptr.*);
             const result = try EVAL(allocator, &closure.body, fn_env_ptr);
@@ -173,6 +199,7 @@ pub fn main() anyerror!void {
     try env.set("empty?", core.ns.@"empty?");
     try env.set("count", core.ns.@"count");
     try env.set("prn", core.ns.@"prn");
+    try env.set("pr-str", core.ns.@"pr-str");
 
     var input_buffer: [input_buffer_length]u8 = undefined;
     // initialize std io reader and writer
@@ -203,6 +230,8 @@ pub fn main() anyerror!void {
                 error.StringLiteralNoClosingTag => "unbalanced string literal, missing closing '\"'",
                 error.TokensPastFormEnd => "found additional tokens past end of form",
                 error.EvalDefInvalidOperands => "Invalid def! operands",
+                error.EvalDoInvalidOperands => "Invalid do operands",
+                error.EvalIfInvalidOperands => "Invalid if operands",
                 error.EvalLetInvalidOperands => "Invalid let* operands",
                 error.EvalInvalidFnParamsList => "Invalid parameter list to fn* expression",
                 error.EvalInvalidOperand => "Invalid operand",

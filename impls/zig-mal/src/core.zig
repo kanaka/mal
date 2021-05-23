@@ -76,6 +76,18 @@ pub fn prn(allocator: *Allocator, param: *const MalValue) Error!*MalValue {
     return result_ptr;
 }
 
+pub fn pr_str(allocator: *Allocator, args: MalValue.List) Error!*MalValue {
+    var printed_args = try std.ArrayList([]const u8).initCapacity(allocator, args.items.len);
+
+    for (args.items) |arg| {
+        printed_args.appendAssumeCapacity(try printer.pr_str(allocator, &arg, true));
+    }
+    const str = try std.mem.join(allocator, " ", printed_args.items);
+    var result_ptr = try allocator.create(MalValue);
+    result_ptr.* = MalValue.makeString(str);
+    return result_ptr;
+}
+
 pub const ns = .{
     .@"+" = Primitive.make(add),
     .@"-" = Primitive.make(subtract),
@@ -91,6 +103,7 @@ pub const ns = .{
     .@"empty?" = Primitive.make(is_empty),
     .@"count" = Primitive.make(count),
     .@"prn" = Primitive.make(prn),
+    .@"pr-str" = Primitive.make(pr_str),
 };
 
 pub const ns_map = std.ComptimeStringMap(MalValue, .{
