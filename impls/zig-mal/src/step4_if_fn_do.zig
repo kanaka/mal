@@ -36,7 +36,7 @@ fn EVAL(allocator: *Allocator, ast: *const MalType, env: *Env) EvalError!MalValu
     // debug.print_env(allocator, env.*);
 
     switch (ast.*) {
-        .list => |list| if (list.items.len == 0) return MalValue{ .mal_type = ast.* } else {
+        .list => |list| if (list.items.len == 0) return MalValue.initListAlloc(allocator) else {
             // apply phase
             const first = list.items[0];
             if (first == .atom and first.atom == .symbol) {

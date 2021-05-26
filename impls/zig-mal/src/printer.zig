@@ -3,6 +3,7 @@ const Allocator = std.mem.Allocator;
 
 const types = @import("./types.zig");
 const MalValue = types.MalValue;
+const replaceMultipleOwned = @import("./utils.zig").replaceMultipleOwned;
 
 const Error = error{OutOfMemory};
 
@@ -75,16 +76,19 @@ pub fn pr_str(allocator: Allocator, value: *const MalValue, print_readably: bool
 }
 
 fn replaceWithEscapeSequences(allocator: *Allocator, str: []const u8) ![]const u8 {
-    var result = try allocator.alloc(u8, 2 * str.len);
-    std.mem.copy(u8, result, str);
-    var len = str.len;
-    // TODO: this is buggy and slow due to performing the replacements in order
     // replace " with \"
-    len += std.mem.replace(u8, result[0..len], "\"", "\\\"", result);
     // replace \ with \\
-    len += std.mem.replace(u8, result[0..len], "\\", "\\\\", result);
     // replace newline character with \n
-    len += std.mem.replace(u8, result[0..len], "\n", "\\n", result);
-    allocator.free(result[len..]);
-    return result[0..len];
+    const needles = .{ "\"", "\\", "\n" };
+    const replacements = .{ "\\\"", "\\\\", "\\n" };
+    return replaceMultipleOwned(u8, 3, allocator, str, needles, replacements);
+}
+
+pub fn printJoin(allocator: *Allocator, separator: []const u8, args: MalValue.List, print_readably: bool) ![]const u8 {
+    var printed_args = try std.ArrayList([]const u8).initCapacity(allocator, args.items.len);
+    defer printed_args.deinit();
+    for (args.items) |arg| {
+        printed_args.appendAssumeCapacity(try pr_str(allocator, &arg, print_readably));
+    }
+    return std.mem.join(allocator, separator, printed_args.items);
 }

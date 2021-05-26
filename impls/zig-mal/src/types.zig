@@ -264,7 +264,11 @@ pub const MalValue = union(enum) {
     list: List,
     function: Function,
 
-    pub fn initListCapacity(allocator: Allocator, num: usize) !MalValue {
+    pub fn initListAlloc(allocator: Allocator) MalValue {
+        return MalValue{ .list = List.init(allocator) };
+    }
+
+    pub fn initListCapacity(allocator: *Allocator, num: usize) !MalValue {
         return MalValue{ .list = try List.initCapacity(allocator, num) };
     }
 

@@ -2,6 +2,7 @@ const std = @import("std");
 const Allocator = std.mem.Allocator;
 
 const printer = @import("./printer.zig");
+const printJoin = printer.printJoin;
 const types = @import("./types.zig");
 const MalType = types.MalType;
 const MalValue = types.MalValue;
@@ -53,38 +54,63 @@ pub fn is_list(param: *const MalValue) bool {
     return param.* == .list;
 }
 
+pub fn is_nil(param: *const MalValue) bool {
+    return param.* == .mal_type and param.mal_type == .atom and param.mal_type.atom == .nil;
+}
+
 pub fn is_empty(param: *const MalValue) bool {
     return count(param) == 0;
 }
 
 pub fn count(param: *const MalValue) Number {
-    // TODO: error if not list
-    return if (is_list(param)) @intCast(Number, param.list.items.len) else -1;
+    if (is_list(param))
+        return @intCast(Number, param.list.items.len)
+    else if (is_nil(param))
+        return 0
+    else
+        // TODO: error if not list?
+        return -1;
 }
 
 pub fn eql(a: *const MalValue, b: *const MalValue) bool {
     return a.equals(b);
 }
 
-pub fn prn(allocator: *Allocator, param: *const MalValue) Error!*MalValue {
-    const str = try printer.pr_str(allocator, param, true);
+pub fn pr_str(allocator: *Allocator, args: MalValue.List) Error!*MalValue {
+    var result_ptr = try allocator.create(MalValue);
+    result_ptr.* = MalValue.makeString(try printJoin(allocator, "", args, true));
+    return result_ptr;
+}
+
+pub fn str(allocator: *Allocator, args: MalValue.List) Error!*MalValue {
+    var result_ptr = try allocator.create(MalValue);
+    result_ptr.* = MalValue.makeString(try printJoin(allocator, "", args, false));
+    return result_ptr;
+}
+
+pub fn prn(allocator: *Allocator, args: MalValue.List) Error!*MalValue {
+    const string = try printJoin(allocator, " ", args, true);
+    defer allocator.free(string);
+
     const stdout = std.io.getStdOut().writer();
-    try stdout.print("{s}\n", .{str});
+    try stdout.print("{s}\n", .{string});
+
     // TODO: this shouldn't need to allocate
     var result_ptr = try allocator.create(MalValue);
     result_ptr.* = MalValue{ .mal_type = .{ .atom = .nil } };
     return result_ptr;
 }
 
-pub fn pr_str(allocator: *Allocator, args: MalValue.List) Error!*MalValue {
-    var printed_args = try std.ArrayList([]const u8).initCapacity(allocator, args.items.len);
+pub fn println(allocator: *Allocator, args: MalValue.List) Error!*MalValue {
+    const string = try printJoin(allocator, " ", args, false);
+    defer allocator.free(string);
 
-    for (args.items) |arg| {
-        printed_args.appendAssumeCapacity(try printer.pr_str(allocator, &arg, true));
-    }
-    const str = try std.mem.join(allocator, " ", printed_args.items);
+    const stdout = std.io.getStdOut().writer();
+    try stdout.print("{s}\n", .{string});
+
+    // TODO: this shouldn't need to allocate
     var result_ptr = try allocator.create(MalValue);
-    result_ptr.* = MalValue.makeString(str);
+    result_ptr.* = MalValue{ .mal_type = .{ .atom = .nil } };
     return result_ptr;
 }
 
@@ -101,34 +127,10 @@ pub const ns = .{
     .@"list" = Primitive.make(list),
     .@"list?" = Primitive.make(is_list),
     .@"empty?" = Primitive.make(is_empty),
+    .@"nil?" = Primitive.make(is_nil),
     .@"count" = Primitive.make(count),
-    .@"prn" = Primitive.make(prn),
     .@"pr-str" = Primitive.make(pr_str),
-};
-
-pub const ns_map = std.ComptimeStringMap(MalValue, .{
-    .{ "+", Primitive.make(add) },
-    .{ "-", Primitive.make(subtract) },
-    .{ "*", Primitive.make(multiply) },
-    .{ "/", Primitive.make(divide) },
-    .{ "<", Primitive.make(lessThan) },
-    .{ "<=", Primitive.make(lessOrEqual) },
-    .{ ">", Primitive.make(greaterThan) },
-    .{ ">=", Primitive.make(greaterOrEqual) },
-});
-
-pub const ns_fn_ptrs = .{
-    .add = add,
-    .subtract = subtract,
-    .multiply = multiply,
-    .divide = divide,
-    .prn = prn,
-    .list = list,
-    .is_list = is_list,
-    .is_empty = is_empty,
-    .eql = eql,
-    .lessThan = lessThan,
-    .greaterThan = greaterThan,
-    .lessOrEqual = lessOrEqual,
-    .greaterOrEqual = greaterOrEqual,
+    .@"str" = Primitive.make(str),
+    .@"prn" = Primitive.make(prn),
+    .@"println" = Primitive.make(println),
 };

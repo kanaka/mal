@@ -4,6 +4,7 @@ const Allocator = std.mem.Allocator;
 const types = @import("./types.zig");
 const MalType = types.MalType;
 const Atom = MalType.Atom;
+const replaceMultipleOwned = @import("./utils.zig").replaceMultipleOwned;
 
 const TokenList = std.ArrayList([]const u8);
 
@@ -118,17 +119,12 @@ fn read_atom(allocator: Allocator, reader: *Reader) !MalType {
 }
 
 fn replaceEscapeSequences(allocator: *Allocator, str: []const u8) ![]const u8 {
-    var result = try allocator.dupe(u8, str);
-    var len = str.len;
-    // TODO: this is buggy and slow due to performing the replacements in order
     // replace \" with "
-    len -= std.mem.replace(u8, result, "\\\"", "\"", result);
     // replace \\ with \
-    len -= std.mem.replace(u8, result, "\\\\", "\\", result);
     // replace \n with newline character
-    len -= std.mem.replace(u8, result, "\\n", "\n", result);
-    allocator.free(result[len..]);
-    return result[0..len];
+    const needles = .{ "\\\"", "\\\\", "\\n" };
+    const replacements = .{ "\"", "\\", "\n" };
+    return replaceMultipleOwned(u8, 3, allocator, str, needles, replacements);
 }
 
 // [\s,]*(~@|[\[\]{}()'`~^@]|"(?:\\.|[^\\"])*"?|;.*|[^\s\[\]{}('"`,;)]*)
