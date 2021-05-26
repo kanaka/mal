@@ -185,21 +185,23 @@ pub fn main() anyerror!void {
     defer env.deinit();
     // debug.print_env(&gpa.allocator, env);
 
-    try env.set("+", core.ns.@"+");
-    try env.set("-", core.ns.@"-");
-    try env.set("*", core.ns.@"*");
-    try env.set("/", core.ns.@"/");
-    try env.set("<", core.ns.@"<");
-    try env.set("<=", core.ns.@"<=");
-    try env.set(">", core.ns.@">");
-    try env.set(">=", core.ns.@">=");
-    try env.set("=", core.ns.@"=");
-    try env.set("list", core.ns.@"list");
-    try env.set("list?", core.ns.@"list?");
-    try env.set("empty?", core.ns.@"empty?");
-    try env.set("count", core.ns.@"count");
-    try env.set("prn", core.ns.@"prn");
-    try env.set("pr-str", core.ns.@"pr-str");
+    inline for (.{
+        "+",
+        "-",
+        "*",
+        "/",
+        "<",
+        "<=",
+        ">",
+        ">=",
+        "=",
+        "list",
+        "list?",
+        "empty?",
+        "count",
+        "prn",
+        "pr-str",
+    }) |symbol| try env.set(symbol, @field(core.ns, symbol));
 
     var input_buffer: [input_buffer_length]u8 = undefined;
     // initialize std io reader and writer
