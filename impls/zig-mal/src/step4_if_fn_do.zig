@@ -242,9 +242,9 @@ pub fn main() anyerror!void {
             };
             try stderr.print("Error: {s}\n", .{message});
             // print error return stack trace in debug build
-            if (@errorReturnTrace()) |trace| {
-                std.debug.dumpStackTrace(trace.*);
-            }
+            // if (@errorReturnTrace()) |trace| {
+            //     std.debug.dumpStackTrace(trace.*);
+            // }
         }
     }
 }

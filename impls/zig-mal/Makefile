@@ -3,7 +3,7 @@ STEPS = step0_repl step1_read_print step2_eval step3_env step4_if_fn_do step5_tc
 all: $(STEPS)
 
 %: src/%.zig
-	zig build -Drelease-fast=true
+	zig build -Drelease-fast=true $@
 
 .PHONY: clean
 
