@@ -351,6 +351,10 @@ pub const MalValue = union(enum) {
         };
     }
 
+    pub fn isTruthy(self: Self) bool {
+        return !(self == .mal_type and self.mal_type == .atom and (self.mal_type.atom == .f or self.mal_type.atom == .nil));
+    }
+
     pub fn isString(self: Self) bool {
         return self == .mal_type and self.mal_type == .atom and self.mal_type.atom == .string;
     }

@@ -81,9 +81,12 @@ fn EVAL(allocator: *Allocator, ast: *const MalType, env: *Env) EvalError!MalValu
                     if (rest.len != 2 and rest.len != 3) return error.EvalIfInvalidOperands;
                     const condition = rest[0];
                     const evaled_value = try EVAL(allocator, &condition, env);
-                    const boolean_value = if (evaled_value == .mal_type and evaled_value.mal_type == .atom and (evaled_value.mal_type.atom == .f or evaled_value.mal_type.atom == .nil)) false else true;
-                    const result = if (boolean_value) try EVAL(allocator, &rest[1], env) else if (rest.len == 3) try EVAL(allocator, &rest[2], env) else MalValue{ .mal_type = .{ .atom = .nil } };
-                    return result;
+                    if (evaled_value.isTruthy())
+                        return EVAL(allocator, &rest[1], env)
+                    else if (rest.len == 3)
+                        return EVAL(allocator, &rest[2], env)
+                    else
+                        return MalValue{ .mal_type = .{ .atom = .nil } };
                 }
 
                 if (std.mem.eql(u8, symbol, "do")) {
@@ -194,6 +197,14 @@ pub fn main() anyerror!void {
     const stdin = std.io.getStdIn().reader();
     const stdout = std.io.getStdOut().writer();
     const stderr = std.io.getStdErr().writer();
+
+    // TODO: use this instead of core.ns.not
+    // currently leads to memory leaks due to closure child env
+    // var ar = std.heap.ArenaAllocator.init(&gpa.allocator);
+    // defer ar.deinit();
+    // _ = try rep(&ar.allocator, "(def! not (fn* (a) (if a false true)))", &env);
+    // _ = try rep(&gpa.allocator, "(def! not (fn* (a) (if a false true)))", &env);
+
     // main repl loop
     while (true) {
         // print prompt

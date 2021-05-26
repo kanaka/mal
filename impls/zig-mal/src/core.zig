@@ -54,6 +54,11 @@ pub fn is_list(param: *const MalValue) bool {
     return param.* == .list;
 }
 
+// TODO: per the guide this should be defined in Mal itself using rep()
+pub fn not(param: *const MalValue) bool {
+    return !param.isTruthy();
+}
+
 pub fn is_nil(param: *const MalValue) bool {
     return param.* == .mal_type and param.mal_type == .atom and param.mal_type.atom == .nil;
 }
@@ -128,6 +133,7 @@ pub const ns = .{
     .@"list?" = Primitive.make(is_list),
     .@"empty?" = Primitive.make(is_empty),
     .@"nil?" = Primitive.make(is_nil),
+    .@"not" = Primitive.make(not),
     .@"count" = Primitive.make(count),
     .@"pr-str" = Primitive.make(pr_str),
     .@"str" = Primitive.make(str),
