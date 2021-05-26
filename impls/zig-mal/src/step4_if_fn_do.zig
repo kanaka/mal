@@ -185,23 +185,9 @@ pub fn main() anyerror!void {
     defer env.deinit();
     // debug.print_env(&gpa.allocator, env);
 
-    inline for (.{
-        "+",
-        "-",
-        "*",
-        "/",
-        "<",
-        "<=",
-        ">",
-        ">=",
-        "=",
-        "list",
-        "list?",
-        "empty?",
-        "count",
-        "prn",
-        "pr-str",
-    }) |symbol| try env.set(symbol, @field(core.ns, symbol));
+    inline for (@typeInfo(@TypeOf(core.ns)).Struct.fields) |field| {
+        try env.set(field.name, @field(core.ns, field.name));
+    }
 
     var input_buffer: [input_buffer_length]u8 = undefined;
     // initialize std io reader and writer
