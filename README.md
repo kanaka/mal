@@ -35,11 +35,11 @@ Here is the final diagram for [step A](process/guide.md#stepA):
 ![stepA_mal architecture](process/stepA_mal.png)
 
 If you are interested in creating a mal implementation (or just
-interested in using mal for something), please drop by the #mal
-channel on [libera.chat](https://libera.chat/). In addition to the
-[make-a-lisp process guide](process/guide.md) there is also
-a [mal/make-a-lisp FAQ](docs/FAQ.md) where I attempt to answer some
-common questions.
+interested in using mal for something), you are welcome to to join our
+[Discord](https://discord.gg/CKgnNbJBpF) or join #mal on
+[libera.chat](https://libera.chat/). In addition to the [make-a-lisp
+process guide](process/guide.md) there is also a [mal/make-a-lisp
+FAQ](docs/FAQ.md) where I attempt to answer some common questions.
 
 
 **3. Mal is implemented in 86 languages (90 different implementations and 112 runtime modes)**
