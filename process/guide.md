@@ -473,7 +473,12 @@ and each step will give progressively more bang for the buck.
     a similar prefixed translation anyways).
   * vector: a vector can be implemented with same underlying
     type as a list as long as there is some mechanism to keep track of
-    the difference. You can use the same reader function for both
+    the difference.
+    Vector literals are similar to lists, but use bracket as
+    delimiters instead of parenthesis.
+    For example, `[]` constructs an empty vector and `[1 "a"]` a
+    vector with two elements.
+    You can use the same reader function for both
     lists and vectors by adding parameters for the starting and ending
     tokens.
   * hash-map: a hash-map is an associative data structure that maps
@@ -481,7 +486,13 @@ and each step will give progressively more bang for the buck.
     strings, then you only need a native associative data structure
     which supports string keys. Clojure allows any value to be a hash
     map key, but the base functionality in mal is to support strings
-    and keyword keys. Because of the representation of hash-maps as
+    and keyword keys.
+    Hash-map literals are constructed with braces delimiters.
+    For example,
+    `{}` constructs an empty map,
+    `{"a" 1 :b "whatever"}` associates the `a` key to an integer value
+    and the `:b` key to a string value.
+    Because of the representation of hash-maps as
     an alternating sequence of keys and values, you can probably use
     the same reader function for hash-maps as lists and vectors with
     parameters to indicate the starting and ending tokens. The odd
