@@ -99,10 +99,10 @@ language is called "quux":
 mkdir impls/quux
 ```
 
-* Modify the top level Makefile to allow the tests to be run against
+* Modify the top level Makefile.impls to allow the tests to be run against
   your implementation. For example, if your language is named "quux"
   and uses "qx" as the file extension, then make the following
-  3 modifications to Makefile:
+  3 modifications to Makefile.impls:
 ```
 IMPLS = ... quux ...
 ...
