@@ -1064,7 +1064,7 @@ This isomorphism (same shape) between data and programs is known as
 "homoiconicity". Lisp languages are homoiconic and this property
 distinguishes them from most other programming languages.
 
-You mal implementation is quite powerful already but the set of
+Your mal implementation is quite powerful already but the set of
 functions that are available (from `core.qx`) is fairly limited. The
 bulk of the functions you will add are described in step 9 and step A,
 but you will begin to flesh them out over the next few steps to
@@ -1453,9 +1453,9 @@ diff -urp ../process/step8_macros.txt ../process/step9_try.txt
 
 * Add the `apply` and `map` core functions. In step 5, if you did not
   add the original function (`fn`) to the structure returned from
-  `fn*`, the you will need to do so now.
+  `fn*`, then you will need to do so now.
   * `apply`: takes at least two arguments. The first argument is
-    a function and the last argument is list (or vector). The
+    a function and the last argument is a list (or vector). The
     arguments between the function and the last argument (if there are
     any) are concatenated with the final argument to create the
     arguments that are used to call the function. The apply
