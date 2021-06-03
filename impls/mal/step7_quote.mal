@@ -108,7 +108,7 @@
   (PRINT (EVAL (READ strng) repl-env))))
 
 ;; core.mal: defined directly using mal
-(map (fn* [data] (apply env-set repl-env data)) core_ns)
+(map (fn* [sym] (env-set repl-env sym (eval sym))) core_ns)
 (env-set repl-env 'eval (fn* [ast] (EVAL ast repl-env)))
 (env-set repl-env '*ARGV* (rest *ARGV*))
 
