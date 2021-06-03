@@ -18,10 +18,7 @@
   (if line
     (do
       (if (not (= "" line))
-        (try*
-          (println (rep line))
-          (catch* exc
-            (println "Uncaught exception:" exc))))
+        (println (rep line)))
       (repl-loop (readline "mal-user> "))))))
 
 ;; main

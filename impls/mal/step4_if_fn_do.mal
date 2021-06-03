@@ -1,6 +1,10 @@
 (load-file "../mal/env.mal")
 (load-file "../mal/core.mal")
 
+;; EVAL extends this stack trace when propagating exceptions.  If the
+;; exception reaches the REPL loop, the full trace is printed.
+(def! trace (atom ""))
+
 ;; read
 (def! READ read-string)
 
@@ -31,38 +35,43 @@
 
 (def! EVAL (fn* [ast env]
   ;; (do (prn "EVAL" ast "/" (keys @env)) )
-  (if (not (list? ast))
-    (eval-ast ast env)
+  (try*
+    (if (not (list? ast))
+      (eval-ast ast env)
 
-    ;; apply list
-    (let* [a0 (first ast)]
-      (cond
-        (empty? ast)
-        ast
+      ;; apply list
+      (let* [a0 (first ast)]
+        (cond
+          (empty? ast)
+          ast
 
-        (= 'def! a0)
-        (env-set env (nth ast 1) (EVAL (nth ast 2) env))
+          (= 'def! a0)
+          (env-set env (nth ast 1) (EVAL (nth ast 2) env))
 
-        (= 'let* a0)
-        (LET (new-env env) (nth ast 1) (nth ast 2))
+          (= 'let* a0)
+          (LET (new-env env) (nth ast 1) (nth ast 2))
 
-        (= 'do a0)
-        (let* [el (eval-ast (rest ast) env)]
-          (nth el (- (count el) 1)))
+          (= 'do a0)
+          (let* [el (eval-ast (rest ast) env)]
+            (nth el (- (count el) 1)))
 
-        (= 'if a0)
-        (if (EVAL (nth ast 1) env)
-          (EVAL (nth ast 2) env)
-          (if (> (count ast) 3)
-            (EVAL (nth ast 3) env)))
+          (= 'if a0)
+          (if (EVAL (nth ast 1) env)
+            (EVAL (nth ast 2) env)
+            (if (> (count ast) 3)
+              (EVAL (nth ast 3) env)))
 
-        (= 'fn* a0)
-        (fn* [& args] (EVAL (nth ast 2) (new-env env (nth ast 1) args)))
+          (= 'fn* a0)
+          (fn* [& args] (EVAL (nth ast 2) (new-env env (nth ast 1) args)))
 
-        "else"
-        (let* [el (eval-ast ast env)]
-          (apply (first el) (rest el))))))))
+          "else"
+          (let* [el (eval-ast ast env)]
+            (apply (first el) (rest el))))))
 
+    (catch* exc
+      (do
+        (swap! trace str "\n  in mal EVAL: " ast)
+        (throw exc))))))
 
 ;; print
 (def! PRINT pr-str)
@@ -86,7 +95,9 @@
         (try*
           (println (rep line))
           (catch* exc
-            (println "Uncaught exception:" exc))))
+            (do
+              (println "Uncaught exception:" exc @trace)
+              (reset! trace "")))))
       (repl-loop (readline "mal-user> "))))))
 
 ;; main
