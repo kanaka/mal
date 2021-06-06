@@ -677,3 +677,23 @@ It's also worth observing that the Truffle/GraalVM provide _other_ interesting b
 that are not performance-related. I won't cover them here. I think the most interesting
 non-performance benefit is the promise of interoperability with other Truffle languages.
 
+## Bonus: AOT-compiled Mal
+
+GraalVM can ahead-of-time compile Java into a stand-alone executable (with some caveats)
+called a _native image_.
+This works even for Truffle interpreters! With AOT-compiled Mal, we get all the JIT compilation
+goodness of Truffle, _and_ we ditch the need for a Java runtime, **and** we skip the long JVM
+start-up time! A GraalVM native image of our Mal interpreter is well suited for scripts and
+command line applications.
+
+The `make-native.sh` script can be used to compile a native image of any Mal step.
+To run it, though, you'll need some additional
+[prerequisites](https://www.graalvm.org/reference-manual/native-image/#prerequisites).
+
+The `make-native.sh` script
+
+* assumes you've already run `gradle build` to compile all Java classes
+* takes as its only argument a step name, e.g. `step3_env`
+** when no argument is supplied, `stepE_macros` is selected by default
+* produces a `build/${STEP}` native image
+
