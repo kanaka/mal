@@ -204,9 +204,9 @@ public class stepE_macros {
         @ExplodeLoop
         @Override
         public Object executeGeneric(VirtualFrame frame, MalEnv env) {
-            var elements = new ArrayList<>(elementNodes.length);
+            var elements = new Object[elementNodes.length];
             for (int i=0; i < elementNodes.length; i++) {
-                elements.add(elementNodes[i].executeGeneric(frame, env));
+                elements[i] = elementNodes[i].executeGeneric(frame, env);
             }
             return MalVector.EMPTY.concat(elements);
         }
