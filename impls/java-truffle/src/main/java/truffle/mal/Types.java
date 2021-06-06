@@ -242,6 +242,15 @@ class MalVector extends MalValue implements TruffleObject, Iterable<Object>, Met
     }
 
     @TruffleBoundary
+    public MalVector concat(Object[] objs) {
+        var v = vector.mutable();
+        for (int i=0; i < objs.length; ++i) {
+            v.append(objs[i]);
+        }
+        return new MalVector(v.immutable(), meta);
+    }
+
+    @TruffleBoundary
     public MalVector concat(Iterable<? extends Object> objs) {
         return new MalVector(vector.concat(objs), meta);
     }

@@ -277,6 +277,7 @@ class LexicalScope {
     final LexicalScope parent;
     final int depth;
     final Map<MalSymbol, EnvSlot> slots;
+    private int staticBindingCount;
     final Map<MalSymbol, Assumption> notDynamicallyBound;
 
     LexicalScope() {
@@ -287,6 +288,7 @@ class LexicalScope {
         this.parent = parent;
         this.depth = parent == null? 0 : parent.depth+1;
         this.slots = new HashMap<>();
+        this.staticBindingCount = 0;
         this.notDynamicallyBound = new HashMap<>();
     }
 
@@ -309,6 +311,7 @@ class LexicalScope {
     public EnvSlot allocateSlot(MalSymbol symbol) {
         var slot = new EnvSlot(0, slots.size(), getNotDynamicallyBound(symbol));
         slots.put(symbol, slot);
+        staticBindingCount++;
         return slot;
     }
 
@@ -354,7 +357,7 @@ class LexicalScope {
     }
 
     public int getStaticBindingCount() {
-        return slots.size();
+        return staticBindingCount;
     }
 
     static class EnvSlot {

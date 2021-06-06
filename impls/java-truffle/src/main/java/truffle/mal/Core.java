@@ -1393,6 +1393,7 @@ abstract class EvalBuiltin extends BuiltinNode {
     protected EvalBuiltin() { super("eval"); }
 
     @Specialization
+    @TruffleBoundary
     protected Object eval(Object ast) {
         return language.evalForm(ast).call();
     }
@@ -1404,11 +1405,13 @@ abstract class ThrowBuiltin extends BuiltinNode {
 
     protected ThrowBuiltin() { super("throw"); }
 
+    @TruffleBoundary
     @Specialization
     protected Object throwException(String obj) {
         throw new MalException(obj);
     }
 
+    @TruffleBoundary
     @Fallback
     protected Object throwException(Object obj) {
         throw new MalException(obj);

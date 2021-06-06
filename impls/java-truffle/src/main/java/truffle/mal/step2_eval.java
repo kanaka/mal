@@ -3,7 +3,6 @@ package truffle.mal;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
@@ -15,6 +14,7 @@ import org.graalvm.polyglot.Value;
 import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.TruffleLanguage;
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.TruffleObject;
@@ -137,9 +137,9 @@ public class step2_eval {
 
         @Override
         public Object executeGeneric(VirtualFrame frame) {
-            var elements = new ArrayList<>(elementNodes.length);
+            var elements = new Object[elementNodes.length];
             for (int i=0; i < elementNodes.length; i++) {
-                elements.add(elementNodes[i].executeGeneric(frame));
+                elements[i] = elementNodes[i].executeGeneric(frame);
             }
             return MalVector.EMPTY.concat(elements);
         }
@@ -174,13 +174,18 @@ public class step2_eval {
             this.symbol = symbol;
         }
 
-        @Override
-        public Object executeGeneric(VirtualFrame frame) {
+        @TruffleBoundary
+        private Object lookup() {
             var result = replEnv.get(symbol);
             if (result == null) {
                 throw new MalException(symbol+" not found");
             }
             return result;
+        }
+
+        @Override
+        public Object executeGeneric(VirtualFrame frame) {
+            return lookup();
         }
     }
 
