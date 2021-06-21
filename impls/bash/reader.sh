@@ -111,7 +111,7 @@ TOKENIZE () {
     local datalen=${#data}
     local idx=0
     local chunk=0
-    local chunksz=500
+    local chunksz=$(( datalen>500 ? datalen : 500 ))
     local token=
     local str=
 
