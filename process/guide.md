@@ -749,7 +749,7 @@ diff -urp ../process/step3_env.txt ../process/step4_if_fn_do.txt
   arguments: `binds` and `exprs`. Bind (`set`) each element (symbol)
   of the binds list to the respective element of the `exprs` list.
 
-* Add support to `printer.qx` to print functions values. A string
+* Add support to `printer.qx` to print function values. A string
   literal like "#\<function>" is sufficient.
 
 * Add the following special forms to `EVAL`:
