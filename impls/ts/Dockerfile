@@ -26,7 +26,7 @@ RUN apt-get -y install g++
 
 # Add nodesource apt repo config for 10.x stable
 RUN apt-get -y install gnupg
-RUN curl -sL https://deb.nodesource.com/setup_10.x | bash -
+RUN curl -sL https://deb.nodesource.com/setup_12.x | bash -
 
 # Install nodejs
 RUN apt-get -y install nodejs
