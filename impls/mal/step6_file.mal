@@ -11,7 +11,7 @@
 
 ;; eval
 (def! eval-ast (fn* [ast env]
-  ;; (do (prn "eval-ast" ast "/" (keys env)) )
+  ;; (do (prn "eval-ast" ast "/" (keys @env)) )
   (cond
     (symbol? ast) (env-get env ast)
 
