@@ -6,9 +6,8 @@ def READ(str):
     return str
 
 # eval
-def EVAL(ast, env):
-        #print("EVAL %s" % printer._pr_str(ast))
-        return ast
+def EVAL(ast):
+    return ast
 
 # print
 def PRINT(exp):
@@ -16,7 +15,7 @@ def PRINT(exp):
 
 # repl
 def REP(str):
-    return PRINT(EVAL(READ(str), {}))
+    return PRINT(EVAL(READ(str)))
 
 # repl loop
 while True:
@@ -26,4 +25,4 @@ while True:
         if line == "": continue
         print(REP(line))
     except Exception as e:
-        print("".join(traceback.format_exception(*sys.exc_info())))
+        traceback.print_exception(*sys.exc_info())

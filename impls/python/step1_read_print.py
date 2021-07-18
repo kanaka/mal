@@ -1,24 +1,20 @@
 import sys, traceback
 import mal_readline
-import mal_types as types
 import reader, printer
 
 # read
-def READ(str):
-    return reader.read_str(str)
+READ = reader.read_str
 
 # eval
-def EVAL(ast, env):
-        #print("EVAL %s" % printer._pr_str(ast))
-        return ast
+def EVAL(ast):
+    return ast
 
 # print
-def PRINT(exp):
-    return printer._pr_str(exp)
+PRINT = printer._pr_str
 
 # repl
 def REP(str):
-    return PRINT(EVAL(READ(str), {}))
+    return PRINT(EVAL(READ(str)))
 
 # repl loop
 while True:
@@ -29,4 +25,4 @@ while True:
         print(REP(line))
     except reader.Blank: continue
     except Exception as e:
-        print("".join(traceback.format_exception(*sys.exc_info())))
+        traceback.print_exception(*sys.exc_info())
