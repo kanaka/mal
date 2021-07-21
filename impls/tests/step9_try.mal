@@ -396,3 +396,9 @@
 ;=>:abc
 (keyword? (first (keys {":abc" 123 ":def" 456})))
 ;=>false
+
+;; Testing that hashmaps don't alter function ast
+(def! bar (fn* [a] {:foo (get a :foo)}))
+(bar {:foo (fn* [x] x)})
+(bar {:foo 3})
+;; shouldn't give an error
