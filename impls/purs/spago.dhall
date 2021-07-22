@@ -17,6 +17,7 @@ to generate this file without the comments in this block.
   , "control"
   , "effect"
   , "either"
+  , "exceptions"
   , "foldable-traversable"
   , "integers"
   , "lists"
