@@ -11,10 +11,10 @@ import Readline (readLine)
 import Types (MalExpr)
 
 
--- READ
+-- MAIN
 
-read :: String -> Either String MalExpr
-read = readStr
+main :: Effect Unit
+main = loop
 
 
 
@@ -22,13 +22,6 @@ read = readStr
 
 eval :: MalExpr -> MalExpr
 eval s = s
-
-
-
--- PRINT
-
-print :: MalExpr -> Effect String
-print = printStr
 
 
 
@@ -52,7 +45,14 @@ loop = do
 
 
 
---
+-- READ
 
-main :: Effect Unit
-main = loop
+read :: String -> Either String MalExpr
+read = readStr
+
+
+
+-- PRINT
+
+print :: MalExpr -> Effect String
+print = printStr
