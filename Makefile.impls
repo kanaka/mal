@@ -38,7 +38,7 @@ IMPLS = ada ada.2 awk bash basic bbc-basic c c.2 chuck clojure coffee common-lis
 	elisp elixir elm erlang es6 factor fantom fennel forth fsharp go groovy gnu-smalltalk \
 	guile haskell haxe hy io janet java js jq julia kotlin livescript logo lua make mal \
 	matlab miniMAL nasm nim objc objpascal ocaml perl perl6 php picolisp pike plpgsql \
-	plsql powershell prolog ps python python.2 r racket rexx rpython ruby rust scala scheme skew sml \
+	plsql powershell prolog ps purs python python.2 r racket rexx rpython ruby rust scala scheme skew sml \
 	swift swift3 swift4 swift5 tcl ts vala vb vhdl vimscript wasm wren yorick xslt zig
 
 step5_EXCLUDES += bash        # never completes at 10,000
@@ -166,6 +166,7 @@ plsql_STEP_TO_PROG =         impls/plsql/$($(1)).sql
 powershell_STEP_TO_PROG =    impls/powershell/$($(1)).ps1
 prolog_STEP_TO_PROG =        impls/prolog/$($(1)).pl
 ps_STEP_TO_PROG =            impls/ps/$($(1)).ps
+purs_STEP_TO_PROG =          impls/purs/$($(1)).js
 python_STEP_TO_PROG =        impls/python/$($(1)).py
 python.2_STEP_TO_PROG =      impls/python.2/$($(1)).py
 r_STEP_TO_PROG =             impls/r/$($(1)).r
