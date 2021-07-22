@@ -28,11 +28,14 @@ data MalExpr
   | MalList Meta (List MalExpr)
   | MalVector Meta (List MalExpr)
   | MalHashMap Meta (Map Key MalExpr)
-  | MalFunction { fn :: MalFn
+  | MalFunction { fn     :: MalFn
+                , ast    :: MalExpr
+                , env    :: RefEnv
                 , params :: List String
-                , macro :: Boolean
-                , meta :: MalExpr
+                , macro  :: Boolean
+                , meta   :: MalExpr
                 }
+
 
 instance Eq MalExpr where
   eq MalNil MalNil                     = true

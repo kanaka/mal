@@ -12,17 +12,17 @@ import Data.Tuple (Tuple(..))
 import Effect (Effect)
 import Effect.Console (error, log)
 import Effect.Exception (throw, try)
+import Env as Env
 import Reader (readStr)
 import Printer (printStr)
 import Readline (readLine)
 import Types (MalExpr(..), MalFn, toHashMap, toList, toVector)
 
 
+-- MAIN
 
--- READ
-
-read :: String -> Either String MalExpr
-read = readStr
+main :: Effect Unit
+main = loop
 
 
 
@@ -49,28 +49,38 @@ evalAst _ ast                  = pure ast
 
 
 
--- PRINT
-
-print :: MalExpr -> Effect String
-print = printStr
-
-
-
 -- ENV
 
 type ReplEnv = Map String MalExpr
 
-replEnv :: ReplEnv
-replEnv = Map.fromFoldable
-  [ (Tuple "+" (fn (+)))
-  , (Tuple "-" (fn (-)))
-  , (Tuple "*" (fn (*)))
-  , (Tuple "/" (fn (/)))
-  ]
 
-fn :: (Int -> Int -> Int) -> MalExpr
-fn op = MalFunction $ { fn : g op, params:Nil, macro:false, meta:MalNil }
+replEnv :: Effect ReplEnv
+replEnv = do
+  add <- fn (+)
+  sub <- fn (-)
+  mul <- fn (*)
+  div <- fn (/)
+  pure $ Map.fromFoldable
+    [ Tuple "+" add
+    , Tuple "-" sub
+    , Tuple "*" mul
+    , Tuple "/" div
+    ]
+
+
+fn :: (Int -> Int -> Int) -> Effect MalExpr
+fn op = do
+  newEnv <- Env.newEnv Nil
+  pure $ MalFunction
+          { fn     : g op
+          , ast    : MalNil
+          , env    : newEnv
+          , params : Nil
+          , macro  : false
+          , meta   : MalNil
+          }
   where
+
   g :: (Int -> Int -> Int) -> MalFn
   g op' ((MalInt n1) : (MalInt n2) : Nil) = pure $ MalInt $ op' n1 n2
   g _ _                                   = throw "invalid operator"
@@ -81,9 +91,10 @@ fn op = MalFunction $ { fn : g op, params:Nil, macro:false, meta:MalNil }
 
 rep :: String -> Effect Unit
 rep str = case read str of
-  Left _ -> error "EOF"
+  Left _    -> error "EOF"
   Right ast -> do
-    result <- try $ eval replEnv ast
+    env <- replEnv
+    result <- try $ eval env ast
     case result of
       Right exp -> print exp >>= log
       Left err  -> error $ show err
@@ -101,7 +112,14 @@ loop = do
 
 
 
---
+-- READ
 
-main :: Effect Unit
-main = loop
+read :: String -> Either String MalExpr
+read = readStr
+
+
+
+-- PRINT
+
+print :: MalExpr -> Effect String
+print = printStr

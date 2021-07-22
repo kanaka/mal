@@ -17,11 +17,13 @@ import Readline (readLine)
 import Types (MalExpr(..), MalFn, RefEnv, toHashMap, toVector)
 
 
+-- MAIN
 
--- READ
-
-read :: String -> Either String MalExpr
-read = readStr
+main :: Effect Unit
+main = do
+  re <- Env.newEnv Nil
+  setArithOp re
+  loop re
 
 
 
@@ -35,8 +37,8 @@ eval env (MalList _ ast)   = case ast of
   _                       -> do
     es <- traverse (evalAst env) ast
     case es of
-      (MalFunction {fn:f} : args) -> f args
-      _                           -> throw "invalid function"
+      MalFunction {fn:f} : args -> f args
+      _                         -> throw "invalid function"
 eval env ast               = evalAst env ast
 
 
@@ -81,13 +83,6 @@ letBind _ _                         = throw "invalid let*"
 
 
 
--- PRINT
-
-print :: MalExpr -> Effect String
-print = printStr
-
-
-
 -- REPL
 
 rep :: RefEnv -> String -> Effect String
@@ -111,25 +106,39 @@ loop env = do
 
 setArithOp :: RefEnv -> Effect Unit
 setArithOp env = do
-  Env.set env "+" $ fn (+)
-  Env.set env "-" $ fn (-)
-  Env.set env "*" $ fn (*)
-  Env.set env "/" $ fn (/)
+  Env.set env "+" =<< fn (+)
+  Env.set env "-" =<< fn (-)
+  Env.set env "*" =<< fn (*)
+  Env.set env "/" =<< fn (/)
 
 
-fn :: (Int -> Int -> Int) -> MalExpr
-fn op = MalFunction $ { fn : g op, params:Nil, macro:false, meta:MalNil }
+fn :: (Int -> Int -> Int) -> Effect MalExpr
+fn op = do
+  newEnv <- Env.newEnv Nil
+  pure $ MalFunction
+          { fn     : g op
+          , ast    : MalNil
+          , env    : newEnv
+          , params : Nil
+          , macro  : false
+          , meta   : MalNil
+          }
   where
+
   g :: (Int -> Int -> Int) -> MalFn
   g op' ((MalInt n1) : (MalInt n2) : Nil) = pure $ MalInt $ op' n1 n2
   g _ _                                   = throw "invalid operator"
 
 
 
---
+-- READ
 
-main :: Effect Unit
-main = do
-  re <- Env.newEnv Nil
-  setArithOp re
-  loop re
+read :: String -> Either String MalExpr
+read = readStr
+
+
+
+-- PRINT
+
+print :: MalExpr -> Effect String
+print = printStr

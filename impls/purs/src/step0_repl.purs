@@ -6,10 +6,24 @@ import Effect.Console (log)
 import Readline (readLine)
 
 
+-- MAIN
 
 main :: Effect Unit
 main = loop
 
+
+
+-- EVAL
+
+eval :: String -> String
+eval s = s
+
+
+
+-- REPL
+
+rep :: String -> String
+rep = read >>> eval >>> print
 
 loop :: Effect Unit
 loop = do
@@ -22,17 +36,16 @@ loop = do
       loop
 
 
+
+-- READ
+
 read :: String -> String
 read s = s
 
 
-eval :: String -> String
-eval s = s
 
+-- PRINT
 
 print :: String -> String
 print s = s
 
-
-rep :: String -> String
-rep = read >>> eval >>> print

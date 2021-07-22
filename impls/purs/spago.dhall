@@ -20,6 +20,8 @@ to generate this file without the comments in this block.
   , "either"
   , "exceptions"
   , "foldable-traversable"
+  , "freet"
+  , "identity"
   , "integers"
   , "lists"
   , "maybe"
@@ -32,6 +34,7 @@ to generate this file without the comments in this block.
   , "psci-support"
   , "refs"
   , "strings"
+  , "tailrec"
   , "transformers"
   , "tuples"
   ]
