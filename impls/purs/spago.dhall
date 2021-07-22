@@ -28,6 +28,7 @@ to generate this file without the comments in this block.
   , "psci-support"
   , "refs"
   , "strings"
+  , "transformers"
   , "tuples"
   ]
 , packages = ./packages.dhall
