@@ -145,9 +145,7 @@ evalFn env params body = do
 -- REPL
 
 rep :: RefEnv -> String -> Effect String
-rep env str = case read str of
-  Left _    -> throw "EOF"
-  Right ast -> print =<< eval env ast
+rep env str = print =<< evalAst env =<< read str
 
 
 loop :: RefEnv -> Effect Unit
@@ -179,7 +177,7 @@ setFn env (Tuple sym f) = do
 
 -- READ
 
-read :: String -> Either String MalExpr
+read :: String -> Effect MalExpr
 read = readStr
 
 

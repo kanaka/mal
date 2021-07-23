@@ -90,14 +90,12 @@ fn op = do
 -- REPL
 
 rep :: String -> Effect Unit
-rep str = case read str of
-  Left _    -> error "EOF"
-  Right ast -> do
-    env <- replEnv
-    result <- try $ eval env ast
-    case result of
-      Right exp -> print exp >>= log
-      Left err  -> error $ show err
+rep str = do
+  env <- replEnv
+  result <- try $ eval env =<< read str
+  case result of
+    Left err  -> error $ show err
+    Right exp -> print exp >>= log
 
 
 loop :: Effect Unit
@@ -114,7 +112,7 @@ loop = do
 
 -- READ
 
-read :: String -> Either String MalExpr
+read :: String -> Effect MalExpr
 read = readStr
 
 
