@@ -1,4 +1,4 @@
-module Mal.Step6 where
+module Mal.Step7 where
 
 import Prelude
 
@@ -20,13 +20,12 @@ import Env as Env
 import Printer (printStr)
 import Reader (readStr)
 import Readline (args, readLine)
-import Types (MalExpr(..), MalFn, RefEnv, toHashMap, toList, toVector)
+import Types (MalExpr(..), MalFn, RefEnv, foldrM, toHashMap, toList, toVector)
 
 
 -- TYPES
 
 type Eval a = FreeT Identity Effect a
-
 
 
 -- MAIN
@@ -97,12 +96,15 @@ setEval _ _           = throw "illegal call of eval"
 eval :: RefEnv -> MalExpr -> Eval MalExpr
 eval _ ast@(MalList _ Nil) = pure ast
 eval env (MalList _ ast)   = case ast of
-  MalSymbol "def!" : es -> evalDef env es
-  MalSymbol "let*" : es -> evalLet env es
-  MalSymbol "if" : es   -> evalIf env es >>= eval env
-  MalSymbol "do" : es   -> evalDo env es
-  MalSymbol "fn*" : es  -> evalFnMatch env es
-  _                     -> do
+  MalSymbol "def!" : es             -> evalDef env es
+  MalSymbol "let*" : es             -> evalLet env es
+  MalSymbol "if" : es               -> evalIf env es >>= eval env
+  MalSymbol "do" : es               -> evalDo env es
+  MalSymbol "fn*" : es              -> evalFnMatch env es
+  MalSymbol "quote" : es            -> evalQuote env es
+  MalSymbol "quasiquote" : es       -> evalQuasiquote env es
+  MalSymbol "quasiquoteexpand" : es -> evalQuasiquoteexpand es
+  _                                 -> do
     es <- traverse (evalAst env) ast
     case es of
       MalFunction {fn:f, ast:MalNil} : args                   -> liftEffect $ f args
@@ -110,7 +112,7 @@ eval env (MalList _ ast)   = case ast of
         newEnv <- liftEffect $ Env.newEnv env'
         _ <- liftEffect $ Env.sets newEnv params' args
         eval newEnv ast'
-      _                                                       -> throw "invalid function"
+      _                           -> throw "invalid function"
 eval env ast               = evalAst env ast
 
 
@@ -119,7 +121,7 @@ evalAst env (MalSymbol s)       = do
   result <- liftEffect $ Env.get env s
   case result of
     Just k  -> pure k
-    Nothing -> liftEffect $ throw $ "'" <> s <> "'" <> " not found"
+    Nothing -> throw $ "'" <> s <> "'" <> " not found"
 evalAst env ast@(MalList _ _)   = eval env ast
 evalAst env (MalVector _ envs)  = toVector <$> traverse (eval env) envs
 evalAst env (MalHashMap _ envs) = toHashMap <$> traverse (eval env) envs
@@ -144,7 +146,6 @@ evalLet env (MalVector _ ps : e : Nil) = do
   letBind letEnv ps
   evalAst letEnv e
 evalLet _ _                            = throw "invalid let*"
-
 
 
 letBind :: RefEnv -> List MalExpr -> Eval Unit
@@ -205,6 +206,41 @@ evalFn env params body = do
   unwrapSymbol :: MalExpr -> Eval String
   unwrapSymbol (MalSymbol s) = pure s
   unwrapSymbol _             = throw "fn* parameter must be symbols"
+
+
+evalQuote :: RefEnv -> List MalExpr -> Eval MalExpr
+evalQuote _ (e:Nil) = pure e
+evalQuote _ _       = throw "invalid quote"
+
+
+evalQuasiquote :: RefEnv -> List MalExpr -> Eval MalExpr
+evalQuasiquote env (e:Nil) = evalAst env =<< quasiquote e
+evalQuasiquote  _ _        = throw "invalid quasiquote"
+
+
+evalQuasiquoteexpand :: List MalExpr -> Eval MalExpr
+evalQuasiquoteexpand (e:Nil) = quasiquote e
+evalQuasiquoteexpand _       = throw "invalid quasiquote"
+
+
+quasiquote :: MalExpr -> Eval MalExpr
+quasiquote (MalList _ (MalSymbol "unquote" : x : Nil)) = pure x
+quasiquote (MalList _ (MalSymbol "unquote" : _))       = throw "invalid unquote"
+quasiquote (MalList _ xs)                              = foldrM qqIter (toList Nil) xs
+quasiquote (MalVector _ xs)                            = do
+  lst <- foldrM qqIter (toList Nil) xs
+  pure $ toList $ MalSymbol "vec" : lst : Nil
+quasiquote ast@(MalHashMap _ _)                        = pure $ toList $ MalSymbol "quote" : ast : Nil
+quasiquote ast@(MalSymbol _)                           = pure $ toList $ MalSymbol "quote" : ast : Nil
+quasiquote ast                                         = pure ast
+
+
+qqIter :: MalExpr -> MalExpr -> Eval MalExpr
+qqIter (MalList _ (MalSymbol "splice-unquote" : x : Nil)) acc = pure $ toList $ MalSymbol "concat" : x : acc : Nil
+qqIter (MalList _ (MalSymbol "splice-unquote" : _)) _         = throw "invalid splice-unquote"
+qqIter elt acc                                                = do
+  qqted <- quasiquote elt
+  pure $ toList $ MalSymbol "cons" : qqted : acc : Nil
 
 
 
