@@ -7,11 +7,10 @@ import Control.Monad.Free.Trans (FreeT, runFreeT)
 import Control.Monad.Rec.Class (class MonadRec)
 import Core as Core
 import Data.Either (Either(..))
-import Data.Foldable (traverse_)
 import Data.Identity (Identity(..))
 import Data.List (List(..), foldM, (:))
 import Data.Maybe (Maybe(..))
-import Data.Traversable (traverse)
+import Data.Traversable (traverse, traverse_)
 import Data.Tuple (Tuple(..))
 import Effect (Effect)
 import Effect.Class (class MonadEffect, liftEffect)
@@ -48,7 +47,7 @@ eval _ ast@(MalList _ Nil) = pure ast
 eval env (MalList _ ast)   = case ast of
   MalSymbol "def!" : es -> evalDef env es
   MalSymbol "let*" : es -> evalLet env es
-  MalSymbol "if" : es   -> evalIf env es >>= eval env
+  MalSymbol "if" : es   -> evalIf env es
   MalSymbol "do" : es   -> evalDo env es
   MalSymbol "fn*" : es  -> evalFnMatch env es
   _                     -> do
@@ -68,7 +67,7 @@ evalAst env (MalSymbol s)       = do
   result <- liftEffect $ Env.get env s
   case result of
     Just k  -> pure k
-    Nothing -> liftEffect $ throw $ "'" <> s <> "'" <> " not found"
+    Nothing -> throw $ "'" <> s <> "'" <> " not found"
 evalAst env ast@(MalList _ _)   = eval env ast
 evalAst env (MalVector _ envs)  = toVector <$> traverse (eval env) envs
 evalAst env (MalHashMap _ envs) = toHashMap <$> traverse (eval env) envs
@@ -108,13 +107,13 @@ letBind _ _                         = throw "invalid let*"
 evalIf :: RefEnv -> List MalExpr -> Eval MalExpr
 evalIf env (b:t:e:Nil) = do
   cond <- evalAst env b
-  pure case cond of
+  evalAst env case cond of
     MalNil           -> e
     MalBoolean false -> e
     _                -> t
 evalIf env (b:t:Nil)   = do
   cond <- evalAst env b
-  pure case cond of
+  evalAst env case cond of
     MalNil           -> MalNil
     MalBoolean false -> MalNil
     _                -> t
@@ -220,5 +219,5 @@ runIdentity :: ∀ a. Identity a -> a
 runIdentity (Identity a) = a
 
 
-throw :: forall m a. MonadEffect m => String -> m a
+throw :: ∀ m a. MonadEffect m => String -> m a
 throw = liftEffect <<< Ex.throw
