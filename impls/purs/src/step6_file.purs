@@ -35,11 +35,11 @@ main :: Effect Unit
 main = do
   env <- Env.newEnv Nil
   traverse_ (setFn env) Core.ns
-  setFn env (Tuple "eval" $ setEval env)
+  setFn env $ Tuple "eval" $ setEval env
   rep_ env "(def! not (fn* (a) (if a false true)))"
   rep_ env "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \"\nnil)\")))))"
   case args of
-    Nil         -> do
+    Nil               -> do
       Env.set env "*ARGV*" $ toList Nil
       loop env
     script:scriptArgs -> do

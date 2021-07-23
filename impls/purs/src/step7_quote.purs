@@ -34,11 +34,11 @@ main :: Effect Unit
 main = do
   env <- Env.newEnv Nil
   traverse_ (setFn env) Core.ns
-  setFn env (Tuple "eval" $ setEval env)
+  setFn env $ Tuple "eval" $ setEval env
   rep_ env "(def! not (fn* (a) (if a false true)))"
   rep_ env "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \"\nnil)\")))))"
   case args of
-    Nil         -> do
+    Nil               -> do
       Env.set env "*ARGV*" $ toList Nil
       loop env
     script:scriptArgs -> do
@@ -128,6 +128,9 @@ evalAst env (MalHashMap _ envs) = toHashMap <$> traverse (eval env) envs
 evalAst _ ast                   = pure ast
 
 
+
+-- Def
+
 evalDef :: RefEnv -> List MalExpr -> Eval MalExpr
 evalDef env (MalSymbol v : e : Nil) = do
   evd <- evalAst env e
@@ -135,6 +138,9 @@ evalDef env (MalSymbol v : e : Nil) = do
   pure evd
 evalDef _ _                         = throw "invalid def!"
 
+
+
+-- Let
 
 evalLet :: RefEnv -> List MalExpr -> Eval MalExpr
 evalLet env (MalList _ ps : e : Nil)   = do
@@ -157,6 +163,9 @@ letBind env (MalSymbol ky : e : es) = do
 letBind _ _                         = throw "invalid let*"
 
 
+
+-- If
+
 evalIf :: RefEnv -> List MalExpr -> Eval MalExpr
 evalIf env (b:t:e:Nil) = do
   cond <- evalAst env b
@@ -173,9 +182,15 @@ evalIf env (b:t:Nil)   = do
 evalIf _ _             = throw "invalid if"
 
 
+
+-- Do
+
 evalDo :: RefEnv -> List MalExpr -> Eval MalExpr
 evalDo env es = foldM (const $ evalAst env) MalNil es
 
+
+
+-- Function
 
 evalFnMatch :: RefEnv -> List MalExpr -> Eval MalExpr
 evalFnMatch env (MalList _ params : body : Nil)   = evalFn env params body
@@ -207,6 +222,9 @@ evalFn env params body = do
   unwrapSymbol (MalSymbol s) = pure s
   unwrapSymbol _             = throw "fn* parameter must be symbols"
 
+
+
+-- Quote
 
 evalQuote :: RefEnv -> List MalExpr -> Eval MalExpr
 evalQuote _ (e:Nil) = pure e
