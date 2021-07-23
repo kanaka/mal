@@ -1,4 +1,4 @@
-module Mal.Step5 where
+module Mal.Step6 where
 
 import Prelude
 
@@ -7,11 +7,10 @@ import Control.Monad.Free.Trans (FreeT, runFreeT)
 import Control.Monad.Rec.Class (class MonadRec)
 import Core as Core
 import Data.Either (Either(..))
-import Data.Foldable (traverse_)
 import Data.Identity (Identity(..))
 import Data.List (List(..), foldM, (:))
 import Data.Maybe (Maybe(..))
-import Data.Traversable (traverse)
+import Data.Traversable (traverse, traverse_)
 import Data.Tuple (Tuple(..))
 import Effect (Effect)
 import Effect.Class (class MonadEffect, liftEffect)
@@ -20,8 +19,8 @@ import Effect.Exception as Ex
 import Env as Env
 import Printer (printStr)
 import Reader (readStr)
-import Readline (readLine)
-import Types (MalExpr(..), MalFn, RefEnv, toHashMap, toVector)
+import Readline (args, readLine)
+import Types (MalExpr(..), MalFn, RefEnv, toHashMap, toList, toVector)
 
 
 -- TYPES
@@ -34,10 +33,63 @@ type Eval a = FreeT Identity Effect a
 
 main :: Effect Unit
 main = do
-  re <- Env.newEnv Nil
-  traverse_ (setFn re) Core.ns
-  rep_ re "(def! not (fn* (a) (if a false true)))"
-  loop re
+  let as = args
+  env <- Env.newEnv Nil
+  traverse_ (setFn env) Core.ns
+  setFn env (Tuple "eval" $ setEval env)
+  rep_ env "(def! not (fn* (a) (if a false true)))"
+  rep_ env "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \"\nnil)\")))))"
+  case as of
+    Nil         -> do
+      Env.set env "*ARGV*" $ toList Nil
+      loop env
+    script:args -> do
+      Env.set env "*ARGV*" $ toList $ MalString <$> args
+      rep_ env $ "(load-file \"" <> script <> "\")"
+
+
+
+-- REPL
+
+rep_ :: RefEnv -> String -> Effect Unit
+rep_ env str = rep env str *> pure unit
+
+
+rep :: RefEnv -> String -> Effect String
+rep env str = case read str of
+  Left _    -> throw "EOF"
+  Right ast -> print =<< (runEval $ eval env ast)
+
+
+loop :: RefEnv -> Effect Unit
+loop env = do
+  line <- readLine "user> "
+  case line of
+    ":q" -> pure unit
+    _    -> do
+      result <- try $ rep env line
+      case result of
+        Right exp -> log exp
+        Left err  -> error $ show err
+      loop env
+
+
+setFn :: RefEnv -> Tuple String MalFn -> Effect Unit
+setFn env (Tuple sym f) = do
+  newEnv <- Env.newEnv Nil
+  Env.set env sym $ MalFunction
+                { fn     : f
+                , ast    : MalNil
+                , env    : newEnv
+                , params : Nil
+                , macro  : false
+                , meta   : MalNil
+                }
+
+
+setEval :: RefEnv -> MalFn
+setEval env (ast:Nil) = runEval $ eval env ast
+setEval _ _           = throw "illegal call of eval"
 
 
 
@@ -154,45 +206,6 @@ evalFn env params body = do
   unwrapSymbol :: MalExpr -> Eval String
   unwrapSymbol (MalSymbol s) = pure s
   unwrapSymbol _             = throw "fn* parameter must be symbols"
-
-
-
--- REPL
-
-rep_ :: RefEnv -> String -> Effect Unit
-rep_ env str = rep env str *> pure unit
-
-
-rep :: RefEnv -> String -> Effect String
-rep env str = case read str of
-  Left _    -> throw "EOF"
-  Right ast -> print =<< (runEval $ eval env ast)
-
-
-loop :: RefEnv -> Effect Unit
-loop env = do
-  line <- readLine "user> "
-  case line of
-    ":q" -> pure unit
-    _    -> do
-      result <- try $ rep env line
-      case result of
-        Right exp -> log exp
-        Left err  -> error $ show err
-      loop env
-
-
-setFn :: RefEnv -> Tuple String MalFn -> Effect Unit
-setFn env (Tuple sym f) = do
-  newEnv <- Env.newEnv Nil
-  Env.set env sym $ MalFunction
-                { fn     : f
-                , ast    : MalNil
-                , env    : newEnv
-                , params : Nil
-                , macro  : false
-                , meta   : MalNil
-                }
 
 
 

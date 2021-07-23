@@ -10,3 +10,4 @@ step2_eval.purs = Mal.Step2
 step3_env.purs = Mal.Step3
 step4_if_fn_do.purs = Mal.Step4
 step5_tco.purs = Mal.Step5
+step6_file.purs = Mal.Step6
