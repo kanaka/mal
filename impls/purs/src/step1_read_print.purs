@@ -2,11 +2,12 @@ module Mal.Step1 where
 
 import Prelude
 
+import Control.Monad.Error.Class (try)
 import Data.Either (Either(..))
 import Effect (Effect)
 import Effect.Console (error, log)
-import Reader (readStr)
 import Printer (printStr)
+import Reader (readStr)
 import Readline (readLine)
 import Types (MalExpr)
 
@@ -28,9 +29,11 @@ eval s = s
 -- REPL
 
 rep :: String -> Effect Unit
-rep str = case read str of
-  Left _  -> error "EOF"
-  Right s -> eval s # print >>= log
+rep str = do
+  result <- try $ read str
+  case result of
+    Left err  -> error $ show err
+    Right exp -> print (eval exp) >>= log
 
 
 loop :: Effect Unit
@@ -47,7 +50,7 @@ loop = do
 
 -- READ
 
-read :: String -> Either String MalExpr
+read :: String -> Effect MalExpr
 read = readStr
 
 

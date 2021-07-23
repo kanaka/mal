@@ -32,9 +32,9 @@ main = do
 eval :: RefEnv -> MalExpr -> Effect MalExpr
 eval _ ast@(MalList _ Nil) = pure ast
 eval env (MalList _ ast)   = case ast of
-  (MalSymbol "def!" : es) -> evalDef env es
-  (MalSymbol "let*" : es) -> evalLet env es
-  _                       -> do
+  MalSymbol "def!" : es -> evalDef env es
+  MalSymbol "let*" : es -> evalLet env es
+  _                     -> do
     es <- traverse (evalAst env) ast
     case es of
       MalFunction {fn:f} : args -> f args
@@ -86,9 +86,7 @@ letBind _ _                         = throw "invalid let*"
 -- REPL
 
 rep :: RefEnv -> String -> Effect String
-rep env str = case read str of
-  Left _    -> throw "EOF"
-  Right ast -> print =<< eval env ast
+rep env str = print =<< evalAst env =<< read str
 
 
 loop :: RefEnv -> Effect Unit
@@ -133,7 +131,7 @@ fn op = do
 
 -- READ
 
-read :: String -> Either String MalExpr
+read :: String -> Effect MalExpr
 read = readStr
 
 

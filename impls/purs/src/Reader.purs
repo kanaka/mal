@@ -8,8 +8,10 @@ import Data.Either (Either(..))
 import Data.Int (fromString)
 import Data.List (List(..), many, (:))
 import Data.Maybe (Maybe(..), fromMaybe)
+import Effect (Effect)
+import Effect.Exception (throw)
 import Printer (keyValuePairs)
-import Text.Parsing.Parser (Parser, runParser)
+import Text.Parsing.Parser (Parser, fail, runParser)
 import Text.Parsing.Parser.Combinators (endBy, skipMany, skipMany1, try)
 import Text.Parsing.Parser.String (char, noneOf, oneOf, string)
 import Text.Parsing.Parser.Token (digit, letter)
@@ -116,9 +118,9 @@ readHashMap :: Parser String MalExpr
 readHashMap = fix $ \_
   -> char '{' *> ignored *> endBy readForm ignored <* char '}'
   <#> keyValuePairs
-  <#> case _ of
-    Just ts -> toHashMap $ listToMap ts
-    Nothing -> MalString "hash map error" -- FIXME: error
+  >>= case _ of
+    Just ts -> pure $ toHashMap $ listToMap ts
+    Nothing -> fail "invalid contents inside map braces"
 
 
 
@@ -165,7 +167,7 @@ readForm = fix $ \_ -> ignored
 
 --
 
-readStr :: String -> Either String MalExpr
+readStr :: String -> Effect MalExpr
 readStr str = case runParser str readForm of
-  Left err  -> Left $ show err
-  Right val -> Right val
+  Left _    -> throw "EOF"
+  Right val -> pure val

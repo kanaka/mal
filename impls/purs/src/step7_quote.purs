@@ -54,9 +54,10 @@ rep_ env str = rep env str *> pure unit
 
 
 rep :: RefEnv -> String -> Effect String
-rep env str = case read str of
-  Left _    -> throw "EOF"
-  Right ast -> print =<< (runEval $ eval env ast)
+rep env str = do
+  ast <- read str
+  result <- runEval $ evalAst env ast
+  print result
 
 
 loop :: RefEnv -> Effect Unit
@@ -104,15 +105,7 @@ eval env (MalList _ ast)   = case ast of
   MalSymbol "quote" : es            -> evalQuote env es
   MalSymbol "quasiquote" : es       -> evalQuasiquote env es
   MalSymbol "quasiquoteexpand" : es -> evalQuasiquoteexpand es
-  _                                 -> do
-    es <- traverse (evalAst env) ast
-    case es of
-      MalFunction {fn:f, ast:MalNil} : args                   -> liftEffect $ f args
-      MalFunction {ast:ast', params:params', env:env'} : args -> do
-        newEnv <- liftEffect $ Env.newEnv env'
-        _ <- liftEffect $ Env.sets newEnv params' args
-        eval newEnv ast'
-      _                                                        -> throw "invalid function"
+  _                                 -> evalCallFn env ast
 eval env ast               = evalAst env ast
 
 
@@ -262,9 +255,24 @@ qqIter elt acc                                                = do
 
 
 
+-- CALL FUNCTION
+
+evalCallFn :: RefEnv -> List MalExpr -> Eval MalExpr
+evalCallFn env ast = do
+  es <- traverse (evalAst env) ast
+  case es of
+    MalFunction {fn:f, ast:MalNil} : args                   -> liftEffect $ f args
+    MalFunction {ast:ast', params:params', env:env'} : args -> do
+      newEnv <- liftEffect $ Env.newEnv env'
+      _ <- liftEffect $ Env.sets newEnv params' args
+      evalAst newEnv ast'
+    _                                                       -> throw "invalid function"
+
+
+
 -- READ
 
-read :: String -> Either String MalExpr
+read :: String -> Effect MalExpr
 read = readStr
 
 
