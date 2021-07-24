@@ -14,3 +14,4 @@ step6_file.purs = Mal.Step6
 step7_quote.purs = Mal.Step7
 step8_macros.purs = Mal.Step8
 step9_try.purs = Mal.Step9
+stepA_mal.purs = Mal.StepA
