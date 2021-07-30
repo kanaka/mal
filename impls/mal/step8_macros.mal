@@ -17,7 +17,7 @@
     (list 'cons (QUASIQUOTE elt) acc))))
 (def! qq-foldr (fn* [xs]
   (if (empty? xs)
-    (list)
+    ()
     (qq-loop (first xs) (qq-foldr (rest xs))))))
 (def! QUASIQUOTE (fn* [ast]
   (cond
