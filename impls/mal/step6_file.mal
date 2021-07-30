@@ -52,8 +52,7 @@
           (LET (new-env env) (nth ast 1) (nth ast 2))
 
           (= 'do a0)
-          (let* [el (eval-ast (rest ast) env)]
-            (nth el (- (count el) 1)))
+          (nth (eval-ast (rest ast) env) (- (count ast) 2))
 
           (= 'if a0)
           (if (EVAL (nth ast 1) env)
