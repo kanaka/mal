@@ -12,9 +12,11 @@
 (def! LET (fn* [env binds form]
   (if (empty? binds)
     (EVAL form env)
-    (do
-      (env-set env (first binds) (EVAL (nth binds 1) env))
-      (LET env (rest (rest binds)) form)))))
+    (if (if (< 1 (count binds)) (symbol? (first binds)))
+      (do
+        (env-set env (first binds) (EVAL (nth binds 1) env))
+        (LET env (rest (rest binds)) form))
+      (throw "invalid binds")))))
 
 (def! EVAL (fn* [ast env]
   (do
@@ -38,18 +40,24 @@
           (let* [a0 (first ast)]
             (cond
               (= 'def! a0)
-              (let* [val (EVAL (nth ast 2) env)]
+              (if (if (= 3 (count ast)) (symbol? (nth ast 1)))
+               (let* [val (EVAL (nth ast 2) env)]
                 (do
                   (env-set env (nth ast 1) val)
                   val))
+               (throw "bad arguments"))
 
               (= 'let* a0)
-              (LET (new-env env) (nth ast 1) (nth ast 2))
+              (if (if (= 3 (count ast)) (sequential? (nth ast 1)))
+                (LET (new-env env) (nth ast 1) (nth ast 2))
+                (throw "bad arguments"))
 
               "else"
               (let* [f    (EVAL a0 env)
                      args (rest ast)]
-                (apply f (map (fn* [exp] (EVAL exp env)) args))))))
+                  (if (fn? f)
+                    (apply f (map (fn* [exp] (EVAL exp env)) args))
+                    (throw "can only apply functions"))))))
 
         "else"
         ast)
@@ -67,10 +75,10 @@
 (def! rep (fn* [strng]
   (PRINT (EVAL (READ strng) repl-env))))
 
-(env-set repl-env "+" +)
-(env-set repl-env "-" -)
-(env-set repl-env "*" *)
-(env-set repl-env "/" /)
+(env-set repl-env '+ +)
+(env-set repl-env '- -)
+(env-set repl-env '* *)
+(env-set repl-env '/ /)
 
 ;; repl loop
 (def! repl-loop (fn* [line]
