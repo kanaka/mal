@@ -13,9 +13,11 @@
 (def! LET (fn* [env binds form]
   (if (empty? binds)
     (EVAL form env)
-    (do
-      (env-set env (first binds) (EVAL (nth binds 1) env))
-      (LET env (rest (rest binds)) form)))))
+    (if (if (< 1 (count binds)) (symbol? (first binds)))
+      (do
+        (env-set env (first binds) (EVAL (nth binds 1) env))
+        (LET env (rest (rest binds)) form))
+      (throw "invalid binds")))))
 
 (def! EVAL (fn* [ast env]
   (do
@@ -39,30 +41,42 @@
           (let* [a0 (first ast)]
             (cond
               (= 'def! a0)
-              (let* [val (EVAL (nth ast 2) env)]
+              (if (if (= 3 (count ast)) (symbol? (nth ast 1)))
+               (let* [val (EVAL (nth ast 2) env)]
                 (do
                   (env-set env (nth ast 1) val)
                   val))
+               (throw "bad arguments"))
 
               (= 'let* a0)
-              (LET (new-env env) (nth ast 1) (nth ast 2))
+              (if (if (= 3 (count ast)) (sequential? (nth ast 1)))
+                (LET (new-env env) (nth ast 1) (nth ast 2))
+                (throw "bad arguments"))
 
               (= 'do a0)
-              (nth (map (fn* [exp] (EVAL exp env)) (rest ast)) (- (count ast) 2))
+              (if (<= 2 (count ast))
+                (nth (map (fn* [exp] (EVAL exp env)) (rest ast)) (- (count ast) 2))
+                (throw "bad argument count"))
 
               (= 'if a0)
-              (if (EVAL (nth ast 1) env)
-                (EVAL (nth ast 2) env)
-                (if (> (count ast) 3)
-                  (EVAL (nth ast 3) env)))
+              (if (if (<= 3 (count ast)) (<= (count ast) 4))
+                (if (EVAL (nth ast 1) env)
+                  (EVAL (nth ast 2) env)
+                  (if (= 4 (count ast))
+                    (EVAL (nth ast 3) env)))
+                (throw "bad argument count"))
 
               (= 'fn* a0)
-              (fn* [& args] (EVAL (nth ast 2) (new-env env (nth ast 1) args)))
+              (if (if (= 3 (count ast)) (sequential? (nth ast 1)))
+                (fn* [& args] (EVAL (nth ast 2) (new-env env (nth ast 1) args)))
+                (throw "bad arguments"))
 
               "else"
               (let* [f    (EVAL a0 env)
                      args (rest ast)]
-                (apply f (map (fn* [exp] (EVAL exp env)) args))))))
+                  (if (fn? f)
+                    (apply f (map (fn* [exp] (EVAL exp env)) args))
+                    (throw "can only apply functions"))))))
 
         "else"
         ast)

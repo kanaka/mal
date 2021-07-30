@@ -28,7 +28,9 @@
         (let* [a0  (first ast)
                f    (EVAL a0 env)
                args (rest ast)]
-          (apply f (map (fn* [exp] (EVAL exp env)) args))))
+          (if (fn? f)
+            (apply f (map (fn* [exp] (EVAL exp env)) args))
+            (throw "can only apply functions"))))
 
       "else"
       ast)
