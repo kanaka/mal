@@ -3,24 +3,31 @@ extern crate rustyline;
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
 
-fn read(input: String) -> String {
+mod reader;
+mod types;
+mod printer;
+
+fn read(input: String) -> Option<crate::types::MalValue> {
+    return reader::Reader::read_str(input.to_string());
+}
+
+fn eval(input: crate::types::MalValue) -> crate::types::MalValue {
     return input;
 }
 
-fn eval(input: String) -> String {
-    return input;
-}
-
-fn print(input: String) -> String {
-    return input;
+fn print(input: crate::types::MalValue) -> String {
+    return crate::printer::pr_str(input);
 }
 
 fn rep(input: String) -> String {
-    let a = read(input);
-    let b = eval(a);
-    let result = print(b);
-
-    return result;
+    let ast = read(input);
+    match ast {
+        None => return String::default(),
+        Some(a) => {
+            let result = eval(a);
+            return print(result);
+        }
+    }    
 }
 
 
@@ -35,6 +42,7 @@ fn main() {
         match readline {
             Ok(line) => {
                 rl.add_history_entry(line.as_str());
+                println!();
                 println!("{}", rep(line));
             },
             Err(ReadlineError::Interrupted) => {
