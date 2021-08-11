@@ -22,7 +22,7 @@ impl MalValue {
                     if !first_token {
                         output += " ";
                     } else {
-                        first_token = true;
+                        first_token = false;
                     }
                     output += &token.inspect();
                 }
