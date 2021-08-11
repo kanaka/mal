@@ -7,7 +7,7 @@ impl Reader {
     fn new(tokens: Vec<String>) -> Reader {
         return Reader{
             position: 0,
-            tokens: tokens
+            tokens
         };
     }
 
@@ -114,10 +114,44 @@ impl Reader {
             Some(t) => {
                 if t.starts_with('(') {
                     return self.read_list();
+                } else if t.starts_with('[') {
+                    return self.read_vector();
                 }
+
                 return self.read_atom();
             }
         }
+    }
+
+    fn read_vector(&mut self) -> Result<Option<crate::types::MalValue>, crate::types::MalError>{
+        let mut token = self.next(); // Consume the '['
+        assert_eq!(token, Some(String::from('[')));
+
+        let mut tokens = Vec::<crate::types::MalValue>::new();
+
+        let mut balanced_list = false;
+        loop {
+            token = self.peek();
+            match token {
+                None => break,
+                Some(t) => {
+                    if t == String::from("]") {
+                        balanced_list = true;
+                        break;
+                    }
+
+                    if let Some(element) = self.read_form()? {
+                        tokens.push(element);
+                    }
+                }
+            }
+        }
+        
+        if !balanced_list {
+            return Err(crate::types::MalError::ParseError(String::from("unbalanced '['")));
+        }
+
+        return Ok(Some(crate::types::MalValue::MalVector(tokens)));
     }
 
     pub fn read_list(&mut self) -> Result<Option<crate::types::MalValue>, crate::types::MalError>{

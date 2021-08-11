@@ -2,7 +2,8 @@
 pub enum MalValue {
     MalString(String),
     MalInteger(i32),
-    MalList(Vec<MalValue>)
+    MalList(Vec<MalValue>),
+    MalVector(Vec<MalValue>)
 }
 
 impl MalValue {
@@ -27,6 +28,21 @@ impl MalValue {
                     output += &token.inspect();
                 }
                 output += &String::from(')');
+                return output;
+            },
+            MalValue::MalVector(list) => {
+                let mut output = String::from('[');
+
+                let mut first_token = true;
+                for token in list {
+                    if !first_token {
+                        output += " ";
+                    } else {
+                        first_token = false;
+                    }
+                    output += &token.inspect();
+                }
+                output += &String::from(']');
                 return output;
             }
         }
