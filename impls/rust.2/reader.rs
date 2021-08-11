@@ -24,12 +24,13 @@ impl Reader {
         return token;
     }
 
-    pub fn read_str(input: String) -> Option<crate::types::MalValue>  {
+    pub fn read_str(input: String) -> Result<Option<crate::types::MalValue>, crate::types::MalError>  {
         let tokens = Reader::tokenize(input);
         
         let mut reader = Reader::new(tokens);
 
-        return reader.read_form();
+        let token = reader.read_form()?;
+        return Ok(token);
     }
 
     fn tokenize(input: String) -> Vec<String> {
@@ -61,32 +62,48 @@ impl Reader {
                     tokens.push(token)
                 },
                 '"' => {
-                    // String consume until we hit another " without a \ infront
-                    while chars.peek().is_some() {
+                    let current = c;
+                    while let Some(next) = chars.peek() {
+                        //end of the string
+                        if *next == '"' && current != '\"'  {
+                            break;
+                        }
                         token += &chars.next().unwrap().to_string();
                     }
+
                     tokens.push(token);
                 },
                 ';' => {
                     // Comment, ignore the rest of the input
                     break;
                 },
-                _ => {
-                    while chars.peek().is_some() {
-                        token += &chars.next().unwrap().to_string();
+                _ =>  { 
+                    while let Some(next_char) = chars.next_if(|&c| Reader::is_symbol_char(c)) {
+                        token += &next_char.to_string();
                     }
                     tokens.push(token);
                 }
             }
         }
 
+        for token in &tokens {
+            println!("'{}'", token);
+        }
+
         return tokens;
     }
 
-    pub fn read_form(&mut self) -> Option<crate::types::MalValue> {
+    fn is_symbol_char(c: char) -> bool {
+        return match c {
+            '~'|'['|']'|'{'|'}'|'('|')'|'\''|'`'|'^'|'@'|'"'|';'|' '|','|'\t' => false,
+            _ => true
+        };
+    }
+
+    pub fn read_form(&mut self) -> Result<Option<crate::types::MalValue>, crate::types::MalError>{
         let token = self.peek();
         match token {
-            None => return None,
+            None => return Ok(None),
             Some(t) => {
                 if t.starts_with('(') {
                     return self.read_list();
@@ -96,33 +113,40 @@ impl Reader {
         }
     }
 
-    pub fn read_list(&mut self) -> Option<crate::types::MalValue> {
+    pub fn read_list(&mut self) -> Result<Option<crate::types::MalValue>, crate::types::MalError>{
         let mut token = self.next(); // Consume the '('
         assert_eq!(token, Some(String::from('(')));
 
         let mut tokens = Vec::<crate::types::MalValue>::new();
 
+        let mut balanced_list = false;
         loop {
             token = self.peek();
             match token {
                 None => break,
                 Some(t) => {
                     if t == String::from(")") {
+                        balanced_list = true;
                         break;
                     }
-                    if let element = self.read_form() {
-                        tokens.push(element.unwrap());
+
+                    if let Some(element) = self.read_form()? {
+                        tokens.push(element);
                     }
                 }
             }
         }
+        
+        if !balanced_list {
+            return Err(crate::types::MalError::ParseError(String::from("unbalanced '('")));
+        }
 
-        return Some(crate::types::MalValue::MalList(tokens));
+        return Ok(Some(crate::types::MalValue::MalList(tokens)));
     }
 
-    pub fn read_atom(&mut self) -> Option<crate::types::MalValue> {
+    pub fn read_atom(&mut self) -> Result<Option<crate::types::MalValue>, crate::types::MalError> {
         let token = self.next().unwrap();
 
-        return Some(crate::types::MalValue::MalString(token));
+        return Ok(Some(crate::types::MalValue::MalString(token)));
     }
 }

@@ -7,7 +7,7 @@ mod reader;
 mod types;
 mod printer;
 
-fn read(input: String) -> Option<crate::types::MalValue> {
+fn read(input: String) -> Result<Option<crate::types::MalValue>, crate::types::MalError> {
     return reader::Reader::read_str(input.to_string());
 }
 
@@ -22,10 +22,17 @@ fn print(input: crate::types::MalValue) -> String {
 fn rep(input: String) -> String {
     let ast = read(input);
     match ast {
-        None => return String::default(),
-        Some(a) => {
-            let result = eval(a);
-            return print(result);
+        Err(e) => {
+            return format!("Error! {:?}", e);
+        }
+        Ok(v) => {
+            match v {
+                None => return String::default(),
+                Some(a) => {
+                    let result = eval(a);
+                    return print(result);
+                }
+            }
         }
     }    
 }

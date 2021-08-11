@@ -16,7 +16,14 @@ impl MalValue {
             },
             MalValue::MalList(list) => {
                 let mut output = String::from('(');
+
+                let mut first_token = true;
                 for token in list {
+                    if !first_token {
+                        output += " ";
+                    } else {
+                        first_token = true;
+                    }
                     output += &token.inspect();
                 }
                 output += &String::from(')');
@@ -25,4 +32,9 @@ impl MalValue {
         }
     }
 
+}
+
+#[derive(Debug)]
+pub enum MalError {
+    ParseError(String)
 }
