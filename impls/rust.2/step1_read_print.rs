@@ -49,8 +49,9 @@ fn main() {
         match readline {
             Ok(line) => {
                 rl.add_history_entry(line.as_str());
+                let result = rep(line.trim_end().to_string());
+                print!("{}", result);
                 println!();
-                println!("{}", rep(line));
             },
             Err(ReadlineError::Interrupted) => {
                 break

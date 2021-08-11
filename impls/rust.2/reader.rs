@@ -54,9 +54,11 @@ impl Reader {
                 '~' => {
                     let next = chars.peek();
                     if next == Some(&'@') {
+                        token += &next.unwrap().to_string();
                         tokens.push(token.to_string());
+                    } else {
+                        tokens.push(token.to_string())
                     }
-                    tokens.push(token.to_string())
                 },
                 '['|']'|'{'|'}'|'('|')'|'\''|'`'|'^'|'@' => {
                     tokens.push(token)
@@ -142,6 +144,52 @@ impl Reader {
                     return self.read_vector();
                 } else if t.starts_with('{') {
                     return self.read_hashmap();
+                } else if t.starts_with('\'') {
+                    self.next();
+                    let mut quote = Vec::<crate::types::MalValue>::new();
+                    quote.push(crate::types::MalValue::MalSymbol(String::from("quote")));
+                    if let Ok(Some(quoted_form)) = self.read_form() {
+                        quote.push(quoted_form);
+                    }
+
+                    return Ok(Some(crate::types::MalValue::MalList(quote)));
+                } else if t.starts_with('`') {
+                    self.next();
+                    let mut quote = Vec::<crate::types::MalValue>::new();
+                    quote.push(crate::types::MalValue::MalSymbol(String::from("quasiquote")));
+                    if let Ok(Some(quoted_form)) = self.read_form() {
+                        quote.push(quoted_form);
+                    }
+
+                    return Ok(Some(crate::types::MalValue::MalList(quote)));
+                } else if t.starts_with("~@") {
+                    self.next();
+                    self.next();
+                    let mut quote = Vec::<crate::types::MalValue>::new();
+                    quote.push(crate::types::MalValue::MalSymbol(String::from("splice-unquote")));
+                    if let Ok(Some(quoted_form)) = self.read_form() {
+                        quote.push(quoted_form);
+                    }
+
+                    return Ok(Some(crate::types::MalValue::MalList(quote)));
+                } else if t.starts_with('~') {
+                    self.next();
+                    let mut quote = Vec::<crate::types::MalValue>::new();
+                    quote.push(crate::types::MalValue::MalSymbol(String::from("unquote")));
+                    if let Ok(Some(quoted_form)) = self.read_form() {
+                        quote.push(quoted_form);
+                    }
+
+                    return Ok(Some(crate::types::MalValue::MalList(quote)));
+                } else if t.starts_with('@') {
+                    self.next();
+                    let mut quote = Vec::<crate::types::MalValue>::new();
+                    quote.push(crate::types::MalValue::MalSymbol(String::from("deref")));
+                    if let Ok(Some(quoted_form)) = self.read_form() {
+                        quote.push(quoted_form);
+                    }
+
+                    return Ok(Some(crate::types::MalValue::MalList(quote)));
                 }
 
                 return self.read_atom();
