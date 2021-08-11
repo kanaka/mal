@@ -50,7 +50,7 @@ impl MalValue {
                 }
                 if print_readably {
                     return format!("\"{}\"", 
-                            string[1..string.len() - 2]
+                            string[1..string.len() - 1]
                                  .replace('"', "\\\"")
                                  .replace('\n', "\\n"));
                     

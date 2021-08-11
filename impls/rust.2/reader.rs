@@ -61,40 +61,21 @@ impl Reader {
                 '['|']'|'{'|'}'|'('|')'|'\''|'`'|'^'|'@' => {
                     tokens.push(token)
                 },
+                // Start of a string
                 '"' => {
                     let mut balanced_string = false;
-                    let mut current = c;
                     while let Some(next) = chars.peek() {
-                        // Previous character was an escape, add a literal
-                        // of the current character
-                        if current == '\\' {
-                            match next {
-                                // Escaped \ or "
-                                '\\'|'"' => token += &next.to_string(),
-                                // Line break
-                                'n' => token += "\n",
-                                // Tab
-                                't' => token += "\t",
-                                _ => {
-                                    return Err(crate::types::MalError::ParseError(String::from("Invalid escape")));
-                                }
-                            }
-                        } else {
-                            match *next {
-                                '\\' => {
-                                    // Ignore the character for now
-                                    //chars.next();
-                                },
-                                '"' => {
-                                    balanced_string = true;
-                                    token += &*next.to_string();
-                                },
-                                _ => {
-                                    token += &*next.to_string();
-                                }
+                        match next {
+                            '"' => {
+                                balanced_string = true;
+                                token += &next.to_string();
+                                chars.next();
+                                break;
+                            },
+                            _ => {
+                                token += &next.to_string();
                             }
                         }
-                        current = *next;
                         chars.next();
                     }
 
@@ -151,6 +132,7 @@ impl Reader {
 
         while let Some(token) = self.peek() {
             if token == "}" {
+                self.next();
                 break;
             }
             if index % 2 == 0 {
@@ -183,6 +165,7 @@ impl Reader {
                 None => break,
                 Some(t) => {
                     if t == String::from("]") {
+                        self.next();
                         balanced_list = true;
                         break;
                     }
@@ -215,6 +198,7 @@ impl Reader {
                 Some(t) => {
                     if t == String::from(")") {
                         balanced_list = true;
+                        self.next();
                         break;
                     }
 
