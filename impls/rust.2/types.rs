@@ -4,7 +4,8 @@ pub enum MalValue {
     MalString(String),
     MalInteger(i32),
     MalList(Vec<MalValue>),
-    MalVector(Vec<MalValue>)
+    MalVector(Vec<MalValue>),
+    MalKeyword(String)
 }
 
 impl MalValue {
@@ -58,6 +59,9 @@ impl MalValue {
                 }
                 output += &String::from(']');
                 return output;
+            },
+            MalValue::MalKeyword(keyword) => {
+                return format!(":{}", keyword);
             }
         }
     }

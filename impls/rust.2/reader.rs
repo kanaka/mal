@@ -206,6 +206,10 @@ impl Reader {
 
         if token.starts_with('"') {
             return Ok(Some(crate::types::MalValue::MalString(token)));
+        } else if token.starts_with(':') {
+            return Ok(Some(crate::types::MalValue::MalKeyword(
+                token.strip_prefix(':').unwrap_or(&token).to_string()
+            )));
         } else if let Ok(int) = token.parse::<i32>() {
             return Ok(Some(crate::types::MalValue::MalInteger(int)));
         }
