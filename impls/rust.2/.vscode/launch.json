@@ -44,21 +44,20 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Debug unit tests in executable 'step0_repl'",
+            "name": "Debug executable 'step2_eval'",
             "cargo": {
                 "args": [
-                    "test",
-                    "--no-run",
-                    "--bin=step0_repl",
+                    "build",
+                    "--bin=step2_eval",
                     "--package=rust-2"
                 ],
                 "filter": {
-                    "name": "step0_repl",
+                    "name": "step2_eval",
                     "kind": "bin"
                 }
             },
             "args": [],
             "cwd": "${workspaceFolder}"
-        }
+        },
     ]
 }
