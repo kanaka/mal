@@ -63,15 +63,42 @@ impl Reader {
                 },
                 // Start of a string
                 '"' => {
+
                     let mut balanced_string = false;
+                    let mut is_escape = false;
                     while let Some(next) = chars.peek() {
+                        //println!("Char: {}, is_escape: {}", next, is_escape);
                         match next {
                             '"' => {
-                                balanced_string = true;
-                                token += &next.to_string();
-                                chars.next();
-                                break;
+                                if is_escape {
+                                    token += "\"";
+                                    //chars.next();
+                                    is_escape = false;
+                                } else {
+                                    balanced_string = true;
+                                    token += &next.to_string();
+                                    chars.next();
+                                    break;
+                                }
                             },
+                            '\\' => {
+                                if is_escape {
+                                    is_escape = false;
+                                    token += "\\";
+                                } else {
+                                    is_escape = true;
+                                }
+                                //chars.next();
+                            },
+                            'n' => {
+                                if is_escape {
+                                    token += "\n";
+                                    is_escape = false;
+                                }
+                                else {
+                                    token += "n";
+                                }
+                            }
                             _ => {
                                 token += &next.to_string();
                             }
