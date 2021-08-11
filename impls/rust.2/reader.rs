@@ -154,6 +154,10 @@ impl Reader {
     pub fn read_atom(&mut self) -> Result<Option<crate::types::MalValue>, crate::types::MalError> {
         let token = self.next().unwrap();
 
+        if let Ok(int) = token.parse::<i32>() {
+            return Ok(Some(crate::types::MalValue::MalInteger(int)));
+        }
+
         return Ok(Some(crate::types::MalValue::MalString(token)));
     }
 }
