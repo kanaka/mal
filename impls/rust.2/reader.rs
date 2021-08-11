@@ -132,11 +132,22 @@ impl Reader {
                     return self.read_list();
                 } else if t.starts_with('[') {
                     return self.read_vector();
+                } else if t.starts_with('{') {
+                    return self.read_hashmap();
                 }
 
                 return self.read_atom();
             }
         }
+    }
+
+    fn read_hashmap(&mut self) -> Result<Option<crate::types::MalValue>, crate::types::MalError>{
+        let mut token = self.next(); // Consume the '{'
+        assert_eq!(token, Some(String::from('{')));
+
+        let mut tokens = std::collections::HashMap::<crate::types::MalValue, crate::types::MalValue>::new();
+
+        return Ok(Some(crate::types::MalValue::MalHashmap(tokens)))
     }
 
     fn read_vector(&mut self) -> Result<Option<crate::types::MalValue>, crate::types::MalError>{

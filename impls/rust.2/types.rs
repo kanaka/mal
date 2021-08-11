@@ -5,7 +5,8 @@ pub enum MalValue {
     MalInteger(i32),
     MalList(Vec<MalValue>),
     MalVector(Vec<MalValue>),
-    MalKeyword(String)
+    MalKeyword(String),
+    MalHashmap(std::collections::HashMap<MalValue, MalValue>)
 }
 
 impl MalValue {
@@ -62,6 +63,16 @@ impl MalValue {
             },
             MalValue::MalKeyword(keyword) => {
                 return format!(":{}", keyword);
+            },
+            MalValue::MalHashmap(hashmap) => {
+                let mut output = String::from('{');
+
+                for token in hashmap {
+                    output += &format!("{} {}", token.0.inspect(print_readably), token.1.inspect(print_readably)).to_string();
+                }
+
+                output += &String::from('}');
+                return output;
             }
         }
     }
