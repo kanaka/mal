@@ -16,7 +16,7 @@ fn eval(input: crate::types::MalValue) -> crate::types::MalValue {
 }
 
 fn print(input: crate::types::MalValue) -> String {
-    return crate::printer::pr_str(input);
+    return crate::printer::pr_str(input, true);
 }
 
 fn rep(input: String) -> String {

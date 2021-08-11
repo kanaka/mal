@@ -64,19 +64,38 @@ impl Reader {
                 '"' => {
                     let mut balanced_string = false;
                     let mut current = c;
-                    let mut current_2 = c;
                     while let Some(next) = chars.peek() {
-                        //end of the string
-                        //need to handle the case where the '\' is escaped
-                        if *next == '"' && current != '\\' || (current_2 == '\\' && current == '\\') {
-                            balanced_string = true;
-                            // consume the closing double quote
-                            token += &chars.next().unwrap().to_string();
-                            break;
+                        // Previous character was an escape, add a literal
+                        // of the current character
+                        if current == '\\' {
+                            match next {
+                                // Escaped \ or "
+                                '\\'|'"' => token += &next.to_string(),
+                                // Line break
+                                'n' => token += "\n",
+                                // Tab
+                                't' => token += "\t",
+                                _ => {
+                                    return Err(crate::types::MalError::ParseError(String::from("Invalid escape")));
+                                }
+                            }
+                        } else {
+                            match *next {
+                                '\\' => {
+                                    // Ignore the character for now
+                                    //chars.next();
+                                },
+                                '"' => {
+                                    balanced_string = true;
+                                    token += &*next.to_string();
+                                },
+                                _ => {
+                                    token += &*next.to_string();
+                                }
+                            }
                         }
-                        current_2 = current;
                         current = *next;
-                        token += &chars.next().unwrap().to_string();
+                        chars.next();
                     }
 
                     if !balanced_string {
@@ -101,10 +120,7 @@ impl Reader {
     }
 
     fn is_symbol_char(c: char) -> bool {
-        return match c {
-            '~'|'['|']'|'{'|'}'|'('|')'|'\''|'`'|'^'|'@'|'"'|';'|' '|','|'\t' => false,
-            _ => true
-        };
+        return !matches!(c, '~'|'['|']'|'{'|'}'|'('|')'|'\''|'`'|'^'|'@'|'"'|';'|' '|','|'\t');
     }
 
     pub fn read_form(&mut self) -> Result<Option<crate::types::MalValue>, crate::types::MalError>{
@@ -188,10 +204,12 @@ impl Reader {
     pub fn read_atom(&mut self) -> Result<Option<crate::types::MalValue>, crate::types::MalError> {
         let token = self.next().unwrap();
 
-        if let Ok(int) = token.parse::<i32>() {
+        if token.starts_with('"') {
+            return Ok(Some(crate::types::MalValue::MalString(token)));
+        } else if let Ok(int) = token.parse::<i32>() {
             return Ok(Some(crate::types::MalValue::MalInteger(int)));
         }
 
-        return Ok(Some(crate::types::MalValue::MalString(token)));
+        return Ok(Some(crate::types::MalValue::MalSymbol(token)));
     }
 }
