@@ -142,12 +142,32 @@ impl Reader {
     }
 
     fn read_hashmap(&mut self) -> Result<Option<crate::types::MalValue>, crate::types::MalError>{
-        let mut token = self.next(); // Consume the '{'
+        let token = self.next(); // Consume the '{'
         assert_eq!(token, Some(String::from('{')));
 
-        let mut tokens = std::collections::HashMap::<crate::types::MalValue, crate::types::MalValue>::new();
+        let mut keys = Vec::<crate::types::MalValue>::new();
+        let mut values = Vec::<crate::types::MalValue>::new();
+        let mut index = 0;
 
-        return Ok(Some(crate::types::MalValue::MalHashmap(tokens)))
+        while let Some(token) = self.peek() {
+            if token == "}" {
+                break;
+            }
+            if index % 2 == 0 {
+                keys.push(self.read_form()?.unwrap());
+            } else {
+                values.push(self.read_form()?.unwrap());
+            }
+            index += 1;
+        }
+
+        if keys.len() != values.len() {
+            return Err(crate::types::MalError::ParseError(String::from("unbalanced keys and values")));
+        }
+
+        assert_eq!(keys.len(), values.len());
+
+        return Ok(Some(crate::types::MalValue::MalHashmap(keys, values)))
     }
 
     fn read_vector(&mut self) -> Result<Option<crate::types::MalValue>, crate::types::MalError>{

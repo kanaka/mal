@@ -1,4 +1,4 @@
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum MalValue {
     MalSymbol(String),
     MalString(String),
@@ -6,7 +6,36 @@ pub enum MalValue {
     MalList(Vec<MalValue>),
     MalVector(Vec<MalValue>),
     MalKeyword(String),
-    MalHashmap(std::collections::HashMap<MalValue, MalValue>)
+    MalHashmap(Vec<MalValue>, Vec<MalValue>)
+}
+
+impl std::hash::Hash for MalValue {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        match self {
+            MalValue::MalHashmap(keys, values) => {
+                keys.hash(state);
+                values.hash(state);
+            },
+            MalValue::MalInteger(int) => {
+                int.hash(state);
+            },
+            MalValue::MalKeyword(keyword) => {
+                keyword.hash(state);
+            },
+            MalValue::MalList(list) => {
+                list.hash(state);
+            },
+            MalValue::MalString(string) => {
+                string.hash(state);
+            },
+            MalValue::MalSymbol(symbol) => {
+                symbol.hash(state);
+            },
+            MalValue::MalVector(vector) =>{
+                vector.hash(state);
+            }
+        }
+    }
 }
 
 impl MalValue {
@@ -64,11 +93,17 @@ impl MalValue {
             MalValue::MalKeyword(keyword) => {
                 return format!(":{}", keyword);
             },
-            MalValue::MalHashmap(hashmap) => {
+            MalValue::MalHashmap(keys, values) => {
                 let mut output = String::from('{');
 
-                for token in hashmap {
-                    output += &format!("{} {}", token.0.inspect(print_readably), token.1.inspect(print_readably)).to_string();
+                let mut first_token = true;
+                for (key, value) in keys.iter().zip(values.iter()) {
+                    if !first_token {
+                        output += " ";
+                    } else {
+                        first_token = false;
+                    }
+                    output += &format!("{} {}", key.inspect(print_readably), value.inspect(print_readably));
                 }
 
                 output += &String::from('}');
