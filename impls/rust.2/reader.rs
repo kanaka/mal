@@ -64,14 +64,17 @@ impl Reader {
                 '"' => {
                     let mut balanced_string = false;
                     let mut current = c;
+                    let mut current_2 = c;
                     while let Some(next) = chars.peek() {
                         //end of the string
-                        if *next == '"' && current != '\"'  {
+                        //need to handle the case where the '\' is escaped
+                        if *next == '"' && current != '\\' || (current_2 == '\\' && current == '\\') {
                             balanced_string = true;
                             // consume the closing double quote
                             token += &chars.next().unwrap().to_string();
                             break;
                         }
+                        current_2 = current;
                         current = *next;
                         token += &chars.next().unwrap().to_string();
                     }
