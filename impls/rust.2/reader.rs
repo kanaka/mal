@@ -25,7 +25,7 @@ impl Reader {
     }
 
     pub fn read_str(input: String) -> Result<Option<crate::types::MalValue>, crate::types::MalError>  {
-        let tokens = Reader::tokenize(input);
+        let tokens = Reader::tokenize(input)?;
         
         let mut reader = Reader::new(tokens);
 
@@ -33,7 +33,7 @@ impl Reader {
         return Ok(token);
     }
 
-    fn tokenize(input: String) -> Vec<String> {
+    fn tokenize(input: String) -> Result<Vec<String>, crate::types::MalError> {
         let mut tokens = Vec::<String>::new();
 
         let mut chars = input.chars().peekable();
@@ -62,13 +62,22 @@ impl Reader {
                     tokens.push(token)
                 },
                 '"' => {
-                    let current = c;
+                    let mut balanced_string = false;
+                    let mut current = c;
                     while let Some(next) = chars.peek() {
                         //end of the string
                         if *next == '"' && current != '\"'  {
+                            balanced_string = true;
+                            // consume the closing double quote
+                            token += &chars.next().unwrap().to_string();
                             break;
                         }
+                        current = *next;
                         token += &chars.next().unwrap().to_string();
+                    }
+
+                    if !balanced_string {
+                        return Err(crate::types::MalError::ParseError(String::from("unbalanced '\"'")));
                     }
 
                     tokens.push(token);
@@ -85,12 +94,7 @@ impl Reader {
                 }
             }
         }
-
-        for token in &tokens {
-            println!("'{}'", token);
-        }
-
-        return tokens;
+        return Ok(tokens);
     }
 
     fn is_symbol_char(c: char) -> bool {
