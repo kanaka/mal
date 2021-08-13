@@ -9,6 +9,7 @@ mod printer;
 mod env;
 
 use types::{MalValue, MalError, MalResult};
+use env::Environment;
 
 fn read(input: String) -> Result<Option<MalValue>, MalError> {
     return reader::Reader::read_str(input.to_string());
@@ -162,11 +163,11 @@ fn main() {
         println!("No previous history.");
     }
 
-    let mut env = env::Environment::new();
-    env.add_symbol(String::from("+"), MalValue::MalFunction(|args| add(args)));
-    env.add_symbol(String::from("-"), MalValue::MalFunction(|args| subtract(args)));
-    env.add_symbol(String::from("/"), MalValue::MalFunction(|args| divide(args)));
-    env.add_symbol(String::from("*"), MalValue::MalFunction(|args| multiply(args)));
+    let mut env = Environment::new(None);
+    env.set(MalValue::MalSymbol(String::from("+")), MalValue::MalFunction(|args| add(args)));
+    env.set(MalValue::MalSymbol(String::from("-")), MalValue::MalFunction(|args| subtract(args)));
+    env.set(MalValue::MalSymbol(String::from("/")), MalValue::MalFunction(|args| divide(args)));
+    env.set(MalValue::MalSymbol(String::from("*")), MalValue::MalFunction(|args| multiply(args)));
 
     loop {
         let readline = rl.readline("user> ");

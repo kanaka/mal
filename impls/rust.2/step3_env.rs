@@ -57,26 +57,48 @@ fn divide(args: Vec<types::MalValue>) -> MalValue {
     return MalValue::MalInteger(args1 / args2);
 }
 
+fn apply(ast: MalValue, env: &env::Environment) -> MalResult {
+    match ast {
+        MalValue::MalList(list) => {
+            let evaluated_result = eval_ast(types::MalValue::MalList(list), env)?;
+            match evaluated_result {
+                MalValue::MalList(list) => {
+                    let func = list.first().unwrap();
+                    let args = list.clone().split_off(1);
+
+                    if let MalValue::MalFunction(f) = func {
+                        return Ok(f(args));
+                    }
+                    return Err(MalError::EvalError(String::from("apply called on non-list")));
+                },
+                _ => {
+                    todo!("Handle eval_ast returning something that is not a list!");
+                }
+            }
+        },
+        _ => {
+            return Err(MalError::EvalError(String::from("apply called on non-list")));
+        }
+    }
+}
+
 fn eval(ast:  MalValue, env: &env::Environment) -> MalResult  {
     match ast.clone() {
         MalValue::MalList(list) => {
             if list.len() > 0 {
-                let evaluated_result = eval_ast(types::MalValue::MalList(list), env)?;
-                match evaluated_result {
-                    MalValue::MalList(list) => {
-                        let func = list.first().unwrap();
-                        let args = list.clone().split_off(1);
-
-                        if let MalValue::MalFunction(f) = func {
-                            return Ok(f(args));
+                match list.first().unwrap() {
+                    MalValue::MalSymbol(ref s) => {
+                        if s == "def!" {
+                            assert_eq!(3, list.len());
+                            let key = list[1].clone();
+                            let value = eval(list[2].clone(), env)?;
+                            env.set(key, value.clone())?;
                         }
-                        todo!("Handle other operators!");
-                    },
+                    }
                     _ => {
-                        todo!("Handle eval_ast returning something that is not a list!");
+                        return apply(ast, env);
                     }
                 }
-                // Call
             }
             return Ok(ast);
         },
@@ -88,8 +110,8 @@ fn eval(ast:  MalValue, env: &env::Environment) -> MalResult  {
 
 fn eval_ast(ast:  MalValue, env: &env::Environment) -> Result< MalValue, MalError> {
     match ast {
-        MalValue::MalSymbol(symbol) => {
-            if let Some(func) = env.lookup_symbol(String::from(symbol)) {
+        MalValue::MalSymbol(_) => {
+            if let Ok(func) = env.get(ast) {
                 return Ok(func);
             }
             return Err(types::MalError::EvalError(format!("Symbol {} not defined", "")));
@@ -162,11 +184,11 @@ fn main() {
         println!("No previous history.");
     }
 
-    let mut env = env::Environment::new();
-    env.add_symbol(String::from("+"), MalValue::MalFunction(|args| add(args)));
-    env.add_symbol(String::from("-"), MalValue::MalFunction(|args| subtract(args)));
-    env.add_symbol(String::from("/"), MalValue::MalFunction(|args| divide(args)));
-    env.add_symbol(String::from("*"), MalValue::MalFunction(|args| multiply(args)));
+    let mut env = env::Environment::new(None);
+    env.set(MalValue::MalSymbol(String::from("+")), MalValue::MalFunction(|args| add(args)));
+    env.set(MalValue::MalSymbol(String::from("-")), MalValue::MalFunction(|args| subtract(args)));
+    env.set(MalValue::MalSymbol(String::from("/")), MalValue::MalFunction(|args| divide(args)));
+    env.set(MalValue::MalSymbol(String::from("*")), MalValue::MalFunction(|args| multiply(args)));
 
     loop {
         let readline = rl.readline("user> ");
