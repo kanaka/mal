@@ -59,5 +59,23 @@
             "args": [],
             "cwd": "${workspaceFolder}"
         },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'step3_env'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=step3_env",
+                    "--package=rust-2"
+                ],
+                "filter": {
+                    "name": "step3_env",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
     ]
 }
