@@ -119,6 +119,18 @@ fn eval(ast:  MalValue, env: Rc<env::Environment>) -> MalResult  {
 
                             return eval(list.last().unwrap().clone(), env);
                         }
+                        else if s == "if" {
+                            assert!(list.len() >= 3);
+                            let test = list[1].clone();
+                            let true_expr = list[2].clone();
+                            let test_result = eval(test, env.clone())?;
+                            if test_result.is_truthy() {
+                                return eval(true_expr, env.clone());
+                            } else if (list.len() == 4) {
+                                return eval(list[3].clone(), env.clone());
+                            }
+                            return Ok(MalValue::MalNil);
+                        }
                         else if s == "def!" {
                             assert_eq!(3, list.len());
                             let key = list[1].clone();

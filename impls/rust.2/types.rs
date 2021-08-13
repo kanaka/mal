@@ -65,6 +65,13 @@ impl MalValue {
         };
     }
 
+    pub fn is_truthy(&self) -> bool {
+        return match self {
+            MalValue::MalFalse | MalValue::MalNil => false,
+            _ => true
+        };
+    }
+
     pub fn inspect(&self, print_readably: bool) -> String {
         match self {
             MalValue::MalSymbol(symbol) => {
