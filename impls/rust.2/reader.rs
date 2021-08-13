@@ -296,7 +296,13 @@ impl Reader {
     pub fn read_atom(&mut self) -> Result<Option<MalValue>, MalError> {
         let token = self.next().unwrap();
 
-        if token.starts_with('"') {
+        if token == "nil" {
+            return Ok(Some(MalValue::MalNil));
+        } else if token == "false" {
+            return Ok(Some(MalValue::MalFalse));
+        } else if token == "true" {
+            return Ok(Some(MalValue::MalTrue));
+        } else if token.starts_with('"') {
             return Ok(Some(MalValue::MalString(token)));
         } else if token.starts_with(':') {
             return Ok(Some(MalValue::MalKeyword(

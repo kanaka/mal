@@ -7,7 +7,10 @@ pub enum MalValue {
     MalVector(Vec<MalValue>),
     MalKeyword(String),
     MalHashmap(Vec<MalValue>, Vec<MalValue>),
-    MalFunction(fn(Vec<MalValue>) -> MalValue)
+    MalFunction(fn(Vec<MalValue>) -> MalValue),
+    MalNil,
+    MalTrue,
+    MalFalse
 }
 
 pub type MalResult = Result<MalValue, MalError>;
@@ -39,6 +42,15 @@ impl std::hash::Hash for MalValue {
             },
             MalValue::MalFunction(symbol) => {
                 symbol.hash(state);
+            },
+            MalValue::MalFalse => {
+                false.hash(state);
+            },
+            MalValue::MalTrue => {
+                true.hash(state);
+            },
+            MalValue::MalNil => {
+                "nil".hash(state);
             }
         }
     }
@@ -126,7 +138,10 @@ impl MalValue {
             },
             MalValue::MalFunction(_symbol) => {
                 return "#<function>".to_string();
-            }
+            },
+            MalValue::MalFalse => { return "false".to_string()},
+            MalValue::MalTrue => { return "true".to_string()},
+            MalValue::MalNil => { return "nil".to_string()},
         }
     }
 
