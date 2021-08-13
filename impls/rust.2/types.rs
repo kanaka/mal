@@ -6,7 +6,61 @@ pub enum MalValue {
     MalList(Vec<MalValue>),
     MalVector(Vec<MalValue>),
     MalKeyword(String),
-    MalHashmap(Vec<MalValue>, Vec<MalValue>)
+    MalHashmap(Vec<MalValue>, Vec<MalValue>),
+    MalFunction(String)
+}
+
+impl Clone for MalValue {
+    fn clone(&self) -> MalValue {
+        match self {
+            MalValue::MalHashmap(keys, values) => {
+                let mut cloned_keys = Vec::<MalValue>::new();
+                let mut cloned_values = Vec::<MalValue>::new();
+
+                for key in keys {
+                    cloned_keys.push(key.clone());
+                }
+                for value in values {
+                    cloned_values.push(value.clone());
+                }
+
+                return MalValue::MalHashmap(cloned_keys, cloned_values);
+            },
+            MalValue::MalInteger(int) => {
+                return MalValue::MalInteger(*int);
+            },
+            MalValue::MalKeyword(keyword) => {
+                return MalValue::MalKeyword(String::from(keyword));
+            },
+            MalValue::MalList(list) => {
+                let mut cloned_values = Vec::<MalValue>::new();
+
+                for value in list {
+                    cloned_values.push(value.clone());
+                }
+                
+                return MalValue::MalList(cloned_values);
+            },
+            MalValue::MalString(string) => {
+                return MalValue::MalString(String::from(string));
+            },
+            MalValue::MalSymbol(symbol) => {
+                return MalValue::MalSymbol(String::from(symbol));
+            },
+            MalValue::MalVector(vector) =>{
+                let mut cloned_values = Vec::<MalValue>::new();
+
+                for value in vector {
+                    cloned_values.push(value.clone());
+                }
+                
+                return MalValue::MalVector(cloned_values);
+            },
+            MalValue::MalFunction(symbol) => {
+                return MalValue::MalFunction(String::from(symbol));
+            }
+        }
+    }
 }
 
 impl std::hash::Hash for MalValue {
@@ -33,6 +87,9 @@ impl std::hash::Hash for MalValue {
             },
             MalValue::MalVector(vector) =>{
                 vector.hash(state);
+            },
+            MalValue::MalFunction(symbol) => {
+                symbol.hash(state);
             }
         }
     }
@@ -109,6 +166,9 @@ impl MalValue {
 
                 output += &String::from('}');
                 return output;
+            },
+            MalValue::MalFunction(symbol) => {
+                return format!("(#func{})", symbol);
             }
         }
     }
@@ -117,5 +177,6 @@ impl MalValue {
 
 #[derive(Debug)]
 pub enum MalError {
-    ParseError(String)
+    ParseError(String),
+    EvalError(String)
 }
