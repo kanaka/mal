@@ -1,3 +1,5 @@
+use super::types::{MalValue, MalError};
+
 pub struct Reader {
     position: usize,
     tokens: Vec<String>
@@ -24,7 +26,7 @@ impl Reader {
         return token;
     }
 
-    pub fn read_str(input: String) -> Result<Option<crate::types::MalValue>, crate::types::MalError>  {
+    pub fn read_str(input: String) -> Result<Option<MalValue>, MalError>  {
         let tokens = Reader::tokenize(input)?;
         
         let mut reader = Reader::new(tokens);
@@ -33,7 +35,7 @@ impl Reader {
         return Ok(token);
     }
 
-    fn tokenize(input: String) -> Result<Vec<String>, crate::types::MalError> {
+    fn tokenize(input: String) -> Result<Vec<String>, MalError> {
         let mut tokens = Vec::<String>::new();
 
         let mut chars = input.chars().peekable();
@@ -109,7 +111,7 @@ impl Reader {
                     }
 
                     if !balanced_string {
-                        return Err(crate::types::MalError::ParseError(String::from("unbalanced '\"'")));
+                        return Err(MalError::ParseError(String::from("unbalanced '\"'")));
                     }
 
                     tokens.push(token);
@@ -133,7 +135,7 @@ impl Reader {
         return !matches!(c, '~'|'['|']'|'{'|'}'|'('|')'|'\''|'`'|'^'|'@'|'"'|';'|' '|','|'\t');
     }
 
-    pub fn read_form(&mut self) -> Result<Option<crate::types::MalValue>, crate::types::MalError>{
+    pub fn read_form(&mut self) -> Result<Option<MalValue>, MalError>{
         let token = self.peek();
         match token {
             None => return Ok(None),
@@ -146,50 +148,50 @@ impl Reader {
                     return self.read_hashmap();
                 } else if t.starts_with('\'') {
                     self.next();
-                    let mut quote = Vec::<crate::types::MalValue>::new();
-                    quote.push(crate::types::MalValue::MalSymbol(String::from("quote")));
+                    let mut quote = Vec::<MalValue>::new();
+                    quote.push(MalValue::MalSymbol(String::from("quote")));
                     if let Ok(Some(quoted_form)) = self.read_form() {
                         quote.push(quoted_form);
                     }
 
-                    return Ok(Some(crate::types::MalValue::MalList(quote)));
+                    return Ok(Some(MalValue::MalList(quote)));
                 } else if t.starts_with('`') {
                     self.next();
-                    let mut quote = Vec::<crate::types::MalValue>::new();
-                    quote.push(crate::types::MalValue::MalSymbol(String::from("quasiquote")));
+                    let mut quote = Vec::<MalValue>::new();
+                    quote.push(MalValue::MalSymbol(String::from("quasiquote")));
                     if let Ok(Some(quoted_form)) = self.read_form() {
                         quote.push(quoted_form);
                     }
 
-                    return Ok(Some(crate::types::MalValue::MalList(quote)));
+                    return Ok(Some(MalValue::MalList(quote)));
                 } else if t.starts_with("~@") {
                     self.next();
                     self.next();
-                    let mut quote = Vec::<crate::types::MalValue>::new();
-                    quote.push(crate::types::MalValue::MalSymbol(String::from("splice-unquote")));
+                    let mut quote = Vec::<MalValue>::new();
+                    quote.push(MalValue::MalSymbol(String::from("splice-unquote")));
                     if let Ok(Some(quoted_form)) = self.read_form() {
                         quote.push(quoted_form);
                     }
 
-                    return Ok(Some(crate::types::MalValue::MalList(quote)));
+                    return Ok(Some(MalValue::MalList(quote)));
                 } else if t.starts_with('~') {
                     self.next();
-                    let mut quote = Vec::<crate::types::MalValue>::new();
-                    quote.push(crate::types::MalValue::MalSymbol(String::from("unquote")));
+                    let mut quote = Vec::<MalValue>::new();
+                    quote.push(MalValue::MalSymbol(String::from("unquote")));
                     if let Ok(Some(quoted_form)) = self.read_form() {
                         quote.push(quoted_form);
                     }
 
-                    return Ok(Some(crate::types::MalValue::MalList(quote)));
+                    return Ok(Some(MalValue::MalList(quote)));
                 } else if t.starts_with('@') {
                     self.next();
-                    let mut quote = Vec::<crate::types::MalValue>::new();
-                    quote.push(crate::types::MalValue::MalSymbol(String::from("deref")));
+                    let mut quote = Vec::<MalValue>::new();
+                    quote.push(MalValue::MalSymbol(String::from("deref")));
                     if let Ok(Some(quoted_form)) = self.read_form() {
                         quote.push(quoted_form);
                     }
 
-                    return Ok(Some(crate::types::MalValue::MalList(quote)));
+                    return Ok(Some(MalValue::MalList(quote)));
                 }
 
                 return self.read_atom();
@@ -197,12 +199,12 @@ impl Reader {
         }
     }
 
-    fn read_hashmap(&mut self) -> Result<Option<crate::types::MalValue>, crate::types::MalError>{
+    fn read_hashmap(&mut self) -> Result<Option<MalValue>, MalError>{
         let token = self.next(); // Consume the '{'
         assert_eq!(token, Some(String::from('{')));
 
-        let mut keys = Vec::<crate::types::MalValue>::new();
-        let mut values = Vec::<crate::types::MalValue>::new();
+        let mut keys = Vec::<MalValue>::new();
+        let mut values = Vec::<MalValue>::new();
         let mut index = 0;
 
         while let Some(token) = self.peek() {
@@ -219,19 +221,19 @@ impl Reader {
         }
 
         if keys.len() != values.len() {
-            return Err(crate::types::MalError::ParseError(String::from("unbalanced keys and values")));
+            return Err(MalError::ParseError(String::from("unbalanced keys and values")));
         }
 
         assert_eq!(keys.len(), values.len());
 
-        return Ok(Some(crate::types::MalValue::MalHashmap(keys, values)))
+        return Ok(Some(MalValue::MalHashmap(keys, values)))
     }
 
-    fn read_vector(&mut self) -> Result<Option<crate::types::MalValue>, crate::types::MalError>{
+    fn read_vector(&mut self) -> Result<Option<MalValue>, MalError>{
         let mut token = self.next(); // Consume the '['
         assert_eq!(token, Some(String::from('[')));
 
-        let mut tokens = Vec::<crate::types::MalValue>::new();
+        let mut tokens = Vec::<MalValue>::new();
 
         let mut balanced_list = false;
         loop {
@@ -253,17 +255,17 @@ impl Reader {
         }
         
         if !balanced_list {
-            return Err(crate::types::MalError::ParseError(String::from("unbalanced '['")));
+            return Err(MalError::ParseError(String::from("unbalanced '['")));
         }
 
-        return Ok(Some(crate::types::MalValue::MalVector(tokens)));
+        return Ok(Some(MalValue::MalVector(tokens)));
     }
 
-    pub fn read_list(&mut self) -> Result<Option<crate::types::MalValue>, crate::types::MalError>{
+    pub fn read_list(&mut self) -> Result<Option<MalValue>, MalError>{
         let mut token = self.next(); // Consume the '('
         assert_eq!(token, Some(String::from('(')));
 
-        let mut tokens = Vec::<crate::types::MalValue>::new();
+        let mut tokens = Vec::<MalValue>::new();
 
         let mut balanced_list = false;
         loop {
@@ -285,25 +287,25 @@ impl Reader {
         }
         
         if !balanced_list {
-            return Err(crate::types::MalError::ParseError(String::from("unbalanced '('")));
+            return Err(MalError::ParseError(String::from("unbalanced '('")));
         }
 
-        return Ok(Some(crate::types::MalValue::MalList(tokens)));
+        return Ok(Some(MalValue::MalList(tokens)));
     }
 
-    pub fn read_atom(&mut self) -> Result<Option<crate::types::MalValue>, crate::types::MalError> {
+    pub fn read_atom(&mut self) -> Result<Option<MalValue>, MalError> {
         let token = self.next().unwrap();
 
         if token.starts_with('"') {
-            return Ok(Some(crate::types::MalValue::MalString(token)));
+            return Ok(Some(MalValue::MalString(token)));
         } else if token.starts_with(':') {
-            return Ok(Some(crate::types::MalValue::MalKeyword(
+            return Ok(Some(MalValue::MalKeyword(
                 token.strip_prefix(':').unwrap_or(&token).to_string()
             )));
         } else if let Ok(int) = token.parse::<i32>() {
-            return Ok(Some(crate::types::MalValue::MalInteger(int)));
+            return Ok(Some(MalValue::MalInteger(int)));
         }
 
-        return Ok(Some(crate::types::MalValue::MalSymbol(token)));
+        return Ok(Some(MalValue::MalSymbol(token)));
     }
 }
