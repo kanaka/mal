@@ -8,13 +8,15 @@ mod types;
 mod printer;
 mod env;
 
-fn read(input: String) -> Result<Option<crate::types::MalValue>, crate::types::MalError> {
+use types::{MalValue, MalError, MalResult};
+
+fn read(input: String) -> Result<Option<MalValue>, MalError> {
     return reader::Reader::read_str(input.to_string());
 }
 
-fn to_int(value: types::MalValue) -> Result<i32, types::MalError> {
+fn to_int(value: MalValue) -> Result<i32, MalError> {
     match value {
-        types::MalValue::MalInteger(int) => {
+        MalValue::MalInteger(int) => {
             return Ok(int);
         }
         _ => {
@@ -23,49 +25,49 @@ fn to_int(value: types::MalValue) -> Result<i32, types::MalError> {
     }
 }
 
-fn add(args: Vec<types::MalValue>) -> types::MalValue {
+fn add(args: Vec<types::MalValue>) -> MalValue {
     assert_eq!(2, args.len());
     let args1 = to_int(args[0].clone()).unwrap();
     let args2 = to_int(args[1].clone()).unwrap();
 
-    return types::MalValue::MalInteger(args1 + args2);
+    return MalValue::MalInteger(args1 + args2);
 }
 
-fn subtract(args: Vec<types::MalValue>) -> types::MalValue {
+fn subtract(args: Vec<types::MalValue>) -> MalValue {
     assert_eq!(2, args.len());
     let args1 = to_int(args[0].clone()).unwrap();
     let args2 = to_int(args[1].clone()).unwrap();
 
-    return types::MalValue::MalInteger(args1 - args2);
+    return MalValue::MalInteger(args1 - args2);
 }
 
-fn multiply(args: Vec<types::MalValue>) -> types::MalValue {
+fn multiply(args: Vec<types::MalValue>) -> MalValue {
     assert_eq!(2, args.len());
     let args1 = to_int(args[0].clone()).unwrap();
     let args2 = to_int(args[1].clone()).unwrap();
 
-    return types::MalValue::MalInteger(args1 * args2);
+    return MalValue::MalInteger(args1 * args2);
 }
 
-fn divide(args: Vec<types::MalValue>) -> types::MalValue {
+fn divide(args: Vec<types::MalValue>) -> MalValue {
     assert_eq!(2, args.len());
     let args1 = to_int(args[0].clone()).unwrap();
     let args2 = to_int(args[1].clone()).unwrap();
 
-    return types::MalValue::MalInteger(args1 / args2);
+    return MalValue::MalInteger(args1 / args2);
 }
 
-fn eval(ast: crate::types::MalValue, env: &env::Environment) -> types::MalResult  {
+fn eval(ast:  MalValue, env: &env::Environment) -> MalResult  {
     match ast.clone() {
-        types::MalValue::MalList(list) => {
+        MalValue::MalList(list) => {
             if list.len() > 0 {
                 let evaluated_result = eval_ast(types::MalValue::MalList(list), env)?;
                 match evaluated_result {
-                    types::MalValue::MalList(list) => {
+                    MalValue::MalList(list) => {
                         let func = list.first().unwrap();
                         let args = list.clone().split_off(1);
 
-                        if let types::MalValue::MalFunction(f) = func {
+                        if let MalValue::MalFunction(f) = func {
                             return Ok(f(args));
                         }
                         todo!("Handle other operators!");
@@ -84,15 +86,15 @@ fn eval(ast: crate::types::MalValue, env: &env::Environment) -> types::MalResult
     }
 }
 
-fn eval_ast(ast: crate::types::MalValue, env: &env::Environment) -> Result<crate::types::MalValue, types::MalError> {
+fn eval_ast(ast:  MalValue, env: &env::Environment) -> Result< MalValue, MalError> {
     match ast {
-        types::MalValue::MalSymbol(symbol) => {
+        MalValue::MalSymbol(symbol) => {
             if let Some(func) = env.lookup_symbol(String::from(symbol)) {
                 return Ok(func);
             }
             return Err(types::MalError::EvalError(format!("Symbol {} not defined", "")));
         },
-        types::MalValue::MalList(list) => {
+        MalValue::MalList(list) => {
             let mut result = Vec::<types::MalValue>::new();
 
             for token in list {
@@ -101,7 +103,7 @@ fn eval_ast(ast: crate::types::MalValue, env: &env::Environment) -> Result<crate
 
             return Ok(types::MalValue::MalList(result));
         },
-        types::MalValue::MalVector(vector) => {
+        MalValue::MalVector(vector) => {
             let mut result = Vec::<types::MalValue>::new();
 
             for token in vector {
@@ -110,7 +112,7 @@ fn eval_ast(ast: crate::types::MalValue, env: &env::Environment) -> Result<crate
 
             return Ok(types::MalValue::MalVector(result));
         },
-        types::MalValue::MalHashmap(keys, values) => {
+        MalValue::MalHashmap(keys, values) => {
             let mut result = Vec::<types::MalValue>::new();
 
             for token in values {
@@ -125,7 +127,7 @@ fn eval_ast(ast: crate::types::MalValue, env: &env::Environment) -> Result<crate
     }
 }
 
-fn print(input: crate::types::MalValue) -> String {
+fn print(input:  MalValue) -> String {
     return crate::printer::pr_str(input, true);
 }
 
@@ -161,10 +163,10 @@ fn main() {
     }
 
     let mut env = env::Environment::new();
-    env.add_symbol(String::from("+"), types::MalValue::MalFunction(|args| add(args)));
-    env.add_symbol(String::from("-"), types::MalValue::MalFunction(|args| subtract(args)));
-    env.add_symbol(String::from("/"), types::MalValue::MalFunction(|args| divide(args)));
-    env.add_symbol(String::from("*"), types::MalValue::MalFunction(|args| multiply(args)));
+    env.add_symbol(String::from("+"), MalValue::MalFunction(|args| add(args)));
+    env.add_symbol(String::from("-"), MalValue::MalFunction(|args| subtract(args)));
+    env.add_symbol(String::from("/"), MalValue::MalFunction(|args| divide(args)));
+    env.add_symbol(String::from("*"), MalValue::MalFunction(|args| multiply(args)));
 
     loop {
         let readline = rl.readline("user> ");

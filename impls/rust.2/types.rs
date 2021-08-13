@@ -170,7 +170,7 @@ impl MalValue {
                 return output;
             },
             MalValue::MalFunction(_symbol) => {
-                return format!("(#func)");
+                return "#<function>".to_string();
             }
         }
     }
