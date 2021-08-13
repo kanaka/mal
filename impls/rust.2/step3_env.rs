@@ -9,6 +9,7 @@ mod printer;
 mod env;
 
 use types::{MalValue, MalError, MalResult};
+use std::rc::Rc;
 
 fn read(input: String) -> Result<Option<MalValue>, MalError> {
     return reader::Reader::read_str(input.to_string());
@@ -57,7 +58,7 @@ fn divide(args: Vec<types::MalValue>) -> MalValue {
     return MalValue::MalInteger(args1 / args2);
 }
 
-fn apply(ast: MalValue, env: &env::Environment) -> MalResult {
+fn apply(ast: MalValue, env: Rc<env::Environment>) -> MalResult {
     match ast {
         MalValue::MalList(list) => {
             let evaluated_result = eval_ast(types::MalValue::MalList(list), env)?;
@@ -82,7 +83,29 @@ fn apply(ast: MalValue, env: &env::Environment) -> MalResult {
     }
 }
 
-fn eval(ast:  MalValue, env: &env::Environment) -> MalResult  {
+fn run_let(env: Rc<env::Environment>, bindings: MalValue, e: MalValue) -> MalResult {
+    let new_env = Rc::new(env::Environment::new(Some(env.clone())));
+
+    if let Some(binding_list) = bindings.as_vec() {
+        assert!(binding_list.len() % 2 == 0);
+        let mut key = binding_list.first().unwrap();
+
+        for i in 0..binding_list.len() {
+            if i % 2 == 0 {
+                key = binding_list.get(i).unwrap();
+            } else {
+                let val = eval(binding_list.get(i).unwrap().clone(), new_env.clone())?;
+                env.set(key.clone(), val.clone());
+            }
+        }
+
+        return eval(e, env);
+    } else {
+        return Err(MalError::EvalError(String::from("Missing bindings!")))
+    }
+}
+
+fn eval(ast:  MalValue, env: Rc<env::Environment>) -> MalResult  {
     match ast.clone() {
         MalValue::MalList(list) => {
             if list.len() > 0 {
@@ -91,8 +114,16 @@ fn eval(ast:  MalValue, env: &env::Environment) -> MalResult  {
                         if s == "def!" {
                             assert_eq!(3, list.len());
                             let key = list[1].clone();
-                            let value = eval(list[2].clone(), env)?;
+                            let value = eval(list[2].clone(), env.clone())?;
                             env.set(key, value.clone())?;
+                            return Ok(value);
+                        } else if s == "let*" {
+                            assert_eq!(3, list.len());
+                            let bindings = list[1].clone();
+                            let e = list[2].clone();
+                            return run_let(env, bindings, e);
+                        } else {
+                            return apply(ast, env);
                         }
                     }
                     _ => {
@@ -108,7 +139,7 @@ fn eval(ast:  MalValue, env: &env::Environment) -> MalResult  {
     }
 }
 
-fn eval_ast(ast:  MalValue, env: &env::Environment) -> Result< MalValue, MalError> {
+fn eval_ast(ast:  MalValue, env: Rc<env::Environment>) -> Result< MalValue, MalError> {
     match ast {
         MalValue::MalSymbol(_) => {
             if let Ok(func) = env.get(ast) {
@@ -120,7 +151,7 @@ fn eval_ast(ast:  MalValue, env: &env::Environment) -> Result< MalValue, MalErro
             let mut result = Vec::<types::MalValue>::new();
 
             for token in list {
-                result.push(eval(token, env)?);
+                result.push(eval(token, env.clone())?);
             }
 
             return Ok(types::MalValue::MalList(result));
@@ -129,7 +160,7 @@ fn eval_ast(ast:  MalValue, env: &env::Environment) -> Result< MalValue, MalErro
             let mut result = Vec::<types::MalValue>::new();
 
             for token in vector {
-                result.push(eval(token, env)?);
+                result.push(eval(token, env.clone())?);
             }
 
             return Ok(types::MalValue::MalVector(result));
@@ -138,7 +169,7 @@ fn eval_ast(ast:  MalValue, env: &env::Environment) -> Result< MalValue, MalErro
             let mut result = Vec::<types::MalValue>::new();
 
             for token in values {
-                result.push(eval(token, env)?);
+                result.push(eval(token, env.clone())?);
             }
 
             return Ok(types::MalValue::MalHashmap(keys, result));
@@ -153,7 +184,7 @@ fn print(input:  MalValue) -> String {
     return crate::printer::pr_str(input, true);
 }
 
-fn rep(input: String, env: &env::Environment) -> String {
+fn rep(input: String, env: Rc<env::Environment>) -> String {
     let ast = read(input);
     match ast {
         Err(e) => {
@@ -184,7 +215,7 @@ fn main() {
         println!("No previous history.");
     }
 
-    let mut env = env::Environment::new(None);
+    let mut env = Rc::new(env::Environment::new(None));
     env.set(MalValue::MalSymbol(String::from("+")), MalValue::MalFunction(|args| add(args)));
     env.set(MalValue::MalSymbol(String::from("-")), MalValue::MalFunction(|args| subtract(args)));
     env.set(MalValue::MalSymbol(String::from("/")), MalValue::MalFunction(|args| divide(args)));
@@ -195,7 +226,7 @@ fn main() {
         match readline {
             Ok(line) => {
                 rl.add_history_entry(line.as_str());
-                let result = rep(line.trim_end().to_string(), &env);
+                let result = rep(line.trim_end().to_string(), env.clone());
                 print!("{}", result);
                 println!();
             },

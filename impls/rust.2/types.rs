@@ -45,6 +45,13 @@ impl std::hash::Hash for MalValue {
 }
 
 impl MalValue {
+    pub fn as_vec(&self) -> Option<Vec<MalValue>> {
+        return match self {
+            MalValue::MalList(list) => Some(list.clone()),
+            _ => None
+        };
+    }
+
     pub fn inspect(&self, print_readably: bool) -> String {
         match self {
             MalValue::MalSymbol(symbol) => {
