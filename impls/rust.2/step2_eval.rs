@@ -10,6 +10,7 @@ mod env;
 
 use types::{MalValue, MalError, MalResult};
 use env::Environment;
+use std::rc::{Rc};
 
 fn read(input: String) -> Result<Option<MalValue>, MalError> {
     return reader::Reader::read_str(input.to_string());
@@ -68,7 +69,7 @@ fn eval(ast:  MalValue, env: &env::Environment) -> MalResult  {
                         let func = list.first().unwrap();
                         let args = list.clone().split_off(1);
 
-                        if let MalValue::MalFunction(f) = func {
+                        if let MalValue::MalFunction(f, _) = func {
                             return Ok(f(args));
                         }
                         todo!("Handle other operators!");
@@ -164,10 +165,10 @@ fn main() {
     }
 
     let mut env = Environment::new(None, None, None);
-    env.set(MalValue::MalSymbol(String::from("+")), MalValue::MalFunction(|args| add(args)));
-    env.set(MalValue::MalSymbol(String::from("-")), MalValue::MalFunction(|args| subtract(args)));
-    env.set(MalValue::MalSymbol(String::from("/")), MalValue::MalFunction(|args| divide(args)));
-    env.set(MalValue::MalSymbol(String::from("*")), MalValue::MalFunction(|args| multiply(args)));
+    env.set(MalValue::MalSymbol(String::from("+")), MalValue::MalFunction(|args| add(args), Rc::new(MalValue::MalNil)));
+    env.set(MalValue::MalSymbol(String::from("-")), MalValue::MalFunction(|args| subtract(args), Rc::new(MalValue::MalNil)));
+    env.set(MalValue::MalSymbol(String::from("/")), MalValue::MalFunction(|args| divide(args), Rc::new(MalValue::MalNil)));
+    env.set(MalValue::MalSymbol(String::from("*")), MalValue::MalFunction(|args| multiply(args), Rc::new(MalValue::MalNil)));
 
     loop {
         let readline = rl.readline("user> ");

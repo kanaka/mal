@@ -58,19 +58,36 @@ fn divide(args: Vec<types::MalValue>) -> MalValue {
     return MalValue::MalInteger(args1 / args2);
 }
 
+pub fn exec_fn(func:MalValue, args:Vec<MalValue>, env: Rc<env::Environment>) -> MalResult{
+    match func {
+        MalValue::MalFunction(f, _) => Ok(f(args)),
+        MalValue::MalFunc {
+            eval,
+            ref ast,
+            ref env, 
+            ref params,
+            ..
+        } => {
+            let a = &**ast;
+            let fn_env = env::Environment::new(Some(env.clone()), params.as_vec(), Some(args));
+            Ok(eval(a.clone(), Rc::new(fn_env))?)
+        },
+        _ => {
+            Err(MalError::EvalError("Attempt to call non-function".to_string()))
+        }
+    }
+}
+
 fn apply(ast: MalValue, env: Rc<env::Environment>) -> MalResult {
     match ast {
         MalValue::MalList(list) => {
-            let evaluated_result = eval_ast(types::MalValue::MalList(list), env)?;
+            let evaluated_result = eval_ast(types::MalValue::MalList(list), env.clone())?;
             match evaluated_result {
                 MalValue::MalList(list) => {
                     let func = list.first().unwrap();
                     let args = list.clone().split_off(1);
 
-                    if let MalValue::MalFunction(f) = func {
-                        return Ok(f(args));
-                    }
-                    return Err(MalError::EvalError(String::from("apply called on non-list")));
+                    return exec_fn(func.clone(), args, env.clone());
                 },
                 _ => {
                     todo!("Handle eval_ast returning something that is not a list!");
@@ -106,13 +123,35 @@ fn run_let(env: Rc<env::Environment>, bindings: MalValue, e: MalValue) -> MalRes
     }
 }
 
+fn handle_fn(ast: Vec<MalValue>, env: Rc<env::Environment>) -> MalResult {
+
+    // let fn_closure = |env: Rc<env::Environment>, binds: Vec<MalValue>, exprs: Vec<MalValue>| {
+    //     let fn_env = Rc::new(
+    //         env::Environment::new(
+    //             Some(env.clone()),
+    //             Some(binds),
+    //             Some(exprs)));
+    // };
+
+    let func = MalValue::MalFunc {
+        eval: eval,
+        ast: Rc::new(ast[2].clone()),
+        env: env,
+        params: Rc::new(ast[1].clone())
+    };
+    return Ok(func);
+}
+
 fn eval(ast:  MalValue, env: Rc<env::Environment>) -> MalResult  {
     match ast.clone() {
         MalValue::MalList(list) => {
             if list.len() > 0 {
                 match list.first().unwrap() {
                     MalValue::MalSymbol(ref s) => {
-                        if s == "do" {
+                        if s == "fn*" {
+                            return handle_fn(list, env);
+                        }
+                        else if s == "do" {
                             for token in &list[1..list.len() -1] {
                                 eval(token.clone(), env.clone())?;
                             }
@@ -236,10 +275,10 @@ fn main() {
     }
 
     let env = Rc::new(env::Environment::new(None, None, None));
-    env.set(MalValue::MalSymbol(String::from("+")), MalValue::MalFunction(|args| add(args)));
-    env.set(MalValue::MalSymbol(String::from("-")), MalValue::MalFunction(|args| subtract(args)));
-    env.set(MalValue::MalSymbol(String::from("/")), MalValue::MalFunction(|args| divide(args)));
-    env.set(MalValue::MalSymbol(String::from("*")), MalValue::MalFunction(|args| multiply(args)));
+    env.set(MalValue::MalSymbol(String::from("+")), MalValue::MalFunction(|args| add(args), Rc::new(MalValue::MalNil)));
+    env.set(MalValue::MalSymbol(String::from("-")), MalValue::MalFunction(|args| subtract(args), Rc::new(MalValue::MalNil)));
+    env.set(MalValue::MalSymbol(String::from("/")), MalValue::MalFunction(|args| divide(args), Rc::new(MalValue::MalNil)));
+    env.set(MalValue::MalSymbol(String::from("*")), MalValue::MalFunction(|args| multiply(args), Rc::new(MalValue::MalNil)));
 
     loop {
         let readline = rl.readline("user> ");

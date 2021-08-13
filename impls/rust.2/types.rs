@@ -1,4 +1,7 @@
-#[derive(Debug, PartialEq, Clone)]
+use std::rc::Rc;
+use super::env::Environment;
+
+#[derive(Debug, Clone)]
 pub enum MalValue {
     MalSymbol(String),
     MalString(String),
@@ -7,7 +10,13 @@ pub enum MalValue {
     MalVector(Vec<MalValue>),
     MalKeyword(String),
     MalHashmap(Vec<MalValue>, Vec<MalValue>),
-    MalFunction(fn(Vec<MalValue>) -> MalValue),
+    MalFunction(fn(Vec<MalValue>) -> MalValue, Rc<MalValue>),
+    MalFunc{
+        eval: fn(ast: MalValue, env: Rc<Environment>) -> MalResult,
+        ast: Rc<MalValue>,
+        env: Rc<Environment>,
+        params: Rc<MalValue>,
+    },
     MalNil,
     MalTrue,
     MalFalse
@@ -40,7 +49,7 @@ impl std::hash::Hash for MalValue {
             MalValue::MalVector(vector) =>{
                 vector.hash(state);
             },
-            MalValue::MalFunction(symbol) => {
+            MalValue::MalFunction(symbol, _) => {
                 symbol.hash(state);
             },
             MalValue::MalFalse => {
@@ -51,6 +60,9 @@ impl std::hash::Hash for MalValue {
             },
             MalValue::MalNil => {
                 "nil".hash(state);
+            },
+            MalValue::MalFunc{ast, ..} => {
+                ast.hash(state);
             }
         }
     }
@@ -143,9 +155,12 @@ impl MalValue {
                 output += &String::from('}');
                 return output;
             },
-            MalValue::MalFunction(_symbol) => {
+            MalValue::MalFunction(_, _) => {
                 return "#<function>".to_string();
             },
+            MalValue::MalFunc{..} => {
+                return "#<function>".to_string();
+            }
             MalValue::MalFalse => { return "false".to_string()},
             MalValue::MalTrue => { return "true".to_string()},
             MalValue::MalNil => { return "nil".to_string()},

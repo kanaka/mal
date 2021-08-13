@@ -67,7 +67,7 @@ fn apply(ast: MalValue, env: Rc<env::Environment>) -> MalResult {
                     let func = list.first().unwrap();
                     let args = list.clone().split_off(1);
 
-                    if let MalValue::MalFunction(f) = func {
+                    if let MalValue::MalFunction(f, _) = func {
                         return Ok(f(args));
                     }
                     return Err(MalError::EvalError(String::from("apply called on non-list")));
@@ -217,10 +217,10 @@ fn main() {
     }
 
     let mut env = Rc::new(env::Environment::new(None, None, None));
-    env.set(MalValue::MalSymbol(String::from("+")), MalValue::MalFunction(|args| add(args)));
-    env.set(MalValue::MalSymbol(String::from("-")), MalValue::MalFunction(|args| subtract(args)));
-    env.set(MalValue::MalSymbol(String::from("/")), MalValue::MalFunction(|args| divide(args)));
-    env.set(MalValue::MalSymbol(String::from("*")), MalValue::MalFunction(|args| multiply(args)));
+    env.set(MalValue::MalSymbol(String::from("+")), MalValue::MalFunction(|args| add(args), Rc::new(MalValue::MalNil)));
+    env.set(MalValue::MalSymbol(String::from("-")), MalValue::MalFunction(|args| subtract(args), Rc::new(MalValue::MalNil)));
+    env.set(MalValue::MalSymbol(String::from("/")), MalValue::MalFunction(|args| divide(args), Rc::new(MalValue::MalNil)));
+    env.set(MalValue::MalSymbol(String::from("*")), MalValue::MalFunction(|args| multiply(args), Rc::new(MalValue::MalNil)));
 
     loop {
         let readline = rl.readline("user> ");

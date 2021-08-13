@@ -6,6 +6,7 @@ use rustyline::Editor;
 mod reader;
 mod types;
 mod printer;
+mod env;
 
 fn read(input: String) -> Result<Option<crate::types::MalValue>, crate::types::MalError> {
     return reader::Reader::read_str(input.to_string());
