@@ -23,7 +23,7 @@ fn to_int(value: types::MalValue) -> Result<i32, types::MalError> {
     }
 }
 
-fn add(args: &[types::MalValue]) -> types::MalValue {
+fn add(args: Vec<types::MalValue>) -> types::MalValue {
     assert_eq!(2, args.len());
     let args1 = to_int(args[0].clone()).unwrap();
     let args2 = to_int(args[1].clone()).unwrap();
@@ -31,7 +31,7 @@ fn add(args: &[types::MalValue]) -> types::MalValue {
     return types::MalValue::MalInteger(args1 + args2);
 }
 
-fn subtract(args: &[types::MalValue]) -> types::MalValue {
+fn subtract(args: Vec<types::MalValue>) -> types::MalValue {
     assert_eq!(2, args.len());
     let args1 = to_int(args[0].clone()).unwrap();
     let args2 = to_int(args[1].clone()).unwrap();
@@ -39,7 +39,7 @@ fn subtract(args: &[types::MalValue]) -> types::MalValue {
     return types::MalValue::MalInteger(args1 - args2);
 }
 
-fn multiply(args: &[types::MalValue]) -> types::MalValue {
+fn multiply(args: Vec<types::MalValue>) -> types::MalValue {
     assert_eq!(2, args.len());
     let args1 = to_int(args[0].clone()).unwrap();
     let args2 = to_int(args[1].clone()).unwrap();
@@ -47,7 +47,7 @@ fn multiply(args: &[types::MalValue]) -> types::MalValue {
     return types::MalValue::MalInteger(args1 * args2);
 }
 
-fn divide(args: &[types::MalValue]) -> types::MalValue {
+fn divide(args: Vec<types::MalValue>) -> types::MalValue {
     assert_eq!(2, args.len());
     let args1 = to_int(args[0].clone()).unwrap();
     let args2 = to_int(args[1].clone()).unwrap();
@@ -55,7 +55,7 @@ fn divide(args: &[types::MalValue]) -> types::MalValue {
     return types::MalValue::MalInteger(args1 / args2);
 }
 
-fn eval(ast: crate::types::MalValue, env: &env::Environment) -> Result<crate::types::MalValue, types::MalError>  {
+fn eval(ast: crate::types::MalValue, env: &env::Environment) -> types::MalResult  {
     match ast.clone() {
         types::MalValue::MalList(list) => {
             if list.len() > 0 {
@@ -63,20 +63,12 @@ fn eval(ast: crate::types::MalValue, env: &env::Environment) -> Result<crate::ty
                 match evaluated_result {
                     types::MalValue::MalList(list) => {
                         let func = list.first().unwrap();
-                        let args = &list[1..list.len()];
+                        let args = list.clone().split_off(1);
 
                         if let types::MalValue::MalFunction(f) = func {
-                            if f == "+" {
-                                return Ok(add(args));
-                            } else if f == "-" {
-                                return Ok(subtract(args));
-                            } else if f == "*" {
-                                return Ok(multiply(args));
-                            } else if f == "/" {
-                                return Ok(divide(args));
-                            }
-                            todo!("Handle other operators!");
+                            return Ok(f(args));
                         }
+                        todo!("Handle other operators!");
                     },
                     _ => {
                         todo!("Handle eval_ast returning something that is not a list!");
@@ -109,6 +101,24 @@ fn eval_ast(ast: crate::types::MalValue, env: &env::Environment) -> Result<crate
 
             return Ok(types::MalValue::MalList(result));
         },
+        types::MalValue::MalVector(vector) => {
+            let mut result = Vec::<types::MalValue>::new();
+
+            for token in vector {
+                result.push(eval(token, env)?);
+            }
+
+            return Ok(types::MalValue::MalVector(result));
+        },
+        types::MalValue::MalHashmap(keys, values) => {
+            let mut result = Vec::<types::MalValue>::new();
+
+            for token in values {
+                result.push(eval(token, env)?);
+            }
+
+            return Ok(types::MalValue::MalHashmap(keys, result));
+        }
         _ => {
             return Ok(ast);
         }
@@ -151,10 +161,10 @@ fn main() {
     }
 
     let mut env = env::Environment::new();
-    env.add_symbol(String::from("+"), types::MalValue::MalFunction(String::from("+")));
-    env.add_symbol(String::from("-"), types::MalValue::MalFunction(String::from("-")));
-    env.add_symbol(String::from("/"), types::MalValue::MalFunction(String::from("/")));
-    env.add_symbol(String::from("*"), types::MalValue::MalFunction(String::from("*")));
+    env.add_symbol(String::from("+"), types::MalValue::MalFunction(|args| add(args)));
+    env.add_symbol(String::from("-"), types::MalValue::MalFunction(|args| subtract(args)));
+    env.add_symbol(String::from("/"), types::MalValue::MalFunction(|args| divide(args)));
+    env.add_symbol(String::from("*"), types::MalValue::MalFunction(|args| multiply(args)));
 
     loop {
         let readline = rl.readline("user> ");

@@ -7,8 +7,10 @@ pub enum MalValue {
     MalVector(Vec<MalValue>),
     MalKeyword(String),
     MalHashmap(Vec<MalValue>, Vec<MalValue>),
-    MalFunction(String)
+    MalFunction(fn(Vec<MalValue>) -> MalValue)
 }
+
+pub type MalResult = Result<MalValue, MalError>;
 
 impl Clone for MalValue {
     fn clone(&self) -> MalValue {
@@ -57,7 +59,7 @@ impl Clone for MalValue {
                 return MalValue::MalVector(cloned_values);
             },
             MalValue::MalFunction(symbol) => {
-                return MalValue::MalFunction(String::from(symbol));
+                return MalValue::MalFunction(*symbol);
             }
         }
     }
@@ -167,8 +169,8 @@ impl MalValue {
                 output += &String::from('}');
                 return output;
             },
-            MalValue::MalFunction(symbol) => {
-                return format!("(#func{})", symbol);
+            MalValue::MalFunction(_symbol) => {
+                return format!("(#func)");
             }
         }
     }
