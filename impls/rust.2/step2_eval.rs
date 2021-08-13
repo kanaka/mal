@@ -163,7 +163,7 @@ fn main() {
         println!("No previous history.");
     }
 
-    let mut env = Environment::new(None);
+    let mut env = Environment::new(None, None, None);
     env.set(MalValue::MalSymbol(String::from("+")), MalValue::MalFunction(|args| add(args)));
     env.set(MalValue::MalSymbol(String::from("-")), MalValue::MalFunction(|args| subtract(args)));
     env.set(MalValue::MalSymbol(String::from("/")), MalValue::MalFunction(|args| divide(args)));

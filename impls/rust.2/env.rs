@@ -10,12 +10,23 @@ pub struct Environment {
 }
 
 impl Environment {
-    pub fn new(outer: Option<Rc<Environment>>) -> Environment {
-        return Environment
+    pub fn new(outer: Option<Rc<Environment>>, binds: Option<Vec<MalValue>>, exprs: Option<Vec<MalValue>>) -> Environment {
+        let env = Environment
         {
             data: RefCell::new(HashMap::<String, MalValue>::new()),
             outer
-        }
+        };
+
+        match (binds, exprs) {
+            (Some(b), Some(e)) => {
+               for (bind, expr) in b.iter().zip(e.iter()) {
+                   env.set(bind.clone(), expr.clone());
+               }
+            },
+            _ => {}
+        };
+
+        return env;
     }
 
     pub fn lookup_symbol(&self, symbol: String) -> Option<MalValue> {

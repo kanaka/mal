@@ -84,7 +84,7 @@ fn apply(ast: MalValue, env: Rc<env::Environment>) -> MalResult {
 }
 
 fn run_let(env: Rc<env::Environment>, bindings: MalValue, e: MalValue) -> MalResult {
-    let new_env = Rc::new(env::Environment::new(Some(env.clone())));
+    let new_env = Rc::new(env::Environment::new(Some(env.clone()), None, None));
 
     if let Some(binding_list) = bindings.as_vec() {
         assert!(binding_list.len() % 2 == 0);
@@ -216,7 +216,7 @@ fn main() {
         println!("No previous history.");
     }
 
-    let mut env = Rc::new(env::Environment::new(None));
+    let mut env = Rc::new(env::Environment::new(None, None, None));
     env.set(MalValue::MalSymbol(String::from("+")), MalValue::MalFunction(|args| add(args)));
     env.set(MalValue::MalSymbol(String::from("-")), MalValue::MalFunction(|args| subtract(args)));
     env.set(MalValue::MalSymbol(String::from("/")), MalValue::MalFunction(|args| divide(args)));
