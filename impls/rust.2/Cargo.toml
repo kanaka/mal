@@ -18,9 +18,9 @@ path = "step1_read_print.rs"
 name = "step2_eval"
 path = "step2_eval.rs"
 
-#[[bin]]
-#name = "step3_env"
-#path = "step3_env.rs"
+[[bin]]
+name = "step3_env"
+path = "step3_env.rs"
 #
 #[[bin]]
 #name = "step4_if_fn_do"
