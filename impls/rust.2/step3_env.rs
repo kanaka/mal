@@ -94,12 +94,13 @@ fn run_let(env: Rc<env::Environment>, bindings: MalValue, e: MalValue) -> MalRes
             if i % 2 == 0 {
                 key = binding_list.get(i).unwrap();
             } else {
-                let val = eval(binding_list.get(i).unwrap().clone(), new_env.clone())?;
-                env.set(key.clone(), val.clone());
+                new_env.set(
+                    key.clone(),
+                    eval(binding_list.get(i).unwrap().clone(), new_env.clone())?);
             }
         }
 
-        return eval(e, env);
+        return eval(e, new_env);
     } else {
         return Err(MalError::EvalError(String::from("Missing bindings!")))
     }
@@ -142,10 +143,10 @@ fn eval(ast:  MalValue, env: Rc<env::Environment>) -> MalResult  {
 fn eval_ast(ast:  MalValue, env: Rc<env::Environment>) -> Result< MalValue, MalError> {
     match ast {
         MalValue::MalSymbol(_) => {
-            if let Ok(func) = env.get(ast) {
+            if let Ok(func) = env.get(ast.clone()) {
                 return Ok(func);
             }
-            return Err(types::MalError::EvalError(format!("Symbol {} not defined", "")));
+            return Err(types::MalError::EvalError(format!("Symbol '{}' not found", ast.inspect(false))));
         },
         MalValue::MalList(list) => {
             let mut result = Vec::<types::MalValue>::new();

@@ -48,6 +48,7 @@ impl MalValue {
     pub fn as_vec(&self) -> Option<Vec<MalValue>> {
         return match self {
             MalValue::MalList(list) => Some(list.clone()),
+            MalValue::MalVector(list) => Some(list.clone()),
             _ => None
         };
     }

@@ -48,7 +48,7 @@ impl Environment {
         return match key {
             MalValue::MalSymbol(ref symbol) => match self.find(symbol) {
                 Some(e) => Ok(e.data.borrow().get(symbol).unwrap().clone()),
-                _ => Err(MalError::EvalError(String::from("Notfound")))
+                _ => Err(MalError::EvalError(String::from("Not found")))
             },
             _ => Err(MalError::EvalError(String::from("Not symbol key")))
         }
