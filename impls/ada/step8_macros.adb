@@ -50,7 +50,10 @@ procedure Step8_Macros is
       Fn_Body := Car (Deref_List (Cdr (Args)).all);
       Res := Eval (Fn_Body, Env);
       Lambda_P := Deref_Lambda (Res);
-      Lambda_P.Set_Is_Macro (True);
+      Res := New_Lambda_Mal_Type (Params => Lambda_P.all.Get_Params,
+                                  Expr   => Lambda_P.all.Get_Expr,
+                                  Env    => Lambda_P.all.Get_Env);
+      Deref_Lambda (Res).Set_Is_Macro (True);
       Envs.Set (Env, Deref_Sym (Name).Get_Sym, Res);
       return Res;
    end Def_Macro;
