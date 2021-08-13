@@ -65,7 +65,6 @@ procedure StepA_Mal is
    begin
 
       Res := Ast;
-      E := Env;
 
       loop
 
@@ -77,7 +76,7 @@ procedure StepA_Mal is
 
          -- Get the macro in the list from the env
          -- or return null if not applicable.
-         LP := Get_Macro (Res, E);
+         LP := Get_Macro (Res, Env);
 
       exit when LP = null or else not LP.Get_Is_Macro;
 
@@ -85,9 +84,10 @@ procedure StepA_Mal is
 	     Fn_List : Mal_Handle := Cdr (LMT);
 	     Params : List_Mal_Type;
 	  begin
-	     E := Envs.New_Env (E);
+	     E := Envs.New_Env (LP.Get_Env);
 
 	     Params := Deref_List (LP.Get_Params).all;
+
 	     if Envs.Bind (E, Params, Deref_List (Fn_List).all) then
 
 	        Res := Eval (LP.Get_Expr, E);
