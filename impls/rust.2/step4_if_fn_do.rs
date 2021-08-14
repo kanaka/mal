@@ -249,6 +249,8 @@ fn main() {
         env.set(MalValue::MalSymbol(symbol.to_string()), func);
     }
 
+    rep("(def! not (fn* (a) (if a false true)))".to_string(), env.clone());
+
     //env.set(MalValue::MalSymbol(String::from("+")), MalValue::MalFunction(|args| add(args), Rc::new(MalValue::MalNil)));
     //env.set(MalValue::MalSymbol(String::from("-")), MalValue::MalFunction(|args| subtract(args), Rc::new(MalValue::MalNil)));
     //env.set(MalValue::MalSymbol(String::from("/")), MalValue::MalFunction(|args| divide(args), Rc::new(MalValue::MalNil)));

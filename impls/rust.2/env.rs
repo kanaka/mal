@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use super::types::{MalValue, MalResult, MalError};
+use super::types::{MalValue, MalResult, MalError, list, list_from_slice};
 use std::rc::Rc;
 use std::cell::RefCell;
 
@@ -19,9 +19,20 @@ impl Environment {
 
         match (binds, exprs) {
             (Some(b), Some(e)) => {
-               for (bind, expr) in b.iter().zip(e.iter()) {
-                   env.set(bind.clone(), expr.clone());
-               }
+                for i in 0..b.len() {
+                    let bind = b[i].clone();
+
+                    if e.len() > i {
+                        if let MalValue::MalSymbol(s) = bind {
+                            if s == "&" {
+                                env.set(b[i+1].clone(), list_from_slice(&e[i..e.len()]));
+                                break;
+                            }
+                        }
+                    } else {
+                        env.set(b[i].clone(), MalValue::MalNil); 
+                    }
+                }
             },
             _ => {}
         };

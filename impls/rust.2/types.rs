@@ -9,6 +9,20 @@ pub fn func(f: fn(Vec<MalValue>) -> MalResult) -> MalValue {
     MalValue::MalFunction(f, Rc::new(MalValue::MalNil))
 }
 
+pub fn list(vals:Vec<MalValue>) -> MalValue {
+    MalValue::MalList(vals)
+}
+
+pub fn list_from_slice(vals:&[MalValue]) -> MalValue {
+    let mut result = Vec::<MalValue>::new();
+
+    for val in vals {
+        result.push(val.clone());
+    }
+
+    MalValue::MalList(result)
+}
+
 #[derive(Debug, Clone)]
 pub enum MalValue {
     MalSymbol(String),
@@ -75,7 +89,7 @@ impl std::hash::Hash for MalValue {
 impl PartialEq for MalValue {
     fn eq(&self, other: &MalValue) -> bool {
         match (self, other) {
-            (MalValue::MalNil, MalNil) => true,
+            (MalValue::MalNil, MalValue::MalNil) => true,
             (MalValue::MalBool(ref a), MalValue::MalBool(ref b)) => a == b,
             (MalValue::MalInteger(ref a), MalValue::MalInteger(ref b)) => a == b,
             (MalValue::MalString(ref a), MalValue::MalString(ref b)) => a == b,
@@ -118,6 +132,9 @@ impl MalValue {
                     return string.to_string();
                 }
                 if print_readably {
+                    if string.len() == 0 {
+                        return format!("\"{}\"", string);
+                    }
                     return format!("\"{}\"", 
                             string[1..string.len() - 1]
                                  .replace('\\', "\\\\")

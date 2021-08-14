@@ -67,13 +67,15 @@ fn print(args:Vec<MalValue>) -> MalResult {
     if args.is_empty() {
         Ok(MalValue::MalNil)
     } else {
-        Ok(MalValue::MalString(pr_str(args.first().unwrap().clone(), true)))
+        let out = pr_str(args.first().unwrap().clone(), true);
+        print!("{}", out);
+        Ok(MalValue::MalString(out))
     }
 }
 
 fn is_empty(arg:MalValue) -> MalResult {
-    match arg {
-        MalValue::MalList(list) => Ok(bool(list.is_empty())),
+    match arg.as_vec() {
+        Some(vec) => Ok(bool(vec.is_empty())),
         _ => Ok(MalValue::MalNil)
     }
 }
@@ -81,10 +83,23 @@ fn is_empty(arg:MalValue) -> MalResult {
 fn count(arg:MalValue) -> MalResult {
     match arg.as_vec() {
         Some(vec) => Ok(MalValue::MalInteger(vec.len().try_into().unwrap())),
-        _ => Ok(MalValue::MalNil)
+        _ => Ok(MalValue::MalInteger(0))
     }
 }
 
+fn print_vals(arg:Vec<MalValue>, print_readably:bool, seperator:String, output:bool) -> MalResult {
+    let r = arg.iter().fold(String::new(), |mut res, v| {
+        res += &pr_str(v.clone(), print_readably).to_string();
+        res += &seperator.to_string();
+        res
+    });
+
+    if output {
+        println!("{}", r);
+    }
+
+    Ok(MalValue::MalString(r.trim_end().to_string()))
+}
 
 
 pub fn ns() -> Vec<(&'static str, MalValue)> {
@@ -103,5 +118,9 @@ pub fn ns() -> Vec<(&'static str, MalValue)> {
         ("<=", func(fn_ints!(MalBool, |a,b| {a <= b}))),
         (">", func(fn_ints!(MalBool, |a,b| {a > b}))),
         (">=", func(fn_ints!(MalBool, |a,b| {a >= b}))),
+        ("pr-str", func(|v| print_vals(v, true, " ".to_string(), false))),
+        ("str", func(|v| print_vals(v, false, "".to_string(), false))),
+        ("prn", func(|v| print_vals(v, true, " ".to_string(), true))),
+        ("println", func(|v| print_vals(v, false, " ".to_string(), true)))
     ]
 }
