@@ -7,6 +7,7 @@ mod reader;
 mod types;
 mod printer;
 mod env;
+mod core;
 
 use types::{MalValue, MalError, MalResult};
 use std::rc::Rc;
@@ -24,38 +25,6 @@ fn to_int(value: MalValue) -> Result<i32, MalError> {
             return Err(types::MalError::EvalError(String::from("value is not an integer")));
         }
     }
-}
-
-fn add(args: Vec<types::MalValue>) -> MalValue {
-    assert_eq!(2, args.len());
-    let args1 = to_int(args[0].clone()).unwrap();
-    let args2 = to_int(args[1].clone()).unwrap();
-
-    return MalValue::MalInteger(args1 + args2);
-}
-
-fn subtract(args: Vec<types::MalValue>) -> MalValue {
-    assert_eq!(2, args.len());
-    let args1 = to_int(args[0].clone()).unwrap();
-    let args2 = to_int(args[1].clone()).unwrap();
-
-    return MalValue::MalInteger(args1 - args2);
-}
-
-fn multiply(args: Vec<types::MalValue>) -> MalValue {
-    assert_eq!(2, args.len());
-    let args1 = to_int(args[0].clone()).unwrap();
-    let args2 = to_int(args[1].clone()).unwrap();
-
-    return MalValue::MalInteger(args1 * args2);
-}
-
-fn divide(args: Vec<types::MalValue>) -> MalValue {
-    assert_eq!(2, args.len());
-    let args1 = to_int(args[0].clone()).unwrap();
-    let args2 = to_int(args[1].clone()).unwrap();
-
-    return MalValue::MalInteger(args1 / args2);
 }
 
 pub fn exec_fn(func:MalValue, args:Vec<MalValue>, env: Rc<env::Environment>) -> MalResult{
@@ -275,10 +244,15 @@ fn main() {
     }
 
     let env = Rc::new(env::Environment::new(None, None, None));
-    env.set(MalValue::MalSymbol(String::from("+")), MalValue::MalFunction(|args| add(args), Rc::new(MalValue::MalNil)));
-    env.set(MalValue::MalSymbol(String::from("-")), MalValue::MalFunction(|args| subtract(args), Rc::new(MalValue::MalNil)));
-    env.set(MalValue::MalSymbol(String::from("/")), MalValue::MalFunction(|args| divide(args), Rc::new(MalValue::MalNil)));
-    env.set(MalValue::MalSymbol(String::from("*")), MalValue::MalFunction(|args| multiply(args), Rc::new(MalValue::MalNil)));
+
+    for (symbol, func) in crate::core::ns() {
+        env.set(MalValue::MalSymbol(symbol.to_string()), func);
+    }
+
+    //env.set(MalValue::MalSymbol(String::from("+")), MalValue::MalFunction(|args| add(args), Rc::new(MalValue::MalNil)));
+    //env.set(MalValue::MalSymbol(String::from("-")), MalValue::MalFunction(|args| subtract(args), Rc::new(MalValue::MalNil)));
+    //env.set(MalValue::MalSymbol(String::from("/")), MalValue::MalFunction(|args| divide(args), Rc::new(MalValue::MalNil)));
+    //env.set(MalValue::MalSymbol(String::from("*")), MalValue::MalFunction(|args| multiply(args), Rc::new(MalValue::MalNil)));
 
     loop {
         let readline = rl.readline("user> ");
