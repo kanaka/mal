@@ -1,4 +1,4 @@
-use super::types::{MalValue, MalError};
+use super::types::{MalValue, MalError, bool};
 
 pub struct Reader {
     position: usize,
@@ -299,9 +299,9 @@ impl Reader {
         if token == "nil" {
             return Ok(Some(MalValue::MalNil));
         } else if token == "false" {
-            return Ok(Some(MalValue::MalFalse));
+            return Ok(Some(bool(false)));
         } else if token == "true" {
-            return Ok(Some(MalValue::MalTrue));
+            return Ok(Some(bool(true)));
         } else if token.starts_with('"') {
             return Ok(Some(MalValue::MalString(token)));
         } else if token.starts_with(':') {

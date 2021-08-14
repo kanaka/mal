@@ -1,6 +1,14 @@
 use std::rc::Rc;
 use super::env::Environment;
 
+pub fn bool(value:bool) -> MalValue {
+    MalValue::MalBool(value)
+}
+
+pub fn func(f: fn(Vec<MalValue>) -> MalResult) -> MalValue {
+    MalValue::MalFunction(f, Rc::new(MalValue::MalNil))
+}
+
 #[derive(Debug, Clone)]
 pub enum MalValue {
     MalSymbol(String),
@@ -10,7 +18,7 @@ pub enum MalValue {
     MalVector(Vec<MalValue>),
     MalKeyword(String),
     MalHashmap(Vec<MalValue>, Vec<MalValue>),
-    MalFunction(fn(Vec<MalValue>) -> MalValue, Rc<MalValue>),
+    MalFunction(fn(Vec<MalValue>) -> MalResult, Rc<MalValue>),
     MalFunc{
         eval: fn(ast: MalValue, env: Rc<Environment>) -> MalResult,
         ast: Rc<MalValue>,
@@ -18,8 +26,7 @@ pub enum MalValue {
         params: Rc<MalValue>,
     },
     MalNil,
-    MalTrue,
-    MalFalse
+    MalBool(bool)
 }
 
 pub type MalResult = Result<MalValue, MalError>;
@@ -52,11 +59,8 @@ impl std::hash::Hash for MalValue {
             MalValue::MalFunction(symbol, _) => {
                 symbol.hash(state);
             },
-            MalValue::MalFalse => {
-                false.hash(state);
-            },
-            MalValue::MalTrue => {
-                true.hash(state);
+            MalValue::MalBool(b) => {
+                b.hash(state);
             },
             MalValue::MalNil => {
                 "nil".hash(state);
@@ -64,6 +68,25 @@ impl std::hash::Hash for MalValue {
             MalValue::MalFunc{ast, ..} => {
                 ast.hash(state);
             }
+        }
+    }
+}
+
+impl PartialEq for MalValue {
+    fn eq(&self, other: &MalValue) -> bool {
+        match (self, other) {
+            (MalValue::MalNil, MalNil) => true,
+            (MalValue::MalBool(ref a), MalValue::MalBool(ref b)) => a == b,
+            (MalValue::MalInteger(ref a), MalValue::MalInteger(ref b)) => a == b,
+            (MalValue::MalString(ref a), MalValue::MalString(ref b)) => a == b,
+            (MalValue::MalSymbol(ref a), MalValue::MalSymbol(ref b)) => a == b,
+            (MalValue::MalList(ref a), MalValue::MalList(ref b))
+            | (MalValue::MalVector(ref a), MalValue::MalVector(ref b))
+            | (MalValue::MalList(ref a), MalValue::MalVector(ref b))
+            | (MalValue::MalVector(ref a), MalValue::MalList(ref b)) => a == b,
+            (MalValue::MalHashmap(ref a1, ref a2), MalValue::MalHashmap(ref b1, b2)) => a1 == a2 && b1 == b2,
+            (MalValue::MalFunc { .. }, MalValue::MalFunc { .. }) => false,
+            _ => false,
         }
     }
 }
@@ -79,7 +102,8 @@ impl MalValue {
 
     pub fn is_truthy(&self) -> bool {
         return match self {
-            MalValue::MalFalse | MalValue::MalNil => false,
+            MalValue::MalBool(b) => *b,
+            MalValue::MalNil => false,
             _ => true
         };
     }
@@ -160,9 +184,8 @@ impl MalValue {
             },
             MalValue::MalFunc{..} => {
                 return "#<function>".to_string();
-            }
-            MalValue::MalFalse => { return "false".to_string()},
-            MalValue::MalTrue => { return "true".to_string()},
+            },
+            MalValue::MalBool(b) => { return b.to_string()},
             MalValue::MalNil => { return "nil".to_string()},
         }
     }

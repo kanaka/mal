@@ -29,7 +29,7 @@ fn to_int(value: MalValue) -> Result<i32, MalError> {
 
 pub fn exec_fn(func:MalValue, args:Vec<MalValue>, env: Rc<env::Environment>) -> MalResult{
     match func {
-        MalValue::MalFunction(f, _) => Ok(f(args)),
+        MalValue::MalFunction(f, _) => f(args),
         MalValue::MalFunc {
             eval,
             ref ast,
