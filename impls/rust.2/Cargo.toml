@@ -6,21 +6,21 @@ authors = ["DogMillionaire"]
 [dependencies]
 rustyline = "8.2.0"
 
-#[[bin]]
-#name = "step0_repl"
-#path = "step0_repl.rs"
-#
-#[[bin]]
-#name = "step1_read_print"
-#path = "step1_read_print.rs"
-#
-#[[bin]]
-#name = "step2_eval"
-#path = "step2_eval.rs"
-#
-#[[bin]]
-#name = "step3_env"
-#path = "step3_env.rs"
+[[bin]]
+name = "step0_repl"
+path = "step0_repl.rs"
+
+[[bin]]
+name = "step1_read_print"
+path = "step1_read_print.rs"
+
+[[bin]]
+name = "step2_eval"
+path = "step2_eval.rs"
+
+[[bin]]
+name = "step3_env"
+path = "step3_env.rs"
 
 [[bin]]
 name = "step4_if_fn_do"

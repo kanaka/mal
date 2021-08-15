@@ -3,13 +3,13 @@ extern crate rustyline;
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
 
+mod env;
+mod printer;
 mod reader;
 mod types;
-mod printer;
-mod env;
 
-use types::{MalValue, MalError, MalResult};
 use std::rc::Rc;
+use types::{MalError, MalResult, MalValue};
 
 fn read(input: String) -> Result<Option<MalValue>, MalError> {
     return reader::Reader::read_str(input.to_string());
@@ -21,41 +21,43 @@ fn to_int(value: MalValue) -> Result<i32, MalError> {
             return Ok(int);
         }
         _ => {
-            return Err(types::MalError::EvalError(String::from("value is not an integer")));
+            return Err(types::MalError::EvalError(String::from(
+                "value is not an integer",
+            )));
         }
     }
 }
 
-fn add(args: Vec<types::MalValue>) -> MalValue {
+fn add(args: Vec<types::MalValue>) -> MalResult {
     assert_eq!(2, args.len());
     let args1 = to_int(args[0].clone()).unwrap();
     let args2 = to_int(args[1].clone()).unwrap();
 
-    return MalValue::MalInteger(args1 + args2);
+    return Ok(MalValue::MalInteger(args1 + args2));
 }
 
-fn subtract(args: Vec<types::MalValue>) -> MalValue {
+fn subtract(args: Vec<types::MalValue>) -> MalResult {
     assert_eq!(2, args.len());
     let args1 = to_int(args[0].clone()).unwrap();
     let args2 = to_int(args[1].clone()).unwrap();
 
-    return MalValue::MalInteger(args1 - args2);
+    return Ok(MalValue::MalInteger(args1 - args2));
 }
 
-fn multiply(args: Vec<types::MalValue>) -> MalValue {
+fn multiply(args: Vec<types::MalValue>) -> MalResult {
     assert_eq!(2, args.len());
     let args1 = to_int(args[0].clone()).unwrap();
     let args2 = to_int(args[1].clone()).unwrap();
 
-    return MalValue::MalInteger(args1 * args2);
+    return Ok(MalValue::MalInteger(args1 * args2));
 }
 
-fn divide(args: Vec<types::MalValue>) -> MalValue {
+fn divide(args: Vec<types::MalValue>) -> MalResult {
     assert_eq!(2, args.len());
     let args1 = to_int(args[0].clone()).unwrap();
     let args2 = to_int(args[1].clone()).unwrap();
 
-    return MalValue::MalInteger(args1 / args2);
+    return Ok(MalValue::MalInteger(args1 / args2));
 }
 
 fn apply(ast: MalValue, env: Rc<env::Environment>) -> MalResult {
@@ -68,17 +70,21 @@ fn apply(ast: MalValue, env: Rc<env::Environment>) -> MalResult {
                     let args = list.clone().split_off(1);
 
                     if let MalValue::MalFunction(f, _) = func {
-                        return Ok(f(args));
+                        return f(args);
                     }
-                    return Err(MalError::EvalError(String::from("apply called on non-list")));
-                },
+                    return Err(MalError::EvalError(String::from(
+                        "apply called on non-list",
+                    )));
+                }
                 _ => {
                     todo!("Handle eval_ast returning something that is not a list!");
                 }
             }
-        },
+        }
         _ => {
-            return Err(MalError::EvalError(String::from("apply called on non-list")));
+            return Err(MalError::EvalError(String::from(
+                "apply called on non-list",
+            )));
         }
     }
 }
@@ -96,17 +102,18 @@ fn run_let(env: Rc<env::Environment>, bindings: MalValue, e: MalValue) -> MalRes
             } else {
                 new_env.set(
                     key.clone(),
-                    eval(binding_list.get(i).unwrap().clone(), new_env.clone())?);
+                    eval(binding_list.get(i).unwrap().clone(), new_env.clone())?,
+                );
             }
         }
 
         return eval(e, new_env);
     } else {
-        return Err(MalError::EvalError(String::from("Missing bindings!")))
+        return Err(MalError::EvalError(String::from("Missing bindings!")));
     }
 }
 
-fn eval(ast:  MalValue, env: Rc<env::Environment>) -> MalResult  {
+fn eval(ast: MalValue, env: Rc<env::Environment>) -> MalResult {
     match ast.clone() {
         MalValue::MalList(list) => {
             if list.len() > 0 {
@@ -133,21 +140,24 @@ fn eval(ast:  MalValue, env: Rc<env::Environment>) -> MalResult  {
                 }
             }
             return Ok(ast);
-        },
+        }
         _ => {
             return eval_ast(ast, env);
         }
     }
 }
 
-fn eval_ast(ast:  MalValue, env: Rc<env::Environment>) -> Result< MalValue, MalError> {
+fn eval_ast(ast: MalValue, env: Rc<env::Environment>) -> Result<MalValue, MalError> {
     match ast {
         MalValue::MalSymbol(_) => {
             if let Ok(func) = env.get(ast.clone()) {
                 return Ok(func);
             }
-            return Err(types::MalError::EvalError(format!("Symbol '{}' not found", ast.inspect(false))));
-        },
+            return Err(types::MalError::EvalError(format!(
+                "Symbol '{}' not found",
+                ast.inspect(false)
+            )));
+        }
         MalValue::MalList(list) => {
             let mut result = Vec::<types::MalValue>::new();
 
@@ -156,7 +166,7 @@ fn eval_ast(ast:  MalValue, env: Rc<env::Environment>) -> Result< MalValue, MalE
             }
 
             return Ok(types::MalValue::MalList(result));
-        },
+        }
         MalValue::MalVector(vector) => {
             let mut result = Vec::<types::MalValue>::new();
 
@@ -165,7 +175,7 @@ fn eval_ast(ast:  MalValue, env: Rc<env::Environment>) -> Result< MalValue, MalE
             }
 
             return Ok(types::MalValue::MalVector(result));
-        },
+        }
         MalValue::MalHashmap(keys, values) => {
             let mut result = Vec::<types::MalValue>::new();
 
@@ -181,7 +191,7 @@ fn eval_ast(ast:  MalValue, env: Rc<env::Environment>) -> Result< MalValue, MalE
     }
 }
 
-fn print(input:  MalValue) -> String {
+fn print(input: MalValue) -> String {
     return crate::printer::pr_str(input, true);
 }
 
@@ -191,24 +201,19 @@ fn rep(input: String, env: Rc<env::Environment>) -> String {
         Err(e) => {
             return format!("Error! {:?}", e);
         }
-        Ok(v) => {
-            match v {
-                None => return String::default(),
-                Some(a) => {
-                    match eval(a, env) {
-                        Ok(result) => {
-                            return print(result);
-                        },
-                        Err(e) => {
-                            return format!("Error! {:?}", e);
-                        }
-                    }
+        Ok(v) => match v {
+            None => return String::default(),
+            Some(a) => match eval(a, env) {
+                Ok(result) => {
+                    return print(result);
                 }
-            }
-        }
-    }    
+                Err(e) => {
+                    return format!("Error! {:?}", e);
+                }
+            },
+        },
+    }
 }
-
 
 fn main() {
     let mut rl = Editor::<()>::new();
@@ -217,10 +222,22 @@ fn main() {
     }
 
     let mut env = Rc::new(env::Environment::new(None, None, None));
-    env.set(MalValue::MalSymbol(String::from("+")), MalValue::MalFunction(|args| add(args), Rc::new(MalValue::MalNil)));
-    env.set(MalValue::MalSymbol(String::from("-")), MalValue::MalFunction(|args| subtract(args), Rc::new(MalValue::MalNil)));
-    env.set(MalValue::MalSymbol(String::from("/")), MalValue::MalFunction(|args| divide(args), Rc::new(MalValue::MalNil)));
-    env.set(MalValue::MalSymbol(String::from("*")), MalValue::MalFunction(|args| multiply(args), Rc::new(MalValue::MalNil)));
+    env.set(
+        MalValue::MalSymbol(String::from("+")),
+        MalValue::MalFunction(|args| add(args), Rc::new(MalValue::MalNil)),
+    );
+    env.set(
+        MalValue::MalSymbol(String::from("-")),
+        MalValue::MalFunction(|args| subtract(args), Rc::new(MalValue::MalNil)),
+    );
+    env.set(
+        MalValue::MalSymbol(String::from("/")),
+        MalValue::MalFunction(|args| divide(args), Rc::new(MalValue::MalNil)),
+    );
+    env.set(
+        MalValue::MalSymbol(String::from("*")),
+        MalValue::MalFunction(|args| multiply(args), Rc::new(MalValue::MalNil)),
+    );
 
     loop {
         let readline = rl.readline("user> ");
@@ -230,16 +247,12 @@ fn main() {
                 let result = rep(line.trim_end().to_string(), env.clone());
                 print!("{}", result);
                 println!();
-            },
-            Err(ReadlineError::Interrupted) => {
-                break
-            },
-            Err(ReadlineError::Eof) => {
-                break
-            },
+            }
+            Err(ReadlineError::Interrupted) => break,
+            Err(ReadlineError::Eof) => break,
             Err(err) => {
                 println!("Error: {:?}", err);
-                break
+                break;
             }
         }
     }

@@ -3,10 +3,10 @@ extern crate rustyline;
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
 
+mod env;
+mod printer;
 mod reader;
 mod types;
-mod printer;
-mod env;
 
 fn read(input: String) -> Result<Option<crate::types::MalValue>, crate::types::MalError> {
     return reader::Reader::read_str(input.to_string());
@@ -26,18 +26,15 @@ fn rep(input: String) -> String {
         Err(e) => {
             return format!("Error! {:?}", e);
         }
-        Ok(v) => {
-            match v {
-                None => return String::default(),
-                Some(a) => {
-                    let result = eval(a);
-                    return print(result);
-                }
+        Ok(v) => match v {
+            None => return String::default(),
+            Some(a) => {
+                let result = eval(a);
+                return print(result);
             }
-        }
-    }    
+        },
+    }
 }
-
 
 fn main() {
     let mut rl = Editor::<()>::new();
@@ -53,16 +50,12 @@ fn main() {
                 let result = rep(line.trim_end().to_string());
                 print!("{}", result);
                 println!();
-            },
-            Err(ReadlineError::Interrupted) => {
-                break
-            },
-            Err(ReadlineError::Eof) => {
-                break
-            },
+            }
+            Err(ReadlineError::Interrupted) => break,
+            Err(ReadlineError::Eof) => break,
             Err(err) => {
                 println!("Error: {:?}", err);
-                break
+                break;
             }
         }
     }

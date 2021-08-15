@@ -3,14 +3,14 @@ extern crate rustyline;
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
 
+mod core;
+mod env;
+mod printer;
 mod reader;
 mod types;
-mod printer;
-mod env;
-mod core;
 
-use types::{MalValue, MalError, MalResult};
 use std::rc::Rc;
+use types::{MalError, MalResult, MalValue};
 
 fn read(input: String) -> Result<Option<MalValue>, MalError> {
     return reader::Reader::read_str(input.to_string());
@@ -22,28 +22,30 @@ fn to_int(value: MalValue) -> Result<i32, MalError> {
             return Ok(int);
         }
         _ => {
-            return Err(types::MalError::EvalError(String::from("value is not an integer")));
+            return Err(types::MalError::EvalError(String::from(
+                "value is not an integer",
+            )));
         }
     }
 }
 
-pub fn exec_fn(func:MalValue, args:Vec<MalValue>, env: Rc<env::Environment>) -> MalResult{
+pub fn exec_fn(func: MalValue, args: Vec<MalValue>, env: Rc<env::Environment>) -> MalResult {
     match func {
         MalValue::MalFunction(f, _) => f(args),
         MalValue::MalFunc {
             eval,
             ref ast,
-            ref env, 
+            ref env,
             ref params,
             ..
         } => {
             let a = &**ast;
             let fn_env = env::Environment::new(Some(env.clone()), params.as_vec(), Some(args));
             Ok(eval(a.clone(), Rc::new(fn_env))?)
-        },
-        _ => {
-            Err(MalError::EvalError("Attempt to call non-function".to_string()))
         }
+        _ => Err(MalError::EvalError(
+            "Attempt to call non-function".to_string(),
+        )),
     }
 }
 
@@ -57,14 +59,16 @@ fn apply(ast: MalValue, env: Rc<env::Environment>) -> MalResult {
                     let args = list.clone().split_off(1);
 
                     return exec_fn(func.clone(), args, env.clone());
-                },
+                }
                 _ => {
                     todo!("Handle eval_ast returning something that is not a list!");
                 }
             }
-        },
+        }
         _ => {
-            return Err(MalError::EvalError(String::from("apply called on non-list")));
+            return Err(MalError::EvalError(String::from(
+                "apply called on non-list",
+            )));
         }
     }
 }
@@ -82,18 +86,18 @@ fn run_let(env: Rc<env::Environment>, bindings: MalValue, e: MalValue) -> MalRes
             } else {
                 new_env.set(
                     key.clone(),
-                    eval(binding_list.get(i).unwrap().clone(), new_env.clone())?);
+                    eval(binding_list.get(i).unwrap().clone(), new_env.clone())?,
+                );
             }
         }
 
         return eval(e, new_env);
     } else {
-        return Err(MalError::EvalError(String::from("Missing bindings!")))
+        return Err(MalError::EvalError(String::from("Missing bindings!")));
     }
 }
 
 fn handle_fn(ast: Vec<MalValue>, env: Rc<env::Environment>) -> MalResult {
-
     // let fn_closure = |env: Rc<env::Environment>, binds: Vec<MalValue>, exprs: Vec<MalValue>| {
     //     let fn_env = Rc::new(
     //         env::Environment::new(
@@ -106,12 +110,12 @@ fn handle_fn(ast: Vec<MalValue>, env: Rc<env::Environment>) -> MalResult {
         eval: eval,
         ast: Rc::new(ast[2].clone()),
         env: env,
-        params: Rc::new(ast[1].clone())
+        params: Rc::new(ast[1].clone()),
     };
     return Ok(func);
 }
 
-fn eval(ast:  MalValue, env: Rc<env::Environment>) -> MalResult  {
+fn eval(ast: MalValue, env: Rc<env::Environment>) -> MalResult {
     match ast.clone() {
         MalValue::MalList(list) => {
             if list.len() > 0 {
@@ -119,15 +123,13 @@ fn eval(ast:  MalValue, env: Rc<env::Environment>) -> MalResult  {
                     MalValue::MalSymbol(ref s) => {
                         if s == "fn*" {
                             return handle_fn(list, env);
-                        }
-                        else if s == "do" {
-                            for token in &list[1..list.len() -1] {
+                        } else if s == "do" {
+                            for token in &list[1..list.len() - 1] {
                                 eval(token.clone(), env.clone())?;
                             }
 
                             return eval(list.last().unwrap().clone(), env);
-                        }
-                        else if s == "if" {
+                        } else if s == "if" {
                             assert!(list.len() >= 3);
                             let test = list[1].clone();
                             let true_expr = list[2].clone();
@@ -138,8 +140,7 @@ fn eval(ast:  MalValue, env: Rc<env::Environment>) -> MalResult  {
                                 return eval(list[3].clone(), env.clone());
                             }
                             return Ok(MalValue::MalNil);
-                        }
-                        else if s == "def!" {
+                        } else if s == "def!" {
                             assert_eq!(3, list.len());
                             let key = list[1].clone();
                             let value = eval(list[2].clone(), env.clone())?;
@@ -160,21 +161,24 @@ fn eval(ast:  MalValue, env: Rc<env::Environment>) -> MalResult  {
                 }
             }
             return Ok(ast);
-        },
+        }
         _ => {
             return eval_ast(ast, env);
         }
     }
 }
 
-fn eval_ast(ast:  MalValue, env: Rc<env::Environment>) -> Result< MalValue, MalError> {
+fn eval_ast(ast: MalValue, env: Rc<env::Environment>) -> Result<MalValue, MalError> {
     match ast {
         MalValue::MalSymbol(_) => {
             if let Ok(func) = env.get(ast.clone()) {
                 return Ok(func);
             }
-            return Err(types::MalError::EvalError(format!("Symbol '{}' not found", ast.inspect(false))));
-        },
+            return Err(types::MalError::EvalError(format!(
+                "Symbol '{}' not found",
+                ast.inspect(false)
+            )));
+        }
         MalValue::MalList(list) => {
             let mut result = Vec::<types::MalValue>::new();
 
@@ -183,7 +187,7 @@ fn eval_ast(ast:  MalValue, env: Rc<env::Environment>) -> Result< MalValue, MalE
             }
 
             return Ok(types::MalValue::MalList(result));
-        },
+        }
         MalValue::MalVector(vector) => {
             let mut result = Vec::<types::MalValue>::new();
 
@@ -192,7 +196,7 @@ fn eval_ast(ast:  MalValue, env: Rc<env::Environment>) -> Result< MalValue, MalE
             }
 
             return Ok(types::MalValue::MalVector(result));
-        },
+        }
         MalValue::MalHashmap(keys, values) => {
             let mut result = Vec::<types::MalValue>::new();
 
@@ -208,7 +212,7 @@ fn eval_ast(ast:  MalValue, env: Rc<env::Environment>) -> Result< MalValue, MalE
     }
 }
 
-fn print(input:  MalValue) -> String {
+fn print(input: MalValue) -> String {
     return crate::printer::pr_str(input, true);
 }
 
@@ -218,24 +222,19 @@ fn rep(input: String, env: Rc<env::Environment>) -> String {
         Err(e) => {
             return format!("Error! {:?}", e);
         }
-        Ok(v) => {
-            match v {
-                None => return String::default(),
-                Some(a) => {
-                    match eval(a, env) {
-                        Ok(result) => {
-                            return print(result);
-                        },
-                        Err(e) => {
-                            return format!("Error! {:?}", e);
-                        }
-                    }
+        Ok(v) => match v {
+            None => return String::default(),
+            Some(a) => match eval(a, env) {
+                Ok(result) => {
+                    return print(result);
                 }
-            }
-        }
-    }    
+                Err(e) => {
+                    return format!("Error! {:?}", e);
+                }
+            },
+        },
+    }
 }
-
 
 fn main() {
     let mut rl = Editor::<()>::new();
@@ -249,7 +248,10 @@ fn main() {
         env.set(MalValue::MalSymbol(symbol.to_string()), func);
     }
 
-    rep("(def! not (fn* (a) (if a false true)))".to_string(), env.clone());
+    rep(
+        "(def! not (fn* (a) (if a false true)))".to_string(),
+        env.clone(),
+    );
 
     //env.set(MalValue::MalSymbol(String::from("+")), MalValue::MalFunction(|args| add(args), Rc::new(MalValue::MalNil)));
     //env.set(MalValue::MalSymbol(String::from("-")), MalValue::MalFunction(|args| subtract(args), Rc::new(MalValue::MalNil)));
@@ -264,16 +266,12 @@ fn main() {
                 let result = rep(line.trim_end().to_string(), env.clone());
                 print!("{}", result);
                 println!();
-            },
-            Err(ReadlineError::Interrupted) => {
-                break
-            },
-            Err(ReadlineError::Eof) => {
-                break
-            },
+            }
+            Err(ReadlineError::Interrupted) => break,
+            Err(ReadlineError::Eof) => break,
             Err(err) => {
                 println!("Error: {:?}", err);
-                break
+                break;
             }
         }
     }
