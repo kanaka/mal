@@ -25,19 +25,22 @@ impl Environment {
                 for i in 0..b.len() {
                     let bind = b[i].clone();
 
-                    if (e.len() > i) {
-                        let expr = e[i].clone();
-
-                        if let MalValue::MalSymbol(s) = bind.clone() {
-                            if s == "&" {
+                    if let MalValue::MalSymbol(s) = bind.clone() {
+                        if s == "&" {
+                            
+                            if e.len() > i {
+                                let expr = e[i].clone();
                                 env.set(b[i + 1].clone(), list_from_slice(&e[i..e.len()]));
-                                break;
+                                break;   
                             } else {
-                                env.set(bind, expr);
+                                env.set(b[i + 1].clone(), list(Vec::<MalValue>::new()));
                             }
-                        } else {
-                            panic!("Non-symbol key");
+
+                        } else if e.len() > i {
+                            env.set(bind, e[i].clone());
                         }
+                    } else {
+                        panic!("Non-symbol key");
                     }
                 }
             }
