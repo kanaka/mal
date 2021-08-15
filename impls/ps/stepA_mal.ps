@@ -160,11 +160,10 @@ end } def
             env
             /loop? true def % loop
         }{ /defmacro! a0 eq { %if defmacro!
-            /a1 ast 1 _nth def
-            /a2 ast 2 _nth def
-            a2 env EVAL
-            dup /macro? true put % set macro flag
-            env exch a1 exch env_set % def! it
+            env
+            ast 1 _nth
+            ast 2 _nth    env EVAL    _macro
+            env_set
         }{ /macroexpand a0 eq { %if defmacro!
             ast 1 _nth env macroexpand
         }{ /ps* a0 eq { %if ps*

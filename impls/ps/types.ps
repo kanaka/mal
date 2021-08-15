@@ -291,6 +291,16 @@ end } def
     put               % stack: mal_fn
 } def
 
+% fn -> _defmacro -> macro
+/_macro {
+    dup /ast get exch
+    dup /env get exch
+    /params get
+    _mal_function
+    dup
+    /macro? true put 
+} def
+
 /_function? {
     dup type /dicttype eq {
         /_maltype_ get /function eq
