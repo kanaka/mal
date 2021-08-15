@@ -141,11 +141,13 @@ impl MalValue {
                     return format!(
                         "\"{}\"",
                         string
+                            .strip_prefix('"')
+                            .unwrap_or(string)
+                            .strip_suffix('"')
+                            .unwrap_or(string)
                             .replace('\\', "\\\\")
-                            .replace('"', "\\\"")
                             .replace('\n', "\\n")
-                            .replace('[', "\\[")
-                            .replace(']', "\\]")
+                            .replace('"', "\\\"")
                     );
                 }
                 return string.to_string();
