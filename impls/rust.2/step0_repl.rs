@@ -23,7 +23,6 @@ fn rep(input: String) -> String {
     return result;
 }
 
-
 fn main() {
     let mut rl = Editor::<()>::new();
     if rl.load_history(".mal-history").is_err() {
@@ -36,16 +35,12 @@ fn main() {
             Ok(line) => {
                 rl.add_history_entry(line.as_str());
                 println!("{}", rep(line));
-            },
-            Err(ReadlineError::Interrupted) => {
-                break
-            },
-            Err(ReadlineError::Eof) => {
-                break
-            },
+            }
+            Err(ReadlineError::Interrupted) => break,
+            Err(ReadlineError::Eof) => break,
             Err(err) => {
                 println!("Error: {:?}", err);
-                break
+                break;
             }
         }
     }

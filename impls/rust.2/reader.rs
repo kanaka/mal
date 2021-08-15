@@ -1,15 +1,15 @@
-use super::types::{MalValue, MalError};
+use super::types::{bool, MalError, MalValue};
 
 pub struct Reader {
     position: usize,
-    tokens: Vec<String>
+    tokens: Vec<String>,
 }
 
 impl Reader {
     fn new(tokens: Vec<String>) -> Reader {
-        return Reader{
+        return Reader {
             position: 0,
-            tokens
+            tokens,
         };
     }
 
@@ -26,9 +26,9 @@ impl Reader {
         return token;
     }
 
-    pub fn read_str(input: String) -> Result<Option<MalValue>, MalError>  {
+    pub fn read_str(input: String) -> Result<Option<MalValue>, MalError> {
         let tokens = Reader::tokenize(input)?;
-        
+
         let mut reader = Reader::new(tokens);
 
         let token = reader.read_form()?;
@@ -43,16 +43,16 @@ impl Reader {
             let char = chars.next();
 
             if char.is_none() {
-                break
+                break;
             }
 
             let c = char.unwrap();
-            
+
             let mut token = String::from(c);
 
             match c {
                 // Skip white-space
-                ' '|'\t'|',' => continue,
+                ' ' | '\t' | ',' => continue,
                 '~' => {
                     let next = chars.peek();
                     if next == Some(&'@') {
@@ -61,13 +61,10 @@ impl Reader {
                     } else {
                         tokens.push(token.to_string())
                     }
-                },
-                '['|']'|'{'|'}'|'('|')'|'\''|'`'|'^'|'@' => {
-                    tokens.push(token)
-                },
+                }
+                '[' | ']' | '{' | '}' | '(' | ')' | '\'' | '`' | '^' | '@' => tokens.push(token),
                 // Start of a string
                 '"' => {
-
                     let mut balanced_string = false;
                     let mut is_escape = false;
                     while let Some(next) = chars.peek() {
@@ -84,7 +81,7 @@ impl Reader {
                                     chars.next();
                                     break;
                                 }
-                            },
+                            }
                             '\\' => {
                                 if is_escape {
                                     is_escape = false;
@@ -93,13 +90,12 @@ impl Reader {
                                     is_escape = true;
                                 }
                                 //chars.next();
-                            },
+                            }
                             'n' => {
                                 if is_escape {
                                     token += "\n";
                                     is_escape = false;
-                                }
-                                else {
+                                } else {
                                     token += "n";
                                 }
                             }
@@ -115,12 +111,12 @@ impl Reader {
                     }
 
                     tokens.push(token);
-                },
+                }
                 ';' => {
                     // Comment, ignore the rest of the input
                     break;
-                },
-                _ =>  { 
+                }
+                _ => {
                     while let Some(next_char) = chars.next_if(|&c| Reader::is_symbol_char(c)) {
                         token += &next_char.to_string();
                     }
@@ -132,10 +128,27 @@ impl Reader {
     }
 
     fn is_symbol_char(c: char) -> bool {
-        return !matches!(c, '~'|'['|']'|'{'|'}'|'('|')'|'\''|'`'|'^'|'@'|'"'|';'|' '|','|'\t');
+        return !matches!(
+            c,
+            '~' | '['
+                | ']'
+                | '{'
+                | '}'
+                | '('
+                | ')'
+                | '\''
+                | '`'
+                | '^'
+                | '@'
+                | '"'
+                | ';'
+                | ' '
+                | ','
+                | '\t'
+        );
     }
 
-    pub fn read_form(&mut self) -> Result<Option<MalValue>, MalError>{
+    pub fn read_form(&mut self) -> Result<Option<MalValue>, MalError> {
         let token = self.peek();
         match token {
             None => return Ok(None),
@@ -199,7 +212,7 @@ impl Reader {
         }
     }
 
-    fn read_hashmap(&mut self) -> Result<Option<MalValue>, MalError>{
+    fn read_hashmap(&mut self) -> Result<Option<MalValue>, MalError> {
         let token = self.next(); // Consume the '{'
         assert_eq!(token, Some(String::from('{')));
 
@@ -221,15 +234,17 @@ impl Reader {
         }
 
         if keys.len() != values.len() {
-            return Err(MalError::ParseError(String::from("unbalanced keys and values")));
+            return Err(MalError::ParseError(String::from(
+                "unbalanced keys and values",
+            )));
         }
 
         assert_eq!(keys.len(), values.len());
 
-        return Ok(Some(MalValue::MalHashmap(keys, values)))
+        return Ok(Some(MalValue::MalHashmap(keys, values)));
     }
 
-    fn read_vector(&mut self) -> Result<Option<MalValue>, MalError>{
+    fn read_vector(&mut self) -> Result<Option<MalValue>, MalError> {
         let mut token = self.next(); // Consume the '['
         assert_eq!(token, Some(String::from('[')));
 
@@ -253,7 +268,7 @@ impl Reader {
                 }
             }
         }
-        
+
         if !balanced_list {
             return Err(MalError::ParseError(String::from("unbalanced '['")));
         }
@@ -261,7 +276,7 @@ impl Reader {
         return Ok(Some(MalValue::MalVector(tokens)));
     }
 
-    pub fn read_list(&mut self) -> Result<Option<MalValue>, MalError>{
+    pub fn read_list(&mut self) -> Result<Option<MalValue>, MalError> {
         let mut token = self.next(); // Consume the '('
         assert_eq!(token, Some(String::from('(')));
 
@@ -285,7 +300,7 @@ impl Reader {
                 }
             }
         }
-        
+
         if !balanced_list {
             return Err(MalError::ParseError(String::from("unbalanced '('")));
         }
@@ -296,11 +311,17 @@ impl Reader {
     pub fn read_atom(&mut self) -> Result<Option<MalValue>, MalError> {
         let token = self.next().unwrap();
 
-        if token.starts_with('"') {
+        if token == "nil" {
+            return Ok(Some(MalValue::MalNil));
+        } else if token == "false" {
+            return Ok(Some(bool(false)));
+        } else if token == "true" {
+            return Ok(Some(bool(true)));
+        } else if token.starts_with('"') {
             return Ok(Some(MalValue::MalString(token)));
         } else if token.starts_with(':') {
             return Ok(Some(MalValue::MalKeyword(
-                token.strip_prefix(':').unwrap_or(&token).to_string()
+                token.strip_prefix(':').unwrap_or(&token).to_string(),
             )));
         } else if let Ok(int) = token.parse::<i32>() {
             return Ok(Some(MalValue::MalInteger(int)));

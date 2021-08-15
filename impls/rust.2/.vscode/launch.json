@@ -77,5 +77,23 @@
             "args": [],
             "cwd": "${workspaceFolder}"
         },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'step4_if_fn_do'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=step4_if_fn_do",
+                    "--package=rust-2"
+                ],
+                "filter": {
+                    "name": "step4_if_fn_do",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
     ]
 }
