@@ -27,15 +27,13 @@ impl Environment {
 
                     if let MalValue::MalSymbol(s) = bind.clone() {
                         if s == "&" {
-                            
                             if e.len() > i {
                                 let expr = e[i].clone();
                                 env.set(b[i + 1].clone(), list_from_slice(&e[i..e.len()]));
-                                break;   
+                                break;
                             } else {
                                 env.set(b[i + 1].clone(), list(Vec::<MalValue>::new()));
                             }
-
                         } else if e.len() > i {
                             env.set(bind, e[i].clone());
                         }

@@ -104,17 +104,11 @@ fn print_vals(
     r = r.trim_end().to_string();
 
     if output {
-        println!(
-            "{}",
-            r.strip_prefix('"')
-                .unwrap_or(&r)
-                .strip_suffix('"')
-                .unwrap_or(&r)
-        );
+        println!("{}", r);
         return Ok(MalValue::MalNil);
     }
 
-    Ok(MalValue::MalString(r))
+    Ok(MalValue::MalString(format!("\"{}\"", r)))
 }
 
 pub fn ns() -> Vec<(&'static str, MalValue)> {

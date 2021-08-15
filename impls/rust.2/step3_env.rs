@@ -148,14 +148,14 @@ fn eval(ast: MalValue, env: Rc<env::Environment>) -> MalResult {
 }
 
 fn eval_ast(ast: MalValue, env: Rc<env::Environment>) -> Result<MalValue, MalError> {
-    match ast {
-        MalValue::MalSymbol(_) => {
+    match ast.clone() {
+        MalValue::MalSymbol(s) => {
             if let Ok(func) = env.get(ast.clone()) {
                 return Ok(func);
             }
             return Err(types::MalError::EvalError(format!(
                 "Symbol '{}' not found",
-                ast.inspect(false)
+                s
             )));
         }
         MalValue::MalList(list) => {
