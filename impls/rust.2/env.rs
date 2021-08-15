@@ -25,15 +25,19 @@ impl Environment {
                 for i in 0..b.len() {
                     let bind = b[i].clone();
 
-                    if e.len() > i {
-                        if let MalValue::MalSymbol(s) = bind {
+                    if (e.len() > i) {
+                        let expr = e[i].clone();
+
+                        if let MalValue::MalSymbol(s) = bind.clone() {
                             if s == "&" {
                                 env.set(b[i + 1].clone(), list_from_slice(&e[i..e.len()]));
                                 break;
+                            } else {
+                                env.set(bind, expr);
                             }
+                        } else {
+                            panic!("Non-symbol key");
                         }
-                    } else {
-                        env.set(b[i].clone(), MalValue::MalNil);
                     }
                 }
             }

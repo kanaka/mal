@@ -98,14 +98,6 @@ fn run_let(env: Rc<env::Environment>, bindings: MalValue, e: MalValue) -> MalRes
 }
 
 fn handle_fn(ast: Vec<MalValue>, env: Rc<env::Environment>) -> MalResult {
-    // let fn_closure = |env: Rc<env::Environment>, binds: Vec<MalValue>, exprs: Vec<MalValue>| {
-    //     let fn_env = Rc::new(
-    //         env::Environment::new(
-    //             Some(env.clone()),
-    //             Some(binds),
-    //             Some(exprs)));
-    // };
-
     let func = MalValue::MalFunc {
         eval: eval,
         ast: Rc::new(ast[2].clone()),
@@ -216,7 +208,7 @@ fn print(input: MalValue) -> String {
     return crate::printer::pr_str(input, true);
 }
 
-fn rep(input: String, env: Rc<env::Environment>) -> String {
+fn rep(input: String, env: &Rc<env::Environment>) -> String {
     let ast = read(input);
     match ast {
         Err(e) => {
@@ -224,7 +216,7 @@ fn rep(input: String, env: Rc<env::Environment>) -> String {
         }
         Ok(v) => match v {
             None => return String::default(),
-            Some(a) => match eval(a, env) {
+            Some(a) => match eval(a, env.clone()) {
                 Ok(result) => {
                     return print(result);
                 }
@@ -248,22 +240,14 @@ fn main() {
         env.set(MalValue::MalSymbol(symbol.to_string()), func);
     }
 
-    rep(
-        "(def! not (fn* (a) (if a false true)))".to_string(),
-        env.clone(),
-    );
-
-    //env.set(MalValue::MalSymbol(String::from("+")), MalValue::MalFunction(|args| add(args), Rc::new(MalValue::MalNil)));
-    //env.set(MalValue::MalSymbol(String::from("-")), MalValue::MalFunction(|args| subtract(args), Rc::new(MalValue::MalNil)));
-    //env.set(MalValue::MalSymbol(String::from("/")), MalValue::MalFunction(|args| divide(args), Rc::new(MalValue::MalNil)));
-    //env.set(MalValue::MalSymbol(String::from("*")), MalValue::MalFunction(|args| multiply(args), Rc::new(MalValue::MalNil)));
+    rep("(def! not (fn* (a) (if a false true)))".to_string(), &env);
 
     loop {
         let readline = rl.readline("user> ");
         match readline {
             Ok(line) => {
                 rl.add_history_entry(line.as_str());
-                let result = rep(line.trim_end().to_string(), env.clone());
+                let result = rep(line.trim_end().to_string(), &env);
                 print!("{}", result);
                 println!();
             }
