@@ -157,7 +157,7 @@ Object subclass: MAL [
                     | result |
                     a1_ := ast second value.
                     a2 := ast third.
-                    result := self EVAL: a2 env: env.
+                    result := (self EVAL: a2 env: env) deepCopy.
                     result isMacro: true.
                     env set: a1_ value: result.
                     ^result
