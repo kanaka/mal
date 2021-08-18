@@ -10,8 +10,8 @@ mod reader;
 mod types;
 
 use std::rc::Rc;
+use types::MalValue::MalList;
 use types::{MalError, MalResult, MalValue};
-use types::MalValue::{MalList};
 
 fn read(input: String) -> Result<Option<MalValue>, MalError> {
     return reader::Reader::read_str(input.to_string());
@@ -93,9 +93,9 @@ fn eval(ast: MalValue, env: Rc<env::Environment>) -> MalResult {
             }
             let first_element = &list[0];
             match first_element {
-                MalValue::MalSymbol(ref s) if s == "def!" => {;
+                MalValue::MalSymbol(ref s) if s == "def!" => {
                     return env.set(list[1].clone(), eval(list[2].clone(), env.clone())?);
-                },
+                }
                 MalValue::MalSymbol(ref s) if s == "fn*" => {
                     return Ok(MalValue::MalFunc {
                         eval: eval,
@@ -121,7 +121,7 @@ fn eval(ast: MalValue, env: Rc<env::Environment>) -> MalResult {
                         return eval(list[3].clone(), env.clone());
                     }
                     return Ok(MalValue::MalNil);
-                },
+                }
                 MalValue::MalSymbol(ref s) if s == "let*" => {
                     assert_eq!(3, list.len());
                     let bindings = list[1].clone();
@@ -147,17 +147,15 @@ fn eval(ast: MalValue, env: Rc<env::Environment>) -> MalResult {
                     } else {
                         return Err(MalError::EvalError(String::from("Missing bindings!")));
                     }
-                },
-                _ => {
-                    match eval_ast(ast.clone(), env.clone())? {
-                        MalList(list) => {
-                            return exec_fn(list[0].clone(), list[1..].to_vec(), env);
-                        },
-                        _ => {
-                            return Err(MalError::EvalError(String::from("Expected a list!")));
-                        }
-                    }
                 }
+                _ => match eval_ast(ast.clone(), env.clone())? {
+                    MalList(list) => {
+                        return exec_fn(list[0].clone(), list[1..].to_vec(), env);
+                    }
+                    _ => {
+                        return Err(MalError::EvalError(String::from("Expected a list!")));
+                    }
+                },
             }
         }
         _ => {

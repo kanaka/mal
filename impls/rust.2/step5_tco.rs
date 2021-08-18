@@ -10,160 +10,125 @@ mod reader;
 mod types;
 
 use std::rc::Rc;
+use types::MalValue::MalList;
 use types::{MalError, MalResult, MalValue};
-use types::MalValue::{MalList};
 
 fn read(input: String) -> Result<Option<MalValue>, MalError> {
     return reader::Reader::read_str(input.to_string());
 }
+fn eval(mut ast: MalValue, mut env: Rc<env::Environment>) -> MalResult {
+    let result: MalResult;
 
-pub fn exec_fn(func: MalValue, args: Vec<MalValue>, env: Rc<env::Environment>) -> MalResult {
-    match func {
-        MalValue::MalFunction(f, _) => f(args),
-        MalValue::MalFunc {
-            eval,
-            ref ast,
-            ref env,
-            ref params,
-            ..
-        } => {
-            let a = &**ast;
-            let fn_env = env::Environment::new(Some(env.clone()), params.as_vec(), Some(args));
-            Ok(eval(a.clone(), Rc::new(fn_env))?)
-        }
-        _ => Err(MalError::EvalError(
-            "Attempt to call non-function".to_string(),
-        )),
-    }
-}
-
-fn apply(ast: MalValue, env: Rc<env::Environment>) -> MalResult {
-    match ast {
-        MalValue::MalList(list) => {
-            let evaluated_result = eval_ast(types::MalValue::MalList(list), env.clone())?;
-            match evaluated_result {
-                MalValue::MalList(list) => {
-                    let func = list.first().unwrap();
-                    let args = list.clone().split_off(1);
-
-                    return exec_fn(func.clone(), args, env.clone());
+    'tco: loop {
+        result = match ast.clone() {
+            MalValue::MalList(list) => {
+                if list.len() == 0 {
+                    return Ok(ast.clone());
                 }
-                _ => {
-                    todo!("Handle eval_ast returning something that is not a list!");
-                }
-            }
-        }
-        _ => {
-            return Err(MalError::EvalError(String::from(
-                "apply called on non-list",
-            )));
-        }
-    }
-}
-
-fn run_let(env: Rc<env::Environment>, bindings: MalValue, e: MalValue) -> MalResult {
-    let new_env = Rc::new(env::Environment::new(Some(env.clone()), None, None));
-
-    if let Some(binding_list) = bindings.as_vec() {
-        assert!(binding_list.len() % 2 == 0);
-        let mut key = binding_list.first().unwrap();
-
-        for i in 0..binding_list.len() {
-            if i % 2 == 0 {
-                key = binding_list.get(i).unwrap();
-            } else {
-                new_env.set(
-                    key.clone(),
-                    eval(binding_list.get(i).unwrap().clone(), new_env.clone())?,
-                )?;
-            }
-        }
-
-        return eval(e, new_env);
-    } else {
-        return Err(MalError::EvalError(String::from("Missing bindings!")));
-    }
-}
-
-fn eval(ast: MalValue, env: Rc<env::Environment>) -> MalResult {
-    match ast.clone() {
-        MalValue::MalList(list) => {
-            if list.len() == 0 {
-                return Ok(ast);
-            }
-            let first_element = &list[0];
-            match first_element {
-                MalValue::MalSymbol(ref s) if s == "def!" => {;
-                    return env.set(list[1].clone(), eval(list[2].clone(), env.clone())?);
-                },
-                MalValue::MalSymbol(ref s) if s == "fn*" => {
-                    return Ok(MalValue::MalFunc {
-                        eval: eval,
-                        ast: Rc::new(list[2].clone()),
-                        env: env,
-                        params: Rc::new(list[1].clone()),
-                    });
-                }
-                MalValue::MalSymbol(ref s) if s == "do" => {
-                    for token in &list[1..list.len() - 1] {
-                        eval(token.clone(), env.clone())?;
+                let first_element = &list[0];
+                match first_element {
+                    MalValue::MalSymbol(ref s) if s == "def!" => {
+                        return env.set(list[1].clone(), eval(list[2].clone(), env.clone())?);
                     }
+                    MalValue::MalSymbol(ref s) if s == "let*" => {
+                        assert_eq!(3, list.len());
+                        let bindings = list[1].clone();
+                        let expr = list[2].clone();
 
-                    return eval(list.last().unwrap().clone(), env);
-                }
-                MalValue::MalSymbol(ref s) if s == "if" => {
-                    assert!(list.len() >= 3);
-                    let condition = eval(list[1].clone(), env.clone())?;
-                    let true_expr = list[2].clone();
-                    if condition.is_truthy() {
-                        return eval(true_expr, env.clone());
-                    } else if list.len() == 4 {
-                        return eval(list[3].clone(), env.clone());
-                    }
-                    return Ok(MalValue::MalNil);
-                },
-                MalValue::MalSymbol(ref s) if s == "let*" => {
-                    assert_eq!(3, list.len());
-                    let bindings = list[1].clone();
-                    let expr = list[2].clone();
+                        let new_env = Rc::new(env::Environment::new(Some(env.clone()), None, None));
 
-                    let new_env = Rc::new(env::Environment::new(Some(env.clone()), None, None));
-
-                    if let Some(binding_list) = bindings.as_vec() {
-                        assert!(binding_list.len() % 2 == 0);
-                        let mut key = binding_list.first().unwrap();
-                        for i in 0..binding_list.len() {
-                            if i % 2 == 0 {
-                                key = binding_list.get(i).unwrap();
-                            } else {
-                                new_env.set(
-                                    key.clone(),
-                                    eval(binding_list.get(i).unwrap().clone(), new_env.clone())?,
-                                )?;
+                        if let Some(binding_list) = bindings.as_vec() {
+                            assert!(binding_list.len() % 2 == 0);
+                            let mut key = binding_list.first().unwrap();
+                            for i in 0..binding_list.len() {
+                                if i % 2 == 0 {
+                                    key = binding_list.get(i).unwrap();
+                                } else {
+                                    new_env.set(
+                                        key.clone(),
+                                        eval(
+                                            binding_list.get(i).unwrap().clone(),
+                                            new_env.clone(),
+                                        )?,
+                                    )?;
+                                }
                             }
+
+                            ast = expr;
+                            env = new_env;
+                            continue 'tco;
+                        } else {
+                            return Err(MalError::EvalError(String::from("Missing bindings!")));
+                        }
+                    }
+                    MalValue::MalSymbol(ref s) if s == "fn*" => {
+                        return Ok(MalValue::MalFunc {
+                            eval: eval,
+                            ast: Rc::new(list[2].clone()),
+                            env: env.clone(),
+                            params: Rc::new(list[1].clone()),
+                        });
+                    }
+                    MalValue::MalSymbol(ref s) if s == "do" => {
+                        for token in &list[1..list.len() - 1] {
+                            eval_ast(token.clone(), env.clone())?;
                         }
 
-                        return eval(expr, new_env);
-                    } else {
-                        return Err(MalError::EvalError(String::from("Missing bindings!")));
+                        ast = list.last().unwrap().clone();
+                        continue 'tco;
                     }
-                },
-                _ => {
-                    match eval_ast(ast.clone(), env.clone())? {
-                        MalList(list) => {
-                            return exec_fn(list[0].clone(), list[1..].to_vec(), env);
+                    MalValue::MalSymbol(ref s) if s == "if" => {
+                        assert!(list.len() >= 3);
+                        let condition = eval(list[1].clone(), env.clone())?;
+                        let true_expr = list[2].clone();
+                        if condition.is_truthy() {
+                            ast = true_expr.clone();
+                            continue 'tco;
+                        } else if list.len() == 4 {
+                            ast = list[3].clone();
+                            continue 'tco;
+                        }
+                        return Ok(MalValue::MalNil);
+                    }
+                    _ => match eval_ast(ast.clone(), env.clone())? {
+                        MalList(list) => match list[0] {
+                            MalValue::MalFunction(f, _) => return f(list[1..].to_vec()),
+                            MalValue::MalFunc {
+                                ast: ref fn_ast,
+                                env: ref fn_env,
+                                ref params,
+                                ..
+                            } => {
+                                let a = &**fn_ast;
+                                ast = a.clone();
+                                env = Rc::new(env::Environment::new(
+                                    Some(fn_env.clone()),
+                                    params.as_vec(),
+                                    Some(list[1..].to_vec()),
+                                ));
+                                continue 'tco;
+                            }
+                            _ => {
+                                return Err(MalError::EvalError(
+                                    "Attempt to call non-function".to_string(),
+                                ))
+                            }
                         },
                         _ => {
                             return Err(MalError::EvalError(String::from("Expected a list!")));
                         }
-                    }
+                    },
                 }
             }
-        }
-        _ => {
-            return eval_ast(ast, env);
-        }
+            _ => {
+                return eval_ast(ast, env);
+            }
+        };
+
+        break;
     }
+
+    return result;
 }
 
 fn eval_ast(ast: MalValue, env: Rc<env::Environment>) -> Result<MalValue, MalError> {
@@ -249,6 +214,10 @@ fn main() {
     }
 
     rep("(def! not (fn* (a) (if a false true)))".to_string(), &env);
+    rep(
+        "(def! sum2 (fn* (n acc) (if (= n 0) acc (sum2 (- n 1) (+ n acc)))))".to_string(),
+        &env,
+    );
 
     loop {
         let readline = rl.readline("user> ");
