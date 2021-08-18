@@ -95,5 +95,23 @@
             "args": [],
             "cwd": "${workspaceFolder}"
         },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'step5_tco'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=step5_tco",
+                    "--package=rust-2"
+                ],
+                "filter": {
+                    "name": "step5_tco",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
     ]
 }
