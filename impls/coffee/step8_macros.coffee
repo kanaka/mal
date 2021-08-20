@@ -73,6 +73,7 @@ EVAL = (ast, env) ->
       ast = quasiquote(a1)
     when "defmacro!"
       f = EVAL(a2, env)
+      f = types._clone(f)
       f.__ismacro__ = true
       return env.set(a1, f)
     when "macroexpand"
