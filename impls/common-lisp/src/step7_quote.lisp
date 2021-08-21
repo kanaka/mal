@@ -47,7 +47,7 @@
   (let ((hash-map-value (mal-data-value hash-map))
         (new-hash-table (make-mal-value-hash-table)))
     (genhash:hashmap (lambda (key value)
-                       (setf (genhash:hashref (mal-eval key env) new-hash-table)
+                       (setf (genhash:hashref key new-hash-table)
                              (mal-eval value env)))
                      hash-map-value)
     (make-mal-hash-map new-hash-table)))
