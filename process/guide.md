@@ -592,6 +592,9 @@ You now have a simple prefix notation calculator!
   * If `ast` is a hash-map: return a new hash-map which consists of key-value
     pairs where the key is a key from the hash-map and the value is the result
     of calling `EVAL` on the corresponding value.
+    Depending on the implementation of maps, it may be convenient to
+    also call `EVAL` on keys.  The result is the same because keys are
+    not affected by evaluation.
 
 
 <a name="step3"></a>

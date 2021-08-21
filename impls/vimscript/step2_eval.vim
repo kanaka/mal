@@ -21,11 +21,8 @@ function EvalAst(ast, env)
   elseif HashQ(a:ast)
     let ret = {}
     for [k,v] in items(a:ast.val)
-      let keyobj = HashParseKey(k)
-      let newkey = EVAL(keyobj, a:env)
       let newval = EVAL(v, a:env)
-      let keystring = HashMakeKey(newkey)
-      let ret[keystring] = newval
+      let ret[k] = newval
     endfor
     return HashNew(ret)
   else

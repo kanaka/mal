@@ -26,7 +26,7 @@ function eval_ast(ast, env)
     elseif types._hash_map_Q(ast) then
         local new_hm = {}
         for k,v in pairs(ast) do
-            new_hm[EVAL(k, env)] = EVAL(v, env)
+            new_hm[k] = EVAL(v, env)
         end
         return HashMap:new(new_hm)
     else

@@ -27,7 +27,7 @@ defmodule Mix.Tasks.Step3Env do
 
   defp eval_ast({:map, ast, meta}, env) do
     map = for {key, value} <- ast, into: %{} do
-      {eval(key, env), eval(value, env)}
+      {key, eval(value, env)}
     end
 
     {:map, map, meta}

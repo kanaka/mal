@@ -14,7 +14,7 @@
     (symbol? ast)         (if (.has_key env ast) (get env ast)
                               (raise (Exception (+ ast " not found"))))
     (instance? dict ast)  (dict (map (fn [k]
-                                       [(EVAL k env) (EVAL (get ast k) env)])
+                                       [k (EVAL (get ast k) env)])
                                      ast))
     (instance? tuple ast) (tuple (map (fn [x] (EVAL x env)) ast))
     (instance? list ast)  (list (map (fn [x] (EVAL x env)) ast))

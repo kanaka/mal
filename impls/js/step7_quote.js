@@ -48,7 +48,7 @@ function eval_ast(ast, env) {
     } else if (types._hash_map_Q(ast)) {
         var new_hm = {};
         for (k in ast) {
-            new_hm[EVAL(k, env)] = EVAL(ast[k], env);
+            new_hm[k] = EVAL(ast[k], env);
         }
         return new_hm;
     } else {
