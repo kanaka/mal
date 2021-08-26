@@ -1,4 +1,4 @@
-FROM ubuntu:bionic
+FROM ubuntu:20.04
 MAINTAINER Duncan Watts <fungiblecog@gmail.com>
 
 ##########################################################
@@ -11,9 +11,6 @@ RUN apt-get -y update
 # Required for running tests
 RUN apt-get -y install make python
 
-# Some typical implementation and test requirements
-#RUN apt-get -y install curl
-
 RUN mkdir -p /mal
 WORKDIR /mal
 
@@ -21,8 +18,4 @@ WORKDIR /mal
 # Specific implementation requirements
 ##########################################################
 
-# Install gcc
-RUN apt-get -y install gcc
-
-# Libraries needed for the C impl
-RUN apt-get -y install libffi-dev libgc-dev libedit-dev
+RUN apt-get -y install gcc libffi-dev libgc-dev libedit-dev
