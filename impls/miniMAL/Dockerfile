@@ -14,9 +14,6 @@ RUN apt-get -y update
 RUN apt-get -y install make python3
 RUN ln -sf /usr/bin/python3 /usr/bin/python
 
-# Some typical implementation and test requirements
-RUN apt-get -y install curl libreadline-dev libedit-dev
-
 RUN mkdir -p /mal
 WORKDIR /mal
 
@@ -25,11 +22,9 @@ WORKDIR /mal
 ##########################################################
 
 # For building node modules
-RUN apt-get -y install g++
-
-RUN apt-get -y install nodejs npm
+RUN apt-get -y install g++ libreadline-dev nodejs npm
 
 ENV NPM_CONFIG_CACHE /mal/.npm
 
-# install miniMAL
+# install miniMAL itself
 RUN npm install -g minimal-lisp@1.2.2

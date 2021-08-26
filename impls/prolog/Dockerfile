@@ -1,4 +1,4 @@
-FROM ubuntu:18.04
+FROM ubuntu:20.04
 MAINTAINER Joel Martin <github@martintribe.org>
 
 ##########################################################
@@ -18,4 +18,4 @@ WORKDIR /mal
 # Specific implementation requirements
 ##########################################################
 
-RUN apt-get -y install swi-prolog-nox
+RUN DEBIAN_FRONTEND=noninteractive apt-get -y install swi-prolog-nox

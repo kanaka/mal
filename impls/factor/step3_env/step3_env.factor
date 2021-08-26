@@ -31,7 +31,7 @@ DEFER: EVAL
     with-datastack
     first ;
 
-GENERIC# EVAL-switch 1 ( maltype env -- maltype )
+GENERIC#: EVAL-switch 1 ( maltype env -- maltype )
 M: array EVAL-switch
     over empty? [ drop ] [
         over first dup malsymbol? [ name>> ] when {

@@ -1,4 +1,4 @@
-FROM ubuntu:18.04
+FROM ubuntu:20.04
 MAINTAINER Joel Martin <github@martintribe.org>
 
 ##########################################################
@@ -11,9 +11,6 @@ RUN apt-get -y update
 # Required for running tests
 RUN apt-get -y install make python
 
-# Some typical implementation and test requirements
-RUN apt-get -y install curl libreadline-dev libedit-dev
-
 RUN mkdir -p /mal
 WORKDIR /mal
 
@@ -22,4 +19,4 @@ WORKDIR /mal
 ##########################################################
 
 # GNU Ada compiler
-RUN apt-get -y install gnat-8
+RUN apt-get -y install gnat libreadline-dev

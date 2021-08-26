@@ -1,4 +1,4 @@
-FROM ubuntu:xenial
+FROM ubuntu:20.04
 MAINTAINER Joel Martin <github@martintribe.org>
 
 ##########################################################
@@ -11,9 +11,6 @@ RUN apt-get -y update
 # Required for running tests
 RUN apt-get -y install make python
 
-# Some typical implementation and test requirements
-RUN apt-get -y install curl libreadline-dev libedit-dev
-
 RUN mkdir -p /mal
 WORKDIR /mal
 
@@ -21,4 +18,4 @@ WORKDIR /mal
 # Specific implementation requirements
 ##########################################################
 
-RUN apt-get -y install php7.0-cli
+RUN apt-get -y install php-cli

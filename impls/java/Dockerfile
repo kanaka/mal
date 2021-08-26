@@ -1,4 +1,4 @@
-FROM ubuntu:xenial
+FROM ubuntu:10.04
 MAINTAINER Joel Martin <github@martintribe.org>
 
 ##########################################################
@@ -11,9 +11,6 @@ RUN apt-get -y update
 # Required for running tests
 RUN apt-get -y install make python
 
-# Some typical implementation and test requirements
-RUN apt-get -y install curl libreadline-dev libedit-dev
-
 RUN mkdir -p /mal
 WORKDIR /mal
 
@@ -22,7 +19,4 @@ WORKDIR /mal
 ##########################################################
 
 # Java and maven
-RUN apt-get -y install openjdk-8-jdk
-RUN apt-get -y install maven
-ENV MAVEN_OPTS -Duser.home=/mal
-
+RUN apt-get -y install default-jdk-headless maven
