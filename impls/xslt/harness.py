@@ -7,6 +7,9 @@ from threading import Thread
 from threading import Lock
 from collections import deque
 
+saxon_jar = '/usr/share/java/Saxon-HE-*.jar'
+saxon = f'java -Xmx2G -cp {saxon_jar} net.sf.saxon.Transform'
+
 fname = sys.argv[1]
 args = sys.argv[2:]
 tree = ET.Element('mal')
@@ -88,7 +91,7 @@ def serve_one_request(res):
                 with open('xsl-null.xml', 'w') as f:
                     f.write(req.attrib['context'])
 
-                if os.system(f'saxon -xsl:xsl-eval.xslt -s:xsl-null.xml > xsl-eval_output.xml'):
+                if os.system(f'{saxon} -xsl:xsl-eval.xslt -s:xsl-null.xml > xsl-eval_output.xml'):
                     x = ''
                 else:
                     with open('xsl-eval_output.xml', 'r') as f:
@@ -113,7 +116,7 @@ def transform(do_print=True):
     setup_request_file()
     pid = os.fork()
     if pid == 0:
-        os.system(f'saxon -xsl:"{fname}" -s:xslt_input.xml -TP:perf.html > xslt_output.xml 2> xsl_error.xml')
+        os.system(f'{saxon} -xsl:"{fname}" -s:xslt_input.xml -TP:perf.html > xslt_output.xml 2> xsl_error.xml')
         HALT = True
     else:
         THE_PID = pid
