@@ -5,7 +5,7 @@ lib.types math math.parser sequences splitting strings summary
 vectors ;
 IN: lib.printer
 
-GENERIC# (pr-str) 1 ( maltype readably? -- str )
+GENERIC#: (pr-str) 1 ( maltype readably? -- str )
 M: object (pr-str) drop summary ;
 M: malatom (pr-str) [ val>> ] dip (pr-str) "(atom " ")" surround ;
 M: malfn (pr-str) 2drop "#<fn>" ;
