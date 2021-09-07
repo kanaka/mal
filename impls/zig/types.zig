@@ -450,7 +450,8 @@ pub fn apply_function(allocator: *Allocator, args: MalLinkedList) MalError!*MalT
 
     if(n == -1) {
         // Variable arg function
-        (try linked_list.pop_first(allocator, &args_copy)).delete(allocator);
+        _ = try linked_list.pop_first(allocator, &args_copy);
+        defer mal_func.delete(allocator);
         defer linked_list.destroy(allocator, &args_copy, false);
         return (mal_func.data.FVar.*)(args_copy);
     }
