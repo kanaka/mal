@@ -101,7 +101,8 @@ def EVAL(ast MalVal, env Env) MalVal {
       ast = quasiquote(astList[1])
       continue # TCO
     } else if a0sym.val == "defmacro!" {
-      var macro = EVAL(astList[2], env) as MalFunc
+      var fn = EVAL(astList[2], env) as MalFunc
+      var macro = MalFunc.new(fn.ast, fn.params, fn.env, fn.func)
       macro.setAsMacro
       return env.set(astList[1] as MalSymbol, macro)
     } else if a0sym.val == "macroexpand" {
