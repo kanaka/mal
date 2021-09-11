@@ -14,9 +14,6 @@ KAWA_STEP1_DEPS = out/lib/util.class out/lib/reader.class \
                   out/lib/printer.class out/lib/types.class
 KAWA_STEP3_DEPS = $(KAWA_STEP1_DEPS) out/lib/env.class
 KAWA_STEP4_DEPS = $(KAWA_STEP3_DEPS) out/lib/core.class
-GAUCHE_STEP1_DEPS = lib/util.scm lib/reader.scm lib/printer.scm lib/types.scm
-GAUCHE_STEP3_DEPS = $(GAUCHE_STEP1_DEPS) lib/env.scm
-GAUCHE_STEP4_DEPS = $(GAUCHE_STEP3_DEPS) lib/core.scm
 CHICKEN_STEP1_DEPS = eggs/lib.util.so eggs/lib.types.so \
                      eggs/lib.reader.so eggs/lib.printer.so
 CHICKEN_STEP3_DEPS = $(CHICKEN_STEP1_DEPS) eggs/lib.env.so
@@ -26,17 +23,14 @@ CYCLONE_STEP3_DEPS = $(CYCLONE_STEP1_DEPS) lib/env.so
 CYCLONE_STEP4_DEPS = $(CYCLONE_STEP3_DEPS) lib/core.so
 
 STEP1_DEPS = $(if $(filter kawa,$(scheme_MODE)),$(KAWA_STEP1_DEPS),\
-             $(if $(filter gauche,$(scheme_MODE)),$(GAUCHE_STEP1_DEPS),\
              $(if $(filter chicken,$(scheme_MODE)),$(CHICKEN_STEP1_DEPS),\
-             $(if $(filter cyclone,$(scheme_MODE)),$(CYCLONE_STEP1_DEPS)))))
+             $(if $(filter cyclone,$(scheme_MODE)),$(CYCLONE_STEP1_DEPS))))
 STEP3_DEPS = $(if $(filter kawa,$(scheme_MODE)),$(KAWA_STEP3_DEPS),\
-             $(if $(filter gauche,$(scheme_MODE)),$(GAUCHE_STEP3_DEPS),\
              $(if $(filter chicken,$(scheme_MODE)),$(CHICKEN_STEP3_DEPS),\
-             $(if $(filter cyclone,$(scheme_MODE)),$(CYCLONE_STEP3_DEPS)))))
+             $(if $(filter cyclone,$(scheme_MODE)),$(CYCLONE_STEP3_DEPS))))
 STEP4_DEPS = $(if $(filter kawa,$(scheme_MODE)),$(KAWA_STEP4_DEPS),\
-             $(if $(filter gauche,$(scheme_MODE)),$(GAUCHE_STEP4_DEPS),\
              $(if $(filter chicken,$(scheme_MODE)),$(CHICKEN_STEP4_DEPS),\
-             $(if $(filter cyclone,$(scheme_MODE)),$(CYCLONE_STEP4_DEPS)))))
+             $(if $(filter cyclone,$(scheme_MODE)),$(CYCLONE_STEP4_DEPS))))
 
 KAWALIB = kawa --r7rs --no-warn-unused -d out -C
 KAWA = kawa --r7rs --no-warn-unused -d out --main -C
