@@ -1026,16 +1026,15 @@ scala -classpath target/scala*/classes stepX_YYY
 
 ### Scheme (R7RS) ###
 
-The Scheme implementation of mal has been tested with Chibi-Scheme
-0.7.3, Kawa 2.4, Gauche 0.9.5, CHICKEN 4.11.0, Sagittarius 0.8.3,
-Cyclone 0.6.3 (Git version) and Foment 0.4 (Git version).  You should
+The Scheme implementation of MAL has been tested with Chibi-Scheme
+0.10, Kawa 3.1.1, Gauche 0.9.6, CHICKEN 5.1.0, Sagittarius 0.9.7,
+Cyclone 0.32.0 (Git version) and Foment 0.4 (Git version).  You should
 be able to get it running on other conforming R7RS implementations
 after figuring out how libraries are loaded and adjusting the
 `Makefile` and `run` script accordingly.
 
 ```
 cd impls/scheme
-make symlinks
 # chibi
 scheme_MODE=chibi ./run
 # kawa
