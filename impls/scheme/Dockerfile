@@ -1,4 +1,4 @@
-FROM ubuntu:xenial
+FROM ubuntu:focal
 MAINTAINER Joel Martin <github@martintribe.org>
 
 ##########################################################
@@ -23,6 +23,7 @@ WORKDIR /mal
 
 # Prepackaged Scheme implementations
 RUN apt-get -y install gauche chicken-bin
+RUN chicken-install r7rs
 
 # Chibi
 RUN apt-get -y install bison gcc g++ flex
