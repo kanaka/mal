@@ -21,16 +21,22 @@ const MalHashMap = hash_map.MalHashMap;
 
 var repl_environment: *MalHashMap = undefined;
 
-fn READ(a: [] u8) MalError!?*MalType {
+fn READ(a: []const u8) MalError!?*MalType {
     var read = try reader.read_str(a);
     var optional_mal = reader.read_form(&read);
     return optional_mal;
 }
 
 fn EVAL(mal: *MalType) MalError!*MalType {
+
+    // const stdout = std.io.getStdOut();
+    // stdout.writeAll("EVAL: ")       catch return MalError.ThrownError;
+    // stdout.writeAll(try PRINT(mal)) catch return MalError.ThrownError;
+    // stdout.writeAll("\n")           catch return MalError.ThrownError;
+
     switch(mal.data) {
         .List => |ll| {
-            if(ll.len == 0) {
+            if(ll.items.len == 0) {
                 return mal;
             }
             var new_list = try eval_ast(mal);
@@ -42,11 +48,11 @@ fn EVAL(mal: *MalType) MalError!*MalType {
     }
 }
 
-fn PRINT(optional_mal: ?*MalType) MalError![] u8 {
+fn PRINT(optional_mal: ?*MalType) MalError![]const u8 {
     return printer.print_str(optional_mal);
 }
 
-fn rep(input: [] u8) MalError!?[] u8 {
+fn rep(input: []const u8) MalError!?[]const u8 {
     var read_input = (try READ(input)) orelse return null;
     var eval_input = try EVAL(read_input);
     var print_input = try PRINT(eval_input);
@@ -55,16 +61,12 @@ fn rep(input: [] u8) MalError!?[] u8 {
 }
 
 fn lookup(symbol: []const u8, do_warn: bool) MalError!*MalType {
-    var optional_mal = repl_environment.getValue(symbol);
+    var optional_mal = repl_environment.get(symbol);
     if(optional_mal) |mal| {
         return mal.copy(Allocator);
     }
     if(do_warn) {
-        const s1 = string_concat(Allocator, "'", symbol) catch return MalError.SystemError;
-        const s2 = string_concat(Allocator, s1, "' not found") catch return MalError.SystemError;
-        defer Allocator.free(s1);
-        defer Allocator.free(s2);
-        warn("'{}' not found.\n", symbol);
+        warn("'{s}' not found.\n", .{symbol});
     }
     return MalError.KeyError;
 }
@@ -77,8 +79,7 @@ fn eval_ast(mal: *MalType) MalError!*MalType {
         },
         .List => |*ll| {
             var new_ll = MalLinkedList.init(Allocator);
-            var iterator = ll.iterator();
-            while(iterator.next()) |next_mal| {
+            for (ll.items) |next_mal| {
                 const new_mal = try EVAL(next_mal);
                 try linked_list.append_mal(Allocator, &new_ll, new_mal);
             }
@@ -89,8 +90,7 @@ fn eval_ast(mal: *MalType) MalError!*MalType {
         },
         .Vector => |*ll| {
             var new_ll = MalLinkedList.init(Allocator);
-            var iterator = ll.iterator();
-            while(iterator.next()) |next_mal| {
+            for (ll.items) |next_mal| {
                 const new_mal = try EVAL(next_mal);
                 try linked_list.append_mal(Allocator, &new_ll, new_mal);
             }
@@ -99,14 +99,14 @@ fn eval_ast(mal: *MalType) MalError!*MalType {
             const ret_mal = MalType.new_vector(Allocator, new_ll);
             return ret_mal;
         },
-        .HashMap => |hmap| {
+        .HashMap => |*hmap| {
             var new_hashmap = try MalType.new_hashmap(Allocator);
             var iterator = hmap.iterator();
             var optional_pair = iterator.next();
             while(true) {
                 const pair = optional_pair orelse break;
-                const key = pair.key;
-                const value = pair.value;
+                const key = pair.key_ptr.*;
+                const value = pair.value_ptr.*;
                 const evaled_value = try EVAL(value);
                 try new_hashmap.hashmap_insert(key, evaled_value);
                 optional_pair = iterator.next();
@@ -176,7 +176,7 @@ fn make_environment() MalError!void {
 }
 
 pub fn main() !void {
-    const stdout_file = try std.io.getStdOut();
+    const stdout_file = std.io.getStdOut();
     try make_environment();
     while(true) {
         var line = (try getline(Allocator)) orelse break;
@@ -188,9 +188,9 @@ pub fn main() !void {
             }
         };
         if(optional_output) |output| {
-            try stdout_file.write(output);
+            try stdout_file.writeAll(output);
             Allocator.free(output);
-            try stdout_file.write("\n");
+            try stdout_file.writeAll("\n");
         }
     }
 }

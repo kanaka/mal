@@ -53,7 +53,7 @@ pub const Env = struct {
                 env.allocator.destroy(env.outer.?);
             }
             //env.print_keys();
-            hash_map.destroy(env.allocator, env.data.*, false);
+            hash_map.destroy(env.allocator, env.data, false);
             env.allocator.destroy(env.refcount);
             env.allocator.destroy(env.data);
         }
@@ -61,7 +61,7 @@ pub const Env = struct {
     }
 
     pub fn set(env: *Env, key: []const u8, value: *MalType) MalError!void {
-        const optional_prev_mal = env.data.getValue(key);
+        const optional_prev_mal = env.data.get(key);
         if(optional_prev_mal) |prev_mal| {
             prev_mal.delete(env.allocator);
         }
@@ -80,7 +80,7 @@ pub const Env = struct {
     }
 
     pub fn find(env: *const Env, key: []const u8) bool {
-        const optional_mal = env.data.getValue(key);
+        const optional_mal = env.data.get(key);
         if(optional_mal) |mal| {
             return true;
         }
@@ -91,7 +91,7 @@ pub const Env = struct {
     }
 
     pub fn get(env: *const Env, key: []const u8) MalError!*MalType {
-        const optional_mal = env.data.getValue(key);
+        const optional_mal = env.data.get(key);
         if(optional_mal) |mal| {
             //warn("Got for key '{}': {} (me: {})\n", key, mal, @ptrToInt(env));
             return mal;
@@ -103,8 +103,8 @@ pub const Env = struct {
     }
 
     pub fn set_list(env: *Env, names: MalLinkedList, vals: MalLinkedList) MalError!void {
-        var name_arr = names.toSlice();
-        var vals_arr = vals.toSlice();
+        var name_arr = names.items;
+        var vals_arr = vals.items;
         var i: usize = 0;        
         
         while(i < name_arr.len) {

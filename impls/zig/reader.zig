@@ -17,7 +17,7 @@ const string_eql = @import("utils.zig").string_eql;
 const linked_list = @import("linked_list.zig");
 
 const match: [*]const u8 =
-    c\\[\s,]*(~@|[\[\]{}()'`~^@]|"(?:\\.|[^\\"])*"?|;.*|[^\s\[\]{}('"`,;)]*)
+    \\[\s,]*(~@|[\[\]{}()'`~^@]|"(?:\\.|[^\\"])*"?|;.*|[^\s\[\]{}('"`,;)]*)
 ;
 var error_msg: [*c]const u8 = undefined;
 var erroroffset: c_int = 0;

@@ -26,7 +26,7 @@ pub fn slice_from_cstr(allocator: *Allocator, str: [*]const u8) ![]u8{
 }
 
 pub fn getline(allocator: *Allocator) !?[] u8 {
-    var input: ?[*] u8 = readline.readline(c"user> ");
+    var input: ?[*] u8 = readline.readline("user> ");
     if(input) |actual| {
         const aslice = try slice_from_cstr(allocator, actual);
         rl_hist.add_history(actual);
