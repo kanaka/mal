@@ -50,6 +50,16 @@ fn appendToBuffer(resize_buffer: *ResizeBuffer, buffer: []const u8) MalError!voi
     }
 }
 
+//  TODO: Writer and ResizeBuffer should probably me merged.
+fn writeFn(context: *ResizeBuffer, bytes: []const u8) MalError!usize {
+    try appendToBuffer(context, bytes);
+    return bytes.len;
+}
+pub const Writer = io.Writer(*ResizeBuffer, MalError, writeFn);
+pub fn writer(rb: *ResizeBuffer) Writer {
+    return .{ .context = rb };
+}
+
 fn print_mal_to_buffer(mal: *const MalType, readable: bool) MalError!ResizeBuffer {
     var rb = ResizeBuffer{
         .buffer = null,
@@ -62,7 +72,7 @@ fn print_mal_to_buffer(mal: *const MalType, readable: bool) MalError!ResizeBuffe
 }
 
 pub fn print_str(optional_mal: ?*const MalType) MalError![] const u8 {
-    const stdout_file = io.getStdOut() catch return MalError.SystemError;
+    //  const stdout_file = io.getStdOut() catch return MalError.SystemError;
     if(optional_mal == null) {
         var return_string: [] u8 = Allocator.alloc(u8, 3) catch return MalError.SystemError;
         return_string[0] = 'E'; //TODO: memcpy
@@ -97,14 +107,11 @@ pub fn print_mal_to_string(args: MalLinkedList, readable: bool, sep: bool) MalEr
         .len = 0,
     };
 
-    var iterator = args.iterator();
-    var first: bool = true;
-    while(iterator.next()) |node| {
-        if(!first and sep) {
+    for (args.items) |node, idx| {
+        if(0 < idx and sep) {
             try appendToBuffer(&rb, " ");
         }
         try print_to_buffer(node, &rb, readable);
-        first = false;
     }
 
     // TODO: is this the right exception?
@@ -154,7 +161,7 @@ fn print_to_buffer(mal: *const MalType, rb: *ResizeBuffer, readable: bool) MalEr
             try appendToBuffer(rb, kwd[1..kwd.len]);
         },
         .Int => |val| {
-            try fmt.format(rb, MalError, appendToBuffer, "{0}", val);
+            try fmt.format(writer(rb), "{0}", .{val});
         },
         .Nil => {
             try appendToBuffer(rb, "nil");
@@ -167,27 +174,21 @@ fn print_to_buffer(mal: *const MalType, rb: *ResizeBuffer, readable: bool) MalEr
         },
         .List => |l| {
             try appendToBuffer(rb, "(");
-            var iterator = l.iterator();
-            var first_iteration = true;
-            while(iterator.next()) |next_mal| {
-                if(!first_iteration) {
+            for (l.items) |next_mal, i| {
+                if(0<i) {
                     try appendToBuffer(rb, " ");
                 }
                 try print_to_buffer(next_mal, rb, readable);
-                first_iteration = false;
             }
             try appendToBuffer(rb, ")");
         },
         .Vector => |v| {
             try appendToBuffer(rb, "[");
-            var iterator = v.iterator();
-            var first_iteration = true;
-            while(iterator.next()) |next_mal| {
-                if(!first_iteration) {
+            for (v.items) |next_mal, i| {
+                if(0<i) {
                     try appendToBuffer(rb, " ");
                 }
                 try print_to_buffer(next_mal, rb, readable);
-                first_iteration = false;
             }
             try appendToBuffer(rb, "]");
         },
@@ -212,17 +213,17 @@ fn print_to_buffer(mal: *const MalType, rb: *ResizeBuffer, readable: bool) MalEr
                 if(!first) {
                     try appendToBuffer(rb, " ");
                 }                
-                if(pair.key.len > 1 and pair.key[0] == 255) {
+                if(pair.key_ptr.len > 1 and pair.key_ptr.*[0] == 255) {
                     try appendToBuffer(rb, ":");
-                    try appendToBuffer(rb, pair.key[1..pair.key.len]);
+                    try appendToBuffer(rb, pair.key_ptr.*[1..pair.key_ptr.len]);
                 }
                 else {
                     try appendToBuffer(rb, "\"");
-                    try appendToBuffer(rb, pair.key);
+                    try appendToBuffer(rb, pair.key_ptr.*);
                     try appendToBuffer(rb, "\"");
                 }
                 try appendToBuffer(rb, " ");
-                try print_to_buffer(pair.value, rb, readable);
+                try print_to_buffer(pair.value_ptr.*, rb, readable);
                 first = false;
             }
             try appendToBuffer(rb, "}");
