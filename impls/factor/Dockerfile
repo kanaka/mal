@@ -18,10 +18,7 @@ WORKDIR /mal
 # Specific implementation requirements
 ##########################################################
 
-RUN apt-get -y install ca-certificates curl libgtkglext1 libreadline-dev
+RUN apt-get -y install ca-certificates curl libgtkglext1-dev libreadline-dev
 
-RUN cd /usr/lib/x86_64-linux-gnu/ \
-    && curl -O https://downloads.factorcode.org/releases/0.98/factor-linux-x86-64-0.98.tar.gz \
-    && tar xvzf factor-linux-x86-64-0.98.tar.gz \
-    && ln -sf /usr/lib/x86_64-linux-gnu/factor/factor /usr/bin/factor \
-    && rm factor-linux-x86-64-0.98.tar.gz
+RUN curl https://downloads.factorcode.org/releases/0.98/factor-linux-x86-64-0.98.tar.gz | tar -xzC/mal
+RUN ln -fst/usr/local/bin /mal/factor/factor
