@@ -1001,7 +1001,7 @@ diff -urp ../process/step5_tco.txt ../process/step6_file.txt
   (closed over from outside) as the second argument. The result of
   the `EVAL` call is returned. This simple but powerful addition
   allows your program to treat mal data as a mal program. For example,
-  you can now to this:
+  you can now do this:
 ```
 (def! mal-prog (list + 1 2))
 (eval mal-prog)
