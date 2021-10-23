@@ -996,7 +996,7 @@ diff -urp ../process/step5_tco.txt ../process/step6_file.txt
 
 * In your main program, add a new symbol "eval" to your REPL
   environment. The value of this new entry is a function that takes
-  a single argument `ast`. The closure calls the your `EVAL` function
+  a single argument `ast`. The closure calls your `EVAL` function
   using the `ast` as the first argument and the REPL environment
   (closed over from outside) as the second argument. The result of
   the `EVAL` call is returned. This simple but powerful addition
