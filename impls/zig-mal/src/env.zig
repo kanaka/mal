@@ -39,7 +39,7 @@ pub const Env = struct {
         while (it.next()) |entry| {
             // free copied hash map keys and values
             allocator.free(entry.key_ptr.*);
-            entry.value_ptr.deinit(allocator);
+            entry.value_ptr.*.deinit(allocator);
         }
         self.data.deinit();
         self.* = undefined;
@@ -49,8 +49,8 @@ pub const Env = struct {
         var it = self.data.iterator();
         while (it.next()) |entry| {
             // free copied hash map keys and values
-            allocator.free(entry.key);
-            entry.value.deinit(allocator);
+            allocator.free(entry.key_ptr.*);
+            entry.value_ptr.*.deinit(allocator);
         }
         self.data.deinit();
         allocator.destroy(self);
@@ -63,7 +63,7 @@ pub const Env = struct {
         other_ptr.* = try Self.initCapacity(allocator, self.outer, self.data.unmanaged.size);
         var it = self.data.iterator();
         while (it.next()) |entry| {
-            try other_ptr.set(entry.key, entry.value);
+            try other_ptr.set(entry.key_ptr.*, entry.value_ptr.*);
         }
         return other_ptr;
     }
@@ -91,7 +91,7 @@ pub const Env = struct {
 
         const get_or_put = try self.data.getOrPut(symbol);
         if (get_or_put.found_existing) {
-            get_or_put.value_ptr.deinit(allocator);
+            get_or_put.value_ptr.*.deinit(allocator);
         } else {
             // copy the symbol to use as key with the same lifetime as the hash map
             get_or_put.key_ptr.* = allocator.dupe(u8, symbol) catch |err| {

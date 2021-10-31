@@ -384,4 +384,4 @@ pub const MalValue = union(enum) {
     }
 };
 
-fn copyList(comptime T: type, src_list: std.ArrayList(T)) std.ArrayList(T) {}
+fn copyList(comptime T: type, _: std.ArrayList(T)) std.ArrayList(T) {}
