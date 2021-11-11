@@ -88,19 +88,19 @@ repl_env.set(types._symbol('*ARGV*'), types.List(sys.argv[2:]))
 
 # core.mal: defined using the language itself
 REP("(def! not (fn* (a) (if a false true)))")
-REP("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \"\nnil)\")))))")
+REP(r'(def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) "\nnil)")))))')
 
 if len(sys.argv) >= 2:
     REP('(load-file "' + sys.argv[1] + '")')
-    sys.exit(0)
-
-# repl loop
-while True:
-    try:
-        line = mal_readline.readline("user> ")
-        if line == None: break
-        if line == "": continue
-        print(REP(line))
-    except reader.Blank: continue
-    except Exception as e:
-        traceback.print_exception(*sys.exc_info())
+else:
+    # repl loop
+    while True:
+        try:
+            print(REP((raw_input if sys.version_info[0] < 3 else input)("user> ")))
+        except EOFError:
+            print()
+            break
+        except reader.Blank:
+            pass
+        except Exception:
+            traceback.print_exc()

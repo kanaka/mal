@@ -4,9 +4,9 @@ import operator
 
 import mal_types as types
 from mal_types import MalException, List, Vector
-import mal_readline
 import reader
 import printer
+import sys
 
 # Errors/Exceptions
 def throw(obj): raise MalException(obj)
@@ -27,6 +27,11 @@ def println(*args):
     print(printer.pr_list(args, " ", False))
     return None
 
+def readline(prompt):
+    try:
+        return (raw_input if sys.version_info[0] < 3 else input)(prompt)
+    except EOFError:
+        return None
 
 # Hash map functions
 def assoc(src_hm, *key_vals):
@@ -139,7 +144,7 @@ ns = {
         'str': do_str,
         'prn': prn,
         'println': println,
-        'readline': mal_readline.readline,
+        'readline': readline,
         'read-string': reader.read_str,
         'slurp': slurp,
         '<':  operator.lt,

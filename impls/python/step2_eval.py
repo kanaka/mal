@@ -1,3 +1,4 @@
+import operator
 import sys, traceback
 import mal_readline
 import mal_types as types
@@ -35,18 +36,19 @@ repl_env = {}
 def REP(str):
     return PRINT(EVAL(READ(str), repl_env))
 
-repl_env['+'] = lambda a,b: a+b
-repl_env['-'] = lambda a,b: a-b
-repl_env['*'] = lambda a,b: a*b
-repl_env['/'] = lambda a,b: a//b
+repl_env['+'] = operator.add
+repl_env['-'] = operator.sub
+repl_env['*'] = operator.mul
+repl_env['/'] = operator.floordiv
 
 # repl loop
 while True:
     try:
-        line = mal_readline.readline("user> ")
-        if line == None: break
-        if line == "": continue
-        print(REP(line))
-    except reader.Blank: continue
-    except Exception as e:
-        traceback.print_exception(*sys.exc_info())
+        print(REP((raw_input if sys.version_info[0] < 3 else input)("user> ")))
+    except EOFError:
+        print()
+        break
+    except reader.Blank:
+        pass
+    except Exception:
+        traceback.print_exc()

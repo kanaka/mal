@@ -169,25 +169,30 @@ repl_env.set(types._symbol('eval'), types.Function(lambda ast: EVAL(ast, repl_en
 repl_env.set(types._symbol('*ARGV*'), types.List(sys.argv[2:]))
 
 # core.mal: defined using the language itself
-REP("(def! *host-language* \"python\")")
+REP('(def! *host-language* "python")')
 REP("(def! not (fn* (a) (if a false true)))")
-REP("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \"\nnil)\")))))")
-REP("(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))")
+REP(r'(def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) "\nnil)")))))')
+REP("""(defmacro! cond (fn* (& xs)
+  (if (> (count xs) 0)
+    (list 'if (first xs)
+      (if (> (count xs) 1) (nth xs 1) (throw "odd number of forms to cond"))
+      (cons 'cond (rest (rest xs)))))))""")
 
 if len(sys.argv) >= 2:
     REP('(load-file "' + sys.argv[1] + '")')
-    sys.exit(0)
+else:
+    # repl loop
+    REP('(println (str "Mal [" *host-language* "]"))')
 
-# repl loop
-REP("(println (str \"Mal [\" *host-language* \"]\"))")
-while True:
-    try:
-        line = mal_readline.readline("user> ")
-        if line == None: break
-        if line == "": continue
-        print(REP(line))
-    except reader.Blank: continue
-    except types.MalException as e:
-        print("Error: " + printer._pr_str(e.object))
-    except Exception as e:
-        traceback.print_exception(*sys.exc_info())
+    while True:
+        try:
+            print(REP((raw_input if sys.version_info[0] < 3 else input)("user> ")))
+        except EOFError:
+            print()
+            break
+        except reader.Blank:
+            pass
+        except types.MalException as e:
+            print("'Error: " + printer._pr_str(e.object))
+        except Exception:
+            traceback.print_exc()
