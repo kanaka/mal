@@ -6,7 +6,25 @@ module Mal
 
     class Atom < ::Struct.new(:value); end
     class Keyword < Atom; end
-    class Number < Atom; end
+
+    class Number < Atom
+      def +(other)
+        self.class.new(value + other.value)
+      end
+
+      def -(other)
+        self.class.new(value - other.value)
+      end
+
+      def *(other)
+        self.class.new(value * other.value)
+      end
+
+      def /(other)
+        self.class.new(value / other.value)
+      end
+    end
+
     class String < Atom; end
     class Symbol < Atom; end
 
