@@ -18,7 +18,7 @@ module Mal
       read_true(reader)
     when "false"
       read_false(reader)
-    when /\A\d+(\.\d+)?/
+    when /\A-?\d+(\.\d+)?/
       read_number(reader)
     else
       read_symbol(reader)
