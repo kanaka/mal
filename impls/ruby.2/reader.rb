@@ -27,13 +27,14 @@ module Mal
 
   def read_deref(reader)
     list = Types::List.new
-    list << Types::Symbol.new("deref")
+    list << Types::Symbol.for("deref")
     list << read_form(reader)
     list
   end
 
   def read_false(reader)
-    Types::False.new(reader.next)
+    reader.advance!
+    Types::False.instance
   end
 
   def read_form(reader)
@@ -95,7 +96,7 @@ module Mal
     value = reader.next.dup[1...]
     substitute_escaped_chars!(value)
 
-    Types::Keyword.new(value)
+    Types::Keyword.for(value)
   end
 
   def read_list(reader)
@@ -117,7 +118,8 @@ module Mal
   end
 
   def read_nil(reader)
-    Types::Nil.new(reader.next)
+    reader.advance!
+    Types::Nil.instance
   end
 
   def read_number(reader)
@@ -133,21 +135,21 @@ module Mal
 
   def read_quasiquote(reader)
     list = Types::List.new
-    list << Types::Symbol.new("quasiquote")
+    list << Types::Symbol.for("quasiquote")
     list << read_form(reader)
     list
   end
 
   def read_quote(reader)
     list = Types::List.new
-    list << Types::Symbol.new("quote")
+    list << Types::Symbol.for("quote")
     list << read_form(reader)
     list
   end
 
   def read_splice_unquote(reader)
     list = Types::List.new
-    list << Types::Symbol.new("splice-unquote")
+    list << Types::Symbol.for("splice-unquote")
     list << read_form(reader)
     list
   end
@@ -170,16 +172,17 @@ module Mal
   end
 
   def read_symbol(reader)
-    Types::Symbol.new(reader.next)
+    Types::Symbol.for(reader.next)
   end
 
   def read_true(reader)
-    Types::True.new(reader.next)
+    reader.advance!
+    Types::True.instance
   end
 
   def read_unquote(reader)
     list = Types::List.new
-    list << Types::Symbol.new("unquote")
+    list << Types::Symbol.for("unquote")
     list << read_form(reader)
     list
   end
@@ -204,7 +207,7 @@ module Mal
 
   def read_with_metadata(reader)
     list = Types::List.new
-    list << Types::Symbol.new("with-meta")
+    list << Types::Symbol.for("with-meta")
 
     first = read_form(reader)
     second = read_form(reader)
