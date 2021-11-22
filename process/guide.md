@@ -1211,7 +1211,7 @@ Mal borrows most of its syntax and feature-set).
     then `ast`.
   - Else return `ast` unchanged.
     Such forms are not affected by evaluation, so you may quote them
-    as in the previous case if implementation is easyer.
+    as in the previous case if implementation is easier.
 
 * Optionally, add a the `quasiquoteexpand` special form.
   This form calls the `quasiquote` function using the first `ast`
