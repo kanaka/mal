@@ -3,6 +3,7 @@ module Mal
   class TypeError < ::TypeError; end
 
   class InvalidHashmapKeyError < TypeError; end
+  class InvalidLetBindingsError < TypeError; end
   class InvalidReaderPositionError < Error; end
   class InvalidTypeError < TypeError; end
 
