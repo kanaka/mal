@@ -8,8 +8,10 @@ module Mal
 
   def read_atom(reader)
     case reader.peek
-    when /\A"/
+    when /\A"(?:\\.|[^\\"])*"\z/
       read_string(reader)
+    when /\A"/
+      raise UnbalancedStringError
     when /\A:/
       read_keyword(reader)
     when "nil"
@@ -161,12 +163,12 @@ module Mal
   def read_string(reader)
     raw_value = reader.next.dup
 
+    value = raw_value[1...-1]
+    substitute_escaped_chars!(value)
+
     if raw_value.length <= 1 || raw_value[-1] != '"'
       raise UnbalancedStringError
     end
-
-    value = raw_value[1...-1]
-    substitute_escaped_chars!(value)
 
     Types::String.new(value)
   end
@@ -257,13 +259,6 @@ module Mal
   private
 
   def substitute_escaped_chars!(string_or_keyword)
-    string_or_keyword.gsub!('\"','"')
-    string_or_keyword.gsub!('\n',"\n")
-
-    if string_or_keyword.count('\\') % 2 != 0
-      raise UnbalancedEscapingError
-    end
-
-    string_or_keyword.gsub!('\\\\','\\')
+    string_or_keyword.gsub!(/\\./, {"\\\\" => "\\", "\\n" => "\n", "\\\"" => '"'})
   end
 end

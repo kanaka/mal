@@ -12,26 +12,22 @@ module Mal
       "[#{mal.map { |m| pr_str(m, print_readably) }.join(" ")}]"
     when Types::Hashmap
       "{#{mal.map { |k, v| [pr_str(k, print_readably), pr_str(v, print_readably)].join(" ") }.join(" ")}}"
-    when Types::Nil
-      "nil"
-    when Types::True
-      "true"
-    when Types::False
-      "false"
     when Types::Keyword
       if print_readably
         pr_str_keyword(mal)
       else
-        mal.value.to_s
+        mal.inspect
       end
     when Types::String
       if print_readably
         pr_str_string(mal)
       else
-        mal.value.to_s
+        mal.inspect
       end
     when Types::Atom
-      mal.value.to_s
+      mal.inspect
+    when Types::Callable
+      mal.inspect
     else
       raise InvalidTypeError
     end

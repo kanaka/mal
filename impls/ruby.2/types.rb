@@ -4,7 +4,11 @@ module Mal
     class Vector < ::Array; end
     class Hashmap < ::Hash; end
 
-    class Atom < ::Struct.new(:value); end
+    class Atom < ::Struct.new(:value)
+      def inspect
+        value.to_s
+      end
+    end
 
     class Keyword < Atom
       def self.for(value)
@@ -52,31 +56,66 @@ module Mal
 
     class Nil < Atom
       def self.instance
-        @_instance ||= new
+        @_instance ||= new(nil)
       end
 
-      def initialize
-        @value = nil
+      def inspect
+        "nil"
       end
     end
 
     class True < Atom
       def self.instance
-        @_instance ||= new
-      end
-
-      def initialize
-        @value = true
+        @_instance ||= new(true)
       end
     end
 
     class False < Atom
       def self.instance
-        @_instance ||= new
+        @_instance ||= new(false)
+      end
+    end
+
+    class Callable
+      def initialize(&block)
+        @fn = block
       end
 
-      def initialize
-        @value = false
+      def call(args)
+        @fn.call(args)
+      end
+
+      def inspect
+        raise NotImplementedError
+      end
+    end
+
+    class Builtin < Callable
+      def inspect
+        "#<builtin>"
+      end
+
+      def is_mal_fn?
+        false
+      end
+    end
+
+    class Function < Callable
+      attr_reader :ast, :params, :env
+
+      def initialize(ast, params, env, &block)
+        @ast = ast
+        @params = params
+        @env = env
+        @fn = block
+      end
+
+      def inspect
+        "#<function>"
+      end
+
+      def is_mal_fn?
+        true
       end
     end
   end
