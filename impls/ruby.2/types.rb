@@ -1,7 +1,17 @@
 module Mal
   module Types
-    class List < ::Array; end
-    class Vector < ::Array; end
+    class List < ::Array
+      def to_list
+        self
+      end
+    end
+
+    class Vector < ::Array
+      def to_list
+        List.new(self)
+      end
+    end
+
     class Hashmap < ::Hash; end
 
     class Base < ::Struct.new(:value)
@@ -98,15 +108,19 @@ module Mal
       def inspect
         raise NotImplementedError
       end
+
+      def is_mal_fn?
+        false
+      end
+
+      def is_macro?
+        false
+      end
     end
 
     class Builtin < Callable
       def inspect
         "#<builtin>"
-      end
-
-      def is_mal_fn?
-        false
       end
     end
 
@@ -125,6 +139,33 @@ module Mal
       end
 
       def is_mal_fn?
+        true
+      end
+
+      def to_macro
+        Macro.new(ast, params, env, &@fn)
+      end
+    end
+
+    class Macro < Callable
+      attr_reader :ast, :params, :env
+
+      def initialize(ast, params, env, &block)
+        @ast = ast
+        @params = params
+        @env = env
+        @fn = block
+      end
+
+      def inspect
+        "#<macro>"
+      end
+
+      def is_mal_fn?
+        true
+      end
+
+      def is_macro?
         true
       end
     end

@@ -257,6 +257,45 @@ module Mal
           else
             raise TypeError
           end
+        end,
+
+        Types::Symbol.for("nth") => Types::Builtin.new do |mal|
+          list_or_vector, index = mal
+          result = list_or_vector[index.value]
+          raise IndexError if result.nil?
+          result
+        end,
+
+        Types::Symbol.for("first") => Types::Builtin.new do |mal|
+          list_or_vector, * = mal
+
+          if !list_or_vector.nil? && list_or_vector != Types::Nil.instance
+            result = list_or_vector.first
+
+            if result.nil?
+              result = Types::Nil.instance
+            end
+
+            result
+          else
+            Types::Nil.instance
+          end
+        end,
+
+        Types::Symbol.for("rest") => Types::Builtin.new do |mal|
+          list_or_vector, * = mal
+
+          if !list_or_vector.nil? && list_or_vector != Types::Nil.instance
+            result = list_or_vector[1..]
+
+            if result.nil?
+              result = Types::List.new
+            end
+
+            result.to_list
+          else
+            Types::List.new
+          end
         end
       }
     end
