@@ -85,7 +85,7 @@ module Mal
       when Types::Symbol.for("fn*")
         _, binds, to_eval = ast
 
-        Types::Function.new do |exprs|
+        Types::Function.new(to_eval, binds, environment) do |exprs|
           EVAL(to_eval, Env.new(environment, binds, exprs))
         end
       else

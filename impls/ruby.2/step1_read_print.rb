@@ -33,6 +33,8 @@ module Mal
     "Error! Detected unbalanced string. Check for matching '\"'."
   rescue UnbalancedVectorError => e
     "Error! Detected unbalanced list. Check for matching ']'."
+  rescue SkipCommentError
+    nil
   end
 end
 

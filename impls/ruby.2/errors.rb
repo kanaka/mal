@@ -2,6 +2,9 @@ module Mal
   class Error < ::StandardError; end
   class TypeError < ::TypeError; end
 
+  class SkipCommentError < Error; end
+  class FileNotFoundError < Error; end
+
   class InvalidHashmapKeyError < TypeError; end
   class InvalidIfExpressionError < TypeError; end
   class InvalidLetBindingsError < TypeError; end
