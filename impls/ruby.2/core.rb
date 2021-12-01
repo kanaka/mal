@@ -225,6 +225,38 @@ module Mal
         Types::Symbol.for("swap!") => Types::Builtin.new do |mal|
           atom, fn, *args = mal
           atom.value = fn.call(Types::List.new([atom.value, *args]))
+        end,
+
+        Types::Symbol.for("cons") => Types::Builtin.new do |mal|
+          val, list_or_vector = mal
+          Types::List.new([val, *list_or_vector])
+        end,
+
+        Types::Symbol.for("concat") => Types::Builtin.new do |mal|
+          list = Types::List.new
+
+          mal.each do |l|
+            list.concat(l)
+          end
+
+          list
+        end,
+
+        Types::Symbol.for("vec") => Types::Builtin.new do |mal|
+          case mal.first
+          when Types::List
+            vec = Types::Vector.new
+
+            mal.first.each do |m|
+              vec << m
+            end
+
+            vec
+          when Types::Vector
+            mal.first
+          else
+            raise TypeError
+          end
         end
       }
     end
