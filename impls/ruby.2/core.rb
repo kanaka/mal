@@ -6,7 +6,10 @@ module Mal
 
     def ns
       {
-        Types::Symbol.for("+") => Types::Builtin.new { |a, b| a + b },
+        Types::Symbol.for("+") => Types::Builtin.new do |a, b|
+          a + b
+        end,
+
         Types::Symbol.for("-") => Types::Builtin.new { |a, b| a - b },
         Types::Symbol.for("*") => Types::Builtin.new { |a, b| a * b },
         Types::Symbol.for("/") => Types::Builtin.new { |a, b| a / b },
@@ -175,6 +178,53 @@ module Mal
         Types::Symbol.for("println") => Types::Builtin.new do |mal|
           puts mal.map { |m| Mal.pr_str(m, false) }.join(" ")
           Types::Nil.instance
+        end,
+
+        Types::Symbol.for("read-string") => Types::Builtin.new do |mal|
+          if mal.first.is_a?(Types::String)
+            Mal.read_str(mal.first.value)
+          else
+            Types::Nil.instance
+          end
+        end,
+
+        Types::Symbol.for("slurp") => Types::Builtin.new do |mal|
+          if mal.first.is_a?(Types::String)
+            if File.exist?(mal.first.value)
+              Types::String.new(File.read(mal.first.value))
+            else
+              raise FileNotFoundError, mal.first.value
+            end
+          else
+            Types::Nil.instance
+          end
+        end,
+
+        Types::Symbol.for("atom") => Types::Builtin.new do |mal|
+          Types::Atom.new(mal.first)
+        end,
+
+        Types::Symbol.for("atom?") => Types::Builtin.new do |mal|
+          mal.first.is_a?(Types::Atom) ? Types::True.instance : Types::False.instance
+        end,
+
+        Types::Symbol.for("deref") => Types::Builtin.new do |mal|
+          mal.first.is_a?(Types::Atom) ? mal.first.value : Types::Nil.instance
+        end,
+
+        Types::Symbol.for("reset!") => Types::Builtin.new do |mal|
+          atom, value = mal
+
+          if value.nil?
+            value = Types::Nil.instance
+          end
+
+          atom.value = value
+        end,
+
+        Types::Symbol.for("swap!") => Types::Builtin.new do |mal|
+          atom, fn, *args = mal
+          atom.value = fn.call(Types::List.new([atom.value, *args]))
         end
       }
     end

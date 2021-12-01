@@ -4,13 +4,21 @@ module Mal
     class Vector < ::Array; end
     class Hashmap < ::Hash; end
 
-    class Atom < ::Struct.new(:value)
+    class Base < ::Struct.new(:value)
       def inspect
-        value.to_s
+        value.inspect
       end
     end
 
-    class Keyword < Atom
+    class String < Base; end
+
+    class Atom < Base
+      def inspect
+        "Atom<#{value.inspect}>"
+      end
+    end
+
+    class Keyword < Base
       def self.for(value)
         @_keywords ||= {}
 
@@ -22,7 +30,7 @@ module Mal
       end
     end
 
-    class Number < Atom
+    class Number < Base
       def +(other)
         self.class.new(value + other.value)
       end
@@ -40,9 +48,7 @@ module Mal
       end
     end
 
-    class String < Atom; end
-
-    class Symbol < Atom
+    class Symbol < Base
       def self.for(value)
         @_symbols ||= {}
 
@@ -52,9 +58,13 @@ module Mal
           @_symbols[value] = new(value)
         end
       end
+
+      def inspect
+        value
+      end
     end
 
-    class Nil < Atom
+    class Nil < Base
       def self.instance
         @_instance ||= new(nil)
       end
@@ -64,13 +74,13 @@ module Mal
       end
     end
 
-    class True < Atom
+    class True < Base
       def self.instance
         @_instance ||= new(true)
       end
     end
 
-    class False < Atom
+    class False < Base
       def self.instance
         @_instance ||= new(false)
       end

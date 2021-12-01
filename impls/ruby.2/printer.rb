@@ -16,17 +16,17 @@ module Mal
       if print_readably
         pr_str_keyword(mal)
       else
-        mal.inspect
+        ":#{mal.value}"
       end
     when Types::String
       if print_readably
         pr_str_string(mal)
       else
-        mal.inspect
+        mal.value
       end
     when Types::Atom
-      mal.inspect
-    when Types::Callable
+      "(atom #{pr_str(mal.value, print_readably)})"
+    when Types::Base, Types::Callable
       mal.inspect
     else
       raise InvalidTypeError

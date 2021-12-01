@@ -22,6 +22,8 @@ module Mal
       read_false(reader)
     when /\A-?\d+(\.\d+)?/
       read_number(reader)
+    when /\A;/
+      raise SkipCommentError
     else
       read_symbol(reader)
     end
@@ -157,7 +159,9 @@ module Mal
   end
 
   def read_str(input)
-    read_form(Reader.new(tokenize(input)))
+    tokenized = tokenize(input)
+    raise SkipCommentError if tokenized.empty?
+    read_form(Reader.new(tokenized))
   end
 
   def read_string(reader)
@@ -222,7 +226,7 @@ module Mal
 
   def tokenize(input)
     input.scan(TOKEN_REGEX).flatten.each_with_object([]) do |token, tokens|
-      if token != ""
+      if token != "" && !token.start_with?(";")
         tokens << token
       end
     end
