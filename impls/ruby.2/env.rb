@@ -43,7 +43,7 @@ module Mal
       when self.class
         environment.get_value(k)
       when Types::Nil
-        raise SymbolNotFoundError, "Error! Symbol #{k.value} not found."
+        raise SymbolNotFoundError, "'#{k.value}' not found"
       end
     end
 
