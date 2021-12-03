@@ -14,19 +14,6 @@ module Mal
         Types::Symbol.for("*") => Types::Builtin.new { |a, b| a * b },
         Types::Symbol.for("/") => Types::Builtin.new { |a, b| a / b },
 
-        Types::Symbol.for("prn") => Types::Builtin.new do |mal|
-          val =
-            if mal.any?
-              mal.first
-            else
-              Types::Nil.instance
-            end
-
-          puts Mal.pr_str(val, true)
-
-          Types::Nil.instance
-        end,
-
         Types::Symbol.for("list") => Types::Builtin.new do |mal|
           list = Types::List.new
           mal.each { |m| list << m }
@@ -42,6 +29,17 @@ module Mal
             end
 
           is_list ? Types::True.instance : Types::False.instance
+        end,
+
+        Types::Symbol.for("vector?") => Types::Builtin.new do |mal|
+          is_vector =
+            if mal.any?
+              Types::Vector === mal.first
+            else
+              false
+            end
+
+          is_vector ? Types::True.instance : Types::False.instance
         end,
 
         Types::Symbol.for("empty?") => Types::Builtin.new do |mal|
@@ -262,7 +260,7 @@ module Mal
         Types::Symbol.for("nth") => Types::Builtin.new do |mal|
           list_or_vector, index = mal
           result = list_or_vector[index.value]
-          raise IndexError if result.nil?
+          raise IndexError, "Index #{index.value} is out of bounds" if result.nil?
           result
         end,
 
@@ -295,6 +293,213 @@ module Mal
             result.to_list
           else
             Types::List.new
+          end
+        end,
+
+        Types::Symbol.for("throw") => Types::Builtin.new do |mal|
+          to_throw, * = mal
+          raise MalError, to_throw
+        end,
+
+        Types::Symbol.for("apply") => Types::Builtin.new do |mal|
+          fn, *rest = mal
+
+          args = Types::List.new
+
+          rest.flatten(1).each do |a|
+            args << a
+          end
+
+          fn.call(args)
+        end,
+
+        Types::Symbol.for("map") => Types::Builtin.new do |mal|
+          fn, rest = mal
+
+          map_with =
+            case rest
+            when Types::List, Types::Vector
+              rest
+            else
+              raise SyntaxError, "Must pass list/vector to map!"
+            end
+
+          results = Types::List.new
+
+          map_with.each do |a|
+            results << fn.call(a)
+          end
+
+          results
+        end,
+
+        Types::Symbol.for("nil?") => Types::Builtin.new do |mal|
+          if mal&.first == Types::Nil.instance
+            Types::True.instance
+          else
+            Types::False.instance
+          end
+        end,
+
+        Types::Symbol.for("true?") => Types::Builtin.new do |mal|
+          if mal&.first == Types::True.instance
+            Types::True.instance
+          else
+            Types::False.instance
+          end
+        end,
+
+        Types::Symbol.for("false?") => Types::Builtin.new do |mal|
+          if mal&.first == Types::False.instance
+            Types::True.instance
+          else
+            Types::False.instance
+          end
+        end,
+
+        Types::Symbol.for("symbol?") => Types::Builtin.new do |mal|
+          if mal&.first&.is_a?(Types::Symbol)
+            Types::True.instance
+          else
+            Types::False.instance
+          end
+        end,
+
+        Types::Symbol.for("keyword?") => Types::Builtin.new do |mal|
+          if mal&.first&.is_a?(Types::Keyword)
+            Types::True.instance
+          else
+            Types::False.instance
+          end
+        end,
+
+        Types::Symbol.for("symbol") => Types::Builtin.new do |mal|
+          string, * = mal
+          if string
+            Types::Symbol.for(string.value)
+          else
+            Types::Nil.instance
+          end
+        end,
+
+        Types::Symbol.for("keyword") => Types::Builtin.new do |mal|
+          string, * = mal
+          if string
+            Types::Keyword.for(string.value)
+          else
+            Types::Nil.instance
+          end
+        end,
+
+        Types::Symbol.for("vector") => Types::Builtin.new do |mal|
+          *items = mal
+
+          vector = Types::Vector.new
+
+          items.each do |i|
+            vector << i
+          end
+
+          vector
+        end,
+
+        Types::Symbol.for("sequential?") => Types::Builtin.new do |mal|
+          list_or_vector, * = mal
+
+          case list_or_vector
+          when Types::List, Types::Vector
+            Types::True.instance
+          else
+            Types::False.instance
+          end
+        end,
+
+        Types::Symbol.for("hash-map") => Types::Builtin.new do |mal|
+          *items = mal
+
+          raise UnbalancedHashmapError if items&.size&.odd?
+
+          hashmap = Types::Hashmap.new
+
+          items.each_slice(2) do |(k, v)|
+            hashmap[k] = v
+          end
+
+          hashmap
+        end,
+
+        Types::Symbol.for("map?") => Types::Builtin.new do |mal|
+          if mal&.first&.is_a?(Types::Hashmap)
+            Types::True.instance
+          else
+            Types::False.instance
+          end
+        end,
+
+        Types::Symbol.for("assoc") => Types::Builtin.new do |mal|
+          hashmap, *items = mal
+
+          raise UnbalancedHashmapError if items&.size&.odd?
+
+          new_hashmap = hashmap.dup
+
+          items.each_slice(2) do |(k, v)|
+            new_hashmap[k] = v
+          end
+
+          new_hashmap
+        end,
+
+        Types::Symbol.for("dissoc") => Types::Builtin.new do |mal|
+          hashmap, *keys = mal
+
+          new_hashmap = Types::Hashmap.new
+
+          hashmap.keys.each do |k|
+            next if keys.include?(k)
+            new_hashmap[k] = hashmap[k]
+          end
+
+          new_hashmap
+        end,
+
+        Types::Symbol.for("get") => Types::Builtin.new do |mal|
+          hashmap, key = mal
+
+          if Types::Hashmap === hashmap && key && hashmap.key?(key)
+            hashmap[key]
+          else
+            Types::Nil.instance
+          end
+        end,
+
+        Types::Symbol.for("contains?") => Types::Builtin.new do |mal|
+          hashmap, key = mal
+
+          if Types::Hashmap === hashmap && key && hashmap.key?(key)
+            Types::True.instance
+          else
+            Types::False.instance
+          end
+        end,
+
+        Types::Symbol.for("keys") => Types::Builtin.new do |mal|
+          hashmap, * = mal
+
+          if Types::Hashmap === hashmap
+            Types::List.new(hashmap.keys)
+          else
+            Types::Nil.instance
+          end
+        end,
+
+        Types::Symbol.for("vals") => Types::Builtin.new do |mal|
+          hashmap, * = mal
+
+          if Types::Hashmap === hashmap
+            Types::List.new(hashmap.values)
+          else
+            Types::Nil.instance
           end
         end
       }
