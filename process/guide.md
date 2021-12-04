@@ -193,7 +193,7 @@ summarizes the key changes at each step.
 
 If you get completely stuck and are feeling like giving up, then you
 should "cheat" by referring to the same step or functionality in
-a existing implementation language. You are here to learn, not to take
+an existing implementation language. You are here to learn, not to take
 a test, so do not feel bad about it. Okay, you should feel a little
 bit bad about it.
 
