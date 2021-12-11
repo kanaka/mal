@@ -1,18 +1,45 @@
 module Mal
   module Types
+    class Args < ::Array
+    end
+
     class List < ::Array
+      def meta
+        @meta ||= Types::Nil.instance
+      end
+
+      def meta=(value)
+        @meta = value
+      end
+
       def to_list
         self
       end
     end
 
     class Vector < ::Array
+      def meta
+        @meta ||= Types::Nil.instance
+      end
+
+      def meta=(value)
+        @meta = value
+      end
+
       def to_list
         List.new(self)
       end
     end
 
-    class Hashmap < ::Hash; end
+    class Hashmap < ::Hash
+      def meta
+        @meta ||= Types::Nil.instance
+      end
+
+      def meta=(value)
+        @meta = value
+      end
+    end
 
     class Base < ::Struct.new(:value)
       def inspect
@@ -101,12 +128,14 @@ module Mal
         @fn = block
       end
 
-      def call(args)
-        @fn.call(args)
+      def call(args = nil)
+        args = Types::Args.new if args.nil?
+        raise unless args.is_a?(Types::Args)
+        @fn.call(*args)
       end
 
       def inspect
-        raise NotImplementedError
+        raise NotImplementedError, "invalid callable"
       end
 
       def is_mal_fn?
@@ -116,11 +145,26 @@ module Mal
       def is_macro?
         false
       end
+
+      def meta
+        @meta ||= Types::Nil.instance
+      end
+
+      def meta=(value)
+        @meta = value
+      end
     end
 
     class Builtin < Callable
+      attr_reader :name
+
+      def initialize(name, &block)
+        @name = name
+        @fn = block
+      end
+
       def inspect
-        "#<builtin>"
+        "#<builtin '#{name}'>"
       end
     end
 

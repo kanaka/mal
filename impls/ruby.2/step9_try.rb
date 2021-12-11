@@ -19,7 +19,7 @@ module Mal
     @repl_env.set(
       Types::Symbol.for("eval"),
 
-      Types::Builtin.new do |mal|
+      Types::Builtin.new("eval") do |mal|
         Mal.EVAL(mal.first, @repl_env)
       end
     )
@@ -131,15 +131,7 @@ module Mal
         when Types::Symbol.for("fn*")
           _, binds, to_eval = ast
 
-          return Types::Function.new(to_eval, binds, environment) do |exprs|
-            exprs =
-              case exprs
-              when Types::List, Types::Vector
-                exprs
-              else
-                Types::List.new([exprs])
-              end
-
+          return Types::Function.new(to_eval, binds, environment) do |*exprs|
             EVAL(to_eval, Env.new(environment, binds, exprs))
           end
         when Types::Symbol.for("quote")
@@ -191,7 +183,7 @@ module Mal
               evaluated[1..],
             )
           elsif maybe_callable.respond_to?(:call) && !maybe_callable.is_mal_fn?
-            return maybe_callable.call(evaluated[1..])
+            return maybe_callable.call(Types::Args.new(evaluated[1..]))
           else
             raise NotCallableError, "Error! #{PRINT(maybe_callable)} is not callable."
           end
@@ -313,7 +305,12 @@ module Mal
   def macro_expand(mal, env)
     while is_macro_call?(mal, env)
       macro_fn = env.get(mal.first)
-      mal = macro_fn.call(mal[1..])
+
+      if (args = mal[1..]).any?
+        mal = macro_fn.call(Types::Args.new(mal[1..]))
+      else
+        mal = macro_fn.call
+      end
     end
 
     mal
