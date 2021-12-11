@@ -29,7 +29,7 @@ module Mal
     when Types::Base, Types::Callable
       mal.inspect
     else
-      raise InvalidTypeError
+      raise InvalidTypeError, "unable to print value <#{mal.inspect}>"
     end
   end
 

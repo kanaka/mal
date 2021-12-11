@@ -11,7 +11,7 @@ module Mal
     when /\A"(?:\\.|[^\\"])*"\z/
       read_string(reader)
     when /\A"/
-      raise UnbalancedStringError
+      raise UnbalancedStringError, "unbalanced string << #{reader.peek.inspect} >>"
     when /\A:/
       read_keyword(reader)
     when "nil"
@@ -73,13 +73,13 @@ module Mal
       key = read_form(reader)
 
       unless Types::String === key || Types::Keyword === key
-        raise InvalidHashmapKeyError
+        raise InvalidHashmapKeyError, "invalid hashmap key, must be string or keyword"
       end
 
       if reader.peek != "}"
         value = read_form(reader)
       else 
-        raise UnbalancedHashmapError
+        raise UnbalancedHashmapError, "unbalanced hashmap error, missing closing '}'"
       end
 
       hashmap[key] = value
@@ -90,7 +90,7 @@ module Mal
   rescue Error => e
     case e
     when InvalidReaderPositionError
-      raise UnbalancedHashmapError
+      raise UnbalancedHashmapError, "unbalanced hashmap error, missing closing '}'"
     else
       raise e
     end
@@ -115,7 +115,7 @@ module Mal
   rescue Error => e
     case e
     when InvalidReaderPositionError
-      raise UnbalancedListError
+      raise UnbalancedListError, "unbalanced list error, missing closing ')'"
     else
       raise e
     end
@@ -133,7 +133,7 @@ module Mal
     when /\d+/
       Types::Number.new(reader.next.to_i)
     else
-      raise InvalidTypeError
+      raise InvalidTypeError, "invalid number syntax, only supports integers/floats"
     end
   end
 
@@ -171,7 +171,7 @@ module Mal
     substitute_escaped_chars!(value)
 
     if raw_value.length <= 1 || raw_value[-1] != '"'
-      raise UnbalancedStringError
+      raise UnbalancedStringError, "unbalanced string error, missing closing '\"'"
     end
 
     Types::String.new(value)
@@ -205,7 +205,7 @@ module Mal
   rescue Error => e
     case e
     when InvalidReaderPositionError
-      raise UnbalancedVectorError
+      raise UnbalancedVectorError, "unbalanced vector error, missing closing ']'"
     else
       raise e
     end
@@ -253,7 +253,7 @@ module Mal
 
     def peek
       if @position > @tokens.size - 1
-        raise InvalidReaderPositionError
+        raise InvalidReaderPositionError, "invalid reader position error, unable to parse mal expression"
       end
 
       @tokens[@position]

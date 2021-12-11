@@ -26,7 +26,13 @@ module Mal
 
     Mal.rep("(def! not (fn* (a) (if a false true)))")
     Mal.rep("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \"\nnil)\")))))")
-    Mal.rep("(def! *ARGV* (list))") if !run_application?
+    Mal.rep("(def! *host-language* \"ruby.2\")")
+    Mal.rep("(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))")
+
+    if !run_application?
+      Mal.rep("(def! *ARGV* (list))")
+      Mal.rep("(println (str \"Mal [\" \*host-language\* \"]\"))")
+    end
   end
 
   def run_application?
@@ -34,8 +40,19 @@ module Mal
   end
 
   def run!
-    Mal.rep("(def! *ARGV* (list #{ARGV[1..].map(&:inspect).join(" ")}))")
-    Mal.rep("(load-file #{ARGV.first.inspect})")
+    args = ARGV[1..].map(&:inspect)
+
+    if args.any?
+      Mal.rep("(def! *ARGV* (list #{args.join(" ")}))")
+    else
+      Mal.rep("(def! *ARGV* (list))")
+    end
+
+    file = File.absolute_path(ARGV.first)
+
+    Dir.chdir(File.dirname(file)) do
+      Mal.rep("(load-file #{file.inspect})")
+    end
   end
 
   def READ(input)
@@ -44,23 +61,39 @@ module Mal
 
   def EVAL(ast, environment)
     loop do
+      ast = macro_expand(ast, environment)
+
       if Types::List === ast && ast.size > 0
         case ast.first
         when Types::Symbol.for("def!")
           _, sym, val = ast
           return environment.set(sym, EVAL(val, environment))
+        when Types::Symbol.for("defmacro!")
+          _, sym, val = ast
+          result = EVAL(val, environment)
+
+          case result
+          when Types::Function
+            return environment.set(sym, result.to_macro)
+          else
+            raise TypeError, "defmacro! must be bound to a function"
+          end
+        when Types::Symbol.for("macroexpand")
+          _, ast_rest = ast
+          return macro_expand(ast_rest, environment)
         when Types::Symbol.for("let*")
           e = Env.new(environment)
           _, bindings, val = ast
+          bindings = bindings.dup # TODO note bugfix let bindings w/ TCO loop and destructive mutation (shift)
 
           unless Types::List === bindings || Types::Vector === bindings
-            raise InvalidLetBindingsError
+            raise InvalidLetBindingsError, "let* bindings must be a list or vector"
           end
 
           until bindings.empty?
             k, v = bindings.shift(2)
 
-            raise InvalidLetBindingsError if k.nil?
+            raise InvalidLetBindingsError, "Invalid let* bindings 'nil' key" if k.nil?
             v = Types::Nil.instance if v.nil?
 
             e.set(k, EVAL(v, e))
@@ -102,7 +135,7 @@ module Mal
               # Continue loop
               ast = when_true
             else
-              raise InvalidIfExpressionError
+              raise InvalidIfExpressionError, "No expression to evaluate when true"
             end
           end
         when Types::Symbol.for("fn*")
@@ -110,6 +143,42 @@ module Mal
 
           return Types::Function.new(to_eval, binds, environment) do |*exprs|
             EVAL(to_eval, Env.new(environment, binds, exprs))
+          end
+        when Types::Symbol.for("quote")
+          _, ret = ast
+          return ret
+        when Types::Symbol.for("quasiquote")
+          _, ast_rest = ast
+          ast = quasiquote(ast_rest)
+        when Types::Symbol.for("quasiquoteexpand")
+          _, ast_rest = ast
+          return quasiquote(ast_rest)
+        when Types::Symbol.for("try*")
+          _, to_try, catch_list = ast
+
+          begin
+            return EVAL(to_try, environment)
+          rescue => e
+            raise e if catch_list.nil? || catch_list&.empty?
+            raise SyntaxError, "try* missing proper catch*" unless catch_list&.first == Types::Symbol.for("catch*")
+
+            _, exception_symbol, exception_handler = catch_list
+
+            value =
+              if e.is_a?(MalError)
+                e.value
+              else
+                Types::String.new(e.message)
+              end
+
+            return EVAL(
+              exception_handler,
+              Env.new(
+                environment,
+                Types::List.new([exception_symbol]),
+                Types::List.new([value])
+              )
+            )
           end
         else
           evaluated = eval_ast(ast, environment)
@@ -124,7 +193,11 @@ module Mal
               evaluated[1..],
             )
           elsif maybe_callable.respond_to?(:call) && !maybe_callable.is_mal_fn?
-            return maybe_callable.call(Types::Args.new(evaluated[1..]))
+            if (args = evaluated[1..]).any?
+              return maybe_callable.call(Types::Args.new(args))
+            else
+              return maybe_callable.call(Types::Args.new)
+            end
           else
             raise NotCallableError, "Error! #{PRINT(maybe_callable)} is not callable."
           end
@@ -159,6 +232,10 @@ module Mal
     "Error! Detected unbalanced string. Check for matching '\"'."
   rescue UnbalancedVectorError => e
     "Error! Detected unbalanced list. Check for matching ']'."
+  rescue MalError => e
+    "Error: #{pr_str(e.value, true)}"
+  rescue Error, TypeError => e
+    "#{e.class} -- #{e.message}"
   rescue SkipCommentError
     nil
   end
@@ -182,6 +259,75 @@ module Mal
     else
       mal
     end
+  end
+
+  def quasiquote_list(mal)
+    result = Types::List.new
+
+    mal.reverse_each do |elt|
+      if elt.is_a?(Types::List) && elt.first == Types::Symbol.for("splice-unquote")
+        result = Types::List.new([
+          Types::Symbol.for("concat"),
+          elt[1],
+          result
+        ])
+      else
+        result = Types::List.new([
+          Types::Symbol.for("cons"),
+          quasiquote(elt),
+          result
+        ])
+      end
+    end
+
+    result
+  end
+
+  def quasiquote(mal)
+    case mal
+    when Types::List
+      if mal.first == Types::Symbol.for("unquote")
+        mal[1]
+      else
+        quasiquote_list(mal)
+      end
+    when Types::Vector
+      Types::List.new([
+        Types::Symbol.for("vec"),
+        quasiquote_list(mal)
+      ])
+    when Types::Hashmap, Types::Symbol
+      Types::List.new([
+        Types::Symbol.for("quote"),
+        mal
+      ])
+    else
+      mal
+    end
+  end
+
+  def is_macro_call?(mal, env)
+    return false unless Types::List === mal
+    return false unless Types::Symbol === mal.first
+    val = env.get(mal.first)
+    return false unless Types::Callable === val
+    val.is_macro?
+  rescue SymbolNotFoundError
+    false
+  end
+
+  def macro_expand(mal, env)
+    while is_macro_call?(mal, env)
+      macro_fn = env.get(mal.first)
+
+      if (args = mal[1..]).any?
+        mal = macro_fn.call(Types::Args.new(mal[1..]))
+      else
+        mal = macro_fn.call
+      end
+    end
+
+    mal
   end
 end
 

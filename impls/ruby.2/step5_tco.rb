@@ -89,7 +89,7 @@ module Mal
         when Types::Symbol.for("fn*")
           _, binds, to_eval = ast
 
-          return Types::Function.new(to_eval, binds, environment) do |exprs|
+          return Types::Function.new(to_eval, binds, environment) do |*exprs|
             EVAL(to_eval, Env.new(environment, binds, exprs))
           end
         else
@@ -97,7 +97,7 @@ module Mal
           maybe_callable = evaluated.first
 
           if maybe_callable.respond_to?(:call) && !maybe_callable.is_mal_fn?
-            return maybe_callable.call(evaluated[1..])
+            return maybe_callable.call(Types::Args.new(evaluated[1..]))
           elsif maybe_callable.respond_to?(:call) && maybe_callable.is_mal_fn?
             # Continue loop
             ast = maybe_callable.ast

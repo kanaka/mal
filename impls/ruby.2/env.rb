@@ -13,7 +13,7 @@ module Mal
           spread_next = true
         else
           if spread_next
-            set(b, exprs[(i - 1)..(exprs.length - 1)] || Types::Nil.instance)
+            set(b, Types::List.new(exprs[(i - 1)..]) || Types::Nil.instance)
             break
           else
             set(b, exprs[i] || Types::Nil.instance)

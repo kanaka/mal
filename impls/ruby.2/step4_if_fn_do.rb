@@ -85,7 +85,7 @@ module Mal
       when Types::Symbol.for("fn*")
         _, binds, to_eval = ast
 
-        Types::Function.new(to_eval, binds, environment) do |exprs|
+        Types::Function.new(to_eval, binds, environment) do |*exprs|
           EVAL(to_eval, Env.new(environment, binds, exprs))
         end
       else
@@ -93,7 +93,7 @@ module Mal
         maybe_callable = evaluated.first
 
         if maybe_callable.respond_to?(:call)
-          maybe_callable.call(evaluated[1..])
+          maybe_callable.call(Types::Args.new(evaluated[1..]))
         else
           raise NotCallableError, "Error! #{PRINT(maybe_callable)} is not callable."
         end
