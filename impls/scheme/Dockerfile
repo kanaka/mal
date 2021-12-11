@@ -21,11 +21,12 @@ WORKDIR /mal
 # Specific implementation requirements
 ##########################################################
 
+# Dev tools
+RUN DEBIAN_FRONTEND=noninteractive apt-get -y install gcc g++ bison flex groff make cmake pkg-config git
+
 # Prepackaged Scheme implementations
 RUN apt-get -y install gauche chicken-bin
 RUN chicken-install r7rs
-# Dev tools
-RUN apt-get -y install gcc g++ bison flex groff make cmake pkg-config git
 
 # Chibi
 RUN cd /tmp && curl -Lo chibi-0.10.tar.gz https://github.com/ashinn/chibi-scheme/archive/0.10.tar.gz \
