@@ -30,8 +30,9 @@ RUN curl -sL https://deb.nodesource.com/setup_12.x | bash -
 # Install nodejs
 RUN apt-get -y install nodejs
 
-# Install purescript
-RUN apt-get install -y libtinfo5
+# Install purescript and deps
+RUN apt-get install -y git libtinfo5
 RUN npm install -g --unsafe-perm purescript spago
 
 ENV NPM_CONFIG_CACHE /mal/.npm
+ENV HOME /mal

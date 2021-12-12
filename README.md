@@ -41,7 +41,7 @@ guide](process/guide.md) there is also a [mal/make-a-lisp
 FAQ](docs/FAQ.md) where I attempt to answer some common questions.
 
 
-**3. Mal is implemented in 86 languages (90 different implementations and 112 runtime modes)**
+**3. Mal is implemented in 87 languages (91 different implementations and 113 runtime modes)**
 
 | Language | Creator |
 | -------- | ------- |
@@ -108,6 +108,7 @@ FAQ](docs/FAQ.md) where I attempt to answer some common questions.
 | [PostScript](#postscript-level-23) | [Joel Martin](https://github.com/kanaka)  |
 | [PowerShell](#powershell) | [Joel Martin](https://github.com/kanaka)  |
 | [Prolog](#prolog-logical-language) | [Nicolas Boulenguez](https://github.com/asarhaddon) |
+| [PureScript](#purescript) | [mrsekut](https://github.com/mrsekut) |
 | [Python](#python-2x-and-3x) (2.X &amp; 3.X) | [Joel Martin](https://github.com/kanaka) |
 | [Python #2](#python2-3x) (3.X) | [Gavin Lewis](https://github.com/epylar) |
 | [RPython](#rpython) | [Joel Martin](https://github.com/kanaka)  |
@@ -920,6 +921,15 @@ version 8.2.1.
 ```
 cd impls/prolog
 swipl stepX_YYY
+```
+
+### PureScript
+The PureScript implementation requires the spago compiler version 0.20.2.
+
+```
+cd impls/purs
+make
+node ./stepX_YYY.js
 ```
 
 ### Python (2.X and 3.X)
