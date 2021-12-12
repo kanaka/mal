@@ -12,7 +12,6 @@ import Data.Tuple (Tuple(..))
 import Effect (Effect)
 import Effect.Console (error, log)
 import Effect.Exception (throw, try)
-import Env as Env
 import Reader (readStr)
 import Printer (printStr)
 import Readline (readLine)
@@ -28,24 +27,24 @@ main = loop
 
 -- EVAL
 
-eval :: ReplEnv -> MalExpr -> Effect MalExpr
-eval _ ast@(MalList _ Nil)  = pure ast
-eval env (MalList _ ast)    = do
-  es <- traverse (evalAst env) ast
+eval :: MalExpr -> Effect MalExpr
+eval ast@(MalList _ Nil) = pure ast
+eval (MalList _ ast)     = do
+  es <- traverse evalAst ast
   case es of
     MalFunction {fn:f}: args -> f args
     _                        -> pure $ toList es
-eval env ast                = evalAst env ast
+eval ast                 = evalAst ast
 
 
-evalAst :: ReplEnv -> MalExpr -> Effect MalExpr
-evalAst env (MalSymbol s)      = case lookup s env of
+evalAst :: MalExpr -> Effect MalExpr
+evalAst (MalSymbol s)      = case lookup s replEnv of
   Just f  -> pure f
   Nothing -> throw "invalid function"
-evalAst env ast@(MalList _ _ ) = eval env ast
-evalAst env (MalVector _ es)   = toVector <$> (traverse (eval env) es)
-evalAst env (MalHashMap _ es)  = toHashMap <$> (traverse (eval env) es)
-evalAst _ ast                  = pure ast
+evalAst ast@(MalList _ _ ) = eval ast
+evalAst (MalVector _ es)   = toVector <$> (traverse eval es)
+evalAst (MalHashMap _ es)  = toHashMap <$> (traverse eval es)
+evalAst ast                = pure ast
 
 
 
@@ -53,34 +52,25 @@ evalAst _ ast                  = pure ast
 
 type ReplEnv = Map String MalExpr
 
+replEnv :: ReplEnv
+replEnv = Map.fromFoldable
+  [ (Tuple "+" (fn (+)))
+  , (Tuple "-" (fn (-)))
+  , (Tuple "*" (fn (*)))
+  , (Tuple "/" (fn (/)))
+  ]
 
-replEnv :: Effect ReplEnv
-replEnv = do
-  add <- fn (+)
-  sub <- fn (-)
-  mul <- fn (*)
-  div <- fn (/)
-  pure $ Map.fromFoldable
-    [ Tuple "+" add
-    , Tuple "-" sub
-    , Tuple "*" mul
-    , Tuple "/" div
-    ]
-
-
-fn :: (Int -> Int -> Int) -> Effect MalExpr
-fn op = do
-  newEnv <- Env.newEnv Nil
-  pure $ MalFunction
-          { fn     : g op
-          , ast    : MalNil
-          , env    : newEnv
-          , params : Nil
-          , macro  : false
-          , meta   : MalNil
-          }
+fn :: (Int -> Int -> Int) -> MalExpr
+fn op =
+  MalFunction
+    { fn     : g op
+    , ast    : MalNil
+    , env    : Nil
+    , params : Nil
+    , macro  : false
+    , meta   : MalNil
+    }
   where
-
   g :: (Int -> Int -> Int) -> MalFn
   g op' ((MalInt n1) : (MalInt n2) : Nil) = pure $ MalInt $ op' n1 n2
   g _ _                                   = throw "invalid operator"
@@ -91,8 +81,7 @@ fn op = do
 
 rep :: String -> Effect Unit
 rep str = do
-  env <- replEnv
-  result <- try $ eval env =<< read str
+  result <- try $ eval =<< read str
   case result of
     Left err  -> error $ show err
     Right exp -> print exp >>= log
@@ -104,9 +93,7 @@ loop = do
   case line of
     ":q" -> pure unit
     ":Q" -> pure unit
-    _    -> do
-      rep line
-      loop
+    _    -> rep line *> loop
 
 
 
