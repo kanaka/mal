@@ -9,3 +9,12 @@
 
 (de MAL-func (Env Ast Params Fn)
    (new '(+Func) Env Ast Params Fn) )
+
+(de MAL-macro (MalFn)
+   (let (env    (get MalFn 'env)
+         ast    (get MalFn 'ast)
+         params (get MalFn 'params)
+         fn     (get MalFn 'fn)
+         clone  (MAL-func env ast params fn))
+      (put clone 'is-macro T)
+      clone))

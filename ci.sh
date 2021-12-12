@@ -26,7 +26,7 @@ mode_val=${!mode_var}
 
 MAKE="make ${mode_val:+${mode_var}=${mode_val}}"
 
-log_prefix="${ACTION}${REGRESS:+-regress}-${IMPL}${mode_val:+-${mode_val}}"
+log_prefix="${ACTION}${REGRESS:+-regress}-${IMPL}${mode_val:+-${mode_val}}${MAL_IMPL:+-${MAL_IMPL}}"
 TEST_OPTS="${TEST_OPTS} --debug-file ../../${log_prefix}.debug"
 
 # Log everything below this point:

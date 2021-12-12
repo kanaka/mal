@@ -80,9 +80,7 @@
                ((= A0* 'quasiquote)
                 (setq Ast (quasiquote A1)) ) # TCO
                ((= A0* 'defmacro!)
-                (let Form (EVAL A2 Env)
-                   (put Form 'is-macro T)
-                   (throw 'done (set> Env A1* Form)) ) )
+                (throw 'done (set> Env A1* (MAL-macro (EVAL A2 Env)))))
                ((= A0* 'macroexpand)
                 (throw 'done (macroexpand A1 Env)) )
                ((= A0* 'try*)

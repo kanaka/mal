@@ -29,11 +29,7 @@ package body Types.Atoms is
    procedure Keep_References (Object : in out Instance) is
    begin
       Keep (Object.Data);
-      Keep (Object.Meta);
    end Keep_References;
-
-   function Meta (Item : in Instance) return T
-   is (Item.F_Meta);
 
    function Reset (Args : in T_Array) return T is
    begin
@@ -65,15 +61,5 @@ package body Types.Atoms is
          return X;
       end;
    end Swap;
-
-   function With_Meta (Item     : in Instance;
-                       Metadata : in T) return T is
-      Ref : constant Atom_Ptr := new Instance;
-   begin
-      Garbage_Collected.Register (Garbage_Collected.Pointer (Ref));
-      Ref.all.Data := Item.Data;
-      Ref.all.F_Meta := Metadata;
-      return (Kind_Atom, Ref);
-   end With_Meta;
 
 end Types.Atoms;

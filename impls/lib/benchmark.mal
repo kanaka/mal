@@ -1,0 +1,15 @@
+;; An alternative approach, to complement perf.mal
+(load-file      "../lib/load-file-once.mal")
+(load-file-once "../lib/trivial.mal")   ; gensym inc
+
+(def! benchmark* (fn* [f n results]
+  (if (< 0 n)
+    (let* [start-ms (time-ms)
+           _ (f)
+           end-ms (time-ms)]
+      (benchmark* f (- n 1) (conj results (- end-ms start-ms))))
+    results)))
+
+(defmacro! benchmark (fn* [expr n]
+  `(benchmark* (fn* [] ~expr) ~n [])))
+

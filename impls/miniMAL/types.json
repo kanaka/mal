@@ -91,7 +91,9 @@
 
 
 ["def", "keyword", ["fn", ["name"],
-  ["str", ["`", "\u029e"], "name"]]],
+  ["if", ["keyword?", "name"],
+    "name",
+    ["str", ["`", "\u029e"], "name"]]]],
 
 ["def", "keyword?", ["fn", ["kw"],
   ["and", ["=", ["`", "[object String]"], ["classOf", "kw"]],

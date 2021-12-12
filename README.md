@@ -35,13 +35,14 @@ Here is the final diagram for [step A](process/guide.md#stepA):
 ![stepA_mal architecture](process/stepA_mal.png)
 
 If you are interested in creating a mal implementation (or just
-interested in using mal for something), please drop by the #mal
-channel on freenode. In addition to the [make-a-lisp process
-guide](process/guide.md) there is also a [mal/make-a-lisp
+interested in using mal for something), you are welcome to to join our
+[Discord](https://discord.gg/CKgnNbJBpF) or join #mal on
+[libera.chat](https://libera.chat/). In addition to the [make-a-lisp
+process guide](process/guide.md) there is also a [mal/make-a-lisp
 FAQ](docs/FAQ.md) where I attempt to answer some common questions.
 
 
-**3. Mal is implemented in 87 languages (91 different implementations and 113 runtime modes)**
+**3. Mal is implemented in 87 languages (92 different implementations and 114 runtime modes)**
 
 | Language | Creator |
 | -------- | ------- |
@@ -82,6 +83,7 @@ FAQ](docs/FAQ.md) where I attempt to answer some common questions.
 | [Io](#io) | [Dov Murik](https://github.com/dubek) |
 | [Janet](#janet) | [sogaiu](https://github.com/sogaiu) |
 | [Java](#java-17) | [Joel Martin](https://github.com/kanaka)  |
+| [Java](#java-truffle) (Truffle/GraalVM) | [Matt McGill](https://github.com/mmcgill)
 | [JavaScript](#javascriptnode) ([Demo](http://kanaka.github.io/mal)) | [Joel Martin](https://github.com/kanaka) |
 | [jq](#jq) | [Ali MohammadPur](https://github.com/alimpfard) |
 | [Julia](#julia) | [Joel Martin](https://github.com/kanaka)  |
@@ -631,6 +633,19 @@ mvn -quiet exec:java -Dexec.mainClass=mal.stepX_YYY
 mvn -quiet exec:java -Dexec.mainClass=mal.stepX_YYY -Dexec.args="CMDLINE_ARGS"
 ```
 
+### Java, using Truffle for GraalVM
+
+This Java implementation will run on OpenJDK, but can run
+as much as 30x faster on GraalVM thanks to the Truffle framework.
+It's been tested with OpenJDK 11, GraalVM CE 20.1.0, and
+GraalVM CE 21.1.0.
+
+```
+cd impls/java-truffle
+./gradlew build
+STEP=stepX_YYY ./run
+```
+
 ### JavaScript/Node
 
 ```
@@ -1021,16 +1036,15 @@ scala -classpath target/scala*/classes stepX_YYY
 
 ### Scheme (R7RS) ###
 
-The Scheme implementation of mal has been tested with Chibi-Scheme
-0.7.3, Kawa 2.4, Gauche 0.9.5, CHICKEN 4.11.0, Sagittarius 0.8.3,
-Cyclone 0.6.3 (Git version) and Foment 0.4 (Git version).  You should
+The Scheme implementation of MAL has been tested with Chibi-Scheme
+0.10, Kawa 3.1.1, Gauche 0.9.6, CHICKEN 5.1.0, Sagittarius 0.9.7,
+Cyclone 0.32.0 (Git version) and Foment 0.4 (Git version).  You should
 be able to get it running on other conforming R7RS implementations
 after figuring out how libraries are loaded and adjusting the
 `Makefile` and `run` script accordingly.
 
 ```
 cd impls/scheme
-make symlinks
 # chibi
 scheme_MODE=chibi ./run
 # kawa

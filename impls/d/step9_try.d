@@ -165,6 +165,7 @@ MalType EVAL(MalType ast, Env env)
             case "defmacro!":
                 auto a1 = verify_cast!MalSymbol(aste[1]);
                 auto mac = verify_cast!MalFunc(EVAL(aste[2], env));
+                mac = new MalFunc(mac.arg_names, mac.func_body, mac.def_env);
                 mac.is_macro = true;
                 return env.set(a1, mac);
 

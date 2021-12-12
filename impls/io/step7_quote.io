@@ -28,8 +28,7 @@ eval_ast := method(ast, env,
        "MalMap",
            m := MalMap clone
            ast foreach(k, v,
-               keyObj := MalMap keyToObj(k)
-               m atPut(MalMap objToKey(EVAL(keyObj, env)), EVAL(v, env))
+               m atPut(k, EVAL(v, env))
            )
            m,
        ast

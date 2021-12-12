@@ -102,11 +102,9 @@ func eval_ast(ast, env)
     if (numberof(*h.keys) == 0) return ast
     res = hash_new()
     for (i = 1; i <= numberof(*h.keys); ++i) {
-      new_key = EVAL(hashmap_key_to_obj((*h.keys)(i)), env)
-      if (structof(new_key) == MalError) return new_key
       new_val = EVAL(*((*h.vals)(i)), env)
       if (structof(new_val) == MalError) return new_val
-      hash_set, res, hashmap_obj_to_key(new_key), new_val
+      hash_set, res, (*h.keys)(i), new_val
     }
     return MalHashmap(val=&res)
   } else return ast

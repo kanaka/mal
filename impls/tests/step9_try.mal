@@ -102,10 +102,6 @@
 ;; ------- Deferrable Functionality ----------
 ;; ------- (Needed for self-hosting) -------
 
-;; Testing throwing a hash-map
-(throw {:msg "err2"})
-;/.*([Ee][Rr][Rr][Oo][Rr]|[Ee]xception).*msg.*err2.*
-
 ;; Testing symbol and keyword functions
 (symbol? :abc)
 ;=>false
@@ -330,6 +326,10 @@
 ;; ------- (Not needed for self-hosting) -------
 
 
+;; Testing throwing a hash-map
+(throw {:msg "err2"})
+;/.*([Ee][Rr][Rr][Oo][Rr]|[Ee]xception).*msg.*err2.*
+
 ;;;TODO: fix so long lines don't trigger ANSI escape codes ;;;(try*
 ;;;(try* (throw ["data" "foo"]) (catch* exc (do (prn "exc is:" exc) 7))) ;;;;
 ;;;; "exc is:" ["data" "foo"] ;;;;=>7
@@ -396,3 +396,9 @@
 ;=>:abc
 (keyword? (first (keys {":abc" 123 ":def" 456})))
 ;=>false
+
+;; Testing that hashmaps don't alter function ast
+(def! bar (fn* [a] {:foo (get a :foo)}))
+(bar {:foo (fn* [x] x)})
+(bar {:foo 3})
+;; shouldn't give an error

@@ -49,7 +49,7 @@ CONSTANT: ns H{
     { "symbol" [ first <malsymbol> ] }
     { "symbol?" [ first malsymbol? ] }
     { "string?" [ first string? ] }
-    { "keyword" [ first <malkeyword> ] }
+    { "keyword" [ first dup string? [ <malkeyword> ] when ] }
     { "keyword?" [ first malkeyword? ] }
     { "number?" [ first number? ] }
     { "fn?" [ first { [ callable? ] [ { [ malfn? ] [ macro?>> not ] } 1&& ] } 1|| ] }

@@ -99,10 +99,10 @@ language is called "quux":
 mkdir impls/quux
 ```
 
-* Modify the top level Makefile to allow the tests to be run against
+* Modify the top level Makefile.impls to allow the tests to be run against
   your implementation. For example, if your language is named "quux"
   and uses "qx" as the file extension, then make the following
-  3 modifications to Makefile:
+  3 modifications to Makefile.impls:
 ```
 IMPLS = ... quux ...
 ...
@@ -193,7 +193,7 @@ summarizes the key changes at each step.
 
 If you get completely stuck and are feeling like giving up, then you
 should "cheat" by referring to the same step or functionality in
-a existing implementation language. You are here to learn, not to take
+an existing implementation language. You are here to learn, not to take
 a test, so do not feel bad about it. Okay, you should feel a little
 bit bad about it.
 
@@ -473,7 +473,12 @@ and each step will give progressively more bang for the buck.
     a similar prefixed translation anyways).
   * vector: a vector can be implemented with same underlying
     type as a list as long as there is some mechanism to keep track of
-    the difference. You can use the same reader function for both
+    the difference.
+    Vector literals are similar to lists, but use bracket as
+    delimiters instead of parenthesis.
+    For example, `[]` constructs an empty vector and `[1 "a"]` a
+    vector with two elements.
+    You can use the same reader function for both
     lists and vectors by adding parameters for the starting and ending
     tokens.
   * hash-map: a hash-map is an associative data structure that maps
@@ -481,7 +486,13 @@ and each step will give progressively more bang for the buck.
     strings, then you only need a native associative data structure
     which supports string keys. Clojure allows any value to be a hash
     map key, but the base functionality in mal is to support strings
-    and keyword keys. Because of the representation of hash-maps as
+    and keyword keys.
+    Hash-map literals are constructed with braces delimiters.
+    For example,
+    `{}` constructs an empty map,
+    `{"a" 1 :b "whatever"}` associates the `a` key to an integer value
+    and the `:b` key to a string value.
+    Because of the representation of hash-maps as
     an alternating sequence of keys and values, you can probably use
     the same reader function for hash-maps as lists and vectors with
     parameters to indicate the starting and ending tokens. The odd
@@ -581,6 +592,9 @@ You now have a simple prefix notation calculator!
   * If `ast` is a hash-map: return a new hash-map which consists of key-value
     pairs where the key is a key from the hash-map and the value is the result
     of calling `EVAL` on the corresponding value.
+    Depending on the implementation of maps, it may be convenient to
+    also call `EVAL` on keys.  The result is the same because keys are
+    not affected by evaluation.
 
 
 <a name="step3"></a>
@@ -735,10 +749,10 @@ diff -urp ../process/step3_env.txt ../process/step4_if_fn_do.txt
   this step.
 
 * Update the constructor/initializer for environments to take two new
-  arguments: `binds` and `exprs`. Bind (`set`) each element (symbol)
+  parameters: `binds` and `exprs`. Bind (`set`) each element (symbol)
   of the binds list to the respective element of the `exprs` list.
 
-* Add support to `printer.qx` to print functions values. A string
+* Add support to `printer.qx` to print function values. A string
   literal like "#\<function>" is sufficient.
 
 * Add the following special forms to `EVAL`:
@@ -985,12 +999,12 @@ diff -urp ../process/step5_tco.txt ../process/step6_file.txt
 
 * In your main program, add a new symbol "eval" to your REPL
   environment. The value of this new entry is a function that takes
-  a single argument `ast`. The closure calls the your `EVAL` function
+  a single argument `ast`. The closure calls your `EVAL` function
   using the `ast` as the first argument and the REPL environment
   (closed over from outside) as the second argument. The result of
   the `EVAL` call is returned. This simple but powerful addition
   allows your program to treat mal data as a mal program. For example,
-  you can now to this:
+  you can now do this:
 ```
 (def! mal-prog (list + 1 2))
 (eval mal-prog)
@@ -1064,7 +1078,7 @@ This isomorphism (same shape) between data and programs is known as
 "homoiconicity". Lisp languages are homoiconic and this property
 distinguishes them from most other programming languages.
 
-You mal implementation is quite powerful already but the set of
+Your mal implementation is quite powerful already but the set of
 functions that are available (from `core.qx`) is fairly limited. The
 bulk of the functions you will add are described in step 9 and step A,
 but you will begin to flesh them out over the next few steps to
@@ -1453,9 +1467,9 @@ diff -urp ../process/step8_macros.txt ../process/step9_try.txt
 
 * Add the `apply` and `map` core functions. In step 5, if you did not
   add the original function (`fn`) to the structure returned from
-  `fn*`, the you will need to do so now.
+  `fn*`, then you will need to do so now.
   * `apply`: takes at least two arguments. The first argument is
-    a function and the last argument is list (or vector). The
+    a function and the last argument is a list (or vector). The
     arguments between the function and the last argument (if there are
     any) are concatenated with the final argument to create the
     arguments that are used to call the function. The apply

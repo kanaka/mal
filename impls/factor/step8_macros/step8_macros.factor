@@ -21,7 +21,7 @@ M: object    eval-ast drop ;
     value env EVAL [ key env env-set ] keep ;
 
 :: eval-defmacro! ( key value env -- maltype )
-    value env EVAL t >>macro? [ key env env-set ] keep ;
+    value env EVAL malmacro [ key env env-set ] keep ;
 
 : eval-let* ( bindings body env -- maltype env )
     [ swap 2 group ] [ new-env ] bi* [

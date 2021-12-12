@@ -1,12 +1,13 @@
 module Types
-( MalVal (..), IOThrows, Fn, Env, MetaData (..), Vect (..),
-  keyValuePairs, throwStr, toList, keywordMagic)
+( MalVal (..), IOThrows, Fn, MetaData (..), Vect (..),
+  decodeKey, encodeKey, kv2map,
+  throwStr, toList)
 where
 
 import Data.IORef (IORef)
-import qualified Data.Map as Map
+import qualified Data.Map.Strict as Map
+--  The documentation recommends strict except in specific cases.
 import Control.Monad.Except (ExceptT, throwError)
-
 
 -- Base Mal types --
 type Fn = [MalVal] -> IOThrows MalVal
@@ -20,32 +21,35 @@ data MalVal = Nil
             | MalNumber   Int
             | MalString   String
             | MalSymbol   String
+            | MalKeyword  String
             | MalSeq      MetaData Vect [MalVal]
             | MalHashMap  MetaData (Map.Map String MalVal)
             | MalAtom     MetaData (IORef MalVal)
-            | MalFunction {fn :: Fn,
-                           f_ast :: MalVal,
-                           f_params :: [String],
-                           macro :: Bool,
-                           meta :: MalVal}
+            | MalFunction MetaData Fn
+            | MalMacro    Fn
 
-keywordMagic :: Char
-keywordMagic = '\x029e'
+--  Stored into maps to distinguish keywords and symbols.
+encodeKey :: MalVal -> Maybe String
+encodeKey (MalString  s) = pure $ 't' : s
+encodeKey (MalKeyword s) = pure $ 'e' : s
+encodeKey _              = Nothing
 
-_equal_Q :: MalVal -> MalVal -> Bool
-_equal_Q Nil Nil = True
-_equal_Q (MalBoolean a) (MalBoolean b) = a == b
-_equal_Q (MalNumber a) (MalNumber b) = a == b
-_equal_Q (MalString a) (MalString b) = a == b
-_equal_Q (MalSymbol a) (MalSymbol b) = a == b
-_equal_Q (MalSeq _ _ a) (MalSeq _ _ b) = a == b
-_equal_Q (MalHashMap _ a) (MalHashMap _ b) = a == b
-_equal_Q (MalAtom _ a) (MalAtom _ b) = a == b
-_equal_Q _ _ = False
+decodeKey :: String -> MalVal
+decodeKey ('t' : k) = MalString k
+decodeKey ('e' : k) = MalKeyword k
+decodeKey _         = error "internal error in Types.decodeKey"
 
 instance Eq MalVal where
-    x == y = _equal_Q x y
-
+    Nil              == Nil              = True
+    (MalBoolean a)   == (MalBoolean b)   = a == b
+    (MalNumber a)    == (MalNumber b)    = a == b
+    (MalString a)    == (MalString b)    = a == b
+    (MalKeyword a)   == (MalKeyword b)   = a == b
+    (MalSymbol a)    == (MalSymbol b)    = a == b
+    (MalSeq _ _ a)   == (MalSeq _ _ b)   = a == b
+    (MalHashMap _ a) == (MalHashMap _ b) = a == b
+    (MalAtom _ a)    == (MalAtom _ b)    = a == b
+    _                == _                = False
 
 --- Errors/Exceptions ---
 
@@ -54,16 +58,16 @@ type IOThrows = ExceptT MalVal IO
 throwStr :: String -> IOThrows a
 throwStr = throwError . MalString
 
--- Env types --
--- Note: Env functions are in Env module
-type Env = [IORef (Map.Map String MalVal)]
-
 --  Convenient shortcuts for common situations.
 
 toList :: [MalVal] -> MalVal
 toList = MalSeq (MetaData Nil) (Vect False)
 
-keyValuePairs :: [MalVal] -> Maybe [(String, MalVal)]
-keyValuePairs []                      = pure []
-keyValuePairs (MalString k : v : kvs) = ((k, v) :) <$> keyValuePairs kvs
-keyValuePairs _ = Nothing
+kv2map :: Map.Map String MalVal -> [MalVal] -> Maybe MalVal
+kv2map start forms = MalHashMap (MetaData Nil) <$> assoc1 start forms where
+  assoc1 :: Map.Map String MalVal -> [MalVal] -> Maybe (Map.Map String MalVal)
+  assoc1 acc (k : v : kvs) = do
+    encoded <- encodeKey k
+    assoc1 (Map.insert encoded v acc) kvs
+  assoc1 acc [] = Just acc
+  assoc1 _ [_] = Nothing

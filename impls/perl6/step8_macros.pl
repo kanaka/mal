@@ -108,6 +108,7 @@ sub eval ($ast is copy, $env is copy) {
       when 'quasiquote' { $ast = quasiquote($a1) }
       when 'defmacro!' {
         my $func = eval($a2, $env);
+        $func = MalFunction($func.ast, $func.env, $func.params, $func.fn);
         $func.is_macro = True;
         return $env.set($a1.val, $func);
       }

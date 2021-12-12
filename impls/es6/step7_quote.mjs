@@ -40,7 +40,7 @@ const eval_ast = (ast, env) => {
         return ast.map(x => EVAL(x, env))
     } else if (ast instanceof Map) {
         let new_hm = new Map()
-        ast.forEach((v, k) => new_hm.set(EVAL(k, env), EVAL(v, env)))
+        ast.forEach((v, k) => new_hm.set(k, EVAL(v, env)))
         return new_hm
     } else {
         return ast

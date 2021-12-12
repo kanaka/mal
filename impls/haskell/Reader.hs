@@ -2,108 +2,120 @@ module Reader
 ( read_str )
 where
 
+import qualified Data.Map.Strict as Map
 import Text.ParserCombinators.Parsec (
-    Parser, parse, char, digit, letter, try,
-    (<|>), oneOf, noneOf, many, many1, skipMany, skipMany1, sepEndBy, string)
-import qualified Data.Map as Map
+    Parser, parse, char, digit, anyChar,
+    (<|>), oneOf, noneOf, many, many1)
 
 import Types
 
-spaces :: Parser ()
-spaces = skipMany1 (oneOf ", \n")
+----------------------------------------------------------------------
+--  A MAL grammar and a possible parsing are described here.
 
-comment :: Parser ()
-comment = char ';' *> skipMany (noneOf "\r\n")
+--  If you are only interested in the grammar, please ignore the
+--  left-hand side of <$> and =<< operators (second column).
 
-ignored :: Parser ()
-ignored = skipMany (spaces <|> comment)
+--  *>  <*  <*>                     all mean concatenation
+--  <|>                             means alternative
+--  many  p = (many1 p) | empty     means p*, zero or more p
+--  many1 p = p (many p)            means p+, one or more p
 
-symbol :: Parser Char
-symbol = oneOf "!#$%&|*+-/:<=>?@^_~"
+--  For efficiency, the alternative operator <|> expects each branch
+--  to either:
+--  * succeed,
+--  * fall after looking at the next character without consuming it,
+--  * or consume some input and fail, indicating that the input is
+--    incorrect and no remaining branches should be ignored.
 
-escaped :: Parser Char
-escaped = f <$> (char '\\' *> oneOf "\\\"n")
-    where f 'n' = '\n'
-          f x   = x
+allowedChar   :: Parser Char
+allowedChar =                    noneOf "\n\r \"(),;[\\]{}"
 
-read_number :: Parser MalVal
-read_number = MalNumber . read <$> many1 digit
+sep           :: Parser String
+sep         =                    many (oneOf  ", \n"
+                                       <|> char ';' <* many (noneOf "\n"))
 
-read_negative_number :: Parser MalVal
-read_negative_number = f <$> char '-' <*> many1 digit
-    where f sign rest = MalNumber $ read $ sign : rest
+stringChar    :: Parser Char
+stringChar  = unescapeChar  <$> (char '\\' *>  anyChar)
+          <|>                    noneOf "\""
 
-read_string :: Parser MalVal
-read_string = MalString <$> (char '"' *> many (escaped <|> noneOf "\\\"") <* char '"')
+afterMinus    :: Parser MalVal
+afterMinus  = negative      <$>  many1 digit
+          <|> hyphenSymbol  <$>  many allowedChar
 
-read_symbol :: Parser MalVal
-read_symbol = f <$> (letter <|> symbol) <*> many (letter <|> digit <|> symbol)
-    where f first rest = g (first : rest)
-          g "true"     = MalBoolean True
-          g "false"    = MalBoolean False
-          g "nil"      = Nil
-          g s          = MalSymbol s
+afterTilde    :: Parser MalVal
+afterTilde  = spliceUnquote <$> (char '@' *> sep *> form)
+          <|> unquote       <$> (sep *> form)
 
-read_keyword :: Parser MalVal
-read_keyword = MalString . (:) keywordMagic <$> (char ':' *> many (letter <|> digit <|> symbol))
+form          :: Parser MalVal
+form        = MalString     <$> (char '"'  *> many stringChar <* char '"')
+          <|> MalKeyword    <$> (char ':'  *> many1 allowedChar)
+          <|>                    char '-'  *> afterMinus
+          <|> toList        <$> (char '('  *> sep *> many (form <* sep) <* char ')')
+          <|> vector        <$> (char '['  *> sep *> many (form <* sep) <* char ']')
+          <|> (toMap        =<<  char '{'  *> sep *> many (form <* sep) <* char '}')
+          <|> quote         <$> (char '\'' *> sep *> form)
+          <|> quasiquote    <$> (char '`'  *> sep *> form)
+          <|> deref         <$> (char '@'  *> sep *> form)
+          <|>                    char '~'  *> afterTilde
+          <|> withMeta      <$> (char '^'  *> sep *> form <* sep) <*> form
+          <|> positive      <$>  many1 digit
+          <|> symbol        <$>  many1 allowedChar
 
-read_atom :: Parser MalVal
-read_atom =  read_number
-         <|> try read_negative_number
-         <|> read_string
-         <|> read_keyword
-         <|> read_symbol
+read_form     :: Parser MalVal
+read_form   =                    sep *> form
 
-read_list :: Parser MalVal
-read_list = toList <$> (char '(' *> ignored *> sepEndBy read_form ignored <* char ')')
+----------------------------------------------------------------------
+--  Part specific to Haskell
 
-read_vector :: Parser MalVal
-read_vector = MalSeq (MetaData Nil) (Vect True) <$> (char '[' *> ignored *> sepEndBy read_form ignored <* char ']')
-
-read_hash_map :: Parser MalVal
-read_hash_map = g . keyValuePairs =<< (char '{' *> ignored *> sepEndBy read_form ignored <* char '}')
-    where g (Just pairs) = return $ MalHashMap (MetaData Nil) (Map.fromList pairs)
-          g Nothing      = fail "invalid contents inside map braces"
-
--- reader macros
 addPrefix :: String -> MalVal -> MalVal
 addPrefix s x = toList [MalSymbol s, x]
 
-read_quote :: Parser MalVal
-read_quote = addPrefix "quote" <$> (char '\'' *> read_form)
+deref :: MalVal -> MalVal
+deref = addPrefix "deref"
 
-read_quasiquote :: Parser MalVal
-read_quasiquote = addPrefix "quasiquote" <$> (char '`' *> read_form)
+hyphenSymbol :: String -> MalVal
+hyphenSymbol = MalSymbol . (:) '-'
 
-read_splice_unquote :: Parser MalVal
-read_splice_unquote = addPrefix "splice-unquote" <$> (string "~@" *> read_form)
+negative ::  String ->  MalVal
+negative = MalNumber . negate . read
 
-read_unquote :: Parser MalVal
-read_unquote = addPrefix "unquote" <$> (char '~' *> read_form)
+positive :: String -> MalVal
+positive = MalNumber . read
 
-read_deref :: Parser MalVal
-read_deref = addPrefix "deref" <$> (char '@' *> read_form)
+quasiquote :: MalVal -> MalVal
+quasiquote = addPrefix "quasiquote"
 
-read_with_meta :: Parser MalVal
-read_with_meta = f <$> (char '^' *> read_form) <*> read_form
-    where f m x = toList [MalSymbol "with-meta", x, m]
+quote :: MalVal -> MalVal
+quote = addPrefix "quote"
 
-read_macro :: Parser MalVal
-read_macro = read_quote
-         <|> read_quasiquote
-         <|> try read_splice_unquote <|> read_unquote
-         <|> read_deref
-         <|> read_with_meta
+spliceUnquote :: MalVal -> MalVal
+spliceUnquote = addPrefix "splice-unquote"
 
---
+toMap :: [MalVal] -> Parser MalVal
+toMap kvs = case kv2map Map.empty kvs of
+  Just m -> return m
+  Nothing -> fail "invalid contents in map braces"
 
-read_form :: Parser MalVal
-read_form = ignored *> (
-         read_macro
-     <|> read_list
-     <|> read_vector
-     <|> read_hash_map
-     <|> read_atom)
+unquote :: MalVal -> MalVal
+unquote = addPrefix "unquote"
+
+symbol ::  String -> MalVal
+symbol "true"  = MalBoolean True
+symbol "false" = MalBoolean False
+symbol "nil"   = Nil
+symbol s       = MalSymbol s
+
+unescapeChar :: Char -> Char
+unescapeChar 'n' = '\n'
+unescapeChar c   = c
+
+vector :: [MalVal] -> MalVal
+vector = MalSeq (MetaData Nil) (Vect True)
+
+withMeta :: MalVal -> MalVal -> MalVal
+withMeta m d = toList [MalSymbol "with-meta", d, m]
+
+--  The only exported function
 
 read_str :: String -> IOThrows MalVal
 read_str str = case parse read_form "Mal" str of
