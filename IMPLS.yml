@@ -81,6 +81,7 @@ IMPL:
   - {IMPL: rexx}
   - {IMPL: rpython, SLOW: 1}
   - {IMPL: ruby}
+  - {IMPL: ruby.2}
   - {IMPL: rust}
   - {IMPL: scala}
   - {IMPL: scheme, scheme_MODE: chibi}
