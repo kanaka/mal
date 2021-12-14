@@ -1,4 +1,10 @@
-step%.js: src/step%.purs $(OTHER_SRCS) node_modules/readline-sync
+BINS = step0_repl.js step1_read_print.js step2_eval.js step3_env.js \
+       step4_if_fn_do.js step5_tco.js step6_file.js step7_quote.js \
+       step8_macros.js step9_try.js stepA_mal.js
+
+all: $(BINS)
+
+$(BINS): %.js: src/%.purs $(OTHER_SRCS) node_modules/readline-sync
 	spago bundle-app --main $($(<:src/%=%)) --to $@
 
 
