@@ -21,6 +21,7 @@ data MalExpr
   = MalNil
   | MalBoolean Boolean
   | MalInt Int
+  | MalNumber Number
   | MalString String
   | MalKeyword String
   | MalSymbol String

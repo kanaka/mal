@@ -3,7 +3,7 @@ module Core (ns) where
 import Prelude
 
 import Data.DateTime.Instant (unInstant)
-import Data.Int (round)
+import Data.Int (toNumber)
 import Data.List (List(..), concat, drop, foldM, fromFoldable, length, reverse, (:))
 import Data.Map.Internal as Map
 import Data.Maybe (Maybe(..))
@@ -140,9 +140,10 @@ numOp op ((MalInt n1) : (MalInt n2) : Nil) = pure $ MalInt $ op n1 n2
 numOp _ _                                  = throw "invalid operator"
 
 
-cmpOp :: (Int -> Int -> Boolean) -> MalFn
-cmpOp op ((MalInt n1) : (MalInt n2) : Nil) = pure $ MalBoolean $ op n1 n2
-cmpOp _ _                                  = throw "invalid operator"
+cmpOp ∷  (Number → Number → Boolean) → List MalExpr → Effect MalExpr
+cmpOp op (MalInt n1 : MalInt n2 : Nil)       = pure $ MalBoolean $ op (toNumber n1) (toNumber n2)
+cmpOp op (MalNumber n1 : MalNumber n2 : Nil) = pure $ MalBoolean $ op n1 n2
+cmpOp _ _                                        = throw "invalid operator"
 
 
 numberQ :: MalExpr -> Boolean
@@ -194,11 +195,10 @@ readString (MalString s : Nil) = readStr s
 readString _                   = throw "invalid read-string"
 
 
--- FIXME: BigInt
 timeMs :: MalFn
 timeMs Nil = do
   n <- now
-  pure $ MalInt $ round $ (unwap <<< toDuration <<< unInstant) n - 1624173000000.0
+  pure $ MalNumber $ (unwap <<< toDuration <<< unInstant) n
   where
 
   unwap :: Milliseconds -> Number
