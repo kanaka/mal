@@ -165,6 +165,7 @@ loop :: RefEnv -> Effect Unit
 loop env = do
   line <- readLine "user> "
   case line of
+    ""   -> loop env
     ":q" -> pure unit
     _    -> do
       result <- try $ rep env line

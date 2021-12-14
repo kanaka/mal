@@ -40,8 +40,8 @@ loop :: Effect Unit
 loop = do
   line <- readLine "user> "
   case line of
+    ""   -> loop
     ":q" -> pure unit
-    ":Q" -> pure unit
     _    -> do
       rep line
       loop
