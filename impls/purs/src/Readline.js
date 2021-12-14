@@ -4,7 +4,12 @@ var readlineSync = require('readline-sync')
 
 exports.readLine = function (x) {
   return function () {
-    return readlineSync.question(x)
+    const result =  readlineSync.question(x);
+
+    if(readlineSync.getRawInput() === String.fromCharCode(0)){
+      return ":q"
+    }
+    return result;
   }
 }
 
