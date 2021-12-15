@@ -19,7 +19,7 @@ printStr :: MalExpr -> Effect String
 printStr MalNil             = pure "nil"
 printStr (MalBoolean b)     = pure $ show b
 printStr (MalInt n)         = pure $ show n
-printStr (MalNumber n)      = pure $ show n
+printStr (MalTime n)        = pure $ show n
 printStr (MalString str)    = pure $ "\"" <> (str # stringToCharList # map unescape # flatStrings) <> "\""
 printStr (MalKeyword key)   = pure key
 printStr (MalAtom _ r)      = "(atom " <<> (Ref.read r >>= printStr) <>> ")"

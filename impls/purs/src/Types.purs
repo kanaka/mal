@@ -21,7 +21,7 @@ data MalExpr
   = MalNil
   | MalBoolean Boolean
   | MalInt Int
-  | MalNumber Number
+  | MalTime Time
   | MalString String
   | MalKeyword String
   | MalSymbol String
@@ -36,6 +36,8 @@ data MalExpr
                 , macro  :: Boolean
                 , meta   :: MalExpr
                 }
+
+type Time = Number
 
 
 instance Eq MalExpr where
