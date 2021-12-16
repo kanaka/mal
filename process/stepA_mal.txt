@@ -43,13 +43,13 @@ PRINT(exp): return printer.pr_str(exp)
 repl_env = new Env()
 rep(str): return PRINT(EVAL(READ(str),repl_env))
 
-;; core.EXT: defined using Racket
+;; core.EXT: defined using the host language.
 core.ns.map((k,v) -> (repl_env.set(k, v)))
 repl_env.set('eval, (ast) -> EVAL(ast, repl-env))
 repl_env.set('*ARGV*, cmdline_args[1..])
 
 ;; core.mal: defined using the language itself
-rep("(def! *host-language* \"racket\")")
+rep("(def! *host-language* \"...\")")
 rep("(def! not (fn* (a) (if a false true)))")
 rep("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \"\nnil)\")))))")
 rep("(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))");

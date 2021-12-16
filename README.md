@@ -42,7 +42,7 @@ process guide](process/guide.md) there is also a [mal/make-a-lisp
 FAQ](docs/FAQ.md) where I attempt to answer some common questions.
 
 
-**3. Mal is implemented in 87 languages (92 different implementations and 114 runtime modes)**
+**3. Mal is implemented in 87 languages (93 different implementations and 115 runtime modes)**
 
 | Language | Creator |
 | -------- | ------- |
@@ -118,6 +118,7 @@ FAQ](docs/FAQ.md) where I attempt to answer some common questions.
 | [Racket](#racket-53) | [Joel Martin](https://github.com/kanaka)  |
 | [Rexx](#rexx) | [Dov Murik](https://github.com/dubek) |
 | [Ruby](#ruby-19) | [Joel Martin](https://github.com/kanaka)  |
+| [Ruby #2](#ruby) | [Ryan Cook](https://github.com/cookrn)  |
 | [Rust](#rust-138) | [Joel Martin](https://github.com/kanaka)  |
 | [Scala](#scala) | [Joel Martin](https://github.com/kanaka)  |
 | [Scheme (R7RS)](#scheme-r7rs) | [Vasilij Schneidermann](https://github.com/wasamasa) |
@@ -1009,6 +1010,19 @@ rexx -a ./stepX_YYY.rexxpp
 
 ```
 cd impls/ruby
+ruby stepX_YYY.rb
+```
+
+### Ruby #2
+
+A second Ruby implementation with the following goals:
+
+- No global variables
+- No modification (monkey-patching) of core Ruby classes
+- Modularized into the `Mal` module namespace
+
+```
+cd impls/ruby.2
 ruby stepX_YYY.rb
 ```
 
