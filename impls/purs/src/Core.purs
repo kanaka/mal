@@ -145,6 +145,8 @@ numOp _ _                                = throw "invalid operator"
 
 cmpOp ∷  (Int → Int → Boolean) → List MalExpr → Effect MalExpr
 cmpOp op (MalInt n1 : MalInt n2 : Nil)   = pure $ MalBoolean $ op n1 n2
+cmpOp op (MalInt n1 : MalTime n2 : Nil)  = pure $ MalBoolean $ op n1 (ceil n2)
+cmpOp op (MalTime n1 : MalInt n2 : Nil)  = pure $ MalBoolean $ op (ceil n1) n2
 cmpOp op (MalTime n1 : MalTime n2 : Nil) = pure $ MalBoolean $ op (ceil n1) (ceil n2)
 cmpOp _ _                                = throw "invalid operator"
 
