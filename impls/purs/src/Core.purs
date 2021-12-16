@@ -3,7 +3,7 @@ module Core (ns) where
 import Prelude
 
 import Data.DateTime.Instant (unInstant)
-import Data.Int (ceil)
+import Data.Int (ceil, toNumber)
 import Data.List (List(..), concat, drop, foldM, fromFoldable, length, reverse, (:))
 import Data.Map.Internal as Map
 import Data.Maybe (Maybe(..))
@@ -135,10 +135,12 @@ falseQ _                  = false
 
 -- Numeric functions
 
-numOp ∷  (Int → Int → Int) → MalFn
-numOp op ((MalInt n1) : (MalInt n2) : Nil) = pure $ MalInt $ op n1 n2
-numOp op (MalTime n1 : MalTime n2 : Nil)   = pure $ MalInt $ op (ceil n1) (ceil n2)
-numOp _ _                                  = throw "invalid operator"
+numOp ∷  (Number → Number → Number) → MalFn
+numOp op (MalInt n1 : MalInt n2 : Nil)   = pure $ MalInt $ ceil $ op (toNumber n1) (toNumber n2)
+numOp op (MalInt n1 : MalTime n2 : Nil)  = pure $ MalInt $ ceil $ op (toNumber n1) n2
+numOp op (MalTime n1 : MalInt n2 : Nil)  = pure $ MalInt $ ceil $ op n1 (toNumber n2)
+numOp op (MalTime n1 : MalTime n2 : Nil) = pure $ MalTime $ op n1 n2
+numOp _ _                                = throw "invalid operator"
 
 
 cmpOp ∷  (Int → Int → Boolean) → List MalExpr → Effect MalExpr
@@ -148,8 +150,9 @@ cmpOp _ _                                = throw "invalid operator"
 
 
 numberQ :: MalExpr -> Boolean
-numberQ (MalInt _) = true
-numberQ _          = false
+numberQ (MalInt _)  = true
+numberQ (MalTime _) = true
+numberQ _           = false
 
 
 
