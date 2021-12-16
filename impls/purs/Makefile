@@ -2,6 +2,10 @@ BINS = step0_repl.js step1_read_print.js step2_eval.js step3_env.js \
        step4_if_fn_do.js step5_tco.js step6_file.js step7_quote.js \
        step8_macros.js step9_try.js stepA_mal.js
 
+OTHER_SRCS = src/Readline.js src/Readline.purs src/Types.purs src/Reader.purs \
+             src/Printer.purs src/Env.purs src/Core.purs
+
+
 all: $(BINS)
 
 $(BINS): %.js: src/%.purs $(OTHER_SRCS) node_modules/readline-sync
@@ -25,9 +29,6 @@ step7_quote.purs = Mal.Step7
 step8_macros.purs = Mal.Step8
 step9_try.purs = Mal.Step9
 stepA_mal.purs = Mal.StepA
-
-OTHER_SRCS = src/Readline.js src/Readline.purs src/Types.purs src/Reader.purs \
-             src/Printer.purs src/Env.purs src/Core.purs
 
 
 clean:
