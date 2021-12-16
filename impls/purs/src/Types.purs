@@ -44,6 +44,7 @@ instance Eq MalExpr where
   eq MalNil MalNil                     = true
   eq (MalBoolean a) (MalBoolean b)     = a == b
   eq (MalInt a) (MalInt b)             = a == b
+  eq (MalTime a) (MalTime b)           = a == b
   eq (MalString a) (MalString b)       = a == b
   eq (MalKeyword a) (MalKeyword b)     = a == b
   eq (MalSymbol a) (MalSymbol b)       = a == b
