@@ -4,9 +4,10 @@ var fs = require('fs');
 // The first two arguments are: 'node' and 'bootstrap.js'
 // The third argument is the name of the Elm module to load.
 var args = process.argv.slice(2);
-var mod = require('./src/' + args[0]);
+var mod = require('./' + args[0] + '.js');
 
-var app = mod.Elm.Main.init({
+var modName = args[0].charAt(0).toUpperCase() + args[0].slice(1)
+var app = mod.Elm[modName].init({
     flags: {
         args: args.slice(1)
     }

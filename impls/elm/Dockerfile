@@ -34,5 +34,10 @@ RUN apt-get -y install nodejs
 # For pulling elm packages
 RUN apt-get -y install netbase
 
+RUN curl -LO https://github.com/elm/compiler/releases/download/0.19.1/binary-for-linux-64-bit.gz && \
+    gunzip binary-for-linux-64-bit.gz && \
+    chmod +x binary-for-linux-64-bit && \
+    mv binary-for-linux-64-bit /usr/local/bin/elm
+
 ENV HOME /mal
 ENV NPM_CONFIG_CACHE /mal/.npm

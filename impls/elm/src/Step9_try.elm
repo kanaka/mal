@@ -1,4 +1,4 @@
-port module Main exposing (..)
+module Step9_try exposing (..)
 
 import Array
 import Core
@@ -135,7 +135,7 @@ update msg model =
                     run env (cont io)
 
                 Input (Err error) ->
-                    Debug.todo (errorToString error)
+                    Debug.todo (errorToString error) ( model, Cmd.none )
 
 
 runInit : Args -> Env -> Eval MalExpr -> ( Model, Cmd Msg )
@@ -274,78 +274,80 @@ evalApply { frameId, bound, body } =
 
 evalNoApply : MalExpr -> Eval MalExpr
 evalNoApply ast =
-    debug "evalNoApply"
-        (\env -> printString env True ast)
-        (macroexpand ast
-            |> Eval.andThen
-                (\ast_ ->
-                    case ast_ of
-                        MalList [] ->
-                            Eval.succeed ast_
+    let
+        go ast_ =
+            case ast_ of
+                MalList [] ->
+                    Eval.succeed ast_
 
-                        MalList ((MalSymbol "def!") :: args) ->
-                            evalDef args
+                MalList ((MalSymbol "def!") :: args) ->
+                    evalDef args
 
-                        MalList ((MalSymbol "let*") :: args) ->
-                            evalLet args
+                MalList ((MalSymbol "let*") :: args) ->
+                    evalLet args
 
-                        MalList ((MalSymbol "do") :: args) ->
-                            evalDo args
+                MalList ((MalSymbol "do") :: args) ->
+                    evalDo args
 
-                        MalList ((MalSymbol "if") :: args) ->
-                            evalIf args
+                MalList ((MalSymbol "if") :: args) ->
+                    evalIf args
 
-                        MalList ((MalSymbol "fn*") :: args) ->
-                            evalFn args
+                MalList ((MalSymbol "fn*") :: args) ->
+                    evalFn args
 
-                        MalList ((MalSymbol "quote") :: args) ->
-                            evalQuote args
+                MalList ((MalSymbol "quote") :: args) ->
+                    evalQuote args
 
-                        MalList ((MalSymbol "quasiquote") :: args) ->
-                            case args of
-                                [ expr ] ->
-                                    -- TCO.
-                                    evalNoApply (evalQuasiQuote expr)
-
-                                _ ->
-                                    Eval.fail "unsupported arguments"
-
-                        MalList ((MalSymbol "defmacro!") :: args) ->
-                            evalDefMacro args
-
-                        MalList ((MalSymbol "macroexpand") :: args) ->
-                            case args of
-                                [ expr ] ->
-                                    macroexpand expr
-
-                                _ ->
-                                    Eval.fail "unsupported arguments"
-
-                        MalList list ->
-                            evalList list
-                                |> Eval.andThen
-                                    (\newList ->
-                                        case newList of
-                                            [] ->
-                                                Eval.fail "can't happen"
-
-                                            (MalFunction (CoreFunc fn)) :: args ->
-                                                fn args
-
-                                            (MalFunction (UserFunc { lazyFn })) :: args ->
-                                                lazyFn args
-
-                                            fn :: _ ->
-                                                Eval.withEnv
-                                                    (\env ->
-                                                        Eval.fail (printString env True fn ++ " is not a function")
-                                                    )
-                                    )
+                MalList ((MalSymbol "quasiquote") :: args) ->
+                    case args of
+                        [ expr ] ->
+                            -- TCO.
+                            evalNoApply (evalQuasiQuote expr)
 
                         _ ->
-                            evalAst ast
-                )
-        )
+                            Eval.fail "unsupported arguments"
+
+                MalList ((MalSymbol "defmacro!") :: args) ->
+                    evalDefMacro args
+
+                MalList ((MalSymbol "macroexpand") :: args) ->
+                    case args of
+                        [ expr ] ->
+                            macroexpand expr
+
+                        _ ->
+                            Eval.fail "unsupported arguments"
+
+                MalList ((MalSymbol "try*") :: args) ->
+                    evalTry args
+
+                MalList list ->
+                    evalList list
+                        |> Eval.andThen
+                            (\newList ->
+                                case newList of
+                                    [] ->
+                                        Eval.fail "can't happen"
+
+                                    (MalFunction (CoreFunc fn)) :: args ->
+                                        fn args
+
+                                    (MalFunction (UserFunc { lazyFn })) :: args ->
+                                        lazyFn args
+
+                                    fn :: _ ->
+                                        Eval.withEnv
+                                            (\env ->
+                                                Eval.fail (printString env True fn ++ " is not a function")
+                                            )
+                            )
+
+                _ ->
+                    evalAst ast
+    in
+    debug "evalNoApply"
+        (\env -> printString env True ast)
+        (macroexpand ast |> Eval.andThen go)
 
 
 evalAst : MalExpr -> Eval MalExpr
@@ -693,6 +695,29 @@ macroexpand expr =
                     Right expr_
     in
     Eval.runLoop expand expr
+
+
+evalTry : List MalExpr -> Eval MalExpr
+evalTry args =
+    case args of
+        [ body ] ->
+            eval body
+
+        [ body, MalList [ MalSymbol "catch*", MalSymbol sym, handler ] ] ->
+            eval body
+                |> Eval.catchError
+                    (\ex ->
+                        Eval.modifyEnv Env.push
+                            |> Eval.andThen
+                                (\_ ->
+                                    Eval.modifyEnv (Env.set sym ex)
+                                )
+                            |> Eval.andThen (\_ -> eval handler)
+                            |> Eval.finally Env.pop
+                    )
+
+        _ ->
+            Eval.fail "try* expected a body a catch block"
 
 
 print : Env -> MalExpr -> String
