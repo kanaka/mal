@@ -20,7 +20,7 @@ use crate::types::{error, format_error, MalArgs, MalErr, MalRet, MalVal};
 mod env;
 mod printer;
 mod reader;
-use crate::env::{env_bind, env_find, env_get, env_new, env_set, env_sets, Env};
+use crate::env::{env_bind, env_get, env_new, env_set, env_sets, Env};
 #[macro_use]
 mod core;
 
@@ -67,52 +67,33 @@ fn quasiquote(ast: &MalVal) -> MalVal {
     }
 }
 
-fn is_macro_call(ast: &MalVal, env: &Env) -> Option<(MalVal, MalArgs)> {
-    match ast {
-        List(v, _) => match v[0] {
-            Sym(ref s) => match env_find(env, s) {
-                Some(e) => match env_get(&e, &v[0]) {
-                    Ok(f @ MalFunc { is_macro: true, .. }) => Some((f, v[1..].to_vec())),
-                    _ => None,
-                },
-                _ => None,
-            },
-            _ => None,
-        },
-        _ => None,
-    }
-}
-
-fn macroexpand(mut ast: MalVal, env: &Env) -> (bool, MalRet) {
-    let mut was_expanded = false;
-    while let Some((mf, args)) = is_macro_call(&ast, env) {
-        //println!("macroexpand 1: {:?}", ast);
-        ast = match mf.apply(args) {
-            Err(e) => return (false, Err(e)),
-            Ok(a) => a,
-        };
-        //println!("macroexpand 2: {:?}", ast);
-        was_expanded = true;
-    }
-    ((was_expanded, Ok(ast)))
-}
-
-fn eval_ast(ast: &MalVal, env: &Env) -> MalRet {
-    match ast {
-        Sym(_) => Ok(env_get(&env, &ast)?),
-        List(v, _) => {
+fn eval_ast(v: &MalArgs, env: &Env) -> Result<MalArgs, MalErr> {
             let mut lst: MalArgs = vec![];
             for a in v.iter() {
-                lst.push(eval(a.clone(), env.clone())?)
+                match eval(a.clone(), env.clone()) {
+                    Ok(elt) => lst.push(elt),
+                    Err(e) => return Err(e),
+                }
             }
-            Ok(list!(lst))
+            return Ok(lst);
+}
+
+fn eval(mut ast: MalVal, mut env: Env) -> MalRet {
+    let ret: MalRet;
+
+    'tco: loop {
+        match env_get(&env, "DEBUG-EVAL") {
+            None | Some(Bool(false)) | Some(Nil) => (),
+            _ => println!("EVAL: {}", print(&ast)),
         }
-        Vector(v, _) => {
-            let mut lst: MalArgs = vec![];
-            for a in v.iter() {
-                lst.push(eval(a.clone(), env.clone())?)
-            }
-            Ok(vector!(lst))
+        ret = match ast {
+        Sym(ref s) => match env_get(&env, s) {
+            Some(r) => Ok(r),
+            None => error (&format!("'{}' not found", s)),
+        }
+        Vector(ref v, _) => match eval_ast(&v, &env) {
+            Ok(lst) => Ok(vector!(lst)),
+            Err(e) => Err(e),
         }
         Hash(hm, _) => {
             let mut new_hm: FnvHashMap<String, MalVal> = FnvHashMap::default();
@@ -121,28 +102,7 @@ fn eval_ast(ast: &MalVal, env: &Env) -> MalRet {
             }
             Ok(Hash(Rc::new(new_hm), Rc::new(Nil)))
         }
-        _ => Ok(ast.clone()),
-    }
-}
-
-fn eval(mut ast: MalVal, mut env: Env) -> MalRet {
-    let ret: MalRet;
-
-    'tco: loop {
-        ret = match ast.clone() {
-            List(l, _) => {
-                if l.len() == 0 {
-                    return Ok(ast);
-                }
-                match macroexpand(ast.clone(), &env) {
-                    (true, Ok(new_ast)) => {
-                        ast = new_ast;
-                        continue 'tco;
-                    }
-                    (_, Err(e)) => return Err(e),
-                    _ => (),
-                }
-
+        List(ref l, _) => {
                 if l.len() == 0 {
                     return Ok(ast);
                 }
@@ -179,7 +139,6 @@ fn eval(mut ast: MalVal, mut env: Env) -> MalRet {
                         continue 'tco;
                     }
                     Sym(ref a0sym) if a0sym == "quote" => Ok(l[1].clone()),
-                    Sym(ref a0sym) if a0sym == "quasiquoteexpand" => Ok(quasiquote(&l[1])),
                     Sym(ref a0sym) if a0sym == "quasiquote" => {
                         ast = quasiquote(&l[1]);
                         continue 'tco;
@@ -209,19 +168,13 @@ fn eval(mut ast: MalVal, mut env: Env) -> MalRet {
                             _ => error("set_macro on non-function"),
                         }
                     }
-                    Sym(ref a0sym) if a0sym == "macroexpand" => {
-                        match macroexpand(l[1].clone(), &env) {
-                            (_, Ok(new_ast)) => Ok(new_ast),
-                            (_, e) => return e,
-                        }
-                    }
                     Sym(ref a0sym) if a0sym == "do" => {
-                        match eval_ast(&list!(l[1..l.len() - 1].to_vec()), &env)? {
-                            List(_, _) => {
+                        match eval_ast(&l[1..l.len() - 1].to_vec(), &env) {
+                            Ok(_) => {
                                 ast = l.last().unwrap_or(&Nil).clone();
                                 continue 'tco;
                             }
-                            _ => error("invalid do form"),
+                            Err(e) => return Err(e),
                         }
                     }
                     Sym(ref a0sym) if a0sym == "if" => {
@@ -257,32 +210,39 @@ fn eval(mut ast: MalVal, mut env: Env) -> MalRet {
                         }
                         continue 'tco;
                     }
-                    _ => match eval_ast(&ast, &env)? {
-                        List(ref el, _) => {
-                            let ref f = el[0].clone();
-                            let args = el[1..].to_vec();
-                            match f {
-                                Func(_, _) => f.apply(args),
-                                MalFunc {
-                                    ast: mast,
-                                    env: menv,
-                                    params,
+                    _ => match eval(a0.clone(), env.clone()) {
+                                Ok(f @ MalFunc { is_macro: true, .. }) => match f.apply(l[1..].to_vec()) {
+                                    Ok(new_ast) => {
+                                        ast = new_ast;
+                                        continue 'tco;
+                                    }
+                                    Err(e) => return Err(e),
+                                }
+                                Ok(f @ Func(_, _)) => match eval_ast(&l[1..].to_vec(), &env) {
+                                    Ok(args) => f.apply(args),
+                                    Err(e) => return Err(e),
+                                }
+                                Ok(MalFunc {
+                                    ast: ref mast,
+                                    env: ref menv,
+                                    params : ref mparams,
                                     ..
-                                } => {
+                                }) => match eval_ast(&l[1..].to_vec(), &env) {
+                                  Ok(args) => {
                                     let a = &**mast;
-                                    let p = &**params;
-                                    env = env_bind(Some(menv.clone()), p.clone(), args)?;
+                                    let p = &**mparams;
+                                    env = env_bind(Some(menv.clone()), p.clone(), args.to_vec())?;
                                     ast = a.clone();
                                     continue 'tco;
+                                  }
+                                  Err(e) => return Err(e),
                                 }
-                                _ => error("attempt to call non-function"),
-                            }
-                        }
-                        _ => error("expected a list"),
+                                Ok(_) => error("attempt to call non-function"),
+                                Err(e) => return Err(e),
                     },
                 }
-            }
-            _ => eval_ast(&ast, &env),
+        }
+        _ => Ok(ast.clone()),
         };
 
         break;

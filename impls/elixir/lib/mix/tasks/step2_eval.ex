@@ -18,7 +18,7 @@ defmodule Mix.Tasks.Step2Eval do
   end
 
   defp eval_ast({:list, ast, meta}, env) when is_list(ast) do
-    {:list, Enum.map(ast, fn elem -> eval(elem, env) end), meta}
+    eval_list(ast, env, meta)
   end
 
   defp eval_ast({:map, ast, meta}, env) do
@@ -46,14 +46,18 @@ defmodule Mix.Tasks.Step2Eval do
     Mal.Reader.read_str(input)
   end
 
-  defp eval({:list, [], _} = empty_ast, _env), do: empty_ast
-  defp eval({:list, ast, meta}, env), do: eval_list(ast, env, meta)
-  defp eval(ast, env), do: eval_ast(ast, env)
+  defp eval(ast, env) do
+    # IO.puts("EVAL: #{Mal.Printer.print_str(ast)}")
+    eval_ast(ast, env)
+  end
 
-  defp eval_list(ast, env, meta) do
-    {:list, [func | args], _} = eval_ast({:list, ast, meta}, env)
+  defp eval_list([a0 | args], env, _meta) do
+    func = eval(a0, env)
+    args = Enum.map(args, fn elem -> eval(elem, env) end)
     apply(func, args)
   end
+
+  defp eval_list([], _env, meta), do: {:list, [], meta}
 
   defp print(value) do
     Mal.Printer.print_str(value)

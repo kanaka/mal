@@ -29,11 +29,17 @@ def READ(x: str) -> MalExpression:
     return reader.read(x)
 
 
-def eval_ast(ast: MalExpression, env: Env) -> MalExpression:
+def EVAL(ast: MalExpression, env: Env) -> MalExpression:
+    dbgeval = env.get("DEBUG-EVAL")
+    if (dbgeval is not None
+        and not isinstance(dbgeval, MalNil)
+        and (not isinstance(dbgeval, MalBoolean) or dbgeval.native())):
+        print("EVAL: " + str(ast))
     if isinstance(ast, MalSymbol):
-        return env.get(ast)
-    if isinstance(ast, MalList):
-        return MalList([EVAL(x, env) for x in ast.native()])
+        key = str(ast)
+        val = env.get(key)
+        if val is None: raise MalUnknownSymbolException(key)
+        return val
     if isinstance(ast, MalVector):
         return MalVector([EVAL(x, env) for x in ast.native()])
     if isinstance(ast, MalHash_map):
@@ -41,13 +47,8 @@ def eval_ast(ast: MalExpression, env: Env) -> MalExpression:
         for key in ast.native():
             new_dict[key] = EVAL(ast.native()[key], env)
         return MalHash_map(new_dict)
-    return ast
-
-
-def EVAL(ast: MalExpression, env: Env) -> MalExpression:
-    # print("EVAL: " + str(ast))
     if not isinstance(ast, MalList):
-        return eval_ast(ast, env)
+        return ast
     if len(ast.native()) == 0:
         return ast
     first = str(ast.native()[0])
@@ -93,9 +94,7 @@ def EVAL(ast: MalExpression, env: Env) -> MalExpression:
 
         return MalFunctionCompiled(func_body)
 
-    evaled_ast = eval_ast(ast, env)
-    f = evaled_ast.native()[0]
-    args = evaled_ast.native()[1:]
+    f, *args = (EVAL(form, env) for form in ast.native())
     try:
         return f.call(args)
     except AttributeError:

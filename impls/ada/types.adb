@@ -141,40 +141,6 @@ package body Types is
       return To_Str (T, Print_Readably);
    end To_String;
 
-   function Is_Macro_Call (T : Mal_Type'Class; Env : Envs.Env_Handle) return Boolean is
-      L : List_Mal_Type;
-      First_Elem, Func : Mal_Handle;
-   begin
-
-      if T.Sym_Type /= List then
-         return False;
-      end if;
-
-      L := List_Mal_Type (T);
-
-      if Is_Null (L) then
-         return False;
-      end if;
-
-      First_Elem := Car (L);
-
-      if Deref (First_Elem).Sym_Type /= Sym then
-         return False;
-      end if;
-
-      Func := Envs.Get (Env, Deref_Sym (First_Elem).Get_Sym);
-
-      if Deref (Func).Sym_Type /= Lambda then
-         return False;
-      end if;
-
-      return Deref_Lambda (Func).Get_Is_Macro;
-
-   exception
-      when Envs.Not_Found => return False;
-   end Is_Macro_Call;
-
-
    -- A helper function that just view converts the smart pointer.
    function Deref (S : Mal_Handle) return Mal_Ptr is
    begin
@@ -1071,41 +1037,6 @@ package body Types is
       return Res;
 
    end Apply;
-
-
-   function Get_Macro (T : Mal_Handle; Env : Envs.Env_Handle) return Lambda_Ptr is
-      L : List_Mal_Type;
-      First_Elem, Func : Mal_Handle;
-   begin
-
-      if Deref (T).Sym_Type /= List then
-         return null;
-      end if;
-
-      L := Deref_List (T).all;
-
-      if Is_Null (L) then
-         return null;
-      end if;
-
-      First_Elem := Car (L);
-
-      if Deref (First_Elem).Sym_Type /= Sym then
-         return null;
-      end if;
-
-      Func := Envs.Get (Env, Deref_Sym (First_Elem).Get_Sym);
-
-      if Deref (Func).Sym_Type /= Lambda then
-         return null;
-      end if;
-
-      return Deref_Lambda (Func);
-
-   exception
-      when Envs.Not_Found => return null;
-   end Get_Macro;
-
 
    overriding function To_Str 
      (T : Lambda_Mal_Type; Print_Readably : Boolean := True)

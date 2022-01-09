@@ -541,23 +541,17 @@ repl_env = {'+': lambda a,b: a+b,
 * Modify the `rep` function to pass the REPL environment as the second
   parameter for the `EVAL` call.
 
-* Create a new function `eval_ast` which takes `ast` (mal data type)
-  and an associative structure (the environment from above).
-  `eval_ast` switches on the type of `ast` as follows:
+* In `EVAL`, switch on the type of the first parameter `ast` as follows:
 
   * symbol: lookup the symbol in the environment structure and return
-    the value or raise an error if no value is found
-  * list: return a new list that is the result of calling `EVAL` on
-    each of the members of the list
-  * otherwise just return the original `ast` value
+    the value.
+    If the key is missing, throw/raise a "not found" error.
 
-* Modify `EVAL` to check if the first parameter `ast` is a list.
-  * `ast` is not a list: then return the result of calling `eval_ast`
-    on it.
-  * `ast` is a empty list: return ast unchanged.
-  * `ast` is a list: call `eval_ast` to get a new evaluated list. Take
-    the first item of the evaluated list and call it as function using
-    the rest of the evaluated list as its arguments.
+  * `ast` is a non-empty list:
+    call `EVAL` on each of the members of the list.
+    Take the first evaluated item and call it as function using
+    the rest of the evaluated items as its arguments.
+  * otherwise just return the original `ast` value
 
 If your target language does not have full variable length argument
 support (e.g. variadic, vararg, splats, apply) then you will need to
@@ -585,8 +579,17 @@ You now have a simple prefix notation calculator!
 
 #### Deferrable:
 
-* `eval_ast` should evaluate elements of vectors and hash-maps.  Add the
-  following cases in `eval_ast`:
+* Add a print statement at the top of the main `eval` function, for
+  debugging issues or simply figuring how evaluation works.
+  The statement should be active when `env` contains the `DEBUG-EVAL`
+  key and the associated value is neither `nil` nor `false`.
+  For consistency, it should print "EVAL: " followed by the current
+  value of `ast` formatted with `pr_str` with the readably flag set.
+  Feel free to add any information you see fit, for example the
+  contents of `env`.
+
+* `EVAL` should evaluate elements of vectors and hash-maps.  Add the
+  following cases in `EVAL`:
   * If `ast` is a vector: return a new vector that is the result of calling
     `EVAL` on each of the members of the vector.
   * If `ast` is a hash-map: return a new hash-map which consists of key-value
@@ -634,19 +637,19 @@ diff -urp ../process/step2_eval.txt ../process/step3_env.txt
 * Define three methods for the Env object:
   * set: takes a symbol key and a mal value and adds to the `data`
     structure
-  * find: takes a symbol key and if the current environment contains
-    that key then return the environment. If no key is found and outer
-    is not `nil` then call find (recurse) on the outer environment.
-  * get: takes a symbol key and uses the `find` method to locate the
-    environment with the key, then returns the matching value. If no
-    key is found up the outer chain, then throws/raises a "not found"
-    error.
+  * get: takes a symbol key and if the current environment contains
+    that key then return the matching value. If no key is found and outer
+    is not `nil` then call get (recurse) on the outer environment.
+    Depending on the host language, a loop structure may be more
+    simple or efficient than a recursion.
+    If no key is found up the outer chain, then report that the key is
+    missing with the most idiomatic mechanism.
 
 * Update `step3_env.qx` to use the new `Env` type to create the
   repl_env (with a `nil` outer value) and use the `set` method to add
   the numeric functions.
 
-* Modify `eval_ast` to call the `get` method on the `env` parameter.
+* Modify `EVAL` to call the `get` method on the `env` parameter.
 
 * Modify the apply section of `EVAL` to switch on the first element of
   the list:
@@ -667,8 +670,7 @@ diff -urp ../process/step2_eval.txt ../process/step3_env.txt
     original `let*` form is evaluated using the new "let\*" environment
     and the result is returned as the result of the `let*` (the new
     let environment is discarded upon completion).
-  * otherwise: call `eval_ast` on the list and apply the first element
-    to the rest as before.
+  * otherwise: proceed as before.
 
 `def!` and `let*` are Lisp "specials" (or "special atoms") which means
 that they are language level features and more specifically that the
@@ -757,7 +759,7 @@ diff -urp ../process/step3_env.txt ../process/step4_if_fn_do.txt
 
 * Add the following special forms to `EVAL`:
 
-  * `do`: Evaluate all the elements of the list using `eval_ast`
+  * `do`: Evaluate all the elements of the list
     and return the final evaluated element.
   * `if`: Evaluate the first parameter (second element). If the result
     (condition) is anything other than `nil` or `false`, then evaluate
@@ -905,7 +907,7 @@ diff -urp ../process/step4_if_fn_do.txt ../process/step5_tco.txt
     `ast` (i.e. the local variable passed in as first parameter of
     `EVAL`) to be the second `ast` argument. Continue at the beginning
     of the loop (no return).
-  * `do`: change the `eval_ast` call to evaluate all the parameters
+  * `do`: change the implementation to evaluate all the parameters
     except for the last (2nd list element up to but not including
     last). Set `ast` to the last element of `ast`. Continue
     at the beginning of the loop (`env` stays unchanged).
@@ -930,7 +932,7 @@ diff -urp ../process/step4_if_fn_do.txt ../process/step5_tco.txt
 
 * The default "apply"/invoke case of `EVAL` must now be changed to
   account for the new object/structure returned by the `fn*` form.
-  Continue to call `eval_ast` on `ast`. The first element of the 
+  Once each element of `ast` is evaluated, the first element of the
   result of `eval_ast` is `f` and the remaining elements are in `args`.
   Switch on the type of `f`:
   * regular function (not one defined by `fn*`): apply/invoke it as
@@ -1216,15 +1218,11 @@ Mal borrows most of its syntax and feature-set).
     Such forms are not affected by evaluation, so you may quote them
     as in the previous case if implementation is easier.
 
-* Optionally, add a the `quasiquoteexpand` special form.
-  This form calls the `quasiquote` function using the first `ast`
-  argument (second list element) and returns the result.
-  It has no other practical purpose than testing your implementation
-  of the `quasiquote` internal function.
-
 * Add the `quasiquote` special form.
-  This form does the same than `quasiquoteexpand`,
-  but evaluates the result in the current environment before returning it,
+
+  This form calls the `quasiquote` function using the first `ast`
+  argument (second list element),
+  then evaluates the result in the current environment,
   either by recursively calling `EVAL` with the result and `env`,
   or by assigning `ast` with the result and continuing execution at
   the top of the loop (TCO).
@@ -1233,6 +1231,11 @@ Now go to the top level, run the step 7 tests:
 ```
 make "test^quux^step7"
 ```
+
+If some tests do not pass, it may be convenient to enable the debug
+print statement at the top of your main `eval` function (inside the
+TCO loop).  The quasiquoted but yet unevaluated AST will often reveal
+the source of the issue.
 
 Quoting is one of the more mundane functions available in mal, but do
 not let that discourage you. Your mal implementation is almost
@@ -1313,35 +1316,28 @@ simple.
   `def!` form, but before the evaluated value (mal function) is set in
   the environment, the `is_macro` attribute should be set to true.
 
-* Add a `is_macro_call` function: This function takes arguments `ast`
-  and `env`. It returns true if `ast` is a list that contains a symbol
-  as the first element and that symbol refers to a function in the
-  `env` environment and that function has the `is_macro` attribute set
-  to true. Otherwise, it returns false.
+* In `EVAL`,
+  when `ast` is a non-empty list without leading special form,
+  the normal apply phase evaluates all elements of `ast`.
 
-* Add a `macroexpand` function: This function takes arguments `ast`
-  and `env`. It calls `is_macro_call` with `ast` and `env` and loops
-  while that condition is true. Inside the loop, the first element of
-  the `ast` list (a symbol), is looked up in the environment to get
-  the macro function. This macro function is then called/applied with
-  the rest of the `ast` elements (2nd through the last) as arguments.
-  The return value of the macro call becomes the new value of `ast`.
-  When the loop completes because `ast` no longer represents a macro
-  call, the current value of `ast` is returned.
+  Start by evaluating the first element separately.
+  The result must be a function.
+  If this function does have the `is_macro` attribute set,
 
-* In the evaluator (`EVAL`) before the special forms switch (apply
-  section), perform macro expansion by calling the `macroexpand`
-  function with the current value of `ast` and `env`. Set `ast` to the
-  result of that call. If the new value of `ast` is no longer a list
-  after macro expansion, then return the result of calling `eval_ast`
-  on it, otherwise continue with the rest of the apply section
-  (special forms switch).
+  * apply the function to the (unevaluated) remaining elements of
+    `ast`, producing a new form.
 
-* Add a new special form condition for `macroexpand`. Call the
-  `macroexpand` function using the first `ast` argument (second list
-  element) and `env`. Return the result. This special form allows
-  a mal program to do explicit macro expansion without applying the
-  result (which can be useful for debugging macro expansion).
+  * evaluate the new form in the `env` environment.
+    Of course, instead of recursively calling `EVAL`, replace `ast`
+    with the new form and restart the TCO loop.
+
+  For functions without the attribute, proceed as before: evaluate the
+  remaining elements of `ast`, then apply the function to them.
+
+
+If you check existing implementations, be warned that former versions
+of this guide were describing a slightly different macro expansion
+mechanism.
 
 Now go to the top level, run the step 8 tests:
 ```
@@ -1352,14 +1348,14 @@ There is a reasonably good chance that the macro tests will not pass
 the first time. Although the implementation of macros is fairly
 simple, debugging runtime bugs with macros can be fairly tricky. If
 you do run into subtle problems that are difficult to solve, let me
-recommend a couple of approaches:
+recommend an approach:
 
-* Use the macroexpand special form to eliminate one of the layers of
-  indirection (to expand but skip evaluate). This will often reveal
-  the source of the issue.
-* Add a debug print statement to the top of your main `eval` function
-  (inside the TCO loop) to print the current value of `ast` (hint use
-  `pr_str` to get easier to debug output). Pull up the step8
+* Enable the debug print statement at the top of your main `eval`
+  function (inside the TCO loop).
+  The expanded but yet unevaluated AST will often reveal the source of
+  the issue.
+
+* Pull up the step8
   implementation from another language and uncomment its `eval`
   function (yes, I give you permission to violate the rule this once).
   Run the two side-by-side. The first difference is likely to point to

@@ -26,3 +26,7 @@ class Env():
         env = self.find(key)
         if not env: raise Exception("'" + key + "' not found")
         return env.data[key]
+
+    def get_or_nil(self, key):
+        env = self.find(key)
+        if env: return env.data[key]

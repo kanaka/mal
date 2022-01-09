@@ -23,19 +23,6 @@
 (define (READ str)
   (read_str str))
 
-(define (eval_ast ast env)
-  (define (_eval x) (EVAL x env))
-  (match ast
-    ((? _nil? obj) obj)
-    ((? symbol? sym) (env-has sym env))
-    ((? list? lst) (map _eval lst))
-    ((? vector? vec) (vector-map (lambda (i x) (_eval x)) vec))
-    ((? hash-table? ht)
-     (define new-ht (make-hash-table))
-     (hash-for-each (lambda (k v) (hash-set! new-ht k (_eval v))) ht)
-     new-ht)
-    (else ast)))
-
 (define (eval_seq ast env)
   (cond
    ((null? ast) nil)
@@ -57,20 +44,6 @@
     ((? symbol?)     (list 'quote ast))
     (else            ast)))
 
-(define (is_macro_call ast env)
-  (and (list? ast)
-       (> (length ast) 0)
-       (and=> (env-check (car ast) env) is-macro)))
-
-(define (_macroexpand ast env)
-  (cond
-   ((is_macro_call ast env)
-    => (lambda (c)
-         ;; NOTE: Macros are normal-order, so we shouldn't eval args here.
-         ;;       Or it's applicable-order.
-         (_macroexpand (callable-apply c (cdr ast)) env)))
-   (else ast)))
-   
 (define (EVAL ast env)
   (define (%unzip2 kvs)
     (let lp((next kvs) (k '()) (v '()))
@@ -81,16 +54,21 @@
         (throw 'mal-error (format #f "let*: Invalid binding form '~a'" kvs))) 
        (else (lp (cddr next) (cons (car next) k) (cons (cadr next) v))))))
   (let tco-loop((ast ast) (env env)) ; expand as possible
-    (let ((ast (_macroexpand ast env)))
+      (when (cond-true? (env-check 'DEBUG-EVAL env))
+        (format #t "EVAL: ~a~%" (pr_str ast #t)))
       (match ast
-        ((? non-list?) (eval_ast ast env))
+        ((? symbol? sym) (env-has sym env))
+        ((? vector? vec) (vector-map (lambda (i x) (EVAL x env)) vec))
+        ((? hash-table? ht)
+         (define new-ht (make-hash-table))
+         (hash-for-each (lambda (k v) (hash-set! new-ht k (EVAL v env))) ht)
+         new-ht)
+        ((? non-list?) ast)
         (() ast)
         (('defmacro! k v)
          (let ((c (EVAL v env)))
            ((env 'set) k (callable-as-macro c))))
-        (('macroexpand obj) (_macroexpand obj env))
         (('quote obj) obj)
-        (('quasiquoteexpand obj) (_quasiquote obj))
         (('quasiquote obj) (EVAL (_quasiquote obj) env))
         (('def! k v) ((env 'set) k (EVAL v env)))
         (('let* kvs body)
@@ -131,8 +109,11 @@
                   (eval_seq mexpr nenv)
                   (tco-loop tail-call nenv))))))))
         (else
-          (let ((el (map (lambda (x) (EVAL x env)) ast)))
-            (callable-apply (car el) (cdr el))))))))
+          (let ((f (EVAL (car ast) env))
+                (args (cdr ast)))
+            (if (is-macro f)
+              (EVAL (callable-apply f args) env)
+              (callable-apply f (map (lambda (x) (EVAL x env)) args))))))))
 
 (define (EVAL-string str)
   (EVAL (read_str str) *toplevel*))

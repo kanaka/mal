@@ -47,26 +47,13 @@ pub fn env_bind(outer: Option<Env>, mbinds: MalVal, exprs: Vec<MalVal>) -> Resul
     }
 }
 
-pub fn env_find(env: &Env, key: &str) -> Option<Env> {
-    match (env.data.borrow().contains_key(key), env.outer.clone()) {
-        (true, _) => Some(env.clone()),
-        (false, Some(o)) => env_find(&o, key),
-        _ => None,
-    }
-}
-
-pub fn env_get(env: &Env, key: &MalVal) -> MalRet {
-    match key {
-        Sym(ref s) => match env_find(env, s) {
-            Some(e) => Ok(e
-                .data
-                .borrow()
-                .get(s)
-                .ok_or(ErrString(format!("'{}' not found", s)))?
-                .clone()),
-            _ => error(&format!("'{}' not found", s)),
-        },
-        _ => error("Env.get called with non-Str"),
+pub fn env_get(env: &Env, key: &str) -> Option<MalVal> {
+    match env.data.borrow().get(key) {
+        Some(value) => Some(value.clone()),
+        None => match &env.outer {
+            None => None,
+            Some(outer) => env_get(&outer, key),
+        }
     }
 }
 

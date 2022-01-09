@@ -7,15 +7,15 @@ function READ(str)
   return ReadStr(a:str)
 endfunction
 
-function EvalAst(ast, env)
+function EVAL(ast, env)
+  " call PrintLn("EVAL: " . PrStr(a:ast, 1))
+
   if SymbolQ(a:ast)
     let varname = a:ast.val
     if !has_key(a:env, varname)
       throw "'" . varname . "' not found"
     end
     return a:env[varname]
-  elseif ListQ(a:ast)
-    return ListNew(map(copy(a:ast.val), {_, e -> EVAL(e, a:env)}))
   elseif VectorQ(a:ast)
     return VectorNew(map(copy(a:ast.val), {_, e -> EVAL(e, a:env)}))
   elseif HashQ(a:ast)
@@ -25,21 +25,16 @@ function EvalAst(ast, env)
       let ret[k] = newval
     endfor
     return HashNew(ret)
-  else
-    return a:ast
-  end
-endfunction
-
-function EVAL(ast, env)
+  endif
   if !ListQ(a:ast)
-    return EvalAst(a:ast, a:env)
+    return a:ast
   end
   if EmptyQ(a:ast)
     return a:ast
   endif
 
   " apply list
-  let el = EvalAst(a:ast, a:env)
+  let el = ListNew(map(copy(a:ast.val), {_, e -> EVAL(e, a:env)}))
 
   let Fn = el.val[0]
   return Fn(el.val[1:-1])

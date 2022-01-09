@@ -10,22 +10,20 @@ def READ(str):
     return reader.read_str(str)
 
 # eval
-def eval_ast(ast, env):
+def EVAL(ast, env):
+    dbgeval = env.get_or_nil('DEBUG-EVAL')
+    if dbgeval is not None and dbgeval is not False:
+        print('EVAL: ' + printer._pr_str(ast))
+
     if types._symbol_Q(ast):
         return env.get(ast)
-    elif types._list_Q(ast):
-        return types._list(*map(lambda a: EVAL(a, env), ast))
     elif types._vector_Q(ast):
         return types._vector(*map(lambda a: EVAL(a, env), ast))
     elif types._hash_map_Q(ast):
         return types.Hash_Map((k, EVAL(v, env)) for k, v in ast.items())
-    else:
+    elif not types._list_Q(ast):
         return ast  # primitive value, return unchanged
-
-def EVAL(ast, env):
-        #print("EVAL %s" % printer._pr_str(ast))
-        if not types._list_Q(ast):
-            return eval_ast(ast, env)
+    else:
 
         # apply list
         if len(ast) == 0: return ast
@@ -42,8 +40,9 @@ def EVAL(ast, env):
                 let_env.set(a1[i], EVAL(a1[i+1], let_env))
             return EVAL(a2, let_env)
         elif "do" == a0:
-            el = eval_ast(ast[1:], env)
-            return el[-1]
+            for i in range(1, len(ast)-1):
+                EVAL(ast[i], env)
+            return EVAL(ast[-1], env)
         elif "if" == a0:
             a1, a2 = ast[1], ast[2]
             cond = EVAL(a1, env)
@@ -56,9 +55,9 @@ def EVAL(ast, env):
             a1, a2 = ast[1], ast[2]
             return types._function(EVAL, Env, a2, env, a1)
         else:
-            el = eval_ast(ast, env)
-            f = el[0]
-            return f(*el[1:])
+            f = EVAL(a0, env)
+            args = ast[1:]
+            return f(*(EVAL(a, env) for a in args))
 
 # print
 def PRINT(exp):

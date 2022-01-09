@@ -29,27 +29,20 @@ function NewEnvWithBinds(outer, binds, exprs)
   return env
 endfunction
 
-function Env.find(key) dict
-  if has_key(self.data, a:key)
-    return self
-  elseif empty(self.outer)
-    return ""
-  else
-    return self.outer.find(a:key)
-  endif
-endfunction
-
 function Env.set(key, value) dict
   let self.data[a:key] = a:value
   return a:value
 endfunction
 
 function Env.get(key) dict
-  let env = self.find(a:key)
-  if empty(env)
-    throw "'" . a:key . "' not found"
-  endif
-  return env.data[a:key]
+  let curr = self
+  while !has_key(curr.data, a:key)
+    let curr = curr.outer
+    if empty(curr)
+      return ""
+    endif
+  endwhile
+  return curr.data[a:key]
 endfunction
 
 function Env.root() dict

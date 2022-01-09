@@ -8,18 +8,24 @@ let num_fun f = Types.fn
 let repl_env = Env.make None
 
 let init_repl env = begin
-  Env.set env (Types.symbol "+") (num_fun ( + ));
-  Env.set env (Types.symbol "-") (num_fun ( - ));
-  Env.set env (Types.symbol "*") (num_fun ( * ));
-  Env.set env (Types.symbol "/") (num_fun ( / ));
+  Env.set env "+" (num_fun ( + ));
+  Env.set env "-" (num_fun ( - ));
+  Env.set env "*" (num_fun ( * ));
+  Env.set env "/" (num_fun ( / ));
 end
 
-let rec eval_ast ast env =
+let rec eval ast env =
+  (match Env.get env "DEBUG-EVAL" with
+    | None                -> ()
+    | Some T.Nil          -> ()
+    | Some (T.Bool false) -> ()
+    | Some _              ->
+      output_string stderr ("EVAL: " ^ (Printer.pr_str ast true) ^ "\n");
+      flush stderr);
   match ast with
-    | T.Symbol s -> Env.get env ast
-    | T.List { T.value = xs; T.meta = meta }
-      -> T.List { T.value = (List.map (fun x -> eval x env) xs);
-                  T.meta = meta }
+    | T.Symbol s -> (match Env.get env s with
+         | Some v -> v
+         | None   -> raise (Invalid_argument ("'" ^ s ^ "' not found")))
     | T.Vector { T.value = xs; T.meta = meta }
       -> T.Vector { T.value = (List.map (fun x -> eval x env) xs);
                     T.meta = meta }
@@ -30,29 +36,26 @@ let rec eval_ast ast env =
                               -> Types.MalMap.add k (eval v env) m)
                              xs
                              Types.MalMap.empty)}
-    | _ -> ast
-and eval ast env =
-  match ast with
-    | T.List { T.value = [] } -> ast
-    | T.List { T.value = [(T.Symbol { T.value = "def!" }); key; expr] } ->
+    | T.List { T.value = [T.Symbol "def!"; T.Symbol key; expr] } ->
         let value = (eval expr env) in
           Env.set env key value; value
-    | T.List { T.value = [(T.Symbol { T.value = "let*" }); (T.Vector { T.value = bindings }); body] }
-    | T.List { T.value = [(T.Symbol { T.value = "let*" }); (T.List   { T.value = bindings }); body] } ->
+    | T.List { T.value = [T.Symbol "let*"; (T.Vector { T.value = bindings }); body] }
+    | T.List { T.value = [T.Symbol "let*"; (T.List   { T.value = bindings }); body] } ->
         (let sub_env = Env.make (Some env) in
           let rec bind_pairs = (function
-            | sym :: expr :: more ->
+            | T.Symbol sym :: expr :: more ->
                 Env.set sub_env sym (eval expr sub_env);
                 bind_pairs more
+            | _ :: _ :: _ -> raise (Invalid_argument "let* keys must be symbols")
             | _::[] -> raise (Invalid_argument "let* bindings must be an even number of forms")
             | [] -> ())
             in bind_pairs bindings;
           eval body sub_env)
-    | T.List _ ->
-      (match eval_ast ast env with
-         | T.List { T.value = ((T.Fn { T.value = f }) :: args) } -> f args
+    | T.List { T.value = (a0 :: args) } ->
+      (match eval a0 env with
+         | T.Fn { T.value = f } -> f (List.map (fun x -> eval x env) args)
          | _ -> raise (Invalid_argument "Cannot invoke non-function"))
-    | _ -> eval_ast ast env
+    | _ -> ast
 
 let read str = Reader.read_str str
 let print exp = Printer.pr_str exp true

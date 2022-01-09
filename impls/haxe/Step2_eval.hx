@@ -11,40 +11,34 @@ class Step2_eval {
     }
 
     // EVAL
-    static function eval_ast(ast:MalType, env:Map<String,MalType>) {
-        return switch (ast) {
+    static function EVAL(ast:MalType, env:Map<String,MalType>) {
+        // Compat.println("EVAL: " + PRINT(ast));
+        var alst;
+        switch (ast) {
             case MalSymbol(s):
                 if (env.exists(s)) {
-                    env.get(s);
+                    return env.get(s);
                 } else {
                     throw "'" + s + "' not found";
                 }
             case MalList(l):
-                MalList(l.map(function(x) { return EVAL(x, env); }));
+                 alst = l;
             case MalVector(l):
-                MalVector(l.map(function(x) { return EVAL(x, env); }));
+                return MalVector(l.map(function(x) { return EVAL(x, env); }));
             case MalHashMap(m):
                 var new_map = new Map<String,MalType>();
                 for (k in m.keys()) {
                     new_map[k] = EVAL(m[k], env);
                 }
-                MalHashMap(new_map);
-            case _: ast;
+                return MalHashMap(new_map);
+            case _: return ast;
         }
-    }
-
-    static function EVAL(ast:MalType, env:Map<String,MalType>):MalType {
-        if (!list_Q(ast)) { return eval_ast(ast, env); }
-
         // apply
-        var alst = switch (ast) { case MalList(lst): lst; case _: []; }
         if (alst.length == 0) { return ast; }
-
-        var el = eval_ast(ast, env);
-        var lst = switch (el) { case MalList(lst): lst; case _: []; }
-        var a0 = lst[0], args = lst.slice(1);
-        switch (a0) {
-            case MalFunc(f,_,_,_,_,_): return f(args);
+        switch ( EVAL(alst[0], env)) {
+            case MalFunc(f,_,_,_,_,_):
+                var args = alst.slice(1).map(function(x) { return EVAL(x, env); });
+                return f(args);
             case _: throw "Call of non-function";
         }
     }

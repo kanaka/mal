@@ -7,9 +7,14 @@ core MalEnv. constant repl-env
 99999999 constant TCO-eval
 
 : read read-str ;
+s" DEBUG-EVAL" MalSymbol. constant debug-eval-sym
 : eval ( env obj )
     begin
-        \ ." eval-> " dup pr-str safe-type cr
+        over debug-eval-sym swap env/get-addr ?dup-if
+            @ dup mal-false <> swap mal-nil <> and if
+                ." EVAL: " dup pr-str safe-type cr
+            endif
+        endif
         mal-eval
         dup TCO-eval =
     while
@@ -131,9 +136,6 @@ defer quasiquote
     ( other types are returned unchanged )
     endcase ;
 ' quasiquote0 is quasiquote
-
-defspecial quasiquoteexpand ( env list -- form )
-    nip MalList/start @ cell+ @ quasiquote ;;
 
 defspecial quasiquote ( env list )
     MalList/start @ cell+ @ ( ast )
