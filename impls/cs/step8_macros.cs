@@ -59,70 +59,38 @@ namespace Mal {
             }
         }
 
-        public static bool is_macro_call(MalVal ast, Env env) {
-            if (ast is MalList) {
-                MalVal a0 = ((MalList)ast)[0];
-                if (a0 is MalSymbol &&
-                    env.find((MalSymbol)a0) != null) {
-                    MalVal mac = env.get((MalSymbol)a0);
-                    if (mac is MalFunc &&
-                        ((MalFunc)mac).isMacro()) {
-                        return true;
-                    }
-                }
-            }
-            return false;
-        }
-
-        public static MalVal macroexpand(MalVal ast, Env env) {
-            while (is_macro_call(ast, env)) {
-                MalSymbol a0 = (MalSymbol)((MalList)ast)[0];
-                MalFunc mac = (MalFunc) env.get(a0);
-                ast = mac.apply(((MalList)ast).rest());
-            }
-            return ast;
-        }
-
-        static MalVal eval_ast(MalVal ast, Env env) {
-            if (ast is MalSymbol) {
-                return env.get((MalSymbol)ast);
-            } else if (ast is MalList) {
-                MalList old_lst = (MalList)ast;
-                MalList new_lst = ast.list_Q() ? new MalList()
-                                            : (MalList)new MalVector();
+        static MalVal EVAL(MalVal orig_ast, Env env) {
+            MalVal a0, a1, a2, res;
+            while (true) {
+            MalVal dbgeval = env.get("DEBUG-EVAL");
+            if (dbgeval != null && dbgeval != Mal.types.Nil
+                && dbgeval != Mal.types.False)
+                Console.WriteLine("EVAL: " + printer._pr_str(orig_ast, true));
+            if (orig_ast is MalSymbol) {
+                string key = ((MalSymbol)orig_ast).getName();
+                res = env.get(key);
+                if (res == null)
+                    throw new Mal.types.MalException("'" + key + "' not found");
+                return res;
+            } else if (orig_ast is MalVector) {
+                MalVector old_lst = (MalVector)orig_ast;
+                MalVector new_lst = new MalVector();
                 foreach (MalVal mv in old_lst.getValue()) {
                     new_lst.conj_BANG(EVAL(mv, env));
                 }
                 return new_lst;
-            } else if (ast is MalHashMap) {
+            } else if (orig_ast is MalHashMap) {
                 var new_dict = new Dictionary<string, MalVal>();
-                foreach (var entry in ((MalHashMap)ast).getValue()) {
+                foreach (var entry in ((MalHashMap)orig_ast).getValue()) {
                     new_dict.Add(entry.Key, EVAL((MalVal)entry.Value, env));
                 }
                 return new MalHashMap(new_dict);
-            } else {
-                return ast;
-            }
-        }
-
-
-        static MalVal EVAL(MalVal orig_ast, Env env) {
-            MalVal a0, a1, a2, res;
-            MalList el;
-
-            while (true) {
-
-            //Console.WriteLine("EVAL: " + printer._pr_str(orig_ast, true));
-            if (!orig_ast.list_Q()) {
-                return eval_ast(orig_ast, env);
+            } else if (!(orig_ast is MalList)) {
+                return orig_ast;
             }
 
             // apply list
-            MalVal expanded = macroexpand(orig_ast, env);
-            if (!expanded.list_Q()) {
-                return eval_ast(expanded, env);
-            } 
-            MalList ast = (MalList) expanded;
+            MalList ast = (MalList) orig_ast;
 
             if (ast.size() == 0) { return ast; }
             a0 = ast[0];
@@ -153,8 +121,6 @@ namespace Mal {
                 break;
             case "quote":
                 return ast[1];
-            case "quasiquoteexpand":
-                return quasiquote(ast[1]);
             case "quasiquote":
                 orig_ast = quasiquote(ast[1]);
                 break;
@@ -166,11 +132,10 @@ namespace Mal {
                 ((MalFunc)res).setMacro();
                 env.set(((MalSymbol)a1), res);
                 return res;
-            case "macroexpand":
-                a1 = ast[1];
-                return macroexpand(a1, env);
             case "do":
-                eval_ast(ast.slice(1, ast.size()-1), env);
+                foreach (MalVal mv in ast.slice(1, ast.size()-1).getValue()) {
+                    EVAL(mv, env);
+                }
                 orig_ast = ast[ast.size()-1];
                 break;
             case "if":
@@ -195,14 +160,21 @@ namespace Mal {
                 return new MalFunc(a2f, env, a1f,
                     args => EVAL(a2f, new Env(cur_env, a1f, args)) );
             default:
-                el = (MalList)eval_ast(ast, env);
-                var f = (MalFunc)el[0];
+                MalFunc f = (MalFunc)EVAL(ast[0], env);
+                if (f.isMacro()) {
+                    orig_ast = f.apply(ast.rest());
+                    break;
+                }
+                MalList arguments = new MalList();
+                foreach (MalVal mv in ast.rest().getValue()) {
+                    arguments.conj_BANG(EVAL(mv, env));
+                }
                 MalVal fnast = f.getAst();
                 if (fnast != null) {
                     orig_ast = fnast;
-                    env = f.genEnv(el.rest());
+                    env = f.genEnv(arguments);
                 } else {
-                    return f.apply(el.rest());
+                    return f.apply(arguments);
                 }
                 break;
             }

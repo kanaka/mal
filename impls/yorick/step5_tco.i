@@ -11,10 +11,6 @@ func READ(str)
 
 func eval_ast(ast, env)
 {
-  type = structof(ast)
-  if (type == MalSymbol) {
-    return env_get(env, ast.val)
-  } else if (type == MalList) {
     seq = *(ast.val)
     if (numberof(seq) == 0) return ast
     res = array(pointer, numberof(seq))
@@ -24,6 +20,21 @@ func eval_ast(ast, env)
       res(i) = &e
     }
     return MalList(val=&res)
+}
+
+func EVAL(ast, env)
+{
+  while (1) {
+    dbgeval = structof(env_get(env, "DEBUG-EVAL"))
+    if ((dbgeval != MalError) && (dbgeval != MalNil) && (dbgeval != MalFalse)) {
+       write, format="EVAL: %s\n", pr_str(ast, 1)
+    }
+    // Process non-list types (todo: indent right)
+  type = structof(ast)
+  if (type == MalSymbol) {
+    return env_get(env, ast.val)
+  } else if (type == MalList) {
+    // Proceed after this switch.
   } else if (type == MalVector) {
     seq = *(ast.val)
     if (numberof(seq) == 0) return ast
@@ -45,13 +56,7 @@ func eval_ast(ast, env)
     }
     return MalHashmap(val=&res)
   } else return ast
-}
-
-func EVAL(ast, env)
-{
-  while (1) {
-    if (structof(ast) == MalError) return ast
-    if (structof(ast) != MalList) return eval_ast(ast, env)
+    // The else branch includes MalError. Now ast is a list.
     lst = *ast.val
     if (numberof(lst) == 0) return ast
     a1 = lst(1)->val

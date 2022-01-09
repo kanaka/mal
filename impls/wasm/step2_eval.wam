@@ -9,8 +9,9 @@
 
   ;; EVAL
   (func $EVAL_AST (param $ast i32 $env i32) (result i32)
-    (local $res2 i64)
-    (LET $res 0 $val2 0 $val3 0 $type 0 $found 0
+    ;; Return a list/vector/map with evaluated elements
+    ;; of a list, vector or hashmap $ast
+    (LET $res 0 $val2 0 $val3 0 $type 0
          $ret 0 $empty 0 $current 0)
 
     (if (global.get $error_type) (return 0))
@@ -18,23 +19,6 @@
 
     ;;($PR_VALUE ">>> EVAL_AST ast: '%s'\n" $ast)
 
-    ;;; switch(type)
-    (block $done
-      (block $default (block (block
-      (br_table 2 2 2 2 2 0 1 1 1 2 2 2 2 2 2 2 $type))
-      ;; symbol
-      ;; found/res returned as hi 32/lo 32 of i64
-      (local.set $res2 ($HASHMAP_GET $env $ast))
-      (local.set $res (i32.wrap_i64 $res2))
-      (local.set $found (i32.wrap_i64 (i64.shr_u $res2
-                                                 (i64.const 32))))
-      (if (i32.eqz $found)
-          ($THROW_STR_1 "'%s' not found"
-                ($to_String $ast)))
-      (local.set $res ($INC_REF $res))
-
-      (br $done))
-      ;; list, vector, hashmap
       ;; MAP_LOOP_START
       (local.set $res ($MAP_LOOP_START $type))
       ;; push MAP_LOOP stack
@@ -85,11 +69,6 @@
       )
       ;; MAP_LOOP_DONE
       (local.set $res $ret)
-      ;; EVAL_AST_RETURN: nothing to do
-      (br $done))
-      ;; default
-      (local.set $res ($INC_REF $ast))
-    )
 
     $res
   )
@@ -101,34 +80,56 @@
       $add $subtract $multiply $divide))
 
   (func $EVAL (param $ast i32 $env i32) (result i32)
+    (local $res2 i64)
     (LET $res 0
-         $ftype 0 $f_args 0 $f 0 $args 0)
-
-    (local.set $f_args 0)
-    (local.set $f 0)
-    (local.set $args 0)
+         $ftype 0 $f 0 $args 0 $found 0 $type 0 $a0 0 $buta0 0)
 
     (if (global.get $error_type) (return 0))
 
-    ;;($PR_VALUE ">>> EVAL ast: '%s'\n" $ast)
+    ;;($PR_VALUE "EVAL: %s\n" $ast)
 
-    (if (i32.ne ($TYPE $ast) (global.get $LIST_T))
+    (local.set $type ($TYPE $ast))
+    ;;; switch(type)
+    (block (block (block (block
+      (br_table 2 2 2 2 2 0 3 1 1 2 2 2 2 2 2 2 $type))
+
+      ;; end of block 0:
+      ;; symbol
+      ;; found/res returned as hi 32/lo 32 of i64
+      (local.set $res2 ($HASHMAP_GET $env $ast))
+      (local.set $res (i32.wrap_i64 $res2))
+      (local.set $found (i32.wrap_i64 (i64.shr_u $res2
+                                                 (i64.const 32))))
+      (if (i32.eqz $found)
+          ($THROW_STR_1 "'%s' not found"
+                ($to_String $ast)))
+      (return ($INC_REF $res)))
+
+      ;; end of block 1: vector, hashmap
       (return ($EVAL_AST $ast $env)))
 
+      ;; end of block 2:
+      ;; anything but a list, map, vector or symbol
+      (return ($INC_REF $ast)))
+
+    ;; end of block 3:
     ;; APPLY_LIST
     (if ($EMPTY_Q $ast)
       (return ($INC_REF $ast)))
 
       ;; EVAL_INVOKE
-      (local.set $res ($EVAL_AST $ast $env))
-      (local.set $f_args $res)
+      (local.set $a0 ($MEM_VAL1_ptr $ast))
+      (local.set $f ($EVAL $a0 $env))
+      (if (global.get $error_type)
+        (return 0))
 
+      (local.set $buta0 ($FORCE_SEQ_TYPE (global.get $LIST_T) ($MEM_VAL0_ptr $ast)))
+
+      (local.set $args ($EVAL_AST $buta0 $env))
+      ($RELEASE $buta0)
       ;; if error, return f/args for release by caller
       (if (global.get $error_type)
-        (return $f_args))
-
-      (local.set $args ($MEM_VAL0_ptr $f_args)) ;; rest
-      (local.set $f ($MEM_VAL1_ptr $f_args)) ;; value
+        (return $f))
 
       (local.set $ftype ($TYPE $f))
       (if (i32.eq $ftype (global.get $FUNCTION_T))
@@ -138,7 +139,8 @@
           ($THROW_STR_1 "apply of non-function type: %d\n" $ftype)
           (local.set $res 0)))
 
-      ($RELEASE $f_args)
+      ($RELEASE $f)
+      ($RELEASE $args)
 
     $res
   )

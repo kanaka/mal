@@ -26,29 +26,14 @@ module Mal
       @data[k] = v
     end
 
-    def find(k)
-      if @data.key?(k)
-        self
-      elsif !@outer.nil?
-        @outer.find(k)
-      else
-        Types::Nil.instance
-      end
-    end
-
     def get(k)
-      environment = find(k)
-
-      case environment
-      when self.class
-        environment.get_value(k)
-      when Types::Nil
-        raise SymbolNotFoundError, "'#{k.value}' not found"
+      if @data.key?(k)
+        @data[k]
+      elsif !@outer.nil?
+        @outer.get(k)
+      else
+        0
       end
-    end
-
-    def get_value(k)
-      @data[k]
     end
   end
 end

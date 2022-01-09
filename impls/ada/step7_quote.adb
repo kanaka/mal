@@ -71,33 +71,8 @@ procedure Step7_Quote is
       end Call_Eval;
 
    begin
-
-      case Deref (Ast).Sym_Type is
-
-         when Sym =>
-
-            declare
-               Sym : Mal_String := Deref_Sym (Ast).Get_Sym;
-            begin
-               -- if keyword, return it. Otherwise look it up in the environment.
-               if Sym(1) = ':' then
-                  return Ast;
-               else
-                  return Envs.Get (Env, Sym);
-               end if;
-            exception
-               when Envs.Not_Found =>
-                  raise Envs.Not_Found with ("'" &  Sym & "' not found");
-            end;
-
-         when List =>
-
-            return Map (Call_Eval'Unrestricted_Access, Deref_List_Class (Ast).all);
-
-         when others => return Ast;
-
-      end case;
-
+      pragma Assert (Deref (Ast).Sym_Type = List); -- list, map or vector
+      return Map (Call_Eval'Unrestricted_Access, Deref_List_Class (Ast).all);
    end Eval_Ast;
 
    function Starts_With (Ast : Mal_Handle; Symbol : String) return Boolean is
@@ -190,12 +165,34 @@ procedure Step7_Quote is
 
       <<Tail_Call_Opt>>
 
-      if Debug then
-         Ada.Text_IO.Put_Line ("Evaling " & Deref (Param).To_String);
-      end if;
+      begin
+         if Eval_As_Boolean (Envs.Get (Env, "DEBUG-EVAL")) then
+            Ada.Text_IO.Put_Line ("EVAL: " & Deref (Param).To_String);
+         end if;
+      exception
+         when Envs.Not_Found => null;
+      end;
 
-      if Deref (Param).Sym_Type = List and then
-	Deref_List (Param).Get_List_Type = List_List then
+      case Deref (Param).Sym_Type is
+         when Sym =>
+            declare
+               Sym : Mal_String := Deref_Sym (Param).Get_Sym;
+            begin
+               -- if keyword, return it. Otherwise look it up in the environment.
+               if Sym(1) = ':' then
+                  return Param;
+               else
+                  return Envs.Get (Env, Sym);
+               end if;
+            exception
+               when Envs.Not_Found =>
+                  raise Envs.Not_Found with ("'" &  Sym & "' not found");
+            end;
+         when List =>
+         case Deref_List (Param).Get_List_Type is
+         when Hashed_List | Vector_List =>
+            return Eval_Ast (Param, Env);
+         when List_List =>
 
          Param_List := Deref_List (Param).all;
 
@@ -306,11 +303,6 @@ procedure Step7_Quote is
             return Car (Rest_List);
 
          elsif Deref (First_Param).Sym_Type = Sym and then
-               Deref_Sym (First_Param).Get_Sym = "quasiquoteexpand" then
-
-            return Quasi_Quote_Processing (Car (Rest_List));
-
-         elsif Deref (First_Param).Sym_Type = Sym and then
                Deref_Sym (First_Param).Get_Sym = "quasiquote" then
 
             Param := Quasi_Quote_Processing (Car (Rest_List));
@@ -370,12 +362,10 @@ procedure Step7_Quote is
 
          end if;
 
-      else -- not a List_List
-
-         return Eval_Ast (Param, Env);
-
-      end if;
-
+         end case;
+      when others => -- not a list, map, symbol or vector
+         return Param;
+      end case;
    end Eval;
 
 

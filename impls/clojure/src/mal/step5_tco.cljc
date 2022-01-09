@@ -12,27 +12,26 @@
   (reader/read-string strng))
 
 ;; eval
-(declare EVAL)
-(defn eval-ast [ast env]
-  (cond
-    (symbol? ast) (env/env-get env ast)
-
-    (seq? ast)    (doall (map #(EVAL % env) ast))
-
-    (vector? ast) (vec (doall (map #(EVAL % env) ast)))
-
-    (map? ast)    (apply hash-map (doall (map #(EVAL % env)
-                                              (mapcat identity ast))))
-
-    :else         ast))
-
 (defn EVAL [ast env]
   (loop [ast ast
          env env]
-    ;;(prn "EVAL" ast (keys @env)) (flush)
-    (if (not (seq? ast))
-      (eval-ast ast env)
 
+  (let [e (env/env-find env 'DEBUG-EVAL)]
+    (when e
+      (let [v (env/env-get e 'DEBUG-EVAL)]
+        (when (and (not= v nil)
+                   (not= v false))
+          (println "EVAL:" (printer/pr-str ast) (keys @env))
+          (flush)))))
+
+  (cond
+    (symbol? ast) (env/env-get env ast)
+
+    (vector? ast) (vec (map #(EVAL % env) ast))
+
+    (map? ast) (apply hash-map (map #(EVAL % env) (mapcat identity ast)))
+
+    (seq? ast)
       ;; apply list
           ;; indented to match later steps
           (let [[a0 a1 a2 a3] ast]
@@ -50,7 +49,7 @@
                 (recur a2 let-env))
 
               'do
-              (do (eval-ast (->> ast (drop-last) (drop 1)) env)
+              (do (doall (map #(EVAL % env) (->> ast (drop-last) (drop 1))))
                   (recur (last ast) env))
 
               'if
@@ -70,13 +69,17 @@
                  :parameters a1})
 
               ;; apply
-              (let [el (eval-ast ast env)
+              (let [el (map #(EVAL % env) ast)
                     f (first el)
                     args (rest el)
                     {:keys [expression environment parameters]} (meta f)]
                 (if expression
                   (recur expression (env/env environment parameters args))
-                  (apply f args))))))))
+                  (apply f args)))))
+
+    :else ;; not a list, map, symbol or vector
+    ast)))
+
 
 ;; print
 (defn PRINT [exp] (printer/pr-str exp))
