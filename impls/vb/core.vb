@@ -86,6 +86,9 @@ Namespace Mal
 
         Shared Function keyword(a As MalList) As MalVal
             Dim s As String = DirectCast(a(0),MalString).getValue()
+            If s.Substring(0,1) = Strings.ChrW(&H029e) Then
+                Return a(0)
+            End If
             return new MalString(ChrW(&H029e) & s)
         End Function
 
