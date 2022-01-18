@@ -20,7 +20,7 @@ module Mal
       Types::Symbol.for("eval"),
 
       Types::Builtin.new("eval") do |mal|
-        Mal.EVAL(mal.first, @repl_env)
+        Mal.EVAL(mal, @repl_env)
       end
     )
 
