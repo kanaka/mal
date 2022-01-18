@@ -24,7 +24,7 @@ $(strip \
     $(foreach key,$($(1)_value),\
       $(if $(call _contains?,$(2),$(key)),\
         $(call _get,$(2),$(key)),\
-        $(call _error,'$(key)' not found in REPL_ENV ($(2))))),\
+        $(call _error,'$(key)' not found in REPL_ENV))),\
   $(if $(call _list?,$(1)),\
     $(call _smap,EVAL,$(1),$(2)),\
   $(if $(call _vector?,$(1)),\
