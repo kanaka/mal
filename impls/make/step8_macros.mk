@@ -102,7 +102,7 @@ $(if $(__ERROR),,\
     $(if $(call _EQ,defmacro!,$($(a0)_value)),\
       $(foreach a1,$(call _nth,$(1),1),\
         $(foreach a2,$(call _nth,$(1),2),\
-          $(foreach res,$(call EVAL,$(a2),$(2)),\
+          $(foreach res,$(call _clone_obj,$(call EVAL,$(a2),$(2))),\
             $(eval _macro_$(res) = true)\
             $(if $(call ENV_SET,$(2),$($(a1)_value),$(res)),$(res),)))),\
     $(if $(call _EQ,macroexpand,$($(a0)_value)),\
