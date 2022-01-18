@@ -267,7 +267,7 @@ if __name__ == "__main__":
 
     if len(sys.argv) >= 2:
         file_str = sys.argv[1]
-        print(rep_handling_exceptions('(load-file "' + file_str + '")', repl_env))
+        rep_handling_exceptions('(load-file "' + file_str + '")', repl_env)
         exit(0)
 
     while not eof:
