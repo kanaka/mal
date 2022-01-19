@@ -1,0 +1,26 @@
+{
+  "name": "mal",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "dependencies": {
+    "printer": "^0.4.0",
+    "prompt-sync": "^4.2.0",
+    "readline": "^1.3.0",
+    "tsc": "^2.0.4",
+    "typescript": "^4.5.4"
+  },
+  "devDependencies": {
+    "@types/node": "^17.0.8",
+    "@types/printer": "^0.4.2",
+    "@types/prompt-sync": "^4.1.1"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "tsc -p .",
+    "start": "npm run build -- -w"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
