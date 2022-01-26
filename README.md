@@ -488,7 +488,7 @@ mono ./stepX_YYY.exe
 
 ### Factor
 
-The Factor implementation of mal has been tested with Factor 0.97
+The Factor implementation of mal has been tested with Factor 0.98
 ([factorcode.org](http://factorcode.org)).
 
 ```
