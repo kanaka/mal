@@ -49,7 +49,7 @@ M: object    eval-ast drop ;
     swapd [ over length cut [ zip ] dip ] dip
     [ swap 2array suffix ] [ drop ] if* >hashtable ;
 
-GENERIC# apply 0 ( args fn -- maltype newenv/f )
+GENERIC#: apply 0 ( args fn -- maltype newenv/f )
 
 M: malfn apply
     [ exprs>> nip ]
