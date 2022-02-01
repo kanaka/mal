@@ -36,18 +36,6 @@ QUASIQUOTE = $(strip \
   $(if $(_vector?),              $(call _list,$(call _symbol,vec) $(QQ_FOLD)),\
   $(if $(_symbol?)$(_hash_map?), $(call _list,$(call _symbol,quote) $1),\
                                  $1))))
-define IS_MACRO_CALL
-$(if $(call _list?,$(1)),$(if $(call ENV_FIND,$(2),$($(call _nth,$(1),0)_value)),$(_macro_$(call ENV_GET,$(2),$($(call _nth,$(1),0)_value))),),)
-endef
-
-define MACROEXPAND
-$(strip $(if $(__ERROR),,\
-  $(if $(call IS_MACRO_CALL,$(1),$(2)),\
-    $(foreach mac,$(call ENV_GET,$(2),$($(call _nth,$(1),0)_value)),\
-      $(call MACROEXPAND,$(call apply,$(mac),$(call srest,$(1))),$(2))),\
-    $(1))))
-endef
-
 define LET
 $(strip \
   $(word 1,$(2) \
@@ -58,25 +46,6 @@ $(strip \
           $(if $(call _EQ,0,$(call _count,$(left))),\
             ,\
             $(call LET,$(left),$(2))))))))
-endef
-
-define EVAL_AST
-$(strip \
-  $(and $(EVAL_DEBUG),$(info EVAL_AST: $(call _pr_str,$(1))))\
-  $(if $(call _symbol?,$(1)),\
-    $(foreach key,$($(1)_value),\
-      $(call ENV_GET,$(2),$(key))),\
-  $(if $(call _list?,$(1)),\
-    $(call _smap,EVAL,$(1),$(2)),\
-  $(if $(call _vector?,$(1)),\
-    $(call _smap_vec,EVAL,$(1),$(2)),\
-  $(if $(call _hash_map?,$(1)),\
-    $(foreach new_hmap,$(call __new_obj,hmap),\
-      $(foreach v,$(call __get_obj_values,$(1)),\
-        $(eval $(v:$(1)_%=$(new_hmap)_%) := $(call EVAL,$($(v)),$(2))))\
-      $(eval $(new_hmap)_size := $($(1)_size))\
-      $(new_hmap)),\
-  $(1))))))
 endef
 
 define EVAL_INVOKE
@@ -95,8 +64,6 @@ $(if $(__ERROR),,\
           $(call EVAL,$(a2),$(call LET,$(a1),$(call ENV,$(2)))))),\
     $(if $(call _EQ,quote,$($(a0)_value)),\
       $(call _nth,$(1),1),\
-    $(if $(call _EQ,quasiquoteexpand,$($(a0)_value)),\
-      $(call QUASIQUOTE,$(call _nth,$(1),1)),\
     $(if $(call _EQ,quasiquote,$($(a0)_value)),\
       $(call EVAL,$(call QUASIQUOTE,$(call _nth,$(1),1)),$(2)),\
     $(if $(call _EQ,defmacro!,$($(a0)_value)),\
@@ -105,10 +72,8 @@ $(if $(__ERROR),,\
           $(foreach res,$(call _clone_obj,$(call EVAL,$(a2),$(2))),\
             $(eval _macro_$(res) = true)\
             $(if $(call ENV_SET,$(2),$($(a1)_value),$(res)),$(res),)))),\
-    $(if $(call _EQ,macroexpand,$($(a0)_value)),\
-      $(call MACROEXPAND,$(call _nth,$(1),1),$(2)),\
     $(if $(call _EQ,do,$($(a0)_value)),\
-      $(call slast,$(call EVAL_AST,$(call srest,$(1)),$(2))),\
+      $(call slast,$(call _smap,EVAL,$(call srest,$(1)),$(2))),\
     $(if $(call _EQ,if,$($(a0)_value)),\
       $(foreach a1,$(call _nth,$(1),1),\
         $(foreach a2,$(call _nth,$(1),2),\
@@ -120,24 +85,34 @@ $(if $(__ERROR),,\
       $(foreach a1,$(call _nth,$(1),1),\
         $(foreach a2,$(call _nth,$(1),2),\
           $(call _function,$$(call EVAL,$(a2),$$(call ENV,$(2),$(a1),$$1))))),\
-      $(foreach el,$(call EVAL_AST,$(1),$(2)),\
-        $(and $(EVAL_DEBUG),$(info invoke: $(call _pr_str,$(el))))\
-        $(foreach f,$(call sfirst,$(el)),\
-          $(foreach args,$(call srest,$(el)),\
-            $(call apply,$(f),$(args)))))))))))))))))
+    $(foreach f,$(call EVAL,$(a0),$(2)),\
+      $(foreach args,$(call srest,$(1)),\
+        $(if $(_macro_$(f)),\
+          $(call EVAL,$(call apply,$(f),$(args)),$(2)),\
+          $(call apply,$(f),$(call _smap,EVAL,$(args),$(2))))))))))))))))
 endef
 
 define EVAL
 $(strip $(if $(__ERROR),,\
-  $(and $(EVAL_DEBUG),$(info EVAL: $(call _pr_str,$(1))))\
+  $(if $(filter-out false nil,$(call _obj_type,$(or $(call ENV_GET,$(2),DEBUG-EVAL),$(__nil)))),\
+    $(info EVAL: $(_pr_str)))\
+  $(if $(call _symbol?,$(1)),\
+    $(foreach key,$($(1)_value),\
+      $(or $(call ENV_GET,$(2),$(key)),\
+           $(call _error,'$(key)' not found)$(__nil))),\
+  $(if $(call _vector?,$(1)),\
+    $(call _smap_vec,EVAL,$(1),$(2)),\
+  $(if $(call _hash_map?,$(1)),\
+    $(foreach new_hmap,$(call __new_obj,hmap),\
+      $(foreach v,$(call __get_obj_values,$(1)),\
+        $(eval $(v:$(1)_%=$(new_hmap)_%) := $(call EVAL,$($(v)),$(2))))\
+      $(eval $(new_hmap)_size := $($(1)_size))\
+      $(new_hmap)),\
   $(if $(call _list?,$(1)),\
-    $(foreach ast,$(call MACROEXPAND,$(1),$(2)),
-      $(if $(call _list?,$(ast)),\
-        $(if $(call _EQ,0,$(call _count,$(ast))),\
-          $(ast),\
-          $(word 1,$(strip $(call EVAL_INVOKE,$(ast),$(2)) $(__nil)))),\
-	$(call EVAL_AST,$(ast),$(2)))),\
-    $(call EVAL_AST,$(1),$(2)))))
+    $(if $(call _EQ,0,$(call _count,$(1))),\
+      $(1),\
+      $(word 1,$(strip $(call EVAL_INVOKE,$(1),$(2)) $(__nil)))),\
+    $(1)))))))
 endef
 
 
