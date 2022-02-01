@@ -9,7 +9,8 @@ MAINTAINER Joel Martin <github@martintribe.org>
 RUN apt-get -y update
 
 # Required for running tests
-RUN apt-get -y install make python
+RUN apt-get -y install make python3
+RUN ln -fs /usr/bin/python3 /usr/local/bin/python
 
 RUN mkdir -p /mal
 WORKDIR /mal
@@ -20,7 +21,8 @@ WORKDIR /mal
 
 RUN DEBIAN_FRONTEND=noninteractive apt-get -y install ca-certificates curl libgtkglext1-dev libreadline-dev
 
-ENV HOME /mal
-
 RUN curl https://downloads.factorcode.org/releases/0.98/factor-linux-x86-64-0.98.tar.gz | tar -xzC/opt
-RUN ln -fst/usr/local/bin /opt/factor/factor
+ENV PATH /opt/factor:$PATH
+
+# Allow /mal/factor to create the $HOME/.cache directory.
+ENV HOME /mal

@@ -9,7 +9,8 @@ MAINTAINER Joel Martin <github@martintribe.org>
 RUN apt-get -y update
 
 # Required for running tests
-RUN apt-get -y install make python
+RUN apt-get -y install make python3
+RUN ln -fs /usr/bin/python3 /usr/local/bin/python
 
 RUN mkdir -p /mal
 WORKDIR /mal
@@ -19,3 +20,5 @@ WORKDIR /mal
 ##########################################################
 
 RUN DEBIAN_FRONTEND=noninteractive apt-get -y install coffeescript g++ libreadline-dev npm
+ENV NPM_CONFIG_CACHE /mal/.npm
+RUN touch /.coffee_history && chmod go+w /.coffee_history

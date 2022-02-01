@@ -1,4 +1,4 @@
-FROM ubuntu:xenial
+FROM ubuntu:20.04
 MAINTAINER Joel Martin <github@martintribe.org>
 
 ##########################################################
@@ -9,10 +9,8 @@ MAINTAINER Joel Martin <github@martintribe.org>
 RUN apt-get -y update
 
 # Required for running tests
-RUN apt-get -y install make python
-
-# Some typical implementation and test requirements
-RUN apt-get -y install curl libreadline-dev libedit-dev
+RUN apt-get -y install make python3
+RUN ln -fs /usr/bin/python3 /usr/local/bin/python
 
 RUN mkdir -p /mal
 WORKDIR /mal
@@ -21,8 +19,7 @@ WORKDIR /mal
 # Specific implementation requirements
 ##########################################################
 
-# Install git, make
-RUN apt-get -y install git make
+RUN apt-get -y install curl git libreadline-dev libedit-dev
 
 # Install sbcl
 RUN apt-get -y install sbcl

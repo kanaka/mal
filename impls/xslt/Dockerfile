@@ -9,13 +9,14 @@ MAINTAINER Joel Martin <github@martintribe.org>
 RUN apt-get -y update
 
 # Required for running tests
-RUN apt-get -y install make python
+RUN apt-get -y install make python3
+RUN ln -fs /usr/bin/python3 /usr/local/bin/python
 
 RUN mkdir -p /mal
 WORKDIR /mal
 
-#########################################################
+##########################################################
 # Specific implementation requirements
-#########################################################
+##########################################################
 
-RUN apt-get -y install default-jdk-headless libsaxonhe-java python3
+RUN apt-get -y install default-jdk-headless libsaxonhe-java
