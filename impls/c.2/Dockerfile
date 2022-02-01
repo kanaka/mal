@@ -9,7 +9,8 @@ MAINTAINER Duncan Watts <fungiblecog@gmail.com>
 RUN apt-get -y update
 
 # Required for running tests
-RUN apt-get -y install make python
+RUN apt-get -y install make python3
+RUN ln -fs /usr/bin/python3 /usr/local/bin/python
 
 RUN mkdir -p /mal
 WORKDIR /mal
@@ -18,4 +19,8 @@ WORKDIR /mal
 # Specific implementation requirements
 ##########################################################
 
-RUN apt-get -y install gcc libffi-dev libgc-dev libedit-dev
+# Install gcc
+RUN apt-get -y install gcc
+
+# Libraries needed for the C impl
+RUN apt-get -y install libffi-dev libgc-dev libedit-dev
