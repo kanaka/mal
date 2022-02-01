@@ -22,7 +22,7 @@ int_encode = $(strip $(call _reverse,\
                $(foreach a,- 0 1 2 3 4 5 6 7 8 9,\
                  $(eval __temp := $$(subst $$a,$$a$$(SPACE),$(__temp))))$(__temp)))
 
-int_decode = $(strip $(call _join,$(call _reverse,$(1))))
+int_decode = $(subst $(SPACE),,$(_reverse))
 
 # trim extaneous zero digits off the end (front of number)
 _trim_zeros = $(if $(call _EQ,0,$(strip $(1))),0,$(if $(call _EQ,0,$(word 1,$(1))),$(call _trim_zeros,$(wordlist 2,$(words $(1)),$(1))),$(1)))

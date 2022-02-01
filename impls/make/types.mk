@@ -14,255 +14,194 @@ include $(_TOP_DIR)numbers.mk
 # Low-level type implemenation
 
 # magic is \u2344 \u204a
-__obj_magic = ⍄⁊
+__obj_magic := ⍄⁊
 # \u2256
-__equal = ≛
-__keyword = ʞ
-__obj_hash_code = 0
+__obj_hash_code := 0
 
-__new_obj_hash_code = $(eval __obj_hash_code := $(call int_add,1,$(__obj_hash_code)))$(__obj_hash_code)
 
-__new_obj = $(__obj_magic)_$(1)_$(call __new_obj_hash_code)
-
-__new_obj_like = $(foreach type,$(word 2,$(subst _, ,$(1))),$(__obj_magic)_$(type)_$(__new_obj_hash_code))
-
-__get_obj_values = $(strip \
-                     $(if $(filter $(__obj_magic)_hmap_%,$(1)),\
-                       $(sort $(foreach v,$(filter %_value,$(filter $(1)_%,$(.VARIABLES))),$(if $(call _undefined?,$(v)),,$(v)))),\
-                       $($(1)_value)))
+# 1:type  2:optional content  ->  variable name
+define __new_obj
+$(eval __obj_hash_code := $(call int_add,1,$(__obj_hash_code)))$(rem \
+)$(foreach obj,$(__obj_magic)_$(__obj_hash_code)_$1\
+  ,$(obj)$(if $2,$(eval $(obj) := $2)))
+endef
 
 
 # Visualize Objects in memory
-__var_name = $(word 2,$(subst _, ,$(1)))_$(word 3,$(subst _, ,$(1)))
-__var_idx := 0
-__var_print = $(foreach v,$(1),\
-                $(foreach var,$(call __var_name,$(v)),\
-                  $(if $(or $(call _list?,$(v)),$(call _vector?,$(v))),\
-                    $(info $(2)$(var):)\
-                    $(eval __var_idx := $(call int_add,1,$(__var_idx)))\
-                    $(foreach lidx,__lidx_$(__var_idx),\
-                      $(eval $(lidx) := 0)\
-                      $(foreach val,$($(v)_value),\
-                        $(call __var_print,$(val),$(2)$(SPACE)$(SPACE)$($(lidx)): )\
-                        $(eval $(lidx) := $(call int_add,1,$($(lidx)))))),\
-                  $(if $(call _hash_map?,$(v)),\
-                    $(info $(2)$(var):)\
-                    $(foreach vkey,$(filter $(v)_%,$(.VARIABLES)),\
-                      $(foreach key,$(word 4,$(subst _, ,$(vkey))),\
-                        $(info $(2)$(SPACE)$(SPACE)$(subst $(__equal),=,$(key)): )\
-                        $(call __var_print,$($(vkey)),$(2)$(SPACE)$(SPACE)$(SPACE)$(SPACE)))),\
-                  $(if $(call _symbol?,$(v)),\
-                    $(info $(2)$(var): $($(v)_value)),\
-                  $(if $(call _keyword?,$(v)),\
-                    $(info $(2)$(var): $($(v)_value)),\
-                  $(if $(call _number?,$(v)),\
-                    $(info $(2)$(var): $(call int_decode,$($(v)_value))),\
-                  $(if $(call _nil?,$(v)),\
-                    $(info $(2)nil),\
-                  $(if $(call _function?,$(v)),\
-                    $(if $(word 6,$(value $(v)_value)),\
-                      $(info $(2)$(var): $(wordlist 1,5,$(value $(v)_value))...),\
-                      $(info $(2)$(var): $(value $(v)_value))),\
-                  $(info $(2)$(var): ...))))))))))
-
-_visualize_memory = $(foreach var,$(sort $(foreach vv,$(filter $(__obj_magic)_%,$(.VARIABLES)),$(call __var_name,$(vv)))),$(call __var_print,$(__obj_magic)_$(var)))
+_visualize_memory = $(foreach v,$(sort $(filter $(__obj_magic)_%,$(.VARIABLES)))\
+                      ,$(info $v  $($v)))
 
 
 # Errors/Exceptions
 __ERROR :=
-_error = $(strip $(eval __ERROR := $(call _string,$(1))))
+throw = $(eval __ERROR := $1)
+_error = $(call throw,$(call _string,$(str_encode_nospace)))
 
 
 # Constant atomic values
-__undefined = $(__obj_magic)_undf_0
-__nil = $(__obj_magic)__nil_0
-__true = $(__obj_magic)_true_0
-__false = $(__obj_magic)_fals_0
+__nil   := _nil
+__true  := _true
+__false := _false
 
 
 # General functions
 
-# Return the type of the object (or "make" if it's not a object
-_obj_type = $(strip \
-              $(if $(filter $(__obj_magic)_symb_%,$(1)),symbol,\
-              $(if $(filter $(__obj_magic)_list_%,$(1)),list,\
-              $(if $(filter $(__obj_magic)_numb_%,$(1)),number,\
-              $(if $(filter $(__obj_magic)_func_%,$(1)),function,\
-              $(if $(filter $(__obj_magic)_strn_%,$(1)),\
-                $(if $(filter $(__keyword)%,$($(1)_value)),keyword,string),\
-              $(if $(filter $(__obj_magic)__nil_%,$(1)),nil,\
-              $(if $(filter $(__obj_magic)_true_%,$(1)),true,\
-              $(if $(filter $(__obj_magic)_fals_%,$(1)),false,\
-              $(if $(filter $(__obj_magic)_vect_%,$(1)),vector,\
-              $(if $(filter $(__obj_magic)_atom_%,$(1)),atom,\
-              $(if $(filter $(__obj_magic)_hmap_%,$(1)),hash_map,\
-              $(if $(filter $(__obj_magic)_undf_%,$(1)),undefined,\
-              make)))))))))))))
+_obj_type = $(lastword $(subst _, ,$1))
 
-_clone_obj = $(strip \
-               $(foreach new_hcode,$(call __new_obj_hash_code),\
-                 $(foreach new_obj,$(foreach type,$(word 2,$(subst _, ,$(1))),$(__obj_magic)_$(type)_$(new_hcode)),\
-                   $(if $(filter $(__obj_magic)_hmap_%,$(1)),\
-                     $(foreach v,$(call __get_obj_values,$(1)),\
-                       $(eval $(v:$(1)_%=$(new_obj)_%) := $($(v))))\
-                     $(eval $(new_obj)_size := $($(1)_size)),\
-                   $(if $(filter $(__obj_magic)_func_%,$(1)),\
-                     $(eval $(new_obj)_value = $(value $(1)_value)),\
-                     $(eval $(new_obj)_value := $(strip $($(1)_value)))))\
-                   $(new_obj))))
+_clone_obj = $(_clone_obj_$(_obj_type))
+_clone_obj_list     = $(call list,$($1))
+_clone_obj_vector   = $(call vector,$($1))
+_clone_obj_map      = $(_map_new)
+_clone_obj_function = $(call __new_obj,function,$($1))
+_clone_obj_corefn   = $(call _corefn,$($1))
 
-_hash_equal? = $(strip \
-                 $(if $(and $(call _EQ,$(foreach v,$(call __get_obj_values,$(1)),$(word 4,$(subst _, ,$(v)))),$(foreach v,$(call __get_obj_values,$(2)),$(word 4,$(subst _, ,$(v))))),\
-                            $(call _EQ,$(call _count,$(1)),$(words $(call gmsl_pairmap,_equal?,$(foreach v,$(call __get_obj_values,$(1)),$($(v))),$(foreach v,$(call __get_obj_values,$(2)),$($(v))))))),\
-                      $(__true),))
+define _hash_equal?
+$(if $3\
+  ,$(and $(call _equal?,$($1_$(firstword $3)),$($2_$(firstword $3))),\
+         $(call _hash_equal?,$1,$2,$(call _rest,$3)))$(rem \
+  ),true)
+endef
 
-_equal? = $(strip \
-            $(foreach ot1,$(call _obj_type,$(1)),$(foreach ot2,$(call _obj_type,$(2)),\
-              $(if $(or $(call _EQ,$(ot1),$(ot2)),\
-                        $(and $(call _sequential?,$(1)),$(call _sequential?,$(2)))),\
-                $(if $(or $(call _string?,$(1)),$(call _symbol?,$(1)),$(call _keyword?,$(1)),$(call _number?,$(1))),\
-                  $(call _EQ,$($(1)_value),$($(2)_value)),\
-                $(if $(call _hash_map?,$(1)),\
-                  $(call _hash_equal?,$(1),$(2)),\
-                $(if $(or $(call _vector?,$(1)),$(call _list?,$(1))),\
-		  $(if $(and $(call _EQ,$(call _count,$(1)),$(call _count,$(2))),\
-                             $(call _EQ,$(call _count,$(1)),$(words $(call gmsl_pairmap,_equal?,$(call __get_obj_values,$(1)),$(call __get_obj_values,$(2)))))),\
-                    $(__true),),\
-                $(call _EQ,$(1),$(2)))))))))
+define _equal?_seq_loop
+$(if $1\
+  ,$(and $2,\
+         $(call _equal?,$(firstword $1),$(firstword $2)),\
+         $(call _equal?_seq_loop,$(_rest),$(call _rest,$2)))$(rem \
+  ),$(if $2,,true))
+endef
 
-_undefined? = $(or $(call _EQ,undefined,$(origin $(1))),$(filter $(__undefined),$($(1))))
+define _equal?
+$(or $(filter $1,$2),\
+     $(and $(filter %_list %_vector,$1),\
+           $(filter %_list %_vector,$2),\
+           $(call _equal?_seq_loop,$($1),$($2))),\
+     $(and $(filter %_map,$1),\
+           $(filter %_map,$2),\
+           $(call _EQ,$(_keys),$(call _keys,$2)),\
+           $(call _hash_equal?,$1,$2,$(_keys))))
+endef
 
-_nil? = $(if $(filter $(__obj_magic)__nil_%,$(1)),$(__true),)
+_nil? = $(filter $(__nil),$1)
 
-_true? = $(if $(filter $(__obj_magic)_true_%,$(1)),$(__true),)
+_true? = $(filter $(__true),$1)
 
-_false? = $(if $(filter $(__obj_magic)_fals_%,$(1)),$(__true),)
+_false? = $(filter $(__false),$1)
+
+# Conveniently for DEBUG-EVAL, returns false if $1 is empty.
+truthy? = $(filter-out _nil _false,$1)
 
 
 # Symbols
-_symbol = $(foreach hcode,$(call __new_obj_hash_code),$(__obj_magic)_symb_$(hcode)$(eval $(__obj_magic)_symb_$(hcode)_value := $(1)))
-_symbol? = $(if $(filter $(__obj_magic)_symb_%,$(1)),$(__true),)
+_symbol = $1_symbol
+_symbol_val = $(1:_symbol=)
+_symbol? = $(filter %_symbol,$1)
 
 
 # Keywords
-_keyword = $(foreach hcode,$(call __new_obj_hash_code),$(__obj_magic)_strn_$(hcode)$(eval $(__obj_magic)_strn_$(hcode)_value := $(__keyword)$(1)))
-_keyword? = $(if $(filter $(__obj_magic)_strn_%,$(1)),$(if $(filter $(__keyword)%,$($(1)_value)),$(__true),))
+_keyword = $1_keyword
+_keyword? = $(filter %_keyword,$1)
+_keyword_val = $(1:_keyword=)
 
 
 # Numbers
-_pnumber = $(foreach hcode,$(call __new_obj_hash_code),$(__obj_magic)_numb_$(hcode)$(eval $(__obj_magic)_numb_$(hcode)_value := $(1)))
-_number = $(call _pnumber,$(call int_encode,$(1)))
-_number? = $(if $(filter $(__obj_magic)_numb_%,$(1)),$(__true),)
+_number = $1_number
+_number? = $(filter %_number,$1)
+_number_val = $(1:_number=)
 
 
 # Strings
-__string = $(foreach hcode,$(call __new_obj_hash_code),$(__obj_magic)_strn_$(hcode)$(eval $(__obj_magic)_strn_$(hcode)_value := $(1)))
-_string = $(foreach hcode,$(call __new_obj_hash_code),$(__obj_magic)_strn_$(hcode)$(eval $(__obj_magic)_strn_$(hcode)_value := $(call str_encode,$(1))))
-_string? = $(if $(filter $(__obj_magic)_strn_%,$(1)),$(__true),)
+_string = $1_string
+_string? = $(filter %_string,$1)
+_string_val = $(1:_string=)
 
 # Functions
 
-# Return a function object. The first parameter is the
-# function/macro 'source'. Note that any $ must be escaped as $$ to be
-# preserved and become positional arguments for when the
-# function/macro is later invoked.
-_function = $(foreach hcode,$(call __new_obj_hash_code),$(__obj_magic)_func_$(hcode)$(eval $(__obj_magic)_func_$(hcode)_value = $(1)))
-_function? = $(if $(filter $(__obj_magic)_func_%,$(1)),$(__true),)
+_corefn = $(call __new_obj,corefn,$1)
+_function = $(call __new_obj,function,$2 $3 $1)
+_as_macro = $(call __new_obj,macro,$($1))
+_fn? = $(filter %_corefn %_function,$1)
+_macro? = $(filter %_macro,$1)
 
-# Takes a function name and a list object of arguments and invokes
-# the function with space separated arguments
-_apply = $(call $(1),$($(2)_value))
+# 1:env 2:formal parameters 3:actual parameters
+define _function_set_env
+$(if $2\
+  ,$(if $(filter &_symbol,$(firstword $2))\
+    ,$(call ENV_SET,$1,$(lastword $2),$(call list,$3)),$(rem \
+  else \
+    $(call ENV_SET,$1,$(firstword $2),$(firstword $3))
+    $(call _function_set_env,$1,$(call _rest,$2),$(call _rest,$3)))))
+endef
 
 # Takes a function object and a list object of arguments and invokes
 # the function with space separated arguments
-apply = $(call $(1)_value,$($(2)_value))
+define _apply
+$(if $(filter %_corefn,$1)\
+  ,$(call $($1),$2)$(rem \
+),$(if $(filter %_function %_macro,$1)\
+  ,$(foreach env,$(call ENV,$(word 2,$($1)))\
+    ,$(call _function_set_env,$(env),$(call _rest2,$($1)),$2)$(rem \
+    )$(call EVAL,$(firstword $($1)),$(env)))$(rem \
+),$(call _error,cannot apply non-function)))
+endef
 
 
 # Lists
-_list = $(word 1,$(foreach new_list,$(foreach hcode,$(call __new_obj_hash_code),$(__obj_magic)_list_$(hcode)),$(new_list) $(eval $(new_list)_value := $1)))
-_list? = $(if $(filter $(__obj_magic)_list_%,$(1)),$(__true),)
+list = $(if $1,$(call __new_obj,list,$1),empty_list)
+_list? = $(filter %_list,$1)
+
+_seq_vals = $($1)
 
 
 # Vectors (same as lists for now)
-_vector = $(word 1,$(foreach new_vect,$(foreach hcode,$(call __new_obj_hash_code),$(__obj_magic)_vect_$(hcode)),$(new_vect) $(eval $(new_vect)_value := $1)))
-_vector? = $(if $(filter $(__obj_magic)_vect_%,$(1)),$(__true),)
+vector = $(if $1,$(call __new_obj,vector,$1),empty_vector)
+_vector? = $(filter %_vector,$1)
 
 
 # Hash maps (associative arrays)
-_hash_map = $(word 1,$(foreach hcode,$(call __new_obj_hash_code),$(foreach new_hmap,$(__obj_magic)_hmap_$(hcode),$(new_hmap) $(eval $(new_hmap)_size := 0) $(if $(1),$(call _assoc_seq!,$(new_hmap),$(1))))))
-_hash_map? = $(if $(filter $(__obj_magic)_hmap_%,$(1)),$(__true),)
+# 1:optional source map  2:optional key/value pairs  3:optional removals
+define _map_new
+$(foreach obj,$(call __new_obj,map,$(filter-out $3,$(if $1,$($1))))\
+,$(obj)$(rem \
+$(foreach k,$($(obj))\
+  ,$(eval $(obj)_$k := $($1_$k)))\
+$(call _foreach2,$2\
+  ,$$(call _assoc!,$(obj),$$k,$$v))))
+endef
 
-# Set multiple key/values in a map
-_assoc_seq! = $(call _assoc!,$(1),$(call str_decode,$($(word 1,$(2))_value)),$(word 2,$(2)))$(if $(word 3,$(2)),$(call _assoc_seq!,$(1),$(wordlist 3,$(words $(2)),$(2))),)
+_hash_map? = $(filter %_map,$1)
 
-_dissoc_seq! = $(foreach key,$(2),\
-                   $(call _dissoc!,$(1),$(call str_decode,$($(key)_value))))
 
 # set a key/value in the hash map
-_assoc! = $(foreach k,$(subst =,$(__equal),$(2)),$(if $(call _undefined?,$(1)_$(k)_value),$(eval $(1)_size := $(call int_add,$($(1)_size),1)),)$(eval $(1)_$(k)_value := $(3))$(1))
+# map key val
+# sort removes duplicates.
+_assoc! = $(eval $1_$2 := $3)$(eval $1 := $(sort $($1) $2))
 
-# unset a key in the hash map
-_dissoc! = $(foreach k,$(subst =,$(__equal),$(2)),$(if $(call _undefined?,$(1)_$(k)_value),,$(eval $(1)_$(k)_value := $(__undefined))$(eval $(1)_size := $(call int_sub,$($(1)_size),1))))$(1)
-
-# Hash map and vector functions
+_keys = $($1)
 
 # retrieve the value of a plain string key from the hash map, or
-# retrive a vector by plain index
-_get = $(strip \
-        $(if $(call _hash_map?,$(1)),\
-          $(foreach k,$(subst =,$(__equal),$(2)),$(if $(call _undefined?,$(1)_$(k)_value),,$($(1)_$(k)_value))),\
-          $(if $(call _vector?,$(1)),\
-            $(word $(call int_add,1,$(2)),$($(1)_value)),\
-            ,)))
-
-_contains? = $(strip \
-               $(if $(call _hash_map?,$(1)),\
-                 $(foreach k,$(subst =,$(__equal),$(2)),$(if $(call _undefined?,$(1)_$(k)_value),,$(__true))),\
-                 $(if $(call _vector?,$(1)),\
-                   $(if $(word $(call int_add,1,$(2)),$($(1)_value)),$(__true),),\
-                   ,)))
+# return the empty string if the key is missing
+_get = $($1_$2)
 
 
 # sequence operations
 
-_sequential? = $(if $(filter $(__obj_magic)_list_% $(__obj_magic)_vect_%,$(1)),$(__true),)
+_sequential? = $(filter %_list %_vector,$1)
 
-_nth = $(word $(call int_add,1,$(2)),$($(1)_value))
 
-# conj that mutates a sequence in-place to append the call arguments
-_conj! = $(eval $(1)_value := $(strip $($(1)_value) $2 $3 $4 $5 $6 $7 $8 $9 $(10) $(11) $(12) $(13) $(14) $(15) $(16) $(17) $(18) $(19) $(20)))$(1)
+# Metadata functions
 
-_count = $(strip \
-           $(if $(call _hash_map?,$(1)),\
-             $($(1)_size),\
-             $(words $($(1)_value))))
+with-meta = $(foreach obj,$(call _clone_obj,$(firstword $1))\
+  ,$(obj)$(eval $(obj)_meta := $(lastword $1)))
 
-_empty? = $(call _EQ,0,$(_count))
-
-# Creates a new vector/list of the everything after but the first
-# element
-srest = $(word 1,$(foreach new_list,$(call _list),\
-                   $(new_list) \
-                   $(eval $(new_list)_value := $(wordlist 2,$(words $($(1)_value)),$($(1)_value)))))
-
-# maps a make function over a list object, using mutating _conj!
-_smap = $(word 1,\
-         $(foreach new_list,$(call _list),\
-           $(new_list)\
-           $(foreach v,$(call __get_obj_values,$(2)),\
-             $(call _conj!,$(new_list),$(call $(1),$(v),$(3),$(4))))))
-
-# Same as _smap but returns a vector
-_smap_vec = $(word 1,\
-         $(foreach new_vector,$(call _vector),\
-           $(new_vector)\
-           $(foreach v,$(call __get_obj_values,$(2)),\
-             $(call _conj!,$(new_vector),$(call $(1),$(v),$(3),$(4))))))
+meta = $(or $($1_meta),$(__nil))
 
 
 # atoms
 
-_atom? = $(if $(filter $(__obj_magic)_atom_%,$(1)),$(__true),)
+atom = $(call __new_obj,atom,$1)
+_atom? = $(filter %_atom,$1)
+deref = $($1)
+_reset = $(eval $1 = $2)
 
 
 endif
