@@ -310,7 +310,7 @@ expression support.
 
 * Add a `reader.qx` file to hold functions related to the reader.
 
-* If the target language has objects types (OOP), then the next step
+* If the target language has object types (OOP), then the next step
   is to create a simple stateful Reader object in `reader.qx`. This
   object will store the tokens and a position. The Reader object will
   have two methods: `next` and `peek`. `next` returns the token at
@@ -368,7 +368,7 @@ expression support.
 
 * Add the function `read_list` to `reader.qx`. This function will
   repeatedly call `read_form` with the Reader object until it
-  encounters a ')' token (if it reach EOF before reading a ')' then
+  encounters a ')' token (if it reaches EOF before reading a ')' then
   that is an error). It accumulates the results into a List type.  If
   your language does not have a sequential data type that can hold mal
   type values you may need to implement one (in `types.qx`).  Note
@@ -384,7 +384,7 @@ expression support.
   the other fundamental mal types: nil, true, false, and string. The
   remaining scalar mal type, keyword does not
   need to be implemented until step A (but can be implemented at any
-  point between this step and that). BTW, symbols types are just an
+  point between this step and that). BTW, symbol types are just an
   object that contains a single string name value (some languages have
   symbol types already).
 
@@ -574,7 +574,7 @@ Try some simple expressions:
   * `(+ 2 (* 3 4))` -> `14`
 
 The most likely challenge you will encounter is how to properly call
-a function references using an arguments list.
+a function reference using an arguments list.
 
 Now go to the top level, run the step 2 tests and fix the errors.
 ```
@@ -802,7 +802,7 @@ Try out the basic functionality you have implemented:
 
 * Add the following functions to `core.ns`:
   * `prn`: call `pr_str` on the first parameter with `print_readably`
-    set to true, prints the result to the screen and then return
+    set to true, print the result to the screen and then return
     `nil`. Note that the full version of `prn` is a deferrable below.
   * `list`: take the parameters and return them as a list.
   * `list?`: return true if the first parameter is a list, false
@@ -846,7 +846,7 @@ from a neat toy to a full featured language.
   call the `rep` function with this string:
   "(def! not (fn* (a) (if a false true)))".
 
-* Implement the strings functions in `core.qx`. To implement these
+* Implement the string functions in `core.qx`. To implement these
   functions, you will need to implement the string support in the
   reader and printer (deferrable section of step 1). Each of the string
   functions takes multiple mal values, prints them (`pr_str`) and
@@ -930,15 +930,15 @@ diff -urp ../process/step4_if_fn_do.txt ../process/step5_tco.txt
 
 * The default "apply"/invoke case of `EVAL` must now be changed to
   account for the new object/structure returned by the `fn*` form.
-  Continue to call `eval_ast` on `ast`. The first element of the 
+  Continue to call `eval_ast` on `ast`. The first element of the
   result of `eval_ast` is `f` and the remaining elements are in `args`.
   Switch on the type of `f`:
   * regular function (not one defined by `fn*`): apply/invoke it as
     before (in step 4).
   * a `fn*` value: set `ast` to the `ast` attribute of `f`. Generate
     a new environment using the `env` and `params` attributes of `f`
-    as the `outer` and `binds` arguments and `args` as the `exprs` 
-    argument. Set `env` to the new environment. Continue at the 
+    as the `outer` and `binds` arguments and `args` as the `exprs`
+    argument. Set `env` to the new environment. Continue at the
     beginning of the loop.
 
 Run some manual tests from previous steps to make sure you have not
@@ -1054,7 +1054,7 @@ You'll need to add 5 functions to the core namespace to support atoms:
 
 Optionally, you can add a reader macro `@` which will serve as a short form for
 `deref`, so that `@a` is equivalent to `(deref a)`.  In order to do that, modify
-the conditional in reader `read_form` function and add a case which deals with
+the conditional in reader function `read_form` and add a case which deals with
 the `@` token: if the token is `@` (at sign) then return a new list that
 contains the symbol `deref` and the result of reading the next form
 (`read_form`).
@@ -1119,7 +1119,7 @@ value that it evaluates to. Likewise with lists. For example, consider
 the following:
 
 * `(prn abc)`: this will lookup the symbol `abc` in the current
-  evaluation environment and print it. This will result in error if
+  evaluation environment and print it. This will result in an error if
   `abc` is not defined.
 * `(prn (quote abc))`: this will print "abc" (prints the symbol
   itself). This will work regardless of whether `abc` is defined in
@@ -1182,7 +1182,7 @@ Mal borrows most of its syntax and feature-set).
   following conditional.
   - If `ast` is a list starting with the "unquote" symbol, return its
     second element.
-  - If `ast` is a list failing previous test, the result will be a
+  - If `ast` is a list failing the previous test, the result will be a
     list populated by the following process.
 
     The result is initially an empty list.
@@ -1223,7 +1223,7 @@ Mal borrows most of its syntax and feature-set).
   of the `quasiquote` internal function.
 
 * Add the `quasiquote` special form.
-  This form does the same than `quasiquoteexpand`,
+  This form does the same as `quasiquoteexpand`,
   but evaluates the result in the current environment before returning it,
   either by recursively calling `EVAL` with the result and `env`,
   or by assigning `ast` with the result and continuing execution at
@@ -1247,8 +1247,8 @@ macros.
   short-hand syntaxes are known as reader macros because they allow us
   to manipulate mal code during the reader phase. Macros that run
   during the eval phase are just called "macros" and are described in
-  the next section. Expand the conditional with reader `read_form`
-  function to add the following four cases:
+  the next section. Expand the conditional in reader function
+  `read_form` to add the following four cases:
   * token is "'" (single quote): return a new list that contains the
     symbol "quote" and the result of reading the next form
     (`read_form`).
@@ -1360,7 +1360,7 @@ recommend a couple of approaches:
 * Add a debug print statement to the top of your main `eval` function
   (inside the TCO loop) to print the current value of `ast` (hint use
   `pr_str` to get easier to debug output). Pull up the step8
-  implementation from another language and uncomment its `eval`
+  implementation from another language and instrument its `eval`
   function (yes, I give you permission to violate the rule this once).
   Run the two side-by-side. The first difference is likely to point to
   the bug.
@@ -1388,11 +1388,11 @@ implementation. Let us continue!
     as arguments, returns the element of the list at the given index.
     If the index is out of range, this function raises an exception.
   * `first`: this function takes a list (or vector) as its argument
-    and return the first element. If the list (or vector) is empty or
+    and returns the first element. If the list (or vector) is empty or
     is `nil` then `nil` is returned.
   * `rest`: this function takes a list (or vector) as its argument and
     returns a new list containing all the elements except the first. If
-    the list (or vector) is empty or is `nil` then `()` (empty list) 
+    the list (or vector) is empty or is `nil` then `()` (empty list)
     is returned.
 
 * In the main program, call the `rep` function with the following
@@ -1480,7 +1480,7 @@ diff -urp ../process/step8_macros.txt ../process/step9_try.txt
     function against every element of the list (or vector) one at
     a time and returns the results as a list.
 
-* Add some type predicates core functions. In Lisp, predicates are
+* Add some type predicate core functions. In Lisp, predicates are
   functions that return true/false (or true value/nil) and typically
   end in "?" or "p".
   * `nil?`: takes a single argument and returns true (mal true value)
@@ -1608,7 +1608,7 @@ make "test^quux^stepA"
 
 Once you have passed all the non-optional step A tests, it is time to
 try self-hosting. Run your step A implementation as normal, but use
-the file argument mode you added in step 6 to run a each of the step
+the file argument mode you added in step 6 to run each step
 from the mal implementation:
 ```
 ./stepA_mal.qx ../mal/step1_read_print.mal
@@ -1672,7 +1672,7 @@ implementation.
     result of reading the next next form (2nd argument) (`read_form`) and the
     next form (1st argument) in that order
     (metadata comes first with the ^ macro and the function second).
-  * If you implemented as `defmacro!` to mutate an existing function
+  * If you implemented `defmacro!` as mutating an existing function
     without copying it, you can now use the function copying mechanism
     used for metadata to make functions immutable even in the
     defmacro! case...
@@ -1699,7 +1699,7 @@ implementation.
   * `seq`: takes a list, vector, string, or nil. If an empty list,
     empty vector, or empty string ("") is passed in then nil is
     returned. Otherwise, a list is returned unchanged, a vector is
-    converted into a list, and a string is converted to a list that
+    converted into a list, and a string is converted to a list
     containing the original string split into single character
     strings.
 * For interop with the target language, add this core function:
