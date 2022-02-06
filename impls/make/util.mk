@@ -14,32 +14,17 @@ encoded_slash := λ
 raw_hash      := \#
 encoded_hash  := η
 
-SEMI := ;
 COMMA := ,
 COLON := :
-LCURLY := {
-RCURLY := }
 LPAREN := (
 RPAREN := )
-LBRACKET := [
-RBRACKET := ]
-DQUOTE := "# "
 SLASH := $(strip \ )
-ESC_DQUOTE := $(encoded_slash)$(DQUOTE)
-ESC_N := $(encoded_slash)n
-SQUOTE := '# '
-QQUOTE := `# `
 SPACE :=
 SPACE := $(SPACE) $(SPACE)
-MINUS := -
-NUMBERS := 0 1 2 3 4 5 6 7 8 9
-UNQUOTE := ~
 define NEWLINE
 
 
 endef
-CARET := ^
-ATSIGN := @
 
 # \u00ab
 _LP := «
@@ -51,8 +36,6 @@ _SP := §
 _DOL := Ş
 ## \u00b6
 _NL := ¶
-## \u00a8
-###_EDQ := ¨
 
 
 #
@@ -117,13 +100,11 @@ print = $(info $(str_decode_nospace))
 _rest = $(wordlist 2,$(words $1),$1)
 _rest2 = $(wordlist 3,$(words $1),$1)
 
-# Evaluate $3 repeatedly with $k and $v set to key/value pairs from $1.
+# Evaluate $2 repeatedly with $k and $v set to key/value pairs from $1.
 define _foreach2
-$(if $1\
-  ,$(foreach k,$(firstword $1)\
+$(foreach k,$(firstword $1)\
   ,$(foreach v,$(word 2,$1)\
-  ,$(eval $2)))$(rem \
-  )$(call _foreach2,$(_rest2),$2))
+    ,$(eval $2)$(call _foreach2,$(_rest2),$2)))
 endef
 
 endif
