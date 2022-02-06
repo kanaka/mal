@@ -33,8 +33,8 @@ symbol_pr_str = $(_symbol_val)
 keyword_pr_str = $(encoded_colon)$(_keyword_val)
 
 string_pr_str = $(if $2\
-  ,"$(subst $(_NL),$(ESC_N),$(rem \
-   )$(subst $(DQUOTE),$(ESC_DQUOTE),$(rem \
+  ,"$(subst $(_NL),$(encoded_slash)n,$(rem \
+   )$(subst ",$(encoded_slash)",$(rem \
    )$(subst $(encoded_slash),$(encoded_slash)$(encoded_slash),$(rem \
    )$(_string_val))))"$(rem \
 else \

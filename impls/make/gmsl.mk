@@ -55,8 +55,4 @@ gmsl_characters += 0 1 2 3 4 5 6 7 8 9
 gmsl_characters += ` ~ ! @ \# $$ % ^ & * ( ) - _ = +
 gmsl_characters += { } [ ] \ : ; ' " < > , . / ? |
 
-gmsl_pairmap = $(strip \
-                 $(if $2$3,$(call $1,$(word 1,$2),$(word 1,$3))     \
-                           $(call gmsl_pairmap,$1,$(wordlist 2,$(words $2),$2),$(wordlist 2,$(words $3),$3))))
-
 endif
