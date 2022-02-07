@@ -206,13 +206,6 @@ prompt =
     "user> "
 
 
-{-| read can return three things:
-
-Ok (Just expr) -> parsed okay
-Ok Nothing -> empty string (only whitespace and/or comments)
-Err msg -> parse error
-
--}
 read : String -> Result String MalExpr
 read =
     readString
@@ -466,16 +459,15 @@ evalDo args =
 evalIf : List MalExpr -> Eval MalExpr
 evalIf args =
     let
-        isThruthy expr =
+        isTruthy expr =
             expr /= MalNil && expr /= (MalBool False)
 
         go condition trueExpr falseExpr =
             eval condition
-                |> Eval.map isThruthy
                 |> Eval.andThen
                     (\cond ->
                         evalNoApply
-                            (if cond then
+                            (if isTruthy cond then
                                 trueExpr
                              else
                                 falseExpr
