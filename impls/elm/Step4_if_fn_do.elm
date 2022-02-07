@@ -1,10 +1,9 @@
-port module Main exposing (..)
+module Step4_if_fn_do exposing (..)
 
 import Array
 import Dict exposing (Dict)
 import IO exposing (..)
-import Json.Decode exposing (decodeValue)
-import Platform exposing (programWithFlags)
+import Json.Decode exposing (decodeValue, errorToString)
 import Types exposing (..)
 import Reader exposing (readString)
 import Printer exposing (printString)
@@ -16,11 +15,14 @@ import Eval
 
 main : Program Flags Model Msg
 main =
-    programWithFlags
+    Platform.worker
         { init = init
         , update = update
         , subscriptions =
-            \model -> input (decodeValue decodeIO >> Input)
+            \model -> input (decodeValue decodeIO >> (\x -> case x of
+                Err e -> Err (errorToString e)
+                Ok a  -> Ok a
+            ) >>  Input)
         }
 
 
@@ -45,7 +47,6 @@ init { args } =
         evalMalInit =
             malInit
                 |> List.map rep
-                |> justValues
                 |> List.foldl
                     (\b a -> a |> Eval.andThen (\_ -> b))
                     (Eval.succeed MalNil)
@@ -73,18 +74,13 @@ update msg model =
                 Input (Ok io) ->
                     runInit env (cont io)
 
-                Input (Err msg) ->
-                    Debug.crash msg
+                Input (Err msg2) ->
+                    Debug.todo msg2
 
         ReplActive env ->
             case msg of
                 Input (Ok (LineRead (Just line))) ->
-                    case rep line of
-                        Just expr ->
-                            run env expr
-
-                        Nothing ->
-                            ( model, readLine prompt )
+                    run env (rep line)
 
                 Input (Ok LineWritten) ->
                     ( model, readLine prompt )
@@ -94,24 +90,24 @@ update msg model =
                     ( model, Cmd.none )
 
                 Input (Ok io) ->
-                    Debug.crash "unexpected IO received: " io
+                    Debug.todo "unexpected IO received: " io
 
-                Input (Err msg) ->
-                    Debug.crash msg
+                Input (Err msg2) ->
+                    Debug.todo msg2
 
         ReplIO env cont ->
             case msg of
                 Input (Ok io) ->
                     run env (cont io)
 
-                Input (Err msg) ->
-                    Debug.crash msg ( model, Cmd.none )
+                Input (Err msg2) ->
+                    Debug.todo msg2 ( model, Cmd.none )
 
 
 runInit : Env -> Eval MalExpr -> ( Model, Cmd Msg )
-runInit env expr =
-    case Eval.run env expr of
-        ( env, EvalOk expr ) ->
+runInit env0 expr =
+    case Eval.run env0 expr of
+        ( env, EvalOk _ ) ->
             -- Init went okay, start REPL.
             ( ReplActive env, readLine prompt )
 
@@ -125,10 +121,10 @@ runInit env expr =
 
 
 run : Env -> Eval MalExpr -> ( Model, Cmd Msg )
-run env expr =
-    case Eval.run env expr of
-        ( env, EvalOk expr ) ->
-            ( ReplActive env, writeLine (print env expr) )
+run env0 expr =
+    case Eval.run env0 expr of
+        ( env, EvalOk expr1 ) ->
+            ( ReplActive env, writeLine (print env expr1) )
 
         ( env, EvalErr msg ) ->
             ( ReplActive env, writeLine (printError env msg) )
@@ -149,7 +145,7 @@ Ok Nothing -> empty string (only whitespace and/or comments)
 Err msg -> parse error
 
 -}
-read : String -> Result String (Maybe MalExpr)
+read : String -> Result String MalExpr
 read =
     readString
 
@@ -239,8 +235,8 @@ evalAst ast =
 evalList : List MalExpr -> Eval (List MalExpr)
 evalList list =
     let
-        go list acc =
-            case list of
+        go lst acc =
+            case lst of
                 [] ->
                     Eval.succeed (List.reverse acc)
 
@@ -358,7 +354,7 @@ evalIf args =
 
 
 evalFn : List MalExpr -> Eval MalExpr
-evalFn args =
+evalFn parms =
     let
         {- Extract symbols from the binds list and verify their uniqueness -}
         extractSymbols acc list =
@@ -397,7 +393,7 @@ evalFn args =
                 if List.length args /= numBinds then
                     Err <|
                         "function expected "
-                            ++ (toString numBinds)
+                            ++ (String.fromInt numBinds)
                             ++ " arguments"
                 else
                     Ok <| zip binds args
@@ -413,7 +409,7 @@ evalFn args =
                 if List.length args < minArgs then
                     Err <|
                         "function expected at least "
-                            ++ (toString minArgs)
+                            ++ (String.fromInt minArgs)
                             ++ " arguments"
                 else
                     Ok <| zip binds args ++ [ ( var, varArgs ) ]
@@ -459,7 +455,7 @@ evalFn args =
                 Err msg ->
                     Eval.fail msg
     in
-        case args of
+        case parms of
             [ MalList bindsList, body ] ->
                 go bindsList body
 
@@ -485,14 +481,11 @@ printError env expr =
 Doesn't actually run the Eval but returns the monad.
 
 -}
-rep : String -> Maybe (Eval MalExpr)
+rep : String -> Eval MalExpr
 rep input =
     case readString input of
-        Ok Nothing ->
-            Nothing
-
         Err msg ->
-            Just (Eval.fail msg)
+            Eval.fail msg
 
-        Ok (Just ast) ->
-            eval ast |> Just
+        Ok ast ->
+            eval ast

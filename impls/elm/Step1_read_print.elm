@@ -1,8 +1,7 @@
-port module Main exposing (..)
+module Step1_read_print exposing (..)
 
 import IO exposing (..)
-import Json.Decode exposing (decodeValue)
-import Platform exposing (programWithFlags)
+import Json.Decode exposing (decodeValue, errorToString)
 import Types exposing (MalExpr(..))
 import Reader exposing (readString)
 import Printer exposing (printStr)
@@ -10,11 +9,14 @@ import Printer exposing (printStr)
 
 main : Program Flags Model Msg
 main =
-    programWithFlags
+    Platform.worker
         { init = init
         , update = update
         , subscriptions =
-            \model -> input (decodeValue decodeIO >> Input)
+            \model -> input (decodeValue decodeIO >> (\x -> case x of
+                Err e -> Err (errorToString e)
+                Ok a  -> Ok a
+            ) >>  Input)
         }
 
 
@@ -41,12 +43,7 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         Input (Ok (LineRead (Just line))) ->
-            case rep line of
-                Just out ->
-                    ( model, writeLine out )
-
-                Nothing ->
-                    ( model, readLine prompt )
+                ( model, writeLine (rep line) )
 
         Input (Ok LineWritten) ->
             ( model, readLine prompt )
@@ -55,10 +52,10 @@ update msg model =
             ( model, Cmd.none )
 
         Input (Ok io) ->
-            Debug.crash "unexpected IO received: " io
+            Debug.todo "unexpected IO received: " io
 
-        Input (Err msg) ->
-            Debug.crash msg ( model, Cmd.none )
+        Input (Err msg2) ->
+            Debug.todo msg2 ( model, Cmd.none )
 
 
 prompt : String
@@ -73,7 +70,7 @@ Ok Nothing -> empty string (only whitespace and/or comments)
 Err msg -> parse error
 
 -}
-read : String -> Result String (Maybe MalExpr)
+read : String -> Result String MalExpr
 read =
     readString
 
@@ -90,7 +87,7 @@ print =
 
 {-| Read-Eval-Print
 -}
-rep : String -> Maybe String
+rep : String -> String
 rep =
     let
         formatResult result =
@@ -99,8 +96,8 @@ rep =
                     optStr
 
                 Err msg ->
-                    Just msg
+                    msg
     in
         readString
-            >> Result.map (Maybe.map (eval >> print))
+            >> Result.map (eval >> print)
             >> formatResult

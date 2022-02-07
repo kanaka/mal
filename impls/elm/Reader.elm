@@ -2,33 +2,62 @@ module Reader exposing (..)
 
 import Array
 import Dict
-import Combine exposing (..)
-import Combine.Num
+import Parser exposing (DeadEnd, Parser, lazy, (|.), (|=))
 import Types exposing (MalExpr(..), keywordPrefix)
 import Utils exposing (decodeString, makeCall)
 
 
-comment : Parser s String
+comment : Parser ()
 comment =
-    regex ";.*"
+    Parser.lineComment ";"
 
 
-ws : Parser s (List String)
+ws : Parser ()
 ws =
-    many (comment <|> string "," <|> whitespace)
+    let
+        isSpaceChar : Char -> Bool
+        isSpaceChar c = List.member c [' ', '\n', '\r', ',']
+    in
+        Parser.succeed ()
+            |. Parser.sequence
+                { start     = ""
+                , separator = ""
+                , end       = ""
+                , spaces    = Parser.chompWhile isSpaceChar
+                , item      = comment
+                , trailing  = Parser.Optional
+                }
 
 
-int : Parser s MalExpr
+int : Parser MalExpr
 int =
-    MalInt <$> Combine.Num.int <?> "int"
+    --  Parser.map MalInt Parser.int fails with elm/parser 1.1.0
+    let
+        isDigit : Char -> Bool
+        isDigit c = '0' <= c && c <= '9'
+        toInt s = case String.toInt s of
+            Just r  -> MalInt r
+            Nothing -> Debug.todo "should not happen"
+    in
+        Parser.map toInt <| Parser.getChompedString <|
+            Parser.chompIf isDigit
+            |. Parser.chompWhile isDigit
 
 
-symbolString : Parser s String
+symbolString : Parser String
 symbolString =
-    regex "[^\\s\\[\\]{}('\"`,;)]+"
+    let
+        isSymbolChar : Char -> Bool
+        isSymbolChar c =
+            not (List.member c [' ', '\n', '\r', ',', '\\', '[', ']',
+                '{', '}', '(', '\'', '"', '`', ';', ')'])
+    in
+        Parser.getChompedString <|
+            Parser.chompIf isSymbolChar
+            |. Parser.chompWhile isSymbolChar
 
 
-symbolOrConst : Parser s MalExpr
+symbolOrConst : Parser MalExpr
 symbolOrConst =
     let
         make sym =
@@ -45,81 +74,88 @@ symbolOrConst =
                 _ ->
                     MalSymbol sym
     in
-        make
-            <$> symbolString
-            <?> "symbol"
+       Parser.map make symbolString
 
 
-keywordString : Parser s String
+keywordString : Parser String
 keywordString =
-    (++)
-        <$> string ":"
-        <*> symbolString
+    Parser.succeed identity
+        |. Parser.token ":"
+        |= symbolString
 
 
-keyword : Parser s MalExpr
+keyword : Parser MalExpr
 keyword =
-    MalKeyword <$> keywordString
+    Parser.map MalKeyword keywordString
 
 
-list : Parser s MalExpr
+list : Parser MalExpr
 list =
-    MalList
-        <$> parens (many form <* ws)
-        <?> "list"
+    Parser.map MalList <| Parser.sequence
+        { start     = "("
+        , separator = ""
+        , end       = ")"
+        , spaces    = ws
+        , item      = form
+        , trailing  = Parser.Optional
+        }
 
 
-vector : Parser s MalExpr
+vector : Parser MalExpr
 vector =
-    MalVector
-        << Array.fromList
-        <$> (string "["
-                *> many form
-                <* ws
-                <* string "]"
-            )
-        <?> "vector"
+    Parser.map (MalVector << Array.fromList) <| Parser.sequence
+        { start     = "["
+        , separator = ""
+        , end       = "]"
+        , spaces    = ws
+        , item      = form
+        , trailing  = Parser.Optional
+        }
 
 
-mapKey : Parser s String
+mapKey : Parser String
 mapKey =
-    choice
-        [ String.cons keywordPrefix <$> keywordString
-        , decodeString <$> strString
+    Parser.oneOf
+        [ Parser.map (String.cons keywordPrefix) keywordString
+        , Parser.map decodeString strString
         ]
 
 
-mapEntry : Parser s ( String, MalExpr )
+mapEntry : Parser ( String, MalExpr )
 mapEntry =
-    (,) <$> mapKey <*> form <?> "map entry"
+    Parser.succeed Tuple.pair |= mapKey |= form
 
 
-map : Parser s MalExpr
+map : Parser MalExpr
 map =
-    lazy <|
-        \() ->
-            MalMap
-                << Dict.fromList
-                <$> (string "{"
-                        *> many (ws *> mapEntry)
-                        <* ws
-                        <* string "}"
-                    )
-                <?> "map"
+    Parser.map (MalMap << Dict.fromList) <| Parser.sequence
+        { start     = "{"
+        , separator = ""
+        , end       = "}"
+        , spaces    = ws
+        , item      = mapEntry
+        , trailing  = Parser.Optional
+      }
 
 
-atom : Parser s MalExpr
+atom : Parser MalExpr
 atom =
-    choice
-        [ int
+    Parser.oneOf
+        [ Parser.succeed identity
+          |. Parser.token "-"
+          |= Parser.oneOf
+              [ Parser.map (MalInt << negate) Parser.int
+              , Parser.map (MalSymbol << (++) "-") symbolString
+              , Parser.succeed (MalSymbol "-")
+              ]
+        , int
         , keyword
         , symbolOrConst
         , str
         ]
-        <?> "atom"
 
 
-form : Parser s MalExpr
+form : Parser MalExpr
 form =
     lazy <|
         \() ->
@@ -137,65 +173,75 @@ form =
                     , atom
                     ]
             in
-                ws *> choice parsers <?> "form"
+                Parser.succeed identity |. ws |= Parser.oneOf parsers
 
 
-simpleMacro : String -> String -> Parser s MalExpr
+simpleMacro : String -> String -> Parser MalExpr
 simpleMacro token symbol =
-    makeCall symbol
-        << List.singleton
-        <$> (string token *> form)
-        <?> symbol
+  Parser.succeed (makeCall symbol << List.singleton)
+      |. Parser.token token
+      |= form
 
 
-withMeta : Parser s MalExpr
+withMeta : Parser MalExpr
 withMeta =
-    lazy <|
-        \() ->
             let
                 make meta expr =
                     makeCall "with-meta" [ expr, meta ]
             in
-                make
-                    <$> (string "^" *> form)
-                    <*> form
-                    <?> "with-meta"
+                Parser.succeed make
+                    |. Parser.token "^"
+                    |= form
+                    |= form
 
 
-readString : String -> Result String (Maybe MalExpr)
-readString str =
-    case parse ((maybe form) <* ws <* end) str of
-        Ok ( _, _, ast ) ->
+readString : String -> Result String MalExpr
+readString str2 =
+    case Parser.run (form |. ws |. Parser.end) str2 of
+        Ok ast ->
             Ok ast
 
-        Err ( _, stream, ms ) ->
-            Err <| formatError ms stream
+        Err deadEnds ->
+            --  Should become Err <| Parser.deadEndsToString deadEnds
+            --  once the function is implemented.
+            Err <| formatError deadEnds
 
 
-formatError : List String -> InputStream -> String
-formatError ms stream =
+formatError : List DeadEnd -> String
+formatError =
     let
-        location =
-            currentLocation stream
-    in
-        "Parse error: "
-            ++ String.join ", " ms
-            ++ " "
-            ++ "(at "
-            ++ toString location.line
+        format1 deadEnd =
+            Debug.toString deadEnd.problem
+            ++ " at "
+            ++ String.fromInt deadEnd.row
             ++ ":"
-            ++ toString location.column
-            ++ ")"
+            ++ String.fromInt deadEnd.col
+    in
+        (++) "end of input\n" << String.join "\n" << List.map format1
 
 
-str : Parser s MalExpr
+str : Parser MalExpr
 str =
-    MalString << decodeString <$> strString
+    Parser.map (MalString << decodeString) strString
 
 
-{-| Syntax highlighter in VS code is messed up by this regex,
-that's why it's down below. :)
--}
-strString : Parser s String
+strString : Parser String
 strString =
-    regex "\"(\\\\.|[^\\\\\"])*\"" <?> "string"
+    let
+        isStringNormalChar : Char -> Bool
+        isStringNormalChar c = not <| List.member c ['"', '\\']
+    in
+        Parser.getChompedString <|
+            Parser.sequence
+                { start     = "\""
+                , separator = ""
+                , end       = "\""
+                , spaces    = Parser.succeed ()
+                , item      = Parser.oneOf
+                    [ Parser.chompIf isStringNormalChar
+                        |. Parser.chompWhile isStringNormalChar
+                    , Parser.token "\\"
+                        |. Parser.chompIf (\_ -> True)
+                    ]
+                , trailing  = Parser.Forbidden
+                }
