@@ -120,6 +120,10 @@ read =
 
 eval : ReplEnv -> MalExpr -> ( Result String MalExpr, ReplEnv )
 eval env ast =
+  -- let
+  --   _ = Debug.log ("EVAL: " ++ printStr env True ast) ()
+  --       --  The output ends with an ugly ": ()", but that does not hurt.
+  -- in
     case ast of
         MalList _ [] ->
             ( Ok ast, env )
@@ -145,13 +149,6 @@ eval env ast =
                 ( Err msg, newEnv ) ->
                     ( Err msg, newEnv )
 
-        _ ->
-            evalAst env ast
-
-
-evalAst : ReplEnv -> MalExpr -> ( Result String MalExpr, ReplEnv )
-evalAst env ast =
-    case ast of
         MalSymbol sym ->
             -- Lookup symbol in env and return value or raise error if not found.
             case Dict.get sym env of
@@ -160,11 +157,6 @@ evalAst env ast =
 
                 Nothing ->
                     ( Err ("symbol '" ++ sym ++ "' not found"), env )
-
-        MalList _ list ->
-            -- Return new list that is result of calling eval on each element of list.
-            evalList env list []
-                |> mapFirst (Result.map (MalList Nothing))
 
         MalVector _ vec ->
             evalList env (Array.toList vec) []

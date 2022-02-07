@@ -9,7 +9,8 @@ MAINTAINER Joel Martin <github@martintribe.org>
 RUN apt-get -y update
 
 # Required for running tests
-RUN apt-get -y install make python
+RUN apt-get -y install make python3
+RUN ln -s /usr/bin/python3 /usr/local/bin/python
 
 RUN mkdir -p /mal
 WORKDIR /mal
@@ -18,7 +19,7 @@ WORKDIR /mal
 # Specific implementation requirements
 ##########################################################
 
-RUN apt-get -y install libreadline-dev nodejs npm
+RUN apt-get -y install g++ libreadline-dev nodejs npm
 
 ENV HOME /mal
 ENV NPM_CONFIG_CACHE /mal/.npm
