@@ -106,13 +106,6 @@ prompt =
     "user> "
 
 
-{-| read can return three things:
-
-Ok (Just expr) -> parsed okay
-Ok Nothing -> empty string (only whitespace and/or comments)
-Err msg -> parse error
-
--}
 read : String -> Result String MalExpr
 read =
     readString
