@@ -342,13 +342,13 @@ gc expr env =
                     recur frameId acc
                         |> countBound bound
 
-                MalList list ->
+                MalList _ list ->
                     countList acc list
 
-                MalVector vec ->
+                MalVector _ vec ->
                     countList acc (Array.toList vec)
 
-                MalMap map ->
+                MalMap _ map ->
                     countList acc (Dict.values map)
 
                 MalAtom atomId ->

@@ -53,7 +53,7 @@ initReplEnv : ReplEnv
 initReplEnv =
     let
         makeFn =
-            CoreFunc >> MalFunction
+            CoreFunc Nothing >> MalFunction
 
         binaryOp fn args =
             case args of
@@ -121,17 +121,17 @@ read =
 eval : ReplEnv -> MalExpr -> ( Result String MalExpr, ReplEnv )
 eval env ast =
     case ast of
-        MalList [] ->
+        MalList _ [] ->
             ( Ok ast, env )
 
-        MalList list ->
+        MalList _ list ->
             case evalList env list [] of
                 ( Ok newList, newEnv ) ->
                     case newList of
                         [] ->
                             ( Err "can't happen", newEnv )
 
-                        (MalFunction (CoreFunc fn)) :: args ->
+                        (MalFunction (CoreFunc _ fn)) :: args ->
                             case Eval.runSimple (fn args) of
                                 Ok res ->
                                     ( Ok res, newEnv )
@@ -161,22 +161,22 @@ evalAst env ast =
                 Nothing ->
                     ( Err ("symbol '" ++ sym ++ "' not found"), env )
 
-        MalList list ->
+        MalList _ list ->
             -- Return new list that is result of calling eval on each element of list.
             evalList env list []
-                |> mapFirst (Result.map MalList)
+                |> mapFirst (Result.map (MalList Nothing))
 
-        MalVector vec ->
+        MalVector _ vec ->
             evalList env (Array.toList vec) []
-                |> mapFirst (Result.map (Array.fromList >> MalVector))
+                |> mapFirst (Result.map (Array.fromList >> MalVector Nothing))
 
-        MalMap map ->
+        MalMap _ map ->
             evalList env (Dict.values map) []
                 |> mapFirst
                     (Result.map
                         (zip (Dict.keys map)
                             >> Dict.fromList
-                            >> MalMap
+                            >> MalMap Nothing
                         )
                     )
 
