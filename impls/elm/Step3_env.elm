@@ -116,6 +116,14 @@ read =
 
 eval : Env -> MalExpr -> ( Result String MalExpr, Env )
 eval env ast =
+  let
+    _ = case Env.get "DEBUG-EVAL" env of
+        Err _              -> ()
+        Ok MalNil          -> ()
+        Ok (MalBool False) -> ()
+        _ -> Debug.log ("EVAL: " ++ printString env True ast) ()
+        --  The output ends with an ugly ": ()", but that does not hurt.
+  in
     case ast of
         MalList _ [] ->
             ( Ok ast, env )
@@ -147,13 +155,6 @@ eval env ast =
                 ( Err msg, newEnv ) ->
                     ( Err msg, newEnv )
 
-        _ ->
-            evalAst env ast
-
-
-evalAst : Env -> MalExpr -> ( Result String MalExpr, Env )
-evalAst env ast =
-    case ast of
         MalSymbol sym ->
             -- Lookup symbol in env and return value or raise error if not found.
             case Env.get sym env of
@@ -162,11 +163,6 @@ evalAst env ast =
 
                 Err msg ->
                     ( Err msg, env )
-
-        MalList _ list ->
-            -- Return new list that is result of calling eval on each element of list.
-            evalList env list []
-                |> mapFirst (Result.map (MalList Nothing))
 
         MalVector _ vec ->
             evalList env (Array.toList vec) []
