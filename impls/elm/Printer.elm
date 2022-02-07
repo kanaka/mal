@@ -25,7 +25,7 @@ printString env readably ast =
             "false"
 
         MalInt int ->
-            toString int
+            String.fromInt int
 
         MalString str ->
             printRawString env readably str
@@ -34,7 +34,7 @@ printString env readably ast =
             sym
 
         MalKeyword kw ->
-            kw
+            ":" ++ kw
 
         MalList list ->
             printList env readably list
@@ -62,10 +62,10 @@ printString env readably ast =
 printBound : Env -> Bool -> List ( String, MalExpr ) -> String
 printBound env readably =
     let
-        printEntry name value =
+        printEntry ( name, value ) =
             name ++ "=" ++ (printString env readably value)
     in
-        List.map (uncurry printEntry)
+        List.map printEntry
             >> String.join " "
             >> wrap "(" ")"
 
@@ -101,7 +101,7 @@ printMap env readably =
             case String.uncons k of
                 Just ( prefix, rest ) ->
                     if prefix == keywordPrefix then
-                        rest
+                        ":" ++ rest
                     else
                         printRawString env readably k
 
@@ -121,17 +121,17 @@ printEnv : Env -> String
 printEnv env =
     let
         printOuterId =
-            Maybe.map toString >> Maybe.withDefault "nil"
+            Maybe.map String.fromInt >> Maybe.withDefault "nil"
 
         printHeader frameId { outerId, exitId, refCnt } =
             "#"
-                ++ (toString frameId)
+                ++ (String.fromInt frameId)
                 ++ " outer="
                 ++ printOuterId outerId
                 ++ " exit="
                 ++ printOuterId exitId
                 ++ " refCnt="
-                ++ (toString refCnt)
+                ++ (String.fromInt refCnt)
 
         printFrame frameId frame =
             String.join "\n"
@@ -147,6 +147,6 @@ printEnv env =
     in
         "--- Environment ---\n"
             ++ "Current frame: #"
-            ++ (toString env.currentFrameId)
+            ++ (String.fromInt env.currentFrameId)
             ++ "\n\n"
             ++ String.join "\n\n" (Dict.foldr printFrameAcc [] env.frames)

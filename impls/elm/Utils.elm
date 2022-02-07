@@ -10,9 +10,13 @@ module Utils
         , justValues
         )
 
-import Regex exposing (replace, regex, HowMany(All))
+import Regex exposing (replace)
 import Types exposing (MalExpr(..))
 
+
+regex str = case Regex.fromString str of
+    Nothing -> Debug.todo "invalid regex"
+    Just r  -> r
 
 decodeString : String -> String
 decodeString =
@@ -32,7 +36,7 @@ decodeString =
                     other
     in
         String.slice 1 -1
-            >> replace All (regex "\\\\[\\\"\\\\n]") unescape
+            >> replace (regex "\\\\[\\\"\\\\n]") unescape
 
 
 encodeString : String -> String
@@ -53,7 +57,7 @@ encodeString =
                     other
     in
         wrap "\"" "\""
-            << replace All (regex "[\\n\\\"\\\\]") escape
+            << replace (regex "[\\n\\\"\\\\]") escape
 
 
 makeCall : String -> List MalExpr -> MalExpr

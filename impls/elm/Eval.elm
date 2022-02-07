@@ -41,8 +41,8 @@ io cmd cont env =
 
 
 map : (a -> b) -> Eval a -> Eval b
-map f e env =
-    case apply e env of
+map f e env0 =
+    case apply e env0 of
         ( env, EvalOk res ) ->
             ( env, EvalOk (f res) )
 
@@ -57,8 +57,8 @@ map f e env =
 the left eval and generates a new Eval.
 -}
 andThen : (a -> Eval b) -> Eval a -> Eval b
-andThen f e env =
-    case apply e env of
+andThen f e env0 =
+    case apply e env0 of
         ( env, EvalOk res ) ->
             apply (f res) env
 
@@ -72,8 +72,8 @@ andThen f e env =
 {-| Apply a transformation to the Env, for a Ok and a Err.
 -}
 finally : (Env -> Env) -> Eval a -> Eval a
-finally f e env =
-    case apply e env of
+finally f e env0 =
+    case apply e env0 of
         ( env, EvalOk res ) ->
             ( f env, EvalOk res )
 
@@ -85,7 +85,7 @@ finally f e env =
 
 
 gcPass : Eval MalExpr -> Eval MalExpr
-gcPass e env =
+gcPass e env0 =
     let
         go env t expr =
             if env.gcCounter >= env.gcInterval then
@@ -99,7 +99,7 @@ gcPass e env =
             else
                 ( env, t expr )
     in
-        case apply e env of
+        case apply e env0 of
             ( env, EvalOk res ) ->
                 go env EvalOk res
 
@@ -111,8 +111,8 @@ gcPass e env =
 
 
 catchError : (MalExpr -> Eval a) -> Eval a -> Eval a
-catchError f e env =
-    case apply e env of
+catchError f e env0 =
+    case apply e env0 of
         ( env, EvalOk res ) ->
             ( env, EvalOk res )
 
@@ -141,10 +141,10 @@ Tail call optimized.
 
 -}
 runLoop : (MalExpr -> Env -> Either (Eval MalExpr) MalExpr) -> MalExpr -> Eval MalExpr
-runLoop f expr env =
-    case f expr env of
+runLoop f expr0 env0 =
+    case f expr0 env0 of
         Left e ->
-            case apply e env of
+            case apply e env0 of
                 ( env, EvalOk expr ) ->
                     runLoop f expr env
 
@@ -155,7 +155,7 @@ runLoop f expr env =
                     ( env, EvalIO cmd (cont >> andThen (runLoop f)) )
 
         Right expr ->
-            ( env, EvalOk expr )
+            ( env0, EvalOk expr )
 
 
 fromResult : Result String a -> Eval a
@@ -235,4 +235,4 @@ runSimple e =
             Err msg
 
         _ ->
-            Debug.crash "can't happen"
+            Debug.todo "can't happen"

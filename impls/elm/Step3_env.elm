@@ -1,8 +1,7 @@
-port module Main exposing (..)
+module Step3_env exposing (..)
 
 import IO exposing (..)
-import Json.Decode exposing (decodeValue)
-import Platform exposing (programWithFlags)
+import Json.Decode exposing (decodeValue, errorToString)
 import Types exposing (..)
 import Reader exposing (readString)
 import Printer exposing (printString)
@@ -16,10 +15,14 @@ import Eval
 
 main : Program Flags Model Msg
 main =
-    programWithFlags
+    Platform.worker
         { init = init
         , update = update
-        , subscriptions = \model -> input (decodeValue decodeIO >> Input)
+        , subscriptions = \model -> input (decodeValue decodeIO
+            >> (\x -> case x of
+                Err e -> Err (errorToString e)
+                Ok a  -> Ok a
+            ) >>  Input)
         }
 
 
@@ -68,12 +71,8 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         Input (Ok (LineRead (Just line))) ->
-            case rep model.env line of
-                Nothing ->
-                    ( model, readLine prompt )
-
-                Just ( result, newEnv ) ->
-                    ( { model | env = newEnv }, writeLine (makeOutput result) )
+            let ( result, newEnv) = rep model.env line
+            in ( { model | env = newEnv }, writeLine (makeOutput result) )
 
         Input (Ok LineWritten) ->
             ( model, readLine prompt )
@@ -82,10 +81,10 @@ update msg model =
             ( model, Cmd.none )
 
         Input (Ok io) ->
-            Debug.crash "unexpected IO received: " io
+            Debug.todo "unexpected IO received: " io
 
-        Input (Err msg) ->
-            Debug.crash msg ( model, Cmd.none )
+        Input (Err msg2) ->
+            Debug.todo msg2 ( model, Cmd.none )
 
 
 makeOutput : Result String String -> String
@@ -110,7 +109,7 @@ Ok Nothing -> empty string (only whitespace and/or comments)
 Err msg -> parse error
 
 -}
-read : String -> Result String (Maybe MalExpr)
+read : String -> Result String MalExpr
 read =
     readString
 
@@ -220,19 +219,19 @@ evalDef env args =
 evalLet : Env -> List MalExpr -> ( Result String MalExpr, Env )
 evalLet env args =
     let
-        evalBinds env binds =
+        evalBinds env2 binds =
             case binds of
                 (MalSymbol name) :: expr :: rest ->
-                    case eval env expr of
+                    case eval env2 expr of
                         ( Ok value, newEnv ) ->
                             let
-                                newEnv =
-                                    Env.set name value env
+                                newEnv2 =
+                                    Env.set name value env2
                             in
                                 if List.isEmpty rest then
-                                    Ok newEnv
+                                    Ok newEnv2
                                 else
-                                    evalBinds newEnv rest
+                                    evalBinds newEnv2 rest
 
                         ( Err msg, _ ) ->
                             Err msg
@@ -290,25 +289,17 @@ print =
     printString Env.global True
 
 
-{-| Read-Eval-Print. rep returns:
-
-Nothing -> if an empty string is read (ws/comments)
-Just ((Ok out), newEnv) -> input has been evaluated.
-Just ((Err msg), env) -> error parsing or evaluating.
-
+{-| Read-Eval-Print
 -}
-rep : Env -> String -> Maybe ( Result String String, Env )
+rep : Env -> String -> ( Result String String, Env )
 rep env input =
     let
         evalPrint =
             eval env >> mapFirst (Result.map print)
     in
         case readString input of
-            Ok Nothing ->
-                Nothing
-
             Err msg ->
-                Just ( Err msg, env )
+                ( Err msg, env )
 
-            Ok (Just ast) ->
-                Just (evalPrint ast)
+            Ok ast ->
+                evalPrint ast
