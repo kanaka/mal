@@ -661,6 +661,9 @@ ns =
                 [ MalString str ] ->
                     Eval.succeed <| MalKeyword str
 
+                [ (MalKeyword _) as kw ] ->
+                    Eval.succeed kw
+
                 _ ->
                     Eval.fail "unsupported arguments"
 
