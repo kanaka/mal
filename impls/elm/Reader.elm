@@ -91,7 +91,7 @@ keyword =
 
 list : Parser MalExpr
 list =
-    Parser.map MalList <| Parser.sequence
+    Parser.map (MalList Nothing) <| Parser.sequence
         { start     = "("
         , separator = ""
         , end       = ")"
@@ -103,7 +103,7 @@ list =
 
 vector : Parser MalExpr
 vector =
-    Parser.map (MalVector << Array.fromList) <| Parser.sequence
+    Parser.map (MalVector Nothing << Array.fromList) <| Parser.sequence
         { start     = "["
         , separator = ""
         , end       = "]"
@@ -128,7 +128,7 @@ mapEntry =
 
 map : Parser MalExpr
 map =
-    Parser.map (MalMap << Dict.fromList) <| Parser.sequence
+    Parser.map (MalMap Nothing << Dict.fromList) <| Parser.sequence
         { start     = "{"
         , separator = ""
         , end       = "}"

@@ -47,12 +47,12 @@ init : Flags -> ( Model, Cmd Msg )
 init { args } =
     let
         makeFn =
-            CoreFunc >> MalFunction
+            CoreFunc Nothing >> MalFunction
 
         initEnv =
             Core.ns
                 |> Env.set "eval" (makeFn malEval)
-                |> Env.set "*ARGV*" (MalList (args |> List.map MalString))
+                |> Env.set "*ARGV*" (MalList Nothing (args |> List.map MalString))
 
         evalMalInit =
             malInit
@@ -153,13 +153,13 @@ runScript : String -> List String -> Env -> ( Model, Cmd Msg )
 runScript filename argv env =
     let
         malArgv =
-            MalList (List.map MalString argv)
+            MalList Nothing (List.map MalString argv)
 
         newEnv =
             env |> Env.set "*ARGV*" malArgv
 
         program =
-            MalList
+            MalList Nothing
                 [ MalSymbol "load-file"
                 , MalString filename
                 ]
@@ -264,33 +264,33 @@ evalNoApply ast =
     debug "evalNoApply"
         (\env -> printString env True ast)
         (case ast of
-            MalList [] ->
+            MalList _ [] ->
                 Eval.succeed ast
 
-            MalList ((MalSymbol "def!") :: args) ->
+            MalList _ ((MalSymbol "def!") :: args) ->
                 evalDef args
 
-            MalList ((MalSymbol "let*") :: args) ->
+            MalList _ ((MalSymbol "let*") :: args) ->
                 evalLet args
 
-            MalList ((MalSymbol "do") :: args) ->
+            MalList _ ((MalSymbol "do") :: args) ->
                 evalDo args
 
-            MalList ((MalSymbol "if") :: args) ->
+            MalList _ ((MalSymbol "if") :: args) ->
                 evalIf args
 
-            MalList ((MalSymbol "fn*") :: args) ->
+            MalList _ ((MalSymbol "fn*") :: args) ->
                 evalFn args
 
-            MalList ((MalSymbol "quote") :: args) ->
+            MalList _ ((MalSymbol "quote") :: args) ->
                 evalQuote args
 
-            MalList [MalSymbol "quasiquoteexpand", expr] ->
+            MalList _ [MalSymbol "quasiquoteexpand", expr] ->
                 Eval.succeed <| evalQuasiQuote expr
-            MalList (MalSymbol "quasiquoteexpand" :: _) ->
+            MalList _ (MalSymbol "quasiquoteexpand" :: _) ->
                 Eval.fail "quasiquoteexpand: arg count"
 
-            MalList ((MalSymbol "quasiquote") :: args) ->
+            MalList _ ((MalSymbol "quasiquote") :: args) ->
                 case args of
                     [ expr ] ->
                         -- TCO.
@@ -299,7 +299,7 @@ evalNoApply ast =
                     _ ->
                         Eval.fail "unsupported arguments"
 
-            MalList list ->
+            MalList _ list ->
                 evalList list
                     |> Eval.andThen
                         (\newList ->
@@ -307,7 +307,7 @@ evalNoApply ast =
                                 [] ->
                                     Eval.fail "can't happen"
 
-                                (MalFunction (CoreFunc fn)) :: args ->
+                                (MalFunction (CoreFunc _ fn)) :: args ->
                                     fn args
 
                                 (MalFunction (UserFunc { lazyFn })) :: args ->
@@ -332,21 +332,21 @@ evalAst ast =
             -- Lookup symbol in env and return value or raise error if not found.
             Eval.withEnv (Env.get sym >> Eval.fromResult)
 
-        MalList list ->
+        MalList _ list ->
             -- Return new list that is result of calling eval on each element of list.
             evalList list
-                |> Eval.map MalList
+                |> Eval.map (MalList Nothing)
 
-        MalVector vec ->
+        MalVector _ vec ->
             evalList (Array.toList vec)
-                |> Eval.map (Array.fromList >> MalVector)
+                |> Eval.map (Array.fromList >> MalVector Nothing)
 
-        MalMap map ->
+        MalMap _ map ->
             evalList (Dict.values map)
                 |> Eval.map
                     (zip (Dict.keys map)
                         >> Dict.fromList
-                        >> MalMap
+                        >> MalMap Nothing
                     )
 
         _ ->
@@ -415,10 +415,10 @@ evalLet args =
                 |> Eval.finally Env.pop
     in
         case args of
-            [ MalList binds, body ] ->
+            [ MalList _ binds, body ] ->
                 go binds body
 
-            [ MalVector bindsVec, body ] ->
+            [ MalVector _ bindsVec, body ] ->
                 go (Array.toList bindsVec) body
 
             _ ->
@@ -517,7 +517,7 @@ evalFn parms =
                     List.length binds
 
                 varArgs =
-                    MalList (List.drop minArgs args)
+                    MalList Nothing (List.drop minArgs args)
             in
                 if List.length args < minArgs then
                     Err <|
@@ -565,10 +565,10 @@ evalFn parms =
                     )
     in
         case parms of
-            [ MalList bindsList, body ] ->
+            [ MalList _ bindsList, body ] ->
                 go bindsList body
 
-            [ MalVector bindsVec, body ] ->
+            [ MalVector _ bindsVec, body ] ->
                 go (Array.toList bindsVec) body
 
             _ ->
@@ -591,22 +591,22 @@ evalQuasiQuote expr =
         qq_loop : MalExpr -> MalExpr -> MalExpr
         qq_loop elt acc =
             case elt of
-                (MalList [MalSymbol "splice-unquote", form]) ->
-                    MalList <| [MalSymbol "concat", form, acc ]
+                (MalList _ [MalSymbol "splice-unquote", form]) ->
+                    makeCall "concat" [ form, acc ]
                 _ ->
-                    MalList <| [MalSymbol "cons", evalQuasiQuote elt, acc ]
+                    makeCall "cons" [ evalQuasiQuote elt, acc ]
     in
         case expr of
-            (MalList [MalSymbol "unquote", form]) ->
+            (MalList _ [MalSymbol "unquote", form]) ->
                     form
-            (MalList xs) ->
-                    List.foldr qq_loop (MalList []) xs
-            (MalVector xs) ->
-                    MalList <| (\x -> [MalSymbol "vec", x]) <| Array.foldr qq_loop (MalList []) xs
+            (MalList _ xs) ->
+                    List.foldr qq_loop (MalList Nothing []) xs
+            (MalVector _ xs) ->
+                    makeCall "vec" [ Array.foldr qq_loop (MalList Nothing []) xs ]
             (MalSymbol _) ->
-                    MalList <| [MalSymbol "quote", expr]
-            (MalMap _) ->
-                    MalList <| [MalSymbol "quote", expr]
+                    makeCall "quote" [ expr ]
+            (MalMap _ _) ->
+                    makeCall "quote" [ expr ]
             _ ->
                     expr
 

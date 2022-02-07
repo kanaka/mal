@@ -62,7 +62,7 @@ encodeString =
 
 makeCall : String -> List MalExpr -> MalExpr
 makeCall symbol args =
-    MalList <| (MalSymbol symbol) :: args
+    MalList Nothing <| (MalSymbol symbol) :: args
 
 
 wrap : String -> String -> String -> String

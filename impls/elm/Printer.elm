@@ -36,13 +36,13 @@ printString env readably ast =
         MalKeyword kw ->
             ":" ++ kw
 
-        MalList list ->
+        MalList _ list ->
             printList env readably list
 
-        MalVector vec ->
+        MalVector _ vec ->
             printVector env readably vec
 
-        MalMap map ->
+        MalMap _ map ->
             printMap env readably map
 
         MalFunction _ ->

@@ -105,9 +105,9 @@ update msg model =
 
 
 runInit : Env -> Eval MalExpr -> ( Model, Cmd Msg )
-runInit env0 expr =
-    case Eval.run env0 expr of
-        ( env, EvalOk _ ) ->
+runInit env0 expr0 =
+    case Eval.run env0 expr0 of
+        ( env, EvalOk expr ) ->
             -- Init went okay, start REPL.
             ( ReplActive env, readLine prompt )
 
@@ -121,10 +121,10 @@ runInit env0 expr =
 
 
 run : Env -> Eval MalExpr -> ( Model, Cmd Msg )
-run env0 expr =
-    case Eval.run env0 expr of
-        ( env, EvalOk expr1 ) ->
-            ( ReplActive env, writeLine (print env expr1) )
+run env0 expr0 =
+    case Eval.run env0 expr0 of
+        ( env, EvalOk expr ) ->
+            ( ReplActive env, writeLine (print env expr) )
 
         ( env, EvalErr msg ) ->
             ( ReplActive env, writeLine (printError env msg) )
@@ -153,25 +153,25 @@ read =
 eval : MalExpr -> Eval MalExpr
 eval ast =
     case ast of
-        MalList [] ->
+        MalList _ [] ->
             Eval.succeed ast
 
-        MalList ((MalSymbol "def!") :: args) ->
+        MalList _ ((MalSymbol "def!") :: args) ->
             evalDef args
 
-        MalList ((MalSymbol "let*") :: args) ->
+        MalList _ ((MalSymbol "let*") :: args) ->
             evalLet args
 
-        MalList ((MalSymbol "do") :: args) ->
+        MalList _ ((MalSymbol "do") :: args) ->
             evalDo args
 
-        MalList ((MalSymbol "if") :: args) ->
+        MalList _ ((MalSymbol "if") :: args) ->
             evalIf args
 
-        MalList ((MalSymbol "fn*") :: args) ->
+        MalList _ ((MalSymbol "fn*") :: args) ->
             evalFn args
 
-        MalList list ->
+        MalList _ list ->
             evalList list
                 |> Eval.andThen
                     (\newList ->
@@ -179,7 +179,7 @@ eval ast =
                             [] ->
                                 Eval.fail "can't happen"
 
-                            (MalFunction (CoreFunc fn)) :: args ->
+                            (MalFunction (CoreFunc _ fn)) :: args ->
                                 fn args
 
                             (MalFunction (UserFunc { eagerFn })) :: args ->
@@ -211,21 +211,21 @@ evalAst ast =
                             Eval.fail msg
                 )
 
-        MalList list ->
+        MalList _ list ->
             -- Return new list that is result of calling eval on each element of list.
             evalList list
-                |> Eval.map MalList
+                |> Eval.map (MalList Nothing)
 
-        MalVector vec ->
+        MalVector _ vec ->
             evalList (Array.toList vec)
-                |> Eval.map (Array.fromList >> MalVector)
+                |> Eval.map (Array.fromList >> MalVector Nothing)
 
-        MalMap map ->
+        MalMap _ map ->
             evalList (Dict.values map)
                 |> Eval.map
                     (zip (Dict.keys map)
                         >> Dict.fromList
-                        >> MalMap
+                        >> MalMap Nothing
                     )
 
         _ ->
@@ -298,10 +298,10 @@ evalLet args =
                     )
     in
         case args of
-            [ MalList binds, body ] ->
+            [ MalList _ binds, body ] ->
                 go binds body
 
-            [ MalVector bindsVec, body ] ->
+            [ MalVector _ bindsVec, body ] ->
                 go (Array.toList bindsVec) body
 
             _ ->
@@ -404,7 +404,7 @@ evalFn parms =
                     List.length binds
 
                 varArgs =
-                    MalList (List.drop minArgs args)
+                    MalList Nothing (List.drop minArgs args)
             in
                 if List.length args < minArgs then
                     Err <|
@@ -456,10 +456,10 @@ evalFn parms =
                     Eval.fail msg
     in
         case parms of
-            [ MalList bindsList, body ] ->
+            [ MalList _ bindsList, body ] ->
                 go bindsList body
 
-            [ MalVector bindsVec, body ] ->
+            [ MalVector _ bindsVec, body ] ->
                 go (Array.toList bindsVec) body
 
             _ ->

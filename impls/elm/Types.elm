@@ -59,7 +59,7 @@ type alias MalFn =
 
 
 type MalFunction
-    = CoreFunc MalFn
+    = CoreFunc (Maybe MalExpr) MalFn
     | UserFunc
         { frameId : Int
         , lazyFn : MalFn
@@ -88,9 +88,9 @@ type MalExpr
     | MalString String
     | MalKeyword String
     | MalSymbol String
-    | MalList (List MalExpr)
-    | MalVector (Array MalExpr)
-    | MalMap (Dict String MalExpr)
+    | MalList (Maybe MalExpr) (List MalExpr)
+    | MalVector (Maybe MalExpr) (Array MalExpr)
+    | MalMap (Maybe MalExpr) (Dict String MalExpr)
     | MalFunction MalFunction
     | MalApply ApplyRec
     | MalAtom Int
