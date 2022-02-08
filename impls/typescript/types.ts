@@ -1,28 +1,37 @@
-export type MalType = MalAtom | MalList
-// export type MalAtom = number  string // TODO: Add nil, true, false and string
-// export type MalList = Array<MalAtom | MalList>
+export type MalType = MalNumber | MalSymbol | MalList | MalFunc
 
 
-function isAtom(data: any): data is MalAtom {
-    return (data as MalAtom).valueOf !== undefined
+
+export const enum MalTypes {
+    List = 1,
+    Number, 
+    Symbol,
+    Function, 
 }
 
+export class MalNumber {
+    type = MalTypes.Number
+    value: number
 
+    constructor(value: number) {
+        this.value = value
+    }
+}
 
-export class MalAtom {
-    type = "atom"
-    value: number | string
+export class MalSymbol {
+    type = MalTypes.Symbol
+    value: string
 
-    constructor(value: number | string) {
+    constructor(value: string) {
         this.value = value
     }
 }
 
 export class MalList {
-    type = "list"
+    type = MalTypes.List
     list: Array<MalType>
 
-    constructor(list: Array<MalAtom | MalList>) {
+    constructor(list: Array<MalType>) {
         this.list = list
     }
 
@@ -32,3 +41,15 @@ export class MalList {
     }
 }
 
+export class MalFunc {
+    type = MalTypes.Function
+    f: (...args: (MalType)[]) => MalType
+    
+    constructor(f: (...args: (MalType | undefined)[]) => MalType) {
+        this.f = f
+    }
+
+    apply(args: MalList): MalType {
+        return this.f.apply(null, args.list)  
+    }
+}

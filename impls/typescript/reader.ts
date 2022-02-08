@@ -1,4 +1,4 @@
-import { MalType, MalList, MalAtom } from "./types";
+import { MalType, MalList, MalNumber, MalSymbol } from "./types";
 
 
 class Reader {
@@ -55,7 +55,7 @@ function readForm(reader: Reader): MalType {
     }
 }
 
-function readAtom(reader: Reader): MalAtom {
+function readAtom(reader: Reader): MalNumber | MalSymbol {
     // TODO: Add nil, true, false and string
     // TODO: do symbols need to be refined further?
     if (reader.peek() === null) {
@@ -68,24 +68,32 @@ function readAtom(reader: Reader): MalAtom {
     // token === "+" or "-" because numRe erroneously captures "+" and "-"
     // TODO: fix regex
     if (match === null || match[1] === '' || token === '+' || token === '-') {
-         return new MalAtom(token)
+         return new MalSymbol(token)
     } else {
         // cast to number
         const numToken: number = +token 
-        return new MalAtom(numToken)
+        return new MalNumber(numToken)
     }
 }
 
 function readList(reader: Reader): MalList {
     const mal: MalList = new MalList([])
-    let curToken = reader.next() // Consume "("
-    while((curToken = reader.peek()) !== ")"){
-        if (curToken === null) { 
+    let curToken = reader.next()
+
+    while ((curToken = reader.peek()) !== ")") {
+        if (curToken === "(") {
+            // process subList
+            const subList = readList(reader)
+            mal.push(subList)
+        } else if (curToken === null) {
             throw new Error("Mismatched parenthesis, expected \")\"")        
+        } else {
+            // read Atom
+            const atom = readAtom(reader)
+            mal.push(atom)
         }
-        const subItem = readForm(reader)
-        mal.push(subItem)
     }
+    reader.next()
     return mal
 }
 
@@ -94,5 +102,4 @@ export function readStr(str: string): MalType {
     const reader = new Reader(tokens)
     return readForm(reader)
 }
-
 
