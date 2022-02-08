@@ -1,13 +1,16 @@
-import { MalType, MalAtom, MalList } from "./types";
+import { MalType, MalNumber, MalList, MalSymbol, MalTypes } from "./types";
 
 export function pr_str(data: MalType): string {
     let str = ""
     switch (data.type) {
-        case "list":
+        case MalTypes.List:
             str += pr_list(data as MalList)
             break
-        default:
-            str += (data as MalAtom).value.toString()
+        case MalTypes.Number:
+            str += (data as MalNumber).value.toString()
+            break
+        case MalTypes.Symbol:
+            str += (data as MalSymbol).value.toString()
             break
     }    
     return str 
@@ -19,10 +22,11 @@ function pr_list(list: MalList): string {
     const arr = list.list
     for (const mal of arr) {
         switch (mal.type) {
-            case "atom":
+            case MalTypes.Number:
+            case MalTypes.Symbol:
                 str += pr_str(mal)
                 break
-            case "list":
+            case MalTypes.List:
                 str += pr_list(mal as MalList)
                 break
         }
