@@ -1,11 +1,11 @@
-export type MalType = MalNumber | MalSymbol | MalList | MalFunc
-
-
+export type MalType = MalAtom | MalList | MalFunc
+export type MalAtom = MalNil | MalNumber | MalSymbol
 
 export const enum MalTypes {
     List = 1,
     Number, 
     Symbol,
+    Nil,
     Function, 
 }
 
@@ -25,6 +25,10 @@ export class MalSymbol {
     constructor(value: string) {
         this.value = value
     }
+}
+
+export class MalNil {
+    type = MalTypes.Nil
 }
 
 export class MalList {
