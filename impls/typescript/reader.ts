@@ -1,4 +1,4 @@
-import { MalType, MalList, MalNumber, MalSymbol } from "./types";
+import { MalType, MalList, MalNumber, MalSymbol, MalNil, MalAtom } from "./types";
 
 
 class Reader {
@@ -55,8 +55,8 @@ function readForm(reader: Reader): MalType {
     }
 }
 
-function readAtom(reader: Reader): MalNumber | MalSymbol {
-    // TODO: Add nil, true, false and string
+function readAtom(reader: Reader): MalAtom {
+    // TODO: Add true, false and string
     // TODO: do symbols need to be refined further?
     if (reader.peek() === null) {
         throw new Error("Mismatched parenthesis, expected \")\"")
@@ -65,9 +65,13 @@ function readAtom(reader: Reader): MalNumber | MalSymbol {
 
     const numRe = /^(?=.)([+-]?([0-9]*)(\.([0-9]+))?)$/gm
     const match = numRe.exec(token)
+
+    if (token.trim() === "nil") {
+        return new MalNil()
+    }
     // token === "+" or "-" because numRe erroneously captures "+" and "-"
     // TODO: fix regex
-    if (match === null || match[1] === '' || token === '+' || token === '-') {
+    else if (match === null || match[1] === '' || token === '+' || token === '-') {
          return new MalSymbol(token)
     } else {
         // cast to number

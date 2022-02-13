@@ -12,6 +12,9 @@ export function pr_str(data: MalType): string {
         case MalTypes.Symbol:
             str += (data as MalSymbol).value.toString()
             break
+        case MalTypes.Nil:
+            str += "nil"
+            break
     }    
     return str 
 }
