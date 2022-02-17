@@ -64,7 +64,7 @@ function eval_ast(ast: MalType, repl_env: Env): MalType {
                 return func.apply(args)
             }
         default: 
-            throw new Error("MalType: " + ast.type + " not recognized.")
+            throw new Error("MalType: " + ast.type + " not found.")
     }
 }
 
@@ -87,7 +87,7 @@ function createEnv(): Env {
     return env
 }
 
-function main() {
+export function main() {
     const _env = createEnv()
     while (true) {
         let line: string = prompt('user> ')
@@ -100,4 +100,15 @@ function main() {
         console.log(REP(line, _env))
     }
 }
-main()
+
+// For testing
+module.exports = {
+    main,
+    READ,
+    EVAL,
+    PRINT,
+    REP,
+    eval_ast,
+    createEnv
+}
+
