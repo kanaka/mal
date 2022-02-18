@@ -2433,7 +2433,10 @@ core_apply:
         mov r8, [rsi + Cons.car] ; function in R8
         mov al, BYTE [r8]
         cmp al, maltype_function
+        je .function_or_macro
+        cmp al, maltype_macro
         jne .not_function
+.function_or_macro:
 
         mov al, BYTE [rsi + Cons.typecdr]
         cmp al, content_pointer
