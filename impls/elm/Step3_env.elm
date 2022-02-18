@@ -1,25 +1,26 @@
 module Step3_env exposing (..)
 
-import IO exposing (..)
-import Json.Decode exposing (decodeValue, errorToString)
-import Types exposing (..)
-import Reader exposing (readString)
-import Printer exposing (printString)
-import Utils exposing (maybeToList, zip)
-import Dict exposing (Dict)
-import Tuple exposing (mapFirst, mapSecond, second)
 import Array
+import Dict exposing (Dict)
 import Env
 import Eval
+import IO exposing (..)
+import Json.Decode exposing (decodeValue, errorToString)
+import Platform exposing (worker)
+import Printer exposing (printString)
+import Reader exposing (readString)
+import Tuple exposing (mapFirst, mapSecond, second)
+import Types exposing (..)
+import Utils exposing (maybeToList, zip)
 
 
 main : Program Flags Model Msg
 main =
-    Platform.worker
+    worker
         { init = init
         , update = update
-        , subscriptions = \model -> input (decodeValue decodeIO
-            >> (\x -> case x of
+        , subscriptions =
+            \model -> input (decodeValue decodeIO >> (\x -> case x of
                 Err e -> Err (errorToString e)
                 Ok a  -> Ok a
             ) >>  Input)
@@ -60,11 +61,11 @@ initReplEnv =
                 _ ->
                     Eval.fail "unsupported arguments"
     in
-        Env.global
-            |> Env.set "+" (makeFn <| binaryOp (+))
-            |> Env.set "-" (makeFn <| binaryOp (-))
-            |> Env.set "*" (makeFn <| binaryOp (*))
-            |> Env.set "/" (makeFn <| binaryOp (//))
+    Env.global
+        |> Env.set "+" (makeFn <| binaryOp (+))
+        |> Env.set "-" (makeFn <| binaryOp (-))
+        |> Env.set "*" (makeFn <| binaryOp (*))
+        |> Env.set "/" (makeFn <| binaryOp (//))
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -117,7 +118,7 @@ eval env ast =
         _ -> Debug.log ("EVAL: " ++ printString env True ast) ()
         --  The output ends with an ugly ": ()", but that does not hurt.
   in
-    case ast of
+  case ast of
         MalList _ [] ->
             ( Ok ast, env )
 
@@ -217,10 +218,10 @@ evalLet env args =
                                 newEnv2 =
                                     Env.set name value env2
                             in
-                                if List.isEmpty rest then
-                                    Ok newEnv2
-                                else
-                                    evalBinds newEnv2 rest
+                            if List.isEmpty rest then
+                                Ok newEnv2
+                            else
+                                evalBinds newEnv2 rest
 
                         ( Err msg, _ ) ->
                             Err msg
@@ -237,15 +238,15 @@ evalLet env args =
                 Err msg ->
                     ( Err msg, env )
     in
-        case args of
-            [ MalList _ binds, body ] ->
-                go binds body
+    case args of
+        [ MalList _ binds, body ] ->
+            go binds body
 
-            [ MalVector _ bindsVec, body ] ->
-                go (Array.toList bindsVec) body
+        [ MalVector _ bindsVec, body ] ->
+            go (Array.toList bindsVec) body
 
-            _ ->
-                ( Err "let* expected two args: binds and a body", env )
+        _ ->
+            ( Err "let* expected two args: binds and a body", env )
 
 
 {-| Try to map a list with a fn that can return a Err.
@@ -269,8 +270,8 @@ tryMapList fn list =
                             Err msg
                 )
     in
-        List.foldl go (Ok []) list
-            |> Result.map List.reverse
+    List.foldl go (Ok []) list
+        |> Result.map List.reverse
 
 
 print : MalExpr -> String
@@ -286,9 +287,9 @@ rep env input =
         evalPrint =
             eval env >> mapFirst (Result.map print)
     in
-        case readString input of
-            Err msg ->
-                ( Err msg, env )
+    case readString input of
+        Err msg ->
+            ( Err msg, env )
 
-            Ok ast ->
-                evalPrint ast
+        Ok ast ->
+            evalPrint ast

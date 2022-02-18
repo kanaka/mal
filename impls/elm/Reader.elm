@@ -18,15 +18,15 @@ ws =
         isSpaceChar : Char -> Bool
         isSpaceChar c = List.member c [' ', '\n', '\r', ',']
     in
-        Parser.succeed ()
-            |. Parser.sequence
-                { start     = ""
-                , separator = ""
-                , end       = ""
-                , spaces    = Parser.chompWhile isSpaceChar
-                , item      = comment
-                , trailing  = Parser.Optional
-                }
+    Parser.succeed ()
+        |. Parser.sequence
+            { start     = ""
+            , separator = ""
+            , end       = ""
+            , spaces    = Parser.chompWhile isSpaceChar
+            , item      = comment
+            , trailing  = Parser.Optional
+            }
 
 
 int : Parser MalExpr
@@ -39,9 +39,9 @@ int =
             Just r  -> MalInt r
             Nothing -> Debug.todo "should not happen"
     in
-        Parser.map toInt <| Parser.getChompedString <|
-            Parser.chompIf isDigit
-            |. Parser.chompWhile isDigit
+    Parser.map toInt <| Parser.getChompedString <|
+        Parser.chompIf isDigit
+        |. Parser.chompWhile isDigit
 
 
 symbolString : Parser String
@@ -52,9 +52,9 @@ symbolString =
             not (List.member c [' ', '\n', '\r', ',', '\\', '[', ']',
                 '{', '}', '(', '\'', '"', '`', ';', ')'])
     in
-        Parser.getChompedString <|
-            Parser.chompIf isSymbolChar
-            |. Parser.chompWhile isSymbolChar
+    Parser.getChompedString <|
+        Parser.chompIf isSymbolChar
+        |. Parser.chompWhile isSymbolChar
 
 
 symbolOrConst : Parser MalExpr
@@ -74,7 +74,7 @@ symbolOrConst =
                 _ ->
                     MalSymbol sym
     in
-       Parser.map make symbolString
+    Parser.map make symbolString
 
 
 keywordString : Parser String
@@ -173,7 +173,7 @@ form =
                     , atom
                     ]
             in
-                Parser.succeed identity |. ws |= Parser.oneOf parsers
+            Parser.succeed identity |. ws |= Parser.oneOf parsers
 
 
 simpleMacro : String -> String -> Parser MalExpr
@@ -189,10 +189,10 @@ withMeta =
                 make meta expr =
                     makeCall "with-meta" [ expr, meta ]
             in
-                Parser.succeed make
-                    |. Parser.token "^"
-                    |= form
-                    |= form
+            Parser.succeed make
+                |. Parser.token "^"
+                |= form
+                |= form
 
 
 readString : String -> Result String MalExpr
@@ -217,7 +217,7 @@ formatError =
             ++ ":"
             ++ String.fromInt deadEnd.col
     in
-        (++) "end of input\n" << String.join "\n" << List.map format1
+    (++) "end of input\n" << String.join "\n" << List.map format1
 
 
 str : Parser MalExpr
@@ -231,17 +231,17 @@ strString =
         isStringNormalChar : Char -> Bool
         isStringNormalChar c = not <| List.member c ['"', '\\']
     in
-        Parser.getChompedString <|
-            Parser.sequence
-                { start     = "\""
-                , separator = ""
-                , end       = "\""
-                , spaces    = Parser.succeed ()
-                , item      = Parser.oneOf
-                    [ Parser.chompIf isStringNormalChar
-                        |. Parser.chompWhile isStringNormalChar
-                    , Parser.token "\\"
-                        |. Parser.chompIf (\_ -> True)
-                    ]
-                , trailing  = Parser.Forbidden
-                }
+    Parser.getChompedString <|
+        Parser.sequence
+            { start     = "\""
+            , separator = ""
+            , end       = "\""
+            , spaces    = Parser.succeed ()
+            , item      = Parser.oneOf
+                [ Parser.chompIf isStringNormalChar
+                    |. Parser.chompWhile isStringNormalChar
+                , Parser.token "\\"
+                    |. Parser.chompIf (\_ -> True)
+                ]
+            , trailing  = Parser.Forbidden
+            }

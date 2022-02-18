@@ -7,9 +7,9 @@ var args = process.argv.slice(2);
 var mod = require('./' + args[0]);
 
 var app = mod.Elm['S' + args[0].slice(1)].init({
-  flags: {
-    args: args.slice(1)
-  }
+    flags: {
+        args: args.slice(1)
+    }
 });
 
 // Hook up the writeLine and readLine ports of the app.
@@ -25,12 +25,12 @@ app.ports.readLine.subscribe(function(prompt) {
 
 // Read the contents of a file.
 if (4 <= args[0][4] || args[0][4] == 'A') {
-app.ports.readFile.subscribe(function(filename) {
-    try {
-        var contents = fs.readFileSync(filename, 'utf8');
-        app.ports.input.send({"tag": "fileRead", "contents": contents});
-    } catch (e) {
-        app.ports.input.send({"tag": "exception", "message": e.message});
-    }
-});
+    app.ports.readFile.subscribe(function(filename) {
+        try {
+            var contents = fs.readFileSync(filename, 'utf8');
+            app.ports.input.send({"tag": "fileRead", "contents": contents});
+        } catch (e) {
+            app.ports.input.send({"tag": "exception", "message": e.message});
+        }
+    });
 }
