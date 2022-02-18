@@ -1,7 +1,7 @@
 import promptImp = require('prompt-sync')
 import { readStr } from './reader'
 import { pr_str } from './printer'
-import { MalType, MalNumber, MalList, MalFunc, MalTypes, MalSymbol, MalString } from './types'
+import { MalType, MalNumber, MalList, MalFunc, MalTypes, MalSymbol, MalString, MalMap } from './types'
 import { Env } from './env'
 const prompt = promptImp({sigint: true})
 
@@ -41,13 +41,24 @@ function eval_ast(ast: MalType, repl_env: Env): MalType {
             // i.e. it is either an atom or function
             const symbol = ast as MalSymbol
             return repl_env.get(symbol)
+
         case MalTypes.Map:
-            return ast 
-        case MalTypes.List:
-            // TODO: fix 
-            if ((ast as MalList).isVector) {
-                return ast
+            const map = (ast as MalMap)
+            const evaluated_map = new MalMap()
+            for (const [k, v] of map.map) {
+                // console.log(k, v)
+                evaluated_map.map.set(k, eval_ast(v, repl_env))
             }
+            return evaluated_map
+        case MalTypes.List:
+            // Vector
+            if ((ast as MalList).isVector) {
+                const vector = (ast as MalList).list
+                const evaluated_vector = vector.map((malItem) => eval_ast(malItem, repl_env))
+                return new MalList(evaluated_vector, true)
+            }
+            
+            // List 
             const list = (ast as MalList).list
             if (list[0].type === MalTypes.Symbol && (list[0] as MalSymbol).value === "def!") {
                 const symbol = list[1] as MalSymbol
