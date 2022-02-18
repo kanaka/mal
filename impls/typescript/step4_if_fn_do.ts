@@ -41,6 +41,8 @@ function eval_ast(ast: MalType, repl_env: Env): MalType {
             // i.e. it is either an atom or function
             const symbol = ast as MalSymbol
             return repl_env.get(symbol)
+        case MalTypes.Map:
+            return ast 
         case MalTypes.List:
             // TODO: fix 
             if ((ast as MalList).isVector) {

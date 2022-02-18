@@ -5,6 +5,7 @@ export const keywordPrefix = "\u029E"
 
 export const enum MalTypes {
     List = 1,
+    Map,
     Number, 
     String,
     Symbol,
@@ -72,6 +73,11 @@ export class MalList {
     push(data: MalType) {
         this.list.push(data)
     }
+}
+
+export class MalMap {
+    type = MalTypes.Map
+    map = new Map<MalString, MalType>()
 }
 
 export class MalFunc {

@@ -1,4 +1,4 @@
-import { MalType, MalList, MalNumber, MalSymbol, MalNil, MalAtom, MalBoolean, MalString, keywordPrefix } from "./types";
+import { MalType, MalList, MalNumber, MalSymbol, MalNil, MalAtom, MalBoolean, MalString, keywordPrefix, MalMap, MalTypes } from "./types";
 
 
 class Reader {
@@ -51,6 +51,8 @@ function readForm(reader: Reader): MalType {
             case "(":
             case "[":
                 return readList(reader, curToken)
+            case "{":
+                return readMap(reader)
             default:
                 return readAtom(reader)
     }
@@ -107,7 +109,7 @@ function readList(reader: Reader, delimiter: string): MalList {
             const subList = readList(reader, curToken)
             mal.push(subList)
         } else if (curToken === null) {
-            throw new Error("Mismatched parenthesis, expected \")\"")        
+            throw new Error(`Mismatched parenthesis, expected ${endDelimiter}`)        
         } else {
             // read Atom
             const atom = readAtom(reader)
@@ -116,6 +118,45 @@ function readList(reader: Reader, delimiter: string): MalList {
     }
     reader.next()
     return mal
+}
+
+function readMap(reader: Reader): MalMap {
+    const map = new MalMap()
+    let curToken = reader.next() // consume "{"
+    let index = 0
+    let curKey = new MalString("")   
+    while ((curToken = reader.peek()) !== "}") {
+        let curElement: MalType = new MalNil()
+        if (curToken === "{") {
+            // process subMap
+            curElement = readMap(reader)
+        } else if (curToken === "(" || curToken === "[") {
+            curElement = readList(reader, curToken)
+        } else if (curToken === null) {
+            throw new Error(`Mismatched parenthesis, expected "}"`)        
+        } else {
+            // read atom
+            curElement = readAtom(reader)
+        }
+        if (index % 2 == 0) {
+            // key
+            if (curElement.type !== MalTypes.String) 
+                throw new Error(`Map keys can only be of type MalString. Unsupported type ${curElement.type}`)
+            curKey = curElement as MalString
+        } else {
+            // value
+            map.map.set(curKey, curElement)
+        }
+        index++
+    }
+    if (index % 2 == 1){
+        // index odd => some values missing
+        console.log(index)
+        throw new Error("Missing value for key.")
+    }
+
+    reader.next() // consume "}"
+    return map
 }
 
 export function readStr(str: string): MalType {
