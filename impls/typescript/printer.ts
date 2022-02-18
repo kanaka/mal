@@ -1,4 +1,4 @@
-import { MalType, MalNumber, MalList, MalSymbol, MalTypes } from "./types";
+import { MalType, MalNumber, MalList, MalSymbol, MalTypes, MalBoolean } from "./types";
 
 export function pr_str(data: MalType): string {
     let str = ""
@@ -14,6 +14,9 @@ export function pr_str(data: MalType): string {
             break
         case MalTypes.Nil:
             str += "nil"
+            break
+        case MalTypes.Boolean:
+            str += (data as MalBoolean).value.toString()
             break
     }    
     return str 

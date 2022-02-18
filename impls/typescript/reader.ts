@@ -1,4 +1,4 @@
-import { MalType, MalList, MalNumber, MalSymbol, MalNil, MalAtom } from "./types";
+import { MalType, MalList, MalNumber, MalSymbol, MalNil, MalAtom, MalBoolean } from "./types";
 
 
 class Reader {
@@ -65,9 +65,14 @@ function readAtom(reader: Reader): MalAtom {
 
     const numRe = /^(?=.)([+-]?([0-9]*)(\.([0-9]+))?)$/gm
     const match = numRe.exec(token)
+    const trimmedToken = token.trim()
 
-    if (token.trim() === "nil") {
+    if (trimmedToken === "nil") {
         return new MalNil()
+    } else if (trimmedToken === "true" ) {
+        return new MalBoolean(true)
+    } else if (trimmedToken === "false") {
+        return new MalBoolean(false)
     }
     // token === "+" or "-" because numRe erroneously captures "+" and "-"
     // TODO: fix regex
