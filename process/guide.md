@@ -1466,6 +1466,9 @@ diff -urp ../process/step8_macros.txt ../process/step9_try.txt
   `fn*`, then you will need to do so now.
   * `apply`: takes at least two arguments. The first argument is
     a function and the last argument is a list (or vector). The
+    function may be either a built-in core function,
+    an user function constructed with the `fn*` special form,
+    or a macro, not distinguished from the underlying user function). The
     arguments between the function and the last argument (if there are
     any) are concatenated with the final argument to create the
     arguments that are used to call the function. The apply

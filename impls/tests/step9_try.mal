@@ -85,6 +85,13 @@
 (apply (fn* (a b) (+ a b)) 4 (list 5))
 ;=>9
 
+;; Testing apply function with macros
+(defmacro! m (fn* [a b] (+ a b)))
+(apply m (list 2 3))
+;=>5
+(apply m 4 (list 5))
+;=>9
+
 ;; Testing map function
 (def! nums (list 1 2 3))
 (def! double (fn* (a) (* 2 a)))
