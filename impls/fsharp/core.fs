@@ -133,6 +133,7 @@ module Core
 
     let apply = function
         | BuiltInFunc(_, _, f)::rest
+        | Macro(_, _, f, _, _, _)::rest
         | Func(_, _, f, _, _, _)::rest ->
             let rec getArgsAndCall acc = function
                 | [] -> raise <| Error.wrongArity ()
