@@ -136,7 +136,7 @@ deref([A], R) :- mal_atom(R, A).
 
 apply([Fn | Xs], R) :-
     flatten_last(Xs, Args),
-    mal_fn(Goal, Fn),
+    (mal_fn(Goal, Fn) ; (mal_macro(F, Fn), mal_fn(Goal, F))),
     call(Goal, Args, R).
 
 flatten_last([X],      Xs)       :- unbox_seq(X, Xs).
