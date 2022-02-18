@@ -69,8 +69,7 @@
               (EVAL (QUASIQUOTE (nth ast 1)) env)
 
               (= 'defmacro! a0)
-              (env-set env (nth ast 1) (hash-map :__MAL_MACRO__
-                                                 (EVAL (nth ast 2) env)))
+              (env-set env (nth ast 1) (defmacro! _ (EVAL (nth ast 2) env)))
 
               (= 'do a0)
               (nth (map (fn* [exp] (EVAL exp env)) (rest ast)) (- (count ast) 2))
@@ -87,8 +86,8 @@
               "else"
               (let* [f    (EVAL a0 env)
                      args (rest ast)]
-                (if (_macro? f)
-                  (EVAL (apply (get f :__MAL_MACRO__) args) env)
+                (if (macro? f)
+                  (EVAL (apply f args) env)
                   (apply f (map (fn* [exp] (EVAL exp env)) args)))))))
 
         "else"

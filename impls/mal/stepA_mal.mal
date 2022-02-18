@@ -69,8 +69,7 @@
               (EVAL (QUASIQUOTE (nth ast 1)) env)
 
               (= 'defmacro! a0)
-              (env-set env (nth ast 1) (hash-map :__MAL_MACRO__
-                                                 (EVAL (nth ast 2) env)))
+              (env-set env (nth ast 1) (defmacro! _ (EVAL (nth ast 2) env)))
 
               (= 'try* a0)
               (if (< (count ast) 3)
@@ -98,8 +97,8 @@
               "else"
               (let* [f    (EVAL a0 env)
                      args (rest ast)]
-                (if (_macro? f)
-                  (EVAL (apply (get f :__MAL_MACRO__) args) env)
+                (if (macro? f)
+                  (EVAL (apply f args) env)
                   (apply f (map (fn* [exp] (EVAL exp env)) args)))))))
 
         "else"
@@ -120,7 +119,6 @@
 
 ;; core.mal: defined directly using mal
 (map (fn* [sym] (env-set repl-env sym (eval sym))) core_ns)
-(env-set repl-env 'macro? _macro?)
 (env-set repl-env 'eval (fn* [ast] (EVAL ast repl-env)))
 (env-set repl-env '*ARGV* (rest *ARGV*))
 
