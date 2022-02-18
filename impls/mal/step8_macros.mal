@@ -57,7 +57,10 @@
           (let* [a0 (first ast)]
             (cond
               (= 'def! a0)
-              (env-set env (nth ast 1) (EVAL (nth ast 2) env))
+              (let* [val (EVAL (nth ast 2) env)]
+                (do
+                  (env-set env (nth ast 1) val)
+                  val))
 
               (= 'let* a0)
               (LET (new-env env) (nth ast 1) (nth ast 2))
@@ -69,7 +72,10 @@
               (EVAL (QUASIQUOTE (nth ast 1)) env)
 
               (= 'defmacro! a0)
-              (env-set env (nth ast 1) (defmacro! _ (EVAL (nth ast 2) env)))
+              (let* [fun (defmacro! _ (EVAL (nth ast 2) env))]
+                (do
+                  (env-set env (nth ast 1) fun)
+                  fun))
 
               (= 'do a0)
               (nth (map (fn* [exp] (EVAL exp env)) (rest ast)) (- (count ast) 2))
