@@ -39,7 +39,10 @@
           (let* [a0 (first ast)]
             (cond
               (= 'def! a0)
-              (env-set env (nth ast 1) (EVAL (nth ast 2) env))
+              (let* [val (EVAL (nth ast 2) env)]
+                (do
+                  (env-set env (nth ast 1) val)
+                  val))
 
               (= 'let* a0)
               (LET (new-env env) (nth ast 1) (nth ast 2))
