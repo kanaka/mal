@@ -8,7 +8,7 @@ End Class
 'msgbox typename(CreateObject("System.Collections.ArrayList"))
 
 Function read_str(str)
-	set read_str=read_form(tokenize(str))
+	set read_str=read_form_(tokenize(str))
 End Function
 
 Function tokenize(str)
@@ -27,6 +27,13 @@ Function tokenize(str)
 	Set regEx = Nothing
 	Set Matches = Nothing
 	Set tokenize = oQueue
+End Function
+
+Function read_form_(oQueue)
+	set read_form_=read_form(oQueue)
+	if oQueue.Count > 0 then
+		err.raise vbObjectError,"SyntaxError", "Extra data after form: " + oQueue.Dequeue
+	end if
 End Function
 
 Function read_form(oQueue)
@@ -77,6 +84,7 @@ Function read_form(oQueue)
 	Else
 		set read_form = read_atom(oQueue)
 	End If
+
 End Function
 
 Function read_list(oQueue)
@@ -99,6 +107,7 @@ Function read_list(oQueue)
 	If oQueue.Dequeue() <> q Then
 		err.raise vbObjectError,"reader", "excepted '"+q+"', got EOF"
 	End If
+	'msgbox oQueue.peek
 End Function
 
 Function read_atom(oQueue)
