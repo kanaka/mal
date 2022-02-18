@@ -181,7 +181,9 @@ val coreNs = List.concat [
     prim "read-string"
     (fn [STRING s] => readStr s | _ => raise Domain),
     prim "apply"
-    (fn (FN (f,_)::args) => f (splatArgs args) | _ => raise Domain),
+    (fn (FN (f,_)::args) => f (splatArgs args)
+      | (MACRO f::args)  => f (splatArgs args)
+      | _ => raise Domain),
     prim "meta"
     (fn [    FN (_, META m)] => m
       | [  LIST (_, META m)] => m
