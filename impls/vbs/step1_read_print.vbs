@@ -10,11 +10,14 @@ Function EVAL(oMal)
 End Function
 
 Function PRINT(oMal)
-    PRINT = pr_str(oMal)
+    PRINT = pr_str(oMal,false)
 End Function
 
 Function rep(str)
+	on error resume next
     rep = PRINT(EVAL(READ(str)))
+	if err.number <> 0 then rep = err.description
+	on error goto 0
 End Function
 
 While True
