@@ -113,10 +113,10 @@ package body Core is
                return F.Builtin.all (A);
             when Kind_Builtin_With_Meta =>
                return F.Builtin_With_Meta.all.Builtin.all (A);
-            when Kind_Fn =>
+            when Kind_Fn | Kind_Macro =>
                return F.Fn.all.Apply (A);
             when others =>
-               Err.Raise_With ("parameter 1 must be a function");
+               Err.Raise_With ("parameter 1 must be a function or macro");
          end case;
       end;
    end Apply;
