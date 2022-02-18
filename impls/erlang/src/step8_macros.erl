@@ -114,7 +114,7 @@ eval_list({list, [{symbol, "quasiquote"}|_], _Meta}, _Env) ->
 eval_list({list, [{symbol, "defmacro!"}, {symbol, A1}, A2], _Meta}, Env) ->
     case eval(A2, Env) of
         {closure, _Eval, Binds, Body, CE, _M1} ->
-            Result = {macro, Binds, Body, CE},
+            Result = {macro, fun eval/2, Binds, Body, CE},
             env:set(Env, {symbol, A1}, Result),
             Result;
         Result -> env:set(Env, {symbol, A1}, Result), Result
@@ -136,7 +136,7 @@ eval_list({list, [A0 | Args], _Meta}, Env) ->
         {function, F, _MF} ->
             A = lists:map(fun(Elem) -> eval(Elem, Env) end, Args),
             erlang:apply(F, [A]);
-        {macro, Binds, Body, ME} ->
+        {macro, _Eval, Binds, Body, ME} ->
             NewEnv = env:new(ME),
             env:bind(NewEnv, Binds, lists:flatten([Args])),
             NewAst = eval(Body, NewEnv),
