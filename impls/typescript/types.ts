@@ -1,9 +1,10 @@
 export type MalType = MalAtom | MalList | MalFunc
-export type MalAtom = MalNil | MalNumber | MalSymbol | MalBoolean
+export type MalAtom = MalNil | MalNumber | MalSymbol | MalBoolean | MalString
 
 export const enum MalTypes {
     List = 1,
     Number, 
+    String,
     Symbol,
     Nil,
     Boolean,
@@ -16,6 +17,20 @@ export class MalNumber {
 
     constructor(value: number) {
         this.value = value
+    }
+}
+
+export class MalString {
+    type = MalTypes.String
+    rawValue: string
+    value: string
+
+    constructor(rawValue: string) {
+        this.rawValue = rawValue
+        this.value = rawValue
+                        .replace(/\\"/g, '"')
+                        .replace(/\\n/g, "\n")
+
     }
 }
 

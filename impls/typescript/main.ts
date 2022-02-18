@@ -1,2 +1,2 @@
-import { main } from "./step3_env"; // change to most recent version
+import { main } from "./step4_if_fn_do"; // change to most recent version
 main()

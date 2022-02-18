@@ -1,4 +1,4 @@
-import { MalType, MalList, MalNumber, MalSymbol, MalNil, MalAtom, MalBoolean } from "./types";
+import { MalType, MalList, MalNumber, MalSymbol, MalNil, MalAtom, MalBoolean, MalString } from "./types";
 
 
 class Reader {
@@ -73,6 +73,12 @@ function readAtom(reader: Reader): MalAtom {
         return new MalBoolean(true)
     } else if (trimmedToken === "false") {
         return new MalBoolean(false)
+    } else if (trimmedToken.startsWith('"')) {
+        if (!trimmedToken.endsWith('"')) {
+            throw new Error("Expected \" at the end of string")
+        }
+        // remove "" from the start and end of token
+        return new MalString(trimmedToken.slice(1, trimmedToken.length-1))
     }
     // token === "+" or "-" because numRe erroneously captures "+" and "-"
     // TODO: fix regex

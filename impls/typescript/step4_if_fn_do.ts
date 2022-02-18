@@ -1,7 +1,7 @@
 import promptImp = require('prompt-sync')
 import { readStr } from './reader'
 import { pr_str } from './printer'
-import { MalType, MalNumber, MalList, MalFunc, MalTypes, MalSymbol } from './types'
+import { MalType, MalNumber, MalList, MalFunc, MalTypes, MalSymbol, MalString } from './types'
 import { Env } from './env'
 const prompt = promptImp({sigint: true})
 
@@ -18,7 +18,7 @@ function EVAL(mal: MalType, env: Env): MalType {
 }
 
 function PRINT(mal: MalType): string {
-    return pr_str(mal)
+    return pr_str(mal, true)
 }
 
 function REP(input: string, repl_env: Env): string {
@@ -34,6 +34,7 @@ function eval_ast(ast: MalType, repl_env: Env): MalType {
         case MalTypes.Function:
         case MalTypes.Nil:
         case MalTypes.Boolean:
+        case MalTypes.String:
             return ast
         case MalTypes.Symbol:
             // Assumes that value for the symbol in the env is "resolved"
@@ -89,7 +90,7 @@ function createEnv(): Env {
     return env
 }
 
-function main() {
+export function main() {
     const _env = createEnv()
     while (true) {
         let line: string = prompt('user> ')
@@ -102,3 +103,15 @@ function main() {
         console.log(REP(line, _env))
     }
 }
+
+// For testing
+module.exports = {
+    main,
+    READ,
+    EVAL,
+    PRINT,
+    REP,
+    eval_ast,
+    createEnv
+}
+
