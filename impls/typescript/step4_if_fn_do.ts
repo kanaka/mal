@@ -100,7 +100,11 @@ export function main() {
         if (line === "") {
             continue;
         }
-        console.log(REP(line, _env))
+        try {
+            console.log(REP(line, _env))
+        } catch (error) {
+            console.log(error)
+        }
     }
 }
 
