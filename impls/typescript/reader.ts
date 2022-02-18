@@ -1,4 +1,4 @@
-import { MalType, MalList, MalNumber, MalSymbol, MalNil, MalAtom, MalBoolean, MalString } from "./types";
+import { MalType, MalList, MalNumber, MalSymbol, MalNil, MalAtom, MalBoolean, MalString, keywordPrefix } from "./types";
 
 
 class Reader {
@@ -48,8 +48,9 @@ function readForm(reader: Reader): MalType {
     switch (curToken) {
             case null:
                 return new MalList([])
-            case "(": 
-                return readList(reader)
+            case "(":
+            case "[":
+                return readList(reader, curToken)
             default:
                 return readAtom(reader)
     }
@@ -79,6 +80,10 @@ function readAtom(reader: Reader): MalAtom {
         }
         // remove "" from the start and end of token
         return new MalString(trimmedToken.slice(1, trimmedToken.length-1))
+    } else if (trimmedToken.startsWith(":")) {
+        // add special character ʞ to denote this string is actually a keyword
+        // the printer converts this back into :abc form
+        return new MalString(keywordPrefix + trimmedToken.slice(1))
     }
     // token === "+" or "-" because numRe erroneously captures "+" and "-"
     // TODO: fix regex
@@ -91,14 +96,15 @@ function readAtom(reader: Reader): MalAtom {
     }
 }
 
-function readList(reader: Reader): MalList {
-    const mal: MalList = new MalList([])
+function readList(reader: Reader, delimiter: string): MalList {
+    const endDelimiter = delimiter === "[" ? "]" : ")"
+    const isVector = delimiter === "[" 
+    const mal = new MalList([], isVector) 
     let curToken = reader.next()
-
-    while ((curToken = reader.peek()) !== ")") {
-        if (curToken === "(") {
+    while ((curToken = reader.peek())!== endDelimiter) {
+        if (curToken === "(" || curToken === "[") {
             // process subList
-            const subList = readList(reader)
+            const subList = readList(reader, curToken)
             mal.push(subList)
         } else if (curToken === null) {
             throw new Error("Mismatched parenthesis, expected \")\"")        

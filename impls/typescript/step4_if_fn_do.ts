@@ -42,6 +42,10 @@ function eval_ast(ast: MalType, repl_env: Env): MalType {
             const symbol = ast as MalSymbol
             return repl_env.get(symbol)
         case MalTypes.List:
+            // TODO: fix 
+            if ((ast as MalList).isVector) {
+                return ast
+            }
             const list = (ast as MalList).list
             if (list[0].type === MalTypes.Symbol && (list[0] as MalSymbol).value === "def!") {
                 const symbol = list[1] as MalSymbol

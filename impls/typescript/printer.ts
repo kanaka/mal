@@ -1,4 +1,4 @@
-import { MalType, MalNumber, MalList, MalSymbol, MalTypes, MalBoolean, MalString } from "./types";
+import { MalType, MalNumber, MalList, MalSymbol, MalTypes, MalBoolean, MalString, keywordPrefix } from "./types";
 
 export function pr_str(data: MalType, print_readably: boolean): string {
     let str = ""
@@ -19,14 +19,22 @@ export function pr_str(data: MalType, print_readably: boolean): string {
             str += (data as MalBoolean).value.toString()
             break
         case MalTypes.String:
-            str += print_readably 
-                ? '"' + (data as MalString).rawValue + '"'
-                : (data as MalString).value
+            // handle keywords
+            const malStr = (data as MalString)
+            if (malStr.rawValue.startsWith(keywordPrefix)) {
+                str += ":" + malStr.rawValue.slice(1)
+            } else {
+                str += print_readably 
+                    ? '"' + malStr.rawValue + '"'
+                    : malStr.value
+            }
     }    
     return str 
 }
 function pr_list(list: MalList): string {
-    let str = "("
+    const start = list.isVector ? "[" : "("
+    const end = list.isVector ? "]" : ")"
+    let str = start
     const arr = list.list
     for (const mal of arr) {
         switch (mal.type) {
@@ -40,5 +48,6 @@ function pr_list(list: MalList): string {
         }
         str += " "
     }
-    return str.slice(0, str.length-1) + ")"
+    if (str.length === 1) return str + end
+    else return str.slice(0, str.length-1) + end
 }

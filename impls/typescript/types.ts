@@ -1,6 +1,8 @@
 export type MalType = MalAtom | MalList | MalFunc
 export type MalAtom = MalNil | MalNumber | MalSymbol | MalBoolean | MalString
 
+export const keywordPrefix = "\u029E"
+
 export const enum MalTypes {
     List = 1,
     Number, 
@@ -58,10 +60,12 @@ export class MalBoolean {
 
 export class MalList {
     type = MalTypes.List
+    isVector: boolean
     list: Array<MalType>
 
-    constructor(list: Array<MalType>) {
+    constructor(list: Array<MalType>, isVector: boolean = false) {
         this.list = list
+        this.isVector = isVector
     }
 
     // just for brevity
