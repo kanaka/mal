@@ -76,7 +76,7 @@ function MalApply(args)
   endif
   if NativeFunctionQ(funcobj)
     return NativeFuncInvoke(funcobj, ListNew(funcargs))
-  elseif FunctionQ(funcobj)
+  elseif FunctionQ(funcobj) || MacroQ(funcobj)
     return FuncInvoke(funcobj, ListNew(funcargs))
   else
     throw "Not a function"
