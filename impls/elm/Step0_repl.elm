@@ -2,11 +2,12 @@ module Step0_repl exposing (..)
 
 import IO exposing (..)
 import Json.Decode exposing (decodeValue, errorToString)
+import Platform exposing (worker)
 
 
 main : Program Flags Model Msg
 main =
-    Platform.worker
+    worker
         { init = init
         , update = update
         , subscriptions =
@@ -15,7 +16,6 @@ main =
                 Ok a  -> Ok a
             ) >>  Input)
         }
-
 
 
 type alias Flags =

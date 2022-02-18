@@ -1,22 +1,17 @@
-module Utils
-    exposing
-        ( decodeString
-        , encodeString
-        , makeCall
-        , wrap
-        , maybeToList
-        , zip
-        , last
-        , justValues
-        )
+module Utils exposing
+    ( decodeString
+    , encodeString
+    , justValues
+    , last
+    , makeCall
+    , maybeToList
+    , wrap
+    , zip
+    )
 
-import Regex exposing (replace)
+import Regex
 import Types exposing (MalExpr(..))
 
-
-regex str = case Regex.fromString str of
-    Nothing -> Debug.todo "invalid regex"
-    Just r  -> r
 
 decodeString : String -> String
 decodeString =
@@ -35,8 +30,18 @@ decodeString =
                 other ->
                     other
     in
-        String.slice 1 -1
-            >> replace (regex "\\\\[\\\"\\\\n]") unescape
+    String.slice 1 -1
+        >> Regex.replace (regex "\\\\[\\\"\\\\n]") unescape
+
+
+
+-- helps replace all the encodes found into a string
+
+
+regex : String -> Regex.Regex
+regex str = case Regex.fromString str of
+    Nothing -> Debug.todo "invalid regex"
+    Just r  -> r
 
 
 encodeString : String -> String
@@ -56,13 +61,13 @@ encodeString =
                 other ->
                     other
     in
-        wrap "\"" "\""
-            << replace (regex "[\\n\\\"\\\\]") escape
+    wrap "\"" "\""
+        << Regex.replace (regex "[\\n\\\"\\\\]") escape
 
 
 makeCall : String -> List MalExpr -> MalExpr
 makeCall symbol args =
-    MalList Nothing <| (MalSymbol symbol) :: args
+    MalList Nothing <| MalSymbol symbol :: args
 
 
 wrap : String -> String -> String -> String
@@ -113,7 +118,7 @@ justValues list =
             []
 
         (Just x) :: rest ->
-            x :: (justValues rest)
+            x :: justValues rest
 
         Nothing :: rest ->
             justValues rest

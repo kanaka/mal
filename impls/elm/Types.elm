@@ -99,7 +99,7 @@ type MalExpr
 {-| Keywords are prefixed by this char for usage in a MalMap.
 Elm doesn't support user defined types as keys in a Dict.
 
-The unicode char is: '\x029e'
+The unicode char is: '\\x029e'
 
 -}
 keywordPrefix : Char

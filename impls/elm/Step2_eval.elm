@@ -1,20 +1,21 @@
 module Step2_eval exposing (..)
 
+import Array
+import Dict exposing (Dict)
+import Eval
 import IO exposing (..)
 import Json.Decode exposing (decodeValue, errorToString)
-import Types exposing (..)
-import Reader exposing (readString)
+import Platform exposing (worker)
 import Printer exposing (printStr)
-import Utils exposing (maybeToList, zip)
-import Dict exposing (Dict)
+import Reader exposing (readString)
 import Tuple exposing (mapFirst, second)
-import Array
-import Eval
+import Types exposing (..)
+import Utils exposing (maybeToList, zip)
 
 
 main : Program Flags Model Msg
 main =
-    Platform.worker
+    worker
         { init = init
         , update = update
         , subscriptions =
@@ -63,12 +64,12 @@ initReplEnv =
                 _ ->
                     Eval.fail "unsupported arguments"
     in
-        Dict.fromList
-            [ ( "+", makeFn <| binaryOp (+) )
-            , ( "-", makeFn <| binaryOp (-) )
-            , ( "*", makeFn <| binaryOp (*) )
-            , ( "/", makeFn <| binaryOp (//) )
-            ]
+    Dict.fromList
+        [ ( "+", makeFn <| binaryOp (+) )
+        , ( "-", makeFn <| binaryOp (-) )
+        , ( "*", makeFn <| binaryOp (*) )
+        , ( "/", makeFn <| binaryOp (//) )
+        ]
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -205,8 +206,8 @@ tryMapList fn list =
                             Err msg
                 )
     in
-        List.foldl go (Ok []) list
-            |> Result.map List.reverse
+    List.foldl go (Ok []) list
+        |> Result.map List.reverse
 
 
 print : MalExpr -> String
@@ -222,9 +223,9 @@ rep env input =
         evalPrint =
             eval env >> mapFirst (Result.map print)
     in
-        case readString input of
-            Err msg ->
-                ( Err msg, env )
+    case readString input of
+        Err msg ->
+            ( Err msg, env )
 
-            Ok ast ->
-                evalPrint ast
+        Ok ast ->
+            evalPrint ast

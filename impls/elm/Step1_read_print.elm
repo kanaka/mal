@@ -2,14 +2,15 @@ module Step1_read_print exposing (..)
 
 import IO exposing (..)
 import Json.Decode exposing (decodeValue, errorToString)
-import Types exposing (MalExpr(..))
-import Reader exposing (readString)
+import Platform exposing (worker)
 import Printer exposing (printStr)
+import Reader exposing (readString)
+import Types exposing (MalExpr(..))
 
 
 main : Program Flags Model Msg
 main =
-    Platform.worker
+    worker
         { init = init
         , update = update
         , subscriptions =
@@ -43,7 +44,7 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         Input (Ok (LineRead (Just line))) ->
-                ( model, writeLine (rep line) )
+            ( model, writeLine (rep line) )
 
         Input (Ok LineWritten) ->
             ( model, readLine prompt )
@@ -91,6 +92,6 @@ rep =
                 Err msg ->
                     msg
     in
-        readString
-            >> Result.map (eval >> print)
-            >> formatResult
+    readString
+        >> Result.map (eval >> print)
+        >> formatResult

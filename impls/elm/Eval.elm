@@ -1,8 +1,8 @@
 module Eval exposing (..)
 
-import Types exposing (..)
-import IO exposing (IO)
 import Env
+import IO exposing (IO)
+import Types exposing (..)
 
 
 apply : Eval a -> Env -> EvalContext a
@@ -96,18 +96,19 @@ gcPass e env0 =
                 --    ""
                 --    |> always ( Env.gc env, t expr )
                 ( Env.gc expr env, t expr )
+
             else
                 ( env, t expr )
     in
-        case apply e env0 of
-            ( env, EvalOk res ) ->
-                go env EvalOk res
+    case apply e env0 of
+        ( env, EvalOk res ) ->
+            go env EvalOk res
 
-            ( env, EvalErr msg ) ->
-                go env EvalErr msg
+        ( env, EvalErr msg ) ->
+            go env EvalErr msg
 
-            ( env, EvalIO cmd cont ) ->
-                ( env, EvalIO cmd (cont >> gcPass) )
+        ( env, EvalIO cmd cont ) ->
+            ( env, EvalIO cmd (cont >> gcPass) )
 
 
 catchError : (MalExpr -> Eval a) -> Eval a -> Eval a
@@ -214,15 +215,16 @@ inGlobal body =
                 , currentFrameId = oldEnv.currentFrameId
             }
     in
-        withEnv
-            (\env ->
-                if env.currentFrameId /= Env.globalFrameId then
-                    enter env
-                        |> andThen (always body)
-                        |> finally (leave env)
-                else
-                    body
-            )
+    withEnv
+        (\env ->
+            if env.currentFrameId /= Env.globalFrameId then
+                enter env
+                    |> andThen (always body)
+                    |> finally (leave env)
+
+            else
+                body
+        )
 
 
 runSimple : Eval a -> Result MalExpr a
