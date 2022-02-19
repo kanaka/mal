@@ -1,7 +1,7 @@
 import promptImp = require('prompt-sync')
 import { readStr } from './reader'
 import { pr_str } from './printer'
-import { MalType, MalNumber, MalList, MalFunc, MalTypes, MalSymbol, MalString, MalMap } from './types'
+import { MalType, MalNumber, MalList, MalFunc, MalTypes, MalSymbol, MalString, MalMap, MalBoolean, MalNil } from './types'
 import { Env } from './env'
 const prompt = promptImp({sigint: true})
 
@@ -75,7 +75,18 @@ function eval_ast(ast: MalType, repl_env: Env): MalType {
                 }
                 const expr = list[2]
                 return eval_ast(expr, newEnv)
-            } else {
+            } else if (list[0].type === MalTypes.Symbol && (list[0] as MalSymbol).value === "if") {
+                const condition = eval_ast(list[1], repl_env)
+                if (condition.type === MalTypes.Nil || 
+                    ((condition.type === MalTypes.Boolean) && !(condition as MalBoolean).value)) {
+                        // false condition
+                        return list[3] ? eval_ast(list[3], repl_env) : new MalNil() 
+                    }
+                else {
+                    return eval_ast(list[2], repl_env)
+                }
+            }
+             else {
                 // non-special forms
                 // evaluate each item in array, then apply the function to the args
                 const evaluated_list = list.map((malItem) => eval_ast(malItem, repl_env))
