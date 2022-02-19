@@ -46,7 +46,6 @@ function eval_ast(ast: MalType, repl_env: Env): MalType {
             const map = (ast as MalMap)
             const evaluated_map = new MalMap()
             for (const [k, v] of map.map) {
-                // console.log(k, v)
                 evaluated_map.map.set(k, eval_ast(v, repl_env))
             }
             return evaluated_map
@@ -85,6 +84,21 @@ function eval_ast(ast: MalType, repl_env: Env): MalType {
                 else {
                     return eval_ast(list[2], repl_env)
                 }
+            } else if (list[0].type === MalTypes.Symbol && (list[0] as MalSymbol).value === "do") {
+                const params = list.slice(1)
+                return params.map((malItem) => eval_ast(malItem, repl_env))[params.length-1]
+            } else if (list[0].type === MalTypes.Symbol && (list[0] as MalSymbol).value === "fn*") {
+                const [, args, binds] = list 
+                if (args.type !== MalTypes.List) 
+                    throw new Error(`unexpected return type: ${args.type}, expected: list or vector`)
+
+                const symbols = (args as MalList).list.map(item => {
+                    if (item.type !== MalTypes.Symbol) 
+                        throw new Error(`unexpected return type: ${item.type}, expected: symbol`)
+                    return item as MalSymbol
+                })
+                const closure = (...fnArgs: MalType[]) => eval_ast(binds, new Env(repl_env, symbols, fnArgs))
+                return new MalFunc(closure)
             }
              else {
                 // non-special forms

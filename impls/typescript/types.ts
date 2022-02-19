@@ -84,7 +84,7 @@ export class MalFunc {
     type = MalTypes.Function
     f: (...args: (MalType)[]) => MalType
     
-    constructor(f: (...args: (MalType | undefined)[]) => MalType) {
+    constructor(f: (...args: (MalType)[]) => MalType) {
         this.f = f
     }
 

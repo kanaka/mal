@@ -1,4 +1,4 @@
-import { MalType, MalNumber, MalList, MalSymbol, MalTypes, MalBoolean, MalString, keywordPrefix, MalMap } from "./types";
+import { MalType, MalNumber, MalList, MalSymbol, MalTypes, MalBoolean, MalString, keywordPrefix, MalMap, MalFunc } from "./types";
 
 export function pr_str(data: MalType, print_readably: boolean): string {
     let str = ""
@@ -52,6 +52,8 @@ function pr_list(list: MalList): string {
             case MalTypes.Map:
                 str += pr_map(mal as MalMap)
                 break
+            case MalTypes.Function:
+                str += (mal as MalFunc).f.toString()
         }
         str += " "
     }
