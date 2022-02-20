@@ -3,6 +3,7 @@ import { readStr } from './reader'
 import { pr_str } from './printer'
 import { MalType, MalNumber, MalList, MalFunc, MalTypes, MalSymbol, MalString, MalMap, MalBoolean, MalNil } from './types'
 import { Env } from './env'
+import { ns, not } from './core'
 const prompt = promptImp({sigint: true})
 
 interface MalEnvironment {
@@ -50,6 +51,9 @@ function eval_ast(ast: MalType, repl_env: Env): MalType {
             }
             return evaluated_map
         case MalTypes.List:
+            // Empty List/Vector
+            if ((ast as MalList).list.length === 0) return ast as MalList
+
             // Vector
             if ((ast as MalList).isVector) {
                 const vector = (ast as MalList).list
@@ -118,17 +122,14 @@ function def(key: MalSymbol, value: MalType, env: Env): void {
 }
 
 
+
+
 function createEnv(): Env {
-    // TODO: add support for more params
-    const add = new MalFunc((a: MalNumber, b: MalNumber) => new MalNumber(a.value + b.value))
-    const sub = new MalFunc((a: MalNumber, b: MalNumber) => new MalNumber(a.value - b.value))
-    const multiply = new MalFunc((a: MalNumber, b: MalNumber) => new MalNumber(a.value * b.value))
-    const divide = new MalFunc((a: MalNumber, b: MalNumber) => new MalNumber(a.value / b.value))
     const env = new Env()
-    env.set(new MalSymbol("+"), add)
-    env.set(new MalSymbol("-"), sub)
-    env.set(new MalSymbol("*"), multiply)
-    env.set(new MalSymbol("/"), divide)
+    Array.from(ns.keys()).forEach(key => 
+        env.set(new MalSymbol(key), ns.get(key) as MalFunc)
+    )
+    REP(not, env)
     return env
 }
 
@@ -160,4 +161,3 @@ module.exports = {
     eval_ast,
     createEnv
 }
-

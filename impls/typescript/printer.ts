@@ -4,10 +4,10 @@ export function pr_str(data: MalType, print_readably: boolean): string {
     let str = ""
     switch (data.type) {
         case MalTypes.List:
-            str += pr_list(data as MalList)
+            str += pr_list(data as MalList, print_readably)
             break
         case MalTypes.Map:
-            str += pr_map(data as MalMap)
+            str += pr_map(data as MalMap, print_readably)
             break
         case MalTypes.Number:
             str += (data as MalNumber).value.toString()
@@ -35,7 +35,7 @@ export function pr_str(data: MalType, print_readably: boolean): string {
     return str 
 }
 // TODO: combine pr_map and pr_list into one function
-function pr_list(list: MalList): string {
+function pr_list(list: MalList, print_readably: boolean): string {
     const start = list.isVector ? "[" : "("
     const end = list.isVector ? "]" : ")"
     let str = start
@@ -44,13 +44,14 @@ function pr_list(list: MalList): string {
         switch (mal.type) {
             case MalTypes.Number:
             case MalTypes.Symbol:
-                str += pr_str(mal, true)
+            case MalTypes.String:
+                str += pr_str(mal, print_readably)
                 break
             case MalTypes.List:
-                str += pr_list(mal as MalList)
+                str += pr_list(mal as MalList, print_readably)
                 break
             case MalTypes.Map:
-                str += pr_map(mal as MalMap)
+                str += pr_map(mal as MalMap, print_readably)
                 break
             case MalTypes.Function:
                 str += (mal as MalFunc).f.toString()
@@ -61,7 +62,7 @@ function pr_list(list: MalList): string {
     else return str.slice(0, str.length-1) + end
 }
 
-function pr_map(map: MalMap): string {
+function pr_map(map: MalMap, print_readably: boolean): string {
     let str = "{"
     for (const [k, v]  of map.map) {
         str += pr_str(k, true) + " " + pr_str(v, true) + " "
