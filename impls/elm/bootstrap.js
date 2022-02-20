@@ -24,7 +24,7 @@ app.ports.readLine.subscribe(function(prompt) {
 });
 
 // Read the contents of a file.
-if (4 <= args[0][4] || args[0][4] == 'A') {
+if ('readFile' in app.ports) {
     app.ports.readFile.subscribe(function(filename) {
         try {
             var contents = fs.readFileSync(filename, 'utf8');
