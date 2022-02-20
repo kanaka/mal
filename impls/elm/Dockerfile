@@ -19,7 +19,7 @@ WORKDIR /mal
 # Specific implementation requirements
 ##########################################################
 
-RUN apt-get -y install g++ libreadline-dev nodejs npm
+RUN apt-get -y install g++ libreadline-dev npm
 
 ENV HOME /mal
 ENV NPM_CONFIG_CACHE /mal/.npm

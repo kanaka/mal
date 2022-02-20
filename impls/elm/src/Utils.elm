@@ -1,6 +1,7 @@
 module Utils exposing
     ( decodeString
     , encodeString
+    , flip
     , justValues
     , last
     , makeCall
@@ -39,9 +40,10 @@ decodeString =
 
 
 regex : String -> Regex.Regex
-regex str = case Regex.fromString str of
-    Nothing -> Debug.todo "invalid regex"
-    Just r  -> r
+regex str =
+    case Regex.fromString str of
+        Nothing -> Debug.todo "invalid regex"
+        Just r  -> r
 
 
 encodeString : String -> String
@@ -122,3 +124,8 @@ justValues list =
 
         Nothing :: rest ->
             justValues rest
+
+
+flip : (a -> b -> c) -> (b -> a -> c)
+flip f b a =
+    f a b

@@ -21,6 +21,7 @@ import Array
 import Dict
 import Set
 import Types exposing (Env, Frame, MalExpr(..), MalFunction(..))
+import Utils exposing (flip)
 
 
 debug : Env -> String -> a -> a
@@ -358,7 +359,7 @@ gc expr env =
                         value =
                             getAtom atomId env
                     in
-                     countExpr value acc
+                    countExpr value acc
 
                 _ ->
                     acc
@@ -421,7 +422,7 @@ gc expr env =
     in
     countFrames initSet initSet
         |> countExpr expr
-        |> (\acc -> countList acc env.stack)
+        |> flip countList env.stack
         |> loop
         |> filterFrames env.frames
         |> makeNewEnv

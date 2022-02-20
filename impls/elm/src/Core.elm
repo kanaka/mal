@@ -73,7 +73,7 @@ ns =
                     True
 
                 ( x :: xs, y :: ys ) ->
-                    if deepEquals x y then
+                    if deepEquals (x, y) then
                         equalLists xs ys
 
                     else
@@ -99,11 +99,11 @@ ns =
 
             else
                 zip (Dict.values a) (Dict.values b)
-                    |> List.map (\(x,y) -> deepEquals x y)
+                    |> List.map deepEquals
                     |> List.all identity
 
-        deepEquals a b =
-            case ( a, b ) of
+        deepEquals c =
+            case c of
                 ( MalList _ list, MalList _ otherList ) ->
                     equalLists list otherList
 
@@ -131,14 +131,14 @@ ns =
                 ( _, MalMap _ _ ) ->
                     False
 
-                _ ->
+                (a, b) ->
                     a == b
 
         {- = -}
         equals args =
             case args of
                 [ a, b ] ->
-                    Eval.succeed <| MalBool (deepEquals a b)
+                    Eval.succeed <| MalBool (deepEquals (a, b))
 
                 _ ->
                     Eval.fail "unsupported arguments"
