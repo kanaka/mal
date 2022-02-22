@@ -1,22 +1,29 @@
-import { MalNumber, MalSymbol, MalType } from "./types"
+import { MalList, MalNumber, MalSymbol, MalType } from "./types"
 
 export class Env {
     outer: Env | undefined
-    // TODO: find a way to make key a MalSymbol
-    data: {[key: string]: MalType} = {}
+    data: Map<string, MalType> = new Map()
 
-    constructor(outer?: Env) {
-        if (outer !== undefined) {
-            this.outer = outer
+    constructor(outer?: Env, binds: MalSymbol[] = [], exprs: MalType[] = []) {
+        this.outer = outer
+        
+        for (let i = 0; i < binds.length; i++) {
+            const bind = binds[i]
+            if (bind.value === "&") {
+                // Clojure-style variadic function parameters
+                this.set(binds[i+1], new MalList(exprs.slice(i)))
+                break
+            }    
+            this.set(bind, exprs[i])
         }
     }
 
     set(key: MalSymbol, value: MalType): void {
-        this.data[key.value] = value
+        this.data.set(key.value, value)
     }
 
     find(key: MalSymbol): Env | undefined {
-        if (key.value in this.data){
+        if (this.data.has(key.value)){
             return this
         } else if (this.outer === undefined) {
             return undefined
@@ -28,6 +35,6 @@ export class Env {
     get(key: MalSymbol): MalType {
         const env = this.find(key)
         if (env === undefined) throw new Error("Symbol \"" + key.value + "\" not recognized")
-        return env.data[key.value]
+        return env.data.get(key.value) as MalType
     }
 }

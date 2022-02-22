@@ -16,7 +16,7 @@ function getInputs(): [number, number, boolean] {
   } else {
     testStep = parseInt(testStepArr[0].split("=")[1].trim())
     fileNumber = parseInt(fileNumberArr[0].split("=")[1].trim())
-    deferrable = fileNumberArr[0].split("=")[1].trim() === "true"
+    deferrable = deferrableArr[0].split("=")[1].trim() === "true"
   }
   return [testStep, fileNumber, deferrable]
 }

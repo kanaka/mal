@@ -12,7 +12,6 @@ function READ(input: string): MalType {
     return readStr(input)
 }
 
-// TODO: make type signature more precise
 function EVAL(mal: MalType, env: MalEnvironment): MalType {
     return eval_ast(mal, env)
 }
