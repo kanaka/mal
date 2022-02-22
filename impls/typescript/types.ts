@@ -1,3 +1,5 @@
+import { Env } from './env'
+
 export type MalType = MalAtom | MalList | MalFunc
 export type MalAtom = MalNil | MalNumber | MalSymbol | MalBoolean | MalString
 
@@ -84,9 +86,16 @@ export class MalMap {
 export class MalFunc {
     type = MalTypes.Function
     f: (...args: (MalType)[]) => MalType
+    bodyAst?: MalType
+    params?: MalSymbol[]
+    env?: Env
     
-    constructor(f: (...args: (MalType)[]) => MalType) {
+    constructor(f: (...args: (MalType)[]) => MalType, bodyAst?: MalType, params?: MalSymbol[], env?: Env) {
         this.f = f
+    }
+
+    static fromLisp(f: (...args: (MalType)[]) => MalType, bodyAst: MalType, params: MalSymbol[], env: Env): MalFunc {
+        return new MalFunc(f, bodyAst, params, env)
     }
 
     apply(args: MalList): MalType {
