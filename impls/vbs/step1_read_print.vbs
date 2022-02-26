@@ -10,7 +10,7 @@ Function EVAL(oMal)
 End Function
 
 Function PRINT(oMal)
-    PRINT = pr_str(oMal,false)
+    PRINT = pr_str(oMal,true)
 End Function
 
 Function rep(str)

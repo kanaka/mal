@@ -1,3 +1,5 @@
+Include "printer.vbs"
+
 Class MalType
 	Public Type_
 	Public value_
@@ -6,9 +8,9 @@ End Class
 
 'msgbox pr_str(read_str("(123 (456, 567))"))
 'msgbox typename(CreateObject("System.Collections.ArrayList"))
-
+'msgbox pr_str(read_str("(123 "))
 Function read_str(str)
-	set read_str=read_form_(tokenize(str))
+	set read_str=read_form(tokenize(str))
 End Function
 
 Function tokenize(str)
@@ -42,7 +44,13 @@ Function read_form(oQueue)
 		exit function
 	end if
 	If oQueue.Peek() = "(" or oQueue.Peek() = "[" or oQueue.Peek() = "{" Then
-		set read_form = read_list(oQueue)
+		if oQueue.Peek() = "(" then
+			Set read_form = read_list(oQueue)
+		elseif oQueue.Peek() = "[" then
+			Set read_form = read_vector(oQueue)
+		elseif oQueue.Peek() = "{" then
+			Set read_form = read_hash_map(oQueue)
+		end if
 	elseif oQueue.Peek() = "'" or oQueue.Peek() = "`" or oQueue.Peek() = "~" or oQueue.Peek() = "~@" or oQueue.Peek = "@" then
 		select case oQueue.Dequeue()
 			case "'"
@@ -110,6 +118,27 @@ Function read_list(oQueue)
 	'msgbox oQueue.peek
 End Function
 
+function read_vector(oQueue)
+	set read_vector = read_list(oQueue)
+end function
+
+function read_hash_map(oQueue)
+	oQueue.Dequeue()
+	set read_hash_map = new MalType
+	set read_hash_map.value_ = CreateObject("Scripting.Dictionary")
+
+	read_hash_map.type_ = "hash-map"
+	While oQueue.count > 1 And oQueue.Peek() <> "}"
+		set key = read_form(oQueue)
+		read_hash_map.value_.Add key, read_form(oQueue)
+	Wend
+	If oQueue.Dequeue() <> "}" Then
+		err.raise vbObjectError,"reader", "excepted '}', got EOF"
+	End If
+End Function
+
+
+
 Function read_atom(oQueue)
 	atom = oQueue.Dequeue()
 	if isnumeric(atom) Then
@@ -121,7 +150,7 @@ Function read_atom(oQueue)
 		read_atom.Type_ = "boolean"
 		read_atom.value_ = atom
 	elseif left(atom,1) = """" Then
-		if (not right(atom,1) = """") or len(atom) = 1 then err.raise vbObjectError,"reader", "Unterminated string"
+		if (not right(atom,1) = """") or len(atom) = 1 then err.raise vbObjectError,"reader", "Unterminated string, got EOF"
 		set read_atom = new MalType
 		read_atom.Type_ = "string"
 		str_tmp = ""
@@ -144,11 +173,15 @@ Function read_atom(oQueue)
 				end if
 			end if
 		next
-		if backslash then err.raise vbObjectError,"reader", "Unterminated string"
-		read_atom.value_ = """" + str_tmp + """"
+		if backslash then err.raise vbObjectError,"reader", "Unterminated string, got EOF"
+		read_atom.value_ = str_tmp
 	elseif atom = "nil" Then
 		set read_atom = new MalType
 		read_atom.Type_ = "null"
+		read_atom.value_ = atom
+	elseif left(atom,1) = ":" Then
+		set read_atom = new MalType
+		read_atom.Type_ = "keyword"
 		read_atom.value_ = atom
 	elseif left(atom,1) = ";" Then
 		set read_atom = nothing
@@ -160,3 +193,14 @@ Function read_atom(oQueue)
 End Function
 
 
+Sub Include(sInstFile) 
+	Dim oFSO, f, s 
+	Set oFSO = CreateObject("Scripting.FileSystemObject")
+    sInstFile = oFSO.GetParentFolderName(oFSO.GetFile(Wscript.ScriptFullName)) & "\" & sInstFile
+	Set f = oFSO.OpenTextFile(sInstFile) 
+	s = f.ReadAll 
+	f.Close 
+	Set f = Nothing
+	Set oFSO = Nothing
+	ExecuteGlobal s 
+End Sub
