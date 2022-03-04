@@ -1,4 +1,4 @@
-FROM ubuntu:xenial
+FROM ubuntu:focal
 MAINTAINER Joel Martin <github@martintribe.org>
 
 ##########################################################
@@ -21,35 +21,35 @@ WORKDIR /mal
 # Specific implementation requirements
 ##########################################################
 
+# Dev tools
+RUN DEBIAN_FRONTEND=noninteractive apt-get -y install gcc g++ bison flex groff make cmake pkg-config git
+
 # Prepackaged Scheme implementations
 RUN apt-get -y install gauche chicken-bin
+RUN chicken-install r7rs
 
 # Chibi
-RUN apt-get -y install bison gcc g++ flex
-RUN cd /tmp && curl -Lo chibi-0.7.3.tar.gz https://github.com/ashinn/chibi-scheme/archive/0.7.3.tar.gz \
-    && tar xvzf chibi-0.7.3.tar.gz && cd chibi-scheme-0.7.3 \
+RUN cd /tmp && curl -Lo chibi-0.10.tar.gz https://github.com/ashinn/chibi-scheme/archive/0.10.tar.gz \
+    && tar xvzf chibi-0.10.tar.gz && cd chibi-scheme-0.10 \
     && make && make install && rm -rf /tmp/chibi-*
 
 # Kawa
-RUN apt-get -y install openjdk-8-jdk-headless groff
-RUN cd /tmp && curl -O http://ftp.gnu.org/pub/gnu/kawa/kawa-2.4.tar.gz \
-    && tar xvzf kawa-2.4.tar.gz && cd kawa-2.4 \
-    && ./configure && make && make install && rm -rf /tmp/kawa-2.4*
+RUN apt-get -y install openjdk-8-jdk-headless
+RUN cd /tmp && curl -O http://ftp.gnu.org/pub/gnu/kawa/kawa-3.1.1.tar.gz \
+    && tar xvzf kawa-3.1.1.tar.gz && cd kawa-3.1.1 \
+    && ./configure && make && make install && rm -rf /tmp/kawa-3.1.1*
 
 # Sagittarius
-RUN apt-get -y install cmake libgc-dev zlib1g-dev libffi-dev
-RUN cd /tmp && curl -LO https://bitbucket.org/ktakashi/sagittarius-scheme/downloads/sagittarius-0.8.3.tar.gz \
-    && tar xvzf sagittarius-0.8.3.tar.gz && cd sagittarius-0.8.3 \
-    && cmake . && make && make install && rm -rf /tmp/sagittarius-0.8.3*
+RUN apt-get -y install libgc-dev zlib1g-dev libffi-dev libssl-dev
+RUN cd /tmp && curl -LO https://bitbucket.org/ktakashi/sagittarius-scheme/downloads/sagittarius-0.9.7.tar.gz \
+    && tar xvzf sagittarius-0.9.7.tar.gz && cd sagittarius-0.9.7 \
+    && cmake . && make && make install && rm -rf /tmp/sagittarius-0.9.7*
 
 # Cyclone
-RUN apt-get -y install git libtommath-dev
-RUN cd /tmp && curl -O http://concurrencykit.org/releases/ck-0.6.0.tar.gz \
-    && tar xvzf ck-0.6.0.tar.gz && cd ck-0.6.0 && ./configure PREFIX=/usr \
-    && make all && make install && ldconfig && rm -rf /tmp/ck-0.6.0*
+RUN apt-get -y install libck-dev libtommath-dev
 RUN cd /tmp && git clone https://github.com/justinethier/cyclone-bootstrap \
-    && cd cyclone-bootstrap && make CFLAGS="-O2 -fPIC -rdynamic -Wall -Iinclude -L." \
-    && make install && rm -rf /tmp/cyclone-bootstrap
+    && cd cyclone-bootstrap \
+    && make && make install && rm -rf /tmp/cyclone-bootstrap
 
 # Foment
 RUN cd /tmp && git clone https://github.com/leftmike/foment \

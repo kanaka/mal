@@ -20,7 +20,7 @@
           cond-true? make-anonymous-func
           make-atom atom? atom-val atom-val-set!
           make-callable callable? callable-is_macro
-          callable-is_macro-set! callable-closure
+          callable-as-macro callable-closure
           is-func is-func? is-macro is-macro? make-func callable-apply
           callable-unbox-set! callable-unbox
           callable-meta-info hash-table-clone
@@ -81,6 +81,8 @@
 (define (is-func? c) (and (is-func c) #t))
 (define (is-macro c) (callable-check c #t))
 (define (is-macro? c) (and (is-macro c) #t))
+(define (callable-as-macro c)
+  (make-callable nil (callable-unbox c) #t (callable-closure c)))
 
 (define (hash-table-clone ht)
   (list->hash-map (hash-fold (lambda (k v p) (cons k (cons v p))) '() ht)))

@@ -126,6 +126,7 @@ function MAL_EVAL($ast, $env) {
         break; // Continue loop (TCO)
     case "defmacro!":
         $func = MAL_EVAL($ast[2], $env);
+        $func = _function('MAL_EVAL', 'native', $func->ast, $func->env, $func->params);
         $func->ismacro = true;
         return $env->set($ast[1], $func);
     case "macroexpand":

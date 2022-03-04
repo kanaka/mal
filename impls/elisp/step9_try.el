@@ -90,8 +90,7 @@
           (setq ast (quasiquote a1))) ; TCO
          (defmacro!
           (let ((identifier (mal-value a1))
-                (value (EVAL a2 env)))
-            (setf (aref (aref value 1) 4) t)
+                (value (mal-macro (EVAL a2 env))))
             (throw 'return (mal-env-set env identifier value))))
          (macroexpand
           (throw 'return (MACROEXPAND a1 env)))

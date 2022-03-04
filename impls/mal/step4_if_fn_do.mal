@@ -52,8 +52,7 @@
           (LET (new-env env) (nth ast 1) (nth ast 2))
 
           (= 'do a0)
-          (let* [el (eval-ast (rest ast) env)]
-            (nth el (- (count el) 1)))
+          (nth (eval-ast (rest ast) env) (- (count ast) 2))
 
           (= 'if a0)
           (if (EVAL (nth ast 1) env)
@@ -82,7 +81,7 @@
   (PRINT (EVAL (READ strng) repl-env))))
 
 ;; core.mal: defined directly using mal
-(map (fn* [data] (apply env-set repl-env data)) core_ns)
+(map (fn* [sym] (env-set repl-env sym (eval sym))) core_ns)
 
 ;; core.mal: defined using the new language itself
 (rep "(def! not (fn* [a] (if a false true)))")

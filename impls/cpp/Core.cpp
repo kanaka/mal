@@ -307,8 +307,12 @@ BUILTIN("keys")
 BUILTIN("keyword")
 {
     CHECK_ARGS_IS(1);
-    ARG(malString, token);
-    return mal::keyword(":" + token->value());
+    const malValuePtr arg = *argsBegin++;
+    if (malKeyword* s = DYNAMIC_CAST(malKeyword, arg))
+      return s;
+    if (const malString* s = DYNAMIC_CAST(malString, arg))
+      return mal::keyword(":" + s->value());
+    MAL_FAIL("keyword expects a keyword or string");
 }
 
 BUILTIN("list")

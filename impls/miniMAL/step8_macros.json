@@ -61,7 +61,7 @@
     ["let", ["new-hm", ["hash-map"]],
       ["do",
         ["map", ["fn", ["k"], ["set", "new-hm",
-                                ["EVAL", "k", "env"],
+                                "k",
                                 ["EVAL", ["get", "ast", "k"], "env"]]],
                 ["keys", "ast"]],
         "new-hm"]],

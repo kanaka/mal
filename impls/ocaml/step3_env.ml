@@ -27,7 +27,7 @@ let rec eval_ast ast env =
       -> T.Map {T.meta = meta;
                 T.value = (Types.MalMap.fold
                              (fun k v m
-                              -> Types.MalMap.add (eval k env) (eval v env) m)
+                              -> Types.MalMap.add k (eval v env) m)
                              xs
                              Types.MalMap.empty)}
     | _ -> ast

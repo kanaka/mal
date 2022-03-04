@@ -193,7 +193,7 @@ summarizes the key changes at each step.
 
 If you get completely stuck and are feeling like giving up, then you
 should "cheat" by referring to the same step or functionality in
-a existing implementation language. You are here to learn, not to take
+an existing implementation language. You are here to learn, not to take
 a test, so do not feel bad about it. Okay, you should feel a little
 bit bad about it.
 
@@ -592,6 +592,9 @@ You now have a simple prefix notation calculator!
   * If `ast` is a hash-map: return a new hash-map which consists of key-value
     pairs where the key is a key from the hash-map and the value is the result
     of calling `EVAL` on the corresponding value.
+    Depending on the implementation of maps, it may be convenient to
+    also call `EVAL` on keys.  The result is the same because keys are
+    not affected by evaluation.
 
 
 <a name="step3"></a>
