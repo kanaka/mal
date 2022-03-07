@@ -1,9 +1,9 @@
 Reader ← {𝕊 tokens:
-  {
+  r ← {
     ts ← tokens
-    Peek ⇐ {𝕊 ⋄ ⊑ ts}
+    Peek ⇐ {𝕊 ⋄ 0=≠ts ? @; ⊑ts}
     Next ⇐ {𝕊
-      t ← ⊑ts
+      t ← r.Peek@
       ts ↩ 1↓ts
       t
     }
@@ -22,9 +22,10 @@ T ← {𝕊 s:
       {𝕊
         o ∾↩ ⊑s
         s ↩ 1↓s
-        (⊑s) ≠ @+10
+        {0=≠s ? 0 ; (⊑s) ≠ @+10}
       } •_while_⊢1
       (<o) ∾ T s ;
+    """"≡s ? •Out "unbalanced quotes: """ ⋄ @;
     '"'=⊑s ?
       o‿p‿r ← """"‿1‿1
       {𝕊
@@ -33,10 +34,10 @@ T ← {𝕊 s:
         o ∾↩ c
         q ← p∧c='"'
         {p ? p↩c≠'\' ; p↩1}
-        r ↩ 1<≠s
+        {q?@;r ↩ 1<≠s}
         r∧¬q
       } •_while_⊢1
-      {r?@;•Out "unterminated string: "∾o}
+      {r?@;•Out "unbalanced quotes: "∾o}
       (<o) ∾ T 1↓s ;
     o←⟨⟩
     {𝕊
@@ -49,6 +50,7 @@ T ← {𝕊 s:
 }
 
 # Types:
+# ¯1 error
 # 0 symbol
 # 1 int
 # 2 string
@@ -61,12 +63,14 @@ Atom ← {𝕊 a:
 
 ReadList ← {𝕊 r:
   l←⟨⟩
+  t←3
   {𝕊
-    l ∾↩ <ReadForm r
-    ")"≢r.Peek@
+    {")": r.Next@ ⋄ 0;
+     @: t ↩ ¯1 ⋄ 0;
+     l ∾↩ <ReadForm r ⋄ 1
+    }r.Peek@
   }•_while_⊢1
-  r.Next@
-  3‿l
+  t‿l
 }
 
 ReadForm ← {𝕊 r:
