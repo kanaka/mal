@@ -28,6 +28,7 @@ EVAL ← {
     t∾F 1⊸↓¨zs
   } ;
   env 𝕊 4‿xs: 4∾<env⊸EVAL¨xs ;
+  env 𝕊 5‿xs: 5∾<env⊸EVAL¨xs ;
   env 𝕊 x: env EvalAst x
 }
 Rep ← PRINT∘{replEnv EVAL 𝕩}∘READ

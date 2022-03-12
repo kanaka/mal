@@ -1,3 +1,13 @@
+# Types:
+# ¯1 error
+# 0 symbol
+# 1 int
+# 2 string
+# 3 list
+# 4 vector
+# 5 hashmap
+# 6 keyword
+
 Reader ← {𝕊 tokens:
   r ← {
     ts ← tokens
@@ -49,17 +59,11 @@ T ← {𝕊 s:
   }
 }
 
-# Types:
-# ¯1 error
-# 0 symbol
-# 1 int
-# 2 string
-# 3 list
-# 4 vector
 Int ← {10⊸×⊸+˜´'0'-˜⌽𝕩}
 nums ← "0123456789"
 Atom ← {𝕊 a:
   {'"': 2∾<¯1↓1↓a ;
+   ':': 6‿a ;
    ⊑𝕩∊nums ? 1∾Int a ;
    (𝕩='-')∧1<≠a ? 1∾-Int 1↓a ;
    0‿a }⊑a
@@ -79,6 +83,7 @@ ReadList ← {𝕊 r‿t‿e:
 ReadForm ← {𝕊 r:
   {"(": ReadList r‿3‿")" ;
    "[": ReadList r‿4‿"]" ;
+   "{": ReadList r‿5‿"}" ;
    Atom 𝕩
   }r.Next@
 }
