@@ -55,6 +55,7 @@ T ← {𝕊 s:
 # 1 int
 # 2 string
 # 3 list
+# 4 vector
 Int ← {10⊸×⊸+˜´'0'-˜⌽𝕩}
 nums ← "0123456789"
 Atom ← {𝕊 a:
@@ -64,12 +65,11 @@ Atom ← {𝕊 a:
    0‿a }⊑a
 }
 
-ReadList ← {𝕊 r:
+ReadList ← {𝕊 r‿t‿e:
   l←⟨⟩
-  t←3
   {𝕊
-    {")": r.Next@ ⋄ 0;
-     @: t ↩ ¯1 ⋄ l ↩ "unbalanced parens" ⋄ 0;
+    {@: t ↩ ¯1 ⋄ l ↩ "unbalanced parens" ⋄ 0;
+     𝕩≡e ? r.Next@ ⋄ 0;
      l ∾↩ <ReadForm r ⋄ 1
     }r.Peek@
   }•_while_⊢1
@@ -77,7 +77,8 @@ ReadList ← {𝕊 r:
 }
 
 ReadForm ← {𝕊 r:
-  {"(": ReadList r ;
+  {"(": ReadList r‿3‿")" ;
+   "[": ReadList r‿4‿"]" ;
    Atom 𝕩
   }r.Next@
 }
