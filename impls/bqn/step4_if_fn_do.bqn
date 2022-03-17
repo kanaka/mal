@@ -13,7 +13,7 @@ EvalAst ← {env 𝕊 t‿v:
 READ ← ReadStr
 PRINT ← PrStr
 EVAL ← {
-  # builtin symbols
+  # builtin special forms
   env 𝕊 3‿⟨0‿"def!",0‿k,x⟩:
     v ← env EVAL x
     {¯1:@;env.Set (<k)∾<v}⊑v
@@ -40,13 +40,17 @@ EVAL ← {
       }•_while_{𝕊 ⋄ 0<≠as}@
       inner EVAL exp} ;
 
-  # data
+  # variable-length special forms
   env 𝕊 3‿⟨⟩: 3‿⟨⟩ ;
-  env 𝕊 3‿xs:
-    ys ← env EvalAst 3‿xs
-    f ← ⊑ys
-    {9‿f: F 1↓ys ;
-     •Show "ERROR: function "‿f}f;
+  env 𝕊 3‿xs:{
+    0‿"do": ¯1⊑env⊸EVAL¨1↓xs
+    ; ys ← env EvalAst 3‿xs          # function application
+      f ← ⊑ys
+      {9‿f: F 1↓ys ;
+       •Show "ERROR: function "‿f} f
+    }⊑xs ;
+
+  # basic forms
   env 𝕊 4‿xs: 4∾<env⊸EVAL¨xs ;
   env 𝕊 5‿xs: 5∾<env⊸EVAL¨xs ;
   env 𝕊 x: env EvalAst x

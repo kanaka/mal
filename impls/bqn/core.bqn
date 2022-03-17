@@ -1,4 +1,5 @@
 ⟨Env⟩ ← •Import "env.bqn"
+⟨PrStr⟩ ← •Import "printer.bqn"
 
 ns ← ⟨
   "+"‿{1∾+´1⊏˘>𝕩}
@@ -18,6 +19,7 @@ ns ← ⟨
   "count"‿{1∾≠1⊑⊑𝕩}
 
   "bqn-show"‿{•Show ⊑ 𝕩}
+  "prn"‿{•Out∘PrStr¨𝕩 ⋄ 8‿⟨⟩}
 ⟩
 
 core ⇐ Env@
