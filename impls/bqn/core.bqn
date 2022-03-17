@@ -21,4 +21,4 @@ ns ← ⟨
 ⟩
 
 core ⇐ Env@
-core.Set¨ns
+{𝕊 kw‿f: core.Set kw‿(9‿f)}¨ns

@@ -9,6 +9,7 @@
 # 6 keyword
 # 7 boolean
 # 8 nil
+# 9 function
 
 Reader ← {𝕊 tokens:
   r ← {
@@ -62,11 +63,12 @@ T ← {𝕊 s:
 }
 
 Int ← {10⊸×⊸+˜´'0'-˜⌽𝕩}
+nil ← 8‿⟨⟩
 nums ← "0123456789"
 Atom ← {
   𝕊 "true": 7‿1 ;
   𝕊 "false": 7‿0 ;
-  𝕊 "nil": 8‿⟨⟩ ;
+  𝕊 "nil": nil ;
   𝕊 a: {'"': 2∾<¯1↓1↓a ;
    ':': 6‿a ;
    ⊑𝕩∊nums ? 1∾Int a ;
@@ -96,4 +98,5 @@ ReadForm ← {𝕊 r:
 {
   Tokenize ⇐ T
   ReadStr ⇐ ReadForm∘Reader∘Tokenize
+  nil ⇐ nil
 }
