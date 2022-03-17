@@ -29,12 +29,13 @@ EVAL ← {
     env EVAL {8‿x:f; 7‿0:f; t} env EVAL c ;
   env 𝕊 3‿⟨0‿"if",c,t⟩:
     env EVAL {8‿x:nil; 7‿0:nil; t} env EVAL c ;
-  outer 𝕊 3‿⟨0‿"fn*",3‿args,exp⟩:
+  outer 𝕊 3‿⟨0‿"fn*",t‿args,exp⟩:
     9‿{𝕊 xs:
       as ← args
       inner ← Env outer
       {𝕊
-        {0‿kw: inner.Set (<kw)∾<inner EVAL ⊑xs}⊑as
+        {0‿"&": inner.Set (<1⊑1⊑as)∾<3∾<inner EVAL¨xs ⋄ as↩⟨⟩;
+         0‿kw: inner.Set (<kw)∾<inner EVAL ⊑xs}⊑as
         as 1⊸↓↩
         xs 1⊸↓↩
       }•_while_{𝕊 ⋄ 0<≠as}@
@@ -47,7 +48,8 @@ EVAL ← {
     ; ys ← env EvalAst 3‿xs          # function application
       f ← ⊑ys
       {9‿f: F 1↓ys ;
-       •Show "ERROR: function "‿f} f
+       ¯1‿x: f;
+       ¯1∾<"not a function: "∾PrStr f} f
     }⊑xs ;
 
   # basic forms
