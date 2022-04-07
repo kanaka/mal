@@ -1,2 +1,2 @@
 #!/bin/bash
-exec dotnet $(dirname $0)/bin/Debug/net5.0/${STEP:-stepA_mal}.dll "${@}"
+exec dotnet $(dirname $0)/bin/Debug/net6.0/${STEP:-stepA_mal}.dll "${@}"
