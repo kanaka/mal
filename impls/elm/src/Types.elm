@@ -59,7 +59,7 @@ type alias MalFn =
 
 
 type MalFunction
-    = CoreFunc MalFn
+    = CoreFunc (Maybe MalExpr) MalFn
     | UserFunc
         { frameId : Int
         , lazyFn : MalFn
@@ -88,9 +88,9 @@ type MalExpr
     | MalString String
     | MalKeyword String
     | MalSymbol String
-    | MalList (List MalExpr)
-    | MalVector (Array MalExpr)
-    | MalMap (Dict String MalExpr)
+    | MalList (Maybe MalExpr) (List MalExpr)
+    | MalVector (Maybe MalExpr) (Array MalExpr)
+    | MalMap (Maybe MalExpr) (Dict String MalExpr)
     | MalFunction MalFunction
     | MalApply ApplyRec
     | MalAtom Int
@@ -99,7 +99,7 @@ type MalExpr
 {-| Keywords are prefixed by this char for usage in a MalMap.
 Elm doesn't support user defined types as keys in a Dict.
 
-The unicode char is: '\x029e'
+The unicode char is: '\\x029e'
 
 -}
 keywordPrefix : Char

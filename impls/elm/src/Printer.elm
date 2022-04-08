@@ -2,9 +2,9 @@ module Printer exposing (..)
 
 import Array exposing (Array)
 import Dict exposing (Dict)
-import Types exposing (Env, MalExpr(..), keywordPrefix, MalFunction(..))
-import Utils exposing (encodeString, wrap)
 import Env
+import Types exposing (Env, MalExpr(..), MalFunction(..), keywordPrefix)
+import Utils exposing (encodeString, wrap)
 
 
 printStr : Bool -> MalExpr -> String
@@ -25,7 +25,7 @@ printString env readably ast =
             "false"
 
         MalInt int ->
-            toString int
+            String.fromInt int
 
         MalString str ->
             printRawString env readably str
@@ -34,15 +34,15 @@ printString env readably ast =
             sym
 
         MalKeyword kw ->
-            kw
+            ":" ++ kw
 
-        MalList list ->
+        MalList _ list ->
             printList env readably list
 
-        MalVector vec ->
+        MalVector _ vec ->
             printVector env readably vec
 
-        MalMap map ->
+        MalMap _ map ->
             printMap env readably map
 
         MalFunction _ ->
@@ -53,7 +53,7 @@ printString env readably ast =
                 value =
                     Env.getAtom atomId env
             in
-                "(atom " ++ (printString env True value) ++ ")"
+            "(atom " ++ printString env True value ++ ")"
 
         MalApply _ ->
             "#<apply>"
@@ -62,18 +62,19 @@ printString env readably ast =
 printBound : Env -> Bool -> List ( String, MalExpr ) -> String
 printBound env readably =
     let
-        printEntry name value =
-            name ++ "=" ++ (printString env readably value)
+        printEntry ( name, value ) =
+            name ++ "=" ++ printString env readably value
     in
-        List.map (uncurry printEntry)
-            >> String.join " "
-            >> wrap "(" ")"
+    List.map printEntry
+        >> String.join " "
+        >> wrap "(" ")"
 
 
 printRawString : Env -> Bool -> String -> String
 printRawString env readably str =
     if readably then
         encodeString str
+
     else
         str
 
@@ -101,7 +102,8 @@ printMap env readably =
             case String.uncons k of
                 Just ( prefix, rest ) ->
                     if prefix == keywordPrefix then
-                        rest
+                        ":" ++ rest
+
                     else
                         printRawString env readably k
 
@@ -109,44 +111,44 @@ printMap env readably =
                     printRawString env readably k
 
         printEntry ( k, v ) =
-            (printKey k) ++ " " ++ (printString env readably v)
+            printKey k ++ " " ++ printString env readably v
     in
-        Dict.toList
-            >> List.map printEntry
-            >> String.join " "
-            >> wrap "{" "}"
+    Dict.toList
+        >> List.map printEntry
+        >> String.join " "
+        >> wrap "{" "}"
 
 
 printEnv : Env -> String
 printEnv env =
     let
         printOuterId =
-            Maybe.map toString >> Maybe.withDefault "nil"
+            Maybe.map String.fromInt >> Maybe.withDefault "nil"
 
         printHeader frameId { outerId, exitId, refCnt } =
             "#"
-                ++ (toString frameId)
+                ++ String.fromInt frameId
                 ++ " outer="
                 ++ printOuterId outerId
                 ++ " exit="
                 ++ printOuterId exitId
                 ++ " refCnt="
-                ++ (toString refCnt)
+                ++ String.fromInt refCnt
 
         printFrame frameId frame =
             String.join "\n"
-                ((printHeader frameId frame)
-                    :: (Dict.foldr printDatum [] frame.data)
+                (printHeader frameId frame
+                    :: Dict.foldr printDatum [] frame.data
                 )
 
         printFrameAcc k v acc =
             printFrame k v :: acc
 
         printDatum k v acc =
-            (k ++ " = " ++ (printString env False v)) :: acc
+            (k ++ " = " ++ printString env False v) :: acc
     in
-        "--- Environment ---\n"
-            ++ "Current frame: #"
-            ++ (toString env.currentFrameId)
-            ++ "\n\n"
-            ++ String.join "\n\n" (Dict.foldr printFrameAcc [] env.frames)
+    "--- Environment ---\n"
+        ++ "Current frame: #"
+        ++ String.fromInt env.currentFrameId
+        ++ "\n\n"
+        ++ String.join "\n\n" (Dict.foldr printFrameAcc [] env.frames)
