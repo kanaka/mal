@@ -45,6 +45,11 @@ namespace mal
                     {
                         Console.WriteLine(rep(line));
                     }
+                    catch (MalException mex)
+                    {
+
+                        Console.WriteLine(mex.cause);
+                    }
                     catch (Exception ex)
                     {
 
