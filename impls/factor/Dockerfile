@@ -1,4 +1,4 @@
-FROM ubuntu:vivid
+FROM ubuntu:20.04
 MAINTAINER Joel Martin <github@martintribe.org>
 
 ##########################################################
@@ -24,8 +24,9 @@ WORKDIR /mal
 # Factor
 RUN apt-get -y install libgtkglext1
 RUN cd /usr/lib/x86_64-linux-gnu/ \
-    && curl -O http://downloads.factorcode.org/releases/0.97/factor-linux-x86-64-0.97.tar.gz \
-    && tar xvzf factor-linux-x86-64-0.97.tar.gz \
+    && curl -O https://downloads.factorcode.org/releases/0.98/factor-linux-x86-64-0.98.tar.gz \
+    && tar xvzf factor-linux-x86-64-0.98.tar.gz \
     && ln -sf /usr/lib/x86_64-linux-gnu/factor/factor /usr/bin/factor \
-    && rm factor-linux-x86-64-0.97.tar.gz
+    && rm factor-linux-x86-64-0.98.tar.gz
 
+ENV HOME /mal
