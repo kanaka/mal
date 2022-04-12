@@ -65,8 +65,6 @@ procedure Step3_Env is
    function Eval (Param : Types.Mal_Handle; Env : Envs.Env_Handle)
    return Types.Mal_Handle;
 
-   Debug : Boolean := False;
-
 
    function Read (Param : String) return Types.Mal_Handle is
    begin
@@ -112,6 +110,31 @@ procedure Step3_Env is
       end Call_Eval;
 
    begin
+      pragma Assert (Deref (Ast).Sym_Type = List); -- list, map or vector
+      return Map (Call_Eval'Unrestricted_Access, Deref_List_Class (Ast).all);
+   end Eval_Ast;
+
+
+   function Eval (Param : Mal_Handle; Env : Envs.Env_Handle)
+		 return Mal_Handle is
+      Ast : Mal_Handle renames Param; --  Historic
+   begin
+      declare
+         M : Mal_Handle;
+         B : Boolean;
+      begin
+         M := Envs.Get (Env, "DEBUG-EVAL");
+         case Deref (M).Sym_Type is
+            when Bool   => B := Deref_Bool (M).Get_Bool;
+            when Nil    => B := False;
+            when others => B := True;
+         end case;
+         if B then
+            Ada.Text_IO.Put_Line ("EVAL: " & Deref (Param).To_String);
+         end if;
+      exception
+         when Envs.Not_Found => null;
+      end;
 
       case Deref (Ast).Sym_Type is
 
@@ -132,27 +155,10 @@ procedure Step3_Env is
             end;
 
          when List =>
-
-            return Map (Call_Eval'Unrestricted_Access, Deref_List_Class (Ast).all);
-
-         when others => return Ast;
-
-      end case;
-
-   end Eval_Ast;
-
-
-   function Eval (Param : Mal_Handle; Env : Envs.Env_Handle)
-		 return Mal_Handle is
-      First_Elem : Mal_Handle;
-   begin
-
-      if Debug then
-         Ada.Text_IO.Put_Line ("Evaling " & Deref (Param).To_String);
-      end if;
-
-      if Deref (Param).Sym_Type = List and then
-	Deref_List (Param).Get_List_Type = List_List then
+         case Deref_List (Param).Get_List_Type is
+         when Hashed_List | Vector_List =>
+            return Eval_Ast (Param, Env);
+         when List_List =>
 
          declare
             Evaled_H, First_Param, Rest_List : Mal_Handle;
@@ -184,12 +190,10 @@ procedure Step3_Env is
 
          end;
 
-      else -- Not a List_List
-
-         return Eval_Ast (Param, Env);
-
-      end if;
-
+         end case;
+      when others => -- not a list, map, symbol or vector
+         return Param;
+      end case;
    end Eval;
 
 
@@ -243,12 +247,6 @@ begin
    -- Can't use 'Access here because of Ada rules but 'Unrestricted_Access is OK
    -- as we know Eval will be in scope for the lifetime of the program.
    Eval_Callback.Eval := Eval'Unrestricted_Access;
-
-   if Ada.Command_Line.Argument_Count > 0 then
-     if Ada.Command_Line.Argument (1) = "-d" then
-        Debug := True;
-     end if;
-   end if;
 
    Repl_Env := Envs.New_Env;
 

@@ -43,7 +43,6 @@ IMPLS = ada ada.2 awk bash basic bbc-basic c c.2 chuck clojure coffee common-lis
 
 step5_EXCLUDES += bash        # never completes at 10,000
 step5_EXCLUDES += basic       # too slow, and limited to ints of 2^16
-step5_EXCLUDES += logo        # too slow for 10,000
 step5_EXCLUDES += make        # no TCO capability (iteration or recursion)
 step5_EXCLUDES += mal         # host impl dependent
 step5_EXCLUDES += matlab      # never completes at 10,000

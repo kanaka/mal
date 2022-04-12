@@ -18,43 +18,36 @@ Object subclass: MAL [
         ^Reader readStr: input
     ]
 
-    MAL class >> evalAst: sexp env: env [
+    MAL class >> evalList: list env: env [
+        ^list collect:
+            [ :item | self EVAL: item env: env ].
+    ]
+
+    MAL class >> EVAL: sexp env: env [
+        | forms function args |
+
+        " ('EVAL: ' , (Printer prStr: sexp printReadably: true)) displayNl. "
+
         sexp type = #symbol ifTrue: [
             ^env at: sexp value ifAbsent: [
                 ^MALUnknownSymbol new signal: sexp value
             ].
         ].
 
-        sexp type = #list ifTrue: [
-            ^self evalList: sexp env: env class: MALList
-        ].
         sexp type = #vector ifTrue: [
-            ^self evalList: sexp env: env class: MALVector
+            ^MALVector new: (self evalList: sexp value env: env)
         ].
         sexp type = #map ifTrue: [
-            ^self evalList: sexp env: env class: MALMap
+            ^MALMap new: (self evalList: sexp value env: env)
         ].
-
-        ^sexp
-    ]
-
-    MAL class >> evalList: sexp env: env class: aClass [
-        | items |
-        items := sexp value collect:
-            [ :item | self EVAL: item env: env ].
-        ^aClass new: items
-    ]
-
-    MAL class >> EVAL: sexp env: env [
-        | forms function args |
         sexp type ~= #list ifTrue: [
-            ^self evalAst: sexp env: env
+            ^sexp
         ].
         sexp value isEmpty ifTrue: [
             ^sexp
         ].
 
-        forms := (self evalAst: sexp env: env) value.
+        forms := self evalList: sexp value env: env.
         function := forms first.
         args := forms allButFirst asArray.
         ^function valueWithArguments: args

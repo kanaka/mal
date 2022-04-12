@@ -23,41 +23,41 @@ sub READ {
 }
 
 # eval
-sub eval_ast {
-    my($ast, $env) = @_;
-    if ($ast->isa('Mal::Symbol')) {
-	return $env->get($ast);
-    } elsif ($ast->isa('Mal::Sequence')) {
-	return ref($ast)->new([ map { EVAL($_, $env) } @$ast ]);
-    } elsif ($ast->isa('Mal::HashMap')) {
-	return Mal::HashMap->new({ pairmap { $a => EVAL($b, $env) } %$ast });
-    } else {
-	return $ast;
-    }
-}
-
 sub EVAL {
     my($ast, $env) = @_;
 
-    #print "EVAL: " . printer::_pr_str($ast) . "\n";
-    if (! $ast->isa('Mal::List')) {
-        goto &eval_ast;
+    my $dbgeval = $env->get('DEBUG-EVAL');
+    if ($dbgeval and $dbgeval ne $nil and $dbgeval ne $false) {
+        print "EVAL: " . printer::_pr_str($ast) . "\n";
+    }
+
+    if ($ast->isa('Mal::Symbol')) {
+        my $val = $env->get($$ast);
+        die "'$$ast' not found\n" unless $val;
+        return $val;
+    } elsif ($ast->isa('Mal::Vector')) {
+	return ref($ast)->new([ map { EVAL($_, $env) } @$ast ]);
+    } elsif ($ast->isa('Mal::HashMap')) {
+	return Mal::HashMap->new({ pairmap { $a => EVAL($b, $env) } %$ast });
+    } elsif (! $ast->isa('Mal::List')) {
+	return $ast;
     }
 
     # apply list
+
     unless (@$ast) { return $ast; }
     my ($a0) = @$ast;
     given ($a0->isa('Mal::Symbol') ? $$a0 : $a0) {
         when ('def!') {
 	    my (undef, $sym, $val) = @$ast;
-            return $env->set($sym, EVAL($val, $env));
+            return $env->set($$sym, EVAL($val, $env));
         }
         when ('let*') {
 	    my (undef, $bindings, $body) = @$ast;
             my $let_env = Mal::Env->new($env);
 	    foreach my $pair (pairs @$bindings) {
 		my ($k, $v) = @$pair;
-                $let_env->set($k, EVAL($v, $let_env));
+                $let_env->set($$k, EVAL($v, $let_env));
             }
 	    @_ = ($body, $let_env);
 	    goto &EVAL;
@@ -65,7 +65,7 @@ sub EVAL {
         when ('do') {
 	    my (undef, @todo) = @$ast;
 	    my $last = pop @todo;
-            eval_ast(Mal::List->new(\@todo), $env);
+            map { EVAL($_, $env) } @todo;
             @_ = ($last, $env);
             goto &EVAL;
         }
@@ -88,8 +88,9 @@ sub EVAL {
             });
         }
         default {
-            @_ = @{eval_ast($ast, $env)};
-            my $f = shift;
+            my $f = EVAL($a0, $env);
+	    my (undef, @args) = @$ast;
+            @_ = map { EVAL($_, $env) } @args;
 	    goto &$f;
         }
     }
@@ -110,7 +111,7 @@ sub REP {
 
 # core.pl: defined using perl
 foreach my $n (keys %core::ns) {
-    $repl_env->set(Mal::Symbol->new($n), $core::ns{$n});
+    $repl_env->set($n, $core::ns{$n});
 }
 
 # core.mal: defined using the language itself

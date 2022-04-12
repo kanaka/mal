@@ -2,21 +2,21 @@ package mal
 
 fun read(input: String?): MalType = read_str(input)
 
-fun eval(ast: MalType, env: Map<String, MalType>): MalType =
-        if (ast is MalList && ast.count() > 0) {
-            val evaluated = eval_ast(ast, env) as ISeq
+fun eval(ast: MalType, env: Map<String, MalType>): MalType {
+    // println ("EVAL: ${print(ast)}")
+    when (ast) {
+        is MalList -> {
+            if (ast.count() == 0) return ast
+            val evaluated = ast.elements.fold(MalList(), { a, b -> a.conj_BANG(eval(b, env)); a })
             if (evaluated.first() !is MalFunction) throw MalException("cannot execute non-function")
-            (evaluated.first() as MalFunction).apply(evaluated.rest())
-        } else eval_ast(ast, env)
-
-fun eval_ast(ast: MalType, env: Map<String, MalType>): MalType =
-        when (ast) {
-            is MalSymbol -> env[ast.value] ?: throw MalException("'${ast.value}' not found")
-            is MalList -> ast.elements.fold(MalList(), { a, b -> a.conj_BANG(eval(b, env)); a })
-            is MalVector -> ast.elements.fold(MalVector(), { a, b -> a.conj_BANG(eval(b, env)); a })
-            is MalHashMap -> ast.elements.entries.fold(MalHashMap(), { a, b -> a.assoc_BANG(b.key, eval(b.value, env)); a })
-            else -> ast
+            return (evaluated.first() as MalFunction).apply(evaluated.rest())
         }
+        is MalSymbol -> return env[ast.value] ?: throw MalException("'${ast.value}' not found")
+        is MalVector -> return ast.elements.fold(MalVector(), { a, b -> a.conj_BANG(eval(b, env)); a })
+        is MalHashMap -> return ast.elements.entries.fold(MalHashMap(), { a, b -> a.assoc_BANG(b.key, eval(b.value, env)); a })
+        else -> return ast
+    }
+}
 
 fun print(result: MalType) = pr_str(result, print_readably = true)
 

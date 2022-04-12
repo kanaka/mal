@@ -4,7 +4,7 @@ to _read :str
 output :str
 end
 
-to _eval :ast :env
+to _eval :ast
 output :ast
 end
 
@@ -12,19 +12,18 @@ to _print :exp
 output :exp
 end
 
+to rep :str
+output _print _eval _read :str
+end
+
 to repl
-localmake "running "true
-while [:running] [
-  localmake "line readline word "user> :space_char
-  ifelse :line=[] [
-    print "
-    make "running "false
-  ] [
+do.until [
+    localmake "line readline "|user> |
     if not emptyp :line [
-      print _print _eval _read :line []
+      print rep :line
     ]
-  ]
-]
+] [:line = []]
+(print)
 end
 
 repl

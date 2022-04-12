@@ -16,16 +16,18 @@ MalType READ(string str)
     return read_str(str);
 }
 
-MalType eval_ast(MalType ast, Env env)
+MalType EVAL(MalType ast, Env env)
 {
+    if (auto dbgeval = env.get("DEBUG-EVAL"))
+        if (dbgeval.is_truthy())
+            writeln("EVAL: ", pr_str(ast));
+
     if (auto sym = cast(MalSymbol)ast)
     {
-        return env.get(sym);
-    }
-    else if (auto lst = cast(MalList)ast)
-    {
-        auto el = array(lst.elements.map!(e => EVAL(e, env)));
-        return new MalList(el);
+        if (auto val = env.get(sym.name))
+            return val;
+        else
+            throw new Exception("'" ~ sym.name ~ "' not found");
     }
     else if (auto lst = cast(MalVector)ast)
     {
@@ -41,19 +43,9 @@ MalType eval_ast(MalType ast, Env env)
         }
         return new MalHashmap(new_data);
     }
-    else
-    {
-        return ast;
-    }
-}
-
-MalType EVAL(MalType ast, Env env)
-{
-    MalList ast_list = cast(MalList) ast;
-    if (ast_list is null)
-    {
-        return eval_ast(ast, env);
-    }
+  // todo: indent right
+  else if (auto ast_list = cast(MalList)ast)
+  {
     if (ast_list.elements.length == 0)
     {
         return ast;
@@ -64,7 +56,7 @@ MalType EVAL(MalType ast, Env env)
     {
         case "def!":
             auto a1 = verify_cast!MalSymbol(ast_list.elements[1]);
-            return env.set(a1, EVAL(ast_list.elements[2], env));
+            return env.set(a1.name, EVAL(ast_list.elements[2], env));
 
         case "let*":
             auto a1 = verify_cast!MalSequential(ast_list.elements[1]);
@@ -73,16 +65,20 @@ MalType EVAL(MalType ast, Env env)
             {
                 if (kv.length < 2) throw new Exception("let* requires even number of elements");
                 auto var_name = verify_cast!MalSymbol(kv[0]);
-                let_env.set(var_name, EVAL(kv[1], let_env));
+                let_env.set(var_name.name, EVAL(kv[1], let_env));
             }
             return EVAL(ast_list.elements[2], let_env);
 
         default:
-            auto el = verify_cast!MalList(eval_ast(ast_list, env));
-            auto fobj = verify_cast!MalBuiltinFunc(el.elements[0]);
-            auto args = el.elements[1..$];
+            auto fobj = verify_cast!MalBuiltinFunc(EVAL(ast_list.elements[0], env));
+            auto args = array(ast_list.elements[1..$].map!(e => EVAL(e, env)));
             return fobj.fn(args);
     }
+  }
+  else
+  {
+        return ast;
+  }
 }
 
 string PRINT(MalType ast)
@@ -130,10 +126,10 @@ static MalType mal_div(MalType[] a ...)
 void main()
 {
     auto repl_env = new Env(null);
-    repl_env.set(new MalSymbol("+"), new MalBuiltinFunc(&mal_add, "+"));
-    repl_env.set(new MalSymbol("-"), new MalBuiltinFunc(&mal_sub, "-"));
-    repl_env.set(new MalSymbol("*"), new MalBuiltinFunc(&mal_mul, "*"));
-    repl_env.set(new MalSymbol("/"), new MalBuiltinFunc(&mal_div, "/"));
+    repl_env.set("+", new MalBuiltinFunc(&mal_add, "+"));
+    repl_env.set("-", new MalBuiltinFunc(&mal_sub, "-"));
+    repl_env.set("*", new MalBuiltinFunc(&mal_mul, "*"));
+    repl_env.set("/", new MalBuiltinFunc(&mal_div, "/"));
 
     for (;;)
     {

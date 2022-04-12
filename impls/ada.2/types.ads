@@ -83,6 +83,8 @@ package Types is
 
    Nil : constant T := (Kind => Kind_Nil);
 
+   function To_Boolean (Form : T) return Boolean with Inline;
+
    procedure Keep (Object : in T) with Inline;
 
    type T_Array is array (Positive range <>) of T;

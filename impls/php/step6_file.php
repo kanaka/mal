@@ -13,15 +13,21 @@ function READ($str) {
 }
 
 // eval
-function eval_ast($ast, $env) {
-    if (_symbol_Q($ast)) {
-        return $env->get($ast);
-    } elseif (_sequential_Q($ast)) {
-        if (_list_Q($ast)) {
-            $el = _list();
-        } else {
-            $el = _vector();
+function MAL_EVAL($ast, $env) {
+    while (true) {
+
+    $dbgenv = $env->find("DEBUG-EVAL");
+    if ($dbgenv) {
+        $dbgeval = $env->get("DEBUG-EVAL");
+        if ($dbgeval !== NULL && $dbgeval !== false) {
+            echo "EVAL: " . _pr_str($ast) . "\n";
         }
+    }
+
+    if (_symbol_Q($ast)) {
+        return $env->get($ast->value);
+    } elseif (_vector_Q($ast)) {
+            $el = _vector();
         foreach ($ast as $a) { $el[] = MAL_EVAL($a, $env); }
         return $el;
     } elseif (_hash_map_Q($ast)) {
@@ -30,18 +36,10 @@ function eval_ast($ast, $env) {
             $new_hm[$key] = MAL_EVAL($ast[$key], $env);
         }
         return $new_hm;
-    } else {
+    } elseif (!_list_Q($ast)) {
         return $ast;
     }
-}
 
-function MAL_EVAL($ast, $env) {
-    while (true) {
-
-    #echo "MAL_EVAL: " . _pr_str($ast) . "\n";
-    if (!_list_Q($ast)) {
-        return eval_ast($ast, $env);
-    }
     if ($ast->count() === 0) {
         return $ast;
     }
@@ -63,7 +61,7 @@ function MAL_EVAL($ast, $env) {
         $env = $let_env;
         break; // Continue loop (TCO)
     case "do":
-        eval_ast($ast->slice(1, -1), $env);
+        foreach ($ast->slice(1, -1) as $a) { MAL_EVAL($a, $env); }
         $ast = $ast[count($ast)-1];
         break; // Continue loop (TCO)
     case "if":
@@ -79,9 +77,10 @@ function MAL_EVAL($ast, $env) {
         return _function('MAL_EVAL', 'native',
                          $ast[2], $env, $ast[1]);
     default:
-        $el = eval_ast($ast, $env);
+        $el = [];
+        foreach ($ast as $a) { $el[] = MAL_EVAL($a, $env); }
         $f = $el[0];
-        $args = array_slice($el->getArrayCopy(), 1);
+        $args = array_slice($el, 1);
         if ($f->type === 'native') {
             $ast = $f->ast;
             $env = $f->gen_env($args);

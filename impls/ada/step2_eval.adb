@@ -109,6 +109,19 @@ procedure Step2_Eval is
       end Call_Eval;
 
    begin
+      pragma Assert (Deref (Ast).Sym_Type = List); -- list, map or vector
+      return Map (Call_Eval'Unrestricted_Access, Deref_List_Class (Ast).all);
+   end Eval_Ast;
+
+
+   function Eval (Param : Mal_Handle; Env : String_Mal_Hash.Map)
+		 return Mal_Handle is
+      First_Elem : Mal_Handle;
+      Ast : Mal_Handle renames Param; --  Historic
+   begin
+      if Debug then
+         Ada.Text_IO.Put_Line ("EVAL: " & Deref (Param).To_String);
+      end if;
 
       case Deref (Ast).Sym_Type is
 
@@ -129,27 +142,10 @@ procedure Step2_Eval is
             end;
 
          when List =>
-
-            return Map (Call_Eval'Unrestricted_Access, Deref_List_Class (Ast).all);
-
-         when others => return Ast;
-
-      end case;
-
-   end Eval_Ast;
-
-
-   function Eval (Param : Mal_Handle; Env : String_Mal_Hash.Map)
-		 return Mal_Handle is
-      First_Elem : Mal_Handle;
-   begin
-
-      if Debug then
-         Ada.Text_IO.Put_Line ("Evaling " & Deref (Param).To_String);
-      end if;
-
-      if Deref (Param).Sym_Type = List and then
- 	 Deref_List (Param).Get_List_Type = List_List then
+         case Deref_List (Param).Get_List_Type is
+         when Hashed_List | Vector_List =>
+            return Eval_Ast (Param, Env);
+         when List_List =>
 
          declare
             Evaled_H, First_Param : Mal_Handle;
@@ -169,12 +165,10 @@ procedure Step2_Eval is
             return Call_Func (Deref_Func (First_Param).all, Cdr (Evaled_List));
          end;
 
-      else -- Not a List_List
-
-         return Eval_Ast (Param, Env);
-
-      end if;
-
+         end case;
+      when others => -- not a list, map, symbol or vector
+         return Param;
+      end case;
    end Eval;
 
 

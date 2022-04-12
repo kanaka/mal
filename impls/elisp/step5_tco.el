@@ -21,11 +21,20 @@
 (defun EVAL (ast env)
   (catch 'return
     (while t
-      (if (and (mal-list-p ast) (mal-value ast))
+
+     (let ((dbgeval (mal-env-get env 'DEBUG-EVAL)))
+       (if (and dbgeval
+                (not (member (mal-type dbgeval) '(false nil))))
+         (println "EVAL: %s\n" (PRINT ast))))
+
+     (cl-case (mal-type ast)
+
+     (list
           (let* ((a (mal-value ast))
                  (a1 (cadr a))
                  (a2 (nth 2 a))
                  (a3 (nth 3 a)))
+            (unless a (throw 'return ast))
             (cl-case (mal-value (car a))
              (def!
               (let ((identifier (mal-value a1))
@@ -45,8 +54,7 @@
               (let* ((a0... (cdr a))
                      (butlast (butlast a0...))
                      (last (car (last a0...))))
-                (when butlast
-                  (eval-ast (mal-list butlast) env))
+                (mapcar (lambda (item) (EVAL item env)) butlast)
                 (setq ast last))) ; TCO
              (if
               (let* ((condition (EVAL a1 env))
@@ -69,38 +77,34 @@
                 (throw 'return (mal-func body binds env fn))))
              (t
               ;; not a special form
-              (let* ((ast* (mal-value (eval-ast ast env)))
-                     (fn (car ast*))
-                     (args (cdr ast*)))
+              (let ((fn (EVAL (car a) env))
+                    (args (mapcar (lambda (x) (EVAL x env)) (cdr a))))
                 (if (mal-func-p fn)
                     (let ((env* (mal-env (mal-func-env fn)
                                          (mal-func-params fn)
                                          args)))
                       (setq env env*
                             ast (mal-func-ast fn))) ; TCO
+                  ;; built-in function
                   (let ((fn* (mal-value fn)))
-                    (throw 'return (apply fn* args))))))))
-        (throw 'return (eval-ast ast env))))))
-
-(defun eval-ast (ast env)
-  (let ((value (mal-value ast)))
-    (cl-case (mal-type ast)
+                    (throw 'return (apply fn* args)))))))))
      (symbol
-      (let ((definition (mal-env-get env value)))
-        (or definition (error "Definition not found"))))
-     (list
-      (mal-list (mapcar (lambda (item) (EVAL item env)) value)))
+      (let ((key (mal-value ast)))
+        (throw 'return (or (mal-env-get env key)
+                           (error "'%s' not found" key)))))
      (vector
-      (mal-vector (vconcat (mapcar (lambda (item) (EVAL item env)) value))))
+      (throw 'return
+             (mal-vector (vconcat (mapcar (lambda (item) (EVAL item env))
+                                          (mal-value ast))))))
      (map
-      (let ((map (copy-hash-table value)))
+      (let ((map (copy-hash-table (mal-value ast))))
         (maphash (lambda (key val)
                    (puthash key (EVAL val env) map))
                  map)
-        (mal-map map)))
+        (throw 'return (mal-map map))))
      (t
       ;; return as is
-      ast))))
+      (throw 'return ast))))))
 
 (defun PRINT (input)
   (pr-str input t))

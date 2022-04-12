@@ -4,11 +4,19 @@ exception NotApplicable of string
 fun read s =
     readStr s
 
-fun eval e (LIST (a::args,_)) = (case specialEval a of SOME special => special e args | _ => evalApply e (eval e a) args)
-  | eval e (SYMBOL s)         = evalSymbol e s
-  | eval e (VECTOR (v,_))     = VECTOR (map (eval e) v, NO_META)
-  | eval e (MAP (m,_))        = MAP (List.map (fn (k, v) => (k, eval e v)) m, NO_META)
-  | eval e ast                = ast
+fun eval e ast = (
+  case lookup e "DEBUG-EVAL" of
+    SOME(x) => if truthy x
+               then TextIO.print ("EVAL: " ^ prReadableStr ast ^ "\n")
+               else ()
+    | NONE => ();
+  eval' e ast)
+
+and eval' e (LIST (a::args,_)) = (case specialEval a of SOME special => special e args | _ => evalApply e (eval e a) args)
+  | eval' e (SYMBOL s)         = evalSymbol e s
+  | eval' e (VECTOR (v,_))     = VECTOR (map (eval e) v, NO_META)
+  | eval' e (MAP (m,_))        = MAP (List.map (fn (k, v) => (k, eval e v)) m, NO_META)
+  | eval' e ast                = ast
 
 and specialEval (SYMBOL "def!") = SOME evalDef
   | specialEval (SYMBOL "let*") = SOME evalLet

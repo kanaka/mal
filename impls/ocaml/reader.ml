@@ -52,22 +52,20 @@ let read_atom token =
     match token.[0] with
       | '0'..'9' -> T.Int (int_of_string token)
       | '-' -> (match String.length token with
-                  | 1 -> Types.symbol token
+                  | 1 -> T.Symbol token
                   | _ -> (match token.[1] with
                             | '0'..'9' -> T.Int (int_of_string token)
-                            | _ -> Types.symbol token))
+                            | _ -> T.Symbol token))
       | '"' -> T.String (unescape_string token)
       | ':' -> T.Keyword (Str.replace_first (Str.regexp "^:") "" token)
-      | _ -> Types.symbol token
+      | _ -> T.Symbol token
 
 let with_meta obj meta =
   match obj with
-    | T.List   { T.value = v }
-      -> T.List   { T.value = v; T.meta = meta }; | T.Map    { T.value = v }
-      -> T.Map    { T.value = v; T.meta = meta }; | T.Vector { T.value = v }
-      -> T.Vector { T.value = v; T.meta = meta }; | T.Symbol { T.value = v }
-      -> T.Symbol { T.value = v; T.meta = meta }; | T.Fn     { T.value = v }
-      -> T.Fn     { T.value = v; T.meta = meta };
+    | T.List   { T.value = v } -> T.List   { T.value = v; T.meta = meta }
+    | T.Map    { T.value = v } -> T.Map    { T.value = v; T.meta = meta }
+    | T.Vector { T.value = v } -> T.Vector { T.value = v; T.meta = meta }
+    | T.Fn     { T.value = v } -> T.Fn     { T.value = v; T.meta = meta }
     | _ -> raise (Invalid_argument "metadata not supported on this type")
 
 let rec read_list eol list_reader =
@@ -87,7 +85,7 @@ let rec read_list eol list_reader =
                          tokens = reader.tokens}
 and read_quote sym tokens =
   let reader = read_form tokens in
-    {form = Types.list [ Types.symbol sym; reader.form ];
+    {form = Types.list [ T.Symbol sym; reader.form ];
      tokens = reader.tokens}
 and read_form all_tokens =
   match all_tokens with
@@ -103,7 +101,7 @@ and read_form all_tokens =
            let meta = read_form tokens in
            let value = read_form meta.tokens in
              {(*form = with_meta value.form meta.form;*)
-              form = Types.list [Types.symbol "with-meta"; value.form; meta.form];
+              form = Types.list [T.Symbol "with-meta"; value.form; meta.form];
               tokens = value.tokens}
         | "(" ->
            let list_reader = read_list ")" {list_form = []; tokens = tokens} in

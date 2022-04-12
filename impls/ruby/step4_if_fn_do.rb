@@ -11,34 +11,30 @@ def READ(str)
 end
 
 # eval
-def eval_ast(ast, env)
-    return case ast
+def EVAL(ast, env)
+    if env.get_or_nil(:"DEBUG-EVAL")
+        puts "EVAL: #{_pr_str(ast, true)}"
+    end
+
+    case ast
         when Symbol
-            env.get(ast)
+            return env.get(ast)
         when List   
-            List.new ast.map{|a| EVAL(a, env)}
         when Vector
-            Vector.new ast.map{|a| EVAL(a, env)}
+            return Vector.new ast.map{|a| EVAL(a, env)}
         when Hash
             new_hm = {}
             ast.each{|k,v| new_hm[k] = EVAL(v, env)}
-            new_hm
+            return new_hm
         else 
-            ast
+            return ast
     end
-end
 
-def EVAL(ast, env)
-    #puts "EVAL: #{_pr_str(ast, true)}"
-
-    if not ast.is_a? List
-        return eval_ast(ast, env)
-    end
+    # apply list
     if ast.empty?
         return ast
     end
 
-    # apply list
     a0,a1,a2,a3 = ast
     case a0
     when :def!
@@ -50,8 +46,8 @@ def EVAL(ast, env)
         end
         return EVAL(a2, let_env)
     when :do
-        el = eval_ast(ast.drop(1), env)
-        return el.last
+        ast[1..-2].map{|a| EVAL(a, env)}
+        return EVAL(ast[-1], env)
     when :if
         cond = EVAL(a1, env)
         if not cond
@@ -65,9 +61,9 @@ def EVAL(ast, env)
             EVAL(a2, Env.new(env, a1, List.new(args)))
         }
     else
-        el = eval_ast(ast, env)
-        f = el[0]
-        return f[*el.drop(1)]
+        f = EVAL(a0, env)
+        args = ast.drop(1)
+        return f[*args.map{|a| EVAL(a, env)}]
     end
 end
 

@@ -29,15 +29,19 @@ MalVal *READ(char prompt[], char *str) {
 }
 
 // eval
-MalVal *eval_ast(MalVal *ast, GHashTable *env) {
+MalVal *EVAL(MalVal *ast, GHashTable *env) {
     if (!ast || mal_error) return NULL;
+    //g_print("EVAL: %s\n", _pr_str(ast,1));
+
     if (ast->type == MAL_SYMBOL) {
         //g_print("EVAL symbol: %s\n", ast->val.string);
         // TODO: check if not found
         MalVal *res = g_hash_table_lookup(env, ast->val.string);
         assert(res, "'%s' not found", ast->val.string);
         return res;
-    } else if ((ast->type == MAL_LIST) || (ast->type == MAL_VECTOR)) {
+    } else if (ast->type == MAL_LIST) {
+        // Proceed after this conditional.
+    } else if (ast->type == MAL_VECTOR) {
         //g_print("EVAL sequential: %s\n", _pr_str(ast,1));
         MalVal *el = _map2((MalVal *(*)(void*, void*))EVAL, ast, env);
         if (!el || mal_error) return NULL;
@@ -62,22 +66,12 @@ MalVal *eval_ast(MalVal *ast, GHashTable *env) {
         //g_print("EVAL scalar: %s\n", _pr_str(ast,1));
         return ast;
     }
-}
-
-MalVal *EVAL(MalVal *ast, GHashTable *env) {
-    if (!ast || mal_error) return NULL;
-    //g_print("EVAL: %s\n", _pr_str(ast,1));
-    if (ast->type != MAL_LIST) {
-        return eval_ast(ast, env);
-    }
-    if (!ast || mal_error) return NULL;
 
     // apply list
-    //g_print("EVAL apply list: %s\n", _pr_str(ast,1));
     if (_count(ast) == 0) { return ast; }
     MalVal *a0 = _nth(ast, 0);
     assert_type(a0, MAL_SYMBOL, "Cannot invoke %s", _pr_str(a0,1));
-    MalVal *el = eval_ast(ast, env);
+    MalVal *el = _map2((MalVal *(*)(void*, void*))EVAL, ast, env);
     if (!el || mal_error) { return NULL; }
     MalVal *(*f)(void *, void*) = (MalVal *(*)(void*, void*))_first(el);
     //g_print("eval_invoke el: %s\n", _pr_str(el,1));

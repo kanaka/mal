@@ -50,6 +50,12 @@ malValuePtr EVAL(malValuePtr ast, malEnvPtr env)
     if (!env) {
         env = replEnv;
     }
+
+    const malEnvPtr dbgenv = env->find("DEBUG-EVAL");
+    if (dbgenv && dbgenv->get("DEBUG-EVAL")->isTrue()) {
+        std::cout << "EVAL: " << PRINT(ast) << "\n";
+    }
+
     const malList* list = DYNAMIC_CAST(malList, ast);
     if (!list || (list->count() == 0)) {
         return ast->eval(env);

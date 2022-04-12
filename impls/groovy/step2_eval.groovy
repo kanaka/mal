@@ -10,15 +10,17 @@ READ = { str ->
 }
 
 // EVAL
-eval_ast = { ast, env ->
+EVAL = { ast, env ->
+    // println("EVAL: ${printer.pr_str(ast,true)}")
+
     switch (ast) {
         case MalSymbol:
             if (env.containsKey(ast.value)) return env.get(ast.value)
             throw new MalException("'${ast.value}' not found")
-        case List:
-            return types.vector_Q(ast) ?
-                types.vector(ast.collect { EVAL(it,env) }) :
-                ast.collect { EVAL(it,env) }
+        case List:      if (types.vector_Q(ast)) {
+                            return types.vector(ast.collect { EVAL(it, env) })
+                        }
+                        break;
         case Map:
             def new_hm = [:]
             ast.each { k,v ->
@@ -28,13 +30,10 @@ eval_ast = { ast, env ->
         default:
             return ast
     }
-}
 
-EVAL = { ast, env ->
-    if (! types.list_Q(ast)) return eval_ast(ast, env)
     if (ast.size() == 0) return ast
 
-    def el = eval_ast(ast, env)
+    def el = ast.collect { EVAL(it, env) }
     def (f, args) = [el[0], el[1..-1]]
     f(args)
 }

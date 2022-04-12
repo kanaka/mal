@@ -55,4 +55,10 @@ package body Types is
       end case;
    end Keep;
 
+   function To_Boolean (Form : T) return Boolean is
+     (case Form.Kind is
+      when Kind_Nil     => False,
+      when Kind_Boolean => Form.Ada_Boolean,
+      when others       => True);
+
 end Types;

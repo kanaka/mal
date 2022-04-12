@@ -44,7 +44,32 @@ module Mal
 
   def EVAL(ast, environment)
     loop do
-      if Types::List === ast && ast.size > 0
+
+      case environment.get(Types::Symbol.for("DEBUG-EVAL"))
+      when 0, Types::Nil, Types::False
+      else
+        puts "EVAL: #{pr_str(ast, true)}"
+      end
+
+      case ast
+      when Types::Symbol
+        value = environment.get(ast)
+        if value == 0
+          raise SymbolNotFoundError, "'#{ast.value}' not found"
+        end
+        return value
+      when Types::Vector
+        vec = Types::Vector.new
+        ast.each { |i| vec << EVAL(i, environment) }
+        return vec
+      when Types::Hashmap
+        hashmap = Types::Hashmap.new
+        ast.each { |k, v| hashmap[k] = EVAL(v, environment) }
+        return hashmap
+      when Types::List
+        if ast.size == 0
+          return ast
+        end
         case ast.first
         when Types::Symbol.for("def!")
           _, sym, val = ast
@@ -112,27 +137,26 @@ module Mal
             EVAL(to_eval, Env.new(environment, binds, exprs))
           end
         else
-          evaluated = eval_ast(ast, environment)
-          maybe_callable = evaluated.first
-
-          if maybe_callable.respond_to?(:call) && maybe_callable.is_mal_fn?
+          maybe_callable = EVAL(ast.first, environment)
+          if !maybe_callable.respond_to?(:call)
+            raise NotCallableError, "Error! #{PRINT(maybe_callable)} is not callable."
+          end
+          args = Types::List.new
+          ast[1..].each { |i| args << EVAL(i, environment) }
+          if maybe_callable.is_mal_fn?
             # Continue loop
             ast = maybe_callable.ast
             environment = Env.new(
               maybe_callable.env,
               maybe_callable.params,
-              evaluated[1..],
+              args,
             )
-          elsif maybe_callable.respond_to?(:call) && !maybe_callable.is_mal_fn?
-            return maybe_callable.call(Types::Args.new(evaluated[1..]))
           else
-            raise NotCallableError, "Error! #{PRINT(maybe_callable)} is not callable."
+            return maybe_callable.call(Types::Args.new(args))
           end
         end
-      elsif Types::List === ast && ast.size == 0
-        return ast
       else
-        return eval_ast(ast, environment)
+        return ast
       end
     end
   end
@@ -163,26 +187,6 @@ module Mal
     nil
   end
 
-  def eval_ast(mal, environment)
-    case mal
-    when Types::Symbol
-      environment.get(mal)
-    when Types::List
-      list = Types::List.new
-      mal.each { |i| list << EVAL(i, environment) }
-      list
-    when Types::Vector
-      vec = Types::Vector.new
-      mal.each { |i| vec << EVAL(i, environment) }
-      vec
-    when Types::Hashmap
-      hashmap = Types::Hashmap.new
-      mal.each { |k, v| hashmap[k] = EVAL(v, environment) }
-      hashmap
-    else
-      mal
-    end
-  end
 end
 
 Mal.boot_repl!

@@ -1,6 +1,6 @@
 (define-library (lib env)
 
-(export make-env env-set env-find env-get)
+(export make-env env-set env-get)
 
 (import (scheme base))
 
@@ -32,17 +32,11 @@
 (define (env-set env key value)
   (env-data-set! env (cons (cons key value) (env-data env))))
 
-(define (env-find env key)
+(define (env-get env key)
   (cond
    ((alist-ref key (env-data env)) => identity)
-   ((env-outer env) => (lambda (outer) (env-find outer key)))
+   ((env-outer env) => (lambda (outer) (env-get outer key)))
    (else #f)))
-
-(define (env-get env key)
-  (let ((value (env-find env key)))
-    (if value
-        value
-        (error (str "'" key "' not found")))))
 
 )
 

@@ -10,12 +10,6 @@ import Printer(_pr_list, _pr_str)
 import Env (Env, env_apply, env_get, env_let, env_put, env_repl, env_set)
 import Core (ns)
 
---
---  Set this to True for a trace of each call to Eval.
---
-traceEval :: Bool
-traceEval = False
-
 -- read
 
 mal_read :: String -> IOThrows MalVal
@@ -41,14 +35,6 @@ quasiquote ast@(MalHashMap _ _) = return $ toList [MalSymbol "quote", ast]
 quasiquote ast@(MalSymbol _)    = return $ toList [MalSymbol "quote", ast]
 quasiquote ast = return ast
 
-macroexpand :: Env -> MalVal -> IOThrows MalVal
-macroexpand env ast@(MalSeq _ (Vect False) (MalSymbol a0 : args)) = do
-    maybeMacro <- liftIO $ env_get env a0
-    case maybeMacro of
-        Just (MalMacro f)                     -> macroexpand env =<< f args
-        _                                     -> return ast
-macroexpand _ ast = return ast
-
 let_bind :: Env -> [MalVal] -> IOThrows ()
 let_bind _ [] = return ()
 let_bind env (MalSymbol b : e : xs) = do
@@ -73,9 +59,6 @@ apply_ast (MalSymbol "let*") _ _ = throwStr "invalid let*"
 apply_ast (MalSymbol "quote") [a1] _ = return a1
 apply_ast (MalSymbol "quote") _ _ = throwStr "invalid quote"
 
-apply_ast (MalSymbol "quasiquoteexpand") [a1] _ = quasiquote a1
-apply_ast (MalSymbol "quasiquoteexpand") _ _ = throwStr "invalid quasiquote"
-
 apply_ast (MalSymbol "quasiquote") [a1] env = eval env =<< quasiquote a1
 apply_ast (MalSymbol "quasiquote") _ _ = throwStr "invalid quasiquote"
 
@@ -88,9 +71,6 @@ apply_ast (MalSymbol "defmacro!") [MalSymbol a1, a2] env = do
             return m
         _ -> throwStr "defmacro! on non-function"
 apply_ast (MalSymbol "defmacro!") _ _ = throwStr "invalid defmacro!"
-
-apply_ast (MalSymbol "macroexpand") [a1] env = macroexpand env  a1
-apply_ast (MalSymbol "macroexpand") _ _ = throwStr "invalid macroexpand"
 
 apply_ast (MalSymbol "try*") [a1] env = eval env a1
 apply_ast (MalSymbol "try*") [a1, MalSeq _ (Vect False) [MalSymbol "catch*", a21, a22]] env = do
@@ -138,15 +118,18 @@ apply_ast first rest env = do
 
 eval :: Env -> MalVal -> IOThrows MalVal
 eval env ast = do
+    traceEval <- liftIO $ env_get env "DEBUG-EVAL"
     case traceEval of
-        True -> liftIO $ do
+      Nothing                 -> pure ()
+      Just Nil                -> pure ()
+      Just (MalBoolean False) -> pure ()
+      Just _                  -> liftIO $ do
             putStr "EVAL: "
             putStr =<< _pr_str True ast
             putStr "   "
             env_put env
             putStrLn ""
             hFlush stdout
-        False -> pure ()
     case ast of
         MalSymbol sym -> do
             maybeVal <- liftIO $ env_get env sym

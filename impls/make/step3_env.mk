@@ -30,25 +30,6 @@ $(strip \
             $(call LET,$(left),$(2))))))))
 endef
 
-define EVAL_AST
-$(strip \
-  $(and $(EVAL_DEBUG),$(info EVAL_AST: $(call _pr_str,$(1))))\
-  $(if $(call _symbol?,$(1)),\
-    $(foreach key,$($(1)_value),\
-      $(call ENV_GET,$(2),$(key))),\
-  $(if $(call _list?,$(1)),\
-    $(call _smap,EVAL,$(1),$(2)),\
-  $(if $(call _vector?,$(1)),\
-    $(call _smap_vec,EVAL,$(1),$(2)),\
-  $(if $(call _hash_map?,$(1)),\
-    $(foreach new_hmap,$(call __new_obj,hmap),\
-      $(foreach v,$(call __get_obj_values,$(1)),\
-        $(eval $(v:$(1)_%=$(new_hmap)_%) := $(call EVAL,$($(v)),$(2))))\
-      $(eval $(new_hmap)_size := $($(1)_size))\
-      $(new_hmap)),\
-  $(1))))))
-endef
-
 define EVAL_INVOKE
 $(if $(__ERROR),,\
   $(and $(EVAL_DEBUG),$(info EVAL_INVOKE: $(call _pr_str,$(1))))
@@ -63,18 +44,31 @@ $(if $(__ERROR),,\
       $(foreach a1,$(call _nth,$(1),1),\
         $(foreach a2,$(call _nth,$(1),2),\
           $(call EVAL,$(a2),$(call LET,$(a1),$(call ENV,$(2)))))),\
-      $(foreach el,$(call EVAL_AST,$(1),$(2)),\
+      $(foreach el,$(call _smap,EVAL,$(1),$(2)),\
         $(call _apply,$(call sfirst,$(el)),$(call srest,$(el))))))))
 endef
 
 define EVAL
 $(strip $(if $(__ERROR),,\
-  $(and $(EVAL_DEBUG),$(info EVAL: $(call _pr_str,$(1))))\
+  $(if $(filter-out false nil,$(call _obj_type,$(or $(call ENV_GET,$(2),DEBUG-EVAL),$(__nil)))),\
+    $(info EVAL: $(_pr_str)))\
+  $(if $(call _symbol?,$(1)),\
+    $(foreach key,$($(1)_value),\
+      $(or $(call ENV_GET,$(2),$(key)),\
+           $(call _error,'$(key)' not found)$(__nil))),\
+  $(if $(call _vector?,$(1)),\
+    $(call _smap_vec,EVAL,$(1),$(2)),\
+  $(if $(call _hash_map?,$(1)),\
+    $(foreach new_hmap,$(call __new_obj,hmap),\
+      $(foreach v,$(call __get_obj_values,$(1)),\
+        $(eval $(v:$(1)_%=$(new_hmap)_%) := $(call EVAL,$($(v)),$(2))))\
+      $(eval $(new_hmap)_size := $($(1)_size))\
+      $(new_hmap)),\
   $(if $(call _list?,$(1)),\
     $(if $(call _EQ,0,$(call _count,$(1))),\
       $(1),\
-      $(strip $(call EVAL_INVOKE,$(1),$(2)))),\
-    $(call EVAL_AST,$(1),$(2)))))
+      $(word 1,$(strip $(call EVAL_INVOKE,$(1),$(2)) $(__nil)))),\
+    $(1)))))))
 endef
 
 

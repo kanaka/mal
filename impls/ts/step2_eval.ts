@@ -1,6 +1,6 @@
 import { readline } from "./node_readline";
 
-import { Node, MalType, MalNumber, MalList, MalVector, MalHashMap, MalFunction, isSeq } from "./types";
+import { Node, MalType, MalNumber, MalVector, MalHashMap, MalFunction } from "./types";
 import { readStr } from "./reader";
 import { prStr } from "./printer";
 
@@ -13,16 +13,19 @@ interface MalEnvironment {
     [key: string]: MalFunction;
 }
 
-function evalAST(ast: MalType, env: MalEnvironment): MalType {
+// EVAL
+function evalMal(ast: MalType, env: MalEnvironment): MalType {
+    // console.log("EVAL:", prStr(ast));
+    // Deal with non-list types.
     switch (ast.type) {
         case Node.Symbol:
             const f = env[ast.v];
             if (!f) {
-                throw new Error(`unknown symbol: ${ast.v}`);
+                throw new Error(`'${ast.v}' not found`);
             }
             return f;
         case Node.List:
-            return new MalList(ast.list.map(ast => evalMal(ast, env)));
+            break;
         case Node.Vector:
             return new MalVector(ast.list.map(ast => evalMal(ast, env)));
         case Node.HashMap:
@@ -35,24 +38,14 @@ function evalAST(ast: MalType, env: MalEnvironment): MalType {
         default:
             return ast;
     }
-}
-
-// EVAL
-function evalMal(ast: MalType, env: MalEnvironment): MalType {
-    if (ast.type !== Node.List) {
-        return evalAST(ast, env);
-    }
     if (ast.list.length === 0) {
         return ast;
     }
-    const result = evalAST(ast, env);
-    if (!isSeq(result)) {
-        throw new Error(`unexpected return type: ${result.type}, expected: list or vector`);
-    }
-    const [f, ...args] = result.list;
+    const f : MalType = evalMal(ast.list[0], env);
     if (f.type !== Node.Function) {
         throw new Error(`unexpected token: ${f.type}, expected: function`);
     }
+    const args : Array<MalType> = ast.list.slice(1).map(x => evalMal(x, env));
     return f.func(...args);
 }
 

@@ -46,32 +46,21 @@ function quasiquote($ast) {
     }
 }
 
-function is_macro_call($ast, $env) {
-    return _list_Q($ast) &&
-           count($ast) >0 &&
-           _symbol_Q($ast[0]) &&
-           $env->find($ast[0]) &&
-           $env->get($ast[0])->ismacro;
-}
+function MAL_EVAL($ast, $env) {
+    while (true) {
 
-function macroexpand($ast, $env) {
-    while (is_macro_call($ast, $env)) {
-        $mac = $env->get($ast[0]);
-        $args = array_slice($ast->getArrayCopy(),1);
-        $ast = $mac->apply($args);
-    }
-    return $ast;
-}
-
-function eval_ast($ast, $env) {
-    if (_symbol_Q($ast)) {
-        return $env->get($ast);
-    } elseif (_sequential_Q($ast)) {
-        if (_list_Q($ast)) {
-            $el = _list();
-        } else {
-            $el = _vector();
+    $dbgenv = $env->find("DEBUG-EVAL");
+    if ($dbgenv) {
+        $dbgeval = $env->get("DEBUG-EVAL");
+        if ($dbgeval !== NULL && $dbgeval !== false) {
+            echo "EVAL: " . _pr_str($ast) . "\n";
         }
+    }
+
+    if (_symbol_Q($ast)) {
+        return $env->get($ast->value);
+    } elseif (_vector_Q($ast)) {
+            $el = _vector();
         foreach ($ast as $a) { $el[] = MAL_EVAL($a, $env); }
         return $el;
     } elseif (_hash_map_Q($ast)) {
@@ -80,24 +69,11 @@ function eval_ast($ast, $env) {
             $new_hm[$key] = MAL_EVAL($ast[$key], $env);
         }
         return $new_hm;
-    } else {
+    } elseif (!_list_Q($ast)) {
         return $ast;
-    }
-}
-
-function MAL_EVAL($ast, $env) {
-    while (true) {
-
-    #echo "MAL_EVAL: " . _pr_str($ast) . "\n";
-    if (!_list_Q($ast)) {
-        return eval_ast($ast, $env);
     }
 
     // apply list
-    $ast = macroexpand($ast, $env);
-    if (!_list_Q($ast)) {
-        return eval_ast($ast, $env);
-    }
     if ($ast->count() === 0) {
         return $ast;
     }
@@ -119,8 +95,6 @@ function MAL_EVAL($ast, $env) {
         break; // Continue loop (TCO)
     case "quote":
         return $ast[1];
-    case "quasiquoteexpand":
-        return quasiquote($ast[1]);
     case "quasiquote":
         $ast = quasiquote($ast[1]);
         break; // Continue loop (TCO)
@@ -129,10 +103,8 @@ function MAL_EVAL($ast, $env) {
         $func = _function('MAL_EVAL', 'native', $func->ast, $func->env, $func->params);
         $func->ismacro = true;
         return $env->set($ast[1], $func);
-    case "macroexpand":
-        return macroexpand($ast[1], $env);
     case "do":
-        eval_ast($ast->slice(1, -1), $env);
+        foreach ($ast->slice(1, -1) as $a) { MAL_EVAL($a, $env); }
         $ast = $ast[count($ast)-1];
         break; // Continue loop (TCO)
     case "if":
@@ -148,9 +120,14 @@ function MAL_EVAL($ast, $env) {
         return _function('MAL_EVAL', 'native',
                          $ast[2], $env, $ast[1]);
     default:
-        $el = eval_ast($ast, $env);
-        $f = $el[0];
-        $args = array_slice($el->getArrayCopy(), 1);
+        $f = MAL_EVAL($a0, $env);
+        $unevaluated_args = array_slice($ast->getArrayCopy(), 1);
+        if ($f->ismacro) {
+            $ast = $f->apply($unevaluated_args);
+            break; // Continue loop (TCO)
+        }
+        $args = [];
+        foreach ($unevaluated_args as $a) { $args[] = MAL_EVAL($a, $env); }
         if ($f->type === 'native') {
             $ast = $f->ast;
             $env = $f->gen_env($args);

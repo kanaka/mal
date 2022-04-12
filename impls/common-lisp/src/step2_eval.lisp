@@ -17,37 +17,38 @@
 
 (in-package :mal)
 
-(defvar *repl-env* (make-mal-value-hash-table))
+(defvar *repl-env* (make-hash-table :test 'equal))
 
-(setf (genhash:hashref (make-mal-symbol "+") *repl-env*)
+(setf (gethash "+" *repl-env*)
       (make-mal-builtin-fn (lambda (value1 value2)
                                    (make-mal-number (+ (mal-data-value value1)
                                                        (mal-data-value value2))))))
 
-(setf (genhash:hashref (make-mal-symbol "-") *repl-env*)
+(setf (gethash "-" *repl-env*)
       (make-mal-builtin-fn (lambda (value1 value2)
                                    (make-mal-number (- (mal-data-value value1)
                                                        (mal-data-value value2))))))
 
-(setf (genhash:hashref (make-mal-symbol "*") *repl-env*)
+(setf (gethash "*" *repl-env*)
       (make-mal-builtin-fn (lambda (value1 value2)
                                    (make-mal-number (* (mal-data-value value1)
                                                        (mal-data-value value2))))))
 
-(setf (genhash:hashref (make-mal-symbol "/") *repl-env*)
+(setf (gethash "/" *repl-env*)
       (make-mal-builtin-fn (lambda (value1 value2)
                                    (make-mal-number (/ (mal-data-value value1)
                                                        (mal-data-value value2))))))
 
 (defun lookup-env (symbol env)
-  (let ((value (genhash:hashref symbol env)))
-    (if value
+  (let ((key (mal-data-value symbol)))
+    (multiple-value-bind (value present-p) (gethash key env)
+      (if present-p
         value
         (error 'env:undefined-symbol
-               :symbol (format nil "~a" (mal-data-value symbol))))))
+               :symbol (format nil "~a" key))))))
 
-(defun eval-sequence (sequence env)
-  (map 'list
+(defun eval-sequence (type sequence env)
+  (map type
        (lambda (ast) (mal-eval ast env))
        (mal-data-value sequence)))
 
@@ -60,25 +61,25 @@
                      hash-map-value)
     (make-mal-hash-map new-hash-table)))
 
-(defun eval-ast (ast env)
+(defun mal-eval (ast env)
+  ;; (write-line (format nil "EVAL: ~a" (pr-str ast)))
+  ;; (force-output *standard-output*)
   (switch-mal-type ast
     (types:symbol (lookup-env ast env))
-    (types:list (eval-sequence ast env))
-    (types:vector (make-mal-vector (apply 'vector (eval-sequence ast env))))
+    (types:list (eval-list ast env))
+    (types:vector (make-mal-vector (eval-sequence 'vector ast env)))
     (types:hash-map (eval-hash-map ast env ))
     (types:any ast)))
 
 (defun mal-read (string)
   (reader:read-str string))
 
-(defun mal-eval (ast env)
-  (cond
-    ((not (mal-list-p ast)) (eval-ast ast env))
-    ((zerop (length (mal-data-value ast))) ast)
-    (t (progn
-         (let ((evaluated-list (eval-ast ast env)))
+(defun eval-list (ast env)
+  (if (null (mal-data-value ast))
+    ast
+    (let ((evaluated-list (eval-sequence 'list ast env)))
            (apply (mal-data-value (car evaluated-list))
-                  (cdr evaluated-list)))))))
+                  (cdr evaluated-list)))))
 
 (defun mal-print (expression)
   (printer:pr-str expression))

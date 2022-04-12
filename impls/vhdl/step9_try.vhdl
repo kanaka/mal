@@ -97,40 +97,6 @@ architecture test of step9_try is
 
   procedure apply_func(fn: inout mal_val_ptr; args: inout mal_val_ptr; result: out mal_val_ptr; err: out mal_val_ptr);
 
-  procedure is_macro_call(ast: inout mal_val_ptr; env: inout env_ptr; is_macro: out boolean) is
-    variable f, env_err: mal_val_ptr;
-  begin
-    is_macro := false;
-    if ast.val_type = mal_list and
-       ast.seq_val'length > 0 and
-       ast.seq_val(0).val_type = mal_symbol then
-      env_get(env, ast.seq_val(0), f, env_err);
-      if env_err = null and f /= null and
-         f.val_type = mal_fn and f.func_val.f_is_macro then
-        is_macro := true;
-      end if;
-    end if;
-  end procedure is_macro_call;
-
-  procedure macroexpand(in_ast: inout mal_val_ptr; env: inout env_ptr; result: out mal_val_ptr; err: out mal_val_ptr) is
-    variable ast, macro_fn, call_args, macro_err: mal_val_ptr;
-    variable is_macro: boolean;
-  begin
-    ast := in_ast;
-    is_macro_call(ast, env, is_macro);
-    while is_macro loop
-      env_get(env, ast.seq_val(0), macro_fn, macro_err);
-      seq_drop_prefix(ast, 1, call_args);
-      apply_func(macro_fn, call_args, ast, macro_err);
-      if macro_err /= null then
-        err := macro_err;
-        return;
-      end if;
-      is_macro_call(ast, env, is_macro);
-    end loop;
-    result := ast;
-  end procedure macroexpand;
-
   procedure fn_eval(args: inout mal_val_ptr; result: out mal_val_ptr; err: out mal_val_ptr) is
   begin
     EVAL(args.seq_val(0), repl_env, result, err);
@@ -221,12 +187,16 @@ architecture test of step9_try is
     end case;
   end procedure apply_func;
 
-  procedure eval_ast_seq(ast_seq: inout mal_seq_ptr; env: inout env_ptr; result: inout mal_seq_ptr; err: out mal_val_ptr) is
+  procedure eval_ast_seq(ast_seq : inout mal_seq_ptr;
+                         skip    : in    natural;
+                         env     : inout env_ptr;
+                         result  : inout mal_seq_ptr;
+                         err     :   out mal_val_ptr) is
     variable eval_err: mal_val_ptr;
   begin
-    result := new mal_seq(0 to ast_seq'length - 1);
+    result := new mal_seq(0 to ast_seq'length - 1 - skip);
     for i in result'range loop
-      EVAL(ast_seq(i), env, result(i), eval_err);
+      EVAL(ast_seq(skip + i), env, result(i), eval_err);
       if eval_err /= null then
         err := eval_err;
         return;
@@ -234,22 +204,42 @@ architecture test of step9_try is
     end loop;
   end procedure eval_ast_seq;
 
-  procedure eval_ast(ast: inout mal_val_ptr; env: inout env_ptr; result: out mal_val_ptr; err: out mal_val_ptr) is
-    variable key, val, eval_err, env_err: mal_val_ptr;
+  procedure EVAL(in_ast : inout mal_val_ptr;
+                 in_env : inout env_ptr;
+                 result :   out mal_val_ptr;
+                 err    :   out mal_val_ptr) is
+    variable val, eval_err, a0, call_args, vars, fn, sub_err: mal_val_ptr;
+    variable ast : mal_val_ptr := in_ast;
+    variable env : env_ptr     := in_env;
+    variable let_env, catch_env, fn_env : env_ptr;
+    variable s: line;
     variable new_seq: mal_seq_ptr;
     variable i: integer;
   begin
+    loop
+
+    new_symbol("DEBUG-EVAL", a0);
+    env_get(env, a0, val);
+    if val /= null and val.val_type /= mal_nil and val.val_type /= mal_false
+    then
+      mal_printstr("EVAL: ");
+      pr_str(ast, true, s);
+      mal_printline(s.all);
+    end if;
+
     case ast.val_type is
       when mal_symbol =>
-        env_get(env, ast, val, env_err);
-        if env_err /= null then
-          err := env_err;
+        env_get(env, ast, val);
+        if val = null then
+          new_string("'" & ast.string_val.all & "' not found", err);
           return;
         end if;
         result := val;
         return;
-      when mal_list | mal_vector | mal_hashmap =>
-        eval_ast_seq(ast.seq_val, env, new_seq, eval_err);
+      when mal_list =>
+        null;
+      when mal_vector | mal_hashmap =>
+        eval_ast_seq(ast.seq_val, 0, env, new_seq, eval_err);
         if eval_err /= null then
           err := eval_err;
           return;
@@ -260,30 +250,7 @@ architecture test of step9_try is
         result := ast;
         return;
     end case;
-  end procedure eval_ast;
 
-  procedure EVAL(in_ast: inout mal_val_ptr; in_env: inout env_ptr; result: out mal_val_ptr; err: out mal_val_ptr) is
-    variable i: integer;
-    variable ast, evaled_ast, a0, call_args, val, vars, sub_err, fn: mal_val_ptr;
-    variable env, let_env, catch_env, fn_env: env_ptr;
-  begin
-    ast := in_ast;
-    env := in_env;
-    loop
-      if ast.val_type /= mal_list then
-        eval_ast(ast, env, result, err);
-        return;
-      end if;
-
-      macroexpand(ast, env, ast, sub_err);
-      if sub_err /= null then
-        err := sub_err;
-        return;
-      end if;
-      if ast.val_type /= mal_list then
-        eval_ast(ast, env, result, err);
-        return;
-      end if;
       if ast.seq_val'length = 0 then
         result := ast;
         return;
@@ -322,10 +289,6 @@ architecture test of step9_try is
           result := ast.seq_val(1);
           return;
 
-        elsif a0.string_val.all = "quasiquoteexpand" then
-          quasiquote(ast.seq_val(1), result);
-          return;
-
         elsif a0.string_val.all = "quasiquote" then
           quasiquote(ast.seq_val(1), ast);
           next; -- TCO
@@ -340,10 +303,6 @@ architecture test of step9_try is
           val.func_val.f_is_macro := true;
           env_set(env, ast.seq_val(1), val);
           result := val;
-          return;
-
-        elsif a0.string_val.all = "macroexpand" then
-          macroexpand(ast.seq_val(1), env, result, err);
           return;
 
         elsif a0.string_val.all = "try*" then
@@ -400,26 +359,37 @@ architecture test of step9_try is
         end if;
       end if;
 
-      eval_ast(ast, env, evaled_ast, sub_err);
+      EVAL (a0, env, fn, sub_err);
       if sub_err /= null then
         err := sub_err;
         return;
       end if;
-      seq_drop_prefix(evaled_ast, 1, call_args);
-      fn := evaled_ast.seq_val(0);
-      case fn.val_type is
-        when mal_nativefn =>
-          apply_native_func(fn, call_args, result, err);
+      -- Special-case macros
+      if fn.val_type = mal_fn and fn.func_val.f_is_macro then
+        seq_drop_prefix(ast, 1, call_args);
+        apply_func(fn, call_args, ast, sub_err);
+        if sub_err /= null then
+          err := sub_err;
           return;
-        when mal_fn =>
+        end if;
+        next; -- TCO
+      end if;
+      -- Evaluate arguments
+      eval_ast_seq(ast.seq_val, 1, env, new_seq, sub_err);
+      if sub_err /= null then
+        err := sub_err;
+        return;
+      end if;
+      new_seq_obj(mal_list, new_seq, call_args);
+      -- Special-case functions for TCO
+      if fn.val_type = mal_fn then
           new_env(fn_env, fn.func_val.f_env, fn.func_val.f_args, call_args);
           env := fn_env;
           ast := fn.func_val.f_body;
           next; -- TCO
-        when others =>
-          new_string("not a function", err);
-          return;
-      end case;
+      end if;
+      apply_func(fn, call_args, result, err);
+      return;
     end loop;
   end procedure EVAL;
 

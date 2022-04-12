@@ -31,15 +31,14 @@
 (defvar mal-fn* (make-mal-symbol "fn*"))
 (defvar mal-quote (make-mal-symbol "quote"))
 (defvar mal-quasiquote (make-mal-symbol "quasiquote"))
-(defvar mal-quasiquoteexpand (make-mal-symbol "quasiquoteexpand"))
 (defvar mal-unquote (make-mal-symbol "unquote"))
 (defvar mal-splice-unquote (make-mal-symbol "splice-unquote"))
 (defvar mal-vec (make-mal-symbol "vec"))
 (defvar mal-cons (make-mal-symbol "cons"))
 (defvar mal-concat (make-mal-symbol "concat"))
 
-(defun eval-sequence (sequence env)
-  (map 'list
+(defun eval-sequence (type sequence env)
+  (map type
        (lambda (ast) (mal-eval ast env))
        (mal-data-value sequence)))
 
@@ -51,14 +50,6 @@
                              (mal-eval value env)))
                      hash-map-value)
     (make-mal-hash-map new-hash-table)))
-
-(defun eval-ast (ast env)
-  (switch-mal-type ast
-    (types:symbol (env:get-env env ast))
-    (types:list (eval-sequence ast env))
-    (types:vector (make-mal-vector (apply 'vector (eval-sequence ast env))))
-    (types:hash-map (eval-hash-map ast env))
-    (types:any ast)))
 
 (defun qq-reducer (elt acc)
   (make-mal-list
@@ -84,17 +75,28 @@
 
 (defun mal-eval (ast env)
   (loop
-     do (cond
-          ((null ast) (return mal-nil))
-          ((not (mal-list-p ast)) (return (eval-ast ast env)))
-          ((zerop (length (mal-data-value ast))) (return ast))
-          (t (let ((forms (mal-data-value ast)))
+     do (let ((debug-eval (env:get-env env "DEBUG-EVAL")))
+          (when (and debug-eval
+                     (not (mal-data-value= debug-eval mal-false))
+                     (not (mal-data-value= debug-eval mal-false)))
+            (write-line (format nil "EVAL: ~a" (pr-str ast)))
+            (force-output *standard-output*)))
+     do (switch-mal-type ast
+          (types:symbol
+           (return
+             (let ((key (mal-data-value ast)))
+               (or (env:get-env env key)
+                   (error 'undefined-symbol :symbol (format nil "~a" key))))))
+          (types:vector (return (make-mal-vector (eval-sequence 'vector ast env))))
+          (types:hash-map (return (eval-hash-map ast env)))
+          (types:list
+            (let ((forms (mal-data-value ast)))
                (cond
+                 ((null forms)
+                  (return ast))
+
                  ((mal-data-value= mal-quote (first forms))
                   (return (second forms)))
-
-                 ((mal-data-value= mal-quasiquoteexpand (first forms))
-                  (return (quasiquote (second forms))))
 
                  ((mal-data-value= mal-quasiquote (first forms))
                   (setf ast (quasiquote (second forms))))
@@ -128,7 +130,7 @@
                   (let ((predicate (mal-eval (second forms) env)))
                     (setf ast (if (or (mal-data-value= predicate mal-nil)
                                       (mal-data-value= predicate mal-false))
-                                  (fourth forms)
+                                  (or (fourth forms) mal-nil)
                                   (third forms)))))
 
                  ((mal-data-value= mal-fn* (first forms))
@@ -142,7 +144,7 @@
                                                       (cons :ast body)
                                                       (cons :env env))))))
 
-                 (t (let* ((evaluated-list (eval-ast ast env))
+                 (t (let* ((evaluated-list (eval-sequence 'list ast env))
                            (function (car evaluated-list)))
                       ;; If first element is a mal function unwrap it
                       (if (not (mal-fn-p function))
@@ -154,7 +156,8 @@
                                                           :binds (map 'list
                                                                       #'identity
                                                                       (mal-data-value (cdr (assoc :params attrs))))
-                                                          :exprs (cdr evaluated-list)))))))))))))
+                                                          :exprs (cdr evaluated-list))))))))))
+          (types:any (return ast)))))
 
 (defun mal-print (expression)
   (printer:pr-str expression))

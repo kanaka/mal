@@ -1,12 +1,13 @@
 load "../logo/readline.lg
 load "../logo/reader.lg
 load "../logo/printer.lg
+load "../logo/types.lg
 
 to _read :str
 output read_str :str
 end
 
-to _eval :ast :env
+to _eval :ast
 output :ast
 end
 
@@ -15,26 +16,24 @@ output pr_str :exp "true
 end
 
 to rep :str
-output _print _eval _read :str []
+output _print _eval _read :str
+end
+
+to print_exception :exception
+if not emptyp :exception [
+  (print "Error: item 2 :exception)
+]
 end
 
 to repl
-localmake "running "true
-while [:running] [
-  localmake "line readline word "user> :space_char
-  ifelse :line=[] [
-    print "
-    make "running "false
-  ] [
+do.until [
+    localmake "line readline "|user> |
     if not emptyp :line [
       catch "error [print rep :line]
-      localmake "exception error
-      if not emptyp :exception [
-        (print "Error: first butfirst :exception)
-      ]
+      print_exception error
     ]
-  ]
-]
+] [:line = []]
+(print)
 end
 
 repl

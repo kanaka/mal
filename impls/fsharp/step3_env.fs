@@ -10,14 +10,7 @@ module REPL
         | Empty -> ()
         | _ -> raise <| Error.errExpectedX "list or vector"
 
-    let rec eval_ast env = function
-        | Symbol(sym) -> Env.get env sym
-        | List(_, lst) -> lst |> List.map (eval env) |> makeList
-        | Vector(_, seg) -> seg |> Seq.map (eval env) |> Array.ofSeq |> Node.ofArray
-        | Map(_, map) -> map |> Map.map (fun k v -> eval env v) |> makeMap
-        | node -> node
-
-    and defBang env = function
+    let rec defBang env = function
         | [sym; node] ->
             match sym with
             | Symbol(sym) ->
@@ -44,16 +37,23 @@ module REPL
             eval newEnv form
         | _ -> raise <| Error.wrongArity ()
 
-    and eval env = function
-        | List(_, []) as emptyList -> emptyList
+    and eval env ast =
+        ignore <| match Env.get env "DEBUG-EVAL" with
+                  | None | Some(Bool(false)) | Some(Nil) -> ()
+                  | _ -> Printer.pr_str [ast] |> printfn "EVAL: %s"
+        match ast with
+        | Symbol(sym) -> match Env.get env sym with
+                         | Some(value) -> value
+                         | None -> Error.symbolNotFound sym |> raise
+        | Vector(_, seg) -> seg |> Seq.map (eval env) |> Array.ofSeq |> Node.ofArray
+        | Map(_, map) -> map |> Map.map (fun k v -> eval env v) |> makeMap
         | List(_, Symbol("def!")::rest) -> defBang env rest
         | List(_, Symbol("let*")::rest) -> letStar env rest
-        | List(_, _) as node ->
-            let resolved = node |> eval_ast env
-            match resolved with
-            | List(_, BuiltInFunc(_, _, f)::rest) -> f rest
+        | List(_, (a0 :: rest)) ->
+            match eval env a0 with
+            | BuiltInFunc(_, _, f) -> List.map (eval env) rest |> f
             | _ -> raise <| Error.errExpectedX "func"
-        | node -> node |> eval_ast env
+        | _ -> ast
 
     let READ input =
         Reader.read_str input

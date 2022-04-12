@@ -74,6 +74,33 @@ procedure Step6_File is
       end Call_Eval;
 
    begin
+      pragma Assert (Deref (Ast).Sym_Type = List); -- list, map or vector
+      return Map (Call_Eval'Unrestricted_Access, Deref_List_Class (Ast).all);
+   end Eval_Ast;
+
+
+   function Eval (AParam : Mal_Handle; AnEnv : Envs.Env_Handle)
+		 return Mal_Handle is
+      Param : Mal_Handle;
+      Env : Envs.Env_Handle;
+      First_Param, Rest_Params : Mal_Handle;
+      Rest_List, Param_List : List_Mal_Type;
+      Ast : Mal_Handle renames Param; --  Historic
+   begin
+
+      Param := AParam;
+      Env := AnEnv;
+
+      <<Tail_Call_Opt>>
+
+      begin
+         if Eval_As_Boolean (Envs.Get (Env, "DEBUG-EVAL")) then
+            Ada.Text_IO.Put_Line ("EVAL: " & Deref (Param).To_String);
+         end if;
+      exception
+         when Envs.Not_Found => null;
+      end;
+
 
       case Deref (Ast).Sym_Type is
 
@@ -94,35 +121,10 @@ procedure Step6_File is
             end;
 
          when List =>
-
-            return Map (Call_Eval'Unrestricted_Access, Deref_List_Class (Ast).all);
-
-         when others => return Ast;
-
-      end case;
-
-   end Eval_Ast;
-
-
-   function Eval (AParam : Mal_Handle; AnEnv : Envs.Env_Handle)
-		 return Mal_Handle is
-      Param : Mal_Handle;
-      Env : Envs.Env_Handle;
-      First_Param, Rest_Params : Mal_Handle;
-      Rest_List, Param_List : List_Mal_Type;
-   begin
-
-      Param := AParam;
-      Env := AnEnv;
-
-      <<Tail_Call_Opt>>
-
-      if Debug then
-         Ada.Text_IO.Put_Line ("Evaling " & Deref (Param).To_String);
-      end if;
-
-      if Deref (Param).Sym_Type = List and then
-	Deref_List (Param).Get_List_Type = List_List then
+         case Deref_List (Param).Get_List_Type is
+         when Hashed_List | Vector_List =>
+            return Eval_Ast (Param, Env);
+         when List_List =>
 
          Param_List := Deref_List (Param).all;
 
@@ -281,12 +283,10 @@ procedure Step6_File is
 
          end if;
 
-      else -- not a List_List
-
-         return Eval_Ast (Param, Env);
-
-      end if;
-
+         end case;
+      when others => -- not a list, map, symbol or vector
+         return Param;
+      end case;
    end Eval;
 
 

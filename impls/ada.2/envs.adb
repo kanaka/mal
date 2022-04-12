@@ -53,6 +53,25 @@ package body Envs is
       return HM.Element (Position);
    end Get;
 
+   function Get_Or_Nil (Env : Instance;
+                        Key : Types.String_Ptr) return Types.T is
+      Position : HM.Cursor := Env.Data.Find (Key);
+      Ref      : Link;
+   begin
+      if not HM.Has_Element (Position) then
+         Ref := Env.Outer;
+         loop
+            if Ref = null then
+               return Types.Nil;
+            end if;
+            Position := Ref.all.Data.Find (Key);
+            exit when HM.Has_Element (Position);
+            Ref := Ref.all.Outer;
+         end loop;
+      end if;
+      return HM.Element (Position);
+   end Get_Or_Nil;
+
    procedure Keep_References (Object : in out Instance) is
    begin
       for Position in Object.Data.Iterate loop
