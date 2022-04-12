@@ -1,60 +1,54 @@
+import operator
 import sys, traceback
 import mal_readline
 import mal_types as types
 import reader, printer
 
 # read
-def READ(str):
-    return reader.read_str(str)
+READ = reader.read_str
 
 # eval
-def eval_ast(ast, env):
+def EVAL(ast, env):
+    # print("EVAL " + printer._pr_str(ast))
+
     if types._symbol_Q(ast):
         try:
             return env[ast]
         except:
             raise Exception("'" + ast + "' not found")
-    elif types._list_Q(ast):
-        return types._list(*map(lambda a: EVAL(a, env), ast))
     elif types._vector_Q(ast):
-        return types._vector(*map(lambda a: EVAL(a, env), ast))
+        return types.Vector(EVAL(a, env) for a in ast)
     elif types._hash_map_Q(ast):
         return types.Hash_Map((k, EVAL(v, env)) for k, v in ast.items())
-    else:
+    elif not types._list_Q(ast) or len(ast) == 0:
         return ast  # primitive value, return unchanged
 
-def EVAL(ast, env):
-        #print("EVAL %s" % printer._pr_str(ast))
-        if not types._list_Q(ast):
-            return eval_ast(ast, env)
-
-        # apply list
-        if len(ast) == 0: return ast
-        el = eval_ast(ast, env)
-        f = el[0]
-        return f(*el[1:])
+    # From now on, ast is a non-empty list
+    el = (EVAL(e, env) for e in ast)
+    f = next(el)
+    return f(*el)
 
 # print
-def PRINT(exp):
-    return printer._pr_str(exp)
+PRINT = printer._pr_str
 
 # repl
-repl_env = {} 
+repl_env = {}
 def REP(str):
     return PRINT(EVAL(READ(str), repl_env))
 
-repl_env['+'] = lambda a,b: a+b
-repl_env['-'] = lambda a,b: a-b
-repl_env['*'] = lambda a,b: a*b
-repl_env['/'] = lambda a,b: int(a/b)
+repl_env['+'] = operator.add
+repl_env['-'] = operator.sub
+repl_env['*'] = operator.mul
+repl_env['/'] = operator.floordiv
 
 # repl loop
 while True:
     try:
-        line = mal_readline.readline("user> ")
-        if line == None: break
-        if line == "": continue
-        print(REP(line))
-    except reader.Blank: continue
-    except Exception as e:
-        print("".join(traceback.format_exception(*sys.exc_info())))
+        print(REP((raw_input if sys.version_info[0] < 3 else input)("user> ")))
+    except EOFError:
+        print()
+        break
+    except reader.Blank:
+        pass
+    except Exception:
+        traceback.print_exc()

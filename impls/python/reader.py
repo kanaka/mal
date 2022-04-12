@@ -1,5 +1,6 @@
 import re
-from mal_types import (_symbol, _keyword, _list, _vector, _hash_map, _s2u, _u)
+
+from mal_types import _symbol, _keyword, _list, List, Vector, Hash_Map, asPairs
 
 class Blank(Exception): pass
 
@@ -23,7 +24,7 @@ def tokenize(str):
     return [t for t in re.findall(tre, str) if t[0] != ';']
 
 def _unescape(s):
-    return s.replace('\\\\', _u('\u029e')).replace('\\"', '"').replace('\\n', '\n').replace(_u('\u029e'), '\\')
+    return s.replace('\\\\', '\b').replace('\\"', '"').replace('\\n', '\n').replace('\b', '\\')
 
 def read_atom(reader):
     int_re = re.compile(r"-?[0-9]+$")
@@ -32,7 +33,7 @@ def read_atom(reader):
     token = reader.next()
     if re.match(int_re, token):     return int(token)
     elif re.match(float_re, token): return int(token)
-    elif re.match(string_re, token):return _s2u(_unescape(token[1:-1]))
+    elif re.match(string_re, token):return _unescape(token[1:-1])
     elif token[0] == '"':           raise Exception("expected '\"', got EOF")
     elif token[0] == ':':           return _keyword(token[1:])
     elif token == "nil":            return None
@@ -40,28 +41,16 @@ def read_atom(reader):
     elif token == "false":          return False
     else:                           return _symbol(token)
 
-def read_sequence(reader, typ=list, start='(', end=')'):
-    ast = typ()
+def read_sequence(reader, start='(', end=')'):
     token = reader.next()
     if token != start: raise Exception("expected '" + start + "'")
 
     token = reader.peek()
     while token != end:
         if not token: raise Exception("expected '" + end + "', got EOF")
-        ast.append(read_form(reader))
+        yield read_form(reader)
         token = reader.peek()
     reader.next()
-    return ast
-
-def read_hash_map(reader):
-    lst = read_sequence(reader, list, '{', '}')
-    return _hash_map(*lst)
-
-def read_list(reader):
-    return read_sequence(reader, _list, '(', ')')
-
-def read_vector(reader):
-    return read_sequence(reader, _vector, '[', ']')
 
 def read_form(reader):
     token = reader.peek()
@@ -91,16 +80,15 @@ def read_form(reader):
 
     # list
     elif token == ')': raise Exception("unexpected ')'")
-    elif token == '(': return read_list(reader)
+    elif token == '(': return List(read_sequence(reader, '(', ')'))
 
     # vector
     elif token == ']': raise Exception("unexpected ']'");
-    elif token == '[': return read_vector(reader);
+    elif token == '[': return Vector(read_sequence(reader, '[', ']'))
 
     # hash-map
     elif token == '}': raise Exception("unexpected '}'");
-    elif token == '{': return read_hash_map(reader);
-
+    elif token == '{': return Hash_Map(asPairs(read_sequence(reader, '{', '}')))
     # atom
     else:              return read_atom(reader);
 

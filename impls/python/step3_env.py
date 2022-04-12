@@ -1,3 +1,4 @@
+import operator
 import sys, traceback
 import mal_readline
 import mal_types as types
@@ -5,31 +6,26 @@ import reader, printer
 from env import Env
 
 # read
-def READ(str):
-    return reader.read_str(str)
+READ = reader.read_str
 
 # eval
-def eval_ast(ast, env):
+def EVAL(ast, env):
+    # print("EVAL " + printer._pr_str(ast))
+
     if types._symbol_Q(ast):
         return env.get(ast)
-    elif types._list_Q(ast):
-        return types._list(*map(lambda a: EVAL(a, env), ast))
     elif types._vector_Q(ast):
-        return types._vector(*map(lambda a: EVAL(a, env), ast))
+        return types.Vector(EVAL(a, env) for a in ast)
     elif types._hash_map_Q(ast):
         return types.Hash_Map((k, EVAL(v, env)) for k, v in ast.items())
-    else:
+    elif not types._list_Q(ast) or len(ast) == 0:
         return ast  # primitive value, return unchanged
 
-def EVAL(ast, env):
-        #print("EVAL %s" % printer._pr_str(ast))
-        if not types._list_Q(ast):
-            return eval_ast(ast, env)
+    # From now on, ast is a non-empty list
+    a0 = ast[0]
 
-        # apply list
-        if len(ast) == 0: return ast
-        a0 = ast[0]
-
+    # Search special forms
+    if types._symbol_Q(a0):
         if "def!" == a0:
             a1, a2 = ast[1], ast[2]
             res = EVAL(a2, env)
@@ -37,35 +33,36 @@ def EVAL(ast, env):
         elif "let*" == a0:
             a1, a2 = ast[1], ast[2]
             let_env = Env(env)
-            for i in range(0, len(a1), 2):
-                let_env.set(a1[i], EVAL(a1[i+1], let_env))
+            for k, v in types.asPairs(a1):
+                let_env.set(k, EVAL(v, let_env))
             return EVAL(a2, let_env)
-        else:
-            el = eval_ast(ast, env)
-            f = el[0]
-            return f(*el[1:])
+
+    # a0 is not a special form
+    el = (EVAL(e, env) for e in ast)
+    f = next(el)
+    return f(*el)
 
 # print
-def PRINT(exp):
-    return printer._pr_str(exp)
+PRINT = printer._pr_str
 
 # repl
 repl_env = Env()
 def REP(str):
     return PRINT(EVAL(READ(str), repl_env))
 
-repl_env.set(types._symbol('+'), lambda a,b: a+b)
-repl_env.set(types._symbol('-'), lambda a,b: a-b)
-repl_env.set(types._symbol('*'), lambda a,b: a*b)
-repl_env.set(types._symbol('/'), lambda a,b: int(a/b))
+repl_env.set(types._symbol('+'), operator.add)
+repl_env.set(types._symbol('-'), operator.sub)
+repl_env.set(types._symbol('*'), operator.mul)
+repl_env.set(types._symbol('/'), operator.floordiv)
 
 # repl loop
 while True:
     try:
-        line = mal_readline.readline("user> ")
-        if line == None: break
-        if line == "": continue
-        print(REP(line))
-    except reader.Blank: continue
-    except Exception as e:
-        print("".join(traceback.format_exception(*sys.exc_info())))
+        print(REP((raw_input if sys.version_info[0] < 3 else input)("user> ")))
+    except EOFError:
+        print()
+        break
+    except reader.Blank:
+        pass
+    except Exception:
+        traceback.print_exc()
