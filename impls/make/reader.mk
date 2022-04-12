@@ -8,194 +8,123 @@ __mal_reader_included := true
 _TOP_DIR := $(dir $(lastword $(MAKEFILE_LIST)))
 include $(_TOP_DIR)util.mk
 include $(_TOP_DIR)types.mk
-include $(_TOP_DIR)readline.mk
 
 READER_DEBUG ?=
 
-_TOKEN_DELIMS := $(SEMI) $(COMMA) $(DQUOTE) $(QQUOTE) $(_SP) $(_NL) $(_LC) $(_RC) $(_LP) $(_RP) $(LBRACKET) $(RBRACKET)
+_TOKEN_DELIMS := ; , " ` $(_SP) $(_NL) { } $(_LP) $(_RP) [ ] #`"
+
+reader_init = $(eval __reader_temp := $(str_encode))
+reader_next = $(firstword $(__reader_temp))
+reader_drop = $(eval __reader_temp := $(call _rest,$(__reader_temp)))
+reader_log = $(if $(READER_DEBUG),$(info READER: $1 from $(__reader_temp)))
 
 define READ_NUMBER
-$(foreach ch,$(word 1,$($(1))),\
-  $(if $(ch),\
-    $(if $(filter $(_TOKEN_DELIMS),$(ch)),\
-      ,\
-      $(if $(filter-out $(MINUS) $(NUMBERS),$(ch)),\
-        $(call _error,Invalid number character '$(ch)'),\
-        $(eval $(1) := $(wordlist 2,$(words $($(1))),$($(1))))\
-        $(and $(READER_DEBUG),$(info READ_NUMBER ch: $(ch) | $($(1))))\
-        $(ch)$(strip $(call READ_NUMBER,$(1))))),\
-    ))
+$(call reader_log,number)$(rem \
+)$(if $(filter 0 1 2 3 4 5 6 7 8 9,$(reader_next))\
+  ,$(reader_next)$(reader_drop)$(call READ_NUMBER))
 endef
 
-# $(_NL) is used here instead of $(NEWLINE) because $(strip) removes
-# $(NEWLINE). str_encode will just pass through $(_NL) so str_decode
-# later will restore a correct newline
 define READ_STRING
-$(foreach ch,$(word 1,$($(1))),\
-  $(if $(ch),\
-    $(if $(and $(filter \,$(ch)),$(filter $(DQUOTE),$(word 2,$($(1))))),\
-      $(eval $(1) := $(wordlist 3,$(words $($(1))),$($(1))))\
-      $(and $(READER_DEBUG),$(info READ_STRING ch: \$(word 1,$($(1))) | $($(1))))\
-      $(DQUOTE) $(strip $(call READ_STRING,$(1))),\
-    $(if $(and $(filter \,$(ch)),$(filter n,$(word 2,$($(1))))),\
-      $(eval $(1) := $(wordlist 3,$(words $($(1))),$($(1))))\
-      $(and $(READER_DEBUG),$(info READ_STRING ch: \$(word 1,$($(1))) | $($(1))))\
-      $(_NL) $(strip $(call READ_STRING,$(1))),\
-    $(if $(and $(filter \,$(ch)),$(filter \,$(word 2,$($(1))))),\
-      $(eval $(1) := $(wordlist 3,$(words $($(1))),$($(1))))\
-      $(and $(READER_DEBUG),$(info READ_STRING ch: \$(word 1,$($(1))) | $($(1))))\
-      \ $(strip $(call READ_STRING,$(1))),\
-    $(if $(filter $(DQUOTE),$(ch)),\
-      ,\
-      $(eval $(1) := $(wordlist 2,$(words $($(1))),$($(1))))\
-      $(and $(READER_DEBUG),$(info READ_STRING ch: $(ch) | $($(1))))\
-      $(ch) $(strip $(call READ_STRING,$(1))))))),))
+$(call reader_log,string)$(rem \
+)$(if $(filter ",$(reader_next))\
+  ,$(reader_drop)$(rem "\
+),$(if $(filter $(encoded_slash),$(reader_next))\
+  ,$(reader_drop)$(rem \
+  )$(if $(filter n,$(reader_next)),$(_NL),$(reader_next))$(rem \
+  )$(reader_drop)$(call READ_STRING)$(rem \
+),$(if $(reader_next)\
+  ,$(reader_next)$(reader_drop)$(call READ_STRING)$(rem \
+),$(call _error,Expected '"'$(COMMA) got EOF))))
 endef
 
 define READ_SYMBOL
-$(foreach ch,$(word 1,$($(1))),\
-  $(if $(ch),\
-    $(if $(filter $(_TOKEN_DELIMS),$(ch)),\
-      ,\
-      $(eval $(1) := $(wordlist 2,$(words $($(1))),$($(1))))\
-      $(and $(READER_DEBUG),$(info READ_SYMBOL ch: $(ch) | $($(1))))\
-      $(ch)$(strip $(call READ_SYMBOL,$(1)))),\
-    ))
+$(call reader_log,symbol or keyword)$(rem \
+)$(if $(filter-out $(_TOKEN_DELIMS),$(reader_next))\
+  ,$(reader_next)$(reader_drop)$(call READ_SYMBOL))
 endef
 
-define READ_KEYWORD
-$(foreach ch,$(word 1,$($(1))),\
-  $(if $(ch),\
-    $(if $(filter $(_TOKEN_DELIMS),$(ch)),\
-      ,\
-      $(eval $(1) := $(wordlist 2,$(words $($(1))),$($(1))))\
-      $(and $(READER_DEBUG),$(info READ_KEYWORD ch: $(ch) | $($(1))))\
-      $(ch)$(strip $(call READ_KEYWORD,$(1)))),\
-    ))
-endef
-
-define READ_ATOM
-$(and $(READER_DEBUG),$(info READ_ATOM: $($(1))))
-$(foreach ch,$(word 1,$($(1))),\
-  $(if $(and $(filter $(MINUS),$(ch)),$(filter $(NUMBERS),$(word 2,$($(1))))),\
-    $(call _number,$(call READ_NUMBER,$(1))),\
-  $(if $(filter $(NUMBERS),$(ch)),\
-    $(call _number,$(call READ_NUMBER,$(1))),\
-  $(if $(filter $(DQUOTE),$(ch)),\
-    $(eval $(1) := $(wordlist 2,$(words $($(1))),$($(1))))\
-    $(call __string,$(strip $(call READ_STRING,$(1))))\
-    $(eval $(if $(filter $(DQUOTE),$(word 1,$($(1)))),\
-           $(eval $(1) := $(wordlist 2,$(words $($(1))),$($(1)))),\
-           $(call _error,Expected '$(DQUOTE)' in; $($(1))$(COMMA) got EOF))),\
-  $(if $(filter $(COLON),$(ch)),\
-    $(eval $(1) := $(wordlist 2,$(words $($(1))),$($(1))))\
-    $(call _keyword,$(call READ_KEYWORD,$(1))),\
-  $(foreach sym,$(call READ_SYMBOL,$(1)),\
-    $(if $(call _EQ,nil,$(sym)),\
-      $(__nil),\
-    $(if $(call _EQ,true,$(sym)),\
-      $(__true),\
-    $(if $(call _EQ,false,$(sym)),\
-      $(__false),\
-      $(call _symbol,$(sym)))))))))))
-endef
-
-# read and return tokens until $(2) found
+# read and return tokens until $1 found
+# The last element if any is followed by a space.
 define READ_UNTIL
-$(and $(READER_DEBUG),$(info READ_UNTIL: $($(1)) [$(2) $(3)]))
-$(foreach ch,$(word 1,$($(1))),\
-  $(if $(ch),\
-    $(if $(filter $(2),$(ch)),\
-      ,\
-      $(call READ_FORM,$(1))\
-      $(call READ_UNTIL,$(1),$(2),$(3))),\
-    $(call _error,Expected '$(3)'$(COMMA) got EOF)))
+$(call reader_log,until $1)$(rem \
+)$(READ_SPACES)$(rem \
+)$(if $(filter $1,$(reader_next))\
+  ,$(reader_drop)$(rem \
+),$(if $(reader_next)\
+  ,$(call READ_FORM) $(call READ_UNTIL,$1)$(rem \
+),$(call _error,Expected '$1'$(COMMA) got EOF)))
 endef
 
-define DROP_UNTIL
-$(and $(READER_DEBUG),$(info DROP_UNTIL: $($(1)) [$(2)]))
-$(foreach ch,$(word 1,$($(1))),\
-  $(if $(ch),\
-    $(if $(filter $(2),$(ch)),\
-      ,\
-      $(eval $(1) := $(wordlist 2,$(words $($(1))),$($(1))))\
-      $(call DROP_UNTIL,$(1),$(2),$(3))),\
-    ))
+define READ_COMMENT
+$(call reader_log,comment)$(rem \
+)$(if $(filter-out $(_NL),$(reader_next))\
+  ,$(reader_drop)$(call READ_COMMENT))
 endef
 
 define READ_SPACES
-$(and $(READER_DEBUG),$(info READ_SPACES: $($(1))))
-$(foreach ch,$(word 1,$($(1))),\
-  $(if $(filter $(_SP) $(_NL) $(COMMA),$(ch)),\
-    $(eval $(1) := $(wordlist 2,$(words $($(1))),$($(1))))\
-    $(call READ_SPACES,$(1)),))
+$(call reader_log,spaces)$(rem \
+)$(if $(filter $(_SP) $(_NL) $(COMMA),$(reader_next))\
+  ,$(reader_drop)$(call READ_SPACES)$(rem \
+),$(if $(filter ;,$(reader_next))\
+  ,$(READ_COMMENT)))
 endef
 
 define READ_FORM
-$(and $(READER_DEBUG),$(info READ_FORM: $($(1))))
-$(call READ_SPACES,$(1))
-$(foreach ch,$(word 1,$($(1))),\
-  $(if $(filter $(SEMI),$(ch)),\
-    $(call DROP_UNTIL,$(1),$(_NL)),\
-  $(if $(filter $(SQUOTE),$(ch)),\
-    $(eval $(1) := $(wordlist 2,$(words $($(1))),$($(1))))\
-    $(call _list,$(call _symbol,quote) $(strip $(call READ_FORM,$(1)))),\
-  $(if $(filter $(QQUOTE),$(ch)),\
-    $(eval $(1) := $(wordlist 2,$(words $($(1))),$($(1))))\
-    $(call _list,$(call _symbol,quasiquote) $(strip $(call READ_FORM,$(1)))),\
-  $(if $(filter $(UNQUOTE),$(ch)),\
-    $(eval $(1) := $(wordlist 2,$(words $($(1))),$($(1))))\
-    $(call _list,$(call _symbol,unquote) $(strip $(call READ_FORM,$(1)))),\
-  $(if $(filter $(_SUQ),$(ch)),\
-    $(eval $(1) := $(wordlist 2,$(words $($(1))),$($(1))))\
-    $(call _list,$(call _symbol,splice-unquote) $(strip $(call READ_FORM,$(1)))),\
-  $(if $(filter $(CARET),$(ch)),\
-    $(eval $(1) := $(wordlist 2,$(words $($(1))),$($(1))))\
-    $(foreach meta,$(strip $(call READ_FORM,$(1))),\
-      $(call _list,$(call _symbol,with-meta) $(strip $(call READ_FORM,$(1))) $(meta))),\
-  $(if $(filter $(ATSIGN),$(ch)),\
-    $(eval $(1) := $(wordlist 2,$(words $($(1))),$($(1))))\
-    $(call _list,$(call _symbol,deref) $(strip $(call READ_FORM,$(1)))),\
-  $(if $(filter $(_RC),$(ch)),\
-    $(call _error,Unexpected '$(RCURLY)'),\
-  $(if $(filter $(_LC),$(ch)),\
-    $(eval $(1) := $(wordlist 2,$(words $($(1))),$($(1))))\
-    $(call READ_SPACES,$(1))\
-    $(foreach thm,$(call _hash_map),\
-      $(call do,$(call _assoc_seq!,$(thm),$(strip $(call READ_UNTIL,$(1),$(_RC),$(RCURLY)))))\
-      $(eval $(if $(filter $(_RC),$(word 1,$($(1)))),\
-               $(eval $(1) := $(wordlist 2,$(words $($(1))),$($(1)))),\
-               $(call _error,Expected '$(RCURLY)'$(COMMA) got EOF)))\
-      $(thm)),\
-  $(if $(filter $(_RP),$(ch)),\
-    $(call _error,Unexpected '$(RPAREN)'),\
-  $(if $(filter $(_LP),$(ch)),\
-    $(eval $(1) := $(wordlist 2,$(words $($(1))),$($(1))))\
-    $(call READ_SPACES,$(1))\
-    $(foreach tlist,$(call _list),\
-      $(eval $(foreach item,$(strip $(call READ_UNTIL,$(1),$(_RP),$(RPAREN))),\
-               $(call do,$(call _conj!,$(tlist),$(item)))))\
-      $(eval $(if $(filter $(_RP),$(word 1,$($(1)))),\
-               $(eval $(1) := $(wordlist 2,$(words $($(1))),$($(1)))),\
-               $(call _error,Expected '$(RPAREN)'$(COMMA) got EOF)))\
-      $(tlist)),\
-  $(if $(filter $(RBRACKET),$(ch)),\
-    $(call _error,Unexpected '$(RBRACKET)'),\
-  $(if $(filter $(LBRACKET),$(ch)),\
-    $(eval $(1) := $(wordlist 2,$(words $($(1))),$($(1))))\
-    $(call READ_SPACES,$(1))\
-    $(foreach tvec,$(call _vector),\
-      $(eval $(foreach item,$(strip $(call READ_UNTIL,$(1),$(RBRACKET),$(RBRACKET))),\
-               $(call do,$(call _conj!,$(tvec),$(item)))))\
-      $(eval $(if $(filter $(RBRACKET),$(word 1,$($(1)))),\
-               $(eval $(1) := $(wordlist 2,$(words $($(1))),$($(1)))),\
-               $(call _error,Expected '$(RBRACKET)'$(COMMA) got EOF)))\
-      $(tvec)),\
-  $(call READ_ATOM,$(1))))))))))))))))
-$(call READ_SPACES,$(1))
+$(call reader_log,form)$(rem \
+)$(READ_SPACES)$(rem \
+)$(if $(filter-out undefined,$(flavor READ_FORM_$(reader_next)))\
+  ,$(call READ_FORM_$(reader_next)$(reader_drop))$(rem \
+),$(foreach sym,$(READ_SYMBOL)\
+  ,$(if $(filter false nil true,$(sym))\
+    ,$(__$(sym))$(rem \
+    ),$(call _symbol,$(sym)))))
 endef
 
-# read-str from a raw "string" or from a string object
-READ_STR = $(strip $(eval __reader_temp := $(call str_encode,$(if $(call _string?,$(1)),$(call str_decode,$($(1)_value)),$(1))))$(call READ_FORM,__reader_temp))
+READ_FORM_ = $(call _error,expected a form$(COMMA) found EOF)
+
+# Reader macros
+READ_FORM_@ = $(call list,$(call _symbol,deref) $(call READ_FORM))
+READ_FORM_' = $(call list,$(call _symbol,quote) $(call READ_FORM))#'
+READ_FORM_` = $(call list,$(call _symbol,quasiquote) $(call READ_FORM))#`
+READ_FORM_^ = $(call list,$(call _symbol,with-meta) $(foreach m,\
+ $(call READ_FORM),$(call READ_FORM) $m))
+
+READ_FORM_~ = $(call list,$(if $(filter @,$(reader_next))\
+  ,$(reader_drop)$(call _symbol,splice-unquote)$(rem \
+  ),$(call _symbol,unquote)) $(call READ_FORM))
+
+# Lists, vectors and maps
+# _map_new accepts a leading space, list and vector require )strip.
+READ_FORM_{      = $(call _map_new,,$(strip $(call READ_UNTIL,})))
+READ_FORM_$(_LP) = $(call list,$(strip $(call READ_UNTIL,$(_RP))))
+READ_FORM_[      = $(call vector,$(strip $(call READ_UNTIL,])))
+READ_FORM_}      = $(call _error,Unexpected '}')
+READ_FORM_$(_RP) = $(call _error,Unexpected '$(_RP)')
+READ_FORM_]      = $(call _error,Unexpected ']')
+
+# Numbers
+define READ_FORM_-
+$(if $(filter 0 1 2 3 4 5 6 7 8 9,$(reader_next))\
+  ,$(call _number,-$(READ_NUMBER))$(rem \
+  ),$(call _symbol,-$(READ_SYMBOL)))
+endef
+READ_FORM_0 = $(call _number,0$(READ_NUMBER))
+READ_FORM_1 = $(call _number,1$(READ_NUMBER))
+READ_FORM_2 = $(call _number,2$(READ_NUMBER))
+READ_FORM_3 = $(call _number,3$(READ_NUMBER))
+READ_FORM_4 = $(call _number,4$(READ_NUMBER))
+READ_FORM_5 = $(call _number,5$(READ_NUMBER))
+READ_FORM_6 = $(call _number,6$(READ_NUMBER))
+READ_FORM_7 = $(call _number,7$(READ_NUMBER))
+READ_FORM_8 = $(call _number,8$(READ_NUMBER))
+READ_FORM_9 = $(call _number,9$(READ_NUMBER))
+
+# Strings
+READ_FORM_" = $(call _string,$(call str_decode,$(READ_STRING)))#"
+
+# Keywords
+READ_FORM_$(encoded_colon) = $(call _keyword,$(READ_SYMBOL))
+
+READ_STR = $(reader_init)$(or $(READ_FORM),$(__nil))
 
 endif
