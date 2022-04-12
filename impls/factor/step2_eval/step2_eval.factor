@@ -14,7 +14,7 @@ CONSTANT: repl-env H{
 
 DEFER: EVAL
 
-GENERIC# eval-ast 1 ( ast env -- ast )
+GENERIC#: eval-ast 1 ( ast env -- ast )
 M: malsymbol eval-ast
     [ name>> ] dip ?at [ "no variable " prepend throw ] unless ;
 M: sequence  eval-ast '[ _ EVAL ] map ;

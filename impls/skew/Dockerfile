@@ -1,4 +1,4 @@
-FROM ubuntu:vivid
+FROM ubuntu:20.04
 MAINTAINER Joel Martin <github@martintribe.org>
 
 ##########################################################
@@ -9,10 +9,8 @@ MAINTAINER Joel Martin <github@martintribe.org>
 RUN apt-get -y update
 
 # Required for running tests
-RUN apt-get -y install make python
-
-# Some typical implementation and test requirements
-RUN apt-get -y install curl libreadline-dev libedit-dev
+RUN apt-get -y install make python3
+RUN ln -fs /usr/bin/python3 /usr/local/bin/python
 
 RUN mkdir -p /mal
 WORKDIR /mal
@@ -21,17 +19,7 @@ WORKDIR /mal
 # Specific implementation requirements
 ##########################################################
 
-# For building node modules
-RUN apt-get -y install g++
-
-# Add nodesource apt repo config for 0.12 stable
-RUN curl -sL https://deb.nodesource.com/setup_0.12 | bash -
-
-# Install nodejs
-RUN apt-get -y install nodejs
-
-# Link common name
-RUN ln -sf nodejs /usr/bin/node
+RUN apt-get -y install npm
 
 ENV NPM_CONFIG_CACHE /mal/.npm
 

@@ -1,14 +1,11 @@
 uname_S := $(shell sh -c 'uname -s 2>/dev/null || echo not')
 
+CXX=g++
 ifeq ($(uname_S),Darwin)
 	# Native build on yosemite. Requires: brew install readline
-	CXX=g++
 	READLINE=/usr/local/opt/readline
 	INCPATHS=-I$(READLINE)/include
 	LIBPATHS=-L$(READLINE)/lib
-else
-	# Ubuntu 14.10 / docker
-	CXX=g++-4.9
 endif
 
 LD=$(CXX)

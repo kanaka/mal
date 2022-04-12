@@ -16,7 +16,7 @@ SYMBOL: repl-env
 
 DEFER: EVAL
 
-GENERIC# eval-ast 1 ( ast env -- ast )
+GENERIC#: eval-ast 1 ( ast env -- ast )
 M: malsymbol eval-ast env-get ;
 M: sequence  eval-ast '[ _ EVAL ] map ;
 M: assoc     eval-ast '[ _ EVAL ] assoc-map ;
