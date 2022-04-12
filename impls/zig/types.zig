@@ -97,7 +97,7 @@ pub const MalType = struct {
 
     pub fn new_keyword(allocator: *Allocator, value: [] const u8) MalError!*MalType {
         const mal = try MalType.new_nil(allocator);
-        const kwd_prefix: [] const u8 = [_]u8 {255};
+        const kwd_prefix: [] const u8 = "\xFF";
         const kwd_cpy = string_concat(allocator, kwd_prefix, value)
             catch return MalError.SystemError;
         mal.data = MalData { .Keyword = kwd_cpy };
@@ -184,7 +184,7 @@ pub const MalType = struct {
         // TODO: should we copy the data here, or downstream?
         switch(mal.data) {
             .HashMap => |hmap| {
-                return hmap.getValue(key);
+                return hmap.get(key);
             },
             .Nil => {
                 return null;
@@ -196,7 +196,7 @@ pub const MalType = struct {
     pub fn hashmap_contains(mal: *MalType, key: []const u8) MalError!bool {
         // TODO: should we copy the data here, or downstream?
         return switch(mal.data) {
-            .HashMap => |hmap| (hmap.getValue(key) != null),
+            .HashMap => |hmap| (hmap.get(key) != null),
             else => MalError.TypeError,
         };
     }
@@ -234,7 +234,7 @@ pub const MalType = struct {
 
     pub fn sequence_pop_last(mal: *MalType, allocator: *Allocator) MalError!*MalType {
         var ll = try mal.sequence_linked_list();
-        if(ll.count() == 0) {
+        if(ll.items.len == 0) {
             return MalError.OutOfBounds;
         }
         return ll.pop();
@@ -242,18 +242,18 @@ pub const MalType = struct {
     
     pub fn sequence_length(mal: *MalType) MalError!i64 {
         return switch(mal.data) {
-            .List => |l| @intCast(i64, l.count()),
-            .Vector => |v| @intCast(i64, v.count()),
+            .List => |l| @intCast(i64, l.items.len),
+            .Vector => |v| @intCast(i64, v.items.len),
             else => MalError.TypeError,
         };
     }
 
     pub fn sequence_nth(mal: *MalType, pos: u32) MalError!*MalType {
         var ll = try mal.sequence_linked_list();
-        if(ll.count() <= pos) {
+        if(ll.items.len <= pos) {
             return MalError.OutOfBounds;
         }
-        return ll.at(pos);
+        return ll.items[pos];
     }
     
     pub fn as_int(mal: *const MalType) MalError!i64 {
@@ -310,7 +310,7 @@ pub const MalType = struct {
                 if(ref_count <= 1)
                     atom.*.delete(allocator);
             },
-            .HashMap => |hm| {
+            .HashMap => |*hm| {
                 hash_map.destroy(allocator, hm, false);
             },
             .Func => |func_data| {
@@ -421,18 +421,18 @@ pub const MalType = struct {
 pub fn apply_function(allocator: *Allocator, args: MalLinkedList) MalError!*MalType {
     // TODO: this should take a MLL pointer
     var args_copy = try linked_list.deepcopy(allocator, args); //TODO: could be more efficient
-    var args_arr = args_copy.toSlice();
+    var args_arr = args_copy.items;
     const mal_func = args_arr[0];
     
     // First check if it is a user-defined Mal function
-    if(MalTypeValue(mal_func.data) == MalTypeValue.Func) {
+    if(@as(MalTypeValue, mal_func.data) == MalTypeValue.Func) {
         const func_data = mal_func.data.Func;
         const args_ll = try func_data.arg_list.sequence_linked_list();
         const func_env = func_data.environment;
         const eval_func = func_data.eval_func orelse return MalError.TypeError;
         var new_env = try Env.new(allocator, func_env);
         // TODO: make sure that set_list checks that first_arg and first_arg_value have same len
-        try new_env.set_slice(args_ll.toSlice(), args_arr[1..args_arr.len]);
+        try new_env.set_slice(args_ll.items, args_arr[1..args_arr.len]);
         
         linked_list.destroy(allocator, &args_copy, true);
         const new_body = try func_data.body.copy(allocator);
@@ -450,7 +450,8 @@ pub fn apply_function(allocator: *Allocator, args: MalLinkedList) MalError!*MalT
 
     if(n == -1) {
         // Variable arg function
-        (try linked_list.pop_first(allocator, &args_copy)).delete(allocator);
+        _ = try linked_list.pop_first(allocator, &args_copy);
+        defer mal_func.delete(allocator);
         defer linked_list.destroy(allocator, &args_copy, false);
         return (mal_func.data.FVar.*)(args_copy);
     }
