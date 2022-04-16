@@ -1,6 +1,12 @@
 ⟨Env⟩ ← •Import "env.bqn"
-⟨PrStr⟩ ← •Import "printer.bqn"
+⟨PrStr,PrStrR⟩ ← •Import "printer.bqn"
 ⟨ReadStr⟩ ← •Import "reader.bqn"
+
+nil ← 8‿⟨⟩
+Q ← {∾´'"'∾𝕩∾'"'}
+J ← {0=≠𝕩 ? "" ;
+     1=≠𝕩 ? ⊑𝕩 ;
+     ∾´(⊑𝕩)∾𝕨∾𝕨J 1↓𝕩}
 
 ns ← ⟨
   "+"‿{1∾+´1⊏˘>𝕩}
@@ -20,7 +26,10 @@ ns ← ⟨
   "count"‿{1∾≠1⊑⊑𝕩}
 
   "bqn-show"‿{•Show ⊑ 𝕩}
-  "prn"‿{•Out∘PrStr¨𝕩 ⋄ 8‿⟨⟩}
+  "pr-str"‿{2∾<" "J PrStrR¨𝕩}
+  "str"‿{2∾<""J PrStr¨𝕩}
+  "prn"‿{•Out " "J PrStrR¨𝕩 ⋄ nil}
+  "println"‿{•Out " "J PrStr¨𝕩 ⋄ nil}
 
   "read-string"‿{ReadStr 1⊑⊑𝕩}
   "slurp"‿{2∾<•FChars 1⊑⊑𝕩}

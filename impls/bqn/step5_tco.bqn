@@ -1,6 +1,6 @@
 ⟨Env⟩ ← •Import "env.bqn"
 ⟨ReadStr,nil⟩ ← •Import "reader.bqn"
-⟨PrStr⟩ ← •Import "printer.bqn"
+⟨PrStrR⟩ ← •Import "printer.bqn"
 ⟨core⟩ ← •Import "core.bqn"
 
 EvalAst ← {env 𝕊 t‿v:
@@ -20,7 +20,7 @@ SetParams ← {env 𝕊 args‿xs:
 }
 
 READ ← ReadStr
-PRINT ← PrStr
+PRINT ← PrStrR
 EVAL ← {e 𝕊 ast:
   # this loop runs as long as @ is returned, ie. typically once
   {𝕊 ⋄ {
@@ -66,7 +66,7 @@ EVAL ← {e 𝕊 ast:
            e SetParams args‿(1↓ys)
            @;
          ¯1‿x: f;
-         ¯1∾<"not a function: "∾PrStr f} f
+         ¯1∾<"not a function: "∾PrStrR f} f
       }⊑xs ;
 
     # basic forms

@@ -1,6 +1,6 @@
 ⟨Env⟩ ← •Import "env.bqn"
 ⟨ReadStr,nil⟩ ← •Import "reader.bqn"
-⟨PrStr⟩ ← •Import "printer.bqn"
+⟨PrStrR⟩ ← •Import "printer.bqn"
 ⟨core⟩ ← •Import "core.bqn"
 
 EvalAst ← {env 𝕊 t‿v:
@@ -11,7 +11,7 @@ EvalAst ← {env 𝕊 t‿v:
 }
 
 READ ← ReadStr
-PRINT ← PrStr
+PRINT ← PrStrR
 EVAL ← {
   # builtin special forms
   env 𝕊 3‿⟨0‿"def!",0‿k,x⟩:
@@ -49,7 +49,7 @@ EVAL ← {
       f ← ⊑ys
       {9‿f: F 1↓ys ;
        ¯1‿x: f;
-       ¯1∾<"not a function: "∾PrStr f} f
+       ¯1∾<"not a function: "∾PrStrR f} f
     }⊑xs ;
 
   # basic forms
