@@ -1,5 +1,6 @@
 ⟨Env⟩ ← •Import "env.bqn"
 ⟨PrStr⟩ ← •Import "printer.bqn"
+⟨ReadStr⟩ ← •Import "reader.bqn"
 
 ns ← ⟨
   "+"‿{1∾+´1⊏˘>𝕩}
@@ -20,6 +21,9 @@ ns ← ⟨
 
   "bqn-show"‿{•Show ⊑ 𝕩}
   "prn"‿{•Out∘PrStr¨𝕩 ⋄ 8‿⟨⟩}
+
+  "read-string"‿{ReadStr 1⊑⊑𝕩}
+  "slurp"‿{2∾<•FChars 1⊑⊑𝕩}
 ⟩
 
 core ⇐ Env@
