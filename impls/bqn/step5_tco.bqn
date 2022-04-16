@@ -10,6 +10,15 @@ EvalAst ← {env 𝕊 t‿v:
   }t
 }
 
+SetParams ← {env 𝕊 args‿xs:
+  {𝕊
+    {0‿"&": env.Set (<1⊑1⊑args)∾<3∾<env EVAL¨xs ⋄ args↩⟨⟩;
+     0‿kw: env.Set (<kw)∾<env EVAL ⊑xs}⊑args
+    args 1⊸↓↩
+    xs 1⊸↓↩
+  }•_while_{𝕊 ⋄ 0<≠args}@
+}
+
 READ ← ReadStr
 PRINT ← PrStr
 EVAL ← {e 𝕊 ast:
@@ -36,15 +45,9 @@ EVAL ← {e 𝕊 ast:
       ast ↩ {8‿x:nil; 7‿0:nil; t} e EVAL c
       @;
     𝕊 3‿⟨0‿"fn*",t‿args,exp⟩:
-      9‿{𝕊 xs:
-        as ← args
+      10‿exp‿args‿e‿{𝕊 xs:
         inner ← Env e
-        {𝕊
-          {0‿"&": inner.Set (<1⊑1⊑as)∾<3∾<inner EVAL¨xs ⋄ as↩⟨⟩;
-           0‿kw: inner.Set (<kw)∾<inner EVAL ⊑xs}⊑as
-          as 1⊸↓↩
-          xs 1⊸↓↩
-        }•_while_{𝕊 ⋄ 0<≠as}@
+        inner SetParams args‿xs
         inner EVAL exp} ;
 
     # variable-length special forms
@@ -57,6 +60,11 @@ EVAL ← {e 𝕊 ast:
       ; ys ← e EvalAst 3‿xs          # function application
         f ← ⊑ys
         {9‿f: F 1↓ys ;
+         10‿exp‿args‿e2‿fn:
+           ast ↩ exp
+           e ↩ Env e2
+           e SetParams args‿(1↓ys)
+           @;
          ¯1‿x: f;
          ¯1∾<"not a function: "∾PrStr f} f
       }⊑xs ;

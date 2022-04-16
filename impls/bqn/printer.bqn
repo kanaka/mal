@@ -1,6 +1,7 @@
 Lst ← {0=≠𝕩 ? "" ; {𝕨∾" "∾𝕩}´(P¨𝕩)}
 P ← {
   𝕊 ¯1‿x: "ERROR: "∾x;
+  𝕊 10‿x‿y‿z‿f: "#function";
   𝕊 9‿x: "#function";
   𝕊 8‿x: "nil";
   𝕊 7‿0: "false";
