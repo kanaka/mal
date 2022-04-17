@@ -92,6 +92,7 @@ Atom ← {
   𝕊 "nil": nil ;
   𝕊 a: {'"': 2∾<ReadString 1↓¯1↓a ;
    ':': 6‿a ;
+   ';': @ ;
    ⊑𝕩∊nums ? 1∾Int a ;
    (𝕩='-')∧1<≠a ? 1∾-Int 1↓a ;
    0‿a }⊑a
@@ -102,7 +103,9 @@ ReadList ← {𝕊 r‿t‿e:
   {𝕊
     {@: t ↩ ¯1 ⋄ l ↩ "unbalanced parens" ⋄ 0;
      𝕩≡e ? r.Next@ ⋄ 0;
-     l ∾↩ <ReadForm r ⋄ 1
+     v ← ReadForm r
+     {v≡@ ? @; l∾↩<v}
+     1
     }r.Peek@
   }•_while_⊢1
   t‿l
@@ -118,5 +121,7 @@ ReadForm ← {𝕊 r:
 
 {
   Tokenize ⇐ T
-  ReadStr ⇐ ReadForm∘Reader∘Tokenize
+  ReadStr ⇐ {
+    v ← ReadForm Reader Tokenize 𝕩
+    v≢@ ? v ; nil}
 }
