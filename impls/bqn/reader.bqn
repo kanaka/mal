@@ -1,3 +1,4 @@
+⟨nil⟩ ← •Import "globals.bqn"
 # Types:
 # ¯1 error
 # 0 symbol
@@ -10,6 +11,8 @@
 # 7 boolean
 # 8 nil
 # 9 function
+# 10 fn*
+# 11 atom
 
 Reader ← {𝕊 tokens:
   r ← {
@@ -82,7 +85,6 @@ ReadString ← {
 }
 
 Int ← {10⊸×⊸+˜´'0'-˜⌽𝕩}
-nil ← 8‿⟨⟩
 nums ← "0123456789"
 Atom ← {
   𝕊 "true": 7‿1 ;
@@ -117,5 +119,4 @@ ReadForm ← {𝕊 r:
 {
   Tokenize ⇐ T
   ReadStr ⇐ ReadForm∘Reader∘Tokenize
-  nil ⇐ nil
 }

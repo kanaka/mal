@@ -1,5 +1,6 @@
+⟨nil⟩ ← •Import "globals.bqn"
 ⟨Env⟩ ← •Import "env.bqn"
-⟨ReadStr,nil⟩ ← •Import "reader.bqn"
+⟨ReadStr⟩ ← •Import "reader.bqn"
 ⟨PrStrR⟩ ← •Import "printer.bqn"
 ⟨core⟩ ← •Import "core.bqn"
 

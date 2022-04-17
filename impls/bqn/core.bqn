@@ -1,8 +1,8 @@
+⟨Atom,nil⟩ ← •Import "globals.bqn"
 ⟨Env⟩ ← •Import "env.bqn"
 ⟨PrStr,PrStrR⟩ ← •Import "printer.bqn"
 ⟨ReadStr⟩ ← •Import "reader.bqn"
 
-nil ← 8‿⟨⟩
 Q ← {∾´'"'∾𝕩∾'"'}
 J ← {0=≠𝕩 ? "" ;
      1=≠𝕩 ? ⊑𝕩 ;
@@ -33,6 +33,18 @@ ns ← ⟨
 
   "read-string"‿{ReadStr 1⊑⊑𝕩}
   "slurp"‿{2∾<•FChars 1⊑⊑𝕩}
+
+  "atom"‿{11∾Atom ⊑𝕩}
+  "atom?"‿{7∾11=⊑⊑𝕩}
+  "deref"‿{𝕊 ⟨11‿a⟩: a.Deref@; 1‿"deref: not an atom"}
+  "reset!"‿{
+    𝕊 ⟨11‿a,v⟩: a.Reset v;
+    1‿"reset!: not an atom"}
+  "swap!"‿{
+    ⟨t‿a,fn⟩ ← 2↑𝕩
+    args ← (<a.Deref@) ∾ 2↓𝕩
+    f ← {9‿f: f; 10‿x‿y‿z‿f: f}fn
+    a.Reset F args}
 ⟩
 
 core ⇐ Env@
