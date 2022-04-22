@@ -11,6 +11,7 @@ IMPL:
   - {IMPL: cpp}
   - {IMPL: coffee}
   - {IMPL: cs}
+  - {IMPL: cs.2}
   - {IMPL: chuck, NO_SELF_HOST_PERF: 1}  # perf OOM
   - {IMPL: clojure, clojure_MODE: clj}
   - {IMPL: clojure, clojure_MODE: cljs}
