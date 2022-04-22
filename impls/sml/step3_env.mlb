@@ -1,0 +1,11 @@
+local
+    $(SML_LIB)/basis/basis.mlb
+    util.sml
+    types.sml
+    printer.sml
+    reader.sml
+    env.sml
+    step3_env.sml
+in
+    main.sml
+end

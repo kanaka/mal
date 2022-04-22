@@ -82,7 +82,7 @@ class MalString : MalValBase
 {
   const Str value
   new make(Str v) { value = v }
-  new makeKeyword(Str v) { value = "\u029e$v" }
+  new makeKeyword(Str v) { value = v[0] == '\u029e' ? v : "\u029e$v" }
   override Bool equals(Obj? that) { return that is MalString && (that as MalString).value == value }
   override Str toString(Bool readable)
   {
@@ -119,7 +119,7 @@ abstract class MalSeq : MalValBase
   MalVal nth(Int index) { return index < count ? get(index) : throw Err("nth: index out of range") }
   MalVal first() { return isEmpty ? MalNil.INSTANCE : value[0] }
   MalList rest() { return MalList(isEmpty ? [,] : value[1..-1]) }
-  MalList map(MalFunc f) { return MalList(value.map { f.call([it]) } ) }
+  MalList map(MalFunc f) { return MalList(value.map |MalVal v -> MalVal| { f.call([v]) } ) }
   abstract MalSeq conj(MalVal[] args)
 }
 
@@ -165,7 +165,7 @@ class MalHashMap : MalValBase
   @Operator MalVal get(Str key) { return value[key] }
   MalVal get2(MalString key, MalVal? def := null) { return value.get(key.value, def) }
   Bool containsKey(MalString key) { return value.containsKey(key.value) }
-  MalVal[] keys() { return value.keys.map { MalString.make(it) } }
+  MalVal[] keys() { return value.keys.map |Str k -> MalVal| { MalString.make(k) } }
   MalVal[] vals() { return value.vals }
   MalHashMap assoc(MalVal[] args)
   {

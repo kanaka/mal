@@ -12,7 +12,7 @@ def eval_ast(ast MalVal, env Env) MalVal {
   } else if ast is MalHashMap {
     var result List<MalVal> = []
     (ast as MalHashMap).val.each((k string, v MalVal) => {
-      result.append(EVAL(MalVal.fromHashKey(k), env))
+      result.append(MalVal.fromHashKey(k))
       result.append(EVAL(v, env))
     })
     return MalHashMap.fromList(result)

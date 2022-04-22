@@ -1,0 +1,22 @@
+;; Testing FFI of "strlen"
+(. nil "int32" "strlen" "string" "abcde")
+;=>5
+(. nil "int32" "strlen" "string" "")
+;=>0
+
+;; Testing FFI of "strcmp"
+
+(. nil "int32" "strcmp" "string" "abc" "string" "abcA")
+;=>-65
+(. nil "int32" "strcmp" "string" "abcA" "string" "abc")
+;=>65
+(. nil "int32" "strcmp" "string" "abc" "string" "abc")
+;=>0
+
+
+;; Testing FFI of "pow" (libm.so)
+
+(. "libm.so.6" "double" "pow" "double" 2.0 "double" 3.0)
+;=>8.000000
+(. "libm.so.6" "double" "pow" "double" 3.0 "double" 2.0)
+;=>9.000000

@@ -74,13 +74,13 @@ class Main
       case MalSymbol#:
         return env.get(ast)
       case MalList#:
-        newElements := (ast as MalList).value.map { EVAL(it, env) }
+        newElements := (ast as MalList).value.map |MalVal v -> MalVal| { EVAL(v, env) }
         return MalList(newElements)
       case MalVector#:
-        newElements := (ast as MalVector).value.map { EVAL(it, env) }
+        newElements := (ast as MalVector).value.map |MalVal v -> MalVal| { EVAL(v, env) }
         return MalVector(newElements)
       case MalHashMap#:
-        newElements := (ast as MalHashMap).value.map |MalVal v -> MalVal| { return EVAL(v, env) }
+        newElements := (ast as MalHashMap).value.map |MalVal v -> MalVal| { EVAL(v, env) }
         return MalHashMap.fromMap(newElements)
       default:
         return ast
@@ -116,7 +116,7 @@ class Main
           ast = quasiquote(astList[1])
           // TCO
         case "defmacro!":
-          f := EVAL(astList[2], env) as MalUserFunc
+          f := (EVAL(astList[2], env) as MalUserFunc).dup
           f.isMacro = true
           return env.set(astList[1], f)
         case "macroexpand":

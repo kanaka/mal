@@ -145,7 +145,7 @@ section .data
 
         static core_symbol_not_string, db "Error: symbol expects a string argument"
 
-        static core_keyword_not_string, db "Error: keyword expects a string argument"
+        static core_keyword_not_string, db "Error: keyword expects a string or keyword argument"
 
         static core_list_not_seq, db "Error: list expects a list or vector"
 
@@ -2656,7 +2656,7 @@ core_keyword:
         mov al, BYTE [rsi]
         and al, content_mask
         cmp al, content_pointer
-        jne .not_string
+        jne .error
 
         mov r8, [rsi + Cons.car] ; String in R8
         mov al, BYTE [r8]
@@ -2678,6 +2678,18 @@ core_keyword:
         ret
         
 .not_string:
+        cmp al, maltype_symbol
+        jne .error
+        ; Check if first character is ':'
+        mov al, BYTE [r8 + Array.data]
+        cmp al, ':'
+        jne .error
+        ;; This is already a keyword, return it unchanged.
+        mov rsi, r8
+        call incref_object
+        mov rax, rsi
+        ret
+.error:
         load_static core_keyword_not_string
         jmp core_throw_str
 

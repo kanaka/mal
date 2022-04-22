@@ -229,10 +229,12 @@ end } def
 % Keywords
 
 /_keyword { 1 dict begin
+  dup _keyword? not {
     /str exch def
     str length 1 add string % str2
     dup 1 str putinterval
     dup 0 127 put % TODO: something like (\x029e) would be better
+  } if
 end } def
 
 /_keyword? {
@@ -287,6 +289,16 @@ end } def
     1 index           % stack: mal_fn data mal_fn
     0 exch            % stack: mal_fn data 0 mal_fn
     put               % stack: mal_fn
+} def
+
+% fn -> _defmacro -> macro
+/_macro {
+    dup /ast get exch
+    dup /env get exch
+    /params get
+    _mal_function
+    dup
+    /macro? true put 
 } def
 
 /_function? {

@@ -1,0 +1,20 @@
+#!/bin/bash
+
+CP=$(gradle -q --console plain printClasspath)
+
+#     -Dgraal.LogVerbose=true \
+#     -Dgraal.TraceTruffleStackTraceLimit=100 \
+#     -Dgraal.TruffleCompilationThreshold=100 \
+#     -Dgraal.TraceTruffleCompilationDetails=true \
+#     -Dgraal.Dump=Truffle:2 \
+#     -Dgraal.TraceTruffleCompilation=true \
+#    -Dgraal.TruffleFunctionInlining=true \
+#    -Dgraal.TruffleCompilationExceptionsArePrinted=true \
+java \
+     -Dgraalvm.locatorDisabled=true \
+     -Xss8m \
+     --add-opens org.graalvm.truffle/com.oracle.truffle.api=ALL-UNNAMED \
+     --add-opens org.graalvm.truffle/com.oracle.truffle.api.interop=ALL-UNNAMED \
+     --add-opens org.graalvm.truffle/com.oracle.truffle.api.nodes=ALL-UNNAMED \
+     -classpath $CP \
+     truffle.mal.${STEP:-stepE_macros} "$@"

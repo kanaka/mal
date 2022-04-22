@@ -62,7 +62,7 @@ function ret = eval_ast(ast, env)
         ks = ast.keys();
         for i=1:length(ks)
             k = ks{i};
-            ret.set(EVAL(k, env), EVAL(ast.get(k), env));
+            ret.set(k, EVAL(ast.get(k), env));
         end
     otherwise
         ret = ast;

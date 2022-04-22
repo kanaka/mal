@@ -119,6 +119,8 @@
 
 (= (list) (list))
 ;=>true
+(= (list) ())
+;=>true
 (= (list 1 2) (list 1 2))
 ;=>true
 (= (list 1) (list))
@@ -202,6 +204,8 @@ a
 
 
 ;; Testing recursive function in environment.
+(let* (f (fn* () x) x 3) (f))
+;=>3
 (let* (cst (fn* (n) (if (= n 0) nil (cst (- n 1))))) (cst 1))
 ;=>nil
 (let* (f (fn* (n) (if (= n 0) 0 (g (- n 1)))) g (fn* (n) (f n))) (f 2))

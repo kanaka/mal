@@ -164,6 +164,9 @@ EVAL () {
         defmacro!)
               EVAL "${a2}" "${env}"
               [[ "${__ERROR}" ]] && return 1
+              local func="${r}"
+              __new_obj_like "${func}"
+              ANON["${r}"]="${ANON["${func}"]}"
               ANON["${r}_ismacro_"]="yes"
               ENV_SET "${env}" "${a1}" "${r}"
               return ;;

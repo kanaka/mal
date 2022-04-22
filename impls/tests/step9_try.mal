@@ -94,15 +94,13 @@
 ;=>(2 4 6)
 (map (fn* (x) (symbol? x)) (list 1 (quote two) "three"))
 ;=>(false true false)
+(= () (map str ()))
+;=>true
 
 ;>>> deferrable=True
 ;;
 ;; ------- Deferrable Functionality ----------
 ;; ------- (Needed for self-hosting) -------
-
-;; Testing throwing a hash-map
-(throw {:msg "err2"})
-;/.*([Ee][Rr][Rr][Oo][Rr]|[Ee]xception).*msg.*err2.*
 
 ;; Testing symbol and keyword functions
 (symbol? :abc)
@@ -172,6 +170,8 @@
 ;=>false
 (vector 3 4 5)
 ;=>[3 4 5]
+(= [] (vector))
+;=>true
 
 (map? {})
 ;=>true
@@ -237,6 +237,8 @@
 ;;; TODO: fix. Clojure returns nil but this breaks mal impl
 (keys hm1)
 ;=>()
+(= () (keys hm1))
+;=>true
 
 (keys hm2)
 ;=>("a")
@@ -247,6 +249,8 @@
 ;;; TODO: fix. Clojure returns nil but this breaks mal impl
 (vals hm1)
 ;=>()
+(= () (vals hm1))
+;=>true
 
 (vals hm2)
 ;=>(1)
@@ -322,6 +326,10 @@
 ;; ------- (Not needed for self-hosting) -------
 
 
+;; Testing throwing a hash-map
+(throw {:msg "err2"})
+;/.*([Ee][Rr][Rr][Oo][Rr]|[Ee]xception).*msg.*err2.*
+
 ;;;TODO: fix so long lines don't trigger ANSI escape codes ;;;(try*
 ;;;(try* (throw ["data" "foo"]) (catch* exc (do (prn "exc is:" exc) 7))) ;;;;
 ;;;; "exc is:" ["data" "foo"] ;;;;=>7
@@ -363,6 +371,8 @@
 ;; Testing equality of hash-maps
 (= {} {})
 ;=>true
+(= {} (hash-map))
+;=>true
 (= {:a 11 :b 22} (hash-map :b 22 :a 11))
 ;=>true
 (= {:a 11 :b [22 33]} (hash-map :b [22 33] :a 11))
@@ -386,3 +396,9 @@
 ;=>:abc
 (keyword? (first (keys {":abc" 123 ":def" 456})))
 ;=>false
+
+;; Testing that hashmaps don't alter function ast
+(def! bar (fn* [a] {:foo (get a :foo)}))
+(bar {:foo (fn* [x] x)})
+(bar {:foo 3})
+;; shouldn't give an error

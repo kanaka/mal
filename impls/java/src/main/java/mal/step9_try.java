@@ -158,6 +158,7 @@ public class step9_try {
             a1 = ast.nth(1);
             a2 = ast.nth(2);
             res = EVAL(a2, env);
+            res = res.copy();
             ((MalFunction)res).setMacro();
             env.set((MalSymbol)a1, res);
             return res;

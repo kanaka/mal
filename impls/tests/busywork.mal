@@ -1,0 +1,31 @@
+(load-file      "../lib/load-file-once.mal")
+(load-file-once "../lib/threading.mal")    ; ->
+(load-file-once "../lib/benchmark.mal")
+(load-file-once "../lib/test_cascade.mal") ; or
+
+;; Indicate that these macros are safe to eagerly expand.
+;; Provides a large performance benefit for supporting implementations.
+(def! and ^{:inline? true} and)
+(def! or ^{:inline? true} or)
+(def! -> ^{:inline? true} ->)
+(def! -> ^{:inline? true} ->>)
+
+(def! do-times (fn* [f n]
+  (if (> n 0)
+    (do (f)
+        (do-times f (- n 1))))))
+
+(def! atm (atom (list 0 1 2 3 4 5 6 7 8 9)))
+
+(def! busywork (fn* []
+  (do
+   (or false nil false nil false nil false nil false nil (first @atm))
+   (cond false 1 nil 2 false 3 nil 4 false 5 nil 6 "else" (first @atm))
+   (-> (deref atm) rest rest rest rest rest rest first)
+   (swap! atm (fn* [a] (concat (rest a) (list (first a))))))))
+
+(def! num-iterations 10000)
+
+(println (str "Execution time (in ms) of " num-iterations " busywork iterations on "
+              *host-language* ": ")
+         (benchmark (do-times busywork num-iterations) 10))

@@ -213,6 +213,7 @@ begin
     'defmacro!':
     begin
         Fn := EVAL(Arr[2], ENV) as TMalFunc;
+        Fn := TMalFunc.Clone(Fn);
         Fn.isMacro := true;
         Exit(Env.Add((Arr[1] as TMalSymbol), Fn));
     end;

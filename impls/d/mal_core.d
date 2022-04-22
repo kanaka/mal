@@ -42,6 +42,7 @@ static MalType mal_keyword(MalType[] a ...)
 {
     verify_args_count(a, 1);
     auto s = verify_cast!MalString(a[0]);
+    if (s.is_keyword()) return s;
     return new MalString("\u029e" ~ s.val);
 }
 

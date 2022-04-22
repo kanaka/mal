@@ -5,7 +5,7 @@ where
 import System.IO (hFlush, stdout)
 import Control.Monad.Except (throwError)
 import Control.Monad.Trans (liftIO)
-import qualified Data.Map as Map
+import qualified Data.Map.Strict as Map
 import Data.Foldable (foldlM)
 import Data.Time.Clock.POSIX (getPOSIXTime)
 import Data.IORef (newIORef, readIORef, writeIORef)
@@ -29,9 +29,11 @@ throw _ = throwStr "illegal arguments to throw"
 
 -- Unary predicates
 
-pred1 :: (MalVal -> Bool) -> Fn
-pred1 hostPred [x] = return $ MalBoolean $ hostPred x
-pred1 _ _ = throwStr "illegal call to unary predicate"
+pred1 :: String -> (MalVal -> Bool) -> (String, Fn)
+pred1 name op = (name, fn) where
+  fn :: Fn
+  fn [a] = return $ MalBoolean $ op a
+  fn _ = throwStr $ "illegal arguments to " ++ name
 
 atom_Q :: MalVal -> Bool
 atom_Q (MalAtom _ _) = True
@@ -42,20 +44,20 @@ false_Q (MalBoolean False) = True
 false_Q _                  = False
 
 fn_Q :: MalVal -> Bool
-fn_Q (MalFunction {macro=False}) = True
-fn_Q _                           = False
+fn_Q (MalFunction _ _) = True
+fn_Q _                 = False
 
 macro_Q :: MalVal -> Bool
-macro_Q (MalFunction {macro=True}) = True
-macro_Q _                          = False
+macro_Q (MalMacro _) = True
+macro_Q _            = False
 
 map_Q :: MalVal -> Bool
 map_Q (MalHashMap _ _) = True
 map_Q _                = False
 
 keyword_Q :: MalVal -> Bool
-keyword_Q (MalString (c : _)) = c == keywordMagic
-keyword_Q _                   = False
+keyword_Q (MalKeyword _) = True
+keyword_Q _              = False
 
 list_Q :: MalVal -> Bool
 list_Q (MalSeq _ (Vect False) _) = True
@@ -70,9 +72,8 @@ number_Q (MalNumber _) = True
 number_Q _             = False
 
 string_Q :: MalVal -> Bool
-string_Q (MalString "")      = True
-string_Q (MalString (c : _)) = c /= keywordMagic
-string_Q _                   = False
+string_Q (MalString _) = True
+string_Q _             = False
 
 symbol_Q :: MalVal -> Bool
 symbol_Q (MalSymbol _) = True
@@ -93,8 +94,8 @@ symbol [MalString s] = return $ MalSymbol s
 symbol _ = throwStr "symbol called with non-string"
 
 keyword :: Fn
-keyword [kw@(MalString (c : _))] | c == keywordMagic = return kw
-keyword [MalString s] = return $ MalString (keywordMagic : s)
+keyword [kw@(MalKeyword _)] = return kw
+keyword [MalString s] = return $ MalKeyword s
 keyword _ = throwStr "keyword called with non-string"
 
 -- String functions
@@ -135,13 +136,17 @@ read_string _ = throwStr "invalid read-string"
 
 -- Numeric functions
 
-num_op :: (Int -> Int -> Int) -> Fn
-num_op op [MalNumber a, MalNumber b] = return $ MalNumber $ op a b
-num_op _ _ = throwStr "illegal arguments to number operation"
+num_op :: String -> (Int -> Int -> Int) -> (String, Fn)
+num_op name op = (name, fn) where
+  fn :: Fn
+  fn [MalNumber a, MalNumber b] = return $ MalNumber $ op a b
+  fn _ = throwStr $ "illegal arguments to " ++ name
 
-cmp_op :: (Int -> Int -> Bool) -> Fn
-cmp_op op [MalNumber a, MalNumber b] = return $ MalBoolean $ op a b
-cmp_op _ _ = throwStr "illegal arguments to comparison operation"
+cmp_op :: String -> (Int -> Int -> Bool) -> (String, Fn)
+cmp_op name op = (name, fn) where
+  fn :: Fn
+  fn [MalNumber a, MalNumber b] = return $ MalBoolean $ op a b
+  fn _ = throwStr $ "illegal arguments to " ++ name
 
 time_ms :: Fn
 time_ms [] = MalNumber . round . (* 1000) <$> liftIO getPOSIXTime
@@ -161,41 +166,44 @@ vector = return . MalSeq (MetaData Nil) (Vect True)
 -- Hash Map functions
 
 hash_map :: Fn
-hash_map kvs =
-    case keyValuePairs kvs of
-        Just pairs -> return $ MalHashMap (MetaData Nil) $ Map.fromList pairs
+hash_map kvs = case kv2map Map.empty kvs of
+        Just m     -> return m
         Nothing    -> throwStr "invalid call to hash-map"
 
 assoc :: Fn
-assoc (MalHashMap _ hm : kvs) =
-    case keyValuePairs kvs of
-        Just pairs -> return $ MalHashMap (MetaData Nil) $ Map.union (Map.fromList pairs) hm
+assoc (MalHashMap _ hm : kvs) = case kv2map hm kvs of
+        Just m     -> return m
         Nothing    -> throwStr "invalid assoc"
 assoc _ = throwStr "invalid call to assoc"
 
 remover :: Map.Map String MalVal -> MalVal -> IOThrows (Map.Map String MalVal)
-remover m (MalString k) = return $ Map.delete k m
-remover _ _ = throwStr "invalid dissoc"
+remover acc key = case encodeKey key of
+    Nothing      -> throwStr "invalid dissoc"
+    Just encoded -> return $ Map.delete encoded acc
 
 dissoc :: Fn
 dissoc (MalHashMap _ hm : ks) = MalHashMap (MetaData Nil) <$> foldlM remover hm ks
 dissoc _ = throwStr "invalid call to dissoc"
 
 get :: Fn
-get [MalHashMap _ hm, MalString k] =
-    case Map.lookup k hm of
+get [MalHashMap _ hm, k] = case encodeKey k of
+    Nothing  -> throwStr "invalid call to get"
+    Just key -> case Map.lookup key hm of
         Just mv -> return mv
         Nothing -> return Nil
 get [Nil, MalString _] = return Nil
 get _ = throwStr "invalid call to get"
 
 contains_Q :: Fn
-contains_Q [MalHashMap _ hm, MalString k] = return $ MalBoolean $ Map.member k hm
-contains_Q [Nil,             MalString _] = return $ MalBoolean False
+contains_Q [MalHashMap _ hm, k] = case encodeKey k of
+  Just key -> return $ MalBoolean $ Map.member key  hm
+  Nothing  -> throwStr "invalid call to contains?"
+contains_Q [Nil, MalString _] = return $ MalBoolean False
+contains_Q [Nil, MalSymbol _] = return $ MalBoolean False
 contains_Q _ = throwStr "invalid call to contains?"
 
 keys :: Fn
-keys [MalHashMap _ hm] = return $ toList $ MalString <$> Map.keys hm
+keys [MalHashMap _ hm] = return $ toList $ decodeKey <$> Map.keys hm
 keys _ = throwStr "invalid call to keys"
 
 vals :: Fn
@@ -245,10 +253,10 @@ rest [MalSeq _ _ []      ] = return $ toList []
 rest [MalSeq _ _ (_ : xs)] = return $ toList xs
 rest _ = throwStr "illegal call to rest"
 
-empty_Q :: MalVal -> Bool
-empty_Q Nil             = True
-empty_Q (MalSeq _ _ []) = True
-empty_Q _               = False
+empty_Q :: Fn
+empty_Q [Nil]           = return $ MalBoolean True
+empty_Q [MalSeq _ _ xs] = return $ MalBoolean $ xs == []
+empty_Q _               = throwStr "illegal call to empty?"
 
 count :: Fn
 count [Nil           ] = return $ MalNumber 0
@@ -261,11 +269,11 @@ concatLast (a : as)         = (a :) <$> concatLast as
 concatLast _ = throwStr "last argument of apply must be a sequence"
 
 apply :: Fn
-apply (MalFunction {fn=f} : xs) = f =<< concatLast xs
+apply (MalFunction _ f : xs) = f =<< concatLast xs
 apply _ = throwStr "Illegal call to apply"
 
 do_map :: Fn
-do_map [MalFunction {fn=f}, MalSeq _ _ args] = toList <$> mapM (\x -> f [x]) args
+do_map [MalFunction _ f, MalSeq _ _ args] = toList <$> mapM (\x -> f [x]) args
 do_map _ = throwStr "Illegal call to map"
 
 conj :: Fn
@@ -287,14 +295,14 @@ with_meta :: Fn
 with_meta [MalSeq _ v x,       m] = return $ MalSeq (MetaData m) v x
 with_meta [MalHashMap _ x,     m] = return $ MalHashMap (MetaData m) x
 with_meta [MalAtom _ x,        m] = return $ MalAtom (MetaData m) x
-with_meta [f@(MalFunction {}), m] = return $ f {meta=m}
+with_meta [MalFunction _ f,    m] = return $ MalFunction (MetaData m) f
 with_meta _ = throwStr "invalid with-meta call"
 
 do_meta :: Fn
 do_meta [MalSeq (MetaData m) _ _  ] = return m
 do_meta [MalHashMap (MetaData m) _] = return m
 do_meta [MalAtom (MetaData m) _   ] = return m
-do_meta [MalFunction {meta=m}     ] = return m
+do_meta [MalFunction (MetaData m) _] = return m
 do_meta _ = throwStr "invalid meta call"
 
 -- Atom functions
@@ -309,12 +317,12 @@ deref _ = throwStr "invalid deref call"
 
 reset_BANG :: Fn
 reset_BANG [MalAtom _ ref, val] = do
-    liftIO $ writeIORef ref $ val
+    liftIO $ writeIORef ref val
     return val
 reset_BANG _ = throwStr "invalid reset!"
 
 swap_BANG :: Fn
-swap_BANG (MalAtom _ ref : MalFunction {fn=f} : args) = do
+swap_BANG (MalAtom _ ref : MalFunction _ f : args) = do
     val <- liftIO $ readIORef ref
     new_val <- f (val : args)
     liftIO $ writeIORef ref new_val
@@ -325,17 +333,17 @@ ns :: [(String, Fn)]
 ns = [
     ("=",           equal_Q),
     ("throw",       throw),
-    ("nil?",        pred1 nil_Q),
-    ("true?",       pred1 true_Q),
-    ("false?",      pred1 false_Q),
-    ("string?",     pred1 string_Q),
+    (pred1 "nil?"   nil_Q),
+    (pred1 "true?"  true_Q),
+    (pred1 "false?" false_Q),
+    (pred1 "string?" string_Q),
     ("symbol",      symbol),
-    ("symbol?",     pred1 symbol_Q),
+    (pred1 "symbol?" symbol_Q),
     ("keyword",     keyword),
-    ("keyword?",    pred1 keyword_Q),
-    ("number?",     pred1 number_Q),
-    ("fn?",         pred1 fn_Q),
-    ("macro?",      pred1 macro_Q),
+    (pred1 "keyword?" keyword_Q),
+    (pred1 "number?" number_Q),
+    (pred1 "fn?"    fn_Q),
+    (pred1 "macro?" macro_Q),
 
     ("pr-str",      pr_str),
     ("str",         str),
@@ -345,22 +353,22 @@ ns = [
     ("read-string", read_string),
     ("slurp",       slurp),
 
-    ("<",           cmp_op (<)),
-    ("<=",          cmp_op (<=)),
-    (">",           cmp_op (>)),
-    (">=",          cmp_op (>=)),
-    ("+",           num_op (+)),
-    ("-",           num_op (-)),
-    ("*",           num_op (*)),
-    ("/",           num_op (div)),
+    (cmp_op "<"     (<)),
+    (cmp_op "<="    (<=)),
+    (cmp_op ">"     (>)),
+    (cmp_op ">="    (>=)),
+    (num_op "+"     (+)),
+    (num_op "-"     (-)),
+    (num_op "*"     (*)),
+    (num_op "/"     div),
     ("time-ms",     time_ms),
 
     ("list",        list),
-    ("list?",       pred1 list_Q),
+    (pred1 "list?" list_Q),
     ("vector",      vector),
-    ("vector?",     pred1 vector_Q),
+    (pred1 "vector?" vector_Q),
     ("hash-map",    hash_map),
-    ("map?",        pred1 map_Q),
+    (pred1 "map?" map_Q),
     ("assoc",       assoc),
     ("dissoc",      dissoc),
     ("get",         get),
@@ -368,14 +376,14 @@ ns = [
     ("keys",        keys),
     ("vals",        vals),
 
-    ("sequential?", pred1 sequential_Q),
+    (pred1 "sequential?" sequential_Q),
     ("cons",        cons),
     ("concat",      do_concat),
     ("vec",         vec),
     ("nth",         nth),
     ("first",       first),
     ("rest",        rest),
-    ("empty?",      pred1 empty_Q),
+    ("empty?",      empty_Q),
     ("count",       count),
     ("apply",       apply),
     ("map",         do_map),
@@ -386,7 +394,7 @@ ns = [
     ("with-meta",   with_meta),
     ("meta",        do_meta),
     ("atom",        atom),
-    ("atom?",       pred1 atom_Q),
+    (pred1 "atom?" atom_Q),
     ("deref",       deref),
     ("reset!",      reset_BANG),
     ("swap!",       swap_BANG)]

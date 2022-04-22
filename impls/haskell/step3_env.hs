@@ -1,13 +1,17 @@
 import System.IO (hFlush, stdout)
-import Control.Monad ((<=<))
-import Control.Monad.Except (runExceptT)
-import Control.Monad.Trans (liftIO)
+import Control.Monad.Except (liftIO, runExceptT)
 
 import Readline (addHistory, readline, load_history)
 import Types
 import Reader (read_str)
-import Printer (_pr_str)
-import Env (env_new, env_get, env_set)
+import Printer (_pr_list, _pr_str)
+import Env (Env, env_get, env_let, env_put, env_repl, env_set)
+
+--
+--  Set this to True for a trace of each call to Eval.
+--
+traceEval :: Bool
+traceEval = False
 
 -- read
 
@@ -16,8 +20,6 @@ mal_read = read_str
 
 -- eval
 
--- eval_ast is replaced with pattern matching.
-
 let_bind :: Env -> [MalVal] -> IOThrows ()
 let_bind _ [] = return ()
 let_bind env (MalSymbol b : e : xs) = do
@@ -25,43 +27,52 @@ let_bind env (MalSymbol b : e : xs) = do
     let_bind env xs
 let_bind _ _ = throwStr "invalid let*"
 
-apply_ast :: [MalVal] -> Env -> IOThrows MalVal
+apply_ast :: MalVal -> [MalVal] -> Env -> IOThrows MalVal
 
-apply_ast [] _ = return $ toList []
-
-apply_ast [MalSymbol "def!", MalSymbol a1, a2] env = do
+apply_ast (MalSymbol "def!") [MalSymbol a1, a2] env = do
     evd <- eval env a2
     liftIO $ env_set env a1 evd
     return evd
-apply_ast (MalSymbol "def!" : _) _ = throwStr "invalid def!"
+apply_ast (MalSymbol "def!") _ _ = throwStr "invalid def!"
 
-apply_ast [MalSymbol "let*", MalSeq _ _ params, a2] env = do
-    let_env <- liftIO $ env_new env
+apply_ast (MalSymbol "let*") [MalSeq _ _ params, a2] env = do
+    let_env <- liftIO $ env_let env
     let_bind let_env params
     eval let_env a2
-apply_ast (MalSymbol "let*" : _) _ = throwStr "invalid let*"
+apply_ast (MalSymbol "let*") _ _ = throwStr "invalid let*"
 
-apply_ast ast env = do
-    evd <- mapM (eval env) ast
+apply_ast first rest env = do
+    evd <- eval env first
     case evd of
-        MalFunction {fn=f} : args -> f args
-        _ -> throwStr . (++) "invalid apply: " =<< liftIO (Printer._pr_str True (toList ast))
+        MalFunction _ f -> f =<< mapM (eval env) rest
+        _               -> throwStr . (++) "invalid apply: " =<< liftIO (_pr_list True " " $ first : rest)
 
 eval :: Env -> MalVal -> IOThrows MalVal
-eval env (MalSymbol sym)            = do
-    maybeVal <- liftIO $ env_get env sym
-    case maybeVal of
-        Nothing  -> throwStr $ "'" ++ sym ++ "' not found"
-        Just val -> return val
-eval env (MalSeq _ (Vect False) xs) = apply_ast xs env
-eval env (MalSeq m (Vect True)  xs) = MalSeq m (Vect True) <$> mapM (eval env) xs
-eval env (MalHashMap m xs)          = MalHashMap m         <$> mapM (eval env) xs
-eval _   ast                        = return ast
+eval env ast = do
+    case traceEval of
+        True -> liftIO $ do
+            putStr "EVAL: "
+            putStr =<< _pr_str True ast
+            putStr "   "
+            env_put env
+            putStrLn ""
+            hFlush stdout
+        False -> pure ()
+    case ast of
+        MalSymbol sym -> do
+            maybeVal <- liftIO $ env_get env sym
+            case maybeVal of
+                Nothing  -> throwStr $ "'" ++ sym ++ "' not found"
+                Just val -> return val
+        MalSeq _ (Vect False) (a1 : as) -> apply_ast a1 as env
+        MalSeq _ (Vect True)  xs        -> MalSeq (MetaData Nil) (Vect True) <$> mapM (eval env) xs
+        MalHashMap _ xs                 -> MalHashMap (MetaData Nil) <$> mapM (eval env) xs
+        _ -> return ast
 
 -- print
 
 mal_print :: MalVal -> IOThrows String
-mal_print = liftIO. Printer._pr_str True
+mal_print = liftIO . Printer._pr_str True
 
 -- repl
 
@@ -82,7 +93,7 @@ divd [MalNumber a, MalNumber b] = return $ MalNumber $ a `div` b
 divd _ = throwStr $ "illegal arguments to /"
 
 rep :: Env -> String -> IOThrows String
-rep env = mal_print <=< eval env <=< mal_read
+rep env line = mal_print =<< eval env =<< mal_read line
 
 repl_loop :: Env -> IO ()
 repl_loop env = do
@@ -102,13 +113,13 @@ repl_loop env = do
 
 defBuiltIn :: Env -> String -> Fn -> IO ()
 defBuiltIn env sym f =
-    env_set env sym $ MalFunction {fn=f, f_ast=Nil, f_params=[], macro=False, meta=Nil}
+    env_set env sym $ MalFunction (MetaData Nil) f
 
 main :: IO ()
 main = do
     load_history
 
-    repl_env <- env_new []
+    repl_env <- env_repl
 
     defBuiltIn repl_env "+" add
     defBuiltIn repl_env "-" sub

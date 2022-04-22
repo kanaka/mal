@@ -35,13 +35,14 @@ Here is the final diagram for [step A](process/guide.md#stepA):
 ![stepA_mal architecture](process/stepA_mal.png)
 
 If you are interested in creating a mal implementation (or just
-interested in using mal for something), please drop by the #mal
-channel on freenode. In addition to the [make-a-lisp process
-guide](process/guide.md) there is also a [mal/make-a-lisp
+interested in using mal for something), you are welcome to to join our
+[Discord](https://discord.gg/CKgnNbJBpF) or join #mal on
+[libera.chat](https://libera.chat/). In addition to the [make-a-lisp
+process guide](process/guide.md) there is also a [mal/make-a-lisp
 FAQ](docs/FAQ.md) where I attempt to answer some common questions.
 
 
-**3. Mal is implemented in 82 languages (85 different implementations and 105 runtime modes)**
+**3. Mal is implemented in 87 languages (93 different implementations and 115 runtime modes)**
 
 | Language | Creator |
 | -------- | ------- |
@@ -52,6 +53,7 @@ FAQ](docs/FAQ.md) where I attempt to answer some common questions.
 | [BASIC](#basic-c64-and-qbasic) (C64 &amp; QBasic) | [Joel Martin](https://github.com/kanaka) |
 | [BBC BASIC V](#bbc-basic-v) | [Ben Harris](https://github.com/bjh21) |
 | [C](#c) | [Joel Martin](https://github.com/kanaka)  |
+| [C #2](#c2) | [Duncan Watts](https://github.com/fungiblecog)  |
 | [C++](#c-1) | [Stephen Thirlwall](https://github.com/sdt) |
 | [C#](#c-2) | [Joel Martin](https://github.com/kanaka)  |
 | [ChucK](#chuck) | [Vasilij Schneidermann](https://github.com/wasamasa) |
@@ -69,6 +71,7 @@ FAQ](docs/FAQ.md) where I attempt to answer some common questions.
 | [F#](#f) | [Peter Stephens](https://github.com/pstephens) |
 | [Factor](#factor) | [Jordan Lewis](https://github.com/jordanlewis) |
 | [Fantom](#fantom) | [Dov Murik](https://github.com/dubek) |
+| [Fennel](#fennel) | [sogaiu](https://github.com/sogaiu) |
 | [Forth](#forth) | [Chris Houser](https://github.com/chouser) |
 | [GNU Guile](#gnu-guile-21) | [Mu Lei](https://github.com/NalaGinrut) |
 | [GNU Smalltalk](#gnu-smalltalk) | [Vasilij Schneidermann](https://github.com/wasamasa) |
@@ -78,7 +81,9 @@ FAQ](docs/FAQ.md) where I attempt to answer some common questions.
 | [Haxe](#haxe-neko-python-c-and-javascript) (Neko, Python, C++, &amp; JS) | [Joel Martin](https://github.com/kanaka) |
 | [Hy](#hy) | [Joel Martin](https://github.com/kanaka)  |
 | [Io](#io) | [Dov Murik](https://github.com/dubek) |
+| [Janet](#janet) | [sogaiu](https://github.com/sogaiu) |
 | [Java](#java-17) | [Joel Martin](https://github.com/kanaka)  |
+| [Java](#java-using-truffle-for-graalvm) (Truffle/GraalVM) | [Matt McGill](https://github.com/mmcgill)
 | [JavaScript](#javascriptnode) ([Demo](http://kanaka.github.io/mal)) | [Joel Martin](https://github.com/kanaka) |
 | [jq](#jq) | [Ali MohammadPur](https://github.com/alimpfard) |
 | [Julia](#julia) | [Joel Martin](https://github.com/kanaka)  |
@@ -104,6 +109,8 @@ FAQ](docs/FAQ.md) where I attempt to answer some common questions.
 | [PL/SQL](#plsql-oracle-sql-procedural-language) (Oracle) | [Joel Martin](https://github.com/kanaka) |
 | [PostScript](#postscript-level-23) | [Joel Martin](https://github.com/kanaka)  |
 | [PowerShell](#powershell) | [Joel Martin](https://github.com/kanaka)  |
+| [Prolog](#prolog-logical-language) | [Nicolas Boulenguez](https://github.com/asarhaddon) |
+| [PureScript](#purescript) | [mrsekut](https://github.com/mrsekut) |
 | [Python](#python-2x-and-3x) (2.X &amp; 3.X) | [Joel Martin](https://github.com/kanaka) |
 | [Python #2](#python2-3x) (3.X) | [Gavin Lewis](https://github.com/epylar) |
 | [RPython](#rpython) | [Joel Martin](https://github.com/kanaka)  |
@@ -111,10 +118,12 @@ FAQ](docs/FAQ.md) where I attempt to answer some common questions.
 | [Racket](#racket-53) | [Joel Martin](https://github.com/kanaka)  |
 | [Rexx](#rexx) | [Dov Murik](https://github.com/dubek) |
 | [Ruby](#ruby-19) | [Joel Martin](https://github.com/kanaka)  |
+| [Ruby #2](#ruby) | [Ryan Cook](https://github.com/cookrn)  |
 | [Rust](#rust-138) | [Joel Martin](https://github.com/kanaka)  |
 | [Scala](#scala) | [Joel Martin](https://github.com/kanaka)  |
 | [Scheme (R7RS)](#scheme-r7rs) | [Vasilij Schneidermann](https://github.com/wasamasa) |
 | [Skew](#skew) | [Dov Murik](https://github.com/dubek) |
+| [Standard ML](#sml) | [Fabian Bergström](https://github.com/fabjan) |
 | [Swift 2](#swift) | [Keith Rollin](https://github.com/keith-rollin) |
 | [Swift 3](#swift-3) | [Joel Martin](https://github.com/kanaka)  |
 | [Swift 4](#swift-4) | [陆遥](https://github.com/LispLY)  |
@@ -178,6 +187,10 @@ The following implementations are maintained as separate projects:
 
 * [by Tim Morgan](https://github.com/seven1m/mal-rust)
 * [by vi](https://github.com/vi/mal-rust-vi) - using [Pest](https://pest.rs/) grammar, not using typical Mal infrastructure (cargo-ized steps and built-in converted tests).
+
+### Q
+
+* [by Ali Mohammad Pur](https://github.com/alimpfard/mal/tree/q/impls/q) - The Q implementation works fine but it requires a proprietary manual download that can't be Dockerized (or integrated into the mal CI pipeline) so for now it remains a separate project.
 
 
 ## Other mal Projects
@@ -287,6 +300,18 @@ cd impls/c
 make
 ./stepX_YYY
 ```
+
+### C.2
+
+The second C implementation of mal requires the following libraries (lib and
+header packages): libedit, libgc, libdl, and libffi.
+
+```
+cd impls/c.2
+make
+./stepX_YYY
+```
+
 
 ### C++
 
@@ -481,6 +506,16 @@ make lib/fan/stepX_YYY.pod
 STEP=stepX_YYY ./run
 ```
 
+### Fennel
+
+The Fennel implementation of mal has been tested with Fennel version
+0.9.1 on Lua 5.4.
+
+```
+cd impls/fennel
+fennel ./stepX_YYY.fnl
+```
+
 ### Forth
 
 ```
@@ -578,6 +613,15 @@ cd impls/io
 io ./stepX_YYY.io
 ```
 
+### Janet
+
+The Janet implementation of mal has been tested with Janet version 1.12.2.
+
+```
+cd impls/janet
+janet ./stepX_YYY.janet
+```
+
 ### Java 1.7
 
 The Java implementation of mal requires maven2 to build.
@@ -588,6 +632,19 @@ mvn compile
 mvn -quiet exec:java -Dexec.mainClass=mal.stepX_YYY
     # OR
 mvn -quiet exec:java -Dexec.mainClass=mal.stepX_YYY -Dexec.args="CMDLINE_ARGS"
+```
+
+### Java, using Truffle for GraalVM
+
+This Java implementation will run on OpenJDK, but can run
+as much as 30x faster on GraalVM thanks to the Truffle framework.
+It's been tested with OpenJDK 11, GraalVM CE 20.1.0, and
+GraalVM CE 21.1.0.
+
+```
+cd impls/java-truffle
+./gradlew build
+STEP=stepX_YYY ./run
 ```
 
 ### JavaScript/Node
@@ -871,6 +928,26 @@ cd impls/powershell
 powershell ./stepX_YYY.ps1
 ```
 
+### Prolog
+
+The Prolog implementation uses some constructs specific to SWI-Prolog,
+includes readline support and has been tested on Debian GNU/Linux with
+version 8.2.1.
+
+```
+cd impls/prolog
+swipl stepX_YYY
+```
+
+### PureScript
+The PureScript implementation requires the spago compiler version 0.20.2.
+
+```
+cd impls/purs
+make
+node ./stepX_YYY.js
+```
+
 ### Python (2.X and 3.X)
 
 ```
@@ -936,6 +1013,19 @@ cd impls/ruby
 ruby stepX_YYY.rb
 ```
 
+### Ruby #2
+
+A second Ruby implementation with the following goals:
+
+- No global variables
+- No modification (monkey-patching) of core Ruby classes
+- Modularized into the `Mal` module namespace
+
+```
+cd impls/ruby.2
+ruby stepX_YYY.rb
+```
+
 ### Rust (1.38+)
 
 The rust implementation of mal requires the rust compiler and build
@@ -960,16 +1050,15 @@ scala -classpath target/scala*/classes stepX_YYY
 
 ### Scheme (R7RS) ###
 
-The Scheme implementation of mal has been tested with Chibi-Scheme
-0.7.3, Kawa 2.4, Gauche 0.9.5, CHICKEN 4.11.0, Sagittarius 0.8.3,
-Cyclone 0.6.3 (Git version) and Foment 0.4 (Git version).  You should
+The Scheme implementation of MAL has been tested with Chibi-Scheme
+0.10, Kawa 3.1.1, Gauche 0.9.6, CHICKEN 5.1.0, Sagittarius 0.9.7,
+Cyclone 0.32.0 (Git version) and Foment 0.4 (Git version).  You should
 be able to get it running on other conforming R7RS implementations
 after figuring out how libraries are loaded and adjusting the
 `Makefile` and `run` script accordingly.
 
 ```
 cd impls/scheme
-make symlinks
 # chibi
 scheme_MODE=chibi ./run
 # kawa
@@ -997,6 +1086,27 @@ The Skew implementation of mal has been tested with Skew 0.7.42.
 cd impls/skew
 make
 node stepX_YYY.js
+```
+
+
+### Standard ML (Poly/ML, MLton, Moscow ML)
+
+The Standard ML implementation of mal requires an
+[SML97](https://github.com/SMLFamily/The-Definition-of-Standard-ML-Revised)
+implementation. The Makefile supports Poly/ML, MLton, Moscow ML, and has
+been tested with Poly/ML 5.8.1, MLton 20210117, and Moscow ML version 2.10.
+
+```
+cd impls/sml
+# Poly/ML
+make sml_MODE=polyml
+./stepX_YYY
+# MLton
+make sml_MODE=mlton
+./stepX_YYY
+# Moscow ML
+make sml_MODE=mosml
+./stepX_YYY
 ```
 
 

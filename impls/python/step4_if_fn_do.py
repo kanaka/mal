@@ -18,11 +18,7 @@ def eval_ast(ast, env):
     elif types._vector_Q(ast):
         return types._vector(*map(lambda a: EVAL(a, env), ast))
     elif types._hash_map_Q(ast):
-        keyvals = []
-        for k in ast.keys():
-            keyvals.append(EVAL(k, env))
-            keyvals.append(EVAL(ast[k], env))
-        return types._hash_map(*keyvals)
+        return types.Hash_Map((k, EVAL(v, env)) for k, v in ast.items())
     else:
         return ast  # primitive value, return unchanged
 

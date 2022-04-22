@@ -15,8 +15,11 @@ TUPLE: malfn
     { env malenv read-only }
     { binds sequence read-only }
     { exprs read-only }
-    { macro? boolean }
+    { macro? boolean read-only }
     { meta assoc } ;
+
+: malmacro ( fn -- fn )
+    [ env>> ] [ binds>> ] [ exprs>> ] tri t f malfn boa ;
 
 : <malfn> ( env binds exprs -- fn )
     f f malfn boa ;

@@ -152,7 +152,10 @@ let init env = begin
   Env.set env (Types.symbol "symbol?")
     (Types.fn (function [T.Symbol _] -> T.Bool true | _ -> T.Bool false));
   Env.set env (Types.symbol "keyword")
-    (Types.fn (function [T.String x] -> T.Keyword x | _ -> T.Nil));
+    (Types.fn (function
+                | [T.String x]  -> T.Keyword x
+                | [T.Keyword x] -> T.Keyword x
+                | _ -> T.Nil));
   Env.set env (Types.symbol "keyword?")
     (Types.fn (function [T.Keyword _] -> T.Bool true | _ -> T.Bool false));
   Env.set env (Types.symbol "number?")
