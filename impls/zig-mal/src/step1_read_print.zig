@@ -9,24 +9,24 @@ const MalType = types.MalType;
 const input_buffer_length = 256;
 const prompt = "user> ";
 
-fn READ(allocator: *Allocator, input: []const u8) !MalType {
+fn READ(allocator: Allocator, input: []const u8) !MalType {
     const form = try reader.read_str(allocator, input);
     return form;
 }
 
-fn EVAL(allocator: *Allocator, form: *const MalType) !MalType {
+fn EVAL(allocator: Allocator, form: *const MalType) !MalType {
     // const result = form;
     var result = try allocator.create(MalType);
     result.* = form.*;
     return result.*;
 }
 
-fn PRINT(allocator: *Allocator, form: *const MalType) ![]const u8 {
+fn PRINT(allocator: Allocator, form: *const MalType) ![]const u8 {
     const output = try printer.pr_str(allocator, form);
     return output;
 }
 
-fn rep(allocator: *Allocator, input: []const u8) ![]const u8 {
+fn rep(allocator: Allocator, input: []const u8) ![]const u8 {
     const form = try READ(allocator, input);
     const result = try EVAL(allocator, &form);
     const output = try PRINT(allocator, &result);
@@ -54,11 +54,11 @@ pub fn main() anyerror!void {
             break;
         };
         // arena allocator, memory is freed at end of loop iteration
-        var arena = std.heap.ArenaAllocator.init(&gpa.allocator);
+        var arena = std.heap.ArenaAllocator.init(gpa.allocator());
         defer arena.deinit();
 
         // read-eval-print
-        if (rep(&arena.allocator, line)) |result|
+        if (rep(arena.allocator(), line)) |result|
             try stdout.print("{s}\n", .{result})
         else |err| {
             const message = switch (err) {

@@ -31,7 +31,7 @@ fn divide(a: i32, b: i32) i32 {
     return @divFloor(a, b);
 }
 
-fn READ(allocator: *Allocator, input: []const u8) !MalType {
+fn READ(allocator: Allocator, input: []const u8) !MalType {
     const ast = try reader.read_str(allocator, input);
     return ast;
 }
@@ -45,7 +45,7 @@ const EvalError = error{
     EnvSymbolNotFound,
 } || Allocator.Error;
 
-fn eval_ast(allocator: *Allocator, ast: *const MalType, env: *Env) EvalError!MalValue {
+fn eval_ast(allocator: Allocator, ast: *const MalType, env: *Env) EvalError!MalValue {
     switch (ast.*) {
         .atom => |atom| return switch (atom) {
             .symbol => |symbol| env.get(symbol),
@@ -62,7 +62,7 @@ fn eval_ast(allocator: *Allocator, ast: *const MalType, env: *Env) EvalError!Mal
     }
 }
 
-fn EVAL(allocator: *Allocator, ast: *const MalType, env: *Env) EvalError!MalValue {
+fn EVAL(allocator: Allocator, ast: *const MalType, env: *Env) EvalError!MalValue {
     switch (ast.*) {
         .list => |list| if (list.items.len == 0) return MalValue{ .mal_type = ast.* } else {
             const symbol = list.items[0].asSymbol() catch return error.EvalInvalidSymbol;
@@ -117,12 +117,12 @@ fn EVAL(allocator: *Allocator, ast: *const MalType, env: *Env) EvalError!MalValu
     }
 }
 
-fn PRINT(allocator: *Allocator, ast: *const MalType) ![]const u8 {
+fn PRINT(allocator: Allocator, ast: *const MalType) ![]const u8 {
     const output = try printer.pr_str(allocator, ast);
     return output;
 }
 
-fn rep(allocator: *Allocator, input: []const u8, env: *Env) ![]const u8 {
+fn rep(allocator: Allocator, input: []const u8, env: *Env) ![]const u8 {
     const ast = try READ(allocator, input);
     const result = try EVAL(allocator, &ast, env);
 
@@ -142,7 +142,7 @@ pub fn main() anyerror!void {
     defer _ = gpa.deinit();
 
     // REPL environment
-    var env = Env.init(&gpa.allocator, null);
+    var env = Env.init(gpa.allocator(), null);
     defer env.deinit();
 
     try env.set("+", MalValue.makeFunction(add));
@@ -166,11 +166,11 @@ pub fn main() anyerror!void {
             break;
         };
         // arena allocator, memory is freed at end of loop iteration
-        var arena = std.heap.ArenaAllocator.init(&gpa.allocator);
+        var arena = std.heap.ArenaAllocator.init(gpa.allocator());
         defer arena.deinit();
 
         // read-eval-print
-        if (rep(&arena.allocator, line, &env)) |result|
+        if (rep(arena.allocator(), line, &env)) |result|
             try stdout.print("{s}\n", .{result})
         else |err| {
             const message = switch (err) {

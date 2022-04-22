@@ -6,7 +6,7 @@ const MalType = types.MalType;
 
 const Error = error{OutOfMemory};
 
-pub fn pr_str(allocator: *Allocator, form: *const MalType) Error![]const u8 {
+pub fn pr_str(allocator: Allocator, form: *const MalType) Error![]const u8 {
     // TODO: this needs a significant refactoring to work with an allocator
     // other than arena, not planned for deallocation
     return switch (form.*) {

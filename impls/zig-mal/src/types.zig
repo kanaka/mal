@@ -34,17 +34,17 @@ pub const MalType = union(enum) {
         return .{ .list = list };
     }
 
-    pub fn initListAlloc(allocator: *Allocator) !MalType {
+    pub fn initListAlloc(allocator: Allocator) !MalType {
         return MalType{ .list = try List.init(allocator) };
     }
 
-    pub fn initListCapacity(allocator: *Allocator, num: usize) !MalType {
+    pub fn initListCapacity(allocator: Allocator, num: usize) !MalType {
         return MalType{ .list = try List.initCapacity(allocator, num) };
     }
 
     const Self = @This();
 
-    // pub fn listMap(self: Self, allocator: *Allocator, mapFn: fn (element: *const MalType) !MalType) !MalType {
+    // pub fn listMap(self: Self, allocator: Allocator, mapFn: fn (element: *const MalType) !MalType) !MalType {
     //     var results = List.initCapacity(allocator, list.items.len);
     //     var results_list = results.asList();
     //     for (self.asList()) |item| {
@@ -104,7 +104,7 @@ pub const MalValue = union(enum) {
     list: List,
     function: Function,
 
-    pub fn initListCapacity(allocator: *Allocator, num: usize) !MalValue {
+    pub fn initListCapacity(allocator: Allocator, num: usize) !MalValue {
         return MalValue{ .list = try List.initCapacity(allocator, num) };
     }
 
@@ -123,11 +123,11 @@ pub const MalValue = union(enum) {
 
     const Self = @This();
 
-    pub fn deinit(self: Self, allocator: *Allocator) void {
+    pub fn deinit(self: Self, allocator: Allocator) void {
         if (self.getString()) |string| allocator.free(string);
     }
 
-    pub fn copy(self: Self, allocator: *Allocator) !MalValue {
+    pub fn copy(self: Self, allocator: Allocator) !MalValue {
         return if (self.getString()) |string| MalValue.makeString(try allocator.dupe(u8, string)) else self;
     }
 

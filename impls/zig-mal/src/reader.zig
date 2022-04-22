@@ -43,7 +43,7 @@ const ReadError = error{
     TokensPastFormEnd,
 } || Allocator.Error;
 
-pub fn read_str(allocator: *Allocator, input: []const u8) !MalType {
+pub fn read_str(allocator: Allocator, input: []const u8) !MalType {
     // tokenize input string into token list
     const tokens = try tokenize(allocator, input);
 
@@ -64,7 +64,7 @@ pub fn read_str(allocator: *Allocator, input: []const u8) !MalType {
     return form;
 }
 
-fn read_form(allocator: *Allocator, reader: *Reader) ReadError!?MalType {
+fn read_form(allocator: Allocator, reader: *Reader) ReadError!?MalType {
     return if (reader.peek()) |first_token|
         switch (first_token[0]) {
             '(' => try read_list(allocator, reader),
@@ -75,7 +75,7 @@ fn read_form(allocator: *Allocator, reader: *Reader) ReadError!?MalType {
         error.EndOfInput;
 }
 
-fn read_list(allocator: *Allocator, reader: *Reader) !MalType {
+fn read_list(allocator: Allocator, reader: *Reader) !MalType {
     // skip over the first '(' token in the list
     _ = reader.next();
     var list = std.ArrayList(MalType).init(allocator);
@@ -90,13 +90,13 @@ fn read_list(allocator: *Allocator, reader: *Reader) !MalType {
             break;
         }
         // no matching closing ')' parenthes, return error
-    } else |err| return error.ListNoClosingTag;
+    } else |_| return error.ListNoClosingTag;
     // skip over the last ')' token in the list
     _ = reader.next();
     return MalType{ .list = list };
 }
 
-fn read_atom(allocator: *Allocator, reader: *Reader) !MalType {
+fn read_atom(_: Allocator, reader: *Reader) !MalType {
     return MalType{
         .atom = if (reader.next()) |token|
             // TODO: support keyword
@@ -110,7 +110,7 @@ fn read_atom(allocator: *Allocator, reader: *Reader) !MalType {
                 Atom{ .string = token[1 .. token.len - 1] }
             else if (std.fmt.parseInt(i32, token, 10)) |int|
                 Atom{ .number = int }
-            else |_err|
+            else |_|
                 Atom{ .symbol = token }
         else
             return error.EndOfInput,
@@ -143,7 +143,7 @@ const TokenizeError = error{
 // [^\s\[\]{}('"`,;)]*: Captures a sequence of zero or more non special characters (e.g.
 // symbols, numbers, "true", "false", and "nil") and is sort of the inverse of the one above
 // that captures special characters (tokenized).
-fn tokenize(allocator: *Allocator, input: []const u8) !TokenList {
+fn tokenize(allocator: Allocator, input: []const u8) !TokenList {
     var tokens = TokenList.init(allocator);
 
     const State = enum {
