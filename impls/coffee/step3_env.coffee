@@ -15,7 +15,7 @@ eval_ast = (ast, env) ->
     types._vector(ast.map((a) -> EVAL(a, env))...)
   else if types._hash_map_Q(ast)
     new_hm = {}
-    new_hm[k] = EVAL(ast[k],env) for k,v of ast
+    new_hm[k] = EVAL(v, env) for k,v of ast
     new_hm
   else ast
 

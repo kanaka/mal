@@ -40,9 +40,9 @@
     ((? list? lst) (map _eval lst))
     ((? vector? vec) (vector-map (lambda (i x) (_eval x)) vec))
     ((? hash-table? ht)
-     ;; NOTE: we must allocate a new hashmap here to avoid any side-effects, or
-     ;;       there'll be strange bugs!!!
-     (list->hash-map (hash-fold (lambda (k v p) (cons k (cons (_eval v) p))) '() ht)))
+     (define new-ht (make-hash-table))
+     (hash-for-each (lambda (k v) (hash-set! new-ht k (_eval v))) ht)
+     new-ht)
     (else ast)))
 
 
@@ -100,8 +100,7 @@
         (() ast)
         (('defmacro! k v)
          (let ((c (EVAL v env)))
-           (callable-is_macro-set! c #t)
-           ((env 'set) k c)))
+           ((env 'set) k (callable-as-macro c))))
         (('macroexpand obj) (_macroexpand obj env))
         (('quote obj) obj)
         (('quasiquoteexpand obj) (_quasiquote obj))

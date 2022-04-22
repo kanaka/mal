@@ -162,6 +162,7 @@ namespace Mal {
                 a1 = ast[1];
                 a2 = ast[2];
                 res = EVAL(a2, env);
+                res = res.copy();
                 ((MalFunc)res).setMacro();
                 env.set(((MalSymbol)a1), res);
                 return res;

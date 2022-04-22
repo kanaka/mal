@@ -1,0 +1,12 @@
+local
+    $(SML_LIB)/basis/basis.mlb
+    util.sml
+    types.sml
+    printer.sml
+    reader.sml
+    env.sml
+    core.sml
+    step4_if_fn_do.sml
+in
+    main.sml
+end

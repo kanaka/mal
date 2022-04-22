@@ -113,7 +113,7 @@ proc eval(ast: MalType, env: Env): MalType =
 
       of "defmacro!":
         var fun = ast.list[2].eval(env)
-        fun.malfun.is_macro = true
+        fun = malfun(fun.malfun.fn, fun.malfun.ast, fun.malfun.params, fun.malfun.env, true)
         return env.set(ast.list[1].str, fun)
 
       of "macroexpand":

@@ -15,8 +15,14 @@
 (fantom-eval "[7,8,9]")
 ;=>(7 8 9)
 
+(= () (fantom-eval "[,]"))
+;=>true
+
 (fantom-eval "[\"abc\": 789]")
 ;=>{"abc" 789}
+
+(= {} (fantom-eval "[:]"))
+;=>true
 
 (fantom-eval "echo(\"hello\")")
 ;/hello

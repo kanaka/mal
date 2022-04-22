@@ -563,7 +563,18 @@ package body Core is
 
       Sym_Handle := Car (Rest_List);
 
-      return New_Symbol_Mal_Type (':' & Deref_String (Sym_Handle).Get_String);
+      case Deref (Sym_Handle).Sym_Type is
+         when Str =>
+            return New_Symbol_Mal_Type (':' & Deref_String (Sym_Handle).Get_String);
+         when Sym =>
+            if Deref_Sym (Sym_Handle).Get_Sym (1) = ':' then
+               return Sym_Handle;
+            end if;
+         when others =>
+            null;
+      end case;
+
+      raise Runtime_Exception with "keyword: expects a keyword or string";
 
    end Keyword;
 

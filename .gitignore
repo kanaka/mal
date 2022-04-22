@@ -16,7 +16,9 @@ package-lock.json
 */experiments
 node_modules
 */notes
-
+GPATH
+GTAGS
+GRTAGS
 logs
 old
 tmp/

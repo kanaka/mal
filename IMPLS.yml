@@ -1,0 +1,123 @@
+IMPL:
+  - {IMPL: ada}
+  - {IMPL: ada.2}
+  - {IMPL: awk}
+  - {IMPL: bash, NO_SELF_HOST: 1}  # step8 timeout
+  - {IMPL: basic, basic_MODE: cbm, NO_SELF_HOST: 1}  # step4 OOM
+  - {IMPL: basic, basic_MODE: qbasic, NO_SELF_HOST: 1}  # step4 OOM
+  - {IMPL: bbc-basic}
+  - {IMPL: c}
+  - {IMPL: c.2}
+  - {IMPL: cpp}
+  - {IMPL: coffee}
+  - {IMPL: cs}
+  - {IMPL: chuck, NO_SELF_HOST_PERF: 1}  # perf OOM
+  - {IMPL: clojure, clojure_MODE: clj}
+  - {IMPL: clojure, clojure_MODE: cljs}
+  - {IMPL: common-lisp}
+  - {IMPL: crystal}
+  - {IMPL: d, d_MODE: gdc}
+  - {IMPL: d, d_MODE: ldc2}
+  - {IMPL: d, d_MODE: dmd}
+  - {IMPL: dart}
+  - {IMPL: elisp}
+  - {IMPL: elixir}
+  - {IMPL: elm}
+  - {IMPL: erlang, NO_SELF_HOST: 1}  # step8 OOM
+  - {IMPL: es6}
+  - {IMPL: factor}
+  - {IMPL: fantom}
+  - {IMPL: fennel}
+  - {IMPL: forth}
+  - {IMPL: fsharp}
+  - {IMPL: go}
+  - {IMPL: groovy}
+  - {IMPL: gnu-smalltalk}
+  - {IMPL: guile}
+  - {IMPL: haskell}
+  - {IMPL: haxe, haxe_MODE: neko}
+  - {IMPL: haxe, haxe_MODE: python}
+  - {IMPL: haxe, haxe_MODE: cpp, SLOW: 1}
+  - {IMPL: haxe, haxe_MODE: js}
+  - {IMPL: hy}
+  - {IMPL: io, NO_SELF_HOST_PERF: 1}  # perf OOM
+  - {IMPL: janet}
+  - {IMPL: java}
+  - {IMPL: java-truffle}
+  - {IMPL: jq}
+  - {IMPL: js}
+  - {IMPL: julia}
+  - {IMPL: kotlin}
+  - {IMPL: livescript}
+  - {IMPL: logo, NO_SELF_HOST: 1}  # step4 timeout
+  - {IMPL: lua}
+  - {IMPL: make, NO_SELF_HOST: 1}  # step4 timeout
+  - {IMPL: mal, MAL_IMPL: js,      BUILD_IMPL: js,  NO_SELF_HOST: 1}
+  - {IMPL: mal, MAL_IMPL: js-mal,  BUILD_IMPL: js,  NO_SELF_HOST: 1, NO_PERF: 1, SLOW: 1}
+  - {IMPL: mal, MAL_IMPL: nim,     BUILD_IMPL: nim, NO_SELF_HOST: 1}
+  - {IMPL: mal, MAL_IMPL: nim-mal, BUILD_IMPL: nim, NO_SELF_HOST: 1, NO_PERF: 1, SLOW: 1}
+  - {IMPL: matlab, NO_SELF_HOST_PERF: 1}  # Octave, perf timeout
+  - {IMPL: miniMAL, NO_SELF_HOST_PERF: 1, SLOW: 1}  # perf timeout
+  - {IMPL: nasm, NO_SELF_HOST_PERF: 1}  # perf OOM
+  - {IMPL: nim}
+  - {IMPL: objpascal}
+  - {IMPL: objc}
+  - {IMPL: ocaml}
+  - {IMPL: perl}
+  - {IMPL: perl6}
+  - {IMPL: php}
+  - {IMPL: picolisp}
+  - {IMPL: pike}
+  - {IMPL: plpgsql, NO_SELF_HOST: 1, SLOW: 1}  # step3 timeout
+# - {IMPL: plsql}
+  - {IMPL: prolog}
+  - {IMPL: ps}
+  - {IMPL: powershell, NO_SELF_HOST_PERF: 1}
+  - {IMPL: purs}
+  - {IMPL: python, python_MODE: python2}
+  - {IMPL: python, python_MODE: python3}
+  - {IMPL: python.2}
+  - {IMPL: r}
+  - {IMPL: racket}
+  - {IMPL: rexx}
+  - {IMPL: rpython, SLOW: 1}
+  - {IMPL: ruby}
+  - {IMPL: ruby.2}
+  - {IMPL: rust}
+  - {IMPL: scala}
+  - {IMPL: scheme, scheme_MODE: chibi}
+  - {IMPL: scheme, scheme_MODE: kawa}
+  - {IMPL: scheme, scheme_MODE: gauche}
+  - {IMPL: scheme, scheme_MODE: chicken}
+  - {IMPL: scheme, scheme_MODE: sagittarius}
+  - {IMPL: scheme, scheme_MODE: cyclone}
+# - {IMPL: scheme, scheme_MODE: foment}
+  - {IMPL: skew}
+  - {IMPL: sml, sml_MODE: polyml}
+  - {IMPL: sml, sml_MODE: mlton}
+  - {IMPL: sml, sml_MODE: mosml}
+  - {IMPL: tcl}
+  - {IMPL: ts}
+  - {IMPL: vala}
+  - {IMPL: vb}
+  - {IMPL: vhdl, NO_SELF_HOST_PERF: 1}  # perf timeout
+  - {IMPL: vimscript}
+  # no self-host perf for wasm due to mac stack overflow
+  - {IMPL: wasm, wasm_MODE: wasmtime,  NO_SELF_HOST_PERF: 1, NO_PERF: 1}
+  - {IMPL: wasm, wasm_MODE: wasmer,    NO_SELF_HOST_PERF: 1, NO_PERF: 1}
+  - {IMPL: wasm, wasm_MODE: lucet,     NO_SELF_HOST_PERF: 1, NO_PERF: 1}
+  #- {IMPL: wasm, wasm_MODE: wax,       NO_SELF_HOST_PERF: 1}  # Hangs on GH Actions
+  - {IMPL: wasm, wasm_MODE: node,      NO_SELF_HOST_PERF: 1, NO_PERF: 1}
+  #- {IMPL: wasm, wasm_MODE: warpy,     NO_SELF_HOST_PERF: 1}  # Hangs on GH Actions
+  #- {IMPL: wasm, wasm_MODE: wace_libc, NO_SELF_HOST_PERF: 1}  # Hangs on GH Actions
+  - {IMPL: wren}
+  - {IMPL: xslt}
+  - {IMPL: yorick}
+  - {IMPL: zig}
+
+  # See .travis.yml (for older osx / xcode tests)
+# - {IMPL: objc, NO_DOCKER: 1, OS: xcode7}}
+# - {IMPL: swift,  NO_DOCKER: 1, OS: xcode7.3}}
+# - {IMPL: swift3, NO_DOCKER: 1, OS: xcode8}}
+# - {IMPL: swift4, NO_DOCKER: 1, OS: xcode10}}
+  - {IMPL: swift5, NO_DOCKER: 1, OS: macos}

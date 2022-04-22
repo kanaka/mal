@@ -27,6 +27,8 @@ a
 ;=>()
 (concat (list) (list))
 ;=>()
+(= () (concat))
+;=>true
 
 (def! a (list 1 2))
 (def! b (list 3 4))

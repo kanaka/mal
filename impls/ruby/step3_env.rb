@@ -20,7 +20,7 @@ def eval_ast(ast, env)
             Vector.new ast.map{|a| EVAL(a, env)}
         when Hash
             new_hm = {}
-            ast.each{|k,v| new_hm[EVAL(k,env)] = EVAL(v, env)}
+            ast.each{|k,v| new_hm[k] = EVAL(v, env)}
             new_hm
         else 
             ast

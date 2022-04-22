@@ -233,7 +233,7 @@ function EVAL_let(ast, env,    ret_env,    idx, params, params_idx, params_len, 
 	return body
 }
 
-function EVAL_defmacro(ast, env,    idx, sym, ret, len)
+function EVAL_defmacro(ast, env,    idx, sym, ret, len, fun_idx, mac_idx)
 {
 	idx = substr(ast, 2)
 	if (types_heap[idx]["len"] != 3) {
@@ -259,7 +259,17 @@ function EVAL_defmacro(ast, env,    idx, sym, ret, len)
 		env_release(env)
 		return "!\"Incompatible type for argument 2 of 'defmacro!'. Expects function, supplied " types_typename(ret) "."
 	}
-	types_heap[substr(ret, 2)]["is_macro"] = 1
+
+	# Replace `ret` with a clone setting the `is_macro` bit.
+	fun_idx = substr(ret, 2)
+	mac_idx = types_allocate()
+	types_addref(types_heap[mac_idx]["params"] = types_heap[fun_idx]["params"])
+	types_addref(types_heap[mac_idx]["body"] = types_heap[fun_idx]["body"])
+	env_addref(types_heap[mac_idx]["env"] = types_heap[fun_idx]["env"])
+	types_heap[mac_idx]["is_macro"] = 1
+	types_release(ret)
+	ret = "$" mac_idx
+
 	env_set(env, sym, ret)
 	types_addref(ret)
 	env_release(env)

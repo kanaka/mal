@@ -20,7 +20,7 @@ class Core
 
   static private MalVal concat(MalVal[] a)
   {
-    return MalList(a.reduce(MalVal[,]) |MalVal[] r, MalSeq v -> MalVal[]| { return r.addAll(v.value) })
+    return MalList(a.reduce(MalVal[,]) |MalVal[] r, MalSeq v -> MalVal[]| { r.addAll(v.value) })
   }
 
   static private MalVal apply(MalVal[] a)

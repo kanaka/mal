@@ -29,7 +29,7 @@ PRINT(exp): return printer.pr_str(exp)
 repl_env = new Env()
 rep(str): return PRINT(EVAL(READ(str),repl_env))
 
-;; core.EXT: defined using Racket
+;; core.EXT: defined using the host language.
 core.ns.map((k,v) -> (repl_env.set(k, v)))
 
 ;; core.mal: defined using the language itself

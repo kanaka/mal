@@ -65,7 +65,7 @@ def eval_ast(ast MalVal, env Env) MalVal {
   } else if ast is MalHashMap {
     var result List<MalVal> = []
     (ast as MalHashMap).val.each((k string, v MalVal) => {
-      result.append(EVAL(MalVal.fromHashKey(k), env))
+      result.append(MalVal.fromHashKey(k))
       result.append(EVAL(v, env))
     })
     return MalHashMap.fromList(result)
@@ -101,7 +101,8 @@ def EVAL(ast MalVal, env Env) MalVal {
       ast = quasiquote(astList[1])
       continue # TCO
     } else if a0sym.val == "defmacro!" {
-      var macro = EVAL(astList[2], env) as MalFunc
+      var fn = EVAL(astList[2], env) as MalFunc
+      var macro = MalFunc.new(fn.ast, fn.params, fn.env, fn.func)
       macro.setAsMacro
       return env.set(astList[1] as MalSymbol, macro)
     } else if a0sym.val == "macroexpand" {

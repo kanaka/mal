@@ -76,3 +76,12 @@ y
 ;; Testing vector evaluation
 (let* (a 5 b 6) [3 4 a [b 7] 8])
 ;=>[3 4 5 [6 7] 8]
+
+;>>> soft=True
+;>>> optional=True
+;;
+;; -------- Optional Functionality --------
+
+;; Check that last assignment takes priority
+(let* (x 2 x 3) x)
+;=>3
