@@ -117,6 +117,10 @@ ReadForm ← {𝕊 r:
    "[": ReadList r‿4‿"]" ;
    "{": ReadList r‿5‿"}" ;
    "@": 3‿⟨0‿"deref", ReadForm r⟩;
+   "'": 3‿⟨0‿"quote", ReadForm r⟩;
+   "`": 3‿⟨0‿"quasiquote", ReadForm r⟩;
+   "~": 3‿⟨0‿"unquote", ReadForm r⟩;
+   "~@": 3‿⟨0‿"splice-unquote", ReadForm r⟩;
    Atom 𝕩
   }r.Next@
 }
