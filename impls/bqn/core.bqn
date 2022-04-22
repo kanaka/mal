@@ -36,15 +36,18 @@ ns ← ⟨
 
   "atom"‿{11∾Atom ⊑𝕩}
   "atom?"‿{7∾11=⊑⊑𝕩}
-  "deref"‿{𝕊 ⟨11‿a⟩: a.Deref@; 1‿"deref: not an atom"}
+  "deref"‿{𝕊 ⟨11‿a⟩: a.Deref@; ¯1‿"deref: not an atom"}
   "reset!"‿{
     𝕊 ⟨11‿a,v⟩: a.Reset v;
-    1‿"reset!: not an atom"}
+    ¯1‿"reset!: not an atom"}
   "swap!"‿{
     ⟨t‿a,fn⟩ ← 2↑𝕩
     args ← (<a.Deref@) ∾ 2↓𝕩
     f ← {9‿f: f; 10‿x‿y‿z‿f: f}fn
     a.Reset F args}
+
+  "cons"‿{𝕊 x‿⟨3,xs⟩: 3∾<(<x)∾xs ; ¯1‿"cons"}
+  "concat"‿{𝕊 ⟨⟩:3‿⟨⟩; 3∾<∾´1⊸⊑¨𝕩}
 ⟩
 
 core ⇐ Env@
