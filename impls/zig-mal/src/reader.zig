@@ -118,7 +118,7 @@ fn read_atom(allocator: Allocator, reader: *Reader) !MalType {
     };
 }
 
-fn replaceEscapeSequences(allocator: *Allocator, str: []const u8) ![]const u8 {
+fn replaceEscapeSequences(allocator: Allocator, str: []const u8) ![]const u8 {
     // replace \" with "
     // replace \\ with \
     // replace \n with newline character

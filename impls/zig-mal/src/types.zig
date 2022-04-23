@@ -58,7 +58,7 @@ pub const MalType = union(enum) {
 
     const Self = @This();
 
-    pub fn deinit(self: Self, allocator: *Allocator) void {
+    pub fn deinit(self: Self, allocator: Allocator) void {
         switch (self) {
             .list => |list| {
                 for (list.items) |item| {
@@ -73,7 +73,7 @@ pub const MalType = union(enum) {
         }
     }
 
-    pub fn copy(self: Self, allocator: *Allocator) Allocator.Error!MalType {
+    pub fn copy(self: Self, allocator: Allocator) Allocator.Error!MalType {
         return switch (self) {
             .list => |list| blk: {
                 var list_copy = try List.initCapacity(allocator, list.items.len);
@@ -148,7 +148,7 @@ pub const MalValue = union(enum) {
             pub const Error = error{} || Allocator.Error || std.fs.File.WriteError;
             // unary primitives
             // op_val_out_val: fn (a: *const MalValue) MalValue,
-            op_alloc_val_out_val: fn (allocator: *Allocator, a: *const MalValue) Error!*MalValue,
+            op_alloc_val_out_val: fn (allocator: Allocator, a: *const MalValue) Error!*MalValue,
             op_val_out_bool: fn (a: *const MalValue) bool,
             op_val_out_num: fn (a: *const MalValue) MalType.Number,
             // binary primitives
@@ -156,7 +156,7 @@ pub const MalValue = union(enum) {
             op_num_num_out_num: fn (a: MalType.Number, b: MalType.Number) MalType.Number,
             op_val_val_out_bool: fn (a: *const MalValue, b: *const MalValue) bool,
             // vargars primitives
-            op_alloc_vargars_out_val: fn (allocator: *Allocator, args: MalValue.List) Error!*MalValue,
+            op_alloc_vargars_out_val: fn (allocator: Allocator, args: MalValue.List) Error!*MalValue,
 
             pub fn make(fn_ptr: anytype) MalValue {
                 const type_info = @typeInfo(@TypeOf(fn_ptr));
@@ -188,11 +188,11 @@ pub const MalValue = union(enum) {
                                     if (return_type == bool)
                                         break :blk .{ .op_val_val_out_bool = fn_ptr };
                                 }
-                                if (a_type == *Allocator and b_type == *const MalValue) {
+                                if (a_type == Allocator and b_type == *const MalValue) {
                                     // TODO: and return_type == Error!*MalValue
                                     break :blk .{ .op_alloc_val_out_val = fn_ptr };
                                 }
-                                if (a_type == *Allocator and b_type == MalValue.List) {
+                                if (a_type == Allocator and b_type == MalValue.List) {
                                     // TODO: and return_type == Error!*MalValue
                                     break :blk .{ .op_alloc_vargars_out_val = fn_ptr };
                                 }
@@ -202,7 +202,7 @@ pub const MalValue = union(enum) {
                     },
                 };
             }
-            pub fn eval(primitive: Primitive, allocator: *Allocator, args: []const MalValue) !MalValue {
+            pub fn eval(primitive: Primitive, allocator: Allocator, args: []const MalValue) !MalValue {
                 // TODO: can probably be compile-time generated from function type info
                 switch (primitive) {
                     .op_num_num_out_num => |op| {
@@ -268,7 +268,7 @@ pub const MalValue = union(enum) {
         return MalValue{ .list = List.init(allocator) };
     }
 
-    pub fn initListCapacity(allocator: *Allocator, num: usize) !MalValue {
+    pub fn initListCapacity(allocator: Allocator, num: usize) !MalValue {
         return MalValue{ .list = try List.initCapacity(allocator, num) };
     }
 
@@ -301,7 +301,7 @@ pub const MalValue = union(enum) {
         }
     }
 
-    pub fn copy(self: Self, allocator: *Allocator) Allocator.Error!MalValue {
+    pub fn copy(self: Self, allocator: Allocator) Allocator.Error!MalValue {
         return switch (self) {
             .mal_type => |mal_type| MalValue{ .mal_type = try mal_type.copy(allocator) },
             .list => |list| blk: {
@@ -315,7 +315,7 @@ pub const MalValue = union(enum) {
                 .closure => |closure| blk: {
                     var parameters_copy = try Function.Parameters.initCapacity(allocator, closure.parameters.items.len);
                     for (closure.parameters.items) |item| {
-                        parameters_copy.appendAssumeCapacity(try std.mem.dupe(allocator, u8, item));
+                        parameters_copy.appendAssumeCapacity(try allocator.dupe(u8, item));
                     }
                     break :blk MalValue{ .function = .{ .closure = .{
                         .parameters = parameters_copy,

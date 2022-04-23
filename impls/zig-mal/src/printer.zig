@@ -75,7 +75,7 @@ pub fn pr_str(allocator: Allocator, value: *const MalValue, print_readably: bool
     };
 }
 
-fn replaceWithEscapeSequences(allocator: *Allocator, str: []const u8) ![]const u8 {
+fn replaceWithEscapeSequences(allocator: Allocator, str: []const u8) ![]const u8 {
     // replace " with \"
     // replace \ with \\
     // replace newline character with \n
@@ -84,7 +84,7 @@ fn replaceWithEscapeSequences(allocator: *Allocator, str: []const u8) ![]const u
     return replaceMultipleOwned(u8, 3, allocator, str, needles, replacements);
 }
 
-pub fn printJoin(allocator: *Allocator, separator: []const u8, args: MalValue.List, print_readably: bool) ![]const u8 {
+pub fn printJoin(allocator: Allocator, separator: []const u8, args: MalValue.List, print_readably: bool) ![]const u8 {
     var printed_args = try std.ArrayList([]const u8).initCapacity(allocator, args.items.len);
     defer printed_args.deinit();
     for (args.items) |arg| {

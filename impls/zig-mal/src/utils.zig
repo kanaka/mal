@@ -5,9 +5,9 @@ const assert = std.debug.assert;
 
 /// Perform a replacement on an allocated buffer of pre-determined size. Caller must free returned memory.
 // needles should be the same size as the replacements, 1-1 correspondence
-// pub fn replaceMultipleOwned(comptime T: type, allocator: *Allocator, input: []const T, needles: []const []const T, replacements: []const []const T) Allocator.Error![]T {
-// pub fn replaceMultipleOwned(comptime T: type, allocator: *Allocator, input: []const T, needles: anytype, replacements: anytype) Allocator.Error![]T {
-pub fn replaceMultipleOwned(comptime T: type, comptime n: usize, allocator: *Allocator, input: []const T, needles: [n][]const T, replacements: [n][]const T) Allocator.Error![]T {
+// pub fn replaceMultipleOwned(comptime T: type, allocator: Allocator, input: []const T, needles: []const []const T, replacements: []const []const T) Allocator.Error![]T {
+// pub fn replaceMultipleOwned(comptime T: type, allocator: Allocator, input: []const T, needles: anytype, replacements: anytype) Allocator.Error![]T {
+pub fn replaceMultipleOwned(comptime T: type, comptime n: usize, allocator: Allocator, input: []const T, needles: [n][]const T, replacements: [n][]const T) Allocator.Error![]T {
     // TODO: support slices, other types using anytype,
     // assert ( @typeInfo(@TypeOf(needles)).Struct.fields.len
     // == @typeInfo(@TypeOf(replacements)).Struct.fields.len )

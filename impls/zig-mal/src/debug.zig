@@ -14,11 +14,11 @@ pub fn print_ptr(str: []const u8, ptr: anytype) void {
     std.debug.print("{s} {*}\n", .{ str, ptr });
 }
 
-pub fn print_ast(a: *Allocator, ast: *const MalType) void {
+pub fn print_ast(a: Allocator, ast: *const MalType) void {
     std.debug.print("ast: {s}\n", .{printer.pr_str(a, &MalValue{ .mal_type = ast.* }, true)});
 }
 
-pub fn print_env(a: *Allocator, env: Env) void {
+pub fn print_env(a: Allocator, env: Env) void {
     print_ptr("env: ", &env);
 
     var env_it = env.data.iterator();

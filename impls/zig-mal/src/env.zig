@@ -18,13 +18,13 @@ pub const Env = struct {
         return .{ .outer = outer, .data = Data.init(allocator) };
     }
 
-    pub fn initCapacity(allocator: *Allocator, outer: ?*const Env, size: u32) !Self {
+    pub fn initCapacity(allocator: Allocator, outer: ?*const Env, size: u32) !Self {
         var self = Self.init(allocator, outer);
-        try self.data.ensureCapacity(size);
+        try self.data.ensureTotalCapacity(size);
         return self;
     }
 
-    pub fn initBindExprs(allocator: *Allocator, outer: ?*const Env, binds: []const Key, exprs: []const MalValue) !Self {
+    pub fn initBindExprs(allocator: Allocator, outer: ?*const Env, binds: []const Key, exprs: []const MalValue) !Self {
         std.debug.assert(binds.len == exprs.len);
         var self = try Self.initCapacity(allocator, outer, @intCast(u32, binds.len));
         for (binds) |symbol, i| {
@@ -45,7 +45,7 @@ pub const Env = struct {
         self.* = undefined;
     }
 
-    pub fn deinitAlloc(self: *Self, allocator: *Allocator) void {
+    pub fn deinitAlloc(self: *Self, allocator: Allocator) void {
         var it = self.data.iterator();
         while (it.next()) |entry| {
             // free copied hash map keys and values
@@ -57,7 +57,7 @@ pub const Env = struct {
         self.* = undefined;
     }
 
-    pub fn copy(self: Self, allocator: *Allocator) !*Self {
+    pub fn copy(self: Self, allocator: Allocator) !*Self {
         // const data_copy = try self.data.clone();
         var other_ptr = try allocator.create(Self);
         other_ptr.* = try Self.initCapacity(allocator, self.outer, self.data.unmanaged.size);

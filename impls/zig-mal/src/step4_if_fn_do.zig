@@ -13,7 +13,7 @@ const MalValue = types.MalValue;
 const input_buffer_length = 256;
 const prompt = "user> ";
 
-fn READ(allocator: *Allocator, input: []const u8) !MalType {
+fn READ(allocator: Allocator, input: []const u8) !MalType {
     const ast = try reader.read_str(allocator, input);
     return ast;
 }
@@ -30,7 +30,7 @@ const EvalError = error{
     EvalInvalidFnParamsList,
 } || Allocator.Error || MalValue.Function.Primitive.Error;
 
-fn EVAL(allocator: *Allocator, ast: *const MalType, env: *Env) EvalError!MalValue {
+fn EVAL(allocator: Allocator, ast: *const MalType, env: *Env) EvalError!MalValue {
     // debug.println("EVAL");
     // debug.print_ast(allocator, ast);
     // debug.print_env(allocator, env.*);
@@ -132,7 +132,7 @@ fn EVAL(allocator: *Allocator, ast: *const MalType, env: *Env) EvalError!MalValu
     }
 }
 
-fn eval_ast(allocator: *Allocator, ast: *const MalType, env: *Env) EvalError!MalValue {
+fn eval_ast(allocator: Allocator, ast: *const MalType, env: *Env) EvalError!MalValue {
     switch (ast.*) {
         .atom => |atom| return switch (atom) {
             .symbol => |symbol| env.get(symbol),
@@ -149,7 +149,7 @@ fn eval_ast(allocator: *Allocator, ast: *const MalType, env: *Env) EvalError!Mal
     }
 }
 
-fn evalFunction(allocator: *Allocator, function: MalValue.Function, args: []const MalValue) !MalValue {
+fn evalFunction(allocator: Allocator, function: MalValue.Function, args: []const MalValue) !MalValue {
     switch (function) {
         .primitive => |primitive| return primitive.eval(allocator, args),
         .closure => |closure| {
@@ -165,12 +165,12 @@ fn evalFunction(allocator: *Allocator, function: MalValue.Function, args: []cons
     }
 }
 
-fn PRINT(allocator: *Allocator, ast: *const MalValue) ![]const u8 {
+fn PRINT(allocator: Allocator, ast: *const MalValue) ![]const u8 {
     const output = try printer.pr_str(allocator, ast, true);
     return output;
 }
 
-fn rep(allocator: *Allocator, input: []const u8, env: *Env) ![]const u8 {
+fn rep(allocator: Allocator, input: []const u8, env: *Env) ![]const u8 {
     const ast = try READ(allocator, input);
     const result = try EVAL(allocator, &ast, env);
     const output = try PRINT(allocator, &result);
@@ -184,9 +184,9 @@ pub fn main() anyerror!void {
 
     // REPL environment
     // debug.println("creating global EVAL environment");
-    var env = Env.init(&gpa.allocator, null);
+    var env = Env.init(gpa.allocator(), null);
     defer env.deinit();
-    // debug.print_env(&gpa.allocator, env);
+    // debug.print_env(gpa.allocator(), env);
 
     inline for (@typeInfo(@TypeOf(core.ns)).Struct.fields) |field| {
         try env.set(field.name, @field(core.ns, field.name));
@@ -200,10 +200,10 @@ pub fn main() anyerror!void {
 
     // TODO: use this instead of core.ns.not
     // currently leads to memory leaks due to closure child env
-    // var ar = std.heap.ArenaAllocator.init(&gpa.allocator);
+    // var ar = std.heap.ArenaAllocator.init(gpa.allocator()));
     // defer ar.deinit();
-    // _ = try rep(&ar.allocator, "(def! not (fn* (a) (if a false true)))", &env);
-    // _ = try rep(&gpa.allocator, "(def! not (fn* (a) (if a false true)))", &env);
+    // _ = try rep(ar.allocator(), "(def! not (fn* (a) (if a false true)))", &env);
+    // _ = try rep(gpa.allocator(), "(def! not (fn* (a) (if a false true)))", &env);
 
     // main repl loop
     while (true) {
@@ -216,11 +216,11 @@ pub fn main() anyerror!void {
             break;
         };
         // arena allocator, memory is freed at end of loop iteration
-        var arena = std.heap.ArenaAllocator.init(&gpa.allocator);
+        var arena = std.heap.ArenaAllocator.init(gpa.allocator());
         defer arena.deinit();
 
         // read-eval-print
-        if (rep(&arena.allocator, line, &env)) |result|
+        if (rep(arena.allocator(), line, &env)) |result|
             try stdout.print("{s}\n", .{result})
         else |err| {
             const message = switch (err) {

@@ -44,7 +44,7 @@ pub fn greaterOrEqual(a: Number, b: Number) bool {
     return a >= b;
 }
 
-pub fn list(allocator: *Allocator, params: MalValue.List) Error!*MalValue {
+pub fn list(allocator: Allocator, params: MalValue.List) Error!*MalValue {
     var result_ptr = try allocator.create(MalValue);
     result_ptr.* = MalValue{ .list = params };
     return result_ptr;
@@ -81,19 +81,19 @@ pub fn eql(a: *const MalValue, b: *const MalValue) bool {
     return a.equals(b);
 }
 
-pub fn pr_str(allocator: *Allocator, args: MalValue.List) Error!*MalValue {
+pub fn pr_str(allocator: Allocator, args: MalValue.List) Error!*MalValue {
     var result_ptr = try allocator.create(MalValue);
     result_ptr.* = MalValue.makeString(try printJoin(allocator, "", args, true));
     return result_ptr;
 }
 
-pub fn str(allocator: *Allocator, args: MalValue.List) Error!*MalValue {
+pub fn str(allocator: Allocator, args: MalValue.List) Error!*MalValue {
     var result_ptr = try allocator.create(MalValue);
     result_ptr.* = MalValue.makeString(try printJoin(allocator, "", args, false));
     return result_ptr;
 }
 
-pub fn prn(allocator: *Allocator, args: MalValue.List) Error!*MalValue {
+pub fn prn(allocator: Allocator, args: MalValue.List) Error!*MalValue {
     const string = try printJoin(allocator, " ", args, true);
     defer allocator.free(string);
 
@@ -106,7 +106,7 @@ pub fn prn(allocator: *Allocator, args: MalValue.List) Error!*MalValue {
     return result_ptr;
 }
 
-pub fn println(allocator: *Allocator, args: MalValue.List) Error!*MalValue {
+pub fn println(allocator: Allocator, args: MalValue.List) Error!*MalValue {
     const string = try printJoin(allocator, " ", args, false);
     defer allocator.free(string);
 
