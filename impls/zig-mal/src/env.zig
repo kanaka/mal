@@ -34,26 +34,13 @@ pub const Env = struct {
     }
 
     pub fn deinit(self: *Self) void {
-        const allocator = self.data.allocator;
         var it = self.data.iterator();
         while (it.next()) |entry| {
             // free copied hash map keys and values
-            allocator.free(entry.key_ptr.*);
-            entry.value_ptr.*.deinit(allocator);
+            self.data.allocator.free(entry.key_ptr.*);
+            entry.value_ptr.deinit();
         }
         self.data.deinit();
-        self.* = undefined;
-    }
-
-    pub fn deinitAlloc(self: *Self, allocator: Allocator) void {
-        var it = self.data.iterator();
-        while (it.next()) |entry| {
-            // free copied hash map keys and values
-            allocator.free(entry.key_ptr.*);
-            entry.value_ptr.*.deinit(allocator);
-        }
-        self.data.deinit();
-        allocator.destroy(self);
         self.* = undefined;
     }
 
@@ -87,11 +74,11 @@ pub const Env = struct {
 
         // if needed copy the value to have the same lifetime as the hash map
         const value_copy = try value.copy(allocator);
-        errdefer value_copy.deinit(allocator);
+        errdefer value_copy.deinit();
 
         const get_or_put = try self.data.getOrPut(symbol);
         if (get_or_put.found_existing) {
-            get_or_put.value_ptr.*.deinit(allocator);
+            get_or_put.value_ptr.deinit();
         } else {
             // copy the symbol to use as key with the same lifetime as the hash map
             get_or_put.key_ptr.* = allocator.dupe(u8, symbol) catch |err| {

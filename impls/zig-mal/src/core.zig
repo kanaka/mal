@@ -83,13 +83,13 @@ pub fn eql(a: *const MalValue, b: *const MalValue) bool {
 
 pub fn pr_str(allocator: Allocator, args: MalValue.List) Error!*MalValue {
     var result_ptr = try allocator.create(MalValue);
-    result_ptr.* = MalValue.makeString(try printJoin(allocator, "", args, true));
+    result_ptr.* = MalValue.makeString(allocator, try printJoin(allocator, "", args, true));
     return result_ptr;
 }
 
 pub fn str(allocator: Allocator, args: MalValue.List) Error!*MalValue {
     var result_ptr = try allocator.create(MalValue);
-    result_ptr.* = MalValue.makeString(try printJoin(allocator, "", args, false));
+    result_ptr.* = MalValue.makeString(allocator, try printJoin(allocator, "", args, false));
     return result_ptr;
 }
 
