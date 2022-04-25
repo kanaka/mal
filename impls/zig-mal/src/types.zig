@@ -5,8 +5,9 @@ const Env = @import("env.zig").Env;
 
 pub const MalType = union(enum) {
     pub const Number = i32;
-    pub const Symbol = []const u8;
-    pub const String = []const u8;
+    const StrAlloc = struct { value: []const u8, allocator: Allocator };
+    pub const Symbol = StrAlloc;
+    pub const String = StrAlloc;
     pub const Atom = union(enum) {
         t,
         f,
@@ -36,12 +37,12 @@ pub const MalType = union(enum) {
         return .{ .atom = .{ .number = num } };
     }
 
-    pub fn makeString(string: []const u8) MalType {
-        return .{ .atom = .{ .string = string } };
+    pub fn makeString(allocator: Allocator, string: []const u8) MalType {
+        return .{ .atom = .{ .string = .{ .value = string, .allocator = allocator } } };
     }
 
-    pub fn makeSymbol(symbol: []const u8) MalType {
-        return .{ .atom = .{ .symbol = symbol } };
+    pub fn makeSymbol(allocator: Allocator, symbol: []const u8) MalType {
+        return .{ .atom = .{ .symbol = .{ .value = symbol, .allocator = allocator } } };
     }
 
     pub fn initList(list: List) MalType {
@@ -58,16 +59,16 @@ pub const MalType = union(enum) {
 
     const Self = @This();
 
-    pub fn deinit(self: Self, allocator: Allocator) void {
+    pub fn deinit(self: Self) void {
         switch (self) {
             .list => |list| {
                 for (list.items) |item| {
-                    item.deinit(allocator);
+                    item.deinit();
                 }
                 list.deinit();
             },
             .atom => |atom| switch (atom) {
-                .string, .symbol => |string_or_symbol| allocator.free(string_or_symbol),
+                .string, .symbol => |str_alloc| str_alloc.allocator.free(str_alloc.value),
                 else => {},
             },
         }
@@ -83,8 +84,8 @@ pub const MalType = union(enum) {
                 break :blk .{ .list = list_copy };
             },
             .atom => |atom| switch (atom) {
-                .string => |string| makeString(try allocator.dupe(u8, string)),
-                .symbol => |symbol| makeSymbol(try allocator.dupe(u8, symbol)),
+                .string => |string| makeString(allocator, try allocator.dupe(u8, string.value)),
+                .symbol => |symbol| makeSymbol(allocator, try allocator.dupe(u8, symbol.value)),
                 else => self,
             },
         };
@@ -95,8 +96,8 @@ pub const MalType = union(enum) {
         return @enumToInt(self) == @enumToInt(other.*) and switch (self) {
             .atom => |atom| @enumToInt(self.atom) == @enumToInt(other.atom) and switch (atom) {
                 .number => |number| number == other.atom.number,
-                .string => |string| std.mem.eql(u8, string, other.atom.string),
-                .symbol => |symbol| std.mem.eql(u8, symbol, other.atom.symbol),
+                .string => |string| std.mem.eql(u8, string.value, other.atom.string.value),
+                .symbol => |symbol| std.mem.eql(u8, symbol.value, other.atom.symbol.value),
                 .t, .f, .nil => true,
             },
             .list => |list| list.items.len == other.list.items.len and for (list.items) |item, i| {
@@ -272,29 +273,29 @@ pub const MalValue = union(enum) {
         return MalValue{ .list = try List.initCapacity(allocator, num) };
     }
 
-    pub fn makeString(string: []const u8) MalValue {
-        return .{ .mal_type = MalType.makeString(string) };
+    pub fn makeString(allocator: Allocator, string: []const u8) MalValue {
+        return .{ .mal_type = MalType.makeString(allocator, string) };
     }
 
     const Self = @This();
 
-    pub fn deinit(self: Self, allocator: Allocator) void {
+    pub fn deinit(self: Self) void {
         switch (self) {
-            .mal_type => |mal_type| mal_type.deinit(allocator),
+            .mal_type => |mal_type| mal_type.deinit(),
             .list => |list| {
                 for (list.items) |item| {
-                    item.deinit(allocator);
+                    item.deinit();
                 }
                 list.deinit();
             },
             .function => |function| switch (function) {
                 .closure => |closure| {
                     for (closure.parameters.items) |parameter| {
-                        allocator.free(parameter);
+                        parameter.allocator.free(parameter.value);
                     }
                     closure.parameters.deinit();
-                    closure.body.deinit(allocator);
-                    closure.env.deinitAlloc(allocator);
+                    closure.body.deinit();
+                    closure.env.deinit();
                 },
                 else => {},
             },
@@ -315,7 +316,7 @@ pub const MalValue = union(enum) {
                 .closure => |closure| blk: {
                     var parameters_copy = try Function.Parameters.initCapacity(allocator, closure.parameters.items.len);
                     for (closure.parameters.items) |item| {
-                        parameters_copy.appendAssumeCapacity(try allocator.dupe(u8, item));
+                        parameters_copy.appendAssumeCapacity(.{ .value = try allocator.dupe(u8, item.value), .allocator = allocator });
                     }
                     break :blk MalValue{ .function = .{ .closure = .{
                         .parameters = parameters_copy,
@@ -342,7 +343,7 @@ pub const MalValue = union(enum) {
                     if (!closure.body.equals(&other.function.closure.body)) break :blk false;
                     if (closure.parameters.items.len != other.function.closure.parameters.items.len) break :blk false;
                     for (closure.parameters.items) |item, i| {
-                        if (!std.mem.eql(u8, item, other.function.closure.parameters.items[i])) break :blk false;
+                        if (!std.mem.eql(u8, item.value, other.function.closure.parameters.items[i].value)) break :blk false;
                     } else break :blk true;
                 },
                 .primitive => |primitive| @enumToInt(primitive) == @enumToInt(other.function.primitive) and

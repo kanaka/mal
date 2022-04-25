@@ -18,7 +18,7 @@ pub fn pr_str(allocator: Allocator, value: *const MalValue, print_readably: bool
                 const writer = result.writer();
                 try writer.writeAll("(fn* (");
                 for (closure.parameters.items) |parameter, i| {
-                    try writer.writeAll(parameter);
+                    try writer.writeAll(parameter.value);
                     if (i < closure.parameters.items.len - 1) {
                         try writer.writeAll(" ");
                     }
@@ -36,8 +36,8 @@ pub fn pr_str(allocator: Allocator, value: *const MalValue, print_readably: bool
                 .t => "true",
                 .f => "false",
                 .number => |number| try std.fmt.allocPrint(allocator, "{d}", .{number}),
-                .string => |string| if (print_readably) try std.fmt.allocPrint(allocator, "\"{s}\"", .{replaceWithEscapeSequences(allocator, string)}) else string,
-                .symbol => |symbol| symbol,
+                .string => |string| if (print_readably) try std.fmt.allocPrint(allocator, "\"{s}\"", .{replaceWithEscapeSequences(allocator, string.value)}) else string.value,
+                .symbol => |symbol| symbol.value,
             },
             .list => |list| {
                 var printed_forms = std.ArrayList(u8).init(allocator);

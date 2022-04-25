@@ -42,19 +42,19 @@ fn EVAL(allocator: Allocator, ast: *const MalType, env: *Env) EvalError!MalValue
             if (first == .atom and first.atom == .symbol) {
                 const symbol = first.atom.symbol;
 
-                if (std.mem.eql(u8, symbol, "def!")) {
+                if (std.mem.eql(u8, symbol.value, "def!")) {
                     const rest = list.items[1..];
                     if (rest.len != 2) return error.EvalDefInvalidOperands;
                     const key_symbol = rest[0].asSymbol() catch return error.EvalDefInvalidOperands;
 
                     const evaled_value = try EVAL(allocator, &rest[1], env);
                     // debug.print_ptr("mutating environment", env);
-                    try env.set(key_symbol, evaled_value);
+                    try env.set(key_symbol.value, evaled_value);
                     // debug.print_env(allocator, env.*);
                     return evaled_value;
                 }
 
-                if (std.mem.eql(u8, symbol, "let*")) {
+                if (std.mem.eql(u8, symbol.value, "let*")) {
                     const rest = list.items[1..];
                     if (rest.len != 2) return error.EvalLetInvalidOperands;
                     const bindings = rest[0].asList() catch return error.EvalLetInvalidOperands;
@@ -70,13 +70,13 @@ fn EVAL(allocator: Allocator, ast: *const MalType, env: *Env) EvalError!MalValue
                         const current_bindings = bindings.items[i .. i + 2];
                         const key_symbol = current_bindings[0].asSymbol() catch return error.EvalDefInvalidOperands;
                         const evaled_value = try EVAL(allocator, &current_bindings[1], &let_env);
-                        try let_env.set(key_symbol, evaled_value);
+                        try let_env.set(key_symbol.value, evaled_value);
                     }
                     const evaled_value = try EVAL(allocator, &rest[1], &let_env);
                     return evaled_value;
                 }
 
-                if (std.mem.eql(u8, symbol, "if")) {
+                if (std.mem.eql(u8, symbol.value, "if")) {
                     const rest = list.items[1..];
                     if (rest.len != 2 and rest.len != 3) return error.EvalIfInvalidOperands;
                     const condition = rest[0];
@@ -89,7 +89,7 @@ fn EVAL(allocator: Allocator, ast: *const MalType, env: *Env) EvalError!MalValue
                         return MalValue{ .mal_type = .{ .atom = .nil } };
                 }
 
-                if (std.mem.eql(u8, symbol, "do")) {
+                if (std.mem.eql(u8, symbol.value, "do")) {
                     const do_len = list.items.len - 1;
                     if (do_len < 1) return error.EvalDoInvalidOperands;
                     const do_items = list.items[1..];
@@ -100,7 +100,7 @@ fn EVAL(allocator: Allocator, ast: *const MalType, env: *Env) EvalError!MalValue
                     return result;
                 }
 
-                if (std.mem.eql(u8, symbol, "fn*")) {
+                if (std.mem.eql(u8, symbol.value, "fn*")) {
                     const parameters = list.items[1].asList() catch return error.EvalInvalidFnParamsList;
                     const body = list.items[2];
                     // convert from a list of MalType to a list of valid symbol keys to use in environment init
@@ -135,7 +135,7 @@ fn EVAL(allocator: Allocator, ast: *const MalType, env: *Env) EvalError!MalValue
 fn eval_ast(allocator: Allocator, ast: *const MalType, env: *Env) EvalError!MalValue {
     switch (ast.*) {
         .atom => |atom| return switch (atom) {
-            .symbol => |symbol| env.get(symbol),
+            .symbol => |symbol| env.get(symbol.value),
             else => MalValue{ .mal_type = ast.* },
         },
         .list => |list| {
@@ -153,11 +153,17 @@ fn evalFunction(allocator: Allocator, function: MalValue.Function, args: []const
     switch (function) {
         .primitive => |primitive| return primitive.eval(allocator, args),
         .closure => |closure| {
+            const parameters = closure.parameters.items;
             // debug.println("creating closure EVAL environment");
-            if (closure.parameters.items.len != args.len) {
+            if (parameters.len != args.len) {
                 return error.EvalInvalidOperands;
             }
-            var fn_env_ptr = try closure.env.initChildBindExprs(closure.parameters.items, args);
+            // convert from a list of MalType.Symbol to a list of valid symbol keys to use in environment init
+            var binds = try std.ArrayList([]const u8).initCapacity(allocator, parameters.len);
+            for (parameters) |parameter| {
+                binds.appendAssumeCapacity(parameter.value);
+            }
+            var fn_env_ptr = try closure.env.initChildBindExprs(binds.items, args);
             // debug.print_env(allocator, fn_env_ptr.*);
             const result = try EVAL(allocator, &closure.body, fn_env_ptr);
             return result;

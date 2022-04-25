@@ -108,11 +108,11 @@ fn read_atom(allocator: Allocator, reader: *Reader) !MalType {
             else if (std.mem.eql(u8, token, "false"))
                 .f
             else if (token[0] == '"')
-                Atom{ .string = try replaceEscapeSequences(allocator, token[1 .. token.len - 1]) }
+                Atom{ .string = .{ .value = try replaceEscapeSequences(allocator, token[1 .. token.len - 1]), .allocator = allocator } }
             else if (std.fmt.parseInt(i32, token, 10)) |int|
                 Atom{ .number = int }
             else |_|
-                Atom{ .symbol = token }
+                Atom{ .symbol = .{ .value = token, .allocator = allocator } }
         else
             return error.EndOfInput,
     };
