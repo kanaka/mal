@@ -19,7 +19,7 @@ fn PRINT(input: []u8) []u8 {
 }
 
 fn rep(input: []u8) []u8 {
-    const output = input;
+    const output = PRINT(EVAL(READ(input)));
     return output;
 }
 

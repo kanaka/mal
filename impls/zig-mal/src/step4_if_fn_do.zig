@@ -40,7 +40,7 @@ fn EVAL(allocator: Allocator, ast: *const MalType, env: *Env) EvalError!MalValue
             // apply phase
             const first = list.items[0];
             if (first == .atom and first.atom == .symbol) {
-                const symbol = list.items[0].atom.symbol;
+                const symbol = first.atom.symbol;
 
                 if (std.mem.eql(u8, symbol, "def!")) {
                     const rest = list.items[1..];
