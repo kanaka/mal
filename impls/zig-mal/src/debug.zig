@@ -23,13 +23,13 @@ pub fn print_env(a: Allocator, env: Env) void {
 
     var env_it = env.data.iterator();
     while (env_it.next()) |entry| {
-        std.debug.print("  '{s}: {s}\n", .{ entry.key, printer.pr_str(a, &entry.value, true) });
+        std.debug.print("  '{s}: {s}\n", .{ entry.key_ptr.*, printer.pr_str(a, entry.value_ptr, true) });
     }
     if (env.outer) |outer| {
         print_ptr("outer: ", env.outer.?);
         var outer_env_it = outer.data.iterator();
         while (outer_env_it.next()) |entry| {
-            std.debug.print("  '{s}: {s}\n", .{ entry.key, printer.pr_str(a, &entry.value, true) });
+            std.debug.print("  '{s}: {s}\n", .{ entry.key_ptr.*, printer.pr_str(a, entry.value_ptr, true) });
         }
     } else println("outer: null");
     println("");
