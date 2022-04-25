@@ -190,12 +190,10 @@ pub fn main() anyerror!void {
     const stdout = std.io.getStdOut().writer();
     const stderr = std.io.getStdErr().writer();
 
-    // TODO: use this instead of core.ns.not
-    // currently leads to memory leaks due to closure child env
-    // var ar = std.heap.ArenaAllocator.init(gpa.allocator()));
-    // defer ar.deinit();
-    // _ = try rep(ar.allocator(), "(def! not (fn* (a) (if a false true)))", &env);
-    // _ = try rep(gpa.allocator(), "(def! not (fn* (a) (if a false true)))", &env);
+    // temporary allocator to evaluate global prelude/preamble-type expressions
+    var ar = std.heap.ArenaAllocator.init(gpa.allocator());
+    _ = try rep(ar.allocator(), "(def! not (fn* (a) (if a false true)))", &env);
+    ar.deinit();
 
     // main repl loop
     while (true) {
