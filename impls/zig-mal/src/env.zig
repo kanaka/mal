@@ -13,9 +13,14 @@ pub const Env = struct {
 
     outer: ?*const Self,
     data: Data,
+    children: std.ArrayList(*Self),
 
     pub fn init(allocator: Allocator, outer: ?*const Env) Self {
-        return .{ .outer = outer, .data = Data.init(allocator) };
+        return .{
+            .outer = outer,
+            .data = Data.init(allocator),
+            .children = std.ArrayList(*Self).init(allocator),
+        };
     }
 
     pub fn initCapacity(allocator: Allocator, outer: ?*const Env, size: u32) !Self {
@@ -34,6 +39,11 @@ pub const Env = struct {
     }
 
     pub fn deinit(self: *Self) void {
+        for (self.children.items) |child| {
+            child.deinit();
+            self.data.allocator.destroy(child);
+        }
+        self.children.deinit();
         var it = self.data.iterator();
         while (it.next()) |entry| {
             // free copied hash map keys and values
@@ -44,7 +54,8 @@ pub const Env = struct {
         self.* = undefined;
     }
 
-    pub fn copy(self: Self, allocator: Allocator) !*Self {
+    pub fn clone(self: *Self) !*Self {
+        const allocator = self.data.allocator;
         // const data_copy = try self.data.clone();
         var other_ptr = try allocator.create(Self);
         other_ptr.* = try Self.initCapacity(allocator, self.outer, self.data.unmanaged.size);
@@ -52,20 +63,23 @@ pub const Env = struct {
         while (it.next()) |entry| {
             try other_ptr.set(entry.key_ptr.*, entry.value_ptr.*);
         }
+        try self.children.append(other_ptr);
         return other_ptr;
     }
 
-    pub fn initChild(self: Self) !*Self {
+    pub fn initChild(self: *Self) !*Self {
         const allocator = self.data.allocator;
         var child_ptr = try allocator.create(Self);
-        child_ptr.* = Self.init(allocator, &self);
+        child_ptr.* = Self.init(allocator, self);
+        try self.children.append(child_ptr);
         return child_ptr;
     }
 
-    pub fn initChildBindExprs(self: *const Self, binds: []const Key, exprs: []const MalValue) !*Self {
+    pub fn initChildBindExprs(self: *Self, binds: []const Key, exprs: []const MalValue) !*Self {
         const allocator = self.data.allocator;
         var child_ptr = try allocator.create(Self);
         child_ptr.* = try Self.initBindExprs(allocator, self, binds, exprs);
+        try self.children.append(child_ptr);
         return child_ptr;
     }
 

@@ -295,7 +295,7 @@ pub const MalValue = union(enum) {
                     }
                     closure.parameters.deinit();
                     closure.body.deinit();
-                    closure.env.deinit();
+                    // closure.env.deinit();
                 },
                 else => {},
             },
@@ -321,7 +321,7 @@ pub const MalValue = union(enum) {
                     break :blk MalValue{ .function = .{ .closure = .{
                         .parameters = parameters_copy,
                         .body = try closure.body.copy(allocator),
-                        .env = try closure.env.copy(allocator),
+                        .env = try closure.env.clone(),
                     } } };
                 },
                 else => self,

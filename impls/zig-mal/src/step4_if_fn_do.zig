@@ -2,7 +2,6 @@ const std = @import("std");
 const Allocator = std.mem.Allocator;
 
 const core = @import("./core.zig");
-const debug = @import("./debug.zig");
 const Env = @import("./env.zig").Env;
 const printer = @import("./printer.zig");
 const reader = @import("./reader.zig");
@@ -31,10 +30,6 @@ const EvalError = error{
 } || Allocator.Error || MalValue.Function.Primitive.Error;
 
 fn EVAL(allocator: Allocator, ast: *const MalType, env: *Env) EvalError!MalValue {
-    // debug.println("EVAL");
-    // debug.print_ast(allocator, ast);
-    // debug.print_env(allocator, env.*);
-
     switch (ast.*) {
         .list => |list| if (list.items.len == 0) return MalValue.initListAlloc(allocator) else {
             // apply phase
@@ -48,9 +43,7 @@ fn EVAL(allocator: Allocator, ast: *const MalType, env: *Env) EvalError!MalValue
                     const key_symbol = rest[0].asSymbol() catch return error.EvalDefInvalidOperands;
 
                     const evaled_value = try EVAL(allocator, &rest[1], env);
-                    // debug.print_ptr("mutating environment", env);
                     try env.set(key_symbol.value, evaled_value);
-                    // debug.print_env(allocator, env.*);
                     return evaled_value;
                 }
 
@@ -60,19 +53,16 @@ fn EVAL(allocator: Allocator, ast: *const MalType, env: *Env) EvalError!MalValue
                     const bindings = rest[0].asList() catch return error.EvalLetInvalidOperands;
                     if (@mod(bindings.items.len, 2) != 0) return error.EvalLetInvalidOperands;
 
-                    // debug.print_ptr("creating let* env, outer: ", env);
                     // TODO: use env.initChild() here?
-                    var let_env = Env.init(allocator, env);
-                    // debug.print_env(allocator, let_env);
-                    // TODO: ? defer let_env.deinit();
+                    var let_env = try env.initChild();
                     var i: usize = 0;
                     while (i < bindings.items.len) : (i += 2) {
                         const current_bindings = bindings.items[i .. i + 2];
                         const key_symbol = current_bindings[0].asSymbol() catch return error.EvalDefInvalidOperands;
-                        const evaled_value = try EVAL(allocator, &current_bindings[1], &let_env);
+                        const evaled_value = try EVAL(allocator, &current_bindings[1], let_env);
                         try let_env.set(key_symbol.value, evaled_value);
                     }
-                    const evaled_value = try EVAL(allocator, &rest[1], &let_env);
+                    const evaled_value = try EVAL(allocator, &rest[1], let_env);
                     return evaled_value;
                 }
 
@@ -154,7 +144,6 @@ fn evalFunction(allocator: Allocator, function: MalValue.Function, args: []const
         .primitive => |primitive| return primitive.eval(allocator, args),
         .closure => |closure| {
             const parameters = closure.parameters.items;
-            // debug.println("creating closure EVAL environment");
             if (parameters.len != args.len) {
                 return error.EvalInvalidOperands;
             }
@@ -164,7 +153,6 @@ fn evalFunction(allocator: Allocator, function: MalValue.Function, args: []const
                 binds.appendAssumeCapacity(parameter.value);
             }
             var fn_env_ptr = try closure.env.initChildBindExprs(binds.items, args);
-            // debug.print_env(allocator, fn_env_ptr.*);
             const result = try EVAL(allocator, &closure.body, fn_env_ptr);
             return result;
         },
@@ -189,10 +177,8 @@ pub fn main() anyerror!void {
     defer _ = gpa.deinit();
 
     // REPL environment
-    // debug.println("creating global EVAL environment");
     var env = Env.init(gpa.allocator(), null);
     defer env.deinit();
-    // debug.print_env(gpa.allocator(), env);
 
     inline for (@typeInfo(@TypeOf(core.ns)).Struct.fields) |field| {
         try env.set(field.name, @field(core.ns, field.name));
