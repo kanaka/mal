@@ -18,6 +18,7 @@ pub fn build(b: *std.build.Builder) void {
         b.addExecutable("step2_eval", "src/step2_eval.zig"),
         b.addExecutable("step3_env", "src/step3_env.zig"),
         b.addExecutable("step4_if_fn_do", "src/step4_if_fn_do.zig"),
+        b.addExecutable("step5_tco", "src/step5_tco.zig"),
     }) |exe| {
         exe.setTarget(target);
         exe.setBuildMode(mode);
