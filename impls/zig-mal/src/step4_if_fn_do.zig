@@ -53,7 +53,6 @@ fn EVAL(allocator: Allocator, ast: *const MalType, env: *Env) EvalError!MalValue
                     const bindings = rest[0].asList() catch return error.EvalLetInvalidOperands;
                     if (@mod(bindings.items.len, 2) != 0) return error.EvalLetInvalidOperands;
 
-                    // TODO: use env.initChild() here?
                     var let_env = try env.initChild();
                     var i: usize = 0;
                     while (i < bindings.items.len) : (i += 2) {
@@ -86,8 +85,7 @@ fn EVAL(allocator: Allocator, ast: *const MalType, env: *Env) EvalError!MalValue
                     for (do_items[0 .. do_len - 1]) |item| {
                         _ = try EVAL(allocator, &item, env);
                     }
-                    const result = try EVAL(allocator, &do_items[do_len - 1], env);
-                    return result;
+                    return EVAL(allocator, &do_items[do_len - 1], env);
                 }
 
                 if (std.mem.eql(u8, symbol.value, "fn*")) {
@@ -116,7 +114,22 @@ fn EVAL(allocator: Allocator, ast: *const MalType, env: *Env) EvalError!MalValue
 
             const function = evaled_items[0].asFunction() catch return error.EvalNotSymbolOrFn;
             const args = evaled_items[1..];
-            return try evalFunction(allocator, function, args);
+            switch (function) {
+                .primitive => |primitive| return primitive.eval(allocator, args),
+                .closure => |closure| {
+                    const parameters = closure.parameters.items;
+                    if (parameters.len != args.len) {
+                        return error.EvalInvalidOperands;
+                    }
+                    // convert from a list of MalType.Symbol to a list of valid symbol keys to use in environment init
+                    var binds = try std.ArrayList([]const u8).initCapacity(allocator, parameters.len);
+                    for (parameters) |parameter| {
+                        binds.appendAssumeCapacity(parameter.value);
+                    }
+                    var fn_env_ptr = try closure.env.initChildBindExprs(binds.items, args);
+                    return EVAL(allocator, &closure.body, fn_env_ptr);
+                },
+            }
         },
         else => return eval_ast(allocator, ast, env),
     }
@@ -135,26 +148,6 @@ fn eval_ast(allocator: Allocator, ast: *const MalType, env: *Env) EvalError!MalV
                 results.list.appendAssumeCapacity(result);
             }
             return results;
-        },
-    }
-}
-
-fn evalFunction(allocator: Allocator, function: MalValue.Function, args: []const MalValue) !MalValue {
-    switch (function) {
-        .primitive => |primitive| return primitive.eval(allocator, args),
-        .closure => |closure| {
-            const parameters = closure.parameters.items;
-            if (parameters.len != args.len) {
-                return error.EvalInvalidOperands;
-            }
-            // convert from a list of MalType.Symbol to a list of valid symbol keys to use in environment init
-            var binds = try std.ArrayList([]const u8).initCapacity(allocator, parameters.len);
-            for (parameters) |parameter| {
-                binds.appendAssumeCapacity(parameter.value);
-            }
-            var fn_env_ptr = try closure.env.initChildBindExprs(binds.items, args);
-            const result = try EVAL(allocator, &closure.body, fn_env_ptr);
-            return result;
         },
     }
 }
