@@ -11,6 +11,7 @@ End Class
 'msgbox pr_str(read_str("(123 "))
 Function read_str(str)
 	set read_str=read_form(tokenize(str))
+	'msgbox pr_str(read_str,true)
 End Function
 
 Function tokenize(str)
@@ -33,6 +34,7 @@ End Function
 
 Function read_form_(oQueue)
 	set read_form_=read_form(oQueue)
+	'msgbox pr_str(read_form_),true
 	if oQueue.Count > 0 then
 		err.raise vbObjectError,"SyntaxError", "Extra data after form: " + oQueue.Dequeue
 	end if
@@ -141,10 +143,13 @@ End Function
 
 Function read_atom(oQueue)
 	atom = oQueue.Dequeue()
-	if isnumeric(atom) Then
+	if atom = "" then
+		set read_atom = Nothing
+	elseif isnumeric(atom) Then
 		set read_atom = new MalType
 		read_atom.Type_ = "number"
-		read_atom.value_ = atom
+		read_atom.value_ = cdbl(atom)
+		'msgbox "here"
 	elseif atom = "true" or atom = "false" Then
 		set read_atom = new MalType
 		read_atom.Type_ = "boolean"

@@ -1,4 +1,9 @@
 Function pr_str(o,print_readably)
+	msgbox typename(o) = "Nothing"
+	if typename(o) = "Nothing" then
+		pr_str = ""
+		exit function
+	end if
 	If left(o.type_,4) = "list" Then
 		pr_str =mid(o.type_,5,1) 
 		bool = False
