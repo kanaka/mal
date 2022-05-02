@@ -321,7 +321,7 @@ pub const MalValue = union(enum) {
                     break :blk MalValue{ .function = .{ .closure = .{
                         .parameters = parameters_copy,
                         .body = try closure.body.copy(allocator),
-                        .env = try closure.env.clone(),
+                        .env = closure.env,
                     } } };
                 },
                 else => self,

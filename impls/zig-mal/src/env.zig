@@ -54,19 +54,6 @@ pub const Env = struct {
         self.* = undefined;
     }
 
-    pub fn clone(self: *Self) !*Self {
-        const allocator = self.data.allocator;
-        // const data_copy = try self.data.clone();
-        var other_ptr = try allocator.create(Self);
-        other_ptr.* = try Self.initCapacity(allocator, self.outer, self.data.unmanaged.size);
-        var it = self.data.iterator();
-        while (it.next()) |entry| {
-            try other_ptr.set(entry.key_ptr.*, entry.value_ptr.*);
-        }
-        try self.children.append(other_ptr);
-        return other_ptr;
-    }
-
     pub fn initChild(self: *Self) !*Self {
         const allocator = self.data.allocator;
         var child_ptr = try allocator.create(Self);
