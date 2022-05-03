@@ -3,6 +3,7 @@ const Allocator = std.mem.Allocator;
 
 const printer = @import("./printer.zig");
 const printJoin = printer.printJoin;
+const reader = @import("./reader.zig");
 const types = @import("./types.zig");
 const MalType = types.MalType;
 const MalValue = types.MalValue;
@@ -114,6 +115,25 @@ pub fn println(allocator: Allocator, args: MalValue.List) Error!*MalValue {
     return result_ptr;
 }
 
+pub fn read_string(allocator: Allocator, param: *const MalValue) Error!*MalValue {
+    const string = try param.asString();
+    const ast = try reader.read_str(allocator, string.value);
+    return &MalValue{ .mal_type = ast };
+}
+
+pub fn slurp(allocator: Allocator, param: *const MalValue) Error!*MalValue {
+    const file_name = try param.asString();
+    const file = try std.fs.cwd().openFile(file_name.value, .{});
+    defer file.close();
+    // TODO: revisit global max size definitions
+    const max_size = 1 << 16; // 64KiB
+    const contents = try file.reader().readAllAlloc(allocator, max_size);
+    return &MalValue{ .mal_type = .{ .atom = .{ .string = .{
+        .value = contents,
+        .allocator = allocator,
+    } } } };
+}
+
 pub const ns = .{
     .@"+" = Primitive.make(add),
     .@"-" = Primitive.make(subtract),
@@ -133,4 +153,6 @@ pub const ns = .{
     .@"str" = Primitive.make(str),
     .@"prn" = Primitive.make(prn),
     .@"println" = Primitive.make(println),
+    .@"read-string" = Primitive.make(read_string),
+    .@"slurp" = Primitive.make(slurp),
 };

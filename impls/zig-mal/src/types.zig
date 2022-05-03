@@ -2,6 +2,7 @@ const std = @import("std");
 const Allocator = std.mem.Allocator;
 
 const Env = @import("env.zig").Env;
+const reader = @import("reader.zig");
 
 pub const MalType = union(enum) {
     pub const Number = i32;
@@ -146,7 +147,7 @@ pub const MalValue = union(enum) {
     pub const Function = union(enum) {
         pub const Parameters = std.ArrayList(MalType.Symbol);
         pub const Primitive = union(enum) {
-            pub const Error = error{} || Allocator.Error || std.fs.File.WriteError;
+            pub const Error = error{StreamTooLong} || Allocator.Error || std.fs.File.OpenError || std.fs.File.WriteError || std.os.ReadError || EvalError || reader.ReadError;
             // unary primitives
             // op_val_out_val: fn (a: *const MalValue) MalValue,
             op_alloc_val_out_val: fn (allocator: Allocator, a: *const MalValue) Error!*MalValue,
@@ -157,7 +158,7 @@ pub const MalValue = union(enum) {
             op_num_num_out_num: fn (a: MalType.Number, b: MalType.Number) MalType.Number,
             op_val_val_out_bool: fn (a: *const MalValue, b: *const MalValue) bool,
             // vargars primitives
-            op_alloc_vargars_out_val: fn (allocator: Allocator, args: MalValue.List) Error!*MalValue,
+            op_alloc_varargs_out_val: fn (allocator: Allocator, args: MalValue.List) Error!*MalValue,
 
             pub fn make(fn_ptr: anytype) MalValue {
                 const type_info = @typeInfo(@TypeOf(fn_ptr));
@@ -195,7 +196,7 @@ pub const MalValue = union(enum) {
                                 }
                                 if (a_type == Allocator and b_type == MalValue.List) {
                                     // TODO: and return_type == Error!*MalValue
-                                    break :blk .{ .op_alloc_vargars_out_val = fn_ptr };
+                                    break :blk .{ .op_alloc_varargs_out_val = fn_ptr };
                                 }
                             },
                             else => unreachable,
@@ -239,7 +240,7 @@ pub const MalValue = union(enum) {
                         const result_ptr = try op(allocator, &args[0]);
                         return result_ptr.*;
                     },
-                    .op_alloc_vargars_out_val => |op| {
+                    .op_alloc_varargs_out_val => |op| {
                         var args_list = try MalValue.List.initCapacity(allocator, args.len);
                         for (args) |arg| args_list.appendAssumeCapacity(arg);
                         const result_ptr = try op(allocator, args_list);
@@ -259,6 +260,7 @@ pub const MalValue = union(enum) {
     pub const EvalError = error{
         NotNumber,
         NotFunction,
+        NotString,
     };
 
     mal_type: MalType,
@@ -383,6 +385,22 @@ pub const MalValue = union(enum) {
             else => error.NotFunction,
         };
     }
+
+    pub fn asString(self: Self) !MalType.String {
+        return switch (self) {
+            .mal_type => |mal_type| switch (mal_type) {
+                .atom => |atom| switch (atom) {
+                    .string => |string| string,
+                    else => error.NotString,
+                },
+                else => error.NotString,
+            },
+            else => error.NotString,
+        };
+    }
 };
 
 fn copyList(comptime T: type, _: std.ArrayList(T)) std.ArrayList(T) {}
+// var result_ptr = try allocator.create(MalValue);
+// result_ptr.* = MalValue{ .mal_type = ast };
+// return result_ptr;

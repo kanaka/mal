@@ -38,9 +38,10 @@ const Reader = struct {
     }
 };
 
-const ReadError = error{
+pub const ReadError = error{
     EndOfInput,
     ListNoClosingTag,
+    StringLiteralNoClosingTag,
     TokensPastFormEnd,
 } || Allocator.Error;
 
