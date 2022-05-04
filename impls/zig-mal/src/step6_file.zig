@@ -6,6 +6,7 @@ const Env = @import("./env.zig").Env;
 const printer = @import("./printer.zig");
 const reader = @import("./reader.zig");
 const types = @import("./types.zig");
+const EvalError = types.EvalError;
 const MalType = types.MalType;
 const MalValue = types.MalValue;
 
@@ -16,18 +17,6 @@ fn READ(allocator: Allocator, input: []const u8) !MalType {
     const ast = try reader.read_str(allocator, input);
     return ast;
 }
-
-const EvalError = error{
-    EvalDefInvalidOperands,
-    EvalDoInvalidOperands,
-    EvalIfInvalidOperands,
-    EvalLetInvalidOperands,
-    EvalInvalidOperand,
-    EvalInvalidOperands,
-    EvalNotSymbolOrFn,
-    EnvSymbolNotFound,
-    EvalInvalidFnParamsList,
-} || Allocator.Error || MalValue.Function.Primitive.Error;
 
 fn EVAL(allocator: Allocator, ast: *const MalType, env: *Env) EvalError!MalValue {
     var current_ast = ast;

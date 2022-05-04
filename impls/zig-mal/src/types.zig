@@ -4,6 +4,18 @@ const Allocator = std.mem.Allocator;
 const Env = @import("env.zig").Env;
 const reader = @import("reader.zig");
 
+pub const EvalError = error{
+    EvalDefInvalidOperands,
+    EvalDoInvalidOperands,
+    EvalIfInvalidOperands,
+    EvalLetInvalidOperands,
+    EvalInvalidOperand,
+    EvalInvalidOperands,
+    EvalNotSymbolOrFn,
+    EnvSymbolNotFound,
+    EvalInvalidFnParamsList,
+} || Allocator.Error || MalValue.Function.Primitive.Error;
+
 pub const MalType = union(enum) {
     pub const Number = i32;
     const StrAlloc = struct { value: []const u8, allocator: Allocator };
@@ -147,10 +159,10 @@ pub const MalValue = union(enum) {
     pub const Function = union(enum) {
         pub const Parameters = std.ArrayList(MalType.Symbol);
         pub const Primitive = union(enum) {
-            pub const Error = error{StreamTooLong} || Allocator.Error || std.fs.File.OpenError || std.fs.File.WriteError || std.os.ReadError || EvalError || reader.ReadError;
+            pub const Error = error{StreamTooLong} || Allocator.Error || std.fs.File.OpenError || std.fs.File.WriteError || std.os.ReadError || TypeError || reader.ReadError;
             // unary primitives
             // op_val_out_val: fn (a: *const MalValue) MalValue,
-            op_alloc_val_out_val: fn (allocator: Allocator, a: *const MalValue) Error!*MalValue,
+            op_alloc_val_out_val: fn (allocator: Allocator, a: *const MalValue) EvalError!*MalValue,
             op_val_out_bool: fn (a: *const MalValue) bool,
             op_val_out_num: fn (a: *const MalValue) MalType.Number,
             // binary primitives
@@ -158,7 +170,7 @@ pub const MalValue = union(enum) {
             op_num_num_out_num: fn (a: MalType.Number, b: MalType.Number) MalType.Number,
             op_val_val_out_bool: fn (a: *const MalValue, b: *const MalValue) bool,
             // vargars primitives
-            op_alloc_varargs_out_val: fn (allocator: Allocator, args: MalValue.List) Error!*MalValue,
+            op_alloc_varargs_out_val: fn (allocator: Allocator, args: MalValue.List) EvalError!*MalValue,
 
             pub fn make(fn_ptr: anytype) MalValue {
                 const type_info = @typeInfo(@TypeOf(fn_ptr));
@@ -257,7 +269,7 @@ pub const MalValue = union(enum) {
         },
     };
 
-    pub const EvalError = error{
+    pub const TypeError = error{
         NotNumber,
         NotFunction,
         NotString,

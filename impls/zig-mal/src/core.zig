@@ -9,7 +9,6 @@ const MalType = types.MalType;
 const MalValue = types.MalValue;
 const Number = MalType.Number;
 const Primitive = MalValue.Function.Primitive;
-const Error = Primitive.Error;
 
 pub fn add(a: Number, b: Number) Number {
     return a + b;
@@ -45,7 +44,7 @@ pub fn greaterOrEqual(a: Number, b: Number) bool {
     return a >= b;
 }
 
-pub fn list(allocator: Allocator, params: MalValue.List) Error!*MalValue {
+pub fn list(allocator: Allocator, params: MalValue.List) !*MalValue {
     var result_ptr = try allocator.create(MalValue);
     result_ptr.* = MalValue{ .list = params };
     return result_ptr;
@@ -77,19 +76,19 @@ pub fn eql(a: *const MalValue, b: *const MalValue) bool {
     return a.equals(b);
 }
 
-pub fn pr_str(allocator: Allocator, args: MalValue.List) Error!*MalValue {
+pub fn pr_str(allocator: Allocator, args: MalValue.List) !*MalValue {
     var result_ptr = try allocator.create(MalValue);
     result_ptr.* = MalValue.makeString(allocator, try printJoin(allocator, "", args, true));
     return result_ptr;
 }
 
-pub fn str(allocator: Allocator, args: MalValue.List) Error!*MalValue {
+pub fn str(allocator: Allocator, args: MalValue.List) !*MalValue {
     var result_ptr = try allocator.create(MalValue);
     result_ptr.* = MalValue.makeString(allocator, try printJoin(allocator, "", args, false));
     return result_ptr;
 }
 
-pub fn prn(allocator: Allocator, args: MalValue.List) Error!*MalValue {
+pub fn prn(allocator: Allocator, args: MalValue.List) !*MalValue {
     const string = try printJoin(allocator, " ", args, true);
     defer allocator.free(string);
 
@@ -102,7 +101,7 @@ pub fn prn(allocator: Allocator, args: MalValue.List) Error!*MalValue {
     return result_ptr;
 }
 
-pub fn println(allocator: Allocator, args: MalValue.List) Error!*MalValue {
+pub fn println(allocator: Allocator, args: MalValue.List) !*MalValue {
     const string = try printJoin(allocator, " ", args, false);
     defer allocator.free(string);
 
@@ -115,13 +114,13 @@ pub fn println(allocator: Allocator, args: MalValue.List) Error!*MalValue {
     return result_ptr;
 }
 
-pub fn read_string(allocator: Allocator, param: *const MalValue) Error!*MalValue {
+pub fn read_string(allocator: Allocator, param: *const MalValue) !*MalValue {
     const string = try param.asString();
     const ast = try reader.read_str(allocator, string.value);
     return &MalValue{ .mal_type = ast };
 }
 
-pub fn slurp(allocator: Allocator, param: *const MalValue) Error!*MalValue {
+pub fn slurp(allocator: Allocator, param: *const MalValue) !*MalValue {
     const file_name = try param.asString();
     const file = try std.fs.cwd().openFile(file_name.value, .{});
     defer file.close();
