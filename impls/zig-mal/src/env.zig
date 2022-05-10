@@ -1,13 +1,13 @@
 const std = @import("std");
 const Allocator = std.mem.Allocator;
 
-const MalValue = @import("./types.zig").MalValue;
+const MalType = @import("./types.zig").MalType;
 
 pub const Env = struct {
     const Key = []const u8;
-    const Value = MalValue;
+    const Value = MalType;
     // TODO: use AutoHashMap or other HashMap variant?
-    const Data = std.StringHashMap(MalValue);
+    const Data = std.StringHashMap(MalType);
 
     const Self = @This();
 
@@ -29,7 +29,7 @@ pub const Env = struct {
         return self;
     }
 
-    pub fn initBindExprs(allocator: Allocator, outer: ?*const Env, binds: []const Key, exprs: []const MalValue) !Self {
+    pub fn initBindExprs(allocator: Allocator, outer: ?*const Env, binds: []const Key, exprs: []const MalType) !Self {
         std.debug.assert(binds.len == exprs.len);
         var self = try Self.initCapacity(allocator, outer, @intCast(u32, binds.len));
         for (binds) |symbol, i| {
@@ -62,7 +62,7 @@ pub const Env = struct {
         return child_ptr;
     }
 
-    pub fn initChildBindExprs(self: *Self, binds: []const Key, exprs: []const MalValue) !*Self {
+    pub fn initChildBindExprs(self: *Self, binds: []const Key, exprs: []const MalType) !*Self {
         const allocator = self.data.allocator;
         var child_ptr = try allocator.create(Self);
         child_ptr.* = try Self.initBindExprs(allocator, self, binds, exprs);
@@ -70,7 +70,7 @@ pub const Env = struct {
         return child_ptr;
     }
 
-    pub fn set(self: *Self, symbol: Key, value: MalValue) !void {
+    pub fn set(self: *Self, symbol: Key, value: MalType) !void {
         const allocator = self.data.allocator;
 
         // if needed copy the value to have the same lifetime as the hash map
@@ -96,7 +96,7 @@ pub const Env = struct {
         else if (self.outer) |outer| outer.find(symbol) else null;
     }
 
-    pub fn get(self: Self, symbol: Key) !MalValue {
+    pub fn get(self: Self, symbol: Key) !MalType {
         return if (self.find(symbol)) |env| env.data.get(symbol) orelse unreachable else error.EnvSymbolNotFound;
     }
 };

@@ -2,12 +2,12 @@ const std = @import("std");
 const Allocator = std.mem.Allocator;
 
 const types = @import("./types.zig");
-const MalValue = types.MalValue;
+const MalType = types.MalType;
 const replaceMultipleOwned = @import("./utils.zig").replaceMultipleOwned;
 
 const Error = error{OutOfMemory};
 
-pub fn pr_str(allocator: Allocator, value: *const MalValue, print_readably: bool) Error![]const u8 {
+pub fn pr_str(allocator: Allocator, value: *const MalType, print_readably: bool) Error![]const u8 {
     // TODO: this needs a significant refactoring to work with an allocator
     // other than arena, not planned for deallocation
     return switch (value.*) {
@@ -24,53 +24,35 @@ pub fn pr_str(allocator: Allocator, value: *const MalValue, print_readably: bool
                     }
                 }
                 try writer.writeAll(") ");
-                try writer.writeAll(try pr_str(allocator, &.{ .mal_type = closure.body }, print_readably));
+                try writer.writeAll(try pr_str(allocator, closure.body, print_readably));
                 try writer.writeAll(")");
                 return result.items;
             },
             else => "#<function>",
         },
-        .mal_type => |mal_type| switch (mal_type) {
-            .atom => |atom| switch (atom) {
-                .nil => "nil",
-                .t => "true",
-                .f => "false",
-                .number => |number| try std.fmt.allocPrint(allocator, "{d}", .{number}),
-                .string => |string| if (print_readably) try std.fmt.allocPrint(allocator, "\"{s}\"", .{replaceWithEscapeSequences(allocator, string.value)}) else string.value,
-                .symbol => |symbol| symbol.value,
-            },
-            .list => |list| {
-                var printed_forms = std.ArrayList(u8).init(allocator);
-                const writer = printed_forms.writer();
-
-                try writer.writeAll("(");
-                for (list.items) |list_form, index| {
-                    const printed_form = try pr_str(allocator, &MalValue{ .mal_type = list_form }, print_readably);
-                    try writer.writeAll(printed_form);
-                    if (index < list.items.len - 1) {
-                        try writer.writeAll(" ");
-                    }
-                }
-                try writer.writeAll(")");
-
-                return printed_forms.items;
-            },
+        .atom => |atom| switch (atom) {
+            .nil => "nil",
+            .t => "true",
+            .f => "false",
+            .number => |number| try std.fmt.allocPrint(allocator, "{d}", .{number}),
+            .string => |string| if (print_readably) try std.fmt.allocPrint(allocator, "\"{s}\"", .{replaceWithEscapeSequences(allocator, string.value)}) else string.value,
+            .symbol => |symbol| symbol.value,
         },
         .list => |list| {
-            var printed_values = std.ArrayList(u8).init(allocator);
-            const writer = printed_values.writer();
+            var printed_forms = std.ArrayList(u8).init(allocator);
+            const writer = printed_forms.writer();
 
             try writer.writeAll("(");
-            for (list.items) |item, index| {
-                const printed_item = try pr_str(allocator, &item, print_readably);
-                try writer.writeAll(printed_item);
+            for (list.items) |list_form, index| {
+                const printed_form = try pr_str(allocator, &list_form, print_readably);
+                try writer.writeAll(printed_form);
                 if (index < list.items.len - 1) {
                     try writer.writeAll(" ");
                 }
             }
             try writer.writeAll(")");
 
-            return printed_values.items;
+            return printed_forms.items;
         },
     };
 }
@@ -84,7 +66,7 @@ fn replaceWithEscapeSequences(allocator: Allocator, str: []const u8) ![]const u8
     return replaceMultipleOwned(u8, 3, allocator, str, needles, replacements);
 }
 
-pub fn printJoin(allocator: Allocator, separator: []const u8, args: MalValue.List, print_readably: bool) ![]const u8 {
+pub fn printJoin(allocator: Allocator, separator: []const u8, args: MalType.List, print_readably: bool) ![]const u8 {
     var printed_args = try std.ArrayList([]const u8).initCapacity(allocator, args.items.len);
     defer printed_args.deinit();
     for (args.items) |arg| {

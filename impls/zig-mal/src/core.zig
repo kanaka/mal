@@ -6,9 +6,8 @@ const printJoin = printer.printJoin;
 const reader = @import("./reader.zig");
 const types = @import("./types.zig");
 const MalType = types.MalType;
-const MalValue = types.MalValue;
 const Number = MalType.Number;
-const Primitive = MalValue.Function.Primitive;
+const Primitive = MalType.Function.Primitive;
 
 pub fn add(a: Number, b: Number) Number {
     return a + b;
@@ -44,25 +43,25 @@ pub fn greaterOrEqual(a: Number, b: Number) bool {
     return a >= b;
 }
 
-pub fn list(allocator: Allocator, params: MalValue.List) !*MalValue {
-    var result_ptr = try allocator.create(MalValue);
-    result_ptr.* = MalValue{ .list = params };
+pub fn list(allocator: Allocator, params: MalType.List) !*MalType {
+    var result_ptr = try allocator.create(MalType);
+    result_ptr.* = MalType{ .list = params };
     return result_ptr;
 }
 
-pub fn is_list(param: *const MalValue) bool {
+pub fn is_list(param: *const MalType) bool {
     return param.* == .list;
 }
 
-pub fn is_nil(param: *const MalValue) bool {
-    return param.* == .mal_type and param.mal_type == .atom and param.mal_type.atom == .nil;
+pub fn is_nil(param: *const MalType) bool {
+    return param.* == .atom and param.atom == .nil;
 }
 
-pub fn is_empty(param: *const MalValue) bool {
+pub fn is_empty(param: *const MalType) bool {
     return count(param) == 0;
 }
 
-pub fn count(param: *const MalValue) Number {
+pub fn count(param: *const MalType) Number {
     if (is_list(param))
         return @intCast(Number, param.list.items.len)
     else if (is_nil(param))
@@ -72,23 +71,23 @@ pub fn count(param: *const MalValue) Number {
         return -1;
 }
 
-pub fn eql(a: *const MalValue, b: *const MalValue) bool {
+pub fn eql(a: *const MalType, b: *const MalType) bool {
     return a.equals(b);
 }
 
-pub fn pr_str(allocator: Allocator, args: MalValue.List) !*MalValue {
-    var result_ptr = try allocator.create(MalValue);
-    result_ptr.* = MalValue.makeString(allocator, try printJoin(allocator, "", args, true));
+pub fn pr_str(allocator: Allocator, args: MalType.List) !*MalType {
+    var result_ptr = try allocator.create(MalType);
+    result_ptr.* = MalType.makeString(allocator, try printJoin(allocator, "", args, true));
     return result_ptr;
 }
 
-pub fn str(allocator: Allocator, args: MalValue.List) !*MalValue {
-    var result_ptr = try allocator.create(MalValue);
-    result_ptr.* = MalValue.makeString(allocator, try printJoin(allocator, "", args, false));
+pub fn str(allocator: Allocator, args: MalType.List) !*MalType {
+    var result_ptr = try allocator.create(MalType);
+    result_ptr.* = MalType.makeString(allocator, try printJoin(allocator, "", args, false));
     return result_ptr;
 }
 
-pub fn prn(allocator: Allocator, args: MalValue.List) !*MalValue {
+pub fn prn(allocator: Allocator, args: MalType.List) !*MalType {
     const string = try printJoin(allocator, " ", args, true);
     defer allocator.free(string);
 
@@ -96,12 +95,12 @@ pub fn prn(allocator: Allocator, args: MalValue.List) !*MalValue {
     try stdout.print("{s}\n", .{string});
 
     // TODO: this shouldn't need to allocate
-    var result_ptr = try allocator.create(MalValue);
-    result_ptr.* = MalValue{ .mal_type = .{ .atom = .nil } };
+    var result_ptr = try allocator.create(MalType);
+    result_ptr.* = .{ .atom = .nil };
     return result_ptr;
 }
 
-pub fn println(allocator: Allocator, args: MalValue.List) !*MalValue {
+pub fn println(allocator: Allocator, args: MalType.List) !*MalType {
     const string = try printJoin(allocator, " ", args, false);
     defer allocator.free(string);
 
@@ -109,28 +108,28 @@ pub fn println(allocator: Allocator, args: MalValue.List) !*MalValue {
     try stdout.print("{s}\n", .{string});
 
     // TODO: this shouldn't need to allocate
-    var result_ptr = try allocator.create(MalValue);
-    result_ptr.* = MalValue{ .mal_type = .{ .atom = .nil } };
+    var result_ptr = try allocator.create(MalType);
+    result_ptr.* = .{ .atom = .nil };
     return result_ptr;
 }
 
-pub fn read_string(allocator: Allocator, param: *const MalValue) !*MalValue {
+pub fn read_string(allocator: Allocator, param: *const MalType) !*MalType {
     const string = try param.asString();
-    const ast = try reader.read_str(allocator, string.value);
-    return &MalValue{ .mal_type = ast };
+    var ast = try reader.read_str(allocator, string.value);
+    return &ast;
 }
 
-pub fn slurp(allocator: Allocator, param: *const MalValue) !*MalValue {
+pub fn slurp(allocator: Allocator, param: *const MalType) !*MalType {
     const file_name = try param.asString();
     const file = try std.fs.cwd().openFile(file_name.value, .{});
     defer file.close();
     // TODO: revisit global max size definitions
     const max_size = 1 << 16; // 64KiB
     const contents = try file.reader().readAllAlloc(allocator, max_size);
-    return &MalValue{ .mal_type = .{ .atom = .{ .string = .{
+    return &MalType{ .atom = .{ .string = .{
         .value = contents,
         .allocator = allocator,
-    } } } };
+    } } };
 }
 
 pub const ns = .{

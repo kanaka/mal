@@ -8,7 +8,6 @@ const reader = @import("./reader.zig");
 const types = @import("./types.zig");
 const EvalError = types.EvalError;
 const MalType = types.MalType;
-const MalValue = types.MalValue;
 
 const input_buffer_length = 256;
 const prompt = "user> ";
@@ -18,12 +17,12 @@ fn READ(allocator: Allocator, input: []const u8) !MalType {
     return ast;
 }
 
-fn EVAL(allocator: Allocator, ast: *const MalType, env: *Env) EvalError!MalValue {
+fn EVAL(allocator: Allocator, ast: *const MalType, env: *Env) EvalError!MalType {
     var current_ast = ast;
     var current_env = env;
     while (true) {
         switch (current_ast.*) {
-            .list => |list| if (list.items.len == 0) return MalValue.initListAlloc(allocator) else {
+            .list => |list| if (list.items.len == 0) return MalType.initListAlloc(allocator) else {
                 // apply phase
                 const first = list.items[0];
                 if (first == .atom and first.atom == .symbol) {
@@ -85,18 +84,17 @@ fn EVAL(allocator: Allocator, ast: *const MalType, env: *Env) EvalError!MalValue
 
                     if (std.mem.eql(u8, symbol.value, "fn*")) {
                         const parameters = list.items[1].asList() catch return error.EvalInvalidFnParamsList;
-                        const body = list.items[2];
                         // convert from a list of MalType to a list of valid symbol keys to use in environment init
                         var binds = try std.ArrayList(MalType.Symbol).initCapacity(allocator, parameters.items.len);
                         for (parameters.items) |parameter| {
                             const parameter_symbol = parameter.asSymbol() catch return error.EvalInvalidFnParamsList;
                             binds.appendAssumeCapacity(parameter_symbol);
                         }
-                        return MalValue{
+                        return MalType{
                             .function = .{
                                 .closure = .{
                                     .parameters = binds,
-                                    .body = body,
+                                    .body = &list.items[2],
                                     .env = current_env,
                                 },
                             },
@@ -121,7 +119,7 @@ fn EVAL(allocator: Allocator, ast: *const MalType, env: *Env) EvalError!MalValue
                             binds.appendAssumeCapacity(parameter.value);
                         }
                         var fn_env_ptr = try closure.env.initChildBindExprs(binds.items, args);
-                        current_ast = &closure.body;
+                        current_ast = closure.body;
                         current_env = fn_env_ptr;
                         continue;
                     },
@@ -132,24 +130,25 @@ fn EVAL(allocator: Allocator, ast: *const MalType, env: *Env) EvalError!MalValue
     }
 }
 
-fn eval_ast(allocator: Allocator, ast: *const MalType, env: *Env) EvalError!MalValue {
+fn eval_ast(allocator: Allocator, ast: *const MalType, env: *Env) EvalError!MalType {
     switch (ast.*) {
         .atom => |atom| return switch (atom) {
             .symbol => |symbol| env.get(symbol.value),
-            else => MalValue{ .mal_type = ast.* },
+            else => ast.*,
         },
         .list => |list| {
-            var results = try MalValue.initListCapacity(allocator, list.items.len);
+            var results = try MalType.initListCapacity(allocator, list.items.len);
             for (list.items) |item| {
                 const result = try EVAL(allocator, &item, env);
                 results.list.appendAssumeCapacity(result);
             }
             return results;
         },
+        else => return ast.*,
     }
 }
 
-fn PRINT(allocator: Allocator, ast: *const MalValue) ![]const u8 {
+fn PRINT(allocator: Allocator, ast: *const MalType) ![]const u8 {
     const output = try printer.pr_str(allocator, ast, true);
     return output;
 }
@@ -161,18 +160,26 @@ fn rep(allocator: Allocator, input: []const u8, env: *Env) ![]const u8 {
     return output;
 }
 
+var repl_env: Env = undefined;
+
+fn eval(allocator: Allocator, ast: *const MalType) EvalError!*MalType {
+    return &try EVAL(allocator, ast, &repl_env);
+}
+
 pub fn main() anyerror!void {
     // general purpose allocator
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
 
     // REPL environment
-    var env = Env.init(gpa.allocator(), null);
-    defer env.deinit();
+    repl_env = Env.init(gpa.allocator(), null);
+    defer repl_env.deinit();
 
     inline for (@typeInfo(@TypeOf(core.ns)).Struct.fields) |field| {
-        try env.set(field.name, @field(core.ns, field.name));
+        try repl_env.set(field.name, @field(core.ns, field.name));
     }
+
+    try repl_env.set("eval", MalType.Function.Primitive.make(eval));
 
     var input_buffer: [input_buffer_length]u8 = undefined;
     // initialize std io reader and writer
@@ -182,7 +189,9 @@ pub fn main() anyerror!void {
 
     // temporary allocator to evaluate global prelude/preamble-type expressions
     var ar = std.heap.ArenaAllocator.init(gpa.allocator());
-    _ = try rep(ar.allocator(), "(def! not (fn* (a) (if a false true)))", &env);
+    _ = try rep(ar.allocator(), "(def! not (fn* (a) (if a false true)))", &repl_env);
+    _ = try rep(ar.allocator(), "(def! load-file (fn* (f) (eval (read-string (str \"(do\" (slurp f) \"\nnil)\")))))", &repl_env);
+
     ar.deinit();
 
     // main repl loop
@@ -200,7 +209,7 @@ pub fn main() anyerror!void {
         defer arena.deinit();
 
         // read-eval-print
-        if (rep(arena.allocator(), line, &env)) |result|
+        if (rep(arena.allocator(), line, &repl_env)) |result|
             try stdout.print("{s}\n", .{result})
         else |err| {
             const message = switch (err) {
