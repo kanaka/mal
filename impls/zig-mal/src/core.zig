@@ -49,19 +49,19 @@ pub fn list(allocator: Allocator, params: MalType.List) !*MalType {
     return result_ptr;
 }
 
-pub fn is_list(param: *const MalType) bool {
+pub fn is_list(param: *MalType) bool {
     return param.* == .list;
 }
 
-pub fn is_nil(param: *const MalType) bool {
+pub fn is_nil(param: *MalType) bool {
     return param.* == .nil;
 }
 
-pub fn is_empty(param: *const MalType) bool {
+pub fn is_empty(param: *MalType) bool {
     return count(param) == 0;
 }
 
-pub fn count(param: *const MalType) Number {
+pub fn count(param: *MalType) Number {
     if (is_list(param))
         return @intCast(Number, param.list.items.len)
     else if (is_nil(param))
@@ -71,20 +71,16 @@ pub fn count(param: *const MalType) Number {
         return -1;
 }
 
-pub fn eql(a: *const MalType, b: *const MalType) bool {
+pub fn eql(a: *MalType, b: *MalType) bool {
     return a.equals(b);
 }
 
 pub fn pr_str(allocator: Allocator, args: MalType.List) !*MalType {
-    var result_ptr = try allocator.create(MalType);
-    result_ptr.* = MalType.makeString(allocator, try printJoin(allocator, "", args, true));
-    return result_ptr;
+    return MalType.makeString(allocator, try printJoin(allocator, "", args, true));
 }
 
 pub fn str(allocator: Allocator, args: MalType.List) !*MalType {
-    var result_ptr = try allocator.create(MalType);
-    result_ptr.* = MalType.makeString(allocator, try printJoin(allocator, "", args, false));
-    return result_ptr;
+    return MalType.makeString(allocator, try printJoin(allocator, "", args, false));
 }
 
 pub fn prn(allocator: Allocator, args: MalType.List) !*MalType {
@@ -94,10 +90,7 @@ pub fn prn(allocator: Allocator, args: MalType.List) !*MalType {
     const stdout = std.io.getStdOut().writer();
     try stdout.print("{s}\n", .{string});
 
-    // TODO: this shouldn't need to allocate
-    var result_ptr = try allocator.create(MalType);
-    result_ptr.* = .nil;
-    return result_ptr;
+    return MalType.make(allocator, .nil);
 }
 
 pub fn println(allocator: Allocator, args: MalType.List) !*MalType {
@@ -107,19 +100,15 @@ pub fn println(allocator: Allocator, args: MalType.List) !*MalType {
     const stdout = std.io.getStdOut().writer();
     try stdout.print("{s}\n", .{string});
 
-    // TODO: this shouldn't need to allocate
-    var result_ptr = try allocator.create(MalType);
-    result_ptr.* = .nil;
-    return result_ptr;
+    return MalType.make(allocator, .nil);
 }
 
-pub fn read_string(allocator: Allocator, param: *const MalType) !*MalType {
+pub fn read_string(allocator: Allocator, param: *MalType) !*MalType {
     const string = try param.asString();
-    var ast = try reader.read_str(allocator, string.value);
-    return &ast;
+    return reader.read_str(allocator, string.value);
 }
 
-pub fn slurp(allocator: Allocator, param: *const MalType) !*MalType {
+pub fn slurp(allocator: Allocator, param: *MalType) !*MalType {
     const file_name = try param.asString();
     const file = try std.fs.cwd().openFile(file_name.value, .{});
     defer file.close();
@@ -134,28 +123,23 @@ pub fn slurp(allocator: Allocator, param: *const MalType) !*MalType {
     };
 }
 
-pub fn atom(param: *const MalType) !*MalType {
-    // TODO: shouldn't clone when using proper GC
-    return &MalType{ .atom = .{ .reference = param } };
+pub fn atom(allocator: Allocator, param: *MalType) !*MalType {
+    return MalType.makeAtom(allocator, param);
 }
 
-pub fn is_atom(param: *const MalType) bool {
+pub fn is_atom(param: *MalType) bool {
     return param.* == .atom;
 }
 
-pub fn deref(param: *const MalType) !*MalType {
-    const value = try param.asAtom();
-    // TODO: find a way to better handle the const
-    var referenced = value.reference.*;
-    return &referenced;
+pub fn deref(param: *MalType) !*MalType {
+    _ = try param.asAtom();
+    return param.atom;
 }
 
-pub fn reset(param: *MalType, value: *const MalType) !*MalType {
+pub fn reset(param: *MalType, value: *MalType) !*MalType {
     _ = try param.asAtom();
-    param.atom.reference = value;
-    // TODO: find a way to better handle the const
-    var referenced = value.*;
-    return &referenced;
+    param.atom = value;
+    return value;
 }
 
 pub const ns = .{

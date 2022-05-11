@@ -29,11 +29,11 @@ pub const Env = struct {
         return self;
     }
 
-    pub fn initBindExprs(allocator: Allocator, outer: ?*const Env, binds: []const Key, exprs: []const MalType) !Self {
+    pub fn initBindExprs(allocator: Allocator, outer: ?*const Env, binds: []const Key, exprs: []*MalType) !Self {
         std.debug.assert(binds.len == exprs.len);
         var self = try Self.initCapacity(allocator, outer, @intCast(u32, binds.len));
         for (binds) |symbol, i| {
-            try self.set(symbol, exprs[i]);
+            try self.set(symbol, exprs[i].*);
         }
         return self;
     }
@@ -62,7 +62,7 @@ pub const Env = struct {
         return child_ptr;
     }
 
-    pub fn initChildBindExprs(self: *Self, binds: []const Key, exprs: []const MalType) !*Self {
+    pub fn initChildBindExprs(self: *Self, binds: []const Key, exprs: []*MalType) !*Self {
         const allocator = self.data.allocator;
         var child_ptr = try allocator.create(Self);
         child_ptr.* = try Self.initBindExprs(allocator, self, binds, exprs);
@@ -87,7 +87,8 @@ pub const Env = struct {
                 return err;
             };
         }
-        get_or_put.value_ptr.* = value_copy;
+        // TODO: check this
+        get_or_put.value_ptr.* = value_copy.*;
     }
 
     pub fn find(self: *const Self, symbol: Key) ?*const Self {

@@ -17,7 +17,7 @@ pub const EvalError = error{
 } || Allocator.Error || MalType.Primitive.Error;
 
 pub const MalType = union(enum) {
-    pub const List = std.ArrayList(MalType);
+    pub const List = std.ArrayList(*MalType);
     pub const Number = i32;
 
     const StrAlloc = struct { value: []const u8, allocator: Allocator };
@@ -28,15 +28,15 @@ pub const MalType = union(enum) {
     pub const Primitive = union(enum) {
         pub const Error = error{StreamTooLong} || Allocator.Error || std.fs.File.OpenError || std.fs.File.WriteError || std.os.ReadError || TypeError || reader.ReadError;
         // unary primitives
-        op_alloc_val_out_val: fn (allocator: Allocator, a: *const MalType) EvalError!*MalType,
-        op_val_out_val: fn (a: *const MalType) EvalError!*MalType,
-        op_val_out_bool: fn (a: *const MalType) bool,
-        op_val_out_num: fn (a: *const MalType) MalType.Number,
+        op_alloc_val_out_val: fn (allocator: Allocator, a: *MalType) EvalError!*MalType,
+        op_val_out_val: fn (a: *MalType) EvalError!*MalType,
+        op_val_out_bool: fn (a: *MalType) bool,
+        op_val_out_num: fn (a: *MalType) MalType.Number,
         // binary primitives
         op_num_num_out_bool: fn (a: MalType.Number, b: MalType.Number) bool,
         op_num_num_out_num: fn (a: MalType.Number, b: MalType.Number) MalType.Number,
-        op_val_val_out_bool: fn (a: *const MalType, b: *const MalType) bool,
-        op_mut_val_val_out_val: fn (a: *MalType, b: *const MalType) EvalError!*MalType,
+        op_val_val_out_bool: fn (a: *MalType, b: *MalType) bool,
+        op_mut_val_val_out_val: fn (a: *MalType, b: *MalType) EvalError!*MalType,
         // vargars primitives
         op_alloc_varargs_out_val: fn (allocator: Allocator, args: MalType.List) EvalError!*MalType,
 
@@ -49,7 +49,7 @@ pub const MalType = union(enum) {
                 .primitive = switch (args.len) {
                     1 => blk: {
                         const a_type = args[0].arg_type.?;
-                        if (a_type == *const MalType) {
+                        if (a_type == *MalType) {
                             if (return_type == bool)
                                 break :blk .{ .op_val_out_bool = fn_ptr };
                             if (return_type == MalType.Number)
@@ -66,14 +66,14 @@ pub const MalType = union(enum) {
                             if (return_type == MalType.Number)
                                 break :blk .{ .op_num_num_out_num = fn_ptr };
                         }
-                        if (a_type == *const MalType and b_type == *const MalType) {
+                        if (a_type == *MalType and b_type == *MalType) {
                             if (return_type == bool)
                                 break :blk .{ .op_val_val_out_bool = fn_ptr };
                         }
-                        if (a_type == *MalType and b_type == *const MalType) {
+                        if (a_type == *MalType and b_type == *MalType) {
                             break :blk .{ .op_mut_val_val_out_val = fn_ptr };
                         }
-                        if (a_type == Allocator and b_type == *const MalType) {
+                        if (a_type == Allocator and b_type == *MalType) {
                             // TODO: and return_type == Error!*MalType
                             break :blk .{ .op_alloc_val_out_val = fn_ptr };
                         }
@@ -86,65 +86,61 @@ pub const MalType = union(enum) {
                 },
             };
         }
-        pub fn eval(primitive: Primitive, allocator: Allocator, args: []MalType) !MalType {
+        pub fn eval(primitive: Primitive, allocator: Allocator, args: []*MalType) !*MalType {
             // TODO: can probably be compile-time generated from function type info
             switch (primitive) {
                 .op_num_num_out_num => |op| {
                     if (args.len != 2) return error.EvalInvalidOperands;
                     const a = args[0].asNumber() catch return error.EvalInvalidOperand;
                     const b = args[1].asNumber() catch return error.EvalInvalidOperand;
-                    return MalType.makeNumber(op(a, b));
+                    return MalType.makeNumber(allocator, op(a, b));
                 },
                 .op_num_num_out_bool => |op| {
                     if (args.len != 2) return error.EvalInvalidOperands;
                     const a = args[0].asNumber() catch return error.EvalInvalidOperand;
                     const b = args[1].asNumber() catch return error.EvalInvalidOperand;
-                    return MalType.makeBool(op(a, b));
+                    return MalType.makeBool(allocator, op(a, b));
                 },
                 .op_val_out_bool => |op| {
                     if (args.len != 1) return error.EvalInvalidOperands;
-                    const a = &args[0];
-                    return MalType.makeBool(op(a));
+                    return MalType.makeBool(allocator, op(args[0]));
                 },
                 .op_val_out_num => |op| {
                     if (args.len != 1) return error.EvalInvalidOperands;
-                    const a = &args[0];
-                    return MalType.makeNumber(op(a));
+                    return MalType.makeNumber(allocator, op(args[0]));
                 },
                 .op_val_val_out_bool => |op| {
                     if (args.len != 2) return error.EvalInvalidOperands;
-                    const a = &args[0];
-                    const b = &args[1];
-                    return MalType.makeBool(op(a, b));
+                    return MalType.makeBool(allocator, op(args[0], args[1]));
                 },
                 .op_mut_val_val_out_val => |op| {
                     if (args.len != 2) return error.EvalInvalidOperands;
-                    const result_ptr = try op(&args[0], &args[1]);
-                    return result_ptr.*;
+                    return op(args[0], args[1]);
                 },
                 .op_val_out_val => |op| {
                     if (args.len != 1) return error.EvalInvalidOperands;
-                    const result_ptr = try op(&args[0]);
-                    return result_ptr.*;
+                    return op(args[0]);
                 },
                 .op_alloc_val_out_val => |op| {
                     if (args.len != 1) return error.EvalInvalidOperands;
-                    const result_ptr = try op(allocator, &args[0]);
-                    return result_ptr.*;
+                    return op(allocator, args[0]);
                 },
                 .op_alloc_varargs_out_val => |op| {
                     var args_list = try MalType.List.initCapacity(allocator, args.len);
                     for (args) |arg| args_list.appendAssumeCapacity(arg);
-                    const result_ptr = try op(allocator, args_list);
-                    return result_ptr.*;
+                    return op(allocator, args_list);
                 },
             }
         }
     };
 
-    pub const Atom = struct {
-        reference: *const MalType,
+    pub const Closure = struct {
+        parameters: Parameters,
+        body: *MalType,
+        env: *Env,
     };
+
+    pub const Atom = *MalType;
 
     pub const TypeError = error{
         NotAtom,
@@ -171,50 +167,68 @@ pub const MalType = union(enum) {
 
     // functions
     primitive: Primitive,
-    closure: struct {
-        parameters: Parameters,
-        body: *MalType,
-        env: *Env,
-    },
+    closure: Closure,
 
     atom: Atom,
 
-    pub fn makeBool(b: bool) MalType {
-        return if (b) .t else .f;
+    pub fn make(allocator: Allocator, value: MalType) !*MalType {
+        var result_ptr = try allocator.create(MalType);
+        result_ptr.* = value;
+        return result_ptr;
     }
 
-    pub fn makeNumber(num: Number) MalType {
-        return .{ .number = num };
+    pub fn makeBool(allocator: Allocator, b: bool) !*MalType {
+        return make(allocator, if (b) .t else .f);
     }
 
-    pub fn makeString(allocator: Allocator, string: []const u8) MalType {
-        return .{ .string = .{ .value = string, .allocator = allocator } };
+    pub fn makeNumber(allocator: Allocator, num: Number) !*MalType {
+        return make(allocator, .{ .number = num });
     }
 
-    pub fn makeSymbol(allocator: Allocator, symbol: []const u8) MalType {
-        return .{ .symbol = .{ .value = symbol, .allocator = allocator } };
+    pub fn makeString(allocator: Allocator, string: []const u8) !*MalType {
+        return make(allocator, .{ .string = .{ .value = string, .allocator = allocator } });
     }
 
-    pub fn initList(list: List) MalType {
-        return .{ .list = list };
+    pub fn makeSymbol(allocator: Allocator, symbol: []const u8) !*MalType {
+        return make(allocator, .{ .symbol = .{ .value = symbol, .allocator = allocator } });
     }
 
-    pub fn initListCapacity(allocator: Allocator, num: usize) !MalType {
-        return MalType{ .list = try List.initCapacity(allocator, num) };
+    pub fn makeAtom(allocator: Allocator, value: *MalType) !*MalType {
+        return make(allocator, .{ .atom = value });
     }
 
-    pub fn initListFromSlice(allocator: Allocator, slice: []const MalType) !MalType {
-        var self = try MalType.initListCapacity(allocator, slice.len);
+    pub fn makeList(allocator: Allocator, list: List) !*MalType {
+        return make(allocator, .{ .list = list });
+    }
+
+    pub fn makeListEmpty(allocator: Allocator) !*MalType {
+        return make(allocator, .{ .list = List.init(allocator) });
+    }
+
+    pub fn makeListCapacity(allocator: Allocator, num: usize) !*MalType {
+        return make(allocator, .{ .list = try List.initCapacity(allocator, num) });
+    }
+
+    pub fn makeListFromSlice(allocator: Allocator, slice: []*MalType) !*MalType {
+        var list = try List.initCapacity(allocator, slice.len);
         for (slice) |item| {
-            self.list.appendAssumeCapacity(item);
+            list.appendAssumeCapacity(item);
         }
-        return self;
+        return make(allocator, .{ .list = list });
+    }
+
+    pub fn makeNil(allocator: Allocator) !*MalType {
+        return make(allocator, .nil);
+    }
+
+    pub fn makeClosure(allocator: Allocator, closure: Closure) !*MalType {
+        return make(allocator, .{ .closure = closure });
     }
 
     const Self = @This();
 
-    pub fn deinit(self: Self) void {
-        switch (self) {
+    pub fn deinit(self: *Self) void {
+        switch (self.*) {
             .list => |list| {
                 for (list.items) |item| {
                     item.deinit();
@@ -234,21 +248,14 @@ pub const MalType = union(enum) {
         }
     }
 
-    pub fn clone(self: Self, allocator: Allocator) !*MalType {
-        var result_ptr = try allocator.create(MalType);
-        errdefer allocator.destroy(result_ptr);
-        result_ptr.* = try self.copy(allocator);
-        return result_ptr;
-    }
-
-    pub fn copy(self: Self, allocator: Allocator) Allocator.Error!MalType {
+    pub fn copy(self: Self, allocator: Allocator) Allocator.Error!*MalType {
         return switch (self) {
             .list => |list| blk: {
                 var list_copy = try List.initCapacity(allocator, list.items.len);
                 for (list.items) |item| {
                     list_copy.appendAssumeCapacity(try item.copy(allocator));
                 }
-                break :blk .{ .list = list_copy };
+                break :blk makeList(allocator, list_copy);
             },
             .string => |string| makeString(allocator, try allocator.dupe(u8, string.value)),
             .symbol => |symbol| makeSymbol(allocator, try allocator.dupe(u8, symbol.value)),
@@ -257,21 +264,15 @@ pub const MalType = union(enum) {
                 for (closure.parameters.items) |item| {
                     parameters_copy.appendAssumeCapacity(.{ .value = try allocator.dupe(u8, item.value), .allocator = allocator });
                 }
-                break :blk MalType{
-                    .closure = .{
-                        .parameters = parameters_copy,
-                        .body = try closure.body.clone(allocator), // TODO check this
-                        .env = closure.env,
-                    },
-                };
+                break :blk makeClosure(allocator, .{
+                    .parameters = parameters_copy,
+                    .body = try closure.body.copy(allocator),
+                    .env = closure.env,
+                });
             },
-            .atom => |atom| .{
-                .atom = .{
-                    // TODO: check this, atoms shouldn't be cloned
-                    .reference = atom.reference,
-                },
-            },
-            else => self,
+            // TODO: check this
+            .atom => |atom| makeAtom(allocator, atom),
+            else => MalType.make(allocator, self),
         };
     }
 
@@ -283,7 +284,7 @@ pub const MalType = union(enum) {
             .symbol => |symbol| std.mem.eql(u8, symbol.value, other.symbol.value),
             .t, .f, .nil => true,
             .list => |list| list.items.len == other.list.items.len and for (list.items) |item, i| {
-                if (!item.equals(&other.list.items[i])) break false;
+                if (!item.equals(other.list.items[i])) break false;
             } else true,
             .closure => |closure| blk: {
                 if (closure.env != other.closure.env) break :blk false;
@@ -318,10 +319,6 @@ pub const MalType = union(enum) {
             .list => |list| list,
             else => error.NotList,
         };
-    }
-
-    pub fn initListAlloc(allocator: Allocator) MalType {
-        return .{ .list = List.init(allocator) };
     }
 
     pub fn isTruthy(self: Self) bool {

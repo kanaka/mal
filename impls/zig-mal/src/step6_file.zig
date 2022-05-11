@@ -12,20 +12,19 @@ const MalType = types.MalType;
 const input_buffer_length = 256;
 const prompt = "user> ";
 
-fn READ(allocator: Allocator, input: []const u8) !MalType {
-    const ast = try reader.read_str(allocator, input);
-    return ast;
+fn READ(allocator: Allocator, input: []const u8) !*MalType {
+    return reader.read_str(allocator, input);
 }
 
-fn EVAL(allocator: Allocator, ast: *const MalType, env: *Env) EvalError!MalType {
+fn EVAL(allocator: Allocator, ast: *MalType, env: *Env) EvalError!*MalType {
     var current_ast = ast;
     var current_env = env;
     while (true) {
         switch (current_ast.*) {
-            .list => |list| if (list.items.len == 0) return MalType.initListAlloc(allocator) else {
+            .list => |list| if (list.items.len == 0) return MalType.makeListEmpty(allocator) else {
                 // apply phase
                 const first = list.items[0];
-                if (first == .symbol) {
+                if (first.* == .symbol) {
                     const symbol = first.symbol;
 
                     if (std.mem.eql(u8, symbol.value, "def!")) {
@@ -33,8 +32,9 @@ fn EVAL(allocator: Allocator, ast: *const MalType, env: *Env) EvalError!MalType 
                         if (rest.len != 2) return error.EvalDefInvalidOperands;
                         const key_symbol = rest[0].asSymbol() catch return error.EvalDefInvalidOperands;
 
-                        const evaled_value = try EVAL(allocator, &rest[1], current_env);
-                        try current_env.set(key_symbol.value, evaled_value);
+                        const evaled_value = try EVAL(allocator, rest[1], current_env);
+                        // TODO check this
+                        try current_env.set(key_symbol.value, evaled_value.*);
                         return evaled_value;
                     }
 
@@ -49,10 +49,11 @@ fn EVAL(allocator: Allocator, ast: *const MalType, env: *Env) EvalError!MalType 
                         while (i < bindings.items.len) : (i += 2) {
                             const current_bindings = bindings.items[i .. i + 2];
                             const key_symbol = current_bindings[0].asSymbol() catch return error.EvalDefInvalidOperands;
-                            const evaled_value = try EVAL(allocator, &current_bindings[1], let_env);
-                            try let_env.set(key_symbol.value, evaled_value);
+                            const evaled_value = try EVAL(allocator, current_bindings[1], let_env);
+                            // TODO: check this
+                            try let_env.set(key_symbol.value, evaled_value.*);
                         }
-                        current_ast = &rest[1];
+                        current_ast = rest[1];
                         current_env = let_env;
                         continue;
                     }
@@ -61,22 +62,22 @@ fn EVAL(allocator: Allocator, ast: *const MalType, env: *Env) EvalError!MalType 
                         const rest = list.items[1..];
                         if (rest.len != 2 and rest.len != 3) return error.EvalIfInvalidOperands;
                         const condition = rest[0];
-                        const evaled_value = try EVAL(allocator, &condition, current_env);
+                        const evaled_value = try EVAL(allocator, condition, current_env);
                         if (evaled_value.isTruthy())
-                            current_ast = &rest[1]
+                            current_ast = rest[1]
                         else if (rest.len == 3)
-                            current_ast = &rest[2]
+                            current_ast = rest[2]
                         else
-                            current_ast = &@as(MalType, .nil);
+                            current_ast = try MalType.makeNil(allocator);
                         continue;
                     }
 
                     if (std.mem.eql(u8, symbol.value, "do")) {
                         const do_len = list.items.len - 1;
                         if (do_len < 1) return error.EvalDoInvalidOperands;
-                        const do_ast = try MalType.initListFromSlice(allocator, list.items[1..do_len]);
-                        _ = try eval_ast(allocator, &do_ast, current_env);
-                        current_ast = &list.items[do_len];
+                        const do_ast = try MalType.makeListFromSlice(allocator, list.items[1..do_len]);
+                        _ = try eval_ast(allocator, do_ast, current_env);
+                        current_ast = list.items[do_len];
                         continue;
                     }
 
@@ -88,13 +89,11 @@ fn EVAL(allocator: Allocator, ast: *const MalType, env: *Env) EvalError!MalType 
                             const parameter_symbol = parameter.asSymbol() catch return error.EvalInvalidFnParamsList;
                             binds.appendAssumeCapacity(parameter_symbol);
                         }
-                        return MalType{
-                            .closure = .{
-                                .parameters = binds,
-                                .body = &list.items[2],
-                                .env = current_env,
-                            },
-                        };
+                        return MalType.makeClosure(allocator, .{
+                            .parameters = binds,
+                            .body = list.items[2],
+                            .env = current_env,
+                        });
                     }
                 }
                 const evaled_ast = try eval_ast(allocator, current_ast, current_env);
@@ -102,7 +101,7 @@ fn EVAL(allocator: Allocator, ast: *const MalType, env: *Env) EvalError!MalType 
 
                 const function = evaled_items[0];
                 const args = evaled_items[1..];
-                switch (function) {
+                switch (function.*) {
                     .primitive => |primitive| return primitive.eval(allocator, args),
                     .closure => |closure| {
                         const parameters = closure.parameters.items;
@@ -127,18 +126,18 @@ fn EVAL(allocator: Allocator, ast: *const MalType, env: *Env) EvalError!MalType 
     }
 }
 
-fn eval_ast(allocator: Allocator, ast: *const MalType, env: *Env) EvalError!MalType {
+fn eval_ast(allocator: Allocator, ast: *MalType, env: *Env) EvalError!*MalType {
     return switch (ast.*) {
-        .symbol => |symbol| env.get(symbol.value),
+        .symbol => |symbol| &try env.get(symbol.value),
         .list => |list| blk: {
-            var results = try MalType.initListCapacity(allocator, list.items.len);
+            var results = try MalType.makeListCapacity(allocator, list.items.len);
             for (list.items) |item| {
-                const result = try EVAL(allocator, &item, env);
+                const result = try EVAL(allocator, item, env);
                 results.list.appendAssumeCapacity(result);
             }
             break :blk results;
         },
-        else => ast.*,
+        else => ast,
     };
 }
 
@@ -147,17 +146,17 @@ fn PRINT(allocator: Allocator, ast: *const MalType) ![]const u8 {
     return output;
 }
 
-fn rep(allocator: Allocator, input: []const u8, env: *Env) ![]const u8 {
-    const ast = try READ(allocator, input);
-    const result = try EVAL(allocator, &ast, env);
-    const output = try PRINT(allocator, &result);
+fn rep(global_allocator: Allocator, allocator: Allocator, input: []const u8, env: *Env) ![]const u8 {
+    const ast = try READ(global_allocator, input);
+    const result = try EVAL(global_allocator, ast, env);
+    const output = try PRINT(allocator, result);
     return output;
 }
 
 var repl_env: Env = undefined;
 
-fn eval(allocator: Allocator, ast: *const MalType) EvalError!*MalType {
-    return &try EVAL(allocator, ast, &repl_env);
+fn eval(allocator: Allocator, ast: *MalType) EvalError!*MalType {
+    return EVAL(allocator, ast, &repl_env);
 }
 
 pub fn main() anyerror!void {
@@ -181,12 +180,14 @@ pub fn main() anyerror!void {
     const stdout = std.io.getStdOut().writer();
     const stderr = std.io.getStdErr().writer();
 
-    // temporary allocator to evaluate global prelude/preamble-type expressions
-    var ar = std.heap.ArenaAllocator.init(gpa.allocator());
-    _ = try rep(ar.allocator(), "(def! not (fn* (a) (if a false true)))", &repl_env);
-    _ = try rep(ar.allocator(), "(def! load-file (fn* (f) (eval (read-string (str \"(do\" (slurp f) \"\nnil)\")))))", &repl_env);
+    // global arena allocator
+    var global_arena = std.heap.ArenaAllocator.init(gpa.allocator());
+    defer global_arena.deinit();
+    const gaa = global_arena.allocator();
 
-    ar.deinit();
+    // evaluate global prelude/preamble-type expressions
+    _ = try rep(gaa, gaa, "(def! not (fn* (a) (if a false true)))", &repl_env);
+    _ = try rep(gaa, gaa, "(def! load-file (fn* (f) (eval (read-string (str \"(do\" (slurp f) \"\nnil)\")))))", &repl_env);
 
     // main repl loop
     while (true) {
@@ -198,12 +199,12 @@ pub fn main() anyerror!void {
             // reached input end-of-file
             break;
         };
-        // arena allocator, memory is freed at end of loop iteration
+        // local arena allocator, memory is freed at end of loop iteration
         var arena = std.heap.ArenaAllocator.init(gpa.allocator());
         defer arena.deinit();
 
         // read-eval-print
-        if (rep(arena.allocator(), line, &repl_env)) |result|
+        if (rep(gaa, arena.allocator(), line, &repl_env)) |result|
             try stdout.print("{s}\n", .{result})
         else |err| {
             const message = switch (err) {

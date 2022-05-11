@@ -41,7 +41,7 @@ pub fn pr_str(allocator: Allocator, value: *const MalType, print_readably: bool)
 
             try writer.writeAll("(");
             for (list.items) |list_form, index| {
-                const printed_form = try pr_str(allocator, &list_form, print_readably);
+                const printed_form = try pr_str(allocator, list_form, print_readably);
                 try writer.writeAll(printed_form);
                 if (index < list.items.len - 1) {
                     try writer.writeAll(" ");
@@ -67,7 +67,7 @@ pub fn printJoin(allocator: Allocator, separator: []const u8, args: MalType.List
     var printed_args = try std.ArrayList([]const u8).initCapacity(allocator, args.items.len);
     defer printed_args.deinit();
     for (args.items) |arg| {
-        printed_args.appendAssumeCapacity(try pr_str(allocator, &arg, print_readably));
+        printed_args.appendAssumeCapacity(try pr_str(allocator, arg, print_readably));
     }
     return std.mem.join(allocator, separator, printed_args.items);
 }

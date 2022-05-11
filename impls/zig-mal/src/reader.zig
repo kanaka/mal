@@ -44,7 +44,7 @@ pub const ReadError = error{
     TokensPastFormEnd,
 } || Allocator.Error;
 
-pub fn read_str(allocator: Allocator, input: []const u8) !MalType {
+pub fn read_str(allocator: Allocator, input: []const u8) !*MalType {
     // tokenize input string into token list
     const tokens = try tokenize(allocator, input);
 
@@ -65,7 +65,7 @@ pub fn read_str(allocator: Allocator, input: []const u8) !MalType {
     return form;
 }
 
-fn read_form(allocator: Allocator, reader: *Reader) ReadError!?MalType {
+fn read_form(allocator: Allocator, reader: *Reader) ReadError!?*MalType {
     return if (reader.peek()) |first_token|
         switch (first_token[0]) {
             '(' => try read_list(allocator, reader),
@@ -76,10 +76,10 @@ fn read_form(allocator: Allocator, reader: *Reader) ReadError!?MalType {
         error.EndOfInput;
 }
 
-fn read_list(allocator: Allocator, reader: *Reader) !MalType {
+fn read_list(allocator: Allocator, reader: *Reader) !*MalType {
     // skip over the first '(' token in the list
     _ = reader.next();
-    var list = std.ArrayList(MalType).init(allocator);
+    var list = std.ArrayList(*MalType).init(allocator);
     // read the next forms until a matching ')' is found, or error otherwise
     var err_form = read_form(allocator, reader);
     while (err_form) |opt_form| : (err_form = read_form(allocator, reader)) {
@@ -94,26 +94,26 @@ fn read_list(allocator: Allocator, reader: *Reader) !MalType {
     } else |_| return error.ListNoClosingTag;
     // skip over the last ')' token in the list
     _ = reader.next();
-    return MalType{ .list = list };
+    return MalType.makeList(allocator, list);
 }
 
-fn read_atom(allocator: Allocator, reader: *Reader) !MalType {
-    if (reader.next()) |token|
+fn read_atom(allocator: Allocator, reader: *Reader) !*MalType {
+    const result = if (reader.next()) |token|
         // TODO: support keyword
         if (std.mem.eql(u8, token, "nil"))
-            return .nil
+            .nil
         else if (std.mem.eql(u8, token, "true"))
-            return .t
+            .t
         else if (std.mem.eql(u8, token, "false"))
-            return .f
-        else if (token[0] == '"') return MalType{
+            .f
+        else if (token[0] == '"') MalType{
             .string = .{
                 .value = try replaceEscapeSequences(allocator, token[1 .. token.len - 1]),
                 .allocator = allocator,
             },
-        } else if (std.fmt.parseInt(i32, token, 10)) |int| return MalType{
+        } else if (std.fmt.parseInt(i32, token, 10)) |int| MalType{
             .number = int,
-        } else |_| return MalType{
+        } else |_| MalType{
             .symbol = .{
                 .value = token,
                 .allocator = allocator,
@@ -121,6 +121,7 @@ fn read_atom(allocator: Allocator, reader: *Reader) !MalType {
         }
     else
         return error.EndOfInput;
+    return MalType.make(allocator, result);
 }
 
 fn replaceEscapeSequences(allocator: Allocator, str: []const u8) ![]const u8 {
