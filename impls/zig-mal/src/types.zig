@@ -36,6 +36,7 @@ pub const MalType = union(enum) {
         op_num_num_out_bool: fn (a: MalType.Number, b: MalType.Number) bool,
         op_num_num_out_num: fn (a: MalType.Number, b: MalType.Number) MalType.Number,
         op_val_val_out_bool: fn (a: *const MalType, b: *const MalType) bool,
+        op_mut_val_val_out_val: fn (a: *MalType, b: *const MalType) EvalError!*MalType,
         // vargars primitives
         op_alloc_varargs_out_val: fn (allocator: Allocator, args: MalType.List) EvalError!*MalType,
 
@@ -69,6 +70,9 @@ pub const MalType = union(enum) {
                             if (return_type == bool)
                                 break :blk .{ .op_val_val_out_bool = fn_ptr };
                         }
+                        if (a_type == *MalType and b_type == *const MalType) {
+                            break :blk .{ .op_mut_val_val_out_val = fn_ptr };
+                        }
                         if (a_type == Allocator and b_type == *const MalType) {
                             // TODO: and return_type == Error!*MalType
                             break :blk .{ .op_alloc_val_out_val = fn_ptr };
@@ -82,7 +86,7 @@ pub const MalType = union(enum) {
                 },
             };
         }
-        pub fn eval(primitive: Primitive, allocator: Allocator, args: []const MalType) !MalType {
+        pub fn eval(primitive: Primitive, allocator: Allocator, args: []MalType) !MalType {
             // TODO: can probably be compile-time generated from function type info
             switch (primitive) {
                 .op_num_num_out_num => |op| {
@@ -112,6 +116,11 @@ pub const MalType = union(enum) {
                     const a = &args[0];
                     const b = &args[1];
                     return MalType.makeBool(op(a, b));
+                },
+                .op_mut_val_val_out_val => |op| {
+                    if (args.len != 2) return error.EvalInvalidOperands;
+                    const result_ptr = try op(&args[0], &args[1]);
+                    return result_ptr.*;
                 },
                 .op_val_out_val => |op| {
                     if (args.len != 1) return error.EvalInvalidOperands;
@@ -258,8 +267,8 @@ pub const MalType = union(enum) {
             },
             .atom => |atom| .{
                 .atom = .{
-                    // TODO: check this
-                    .reference = try atom.reference.clone(allocator),
+                    // TODO: check this, atoms shouldn't be cloned
+                    .reference = atom.reference,
                 },
             },
             else => self,
