@@ -74,11 +74,9 @@ fn EVAL(allocator: Allocator, ast: *const MalType, env: *Env) EvalError!MalType 
                     if (std.mem.eql(u8, symbol.value, "do")) {
                         const do_len = list.items.len - 1;
                         if (do_len < 1) return error.EvalDoInvalidOperands;
-                        const do_items = list.items[1..];
-                        for (do_items[0 .. do_len - 1]) |item| {
-                            _ = try eval_ast(allocator, &item, current_env);
-                        }
-                        current_ast = &do_items[do_len - 1];
+                        const do_ast = try MalType.initListFromSlice(allocator, list.items[1..do_len]);
+                        _ = try eval_ast(allocator, &do_ast, current_env);
+                        current_ast = &list.items[do_len];
                         continue;
                     }
 

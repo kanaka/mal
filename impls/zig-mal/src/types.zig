@@ -182,6 +182,14 @@ pub const MalType = union(enum) {
         return MalType{ .list = try List.initCapacity(allocator, num) };
     }
 
+    pub fn initListFromSlice(allocator: Allocator, slice: []const MalType) !MalType {
+        var self = try MalType.initListCapacity(allocator, slice.len);
+        for (slice) |item| {
+            self.list.appendAssumeCapacity(item);
+        }
+        return self;
+    }
+
     const Self = @This();
 
     pub fn deinit(self: Self) void {
