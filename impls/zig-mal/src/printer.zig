@@ -28,6 +28,7 @@ pub fn pr_str(allocator: Allocator, value: *const MalType, print_readably: bool)
             return result.items;
         },
         .primitive => "#<function>",
+        .atom => "#<atom>",
         .nil => "nil",
         .t => "true",
         .f => "false",

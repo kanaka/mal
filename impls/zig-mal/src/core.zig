@@ -134,6 +134,22 @@ pub fn slurp(allocator: Allocator, param: *const MalType) !*MalType {
     };
 }
 
+pub fn atom(allocator: Allocator, param: *const MalType) !*MalType {
+    // TODO: shouldn't clone when using proper GC
+    return &MalType{ .atom = .{ .reference = try param.clone(allocator) } };
+}
+
+pub fn is_atom(param: *const MalType) bool {
+    return param.* == .atom;
+}
+
+pub fn deref(param: *const MalType) !*MalType {
+    // TODO: find a way to better handle the const
+    const value = try param.asAtom();
+    var referenced = value.reference.*;
+    return &referenced;
+}
+
 pub const ns = .{
     .@"+" = Primitive.make(add),
     .@"-" = Primitive.make(subtract),
@@ -155,4 +171,7 @@ pub const ns = .{
     .@"println" = Primitive.make(println),
     .@"read-string" = Primitive.make(read_string),
     .@"slurp" = Primitive.make(slurp),
+    .@"atom" = Primitive.make(atom),
+    .@"atom?" = Primitive.make(is_atom),
+    .@"deref" = Primitive.make(deref),
 };

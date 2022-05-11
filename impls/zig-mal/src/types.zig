@@ -28,8 +28,8 @@ pub const MalType = union(enum) {
     pub const Primitive = union(enum) {
         pub const Error = error{StreamTooLong} || Allocator.Error || std.fs.File.OpenError || std.fs.File.WriteError || std.os.ReadError || TypeError || reader.ReadError;
         // unary primitives
-        // op_val_out_val: fn (a: *const MalType) MalType,
         op_alloc_val_out_val: fn (allocator: Allocator, a: *const MalType) EvalError!*MalType,
+        op_val_out_val: fn (a: *const MalType) EvalError!*MalType,
         op_val_out_bool: fn (a: *const MalType) bool,
         op_val_out_num: fn (a: *const MalType) MalType.Number,
         // binary primitives
@@ -53,6 +53,7 @@ pub const MalType = union(enum) {
                                 break :blk .{ .op_val_out_bool = fn_ptr };
                             if (return_type == MalType.Number)
                                 break :blk .{ .op_val_out_num = fn_ptr };
+                            break :blk .{ .op_val_out_val = fn_ptr };
                         }
                     },
                     2 => blk: {
@@ -112,6 +113,11 @@ pub const MalType = union(enum) {
                     const b = &args[1];
                     return MalType.makeBool(op(a, b));
                 },
+                .op_val_out_val => |op| {
+                    if (args.len != 1) return error.EvalInvalidOperands;
+                    const result_ptr = try op(&args[0]);
+                    return result_ptr.*;
+                },
                 .op_alloc_val_out_val => |op| {
                     if (args.len != 1) return error.EvalInvalidOperands;
                     const result_ptr = try op(allocator, &args[0]);
@@ -127,7 +133,12 @@ pub const MalType = union(enum) {
         }
     };
 
+    pub const Atom = struct {
+        reference: *const MalType,
+    };
+
     pub const TypeError = error{
+        NotAtom,
         NotFunction,
         NotList,
         NotNumber,
@@ -156,6 +167,8 @@ pub const MalType = union(enum) {
         body: *MalType,
         env: *Env,
     },
+
+    atom: Atom,
 
     pub fn makeBool(b: bool) MalType {
         return if (b) .t else .f;
@@ -243,6 +256,12 @@ pub const MalType = union(enum) {
                     },
                 };
             },
+            .atom => |atom| .{
+                .atom = .{
+                    // TODO: check this
+                    .reference = try atom.reference.clone(allocator),
+                },
+            },
             else => self,
         };
     }
@@ -267,6 +286,7 @@ pub const MalType = union(enum) {
             },
             .primitive => |primitive| @enumToInt(primitive) == @enumToInt(other.primitive) and
                 std.mem.eql(u8, std.mem.asBytes(&primitive), std.mem.asBytes(&other.primitive)),
+            .atom => &self == other,
         };
     }
 
@@ -307,6 +327,13 @@ pub const MalType = union(enum) {
         return switch (self) {
             .string => |string| string,
             else => error.NotString,
+        };
+    }
+
+    pub fn asAtom(self: Self) !MalType.Atom {
+        return switch (self) {
+            .atom => |atom| atom,
+            else => error.NotAtom,
         };
     }
 };
