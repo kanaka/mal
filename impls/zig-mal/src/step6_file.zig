@@ -25,8 +25,8 @@ fn EVAL(allocator: Allocator, ast: *const MalType, env: *Env) EvalError!MalType 
             .list => |list| if (list.items.len == 0) return MalType.initListAlloc(allocator) else {
                 // apply phase
                 const first = list.items[0];
-                if (first == .atom and first.atom == .symbol) {
-                    const symbol = first.atom.symbol;
+                if (first == .symbol) {
+                    const symbol = first.symbol;
 
                     if (std.mem.eql(u8, symbol.value, "def!")) {
                         const rest = list.items[1..];
@@ -67,7 +67,7 @@ fn EVAL(allocator: Allocator, ast: *const MalType, env: *Env) EvalError!MalType 
                         else if (rest.len == 3)
                             current_ast = &rest[2]
                         else
-                            current_ast = &MalType{ .atom = .nil };
+                            current_ast = &@as(MalType, .nil);
                         continue;
                     }
 
@@ -129,21 +129,18 @@ fn EVAL(allocator: Allocator, ast: *const MalType, env: *Env) EvalError!MalType 
 }
 
 fn eval_ast(allocator: Allocator, ast: *const MalType, env: *Env) EvalError!MalType {
-    switch (ast.*) {
-        .atom => |atom| return switch (atom) {
-            .symbol => |symbol| env.get(symbol.value),
-            else => ast.*,
-        },
-        .list => |list| {
+    return switch (ast.*) {
+        .symbol => |symbol| env.get(symbol.value),
+        .list => |list| blk: {
             var results = try MalType.initListCapacity(allocator, list.items.len);
             for (list.items) |item| {
                 const result = try EVAL(allocator, &item, env);
                 results.list.appendAssumeCapacity(result);
             }
-            return results;
+            break :blk results;
         },
-        else => return ast.*,
-    }
+        else => ast.*,
+    };
 }
 
 fn PRINT(allocator: Allocator, ast: *const MalType) ![]const u8 {

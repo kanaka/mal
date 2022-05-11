@@ -30,14 +30,12 @@ pub fn pr_str(allocator: Allocator, value: *const MalType, print_readably: bool)
             },
             else => "#<function>",
         },
-        .atom => |atom| switch (atom) {
-            .nil => "nil",
-            .t => "true",
-            .f => "false",
-            .number => |number| try std.fmt.allocPrint(allocator, "{d}", .{number}),
-            .string => |string| if (print_readably) try std.fmt.allocPrint(allocator, "\"{s}\"", .{replaceWithEscapeSequences(allocator, string.value)}) else string.value,
-            .symbol => |symbol| symbol.value,
-        },
+        .nil => "nil",
+        .t => "true",
+        .f => "false",
+        .number => |number| try std.fmt.allocPrint(allocator, "{d}", .{number}),
+        .string => |string| if (print_readably) try std.fmt.allocPrint(allocator, "\"{s}\"", .{replaceWithEscapeSequences(allocator, string.value)}) else string.value,
+        .symbol => |symbol| symbol.value,
         .list => |list| {
             var printed_forms = std.ArrayList(u8).init(allocator);
             const writer = printed_forms.writer();

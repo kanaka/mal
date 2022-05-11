@@ -3,7 +3,6 @@ const Allocator = std.mem.Allocator;
 
 const types = @import("./types.zig");
 const MalType = types.MalType;
-const Atom = MalType.Atom;
 const replaceMultipleOwned = @import("./utils.zig").replaceMultipleOwned;
 
 const TokenList = std.ArrayList([]const u8);
@@ -99,24 +98,29 @@ fn read_list(allocator: Allocator, reader: *Reader) !MalType {
 }
 
 fn read_atom(allocator: Allocator, reader: *Reader) !MalType {
-    return MalType{
-        .atom = if (reader.next()) |token|
-            // TODO: support keyword
-            if (std.mem.eql(u8, token, "nil"))
-                .nil
-            else if (std.mem.eql(u8, token, "true"))
-                .t
-            else if (std.mem.eql(u8, token, "false"))
-                .f
-            else if (token[0] == '"')
-                Atom{ .string = .{ .value = try replaceEscapeSequences(allocator, token[1 .. token.len - 1]), .allocator = allocator } }
-            else if (std.fmt.parseInt(i32, token, 10)) |int|
-                Atom{ .number = int }
-            else |_|
-                Atom{ .symbol = .{ .value = token, .allocator = allocator } }
-        else
-            return error.EndOfInput,
-    };
+    if (reader.next()) |token|
+        // TODO: support keyword
+        if (std.mem.eql(u8, token, "nil"))
+            return .nil
+        else if (std.mem.eql(u8, token, "true"))
+            return .t
+        else if (std.mem.eql(u8, token, "false"))
+            return .f
+        else if (token[0] == '"') return MalType{
+            .string = .{
+                .value = try replaceEscapeSequences(allocator, token[1 .. token.len - 1]),
+                .allocator = allocator,
+            },
+        } else if (std.fmt.parseInt(i32, token, 10)) |int| return MalType{
+            .number = int,
+        } else |_| return MalType{
+            .symbol = .{
+                .value = token,
+                .allocator = allocator,
+            },
+        }
+    else
+        return error.EndOfInput;
 }
 
 fn replaceEscapeSequences(allocator: Allocator, str: []const u8) ![]const u8 {

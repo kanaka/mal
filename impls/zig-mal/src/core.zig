@@ -54,7 +54,7 @@ pub fn is_list(param: *const MalType) bool {
 }
 
 pub fn is_nil(param: *const MalType) bool {
-    return param.* == .atom and param.atom == .nil;
+    return param.* == .nil;
 }
 
 pub fn is_empty(param: *const MalType) bool {
@@ -96,7 +96,7 @@ pub fn prn(allocator: Allocator, args: MalType.List) !*MalType {
 
     // TODO: this shouldn't need to allocate
     var result_ptr = try allocator.create(MalType);
-    result_ptr.* = .{ .atom = .nil };
+    result_ptr.* = .nil;
     return result_ptr;
 }
 
@@ -109,7 +109,7 @@ pub fn println(allocator: Allocator, args: MalType.List) !*MalType {
 
     // TODO: this shouldn't need to allocate
     var result_ptr = try allocator.create(MalType);
-    result_ptr.* = .{ .atom = .nil };
+    result_ptr.* = .nil;
     return result_ptr;
 }
 
@@ -126,10 +126,12 @@ pub fn slurp(allocator: Allocator, param: *const MalType) !*MalType {
     // TODO: revisit global max size definitions
     const max_size = 1 << 16; // 64KiB
     const contents = try file.reader().readAllAlloc(allocator, max_size);
-    return &MalType{ .atom = .{ .string = .{
-        .value = contents,
-        .allocator = allocator,
-    } } };
+    return &MalType{
+        .string = .{
+            .value = contents,
+            .allocator = allocator,
+        },
+    };
 }
 
 pub const ns = .{

@@ -21,15 +21,6 @@ pub const MalType = union(enum) {
     const StrAlloc = struct { value: []const u8, allocator: Allocator };
     pub const Symbol = StrAlloc;
     pub const String = StrAlloc;
-    pub const Atom = union(enum) {
-        t,
-        f,
-        nil,
-        number: Number,
-        // TODO: keyword
-        string: String,
-        symbol: Symbol,
-    };
     pub const List = std.ArrayList(MalType);
 
     pub const Function = union(enum) {
@@ -146,7 +137,6 @@ pub const MalType = union(enum) {
     };
 
     pub const TypeError = error{
-        NotAtom,
         NotFunction,
         NotList,
         NotNumber,
@@ -154,24 +144,35 @@ pub const MalType = union(enum) {
         NotString,
     };
 
-    atom: Atom,
+    // atoms
+    t,
+    f,
+    nil,
+    number: Number,
+    string: String,
+    symbol: Symbol,
+
+    // TODO: keywords
+    // TODO: vectors
+    // TODO: hash-maps
+
     list: List,
     function: Function,
 
     pub fn makeBool(b: bool) MalType {
-        return .{ .atom = if (b) .t else .f };
+        return if (b) .t else .f;
     }
 
     pub fn makeNumber(num: Number) MalType {
-        return .{ .atom = .{ .number = num } };
+        return .{ .number = num };
     }
 
     pub fn makeString(allocator: Allocator, string: []const u8) MalType {
-        return .{ .atom = .{ .string = .{ .value = string, .allocator = allocator } } };
+        return .{ .string = .{ .value = string, .allocator = allocator } };
     }
 
     pub fn makeSymbol(allocator: Allocator, symbol: []const u8) MalType {
-        return .{ .atom = .{ .symbol = .{ .value = symbol, .allocator = allocator } } };
+        return .{ .symbol = .{ .value = symbol, .allocator = allocator } };
     }
 
     pub fn initList(list: List) MalType {
@@ -200,10 +201,7 @@ pub const MalType = union(enum) {
                 }
                 list.deinit();
             },
-            .atom => |atom| switch (atom) {
-                .string, .symbol => |str_alloc| str_alloc.allocator.free(str_alloc.value),
-                else => {},
-            },
+            .string, .symbol => |str_alloc| str_alloc.allocator.free(str_alloc.value),
             .function => |function| switch (function) {
                 .closure => |closure| {
                     for (closure.parameters.items) |parameter| {
@@ -215,6 +213,7 @@ pub const MalType = union(enum) {
                 },
                 else => {},
             },
+            else => {},
         }
     }
 
@@ -234,11 +233,8 @@ pub const MalType = union(enum) {
                 }
                 break :blk .{ .list = list_copy };
             },
-            .atom => |atom| switch (atom) {
-                .string => |string| makeString(allocator, try allocator.dupe(u8, string.value)),
-                .symbol => |symbol| makeSymbol(allocator, try allocator.dupe(u8, symbol.value)),
-                else => self,
-            },
+            .string => |string| makeString(allocator, try allocator.dupe(u8, string.value)),
+            .symbol => |symbol| makeSymbol(allocator, try allocator.dupe(u8, symbol.value)),
             .function => |function| switch (function) {
                 .closure => |closure| blk: {
                     var parameters_copy = try Function.Parameters.initCapacity(allocator, closure.parameters.items.len);
@@ -257,18 +253,17 @@ pub const MalType = union(enum) {
                 },
                 else => self,
             },
+            else => self,
         };
     }
 
     pub fn equals(self: Self, other: *const Self) bool {
         // check if values are of the same type
         return @enumToInt(self) == @enumToInt(other.*) and switch (self) {
-            .atom => |atom| @enumToInt(self.atom) == @enumToInt(other.atom) and switch (atom) {
-                .number => |number| number == other.atom.number,
-                .string => |string| std.mem.eql(u8, string.value, other.atom.string.value),
-                .symbol => |symbol| std.mem.eql(u8, symbol.value, other.atom.symbol.value),
-                .t, .f, .nil => true,
-            },
+            .number => |number| number == other.number,
+            .string => |string| std.mem.eql(u8, string.value, other.string.value),
+            .symbol => |symbol| std.mem.eql(u8, symbol.value, other.symbol.value),
+            .t, .f, .nil => true,
             .list => |list| list.items.len == other.list.items.len and for (list.items) |item, i| {
                 if (!item.equals(&other.list.items[i])) break false;
             } else true,
@@ -287,29 +282,16 @@ pub const MalType = union(enum) {
         };
     }
 
-    pub fn asAtom(self: Self) !Atom {
-        return switch (self) {
-            .atom => |atom| atom,
-            else => error.NotAtom,
-        };
-    }
-
     pub fn asNumber(self: Self) !Number {
         return switch (self) {
-            .atom => |atom| switch (atom) {
-                .number => |number| number,
-                else => error.NotNumber,
-            },
+            .number => |number| number,
             else => error.NotNumber,
         };
     }
 
     pub fn asSymbol(self: Self) !Symbol {
         return switch (self) {
-            .atom => |atom| switch (atom) {
-                .symbol => |symbol| symbol,
-                else => error.NotSymbol,
-            },
+            .symbol => |symbol| symbol,
             else => error.NotSymbol,
         };
     }
@@ -322,19 +304,15 @@ pub const MalType = union(enum) {
     }
 
     pub fn initListAlloc(allocator: Allocator) MalType {
-        return MalType{ .list = List.init(allocator) };
+        return .{ .list = List.init(allocator) };
     }
 
     pub fn isTruthy(self: Self) bool {
-        return !(self == .atom and (self.atom == .f or self.atom == .nil));
-    }
-
-    pub fn isString(self: Self) bool {
-        return self.atom and self.atom == .string;
+        return !(self == .f or self == .nil);
     }
 
     pub fn getString(self: Self) ?MalType.String {
-        return if (self.isString()) self.atom.string else null;
+        return if (self == .string) self.string else null;
     }
 
     pub fn asFunction(self: Self) !Function {
@@ -346,10 +324,7 @@ pub const MalType = union(enum) {
 
     pub fn asString(self: Self) !MalType.String {
         return switch (self) {
-            .atom => |atom| switch (atom) {
-                .string => |string| string,
-                else => error.NotString,
-            },
+            .string => |string| string,
             else => error.NotString,
         };
     }
