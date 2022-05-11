@@ -7,7 +7,7 @@ const reader = @import("./reader.zig");
 const types = @import("./types.zig");
 const MalType = types.MalType;
 const Number = MalType.Number;
-const Primitive = MalType.Function.Primitive;
+const Primitive = MalType.Primitive;
 
 pub fn add(a: Number, b: Number) Number {
     return a + b;

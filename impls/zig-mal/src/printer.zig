@@ -12,24 +12,22 @@ pub fn pr_str(allocator: Allocator, value: *const MalType, print_readably: bool)
     // other than arena, not planned for deallocation
     return switch (value.*) {
         // .function => "#<function>",
-        .function => |function| switch (function) {
-            .closure => |closure| {
-                var result = std.ArrayList(u8).init(allocator);
-                const writer = result.writer();
-                try writer.writeAll("(fn* (");
-                for (closure.parameters.items) |parameter, i| {
-                    try writer.writeAll(parameter.value);
-                    if (i < closure.parameters.items.len - 1) {
-                        try writer.writeAll(" ");
-                    }
+        .closure => |closure| {
+            var result = std.ArrayList(u8).init(allocator);
+            const writer = result.writer();
+            try writer.writeAll("(fn* (");
+            for (closure.parameters.items) |parameter, i| {
+                try writer.writeAll(parameter.value);
+                if (i < closure.parameters.items.len - 1) {
+                    try writer.writeAll(" ");
                 }
-                try writer.writeAll(") ");
-                try writer.writeAll(try pr_str(allocator, closure.body, print_readably));
-                try writer.writeAll(")");
-                return result.items;
-            },
-            else => "#<function>",
+            }
+            try writer.writeAll(") ");
+            try writer.writeAll(try pr_str(allocator, closure.body, print_readably));
+            try writer.writeAll(")");
+            return result.items;
         },
+        .primitive => "#<function>",
         .nil => "nil",
         .t => "true",
         .f => "false",

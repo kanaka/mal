@@ -89,12 +89,10 @@ fn EVAL(allocator: Allocator, ast: *const MalType, env: *Env) EvalError!MalType 
                             binds.appendAssumeCapacity(parameter_symbol);
                         }
                         return MalType{
-                            .function = .{
-                                .closure = .{
-                                    .parameters = binds,
-                                    .body = &list.items[2],
-                                    .env = current_env,
-                                },
+                            .closure = .{
+                                .parameters = binds,
+                                .body = &list.items[2],
+                                .env = current_env,
                             },
                         };
                     }
@@ -102,7 +100,7 @@ fn EVAL(allocator: Allocator, ast: *const MalType, env: *Env) EvalError!MalType 
                 const evaled_ast = try eval_ast(allocator, current_ast, current_env);
                 const evaled_items = evaled_ast.list.items;
 
-                const function = evaled_items[0].asFunction() catch return error.EvalNotSymbolOrFn;
+                const function = evaled_items[0];
                 const args = evaled_items[1..];
                 switch (function) {
                     .primitive => |primitive| return primitive.eval(allocator, args),
@@ -121,6 +119,7 @@ fn EVAL(allocator: Allocator, ast: *const MalType, env: *Env) EvalError!MalType 
                         current_env = fn_env_ptr;
                         continue;
                     },
+                    else => return error.EvalNotSymbolOrFn,
                 }
             },
             else => return eval_ast(allocator, current_ast, current_env),
@@ -174,7 +173,7 @@ pub fn main() anyerror!void {
         try repl_env.set(field.name, @field(core.ns, field.name));
     }
 
-    try repl_env.set("eval", MalType.Function.Primitive.make(eval));
+    try repl_env.set("eval", MalType.Primitive.make(eval));
 
     var input_buffer: [input_buffer_length]u8 = undefined;
     // initialize std io reader and writer
