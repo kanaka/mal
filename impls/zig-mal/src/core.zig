@@ -138,6 +138,22 @@ pub fn reset(param: *MalType, value: *MalType) !*MalType {
     return value;
 }
 
+pub fn swap(allocator: Allocator, params: MalType.List) !*MalType {
+    const a = params.items[0];
+    const value = try a.asAtom();
+    const function = params.items[1];
+
+    var args = try std.ArrayList(*MalType).initCapacity(allocator, params.items.len - 1);
+    args.appendAssumeCapacity(value);
+    for (params.items[2..]) |param| {
+        args.appendAssumeCapacity(param);
+    }
+
+    const result = try function.apply(allocator, args.items);
+    a.atom = result;
+    return result;
+}
+
 pub const ns = .{
     .@"+" = add,
     .@"-" = subtract,
@@ -163,4 +179,5 @@ pub const ns = .{
     .@"atom?" = is_atom,
     .@"deref" = deref,
     .@"reset!" = reset,
+    .@"swap!" = swap,
 };

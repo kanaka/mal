@@ -93,6 +93,7 @@ fn EVAL(allocator: Allocator, ast: *MalType, env: *Env) EvalError!*MalType {
                             .parameters = binds,
                             .body = list.items[2],
                             .env = current_env,
+                            .eval = EVAL,
                         });
                     }
                 }
@@ -101,8 +102,9 @@ fn EVAL(allocator: Allocator, ast: *MalType, env: *Env) EvalError!*MalType {
 
                 const function = evaled_items[0];
                 const args = evaled_items[1..];
+
                 switch (function.*) {
-                    .primitive => |primitive| return primitive.eval(allocator, args),
+                    .primitive => |primitive| return primitive.apply(allocator, args),
                     .closure => |closure| {
                         const parameters = closure.parameters.items;
                         if (parameters.len != args.len) {

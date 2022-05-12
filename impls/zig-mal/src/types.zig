@@ -83,7 +83,7 @@ pub const MalType = union(enum) {
                 else => unreachable,
             };
         }
-        pub fn eval(primitive: Primitive, allocator: Allocator, args: []*MalType) !*MalType {
+        pub fn apply(primitive: Primitive, allocator: Allocator, args: []*MalType) !*MalType {
             // TODO: can probably be compile-time generated from function type info
             switch (primitive) {
                 .op_num_num_out_num => |op| {
@@ -135,6 +135,21 @@ pub const MalType = union(enum) {
         parameters: Parameters,
         body: *MalType,
         env: *Env,
+        eval: fn (allocator: Allocator, ast: *MalType, env: *Env) EvalError!*MalType,
+
+        pub fn apply(closure: Closure, allocator: Allocator, args: []*MalType) !*MalType {
+            const parameters = closure.parameters.items;
+            if (parameters.len != args.len) {
+                return error.EvalInvalidOperands;
+            }
+            // convert from a list of MalType.Symbol to a list of valid symbol keys to use in environment init
+            var binds = try std.ArrayList([]const u8).initCapacity(allocator, parameters.len);
+            for (parameters) |parameter| {
+                binds.appendAssumeCapacity(parameter.value);
+            }
+            var fn_env_ptr = try closure.env.initChildBindExprs(binds.items, args);
+            return closure.eval(allocator, closure.body, fn_env_ptr);
+        }
     };
 
     pub const Atom = *MalType;
@@ -337,6 +352,14 @@ pub const MalType = union(enum) {
         return switch (self) {
             .atom => |atom| atom,
             else => error.NotAtom,
+        };
+    }
+
+    pub fn apply(self: Self, allocator: Allocator, args: []*MalType) !*MalType {
+        return switch (self) {
+            .primitive => |primitive| primitive.apply(allocator, args),
+            .closure => |closure| closure.apply(allocator, args),
+            else => error.NotFunction,
         };
     }
 };
