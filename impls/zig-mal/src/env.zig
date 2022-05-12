@@ -74,7 +74,7 @@ pub const Env = struct {
 
         const get_or_put = try self.data.getOrPut(symbol);
         if (get_or_put.found_existing) {
-            get_or_put.value_ptr.*.deinit();
+            // get_or_put.value_ptr.*.deinit();
         } else {
             // copy the symbol to use as key with the same lifetime as the hash map
             get_or_put.key_ptr.* = allocator.dupe(u8, symbol) catch |err| {
@@ -82,7 +82,6 @@ pub const Env = struct {
                 return err;
             };
         }
-        // TODO: check this
         get_or_put.value_ptr.* = value;
     }
 

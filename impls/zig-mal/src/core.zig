@@ -73,7 +73,7 @@ pub fn eql(a: *MalType, b: *MalType) bool {
 }
 
 pub fn pr_str(allocator: Allocator, args: MalType.List) !*MalType {
-    return MalType.makeString(allocator, try printJoin(allocator, "", args, true));
+    return MalType.makeString(allocator, try printJoin(allocator, " ", args, true));
 }
 
 pub fn str(allocator: Allocator, args: MalType.List) !*MalType {
@@ -115,12 +115,7 @@ pub fn slurp(allocator: Allocator, param: *MalType) !*MalType {
     // TODO: revisit global max size definitions
     const max_size = 1 << 16; // 64KiB
     const contents = try file.reader().readAllAlloc(allocator, max_size);
-    return &MalType{
-        .string = .{
-            .value = contents,
-            .allocator = allocator,
-        },
-    };
+    return MalType.makeString(allocator, contents);
 }
 
 pub fn atom(allocator: Allocator, param: *MalType) !*MalType {

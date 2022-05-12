@@ -243,54 +243,54 @@ pub const MalType = union(enum) {
 
     const Self = @This();
 
-    pub fn deinit(self: *Self) void {
-        switch (self.*) {
-            .list => |list| {
-                for (list.items) |item| {
-                    item.deinit();
-                }
-                list.deinit();
-            },
-            .string, .symbol => |str_alloc| str_alloc.allocator.free(str_alloc.value),
-            .closure => |closure| {
-                for (closure.parameters.items) |parameter| {
-                    parameter.allocator.free(parameter.value);
-                }
-                closure.parameters.deinit();
-                closure.body.deinit();
-                // closure.env.deinit();
-            },
-            else => {},
-        }
-    }
+    // pub fn deinit(self: *Self) void {
+    //     switch (self.*) {
+    //         .list => |list| {
+    //             for (list.items) |item| {
+    //                 item.deinit();
+    //             }
+    //             list.deinit();
+    //         },
+    //         .string, .symbol => |str_alloc| str_alloc.allocator.free(str_alloc.value),
+    //         .closure => |closure| {
+    //             for (closure.parameters.items) |parameter| {
+    //                 parameter.allocator.free(parameter.value);
+    //             }
+    //             closure.parameters.deinit();
+    //             closure.body.deinit();
+    //             // closure.env.deinit();
+    //         },
+    //         else => {},
+    //     }
+    // }
 
-    pub fn copy(self: Self, allocator: Allocator) Allocator.Error!*MalType {
-        return switch (self) {
-            .list => |list| blk: {
-                var list_copy = try List.initCapacity(allocator, list.items.len);
-                for (list.items) |item| {
-                    list_copy.appendAssumeCapacity(try item.copy(allocator));
-                }
-                break :blk makeList(allocator, list_copy);
-            },
-            .string => |string| makeString(allocator, try allocator.dupe(u8, string.value)),
-            .symbol => |symbol| makeSymbol(allocator, try allocator.dupe(u8, symbol.value)),
-            .closure => |closure| blk: {
-                var parameters_copy = try Parameters.initCapacity(allocator, closure.parameters.items.len);
-                for (closure.parameters.items) |item| {
-                    parameters_copy.appendAssumeCapacity(.{ .value = try allocator.dupe(u8, item.value), .allocator = allocator });
-                }
-                break :blk makeClosure(allocator, .{
-                    .parameters = parameters_copy,
-                    .body = try closure.body.copy(allocator),
-                    .env = closure.env,
-                });
-            },
-            // TODO: check this
-            .atom => |atom| makeAtom(allocator, atom),
-            else => make(allocator, self),
-        };
-    }
+    // pub fn copy(self: Self, allocator: Allocator) Allocator.Error!*MalType {
+    //     return switch (self) {
+    //         .list => |list| blk: {
+    //             var list_copy = try List.initCapacity(allocator, list.items.len);
+    //             for (list.items) |item| {
+    //                 list_copy.appendAssumeCapacity(try item.copy(allocator));
+    //             }
+    //             break :blk makeList(allocator, list_copy);
+    //         },
+    //         .string => |string| makeString(allocator, try allocator.dupe(u8, string.value)),
+    //         .symbol => |symbol| makeSymbol(allocator, try allocator.dupe(u8, symbol.value)),
+    //         .closure => |closure| blk: {
+    //             var parameters_copy = try Parameters.initCapacity(allocator, closure.parameters.items.len);
+    //             for (closure.parameters.items) |item| {
+    //                 parameters_copy.appendAssumeCapacity(.{ .value = try allocator.dupe(u8, item.value), .allocator = allocator });
+    //             }
+    //             break :blk makeClosure(allocator, .{
+    //                 .parameters = parameters_copy,
+    //                 .body = try closure.body.copy(allocator),
+    //                 .env = closure.env,
+    //             });
+    //         },
+    //         // TODO: check this
+    //         .atom => |atom| makeAtom(allocator, atom),
+    //         else => make(allocator, self),
+    //     };
+    // }
 
     pub fn equals(self: Self, other: *const Self) bool {
         // check if values are of the same type

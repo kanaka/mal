@@ -195,8 +195,19 @@ pub fn main() anyerror!void {
     // read command line arguments
     var iter = std.process.args();
     // ignore first argument (executable file)
-    _ = iter.next();
+    _ = iter.skip();
+
+    // read second argument as file to load
     const opt_filename = iter.next();
+
+    // read rest of CLI arguments into the *ARGV* list
+    var argv_list = MalType.List.init(gaa);
+    while (iter.next()) |arg| {
+        try argv_list.append(try MalType.makeString(gaa, arg));
+    }
+    const argv = try MalType.makeList(gaa, argv_list);
+    try repl_env.set("*ARGV*", argv);
+
     // call (load-file filename) if given a filename argument
     if (opt_filename) |filename| {
         const string = try std.mem.join(gaa, "\"", &.{ "(load-file ", filename, ")" });

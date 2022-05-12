@@ -8,10 +8,7 @@ const replaceMultipleOwned = @import("./utils.zig").replaceMultipleOwned;
 const Error = error{OutOfMemory};
 
 pub fn pr_str(allocator: Allocator, value: *const MalType, print_readably: bool) Error![]const u8 {
-    // TODO: this needs a significant refactoring to work with an allocator
-    // other than arena, not planned for deallocation
     return switch (value.*) {
-        // .function => "#<function>",
         .closure => |closure| {
             var result = std.ArrayList(u8).init(allocator);
             const writer = result.writer();
