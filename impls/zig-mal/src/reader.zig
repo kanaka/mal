@@ -70,6 +70,16 @@ fn read_form(allocator: Allocator, reader: *Reader) ReadError!?*MalType {
         switch (first_token[0]) {
             '(' => try read_list(allocator, reader),
             ')' => null,
+            '@' => blk: {
+                // reader macro: @form => (deref form)
+                const deref = try MalType.makeSymbol(allocator, "deref");
+                _ = reader.next();
+                const next_form = try read_atom(allocator, reader);
+                var list = try MalType.List.initCapacity(allocator, 2);
+                list.appendAssumeCapacity(deref);
+                list.appendAssumeCapacity(next_form);
+                break :blk try MalType.makeList(allocator, list);
+            },
             else => try read_atom(allocator, reader),
         }
     else
