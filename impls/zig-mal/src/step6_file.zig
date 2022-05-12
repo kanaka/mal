@@ -128,7 +128,8 @@ fn EVAL(allocator: Allocator, ast: *MalType, env: *Env) EvalError!*MalType {
 
 fn eval_ast(allocator: Allocator, ast: *MalType, env: *Env) EvalError!*MalType {
     return switch (ast.*) {
-        .symbol => |symbol| &try env.get(symbol.value),
+        // TODO: check this
+        .symbol => |symbol| try MalType.make(allocator, try env.get(symbol.value)),
         .list => |list| blk: {
             var results = try MalType.makeListCapacity(allocator, list.items.len);
             for (list.items) |item| {

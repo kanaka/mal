@@ -24,21 +24,21 @@ pub const MalType = union(enum) {
     pub const Symbol = StrAlloc;
     pub const String = StrAlloc;
 
-    pub const Parameters = std.ArrayList(MalType.Symbol);
+    pub const Parameters = std.ArrayList(Symbol);
     pub const Primitive = union(enum) {
         pub const Error = error{StreamTooLong} || Allocator.Error || std.fs.File.OpenError || std.fs.File.WriteError || std.os.ReadError || TypeError || reader.ReadError;
         // unary primitives
         op_alloc_val_out_val: fn (allocator: Allocator, a: *MalType) EvalError!*MalType,
         op_val_out_val: fn (a: *MalType) EvalError!*MalType,
         op_val_out_bool: fn (a: *MalType) bool,
-        op_val_out_num: fn (a: *MalType) MalType.Number,
+        op_val_out_num: fn (a: *MalType) Number,
         // binary primitives
-        op_num_num_out_bool: fn (a: MalType.Number, b: MalType.Number) bool,
-        op_num_num_out_num: fn (a: MalType.Number, b: MalType.Number) MalType.Number,
+        op_num_num_out_bool: fn (a: Number, b: Number) bool,
+        op_num_num_out_num: fn (a: Number, b: Number) Number,
         op_val_val_out_bool: fn (a: *MalType, b: *MalType) bool,
-        op_mut_val_val_out_val: fn (a: *MalType, b: *MalType) EvalError!*MalType,
-        // vargars primitives
-        op_alloc_varargs_out_val: fn (allocator: Allocator, args: MalType.List) EvalError!*MalType,
+        op_val_val_out_val: fn (a: *MalType, b: *MalType) EvalError!*MalType,
+        // varargs primitives
+        op_alloc_varargs_out_val: fn (allocator: Allocator, args: List) EvalError!*MalType,
 
         pub fn make(fn_ptr: anytype) MalType {
             const type_info = @typeInfo(@TypeOf(fn_ptr));
@@ -52,7 +52,7 @@ pub const MalType = union(enum) {
                         if (a_type == *MalType) {
                             if (return_type == bool)
                                 break :blk .{ .op_val_out_bool = fn_ptr };
-                            if (return_type == MalType.Number)
+                            if (return_type == Number)
                                 break :blk .{ .op_val_out_num = fn_ptr };
                             break :blk .{ .op_val_out_val = fn_ptr };
                         }
@@ -60,24 +60,23 @@ pub const MalType = union(enum) {
                     2 => blk: {
                         const a_type = args[0].arg_type.?;
                         const b_type = args[1].arg_type.?;
-                        if (a_type == MalType.Number and b_type == MalType.Number) {
+                        if (a_type == Number and b_type == Number) {
                             if (return_type == bool)
                                 break :blk .{ .op_num_num_out_bool = fn_ptr };
-                            if (return_type == MalType.Number)
+                            if (return_type == Number)
                                 break :blk .{ .op_num_num_out_num = fn_ptr };
                         }
                         if (a_type == *MalType and b_type == *MalType) {
                             if (return_type == bool)
                                 break :blk .{ .op_val_val_out_bool = fn_ptr };
-                        }
-                        if (a_type == *MalType and b_type == *MalType) {
-                            break :blk .{ .op_mut_val_val_out_val = fn_ptr };
+
+                            break :blk .{ .op_val_val_out_val = fn_ptr };
                         }
                         if (a_type == Allocator and b_type == *MalType) {
                             // TODO: and return_type == Error!*MalType
                             break :blk .{ .op_alloc_val_out_val = fn_ptr };
                         }
-                        if (a_type == Allocator and b_type == MalType.List) {
+                        if (a_type == Allocator and b_type == List) {
                             // TODO: and return_type == Error!*MalType
                             break :blk .{ .op_alloc_varargs_out_val = fn_ptr };
                         }
@@ -93,40 +92,40 @@ pub const MalType = union(enum) {
                     if (args.len != 2) return error.EvalInvalidOperands;
                     const a = args[0].asNumber() catch return error.EvalInvalidOperand;
                     const b = args[1].asNumber() catch return error.EvalInvalidOperand;
-                    return MalType.makeNumber(allocator, op(a, b));
+                    return makeNumber(allocator, op(a, b));
                 },
                 .op_num_num_out_bool => |op| {
                     if (args.len != 2) return error.EvalInvalidOperands;
                     const a = args[0].asNumber() catch return error.EvalInvalidOperand;
                     const b = args[1].asNumber() catch return error.EvalInvalidOperand;
-                    return MalType.makeBool(allocator, op(a, b));
+                    return makeBool(allocator, op(a, b));
                 },
                 .op_val_out_bool => |op| {
                     if (args.len != 1) return error.EvalInvalidOperands;
-                    return MalType.makeBool(allocator, op(args[0]));
+                    return makeBool(allocator, op(args[0]));
                 },
                 .op_val_out_num => |op| {
                     if (args.len != 1) return error.EvalInvalidOperands;
-                    return MalType.makeNumber(allocator, op(args[0]));
+                    return makeNumber(allocator, op(args[0]));
                 },
                 .op_val_val_out_bool => |op| {
                     if (args.len != 2) return error.EvalInvalidOperands;
-                    return MalType.makeBool(allocator, op(args[0], args[1]));
-                },
-                .op_mut_val_val_out_val => |op| {
-                    if (args.len != 2) return error.EvalInvalidOperands;
-                    return op(args[0], args[1]);
+                    return makeBool(allocator, op(args[0], args[1]));
                 },
                 .op_val_out_val => |op| {
                     if (args.len != 1) return error.EvalInvalidOperands;
                     return op(args[0]);
+                },
+                .op_val_val_out_val => |op| {
+                    if (args.len != 2) return error.EvalInvalidOperands;
+                    return op(args[0], args[1]);
                 },
                 .op_alloc_val_out_val => |op| {
                     if (args.len != 1) return error.EvalInvalidOperands;
                     return op(allocator, args[0]);
                 },
                 .op_alloc_varargs_out_val => |op| {
-                    var args_list = try MalType.List.initCapacity(allocator, args.len);
+                    var args_list = try List.initCapacity(allocator, args.len);
                     for (args) |arg| args_list.appendAssumeCapacity(arg);
                     return op(allocator, args_list);
                 },
@@ -272,7 +271,7 @@ pub const MalType = union(enum) {
             },
             // TODO: check this
             .atom => |atom| makeAtom(allocator, atom),
-            else => MalType.make(allocator, self),
+            else => make(allocator, self),
         };
     }
 
@@ -300,10 +299,28 @@ pub const MalType = union(enum) {
         };
     }
 
+    pub fn isTruthy(self: Self) bool {
+        return !(self == .f or self == .nil);
+    }
+
+    pub fn asList(self: Self) !List {
+        return switch (self) {
+            .list => |list| list,
+            else => error.NotList,
+        };
+    }
+
     pub fn asNumber(self: Self) !Number {
         return switch (self) {
             .number => |number| number,
             else => error.NotNumber,
+        };
+    }
+
+    pub fn asString(self: Self) !String {
+        return switch (self) {
+            .string => |string| string,
+            else => error.NotString,
         };
     }
 
@@ -314,29 +331,7 @@ pub const MalType = union(enum) {
         };
     }
 
-    pub fn asList(self: Self) !List {
-        return switch (self) {
-            .list => |list| list,
-            else => error.NotList,
-        };
-    }
-
-    pub fn isTruthy(self: Self) bool {
-        return !(self == .f or self == .nil);
-    }
-
-    pub fn getString(self: Self) ?MalType.String {
-        return if (self == .string) self.string else null;
-    }
-
-    pub fn asString(self: Self) !MalType.String {
-        return switch (self) {
-            .string => |string| string,
-            else => error.NotString,
-        };
-    }
-
-    pub fn asAtom(self: Self) !MalType.Atom {
+    pub fn asAtom(self: Self) !Atom {
         return switch (self) {
             .atom => |atom| atom,
             else => error.NotAtom,

@@ -44,9 +44,7 @@ pub fn greaterOrEqual(a: Number, b: Number) bool {
 }
 
 pub fn list(allocator: Allocator, params: MalType.List) !*MalType {
-    var result_ptr = try allocator.create(MalType);
-    result_ptr.* = MalType{ .list = params };
-    return result_ptr;
+    return MalType.makeList(allocator, params);
 }
 
 pub fn is_list(param: *MalType) bool {
@@ -132,8 +130,7 @@ pub fn is_atom(param: *MalType) bool {
 }
 
 pub fn deref(param: *MalType) !*MalType {
-    _ = try param.asAtom();
-    return param.atom;
+    return param.asAtom();
 }
 
 pub fn reset(param: *MalType, value: *MalType) !*MalType {
