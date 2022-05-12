@@ -190,7 +190,19 @@ pub fn main() anyerror!void {
 
     // evaluate global prelude/preamble-type expressions
     _ = try rep(gaa, gaa, "(def! not (fn* (a) (if a false true)))", &repl_env);
-    _ = try rep(gaa, gaa, "(def! load-file (fn* (f) (eval (read-string (str \"(do\" (slurp f) \"\nnil)\")))))", &repl_env);
+    _ = try rep(gaa, gaa, "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \"\nnil)\")))))", &repl_env);
+
+    // read command line arguments
+    var iter = std.process.args();
+    // ignore first argument (executable file)
+    _ = iter.next();
+    const opt_filename = iter.next();
+    // call (load-file filename) if given a filename argument
+    if (opt_filename) |filename| {
+        const string = try std.mem.join(gaa, "\"", &.{ "(load-file ", filename, ")" });
+        _ = try rep(gaa, gaa, string, &repl_env);
+        return;
+    }
 
     // main repl loop
     while (true) {
