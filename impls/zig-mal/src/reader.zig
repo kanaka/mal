@@ -5,7 +5,8 @@ const types = @import("./types.zig");
 const MalType = types.MalType;
 const replaceMultipleOwned = @import("./utils.zig").replaceMultipleOwned;
 
-const TokenList = std.ArrayList([]const u8);
+const Token = []const u8;
+const TokenList = std.ArrayList(Token);
 
 const Reader = struct {
     const Self = @This();
@@ -20,7 +21,7 @@ const Reader = struct {
         };
     }
 
-    pub fn next(self: *Self) ?[]const u8 {
+    pub fn next(self: *Self) ?Token {
         if (self.position >= self.tokens.items.len) {
             return null;
         }
@@ -29,7 +30,7 @@ const Reader = struct {
         return token;
     }
 
-    pub fn peek(self: *Self) ?[]const u8 {
+    pub fn peek(self: *Self) ?Token {
         if (self.position >= self.tokens.items.len) {
             return null;
         }
@@ -38,6 +39,7 @@ const Reader = struct {
 };
 
 pub const ReadError = error{
+    EmptyInput,
     EndOfInput,
     ListNoClosingTag,
     StringLiteralNoClosingTag,
@@ -47,6 +49,11 @@ pub const ReadError = error{
 pub fn read_str(allocator: Allocator, input: []const u8) !*MalType {
     // tokenize input string into token list
     const tokens = try tokenize(allocator, input);
+    // check if there are no tokens or the token is a comment, in which case we
+    // throw a special error to continue the main REPL loop
+    if (tokens.items.len == 0 or tokens.items[0][0] == ';') {
+        return error.EmptyInput;
+    }
 
     // create a Reader instance with the tokens list
     var reader = Reader.init(tokens);

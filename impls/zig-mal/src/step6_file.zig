@@ -211,6 +211,7 @@ pub fn main() anyerror!void {
             try stdout.print("{s}\n", .{result})
         else |err| {
             const message = switch (err) {
+                error.EmptyInput => continue,
                 error.EndOfInput => "unexpected end of input",
                 error.ListNoClosingTag => "unbalanced list form, missing closing ')'",
                 error.StringLiteralNoClosingTag => "unbalanced string literal, missing closing '\"'",

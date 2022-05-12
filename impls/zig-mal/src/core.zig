@@ -102,7 +102,10 @@ pub fn println(allocator: Allocator, args: MalType.List) !*MalType {
 
 pub fn read_string(allocator: Allocator, param: *MalType) !*MalType {
     const string = try param.asString();
-    return reader.read_str(allocator, string.value);
+    return if (reader.read_str(allocator, string.value)) |result| result else |err| switch (err) {
+        error.EmptyInput => MalType.makeNil(allocator),
+        else => err,
+    };
 }
 
 pub fn slurp(allocator: Allocator, param: *MalType) !*MalType {
