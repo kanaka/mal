@@ -7,7 +7,7 @@ pub const Env = struct {
     const Key = []const u8;
     const Value = MalType;
     // TODO: use AutoHashMap or other HashMap variant?
-    const Data = std.StringHashMap(MalType);
+    const Data = std.StringHashMap(*MalType);
 
     const Self = @This();
 
@@ -33,7 +33,7 @@ pub const Env = struct {
         std.debug.assert(binds.len == exprs.len);
         var self = try Self.initCapacity(allocator, outer, @intCast(u32, binds.len));
         for (binds) |symbol, i| {
-            try self.set(symbol, exprs[i].*);
+            try self.set(symbol, exprs[i]);
         }
         return self;
     }
@@ -46,9 +46,8 @@ pub const Env = struct {
         self.children.deinit();
         var it = self.data.iterator();
         while (it.next()) |entry| {
-            // free copied hash map keys and values
+            // free copied hash map keys
             self.data.allocator.free(entry.key_ptr.*);
-            entry.value_ptr.deinit();
         }
         self.data.deinit();
         self.* = undefined;
@@ -70,16 +69,12 @@ pub const Env = struct {
         return child_ptr;
     }
 
-    pub fn set(self: *Self, symbol: Key, value: MalType) !void {
+    pub fn set(self: *Self, symbol: Key, value: *MalType) !void {
         const allocator = self.data.allocator;
-
-        // if needed copy the value to have the same lifetime as the hash map
-        const value_copy = try value.copy(allocator);
-        errdefer value_copy.deinit();
 
         const get_or_put = try self.data.getOrPut(symbol);
         if (get_or_put.found_existing) {
-            get_or_put.value_ptr.deinit();
+            get_or_put.value_ptr.*.deinit();
         } else {
             // copy the symbol to use as key with the same lifetime as the hash map
             get_or_put.key_ptr.* = allocator.dupe(u8, symbol) catch |err| {
@@ -88,7 +83,7 @@ pub const Env = struct {
             };
         }
         // TODO: check this
-        get_or_put.value_ptr.* = value_copy.*;
+        get_or_put.value_ptr.* = value;
     }
 
     pub fn find(self: *const Self, symbol: Key) ?*const Self {
@@ -97,7 +92,7 @@ pub const Env = struct {
         else if (self.outer) |outer| outer.find(symbol) else null;
     }
 
-    pub fn get(self: Self, symbol: Key) !MalType {
+    pub fn get(self: Self, symbol: Key) !*MalType {
         return if (self.find(symbol)) |env| env.data.get(symbol) orelse unreachable else error.EnvSymbolNotFound;
     }
 };

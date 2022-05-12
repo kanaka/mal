@@ -7,7 +7,6 @@ const reader = @import("./reader.zig");
 const types = @import("./types.zig");
 const MalType = types.MalType;
 const Number = MalType.Number;
-const Primitive = MalType.Primitive;
 
 pub fn add(a: Number, b: Number) Number {
     return a + b;
@@ -140,28 +139,28 @@ pub fn reset(param: *MalType, value: *MalType) !*MalType {
 }
 
 pub const ns = .{
-    .@"+" = Primitive.make(add),
-    .@"-" = Primitive.make(subtract),
-    .@"*" = Primitive.make(multiply),
-    .@"/" = Primitive.make(divide),
-    .@"<" = Primitive.make(lessThan),
-    .@"<=" = Primitive.make(lessOrEqual),
-    .@">" = Primitive.make(greaterThan),
-    .@">=" = Primitive.make(greaterOrEqual),
-    .@"=" = Primitive.make(eql),
-    .@"list" = Primitive.make(list),
-    .@"list?" = Primitive.make(is_list),
-    .@"empty?" = Primitive.make(is_empty),
-    .@"nil?" = Primitive.make(is_nil),
-    .@"count" = Primitive.make(count),
-    .@"pr-str" = Primitive.make(pr_str),
-    .@"str" = Primitive.make(str),
-    .@"prn" = Primitive.make(prn),
-    .@"println" = Primitive.make(println),
-    .@"read-string" = Primitive.make(read_string),
-    .@"slurp" = Primitive.make(slurp),
-    .@"atom" = Primitive.make(atom),
-    .@"atom?" = Primitive.make(is_atom),
-    .@"deref" = Primitive.make(deref),
-    .@"reset!" = Primitive.make(reset),
+    .@"+" = add,
+    .@"-" = subtract,
+    .@"*" = multiply,
+    .@"/" = divide,
+    .@"<" = lessThan,
+    .@"<=" = lessOrEqual,
+    .@">" = greaterThan,
+    .@">=" = greaterOrEqual,
+    .@"=" = eql,
+    .@"list" = list,
+    .@"list?" = is_list,
+    .@"empty?" = is_empty,
+    .@"nil?" = is_nil,
+    .@"count" = count,
+    .@"pr-str" = pr_str,
+    .@"str" = str,
+    .@"prn" = prn,
+    .@"println" = println,
+    .@"read-string" = read_string,
+    .@"slurp" = slurp,
+    .@"atom" = atom,
+    .@"atom?" = is_atom,
+    .@"deref" = deref,
+    .@"reset!" = reset,
 };

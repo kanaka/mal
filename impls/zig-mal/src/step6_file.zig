@@ -34,7 +34,7 @@ fn EVAL(allocator: Allocator, ast: *MalType, env: *Env) EvalError!*MalType {
 
                         const evaled_value = try EVAL(allocator, rest[1], current_env);
                         // TODO check this
-                        try current_env.set(key_symbol.value, evaled_value.*);
+                        try current_env.set(key_symbol.value, evaled_value);
                         return evaled_value;
                     }
 
@@ -51,7 +51,7 @@ fn EVAL(allocator: Allocator, ast: *MalType, env: *Env) EvalError!*MalType {
                             const key_symbol = current_bindings[0].asSymbol() catch return error.EvalDefInvalidOperands;
                             const evaled_value = try EVAL(allocator, current_bindings[1], let_env);
                             // TODO: check this
-                            try let_env.set(key_symbol.value, evaled_value.*);
+                            try let_env.set(key_symbol.value, evaled_value);
                         }
                         current_ast = rest[1];
                         current_env = let_env;
@@ -129,7 +129,7 @@ fn EVAL(allocator: Allocator, ast: *MalType, env: *Env) EvalError!*MalType {
 fn eval_ast(allocator: Allocator, ast: *MalType, env: *Env) EvalError!*MalType {
     return switch (ast.*) {
         // TODO: check this
-        .symbol => |symbol| try MalType.make(allocator, try env.get(symbol.value)),
+        .symbol => |symbol| try env.get(symbol.value),
         .list => |list| blk: {
             var results = try MalType.makeListCapacity(allocator, list.items.len);
             for (list.items) |item| {
@@ -165,26 +165,26 @@ pub fn main() anyerror!void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
 
+    // global arena allocator
+    var global_arena = std.heap.ArenaAllocator.init(gpa.allocator());
+    defer global_arena.deinit();
+    const gaa = global_arena.allocator();
+
     // REPL environment
     repl_env = Env.init(gpa.allocator(), null);
     defer repl_env.deinit();
 
     inline for (@typeInfo(@TypeOf(core.ns)).Struct.fields) |field| {
-        try repl_env.set(field.name, @field(core.ns, field.name));
+        try repl_env.set(field.name, try MalType.makePrimitive(gaa, @field(core.ns, field.name)));
     }
 
-    try repl_env.set("eval", MalType.Primitive.make(eval));
+    try repl_env.set("eval", try MalType.makePrimitive(gaa, eval));
 
     var input_buffer: [input_buffer_length]u8 = undefined;
     // initialize std io reader and writer
     const stdin = std.io.getStdIn().reader();
     const stdout = std.io.getStdOut().writer();
     const stderr = std.io.getStdErr().writer();
-
-    // global arena allocator
-    var global_arena = std.heap.ArenaAllocator.init(gpa.allocator());
-    defer global_arena.deinit();
-    const gaa = global_arena.allocator();
 
     // evaluate global prelude/preamble-type expressions
     _ = try rep(gaa, gaa, "(def! not (fn* (a) (if a false true)))", &repl_env);

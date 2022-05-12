@@ -40,49 +40,47 @@ pub const MalType = union(enum) {
         // varargs primitives
         op_alloc_varargs_out_val: fn (allocator: Allocator, args: List) EvalError!*MalType,
 
-        pub fn make(fn_ptr: anytype) MalType {
+        pub fn make(fn_ptr: anytype) Primitive {
             const type_info = @typeInfo(@TypeOf(fn_ptr));
             std.debug.assert(type_info == .Fn);
             const args = type_info.Fn.args;
             const return_type = type_info.Fn.return_type.?;
-            return .{
-                .primitive = switch (args.len) {
-                    1 => blk: {
-                        const a_type = args[0].arg_type.?;
-                        if (a_type == *MalType) {
-                            if (return_type == bool)
-                                break :blk .{ .op_val_out_bool = fn_ptr };
-                            if (return_type == Number)
-                                break :blk .{ .op_val_out_num = fn_ptr };
-                            break :blk .{ .op_val_out_val = fn_ptr };
-                        }
-                    },
-                    2 => blk: {
-                        const a_type = args[0].arg_type.?;
-                        const b_type = args[1].arg_type.?;
-                        if (a_type == Number and b_type == Number) {
-                            if (return_type == bool)
-                                break :blk .{ .op_num_num_out_bool = fn_ptr };
-                            if (return_type == Number)
-                                break :blk .{ .op_num_num_out_num = fn_ptr };
-                        }
-                        if (a_type == *MalType and b_type == *MalType) {
-                            if (return_type == bool)
-                                break :blk .{ .op_val_val_out_bool = fn_ptr };
-
-                            break :blk .{ .op_val_val_out_val = fn_ptr };
-                        }
-                        if (a_type == Allocator and b_type == *MalType) {
-                            // TODO: and return_type == Error!*MalType
-                            break :blk .{ .op_alloc_val_out_val = fn_ptr };
-                        }
-                        if (a_type == Allocator and b_type == List) {
-                            // TODO: and return_type == Error!*MalType
-                            break :blk .{ .op_alloc_varargs_out_val = fn_ptr };
-                        }
-                    },
-                    else => unreachable,
+            return switch (args.len) {
+                1 => blk: {
+                    const a_type = args[0].arg_type.?;
+                    if (a_type == *MalType) {
+                        if (return_type == bool)
+                            break :blk .{ .op_val_out_bool = fn_ptr };
+                        if (return_type == Number)
+                            break :blk .{ .op_val_out_num = fn_ptr };
+                        break :blk .{ .op_val_out_val = fn_ptr };
+                    }
                 },
+                2 => blk: {
+                    const a_type = args[0].arg_type.?;
+                    const b_type = args[1].arg_type.?;
+                    if (a_type == Number and b_type == Number) {
+                        if (return_type == bool)
+                            break :blk .{ .op_num_num_out_bool = fn_ptr };
+                        if (return_type == Number)
+                            break :blk .{ .op_num_num_out_num = fn_ptr };
+                    }
+                    if (a_type == *MalType and b_type == *MalType) {
+                        if (return_type == bool)
+                            break :blk .{ .op_val_val_out_bool = fn_ptr };
+
+                        break :blk .{ .op_val_val_out_val = fn_ptr };
+                    }
+                    if (a_type == Allocator and b_type == *MalType) {
+                        // TODO: and return_type == Error!*MalType
+                        break :blk .{ .op_alloc_val_out_val = fn_ptr };
+                    }
+                    if (a_type == Allocator and b_type == List) {
+                        // TODO: and return_type == Error!*MalType
+                        break :blk .{ .op_alloc_varargs_out_val = fn_ptr };
+                    }
+                },
+                else => unreachable,
             };
         }
         pub fn eval(primitive: Primitive, allocator: Allocator, args: []*MalType) !*MalType {
@@ -218,6 +216,10 @@ pub const MalType = union(enum) {
 
     pub fn makeNil(allocator: Allocator) !*MalType {
         return make(allocator, .nil);
+    }
+
+    pub fn makePrimitive(allocator: Allocator, primitive: anytype) !*MalType {
+        return make(allocator, .{ .primitive = Primitive.make(primitive) });
     }
 
     pub fn makeClosure(allocator: Allocator, closure: Closure) !*MalType {
