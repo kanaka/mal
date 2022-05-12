@@ -25,7 +25,14 @@ pub fn pr_str(allocator: Allocator, value: *const MalType, print_readably: bool)
             return result.items;
         },
         .primitive => "#<function>",
-        .atom => "#<atom>",
+        .atom => |atom| {
+            var result = std.ArrayList(u8).init(allocator);
+            const writer = result.writer();
+            try writer.writeAll("(atom ");
+            try writer.writeAll(try pr_str(allocator, atom, print_readably));
+            try writer.writeAll(")");
+            return result.items;
+        },
         .nil => "nil",
         .t => "true",
         .f => "false",

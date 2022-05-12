@@ -132,7 +132,7 @@ fn read_atom(allocator: Allocator, reader: *Reader) !*MalType {
             .number = int,
         } else |_| MalType{
             .symbol = .{
-                .value = token,
+                .value = try allocator.dupe(u8, token),
                 .allocator = allocator,
             },
         }
