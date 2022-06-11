@@ -13,6 +13,7 @@
 # 9 function
 # 10 fn*
 # 11 atom
+# 12 macro
 
 Reader ← {𝕊 tokens:
   r ← {
