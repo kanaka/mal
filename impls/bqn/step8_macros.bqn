@@ -121,8 +121,9 @@ EVAL ← {e 𝕊 ast:
 Rep ← PRINT∘{core EVAL 𝕩}∘READ
 
 core.Set "eval"‿(9‿{core EVAL ⊑𝕩})
-Rep "(def! not (fn* (a) (if a false true)))
-(def! load-file (fn* (f) (eval (read-string (str ""(do "" (slurp f) "" nil)"")))))"
+Rep "(def! not (fn* (a) (if a false true)))"
+Rep "(def! load-file (fn* (f) (eval (read-string (str ""(do "" (slurp f) "" nil)"")))))"
+Rep "(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw ""odd number of forms to cond"")) (cons 'cond (rest (rest xs)))))))"
 
 {
   •Out "user> "
