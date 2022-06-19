@@ -1,4 +1,4 @@
-⟨Atom,nil⟩ ← •Import "globals.bqn"
+⟨Atom,nil,Err⟩ ← •Import "globals.bqn"
 ⟨Env⟩ ← •Import "env.bqn"
 ⟨PrStr,PrStrR⟩ ← •Import "printer.bqn"
 ⟨ReadStr⟩ ← •Import "reader.bqn"
@@ -36,22 +36,24 @@ ns ← ⟨
 
   "atom"‿{11∾Atom ⊑𝕩}
   "atom?"‿{7∾11=⊑⊑𝕩}
-  "deref"‿{𝕊 ⟨11‿a⟩: a.Deref@; ¯1‿"deref: not an atom"}
+  "deref"‿{𝕊 ⟨11‿a⟩: a.Deref@; Err "deref: not an atom"}
   "reset!"‿{
     𝕊 ⟨11‿a,v⟩: a.Reset v;
-    ¯1‿"reset!: not an atom"}
+    Err "reset!: not an atom"}
   "swap!"‿{
     ⟨t‿a,fn⟩ ← 2↑𝕩
     args ← (<a.Deref@) ∾ 2↓𝕩
     f ← {9‿f: f; 10‿x‿y‿z‿f: f}fn
     a.Reset F args}
 
-  "cons"‿{𝕊 x‿⟨t,xs⟩: 3∾<(<x)∾xs ; ¯1‿"cons"}
+  "cons"‿{𝕊 x‿⟨t,xs⟩: 3∾<(<x)∾xs ; Err "cons"}
   "concat"‿{𝕊 ⟨⟩:3‿⟨⟩; 3∾<∾´1⊸⊑¨𝕩}
 
-  "nth"‿{𝕊 ⟨t‿xs,1‿n⟩: {n<≠xs ? n⊑xs ; ¯1‿"out of bounds"}}
+  "nth"‿{𝕊 ⟨t‿xs,1‿n⟩: {n<≠xs ? n⊑xs ; Err "out of bounds"}}
   "first"‿{S ⟨t‿xs⟩: {0<≠xs ? ⊑xs ; nil}; nil}
   "rest"‿{𝕊 ⟨t‿⟨⟩⟩: 3‿⟨⟩; 𝕊 ⟨t‿xs⟩: 3∾<1↓xs; 3‿⟨⟩}
+
+  "throw"‿{𝕊 ⟨x⟩: ¯1‿x}
 ⟩
 
 core ⇐ Env@

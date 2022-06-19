@@ -1,6 +1,6 @@
 Lst ← {0=≠𝕩 ? "" ; {𝕨∾" "∾𝕩}´(𝕨⊸P¨𝕩)}
 P ← {
-  r 𝕊 ¯1‿x: "ERROR: "∾x;
+  r 𝕊 ¯1‿x: "ERROR: "∾r𝕊x;
   r 𝕊 12‿x: "#macro";
   r 𝕊 11‿a: "(atom "∾(r P a.Deref@)∾")";
   r 𝕊 10‿x‿y‿z‿f: "#function";
@@ -23,7 +23,6 @@ P ← {
       ""∾𝕩
     }¨(@∾s∾@);
   r 𝕊 1‿n: {n<0?"-";""}∾•Fmt |n;
-  r 𝕊 a‿x: x ;
   "ERROR printing: "∾(@+10)∾•Fmt 𝕩
 }
 

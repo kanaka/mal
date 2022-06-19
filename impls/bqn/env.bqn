@@ -1,3 +1,5 @@
+⟨Err⟩ ← •Import "globals.bqn"
+
 Env ⇐ {𝕊 outer:
   d ⇐ ↕0‿2
   Set ⇐ {𝕊 k‿v:
@@ -7,6 +9,6 @@ Env ⇐ {𝕊 outer:
     i ← ⊑(⊏˘d)⊐<k
     i<⊑≢d ? i‿1⊑d ;
     outer≠@ ? outer.Get k ;
-    ¯1∾<"'"∾k∾"' not found"
+    Err "'"∾k∾"' not found"
   }}
 }
