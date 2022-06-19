@@ -15,8 +15,8 @@ EvalAst ← {
 
 SetParams ← {env 𝕊 args‿xs:
   {𝕊
-    {0‿"&": env.Set (<1⊑1⊑args)∾<3∾<env EVAL¨xs ⋄ args↩⟨⟩;
-     0‿kw: env.Set (<kw)∾<env EVAL ⊑xs}⊑args
+    {0‿"&": env.Set (<1⊑1⊑args)∾<3∾<xs ⋄ args↩⟨⟩;
+     0‿kw: env.Set (<kw)∾<⊑xs}⊑args
     args 1⊸↓↩
     xs 1⊸↓↩
   }•_while_{𝕊 ⋄ 0<≠args}@
@@ -37,9 +37,12 @@ QQ ← {
   3∾< 0‿"quote" ⋈ 𝕩
 }
 Mxp ← {
+  e 𝕊 3‿⟨⟩: 3‿⟨⟩ ;
   e 𝕊 3‿xs: {
     0‿sym: {
-      12‿f: e EVAL 3‿((<f)∾1↓xs);
+      12‿f: {
+        9‿fn: Fn 1↓xs;
+        10‿exp‿args‿e2‿fn: Fn 1↓xs} f ;
       3‿xs
     } e.Get sym ;
     3‿xs
@@ -51,7 +54,7 @@ READ ← ReadStr
 PRINT ← PrStrR
 EVAL ← {e 𝕊 ast:
   # this loop runs as long as @ is returned, ie. typically once
-  {𝕊 ⋄ {
+  {𝕊 ⋄ ast ↩ e Mxp ast ⋄ {
     # builtin special forms
     𝕊 3‿⟨0‿"def!",0‿k,x⟩:
       v ← e EVAL x
@@ -85,17 +88,17 @@ EVAL ← {e 𝕊 ast:
     𝕊 3‿⟨0‿"quasiquote",x⟩:
       ast ↩ QQ x
       @;
+    𝕊 3‿⟨0‿"macroexpand",x⟩: e Mxp x;
 
     # variable-length special forms
     𝕊 3‿⟨⟩: 3‿⟨⟩ ;
-    𝕊 3‿xs:{
+    𝕊 3‿xs: {
       0‿"do":
         e⊸EVAL¨¯1↓1↓xs
         ast ↩ ¯1⊑xs
         @
       ; # function application
-        xs ↩ e Mxp 3‿xs
-        ys ← e EvalAst xs
+        ys ← e EvalAst 3‿xs
         f ← ⊑ys
         {9‿f: F 1↓ys ;
          10‿exp‿args‿e2‿fn:
@@ -104,7 +107,8 @@ EVAL ← {e 𝕊 ast:
            e SetParams args‿(1↓ys)
            @;
          ¯1‿x: f;
-         ¯1∾<"not a function: "∾PrStrR f} f
+         ¯1∾<"not a function: "∾PrStrR f} f ;
+       e EvalAst 𝕩
       }⊑xs ;
 
     # basic forms
