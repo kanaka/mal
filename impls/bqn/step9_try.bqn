@@ -1,4 +1,4 @@
-⟨Err,nil⟩ ← •Import "globals.bqn"
+⟨Err,nil,_chk,_chks⟩ ← •Import "globals.bqn"
 ⟨Env⟩ ← •Import "env.bqn"
 ⟨ReadStr⟩ ← •Import "reader.bqn"
 ⟨PrStrR⟩ ← •Import "printer.bqn"
@@ -74,11 +74,11 @@ EVAL ← {e 𝕊 ast:
       ast ↩ exp
       @;
     𝕊 3‿⟨0‿"if",c,t,f⟩:
-      ast ↩ {8‿x:f; 7‿0:f; t} e EVAL c
-      @;
+      {ast ↩ {8‿x:f; 7‿0:f; t}𝕩
+       @}_chk e EVAL c ;
     𝕊 3‿⟨0‿"if",c,t⟩:
-      ast ↩ {8‿x:nil; 7‿0:nil; t} e EVAL c
-      @;
+      {ast ↩ {8‿x:nil; 7‿0:nil; t}𝕩
+       @}_chk e EVAL c ;
     𝕊 3‿⟨0‿"fn*",t‿args,exp⟩:
       10‿exp‿args‿e‿{𝕊 xs:
         inner ← Env e
@@ -100,26 +100,24 @@ EVAL ← {e 𝕊 ast:
     𝕊 3‿⟨⟩: 3‿⟨⟩ ;
     𝕊 3‿xs: {
       0‿"do":
-        e⊸EVAL¨¯1↓1↓xs
-        ast ↩ ¯1⊑xs
-        @
+        {𝕊 ⋄ ast ↩ ¯1⊑xs ⋄ @}_chks e⊸EVAL¨¯1↓1↓xs
       ; # function application
         ys ← e EvalAst 3‿xs
         f ← ⊑ys
-        {9‿f: F 1↓ys ;
+        {9‿f: F _chks 1↓ys ;
          10‿exp‿args‿e2‿fn:
            ast ↩ exp
            e ↩ Env e2
-           e SetParams args‿(1↓ys)
-           @;
+           {e SetParams args‿𝕩 ⋄ @}_chks 1↓ys ;
          ¯1‿x: f;
          Err "not a function: "∾PrStrR f} f ;
        e EvalAst 𝕩
       }⊑xs ;
 
     # basic forms
-    𝕊 4‿xs: 4∾<e⊸EVAL¨xs ;
-    𝕊 5‿xs: 5∾<e⊸EVAL¨xs ;
+    𝕊 4‿xs: {4∾<𝕩}_chks e⊸EVAL¨xs ;
+    𝕊 5‿xs: {5∾<𝕩}_chks e⊸EVAL¨xs ;
+    𝕊 ¯1‿x: ¯1‿x ;
     𝕊 x: e EvalAst x
   } ast
 }•_while_{𝕩≡@}@}

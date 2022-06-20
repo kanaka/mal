@@ -1,4 +1,4 @@
-⟨Atom,nil,Err⟩ ← •Import "globals.bqn"
+⟨Atom,nil,Err,_chk,_chks⟩ ← •Import "globals.bqn"
 ⟨Env⟩ ← •Import "env.bqn"
 ⟨PrStr,PrStrR⟩ ← •Import "printer.bqn"
 ⟨ReadStr⟩ ← •Import "reader.bqn"
@@ -57,10 +57,10 @@ ns ← ⟨
   "apply"‿{𝕊
     fn ← {9‿f:f; 10‿b‿a‿e‿f: f}⊑𝕩
     args ← (¯1↓1↓𝕩)∾1⊑¯1⊑𝕩
-    Fn args}
+    Fn _chks args}
   "map"‿{𝕊
     fn ← {9‿f:f; 10‿b‿a‿e‿f: f}⊑𝕩
-    3∾<{Fn ⟨𝕩⟩}¨ 1⊑1⊑𝕩}
+    {3∾<𝕩}_chks{Fn ⟨𝕩⟩}¨ 1⊑1⊑𝕩}
 
   "nil?"‿{𝕊 ⟨8‿⟨⟩⟩: 7‿1; 7‿0}
   "true?"‿{𝕊 ⟨7‿1⟩: 7‿1; 7‿0}
