@@ -1,0 +1,13 @@
+[package]
+name = "rust-2"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+rustyline = "9.1.2"
+
+[[bin]]
+name = "step0_repl"
+path = "step0_repl.rs"
