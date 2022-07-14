@@ -20,11 +20,10 @@ ns ← ⟨
   ">"‿{7∾∧´>´˘2↕1⊸⊑¨𝕩}
   ">="‿{7∾∧´≥´˘2↕1⊸⊑¨𝕩}
 
-  "list"‿{3‿𝕩}
   "empty?"‿{7∾0=≠1⊑⊑𝕩}
   "count"‿{1∾≠1⊑⊑𝕩}
 
-  "bqn-show"‿{•Show ⊑ 𝕩 ⋄ 𝕩}
+  "bqn-show"‿{•Show ⊑ 𝕩}
   "pr-str"‿{2∾<" "J PrStrR¨𝕩}
   "str"‿{2∾<""J PrStr¨𝕩}
   "prn"‿{•Out " "J PrStrR¨𝕩 ⋄ nil}
@@ -74,6 +73,16 @@ ns ← ⟨
 
   "symbol"‿{0∾<1⊑⊑𝕩}
   "keyword"‿{6∾<1⊑⊑𝕩}
+  "list"‿{3‿𝕩}
+  "vector"‿{4‿𝕩}
+  "hash-map"‿{5‿𝕩}
+
+  "keys"‿{𝕊 ⟨5‿xs⟩: 3∾<⥊⊏˘∘‿2⥊xs}
+  "vals"‿{𝕊 ⟨5‿xs⟩: 3∾<⥊1⊏˘∘‿2⥊xs}
+  "get"‿{𝕊 ⟨5‿xs,k⟩: 1⊑@‿nil∾˜⥊(k⊸≡˘⊑˘)⊸/∘‿2⥊xs; nil}
+  "contains?"‿{𝕊 ⟨5‿xs,k⟩: 7∾×+´k⊸≡˘⊑˘∘‿2⥊xs}
+  "dissoc"‿{𝕊 ⟨5‿xs,k⟩: 5∾<⥊(k⊸≢˘⊑˘)⊸/∘‿2⥊xs}
+  "assoc"‿{𝕊 ⟨5‿xs,k,v⟩: 5∾<k‿v∾˜⥊(k⊸≢˘⊑˘)⊸/∘‿2⥊xs}
 ⟩
 
 core ⇐ Env@
