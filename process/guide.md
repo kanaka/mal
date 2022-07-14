@@ -193,7 +193,7 @@ summarizes the key changes at each step.
 
 If you get completely stuck and are feeling like giving up, then you
 should "cheat" by referring to the same step or functionality in
-a existing implementation language. You are here to learn, not to take
+an existing implementation language. You are here to learn, not to take
 a test, so do not feel bad about it. Okay, you should feel a little
 bit bad about it.
 
@@ -592,6 +592,9 @@ You now have a simple prefix notation calculator!
   * If `ast` is a hash-map: return a new hash-map which consists of key-value
     pairs where the key is a key from the hash-map and the value is the result
     of calling `EVAL` on the corresponding value.
+    Depending on the implementation of maps, it may be convenient to
+    also call `EVAL` on keys.  The result is the same because keys are
+    not affected by evaluation.
 
 
 <a name="step3"></a>
@@ -996,12 +999,12 @@ diff -urp ../process/step5_tco.txt ../process/step6_file.txt
 
 * In your main program, add a new symbol "eval" to your REPL
   environment. The value of this new entry is a function that takes
-  a single argument `ast`. The closure calls the your `EVAL` function
+  a single argument `ast`. The closure calls your `EVAL` function
   using the `ast` as the first argument and the REPL environment
   (closed over from outside) as the second argument. The result of
   the `EVAL` call is returned. This simple but powerful addition
   allows your program to treat mal data as a mal program. For example,
-  you can now to this:
+  you can now do this:
 ```
 (def! mal-prog (list + 1 2))
 (eval mal-prog)
@@ -1211,7 +1214,7 @@ Mal borrows most of its syntax and feature-set).
     then `ast`.
   - Else return `ast` unchanged.
     Such forms are not affected by evaluation, so you may quote them
-    as in the previous case if implementation is easyer.
+    as in the previous case if implementation is easier.
 
 * Optionally, add a the `quasiquoteexpand` special form.
   This form calls the `quasiquote` function using the first `ast`

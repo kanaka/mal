@@ -73,6 +73,7 @@ IMPL:
   - {IMPL: prolog}
   - {IMPL: ps}
   - {IMPL: powershell, NO_SELF_HOST_PERF: 1}
+  - {IMPL: purs}
   - {IMPL: python, python_MODE: python2}
   - {IMPL: python, python_MODE: python3}
   - {IMPL: python.2}
@@ -81,6 +82,7 @@ IMPL:
   - {IMPL: rexx}
   - {IMPL: rpython, SLOW: 1}
   - {IMPL: ruby}
+  - {IMPL: ruby.2}
   - {IMPL: rust}
   - {IMPL: scala}
   - {IMPL: scheme, scheme_MODE: chibi}

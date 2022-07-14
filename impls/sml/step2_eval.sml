@@ -12,7 +12,7 @@ and evalAst e ast = case ast of
     SYMBOL s       => (case lookup e s of SOME v => v | NONE => raise NotDefined ("unable to resolve symbol '" ^ s ^ "'"))
     | LIST (l,_)   => LIST (List.map (eval e) l, NO_META)
     | VECTOR (v,_) => VECTOR (List.map (eval e) v, NO_META)
-    | MAP (m,_)    => MAP (List.map (fn (k, v) => (eval e k, eval e v)) m, NO_META)
+    | MAP (m,_)    => MAP (List.map (fn (k, v) => (k, eval e v)) m, NO_META)
     | _            => ast
 
 and evalApply e ast = case evalAst e ast of

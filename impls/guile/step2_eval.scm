@@ -33,8 +33,9 @@
     ((? list? lst) (map _eval lst))
     ((? vector? vec) (vector-map (lambda (i x) (_eval x)) vec))
     ((? hash-table? ht)
-     (hash-for-each (lambda (k v) (hash-set! ht k (_eval v))) ht)
-     ht)
+     (define new-ht (make-hash-table))
+     (hash-for-each (lambda (k v) (hash-set! new-ht k (_eval v))) ht)
+     new-ht)
     (else ast)))
 
 (define (EVAL ast env)

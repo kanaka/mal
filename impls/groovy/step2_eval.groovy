@@ -22,7 +22,7 @@ eval_ast = { ast, env ->
         case Map:
             def new_hm = [:]
             ast.each { k,v ->
-                new_hm[EVAL(k, env)] = EVAL(v, env)
+                new_hm[k] = EVAL(v, env)
             }
             return new_hm
         default:

@@ -97,7 +97,11 @@ nil <- structure("malnil", class="nil")
 new.symbol <- function(name) structure(name, class="Symbol")
 .symbol_q <- function(obj) "Symbol" == class(obj)
 
-new.keyword <- function(name) concat("\u029e", name)
+new.keyword <- function(name) {
+    if (.keyword_q(name)) return (name)
+    concat("\u029e", name)
+}
+
 .keyword_q <- function(obj) {
     "character" == class(obj) &&
         ("\u029e" == substr(obj,1,1) ||

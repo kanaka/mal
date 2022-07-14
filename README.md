@@ -42,7 +42,7 @@ process guide](process/guide.md) there is also a [mal/make-a-lisp
 FAQ](docs/FAQ.md) where I attempt to answer some common questions.
 
 
-**3. Mal is implemented in 86 languages (91 different implementations and 113 runtime modes)**
+**3. Mal is implemented in 87 languages (93 different implementations and 115 runtime modes)**
 
 | Language | Creator |
 | -------- | ------- |
@@ -83,7 +83,7 @@ FAQ](docs/FAQ.md) where I attempt to answer some common questions.
 | [Io](#io) | [Dov Murik](https://github.com/dubek) |
 | [Janet](#janet) | [sogaiu](https://github.com/sogaiu) |
 | [Java](#java-17) | [Joel Martin](https://github.com/kanaka)  |
-| [Java](#java-truffle) (Truffle/GraalVM) | [Matt McGill](https://github.com/mmcgill)
+| [Java](#java-using-truffle-for-graalvm) (Truffle/GraalVM) | [Matt McGill](https://github.com/mmcgill)
 | [JavaScript](#javascriptnode) ([Demo](http://kanaka.github.io/mal)) | [Joel Martin](https://github.com/kanaka) |
 | [jq](#jq) | [Ali MohammadPur](https://github.com/alimpfard) |
 | [Julia](#julia) | [Joel Martin](https://github.com/kanaka)  |
@@ -110,6 +110,7 @@ FAQ](docs/FAQ.md) where I attempt to answer some common questions.
 | [PostScript](#postscript-level-23) | [Joel Martin](https://github.com/kanaka)  |
 | [PowerShell](#powershell) | [Joel Martin](https://github.com/kanaka)  |
 | [Prolog](#prolog-logical-language) | [Nicolas Boulenguez](https://github.com/asarhaddon) |
+| [PureScript](#purescript) | [mrsekut](https://github.com/mrsekut) |
 | [Python](#python-2x-and-3x) (2.X &amp; 3.X) | [Joel Martin](https://github.com/kanaka) |
 | [Python #2](#python2-3x) (3.X) | [Gavin Lewis](https://github.com/epylar) |
 | [RPython](#rpython) | [Joel Martin](https://github.com/kanaka)  |
@@ -117,6 +118,7 @@ FAQ](docs/FAQ.md) where I attempt to answer some common questions.
 | [Racket](#racket-53) | [Joel Martin](https://github.com/kanaka)  |
 | [Rexx](#rexx) | [Dov Murik](https://github.com/dubek) |
 | [Ruby](#ruby-19) | [Joel Martin](https://github.com/kanaka)  |
+| [Ruby #2](#ruby) | [Ryan Cook](https://github.com/cookrn)  |
 | [Rust](#rust-138) | [Joel Martin](https://github.com/kanaka)  |
 | [Scala](#scala) | [Joel Martin](https://github.com/kanaka)  |
 | [Scheme (R7RS)](#scheme-r7rs) | [Vasilij Schneidermann](https://github.com/wasamasa) |
@@ -937,6 +939,15 @@ cd impls/prolog
 swipl stepX_YYY
 ```
 
+### PureScript
+The PureScript implementation requires the spago compiler version 0.20.2.
+
+```
+cd impls/purs
+make
+node ./stepX_YYY.js
+```
+
 ### Python (2.X and 3.X)
 
 ```
@@ -1002,6 +1013,19 @@ cd impls/ruby
 ruby stepX_YYY.rb
 ```
 
+### Ruby #2
+
+A second Ruby implementation with the following goals:
+
+- No global variables
+- No modification (monkey-patching) of core Ruby classes
+- Modularized into the `Mal` module namespace
+
+```
+cd impls/ruby.2
+ruby stepX_YYY.rb
+```
+
 ### Rust (1.38+)
 
 The rust implementation of mal requires the rust compiler and build
@@ -1026,16 +1050,15 @@ scala -classpath target/scala*/classes stepX_YYY
 
 ### Scheme (R7RS) ###
 
-The Scheme implementation of mal has been tested with Chibi-Scheme
-0.7.3, Kawa 2.4, Gauche 0.9.5, CHICKEN 4.11.0, Sagittarius 0.8.3,
-Cyclone 0.6.3 (Git version) and Foment 0.4 (Git version).  You should
+The Scheme implementation of MAL has been tested with Chibi-Scheme
+0.10, Kawa 3.1.1, Gauche 0.9.6, CHICKEN 5.1.0, Sagittarius 0.9.7,
+Cyclone 0.32.0 (Git version) and Foment 0.4 (Git version).  You should
 be able to get it running on other conforming R7RS implementations
 after figuring out how libraries are loaded and adjusting the
 `Makefile` and `run` script accordingly.
 
 ```
 cd impls/scheme
-make symlinks
 # chibi
 scheme_MODE=chibi ./run
 # kawa

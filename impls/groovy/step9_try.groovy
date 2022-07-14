@@ -74,7 +74,7 @@ eval_ast = { ast, env ->
                             ast.collect { EVAL(it,env) }
         case Map:       def new_hm = [:]
                         ast.each { k,v ->
-                            new_hm[EVAL(k, env)] = EVAL(v, env)
+                            new_hm[k] = EVAL(v, env)
                         }
                         return new_hm
         default:        return ast
@@ -110,6 +110,7 @@ EVAL = { ast, env ->
         break // TCO
     case { it instanceof MalSymbol && it.value == "defmacro!" }:
         def f = EVAL(ast[2], env)
+        f = f.clone()
         f.ismacro = true
         return env.set(ast[1], f)
     case { it instanceof MalSymbol && it.value == "macroexpand" }:
