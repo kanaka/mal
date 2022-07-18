@@ -88,7 +88,14 @@ ns ← ⟨
   "assoc"‿{𝕊 ⟨x⟩: x;
     ⟨t‿xs,k,v⟩ ← 3↑𝕩
     𝕊 (3↓𝕩)∾˜<5∾<k‿v∾˜⥊(k⊸≢˘⊑˘)⊸/∘‿2⥊xs}
+
+  "readline"‿{𝕊 ⟨2‿s⟩:
+    •term.OutRaw s
+    in ← •GetLine 0
+    {in≡@ ? nil ; 2‿in}}
 ⟩
 
 core ⇐ Env@
 {𝕊 kw‿f: core.Set kw‿(9‿f)}¨ns
+
+core.Set "*host-language*"‿(2‿"BQN")
