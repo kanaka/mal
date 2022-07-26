@@ -16,17 +16,17 @@ guide](process/guide.md).
 
 The make-a-lisp steps are:
 
-* [step0_repl](process/guide.md#step0)
-* [step1_read_print](process/guide.md#step1)
-* [step2_eval](process/guide.md#step2)
-* [step3_env](process/guide.md#step3)
-* [step4_if_fn_do](process/guide.md#step4)
-* [step5_tco](process/guide.md#step5)
-* [step6_file](process/guide.md#step6)
-* [step7_quote](process/guide.md#step7)
-* [step8_macros](process/guide.md#step8)
-* [step9_try](process/guide.md#step9)
-* [stepA_mal](process/guide.md#stepA)
+* [step0_repl](process/guide.md#step-0-the-repl)
+* [step1_read_print](process/guide.md#step-1-read-and-print)
+* [step2_eval](process/guide.md#step-2-eval)
+* [step3_env](process/guide.md#step-3-environments)
+* [step4_if_fn_do](process/guide.md#step-4-if-fn-do)
+* [step5_tco](process/guide.md#step-5-tail-call-optimization)
+* [step6_file](process/guide.md#step-6-files-mutation-and-evil)
+* [step7_quote](process/guide.md#step-7-quoting)
+* [step8_macros](process/guide.md#step-8-macros)
+* [step9_try](process/guide.md#step-9-try)
+* [stepA_mal](process/guide.md#step-a-metadata-self-hosting-and-interop)
 
 Each make-a-lisp step has an associated architectural diagram. That elements
 that are new for that step are highlighted in red.
