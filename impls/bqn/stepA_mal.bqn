@@ -130,9 +130,13 @@ Rep "(def! load-file (fn* (f) (eval (read-string (str ""(do "" (slurp f) "" nil)
 Rep "(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw ""odd number of forms to cond"")) (cons 'cond (rest (rest xs)))))))"
 Rep "(println (str ""Mal ["" *host-language* ""]""))"
 
-{
-  •term.OutRaw "user> "
-  line ← •GetLine 0
-  •Out Rep line
-  𝕊𝕩
-}@
+{0=≠•args ?
+  {
+    •term.OutRaw "user> "
+    line ← •GetLine 0
+    •Out Rep line
+    𝕊𝕩
+  }@ ;
+ Rep "(def! *ARGV* (list))"
+ Rep "(load-file """∾(⊑•args)∾""")"
+}
