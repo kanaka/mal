@@ -137,6 +137,6 @@ Rep "(println (str ""Mal ["" *host-language* ""]""))"
     •Out Rep line
     𝕊𝕩
   }@ ;
- Rep "(def! *ARGV* (list))"
+ core.Set "*ARGV*"‿(3∾<2∾⟜<¨1↓•args)
  Rep "(load-file """∾(⊑•args)∾""")"
 }

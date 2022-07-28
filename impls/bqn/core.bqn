@@ -109,3 +109,4 @@ core ⇐ Env@
 {𝕊 kw‿f: core.Set kw‿(9‿f)}¨ns
 
 core.Set "*host-language*"‿(2‿"BQN")
+core.Set "*ARGV*"‿⟨3,⟨⟩⟩

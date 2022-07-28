@@ -82,9 +82,13 @@ Rep ← PRINT∘{core EVAL 𝕩}∘READ
 core.Set "eval"‿(9‿{core EVAL ⊑𝕩})
 Rep "(def! load-file (fn* (f) (eval (read-string (str ""(do "" (slurp f) "" nil)"")))))"
 
-{
-  •Out "user> "
-  line ← •GetLine 0
-  •Out Rep line
-  𝕊𝕩
-}@
+{0=≠•args ?
+  {
+    •term.OutRaw "user> "
+    line ← •GetLine 0
+    •Out Rep line
+    𝕊𝕩
+  }@ ;
+ core.Set "*ARGV*"‿(3∾<2∾⟜<¨1↓•args)
+ Rep "(load-file """∾(⊑•args)∾""")"
+}
