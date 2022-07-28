@@ -1,9 +1,9 @@
 ⟨ReadStr⟩ ← •Import "reader.bqn"
-⟨PrStr⟩ ← •Import "printer.bqn"
+⟨PrStrR⟩ ← •Import "printer.bqn"
 
 READ ← ReadStr
 EVAL ← ⊢
-PRINT ← PrStr
+PRINT ← PrStrR
 Rep ← PRINT∘EVAL∘READ
 
 {

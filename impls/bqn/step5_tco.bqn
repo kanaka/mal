@@ -1,5 +1,6 @@
+⟨nil⟩ ← •Import "globals.bqn"
 ⟨Env⟩ ← •Import "env.bqn"
-⟨ReadStr,nil⟩ ← •Import "reader.bqn"
+⟨ReadStr⟩ ← •Import "reader.bqn"
 ⟨PrStrR⟩ ← •Import "printer.bqn"
 ⟨core⟩ ← •Import "core.bqn"
 
@@ -77,6 +78,8 @@ EVAL ← {e 𝕊 ast:
 }•_while_{𝕩≡@}@}
 
 Rep ← PRINT∘{core EVAL 𝕩}∘READ
+
+Rep "(def! not (fn* (a) (if a false true)))"
 
 {
   •Out "user> "

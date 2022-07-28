@@ -1,5 +1,5 @@
 ⟨ReadStr⟩ ← •Import "reader.bqn"
-⟨PrStr⟩ ← •Import "printer.bqn"
+⟨PrStrR⟩ ← •Import "printer.bqn"
 
 replEnv ← >⟨
   "+"‿1‿(+´)
@@ -18,7 +18,7 @@ EvalAst ← {env 𝕊 t‿v:
 }
 
 READ ← ReadStr
-PRINT ← PrStr
+PRINT ← PrStrR
 EVAL ← {
   env 𝕊 3‿⟨⟩: 3‿⟨⟩ ;
   env 𝕊 3‿xs: {
