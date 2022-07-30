@@ -68,23 +68,17 @@ T ← {𝕊 s:
   v
 }
 
-ReadString ← {
-  𝕊 "": "";
-  𝕊 ⟨c⟩: ⟨c⟩;
-  𝕊 s: {
-    '\'≠⊑s ? (⊑s)∾ReadString 1↓s ;
-    ({
-      # NOTE: doesn't support octal etc.
-      'a': @+7;
-      'b': @+8;
-      'e': @+27;
-      'f': @+12;
-      'n': @+10;
-      'r': @+13;
-      't': @+9;
-      'v': @+11;
-      𝕩
-    }1⊑s) ∾ ReadString 2↓s}
+# Thanks to Marshall for writing this version of readString and
+# suhr for suggesting the `out` value of Ctrl-* characters! (My
+# version was verbose functional code while this is array style.)
+readString ← {
+  in  ← "abefnrtv"
+  out ← "GH[LJMIK"-64
+  diff← (out-in)∾0
+  {
+    m ← » bs ← <`𝕩='\'
+    (¬bs) / (diff⊏˜in⊸⊐)⊸+⌾(m⊸/) 𝕩
+  }
 }
 
 Int ← {10⊸×⊸+˜´'0'-˜⌽𝕩}
