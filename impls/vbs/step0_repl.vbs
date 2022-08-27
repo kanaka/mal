@@ -1,21 +1,27 @@
-Function READ(str)
-    READ = str
+Option Explicit
+
+Function Read(strCode)
+	Read = strCode
 End Function
 
-Function EVAL(str)
-    EVAL = str
+Function Evaluate(strCode)
+	Evaluate = strCode
 End Function
 
-Function PRINT(str)
-    PRINT = str
+Function Print(strCode)
+	Print = strCode
 End Function
 
-Function rep(str)
-    rep = PRINT(EVAL(READ(str)))
+Function REP(strCode)
+	REP = Print(Evaluate(Read(strCode)))
 End Function
 
-While True
-    WScript.StdOut.Write("user> ")
-    code = WScript.StdIn.ReadLine()
-    WScript.Echo(rep(code))
+Dim strCode
+While True 'REPL
+	WScript.StdOut.Write("user> ")
+	On Error Resume Next
+	strCode = WScript.StdIn.ReadLine()
+	If Err.Number <> 0 Then WScript.Quit 0
+	On Error Goto 0
+	WScript.Echo REP(strCode)
 WEnd

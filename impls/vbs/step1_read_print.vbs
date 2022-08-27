@@ -1,39 +1,39 @@
 Include "reader.vbs"
 Include "printer.vbs"
 
-Function READ(str)
-    set READ = read_str(str)
+Option Explicit
+
+Function Read(strCode)
+	Read = strCode
 End Function
 
-Function EVAL(oMal)
-    set EVAL = oMal
+Function Evaluate(strCode)
+	Evaluate = strCode
 End Function
 
-Function PRINT(oMal)
-    PRINT = pr_str(oMal,true)
+Function Print(strCode)
+	Print = strCode
 End Function
 
-Function rep(str)
-	on error resume next
-    rep = PRINT(EVAL(READ(str)))
-	if err.number <> 0 then rep = err.description
-	on error goto 0
+Function REP(strCode)
+	REP = Print(Evaluate(Read(strCode)))
 End Function
 
-While True
-    WScript.StdOut.Write("user> ")
-    code = WScript.StdIn.ReadLine()
-    WScript.Echo(rep(code))
+Dim strCode
+While True 'REPL
+	WScript.StdOut.Write("user> ")
+	On Error Resume Next
+	strCode = WScript.StdIn.ReadLine()
+	If Err.Number <> 0 Then WScript.Quit 0
+	On Error Goto 0
+	WScript.Echo REP(strCode)
 WEnd
 
-Sub Include(sInstFile) 
-	Dim oFSO, f, s 
-	Set oFSO = CreateObject("Scripting.FileSystemObject")
-    sInstFile = oFSO.GetParentFolderName(oFSO.GetFile(Wscript.ScriptFullName)) & "\" & sInstFile
-	Set f = oFSO.OpenTextFile(sInstFile) 
-	s = f.ReadAll 
-	f.Close 
-	Set f = Nothing
-	Set oFSO = Nothing
-	ExecuteGlobal s 
+Sub Include(strFileName)
+	With CreateObject("Scripting.FileSystemObject")
+		ExecuteGlobal .OpenTextFile( _
+			.GetParentFolderName( _
+			.GetFile(WScript.ScriptFullName)) & _
+			"\" & strFileName).ReadAll
+	End With
 End Sub

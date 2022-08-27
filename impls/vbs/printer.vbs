@@ -1,5 +1,5 @@
 Function pr_str(o,print_readably)
-	msgbox typename(o) = "Nothing"
+	'msgbox typename(o) = "Nothing"
 	if typename(o) = "Nothing" then
 		pr_str = ""
 		exit function
