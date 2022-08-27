@@ -1,35 +1,33 @@
 Include "printer.vbs"
 
 Class MalType
-	Public Type_
-	Public value_
+	Public Type
+	Public Value
 End Class
 
-
-'msgbox pr_str(read_str("(123 (456, 567))"))
-'msgbox typename(CreateObject("System.Collections.ArrayList"))
-'msgbox pr_str(read_str("(123 "))
-Function read_str(str)
-	set read_str=read_form(tokenize(str))
-	'msgbox pr_str(read_str,true)
+Function ReadString(strCode)
+	Set ReadString = ReadForm(Tokenize(strCode))
 End Function
 
-Function tokenize(str)
-	Set oQueue = CreateObject("System.Collections.Queue")
-	Set regEx = New RegExp
-	regEx.Pattern = "[\s,]*(~@|[\[\]{}()'`~^@]|""(?:\\.|[^\\""])*""?|;.*|[^\s\[\]{}('""`,;)]*)" 
-	regEx.IgnoreCase = True  
-	regEx.Global = True
-	Set Matches = regEx.Execute(str)
-	For Each Match In Matches
-		'msgbox Match.SubMatches(0)
-		if not left(Match.SubMatches(0), 1) = ";" then
-			oQueue.Enqueue(Match.SubMatches(0))
-		End if
+Function Tokenize(strCode)
+	Set objRE = New RegExp
+	With objRE
+		.Pattern = "[\s,]*(~@|[\[\]{}()'`~^@]|""(?:\\.|[^\\""])*""?|;.*|[^\s\[\]{}('""`,;)]*)" 
+		.IgnoreCase = True
+		.Global = True
+	End With
+	
+	Set objTokens = CreateObject("System.Collections.Queue")
+	Set objMatches = objRE.Execute(strCode)
+	Dim strToken
+	For Each objMatch In objMatches
+		strToken = Match.SubMatches(0)
+		If Not Left(strToken, 1) = ";" Then
+			objTokens.Enqueue strToken
+		End If
 	Next
-	Set regEx = Nothing
-	Set Matches = Nothing
-	Set tokenize = oQueue
+	
+	Set Tokenize = objTokens
 End Function
 
 Function read_form_(oQueue)
@@ -40,21 +38,26 @@ Function read_form_(oQueue)
 	end if
 End Function
 
-Function read_form(oQueue)
-	if oQueue.Count = 0 then
-		Set read_form = Nothing
-		exit function
-	end if
-	If oQueue.Peek() = "(" or oQueue.Peek() = "[" or oQueue.Peek() = "{" Then
-		if oQueue.Peek() = "(" then
-			Set read_form = read_list(oQueue)
-		elseif oQueue.Peek() = "[" then
-			Set read_form = read_vector(oQueue)
-		elseif oQueue.Peek() = "{" then
-			Set read_form = read_hash_map(oQueue)
-		end if
-	elseif oQueue.Peek() = "'" or oQueue.Peek() = "`" or oQueue.Peek() = "~" or oQueue.Peek() = "~@" or oQueue.Peek = "@" then
-		select case oQueue.Dequeue()
+Function ReadForm(objTokens)
+	If objTokens.Count = 0 Then
+		Set ReadForm = Nothing
+		Exit Function
+	End If
+	
+	Dim strToken
+	strToken = objTokens.Peek()
+	
+	If InStr("([{", strToken) Then
+		Select Case strToken
+			Case "("
+				Set ReadForm = ReadList(oQueue)
+			Case "["
+				Set ReadForm = ReadVector(oQueue)
+			Case "{"
+				Set ReadForm = ReadHashmap(oQueue)
+		End Select
+	ElseIf InStr("'`~@", strToken) Then
+		Select Case strToken
 			case "'"
 				s = "quote"
 			case "`"
@@ -97,52 +100,83 @@ Function read_form(oQueue)
 
 End Function
 
-Function read_list(oQueue)
-	p = oQueue.Dequeue()
-	if p = "(" Then
-		q = ")"
-	elseif p = "[" then
-		q = "]"
-	elseif p = "{" then
-		q = "}"
-	end if
-
-	set read_list = new MalType
-	set read_list.value_ = CreateObject("System.Collections.ArrayList")
-	read_list.type_ = "list"+p+q
-
-	While oQueue.count > 1 And oQueue.Peek() <> q
-		read_list.value_.Add read_form(oQueue)
-	Wend
-	If oQueue.Dequeue() <> q Then
-		err.raise vbObjectError,"reader", "excepted '"+q+"', got EOF"
+Function ReadList(objTokens)
+	Call objTokens.Dequeue()
+	
+	If objTokens.Count = 0 Then
+		'TODO
 	End If
-	'msgbox oQueue.peek
-End Function
+	
+	Set ReadList = New MalType
+	Set ReadList.Value = CreateObject("System.Collections.ArrayList")
+	ReadList.Type = "List"
 
-function read_vector(oQueue)
-	set read_vector = read_list(oQueue)
-end function
-
-function read_hash_map(oQueue)
-	oQueue.Dequeue()
-	set read_hash_map = new MalType
-	set read_hash_map.value_ = CreateObject("Scripting.Dictionary")
-
-	read_hash_map.type_ = "hash-map"
-	While oQueue.count > 1 And oQueue.Peek() <> "}"
-		set key = read_form(oQueue)
-		read_hash_map.value_.Add key, read_form(oQueue)
-	Wend
-	If oQueue.Dequeue() <> "}" Then
-		err.raise vbObjectError,"reader", "excepted '}', got EOF"
+	With ReadList.Value
+		While objTokens.Count > 1 And objTokens.Peek() <> ")"
+			.Add ReadForm(objTokens)
+		Wend
+	End With
+	
+	If objTokens.Dequeue() <> ")" Then
+		'TODO
+		'Err.raise vbObjectError,"reader", "excepted '"+q+"', got EOF"
 	End If
 End Function
 
+function ReadVector(objTokens)
+	Call objTokens.Dequeue()
+	
+	If objTokens.Count = 0 Then
+		'TODO
+	End If
+	
+	Set ReadVector = New MalType
+	Set ReadVector.Value = CreateObject("System.Collections.ArrayList")
+	ReadVector.Type = "Vector"
+	
+	With ReadVector.Value
+		While objTokens.Count > 1 And objTokens.Peek() <> "]"
+			.Add ReadForm(objTokens)
+		Wend
+	End With
+	
+	If objTokens.Dequeue() <> "]" Then
+		'TODO
+		'err.raise vbObjectError,"reader", "excepted '"+q+"', got EOF"
+	End If
+End Function
 
+Function ReadHashmap(objTokens)
+	Call objTokens.Dequeue()
+	
+	If objTokens.Count < 2 Then
+		'TODO
+	End If
+	
+	Set ReadHashmap = New MalType
+	Set ReadHashmap.Value = CreateObject("Scripting.Dictionary")
+	ReadHashmap.Type = "Hashmap"
+	
+	Dim objKey, objValue
+	With ReadHashmap.Value
+		While objTokens.Count > 2 And objTokens.Peek() <> "}"
+			Set objKey = ReadForm(oQueue)
+			Set objValue = ReadForm(oQueue)
+			.Add objKey, objValue
+		Wend
+	End With
+	
+	If objTokens.Dequeue() <> "}" Then
+		'TODO
+		'err.raise vbObjectError,"reader", "excepted '}', got EOF"
+	End If
+End Function
 
-Function read_atom(oQueue)
-	atom = oQueue.Dequeue()
+Function ReadAtom(objTokens)
+	Dim strAtom
+	strAtom = objTokens.Dequeue()
+	
+	'TODO
 	if atom = "" then
 		set read_atom = Nothing
 	elseif isnumeric(atom) Then

@@ -29,7 +29,7 @@ end function
 function donothing(args)
 	set donothing = new MalType
 	donothing.type_ = "nil"
-	donothing.value_ = "error"
+	donothing.value_ = ""
 end function
 
 class enviroment
@@ -50,8 +50,9 @@ Function READ(str)
 End Function
 
 Function EVAL(oMal,env)
-	'msgbox typename(o)
-	if isempty(o) then
+	'msgbox typename(oMal)
+	if TypeName(oMal) = "Nothing" then
+		'msgbox "nothing"
 		set EVAL = donothing("")
 		exit function
 	end if
