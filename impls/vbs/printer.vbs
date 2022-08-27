@@ -1,53 +1,79 @@
-Function pr_str(o,print_readably)
-	'msgbox typename(o) = "Nothing"
-	if typename(o) = "Nothing" then
-		pr_str = ""
-		exit function
-	end if
-	If left(o.type_,4) = "list" Then
-		pr_str =mid(o.type_,5,1) 
-		bool = False
-		For Each item In o.value_
-			bool = True
-			pr_str =pr_str & pr_str(item,print_readably) & " "
-		Next
-		if bool then
-			pr_str = left(pr_str,len(pr_str)-1) & mid(o.type_,6,1)
-		else
-			pr_str = mid(o.type_,5,2)
-		End If
-	elseif o.type_ = "hash-map" Then
-		pr_str = "{"
-		bool = False
-		For each item in o.value_
-			bool = True
-			pr_str =pr_str & pr_str(item,print_readably) & " " & pr_str(o.value_.item(item),print_readably) & " "
-		Next
-		if bool then
-			pr_str = left(pr_str,len(pr_str)-1) & "}"
-		else
-			pr_str = "{}"
-		End If
-	Else
-		if print_readably and o.type_="string" then
-			pr_str = o.value_
-			pr_str = replace(pr_str,"\","\\")
-			pr_str = replace(pr_str,vbnewline,"\n")
-			pr_str = replace(pr_str,"""","\""")
-			pr_str = """" & pr_str & """"
-		Elseif o.type_="string" then
-			pr_str = """" & o.value_ & """"
-		else
-			pr_str = o.value_
-		End If
+Function PrintMalType(objMal, boolReadable)
+	PrintMalType = ""
+	If TypeName(objMal) = "Nothing" Then
+		Exit Function
 	End If
 	
+	Select Case objMal.Type
+		Case TYPE_LIST
+			With objMal.Value
+				Dim i
+				For i = 0 To .Count - 2
+					PrintMalType = PrintMalType & _
+						PrintMalType(.Item(i), boolReadable) & " "
+				Next
+				If .Count > 0 Then
+					PrintMalType = PrintMalType & _
+						PrintMalType(.Item(.Count - 1), boolReadable)
+				End If
+			End With
+			PrintMalType = "(" & PrintMalType & ")"
+		Case TYPE_VECTOR
+			With objMal.Value
+				Dim i
+				For i = 0 To .Count - 2
+					PrintMalType = PrintMalType & _
+						PrintMalType(.Item(i), boolReadable) & " "
+				Next
+				If .Count > 0 Then
+					PrintMalType = PrintMalType & _
+						PrintMalType(.Item(.Count - 1), boolReadable)
+				End If
+			End With
+			PrintMalType = "[" & PrintMalType & "]"
+		Case TYPE_HASHMAP
+			With objMal.Value
+				Dim arrKeys
+				arrKeys = .Keys
+				Dim i
+				For i = 0 To .Count - 2
+					PrintMalType = PrintMalType & _
+						PrintMalType(arrKeys(i), boolReadable) & " " & _
+						PrintMalType(.Item(arrKeys(i)), boolReadable) & " "
+				Next
+				If .Count > 0 Then
+					PrintMalType = PrintMalType & _
+						PrintMalType(arrKeys(.Count - 1), boolReadable) & " " & _
+						PrintMalType(.Item(arrKeys(.Count - 1)), boolReadable)
+				End If
+			End With
+			PrintMalType = "{" & PrintMalType & "}"
+		Case TYPE_STRING
+			If boolReadable Then
+				PrintMalType = EscapeString(objMal.Value)
+			Else
+				PrintMalType = objMal.Value
+			End If
+		Case TYPE_BOOLEAN
+			If objMal.Value Then
+				PrintMalType = "true"
+			Else
+				PrintMalType = "false"
+			End If
+		Case TYPE_NIL
+			PrintMalType = "nil"
+		Case TYPE_NUMBER
+			PrintMalType = CStr(objMal.Value)
+		Case Else
+			PrintMalType = objMal.Value
+	End Select
 End Function
 
 
-' set list = CreateObject("System.Collections.ArrayList")
-' list.add(3)
-' for each i in list
-' msgbox i
-' next
-
+Function EscapeString(strRaw)
+	EscapeString = strRaw
+	EscapeString = Replace(EscapeString, "\", "\\")
+	EscapeString = Replace(EscapeString, vbCrLf, "\n")
+	EscapeString = Replace(EscapeString, """", "\""")
+	EscapeString = """" & EscapeString & """"
+End Function
