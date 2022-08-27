@@ -1,8 +1,11 @@
+Option Explicit
+
 Function ReadString(strCode)
 	Set ReadString = ReadForm(Tokenize(strCode))
 End Function
 
 Function Tokenize(strCode)
+	Dim objRE
 	Set objRE = New RegExp
 	With objRE
 		.Pattern = "[\s,]*(~@|[\[\]{}()'`~^@]|""(?:\\.|[^\\""])*""?|;.*|[^\s\[\]{}('""`,;)]*)" 
@@ -10,16 +13,18 @@ Function Tokenize(strCode)
 		.Global = True
 	End With
 	
+	Dim objTokens, objMatches, objMatch
 	Set objTokens = CreateObject("System.Collections.Queue")
 	Set objMatches = objRE.Execute(strCode)
 	Dim strToken
 	For Each objMatch In objMatches
-		strToken = Match.SubMatches(0)
+		strToken = objMatch.SubMatches(0)
 		If Not Left(strToken, 1) = ";" Then
 			objTokens.Enqueue strToken
 		End If
 	Next
-	
+	'MsgBox objTokens.Count
+	'MsgBox """" & objTokens.peek & """"
 	Set Tokenize = objTokens
 End Function
 
@@ -37,6 +42,12 @@ Function ReadForm(objTokens)
 		Exit Function
 	End If
 	
+	If objTokens.Count = 1 And objTokens.Peek() = "" Then
+		Call objTokens.Dequeue()
+		Set ReadForm = Nothing
+		Exit Function
+	End If
+	
 	Dim strToken
 	strToken = objTokens.Peek()
 	
@@ -50,6 +61,8 @@ Function ReadForm(objTokens)
 				Set ReadForm = ReadHashmap(objTokens)
 		End Select
 	ElseIf InStr("'`~@", strToken) Then
+		Call objTokens.Dequeue()
+		
 		Dim strAlias
 		Select Case strToken
 			Case "'"
@@ -78,7 +91,7 @@ Function ReadForm(objTokens)
 	'	Set read_form = Nothing
 	'	err.Raise vbObjectError, "read_form", "unbalanced parentheses"
 	ElseIf strToken = "^" Then
-		oQueue.Dequeue()
+		Call objTokens.Dequeue()
 		Set ReadForm = New MalType
 		ReadForm.Type = TYPE_LIST
 		Set ReadForm.Value = CreateObject("System.Collections.ArrayList")
@@ -90,7 +103,7 @@ Function ReadForm(objTokens)
 		ReadForm.Value.Add ReadForm(objTokens)
 		ReadForm.Value.Add objTemp
 	Else
-		Set read_form = read_atom(oQueue)
+		Set ReadForm = ReadAtom(objTokens)
 	End If
 End Function
 
@@ -113,6 +126,7 @@ Function ReadList(objTokens)
 	
 	If objTokens.Dequeue() <> ")" Then
 		'TODO
+		MsgBox "e"
 		'Err.raise vbObjectError,"reader", "excepted '"+q+"', got EOF"
 	End If
 End Function
@@ -136,6 +150,7 @@ function ReadVector(objTokens)
 	
 	If objTokens.Dequeue() <> "]" Then
 		'TODO
+		MsgBox "e"
 		'err.raise vbObjectError,"reader", "excepted '"+q+"', got EOF"
 	End If
 End Function
@@ -154,8 +169,8 @@ Function ReadHashmap(objTokens)
 	Dim objKey, objValue
 	With ReadHashmap.Value
 		While objTokens.Count > 2 And objTokens.Peek() <> "}"
-			Set objKey = ReadForm(oQueue)
-			Set objValue = ReadForm(oQueue)
+			Set objKey = ReadForm(objTokens)
+			Set objValue = ReadForm(objTokens)
 			.Add objKey, objValue
 		Wend
 	End With
@@ -193,7 +208,7 @@ Function ReadAtom(objTokens)
 					objAtom.Type = TYPE_STRING
 					objAtom.Value = ParseString(strAtom)
 				Case Else
-					If IsNumeric(strAtom)
+					If IsNumeric(strAtom) Then
 						objAtom.Type = TYPE_NUMBER
 						objAtom.Value = Eval(strAtom)
 					Else
@@ -207,42 +222,38 @@ Function ReadAtom(objTokens)
 End Function
 
 Function ParseString(strRaw)
-	ParseString = strRaw
-	'TODO
-'	Dim atom
-'	atom=strAtom
-'	if atom = "" then
-'		set read_atom = Nothing
-'	elseif left(atom,1) = """" Then
-'		set read_atom = new MalType
-'		read_atom.Type_ = "string"
-'		str_tmp = ""
-'		for i = 2 to len(atom) - 1
-'			if backslash then
-'				backslash = False
-'				'msgbox backslash
-'				if mid(atom,i,1) = "n" then 
-'					str_tmp = str_tmp + vbnewline
-'				elseif mid(atom,i,1) = "\" then 
-'					str_tmp = str_tmp + "\"
-'				elseif mid(atom,i,1) = """" then 
-''					str_tmp = str_tmp + """"
-'				end if
-'			else 
-'				if mid(atom,i,1) = "\" then 
-'					backslash = True
-'				else
-'					str_tmp = str_tmp + mid(atom,i,1)
-'				end if
-'			end if
-'		next
-'		if backslash then err.raise vbObjectError,"reader", "Unterminated string, got EOF"
-'		read_atom.value_ = str_tmp
-	'elseif left(atom,1) = ";" Then	
-	'	set read_atom = nothing
-	'else
-	'	set read_atom = new MalType
-	'	read_atom.Type_ = "symbol"
-	'	read_atom.value_ = atom
-	'End If
+	If Right(strRaw, 1) <> """" Or Len(strRaw) < 2 Then
+		MsgBox "e"
+	End If
+	
+	Dim strTemp
+	strTemp = Mid(strRaw, 2, Len(strRaw) - 2)
+	Dim i
+	i = 1
+	'Dim strChar
+	ParseString = ""
+	While i <= Len(strTemp) - 1
+		Select Case Mid(strTemp, i, 2)
+			Case "\\"
+				ParseString = ParseString & "\"
+			Case "\n"
+				ParseString = ParseString & vbCrLf
+			Case "\"""
+				ParseString = ParseString & """"
+			Case Else
+				ParseString = ParseString & Mid(strTemp, i, 1)
+				i = i - 1
+		End Select
+		i = i + 2
+	Wend
+	
+	If i <= Len(strTemp) Then
+		' Last char is not processed.
+		If Right(strTemp, 1) <> "\" Then
+			ParseString = ParseString & Right(strTemp, 1)
+		Else
+			'TODO Error
+			MsgBox "err"
+		End If
+	End If
 End Function

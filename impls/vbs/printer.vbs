@@ -1,13 +1,15 @@
+Option Explicit
+
 Function PrintMalType(objMal, boolReadable)
 	PrintMalType = ""
 	If TypeName(objMal) = "Nothing" Then
 		Exit Function
 	End If
 	
+	Dim i
 	Select Case objMal.Type
 		Case TYPE_LIST
 			With objMal.Value
-				Dim i
 				For i = 0 To .Count - 2
 					PrintMalType = PrintMalType & _
 						PrintMalType(.Item(i), boolReadable) & " "
@@ -20,7 +22,6 @@ Function PrintMalType(objMal, boolReadable)
 			PrintMalType = "(" & PrintMalType & ")"
 		Case TYPE_VECTOR
 			With objMal.Value
-				Dim i
 				For i = 0 To .Count - 2
 					PrintMalType = PrintMalType & _
 						PrintMalType(.Item(i), boolReadable) & " "
@@ -35,7 +36,6 @@ Function PrintMalType(objMal, boolReadable)
 			With objMal.Value
 				Dim arrKeys
 				arrKeys = .Keys
-				Dim i
 				For i = 0 To .Count - 2
 					PrintMalType = PrintMalType & _
 						PrintMalType(arrKeys(i), boolReadable) & " " & _
@@ -68,7 +68,6 @@ Function PrintMalType(objMal, boolReadable)
 			PrintMalType = objMal.Value
 	End Select
 End Function
-
 
 Function EscapeString(strRaw)
 	EscapeString = strRaw
