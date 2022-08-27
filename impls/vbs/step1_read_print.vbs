@@ -1,23 +1,8 @@
-Include "reader.vbs"
-Include "printer.vbs"
-
 Option Explicit
 
-Function Read(strCode)
-	Read = strCode
-End Function
-
-Function Evaluate(strCode)
-	Evaluate = strCode
-End Function
-
-Function Print(strCode)
-	Print = strCode
-End Function
-
-Function REP(strCode)
-	REP = Print(Evaluate(Read(strCode)))
-End Function
+Include "Const.vbs"
+Include "Reader.vbs"
+Include "Printer.vbs"
 
 Dim strCode
 While True 'REPL
@@ -27,7 +12,23 @@ While True 'REPL
 	If Err.Number <> 0 Then WScript.Quit 0
 	On Error Goto 0
 	WScript.Echo REP(strCode)
-WEnd
+Wend
+
+Function Read(strCode)
+	Set Read = ReadString(strCode)
+End Function
+
+Function Evaluate(objCode)
+	Set Evaluate = objCode
+End Function
+
+Function Print(objCode)
+	Print = PrintMalType(objCode, True)
+End Function
+
+Function REP(strCode)
+	REP = Print(Evaluate(Read(strCode)))
+End Function
 
 Sub Include(strFileName)
 	With CreateObject("Scripting.FileSystemObject")
