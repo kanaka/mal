@@ -11,10 +11,27 @@ class Environment
 	
 	Public Sub Init(objBinds, objExpressions)
 		'MsgBox objExpressions.type
-		Dim i
+		Dim i,flag
+		flag = False
 		For i = 0 To objBinds.Value.Count - 1
-			Add objBinds.Value.Item(i).Value, _
-				Evaluate(objExpressions.Value.Item(i+1), objSelf)
+			If objBinds.Value.Item(i).Value = "&" Then flag=True
+			If flag Then
+				'assume i+1 = objBinds.Value.Count - 1
+				Dim oTmp
+				Set oTmp = New MalType
+				oTmp.Type = TYPE_LIST
+				Set oTmp.Value = CreateObject("System.Collections.ArrayList")
+				Dim j
+				For j = i+1 To objExpressions.Value.Count - 1
+					oTmp.Value.Add Evaluate(objExpressions.Value.Item(j), objSelf)
+				Next
+				'MsgBox objBinds.Value.Item(i+1)
+				Add objBinds.Value.Item(i+1).Value, oTmp
+				Exit For
+			Else
+				Add objBinds.Value.Item(i).Value, _
+					Evaluate(objExpressions.Value.Item(i+1), objSelf)	
+			End If
 			'wsh.echo objBinds.Value.Item(i).Value
 			'wsh.echo objExpressions.Value.Item(i).type
 			'wsh.echo TypeName(Evaluate(objExpressions.Value.Item(i), objSelf))

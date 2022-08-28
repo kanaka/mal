@@ -53,6 +53,7 @@ Function PrintMalType(objMal, boolReadable)
 			If boolReadable Then
 				PrintMalType = EscapeString(objMal.Value)
 			Else
+				'PrintMalType = """" & objMal.Value & """"
 				PrintMalType = objMal.Value
 			End If
 		Case TYPE_BOOLEAN
