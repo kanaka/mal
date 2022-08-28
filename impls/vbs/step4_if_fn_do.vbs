@@ -1,23 +1,28 @@
+'TODO 字符串有问题
+'TODO 哈希表新建没写
+
 Option Explicit
 
-Include "Const.vbs"
+Include "Core.vbs"
 Include "Reader.vbs"
 Include "Printer.vbs"
 Include "Env.vbs"
 
-Dim objEnv
-Set objEnv = New Environment
-objEnv.SetSelf objEnv
-objEnv.SetOuter Nothing
-objEnv.Add "+", NewLambda(GetRef("Add"))
-objEnv.Add "-", NewLambda(GetRef("Subtract"))
-objEnv.Add "*", NewLambda(GetRef("Multiply"))
-objEnv.Add "/", NewLambda(GetRef("Divide"))
-objEnv.Add "def!", NewSpecialForm("def!")
-objEnv.Add "let*", NewSpecialForm("let*")
-objEnv.Add "do", NewSpecialForm("do")
-objEnv.Add "if", NewSpecialForm("if")
-objEnv.Add "fn*", NewSpecialForm("fn*")
+Dim objRootEnv
+Set objRootEnv = New Environment
+objRootEnv.SetSelf objRootEnv
+objRootEnv.SetOuter Nothing
+Dim arrKeys, i
+arrKeys = objCoreNS.Keys
+For i = 0 To UBound(arrKeys)
+	objRootEnv.Add arrKeys(i), NewLambda(objCoreNS.Item(arrKeys(i)))
+Next
+objRootEnv.Add "def!", NewSpecialForm("def!")
+objRootEnv.Add "let*", NewSpecialForm("let*")
+objRootEnv.Add "do", NewSpecialForm("do")
+objRootEnv.Add "if", NewSpecialForm("if")
+objRootEnv.Add "fn*", NewSpecialForm("fn*")
+REP "(def! not (fn* (a) (if a false true)))"
 
 Function NewLambda(objFunction)
 	Dim objMal
@@ -27,10 +32,6 @@ Function NewLambda(objFunction)
 	objMal.Type = TYPE_LAMBDA
 	Set NewLambda = objMal
 End Function
-
-Class BuiltInFunction
-	Public Run
-End Class
 
 Function NewSpecialForm(strValue)
 	Set NewSpecialForm = New MalType
@@ -47,41 +48,12 @@ Class SpecialForm
 End Class
 
 Sub CheckArgNum(objArgs, lngExpect)
-	If objArgs.Value.Count - 1 <> 2 Then
+	If objArgs.Value.Count - 1 <> lngExpect Then
 		boolError = True
 		strError = "wrong number of arguments"
 		Call REPL()
 	End If
 End Sub
-
-Function Add(objArgs)
-	CheckArgNum objArgs, 2
-	Set Add = New MalType
-	Add.Type = TYPE_NUMBER
-	Add.Value = objArgs.Value.Item(1).Value + objArgs.Value.Item(2).Value
-End Function
-
-Function Subtract(objArgs)
-	CheckArgNum objArgs, 2
-	Set Subtract = New MalType
-	Subtract.Type = TYPE_NUMBER
-	Subtract.Value = objArgs.Value.Item(1).Value - objArgs.Value.Item(2).Value
-End Function
-
-Function Multiply(objArgs)
-	CheckArgNum objArgs, 2
-	Set Multiply = New MalType
-	Multiply.Type = TYPE_NUMBER
-	Multiply.Value = objArgs.Value.Item(1).Value * objArgs.Value.Item(2).Value
-End Function
-
-Function Divide(objArgs)
-	CheckArgNum objArgs, 2
-	Set Divide = New MalType
-	Divide.Type = TYPE_NUMBER
-	Divide.Value = objArgs.Value.Item(1).Value / objArgs.Value.Item(2).Value
-End Function
-
 
 Call REPL()
 Sub REPL()
@@ -118,7 +90,6 @@ Function Evaluate(objCode, objEnv)
 		
 		Dim objSymbol
 		Set objSymbol = Evaluate(objCode.Value.Item(0), objEnv)
-		' there's a bug that Item(0) maybe eval twice.
 		If IsSpecialForm(objSymbol) Then
 			'MsgBox TypeName(objCode.value)
 			Select Case objSymbol.Value
@@ -152,12 +123,14 @@ Function Evaluate(objCode, objEnv)
 					'MsgBox 1
 					Set objCondition = Evaluate(objCode.Value.Item(1), objEnv)
 					'MsgBox 2
+					'MsgBox IsNil(objCondition)
+					'MsgBox IsFalse(objCondition)
 					If IsNil(objCondition) Or IsFalse(objCondition) Then
+						'MsgBox 1
 						Select Case objCode.Value.Count - 1
 							Case 2
 								Set Evaluate = New MalType
 								Evaluate.Type = TYPE_NIL
-								Evaluate.Value = Null
 							Case 3
 								Set Evaluate = Evaluate(objCode.Value.Item(3), objEnv)
 							Case Else
@@ -184,27 +157,53 @@ Function Evaluate(objCode, objEnv)
 					'MsgBox 1
 			End Select
 		Else
+			'MsgBox 2
+			'objSymbol.Value.SetEnv objEnv
 			Set Evaluate = objSymbol.Value.Run(EvaluateAST(objCode, objEnv))
+			'MsgBox objEnv.Get("N").value
+			'MsgBox 3
 		End If
 	Else
 		Set Evaluate = EvaluateAST(objCode, objEnv)
 	End If
 End Function
 
+Class BuiltInFunction
+	Public Run
+	Public Sub SetEnv(z)
+	End Sub
+End Class
+
 Class Lambda
-	Public objEnv
 	Public objParameters
 	Public objBody
+	Public objEnv
+	Public Function SetEnv(oInv)
+		Set objEnv=oInv
+	End Function
+	
 	Public Function Run(objArgs)
+		Dim objNewEnv
+		Set objNewEnv = New Environment
+		objNewEnv.SetSelf objNewEnv
+		objNewEnv.SetOuter objEnv
 		'MsgBox objArgs.type
-		objEnv.Init objParameters, objArgs
+		objNewEnv.Init objParameters, objArgs
 		'para start from 0, args start from 1
-		Set Run = Evaluate(objBody, objEnv)
+		'MsgBox objNewEnv.Get("N").value
+		Set Run = Evaluate(objBody, objNewEnv)
 	End Function
 End Class
 
+Function IsZero(objMal)
+	IsZero = (objMal.Type = TYPE_NUMBER And objMal.Value = 0)
+	'MsgBox IsZero
+End Function
+
 Function IsFalse(objMal)
-	IsFalse = (objMal.Value = False)
+	IsFalse = (objMal.Type = TYPE_BOOLEAN)
+	If Not IsFalse Then Exit Function
+	IsFalse = IsFalse And (objMal.Value = False)
 End Function
 
 Function IsNil(objMal)
@@ -253,23 +252,21 @@ Function EvaluateAST(objCode, objEnv)
 		Case TYPE_SYMBOL
 			Set objResult = objEnv.Get(objCode.Value)
 		Case TYPE_LIST
+			Set objResult = New MalType
+			Set objResult.Value = CreateObject("System.Collections.ArrayList")
+			objResult.Type = TYPE_LIST
 			For i = 0 To objCode.Value.Count - 1
-				Set objCode.Value.Item(i) = Evaluate(objCode.Value.Item(i), objEnv)
+				objResult.Value.Add Evaluate(objCode.Value.Item(i), objEnv)
 			Next
-			Set objResult = objCode
 		Case TYPE_VECTOR
+			Set objResult = New MalType
+			Set objResult.Value = CreateObject("System.Collections.ArrayList")
+			objResult.Type = TYPE_VECTOR
 			For i = 0 To objCode.Value.Count - 1
-				Set objCode.Value.Item(i) = Evaluate(objCode.Value.Item(i), objEnv)
+				objResult.Value.Add Evaluate(objCode.Value.Item(i), objEnv)
 			Next
-			Set objResult = objCode
 		Case TYPE_HASHMAP
-			Dim arrKeys
-			arrKeys = objCode.Value.Keys
-			For i = 0 To objCode.Value.Count - 1
-				Set objCode.Value.Item(arrKeys(i)) = _
-					Evaluate(objCode.Value.Item(arrKeys(i)), objEnv)
-			Next
-			Set objResult = objCode
+			'TODO: new hashMap
 		Case Else
 			Set objResult = objCode
 	End Select
@@ -281,7 +278,7 @@ Function Print(objCode)
 End Function
 
 Function REP(strCode)
-	REP = Print(Evaluate(Read(strCode), objEnv))
+	REP = Print(Evaluate(Read(strCode), objRootEnv))
 End Function
 
 Sub Include(strFileName)

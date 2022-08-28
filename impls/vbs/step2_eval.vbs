@@ -1,6 +1,6 @@
 Option Explicit
 
-Include "Const.vbs"
+Include "Core.vbs"
 Include "Reader.vbs"
 Include "Printer.vbs"
 
@@ -12,7 +12,7 @@ objEnv.Add "*", GetRef("Multiply")
 objEnv.Add "/", GetRef("Divide")
 
 Sub CheckArgNum(objArgs, lngExpect)
-	If objArgs.Value.Count - 1 <> 2 Then
+	If objArgs.Value.Count - 1 <> lngExpect Then
 		boolError = True
 		strError = "wrong number of arguments"
 		Call REPL()

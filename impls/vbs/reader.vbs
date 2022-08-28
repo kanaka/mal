@@ -200,7 +200,6 @@ Function ReadAtom(objTokens)
 			objAtom.Value = False
 		Case "nil"
 			objAtom.Type = TYPE_NIL
-			objAtom.Value = Null
 		Case Else
 			Select Case Left(strAtom, 1)
 				Case ":"

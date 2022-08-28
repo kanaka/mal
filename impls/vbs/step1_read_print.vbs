@@ -1,6 +1,6 @@
 Option Explicit
 
-Include "Const.vbs"
+Include "Core.vbs"
 Include "Reader.vbs"
 Include "Printer.vbs"
 
