@@ -9,6 +9,20 @@ class Environment
 		Set objSelf = Nothing
 	End Sub
 	
+	Public Sub Init(objBinds, objExpressions)
+		'MsgBox objExpressions.type
+		Dim i
+		For i = 0 To objBinds.Value.Count - 1
+			Add objBinds.Value.Item(i).Value, _
+				Evaluate(objExpressions.Value.Item(i+1), objSelf)
+			'wsh.echo objBinds.Value.Item(i).Value
+			'wsh.echo objExpressions.Value.Item(i).type
+			'wsh.echo TypeName(Evaluate(objExpressions.Value.Item(i), objSelf))
+			'wsh.echo Evaluate(objExpressions.Value.Item(i), objSelf).type
+		Next
+		'MsgBox objBindings("a")
+	End Sub
+	
 	Public Function SetOuter(objEnv)
 		Set objOuterEnv = objEnv
 	End Function
