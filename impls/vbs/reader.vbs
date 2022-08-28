@@ -226,7 +226,7 @@ End Function
 Function ParseString(strRaw)
 	If Right(strRaw, 1) <> """" Or Len(strRaw) < 2 Then
 		boolError = True
-		strError = "Unterminated string, got EOF"
+		strError = "unterminated string, got EOF"
 		Call REPL()
 	End If
 	
@@ -256,7 +256,7 @@ Function ParseString(strRaw)
 			ParseString = ParseString & Right(strTemp, 1)
 		Else
 			boolError = True
-			strError = "Unterminated string, got EOF"
+			strError = "unterminated string, got EOF"
 			Call REPL()
 		End If
 	End If
