@@ -1,130 +1,215 @@
-Include "reader.vbs"
-Include "printer.vbs"
-Include "env.vbs"
+Option Explicit
 
-function add(args)
-	set add = new MalType
-	add.type_ = "number"
-	'msgbox typename(args)
-	add.value_ = args.value_.item(1).value_ + args.value_.item(2).value_
-end function
+Include "Const.vbs"
+Include "Reader.vbs"
+Include "Printer.vbs"
+Include "Env.vbs"
 
-function subtract(args)
-	set subtract = new MalType
-	subtract.type_ = "number"
-	subtract.value_ = args.value_.item(1).value_ - args.value_.item(2).value_
-end function
-
-function multiply(args)
-	set multiply = new MalType
-	multiply.type_ = "number"
-	multiply.value_ = args.value_.item(1).value_ * args.value_.item(2).value_
-end function
-
-function divide(args)
-	set divide = new MalType
-	divide.type_ = "number"
-	divide.value_ = args.value_.item(1).value_ / args.value_.item(2).value_
-end function
-
-function donothing(args)
-	set donothing = new MalType
-	donothing.type_ = "nil"
-	donothing.value_ = ""
-end function
+Dim objEnv
+Set objEnv = New Environment
+objEnv.SetSelf objEnv
+objEnv.SetOuter Nothing
+objEnv.Add "+", GetRef("Add")
+objEnv.Add "-", GetRef("Subtract")
+objEnv.Add "*", GetRef("Multiply")
+objEnv.Add "/", GetRef("Divide")
+objEnv.Add "def!", GetRef("Divide")
+objEnv.Add "let*", GetRef("Divide")
 
 
-Function READ(str)
-    set READ = read_str(str)
+Sub CheckArgNum(objArgs, lngExpect)
+	If objArgs.Value.Count - 1 <> 2 Then
+		boolError = True
+		strError = "wrong number of arguments"
+		Call REPL()
+	End If
+End Sub
+
+Function Add(objArgs)
+	CheckArgNum objArgs, 2
+	Set Add = New MalType
+	Add.Type = TYPE_NUMBER
+	Add.Value = objArgs.Value.Item(1).Value + objArgs.Value.Item(2).Value
 End Function
 
-Function EVAL(oMal,env)
-	'msgbox typename(oMal)
-	if TypeName(oMal) = "Nothing" then
-		'msgbox "nothing"
-		set EVAL = donothing("")
-		exit function
-	end if
-	select case oMal.type_
-		case "list()"
-			if oMal.value_.count = 0 then
-				set EVAL = oMal
-			else
-				'wsh.echo oMal.value_.item(0).value_
-				'wsh.echo typename(env.env)
-				'msgbox eval_ast(oMal.value_.item(1),env).value_
-				'msgbox typename(env.env.item("+")(oMal))
-				'if not isempty(oMal.value_.item(0)) then
-					set EVAL = env.env.item(eval_ast(oMal.value_.item(0),env).value_)(eval_ast(oMal,env))
-				'else
-				'end if
-			end if
-		case else 
-			set EVAL = eval_ast(oMal,env)
-	end select
+Function Subtract(objArgs)
+	CheckArgNum objArgs, 2
+	Set Subtract = New MalType
+	Subtract.Type = TYPE_NUMBER
+	Subtract.Value = objArgs.Value.Item(1).Value - objArgs.Value.Item(2).Value
 End Function
 
-function eval_ast(ast,env)
-	select case ast.type_
-		case "list()"
-			for i = 0 to ast.value_.count - 1
-				set ast.value_.item(i) = EVAL(ast.value_.item(i),env)
-			next
-			set eval_ast = ast
-		case "symbol"
-			if env.env.Exists(ast.value_) then
-				set eval_ast = ast
-			else
-				'err.raise vbObjectError, "eval_ast", "undefined symbol: " & ast.value_
-				wsh.echo "undefined symbol: " & ast.value_
-				ast.value_ = "donothing"
-				set eval_ast = ast
-			end if
-		case "list[]"
-			for i = 0 to ast.value_.count - 1
-				set ast.value_.item(i) = EVAL(ast.value_.item(i),env)
-			next
-			set eval_ast = ast
-		case "hash-map"
-			For i = 0 To ast.value_.Count -1 ' 迭代数组。
-				' wsh.echo ast.value_.keys()(i).value_
-				' wsh.echo ast.value_.item(ast.value_.keys()(i)).value_
-				set ast.value_.item(ast.value_.keys()(i)) = EVAL(ast.value_.item(ast.value_.keys()(i)),env)
+Function Multiply(objArgs)
+	CheckArgNum objArgs, 2
+	Set Multiply = New MalType
+	Multiply.Type = TYPE_NUMBER
+	Multiply.Value = objArgs.Value.Item(1).Value * objArgs.Value.Item(2).Value
+End Function
+
+Function Divide(objArgs)
+	CheckArgNum objArgs, 2
+	Set Divide = New MalType
+	Divide.Type = TYPE_NUMBER
+	Divide.Value = objArgs.Value.Item(1).Value / objArgs.Value.Item(2).Value
+End Function
+
+
+Call REPL()
+Sub REPL()
+	Dim strCode, strResult
+	While True
+		If boolError Then
+			WScript.StdErr.WriteLine "ERROR: " & strError
+			boolError = False
+		End If
+		WScript.StdOut.Write("user> ")
+		On Error Resume Next
+		strCode = WScript.StdIn.ReadLine()
+		If Err.Number <> 0 Then WScript.Quit 0
+		On Error Goto 0
+		WScript.Echo REP(strCode)
+	Wend
+End Sub
+
+Function Read(strCode)
+	Set Read = ReadString(strCode)
+End Function
+
+Function Evaluate(objCode, objEnv)
+	Dim i
+	If TypeName(objCode) = "Nothing" Then
+		Call REPL()
+	End If
+	
+	If objCode.Type = TYPE_LIST Then
+		If objCode.Value.Count = 0 Then
+			Set Evaluate = objCode
+			Exit Function
+		End If
+		
+		Dim objSymbol
+		Set objSymbol = Evaluate(objCode.Value.Item(0), objEnv)
+		If TypeName(objSymbol) = "MalType" Then
+			'MsgBox TypeName(objCode.value)
+			Select Case objSymbol.Value
+				Case "def!"
+					CheckArgNum objCode, 2
+					CheckSymbol objCode.Value.Item(1)
+					'MsgBox 2
+					objEnv.Add objCode.Value.Item(1).Value, _
+						Evaluate(objCode.Value.Item(2), objEnv)
+					'MsgBox 3
+					Set Evaluate = objEnv.Get(objCode.Value.Item(1).Value)
+				Case "let*"
+					Dim objNewEnv
+					Set objNewEnv = New Environment
+					objNewEnv.SetSelf objNewEnv
+					objNewEnv.SetOuter objEnv
+					CheckArgNum objCode, 2
+					CheckListOrVector objCode.Value.Item(1)
+					CheckEven objCode.Value.Item(1).Value.Count
+					With objCode.Value.Item(1).Value
+						For i = 0 To .Count - 1 Step 2
+							CheckSymbol .Item(i)
+							objNewEnv.Add .Item(i).Value, _
+								Evaluate(.Item(i + 1), objNewEnv)
+						Next
+					End With
+					Set Evaluate = Evaluate(objCode.Value.Item(2), objNewEnv)
+			End Select
+		Else
+			Set Evaluate = objSymbol(EvaluateAST(objCode, objEnv))
+		End If
+	Else
+		Set Evaluate = EvaluateAST(objCode, objEnv)
+	End If
+End Function
+
+Sub CheckEven(lngNum)
+	If lngNum Mod 2 <> 0 Then
+		boolError = True
+		strError = "not a even number"
+		Call REPL()
+	End If	
+End Sub
+
+Sub CheckList(objMal)
+	If objMal.Type <> TYPE_LIST Then
+		boolError = True
+		strError = "neither a list nor a vector"
+		Call REPL()
+	End If
+End Sub
+
+Sub CheckListOrVector(objMal)
+	If objMal.Type <> TYPE_LIST And objMal.Type <> TYPE_VECTOR Then
+		boolError = True
+		strError = "not a list"
+		Call REPL()
+	End If
+End Sub
+
+Sub CheckSymbol(objMal)
+	If objMal.Type <> TYPE_SYMBOL Then
+		boolError = True
+		strError = "not a symbol"
+		Call REPL()
+	End If
+End Sub
+
+Function EvaluateAST(objCode, objEnv)
+	If TypeName(objCode) = "Nothing" Then
+		MsgBox "Nothing2"
+	End If
+	
+	Dim objResult, i
+	Select Case objCode.Type
+		Case TYPE_SYMBOL
+			Select Case objCode.Value
+				Case "def!"
+					Set objResult = objCode
+				Case "let*"
+					Set objResult = objCode
+				Case Else
+					Set objResult = objEnv.Get(objCode.Value)	
+			End Select
+		Case TYPE_LIST
+			For i = 0 To objCode.Value.Count - 1
+				Set objCode.Value.Item(i) = Evaluate(objCode.Value.Item(i), objEnv)
 			Next
-			set eval_ast = ast
-		case else
-			set eval_ast = ast
-	end select
-end function
-
-
-Function PRINT(oMal)
-    PRINT = pr_str(oMal,true)
+			Set objResult = objCode
+		Case TYPE_VECTOR
+			For i = 0 To objCode.Value.Count - 1
+				Set objCode.Value.Item(i) = Evaluate(objCode.Value.Item(i), objEnv)
+			Next
+			Set objResult = objCode
+		Case TYPE_HASHMAP
+			Dim arrKeys
+			arrKeys = objCode.Value.Keys
+			For i = 0 To objCode.Value.Count - 1
+				Set objCode.Value.Item(arrKeys(i)) = _
+					Evaluate(objCode.Value.Item(arrKeys(i)), objEnv)
+			Next
+			Set objResult = objCode
+		Case Else
+			Set objResult = objCode
+	End Select
+	Set EvaluateAST = objResult
 End Function
 
-Function rep(str,env)
-	'on error resume next
-    rep = PRINT(EVAL(READ(str),env))
-	'msgbox 2
-	if err.number <> 0 then rep = err.description
-	on error goto 0
+Function Print(objCode)
+	Print = PrintMalType(objCode, True)
 End Function
 
-While True
-    WScript.StdOut.Write("user> ")
-    code = WScript.StdIn.ReadLine()
-	set env = new enviroment
-    WScript.Echo(rep(code,env))
-WEnd
+Function REP(strCode)
+	REP = Print(Evaluate(Read(strCode), objEnv))
+End Function
 
-Sub Include(sInstFile) 
-	Dim oFSO, f, s 
-	Set oFSO = CreateObject("Scripting.FileSystemObject")
-    sInstFile = oFSO.GetParentFolderName(oFSO.GetFile(Wscript.ScriptFullName)) & "\" & sInstFile
-	Set f = oFSO.OpenTextFile(sInstFile) 
-	s = f.ReadAll 
-	f.Close 
-	Set f = Nothing
-	Set oFSO = Nothing
-	ExecuteGlobal s 
+Sub Include(strFileName)
+	With CreateObject("Scripting.FileSystemObject")
+		ExecuteGlobal .OpenTextFile( _
+			.GetParentFolderName( _
+			.GetFile(WScript.ScriptFullName)) & _
+			"\" & strFileName).ReadAll
+	End With
 End Sub

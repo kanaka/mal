@@ -1,32 +1,42 @@
 
-class enviroment
-	public data
-	private sub Class_Initialize()
-		set data = CreateObject("Scripting.Dictionary")
-		
-	end sub
+class Environment
+	Private objOuterEnv
+	Public objBindings
+	Private objSelf
+	Private Sub Class_Initialize()
+		Set objBindings = CreateObject("Scripting.Dictionary")
+		Set objOuterEnv = Nothing
+		Set objSelf = Nothing
+	End Sub
+	
+	Public Function SetOuter(objEnv)
+		Set objOuterEnv = objEnv
+	End Function
+	
+	Public Function SetSelf(objEnv)
+		Set objSelf = objEnv
+	End Function
 
-   public sub setOuter(outer)
-      data.add "outer", outer
-   end sub
+	Public Sub Add(varKey, varValue)
+		'objBindings.Add varKey, varValue
+		Set objBindings(varKey) = varValue
+	End Sub
 
-   public sub set_(symbolKey,malValue)
-      data.add symbolKey, malValue
-   end sub
-
-   public function find(symbolKey)
-      if data.Exists(symbolKey) then
-         set find = data
-      else
-         if data.item("outer") = empty then
-            err.raise vbObjectError, "find", "not found, undefined symbol: " & symbolKey
-         else
-            set find = data.item("outer").find(symbolKey)
-         end if
-      end if
-   end function
-
-   public function get_(symbolKey)
-      set get_ = find(symbolKey).item(symbolKey)
-   end function
+	Public Function Find(varKey)
+		If objBindings.Exists(varKey) Then
+			Set Find = objSelf
+		Else
+			If TypeName(objOuterEnv) <> "Nothing" Then
+				Set Find = objOuterEnv.Find(varKey)
+			Else
+				boolError = True
+				strError = "symbol " & varKey & " not found"
+				Call REPL()
+			End If
+		End If
+	End Function
+	
+	Public Function [Get](varKey)
+		Set [Get] = Find(varKey).objBindings(varKey)
+	End Function
 end class
