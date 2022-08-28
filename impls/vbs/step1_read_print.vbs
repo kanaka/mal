@@ -4,15 +4,23 @@ Include "Const.vbs"
 Include "Reader.vbs"
 Include "Printer.vbs"
 
-Dim strCode
-While True 'REPL
-	WScript.StdOut.Write("user> ")
-	On Error Resume Next
-	strCode = WScript.StdIn.ReadLine()
-	If Err.Number <> 0 Then WScript.Quit 0
-	On Error Goto 0
-	WScript.Echo REP(strCode)
-Wend
+Call REPL()
+
+Sub REPL()
+	Dim strCode, strResult
+	While True
+		If boolError Then
+			WScript.StdErr.WriteLine "ERROR: " & strError
+			boolError = False
+		End If
+		WScript.StdOut.Write("user> ")
+		On Error Resume Next
+		strCode = WScript.StdIn.ReadLine()
+		If Err.Number <> 0 Then WScript.Quit 0
+		On Error Goto 0
+		WScript.Echo REP(strCode)
+	Wend
+End Sub
 
 Function Read(strCode)
 	Set Read = ReadString(strCode)

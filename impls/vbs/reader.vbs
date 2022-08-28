@@ -23,18 +23,11 @@ Function Tokenize(strCode)
 			objTokens.Enqueue strToken
 		End If
 	Next
-	'MsgBox objTokens.Count
-	'MsgBox """" & objTokens.peek & """"
+	
 	Set Tokenize = objTokens
 End Function
 
-'Function read_form_(oQueue)
-'	set read_form_=read_form(oQueue)
-'	'msgbox pr_str(read_form_),true
-'	if oQueue.Count > 0 then
-'		err.raise vbObjectError,"SyntaxError", "Extra data after form: " + oQueue.Dequeue
-'	end if
-'End Function
+Public boolError, strError
 
 Function ReadForm(objTokens)
 	If objTokens.Count = 0 Then
@@ -76,7 +69,9 @@ Function ReadForm(objTokens)
 			Case "@"
 				strAlias = "deref"
 			Case Else
-				'TODO
+				boolError = True
+				strError = "unknown token " & strAlias
+				Call REPL()
 		End Select
 		
 		Set ReadForm = New MalType
@@ -86,10 +81,12 @@ Function ReadForm(objTokens)
 		ReadForm.Value.Item(0).Type = TYPE_SYMBOL
 		ReadForm.Value.Item(0).Value = strAlias
 		ReadForm.Value.Add ReadForm(objTokens)
-	'TODO
-	'ElseIf oQueue.Peek() = ")" or oQueue.Peek() = "]" or oQueue.Peek() = "}" then
-	'	Set read_form = Nothing
-	'	err.Raise vbObjectError, "read_form", "unbalanced parentheses"
+	ElseIf InStr(")]}", strToken) Then
+		Call objTokens.Dequeue()
+		
+		boolError = True
+		strError = "unbalanced parentheses"
+		Call REPL()
 	ElseIf strToken = "^" Then
 		Call objTokens.Dequeue()
 		Set ReadForm = New MalType
@@ -111,7 +108,9 @@ Function ReadList(objTokens)
 	Call objTokens.Dequeue()
 	
 	If objTokens.Count = 0 Then
-		'TODO
+		boolError = True
+		strError = "unbalanced parentheses"
+		Call REPL()
 	End If
 	
 	Set ReadList = New MalType
@@ -125,9 +124,9 @@ Function ReadList(objTokens)
 	End With
 	
 	If objTokens.Dequeue() <> ")" Then
-		'TODO
-		MsgBox "e"
-		'Err.raise vbObjectError,"reader", "excepted '"+q+"', got EOF"
+		boolError = True
+		strError = "unbalanced parentheses"
+		Call REPL()
 	End If
 End Function
 
@@ -135,7 +134,9 @@ function ReadVector(objTokens)
 	Call objTokens.Dequeue()
 	
 	If objTokens.Count = 0 Then
-		'TODO
+		boolError = True
+		strError = "unbalanced parentheses"
+		Call REPL()
 	End If
 	
 	Set ReadVector = New MalType
@@ -149,17 +150,19 @@ function ReadVector(objTokens)
 	End With
 	
 	If objTokens.Dequeue() <> "]" Then
-		'TODO
-		MsgBox "e"
-		'err.raise vbObjectError,"reader", "excepted '"+q+"', got EOF"
+		boolError = True
+		strError = "unbalanced parentheses"
+		Call REPL()
 	End If
 End Function
 
 Function ReadHashmap(objTokens)
 	Call objTokens.Dequeue()
 	
-	If objTokens.Count < 2 Then
-		'TODO
+	If objTokens.Count = 0 Then
+		boolError = True
+		strError = "unbalanced parentheses"
+		Call REPL()
 	End If
 	
 	Set ReadHashmap = New MalType
@@ -176,8 +179,9 @@ Function ReadHashmap(objTokens)
 	End With
 	
 	If objTokens.Dequeue() <> "}" Then
-		'TODO
-		'err.raise vbObjectError,"reader", "excepted '}', got EOF"
+		boolError = True
+		strError = "unbalanced parentheses"
+		Call REPL()
 	End If
 End Function
 
@@ -203,8 +207,6 @@ Function ReadAtom(objTokens)
 					objAtom.Type = TYPE_KEYWORD
 					objAtom.Value = strAtom
 				Case """"
-					'TODO check string
-					'if (not right(atom,1) = """") or len(atom) = 1 then err.raise vbObjectError,"reader", "Unterminated string, got EOF"
 					objAtom.Type = TYPE_STRING
 					objAtom.Value = ParseString(strAtom)
 				Case Else
@@ -223,14 +225,15 @@ End Function
 
 Function ParseString(strRaw)
 	If Right(strRaw, 1) <> """" Or Len(strRaw) < 2 Then
-		MsgBox "e"
+		boolError = True
+		strError = "Unterminated string, got EOF"
+		Call REPL()
 	End If
 	
 	Dim strTemp
 	strTemp = Mid(strRaw, 2, Len(strRaw) - 2)
 	Dim i
 	i = 1
-	'Dim strChar
 	ParseString = ""
 	While i <= Len(strTemp) - 1
 		Select Case Mid(strTemp, i, 2)
@@ -252,8 +255,9 @@ Function ParseString(strRaw)
 		If Right(strTemp, 1) <> "\" Then
 			ParseString = ParseString & Right(strTemp, 1)
 		Else
-			'TODO Error
-			MsgBox "err"
+			boolError = True
+			strError = "Unterminated string, got EOF"
+			Call REPL()
 		End If
 	End If
 End Function
