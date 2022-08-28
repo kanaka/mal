@@ -1,6 +1,7 @@
 Option Explicit
 
 Function PrintMalType(objMal, boolReadable)
+	'MsgBox 1
 	PrintMalType = ""
 	If TypeName(objMal) = "Nothing" Then
 		Exit Function
@@ -64,6 +65,8 @@ Function PrintMalType(objMal, boolReadable)
 			PrintMalType = "nil"
 		Case TYPE_NUMBER
 			PrintMalType = CStr(objMal.Value)
+		Case TYPE_FUNCTION
+			PrintMalType = "#<function>"
 		Case Else
 			PrintMalType = objMal.Value
 	End Select

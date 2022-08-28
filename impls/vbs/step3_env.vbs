@@ -13,8 +13,6 @@ objEnv.Add "+", GetRef("Add")
 objEnv.Add "-", GetRef("Subtract")
 objEnv.Add "*", GetRef("Multiply")
 objEnv.Add "/", GetRef("Divide")
-objEnv.Add "def!", GetRef("Divide")
-objEnv.Add "let*", GetRef("Divide")
 
 
 Sub CheckArgNum(objArgs, lngExpect)
