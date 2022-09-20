@@ -2,6 +2,10 @@
 abcABC123
 ;=>abcABC123
 
+;; Testing empty string
+
+;=>
+
 ;; Testing string containing spaces
 hello mal world
 ;=>hello mal world
