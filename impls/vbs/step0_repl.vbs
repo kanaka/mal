@@ -24,4 +24,4 @@ While True 'REPL
 	If Err.Number <> 0 Then WScript.Quit 0
 	On Error Goto 0
 	WScript.Echo REP(strCode)
-WEnd
+Wend

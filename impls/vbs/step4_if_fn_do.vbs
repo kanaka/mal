@@ -2,7 +2,10 @@
 'TODO 哈希表新建没写
 
 Option Explicit
-
+Dim DEPTH
+DEPTH = 0
+Dim CALLFROM
+CALLFROM = ""
 Include "Core.vbs"
 Include "Reader.vbs"
 Include "Printer.vbs"
@@ -76,7 +79,9 @@ Function Read(strCode)
 	Set Read = ReadString(strCode)
 End Function
 
+
 Function Evaluate(objCode, objEnv)
+	DEPTH = DEPTH + 1
 	Dim i
 	If TypeName(objCode) = "Nothing" Then
 		Call REPL()
@@ -89,11 +94,16 @@ Function Evaluate(objCode, objEnv)
 		End If
 		
 		Dim objSymbol
+		'wsh.echo space(DEPTH*4)&"CHECK FIRST"
 		Set objSymbol = Evaluate(objCode.Value.Item(0), objEnv)
+		'wsh.echo space(DEPTH*4)&"CHECK FIRST FINISH"
+		'MsgBox objSymbol.type
 		If IsSpecialForm(objSymbol) Then
+			'wsh.echo space(DEPTH*4)&"EVAL SPECIAL"
 			'MsgBox TypeName(objCode.value)
 			Select Case objSymbol.Value
 				Case "def!"
+					'MsgBox "我在def"
 					CheckArgNum objCode, 2
 					CheckSymbol objCode.Value.Item(1)
 					objEnv.Add objCode.Value.Item(1).Value, _
@@ -156,19 +166,53 @@ Function Evaluate(objCode, objEnv)
 					Set Evaluate.Value.objBody = objCode.Value.Item(2)
 					'MsgBox 1
 			End Select
+			'wsh.echo space(DEPTH*4)&"EVAL SPECIAL FINISH"
 		Else
+			'wsh.echo space(DEPTH*4)&"EVAL NORMAL"
 			'MsgBox 2
 			'objSymbol.Value.SetEnv objEnv
-			Set Evaluate = objSymbol.Value.Run(EvaluateAST(objCode, objEnv))
+			'wsh.echo space(DEPTH*4)&"objcode","type",objCode.Type
+			'If objCode.Type = 7 Then wsh.echo space(DEPTH*4)&objCode.value
+			'If objCode.Type = 8 Then wsh.echo space(DEPTH*4)&objCode.value
+			'If objCode.Type = 0 Then wsh.echo space(DEPTH*4)&PrintMalType(objCode,True)
+			
+			'这里有大问题
+			If objSymbol.Value.IsBuiltIn Then
+				Set Evaluate = objSymbol.Value.Run(objCode)
+			Else
+				Set Evaluate = objSymbol.Value.Run(EvaluateAST(objCode, objEnv))
+			End If
+			'wsh.echo space(DEPTH*4)&"evaluate","type",Evaluate.Type
+			'If Evaluate.Type = 7 Then wsh.echo space(DEPTH*4)&Evaluate.value
+			'If Evaluate.Type = 8 Then wsh.echo space(DEPTH*4)&Evaluate.value
+			'If Evaluate.Type = 0 Then wsh.echo space(DEPTH*4)&PrintMalType(Evaluate,True)
+			'Set Evaluate = Evaluate(objCode, objEnv)
+			'MsgBox Evaluate.type
 			'MsgBox objEnv.Get("N").value
 			'MsgBox 3
+			'wsh.echo space(DEPTH*4)&"EVAL NORMAL FINISH"
 		End If
 	Else
+		'wsh.echo space(DEPTH*4)&"objcode","type",objCode.Type
+		'If objCode.Type = 7 Then wsh.echo space(DEPTH*4)&objCode.value
+		'If objCode.Type = 8 Then wsh.echo space(DEPTH*4)&objCode.value
+		'If objCode.Type = 0 Then wsh.echo space(DEPTH*4)&PrintMalType(objCode,True)
 		Set Evaluate = EvaluateAST(objCode, objEnv)
+		'wsh.echo space(DEPTH*4)&"evaluate","type",Evaluate.Type
+		'If Evaluate.Type = 7 Then wsh.echo space(DEPTH*4)&Evaluate.value
+		'If Evaluate.Type = 8 Then wsh.echo space(DEPTH*4)&Evaluate.value
+		'If Evaluate.Type = 0 Then wsh.echo space(DEPTH*4)&PrintMalType(Evaluate,True)
+		'wsh.echo ""
 	End If
+	'wsh.echo space(DEPTH*4)&"RETURN"
+	DEPTH = DEPTH - 1
 End Function
 
 Class BuiltInFunction
+	Public IsBuiltIn
+	Public Sub Class_Initialize
+		IsBuiltIn = False
+	End Sub
 	Public Run
 	Public Sub SetEnv(z)
 	End Sub
@@ -178,6 +222,10 @@ Class Lambda
 	Public objParameters
 	Public objBody
 	Public objEnv
+	Public IsBuiltIn
+	Public Sub Class_Initialize
+		IsBuiltIn = True
+	End Sub
 	Public Function SetEnv(oInv)
 		Set objEnv=oInv
 	End Function
@@ -191,7 +239,11 @@ Class Lambda
 		objNewEnv.Init objParameters, objArgs
 		'para start from 0, args start from 1
 		'MsgBox objNewEnv.Get("N").value
+		'wsh.echo space(DEPTH*4)&"RUN "& PrintMalType(objBody,True)
 		Set Run = Evaluate(objBody, objNewEnv)
+		'wsh.echo space(DEPTH*4)&"RUN FINISH"
+		'MsgBox Run.type
+		'MsgBox Run.value
 	End Function
 End Class
 

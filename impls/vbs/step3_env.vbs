@@ -48,7 +48,7 @@ Function Divide(objArgs)
 	CheckArgNum objArgs, 2
 	Set Divide = New MalType
 	Divide.Type = TYPE_NUMBER
-	Divide.Value = objArgs.Value.Item(1).Value / objArgs.Value.Item(2).Value
+	Divide.Value = objArgs.Value.Item(1).Value \ objArgs.Value.Item(2).Value
 End Function
 
 
