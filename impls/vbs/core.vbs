@@ -35,7 +35,32 @@ objCoreNS.Add "pr-str", GetRef("mprstr") 'all 'ret str 'readable 'concat by spac
 objCoreNS.Add "str", GetRef("mstr") 'all 'ret str '!readable 'concat by ""
 objCoreNS.Add "prn", GetRef("mprn") 'all 'to screen ret nil 'concat by space 'readable
 objCoreNS.Add "println", GetRef("mprintln") 'all 'to screen ret nil 'concat by space '!readable
+objCoreNS.Add "get", GetRef("mGet")
+objCoreNS.Add "set", GetRef("mSet")
 
+Function mGet(objArgs)
+	Set objRes = New MalType
+	'objRes.Type = 
+	Set objList = objArgs.value.item(1)
+	numIndex = objArgs.value.item(2).value
+	Set objRes = objList.value.Item(numIndex)
+	'MsgBox objRes.type
+	Set mGet = objRes
+End Function
+
+Function mSet(objArgs)
+	Set objRes = New MalType
+	'objRes.Type = 
+	'MsgBox 1
+	Set objList = objArgs.value.item(1)
+	numIndex = objArgs.value.item(2).value
+	'MsgBox numIndex
+	Set objReplace = objArgs.value.item(3)
+	Set objList.value.Item(numIndex) = objReplace
+	'MsgBox objRes.type
+	Set mSet = New MalType
+	mSet.Type = TYPE_NIL
+End Function
 
 Function mprintln(objArgs)
 	Dim objRes,i
@@ -239,5 +264,5 @@ Function Divide(objArgs)
 	CheckArgNum objArgs, 2
 	Set Divide = New MalType
 	Divide.Type = TYPE_NUMBER
-	Divide.Value = objArgs.Value.Item(1).Value / objArgs.Value.Item(2).Value
+	Divide.Value = objArgs.Value.Item(1).Value \ objArgs.Value.Item(2).Value
 End Function
