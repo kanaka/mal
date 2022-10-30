@@ -1,5 +1,4 @@
 'TODO 字符串有问题
-'TODO 哈希表新建没写
 
 Option Explicit
 Dim DEPTH
@@ -86,13 +85,13 @@ Function Evaluate(objCode, objEnv)
 	If TypeName(objCode) = "Nothing" Then
 		Call REPL()
 	End If
-	
+
 	If objCode.Type = TYPE_LIST Then
 		If objCode.Value.Count = 0 Then
 			Set Evaluate = objCode
 			Exit Function
 		End If
-		
+
 		Dim objSymbol
 		'wsh.echo space(DEPTH*4)&"CHECK FIRST"
 		Set objSymbol = Evaluate(objCode.Value.Item(0), objEnv)
@@ -159,9 +158,9 @@ Function Evaluate(objCode, objEnv)
 					Evaluate.Type = TYPE_LAMBDA
 					Set Evaluate.Value = New Lambda
 					'MsgBox 1
-					Set Evaluate.Value.objEnv = New Environment
-					Evaluate.Value.objEnv.SetSelf Evaluate.Value.objEnv
-					Evaluate.Value.objEnv.SetOuter objEnv
+					'Set Evaluate.Value.objEnv = New Environment
+					'Evaluate.Value.objEnv.SetSelf Evaluate.Value.objEnv
+					'Evaluate.Value.objEnv.SetOuter objEnv
 					Set Evaluate.Value.objParameters = objCode.Value.Item(1)
 					Set Evaluate.Value.objBody = objCode.Value.Item(2)
 					'MsgBox 1
@@ -175,10 +174,14 @@ Function Evaluate(objCode, objEnv)
 			'If objCode.Type = 7 Then wsh.echo space(DEPTH*4)&objCode.value
 			'If objCode.Type = 8 Then wsh.echo space(DEPTH*4)&objCode.value
 			'If objCode.Type = 0 Then wsh.echo space(DEPTH*4)&PrintMalType(objCode,True)
-			
+
 			'这里有大问题
 			If objSymbol.Value.IsBuiltIn Then
+				Set objSymbol.Value.objEnv = New Environment
+				objSymbol.Value.objEnv.SetSelf objSymbol.Value.objEnv
+				objSymbol.Value.objEnv.SetOuter objEnv
 				Set Evaluate = objSymbol.Value.Run(objCode)
+
 			Else
 				Set Evaluate = objSymbol.Value.Run(EvaluateAST(objCode, objEnv))
 			End If
@@ -229,7 +232,7 @@ Class Lambda
 	Public Function SetEnv(oInv)
 		Set objEnv=oInv
 	End Function
-	
+
 	Public Function Run(objArgs)
 		Dim objNewEnv
 		Set objNewEnv = New Environment
@@ -267,7 +270,7 @@ Sub CheckEven(lngNum)
 		boolError = True
 		strError = "not a even number"
 		Call REPL()
-	End If	
+	End If
 End Sub
 
 Sub CheckList(objMal)
@@ -298,7 +301,7 @@ Function EvaluateAST(objCode, objEnv)
 	If TypeName(objCode) = "Nothing" Then
 		MsgBox "Nothing2"
 	End If
-	
+
 	Dim objResult, i
 	Select Case objCode.Type
 		Case TYPE_SYMBOL
@@ -318,7 +321,13 @@ Function EvaluateAST(objCode, objEnv)
 				objResult.Value.Add Evaluate(objCode.Value.Item(i), objEnv)
 			Next
 		Case TYPE_HASHMAP
-			'TODO: new hashMap
+			Set objResult = New MalType
+			Set objResult.Value = CreateObject("Scripting.Dictionary")
+			objResult.Type = TYPE_HASHMAP
+			Dim key
+			For Each key In objCode.Value.Keys
+				objResult.Value.Add Evaluate(key, objEnv), Evaluate(objCode.Value.Item(key), objEnv)
+			Next
 		Case Else
 			Set objResult = objCode
 	End Select
