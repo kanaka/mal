@@ -158,9 +158,9 @@ Function Evaluate(objCode, objEnv)
 					Evaluate.Type = TYPE_LAMBDA
 					Set Evaluate.Value = New Lambda
 					'MsgBox 1
-					'Set Evaluate.Value.objEnv = New Environment
-					'Evaluate.Value.objEnv.SetSelf Evaluate.Value.objEnv
-					'Evaluate.Value.objEnv.SetOuter objEnv
+					Set Evaluate.Value.objEnv = New Environment
+					Evaluate.Value.objEnv.SetSelf Evaluate.Value.objEnv
+					Evaluate.Value.objEnv.SetOuter objEnv
 					Set Evaluate.Value.objParameters = objCode.Value.Item(1)
 					Set Evaluate.Value.objBody = objCode.Value.Item(2)
 					'MsgBox 1
@@ -177,9 +177,11 @@ Function Evaluate(objCode, objEnv)
 
 			'这里有大问题
 			If objSymbol.Value.IsBuiltIn Then
-				Set objSymbol.Value.objEnv = New Environment
+				dim oldenv
+				set oldenv = objSymbol.Value.objEnv
+				Set objSymbol.Value.objEnv = objEnv
 				objSymbol.Value.objEnv.SetSelf objSymbol.Value.objEnv
-				objSymbol.Value.objEnv.SetOuter objEnv
+				objSymbol.Value.objEnv.SetOuter oldEnv
 				Set Evaluate = objSymbol.Value.Run(objCode)
 
 			Else
