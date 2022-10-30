@@ -8,11 +8,11 @@ Function Tokenize(strCode)
 	Dim objRE
 	Set objRE = New RegExp
 	With objRE
-		.Pattern = "[\s,]*(~@|[\[\]{}()'`~^@]|""(?:\\.|[^\\""])*""?|;.*|[^\s\[\]{}('""`,;)]*)" 
+		.Pattern = "[\s,]*(~@|[\[\]{}()'`~^@]|""(?:\\.|[^\\""])*""?|;.*|[^\s\[\]{}('""`,;)]*)"
 		.IgnoreCase = True
 		.Global = True
 	End With
-	
+
 	Dim objTokens, objMatches, objMatch
 	Set objTokens = CreateObject("System.Collections.Queue")
 	Set objMatches = objRE.Execute(strCode)
@@ -23,7 +23,7 @@ Function Tokenize(strCode)
 			objTokens.Enqueue strToken
 		End If
 	Next
-	
+
 	Set Tokenize = objTokens
 End Function
 
@@ -34,16 +34,16 @@ Function ReadForm(objTokens)
 		Set ReadForm = Nothing
 		Exit Function
 	End If
-	
+
 	If objTokens.Count = 1 And objTokens.Peek() = "" Then
 		Call objTokens.Dequeue()
 		Set ReadForm = Nothing
 		Exit Function
 	End If
-	
+
 	Dim strToken
 	strToken = objTokens.Peek()
-	
+
 	If InStr("([{", strToken) Then
 		Select Case strToken
 			Case "("
@@ -55,7 +55,7 @@ Function ReadForm(objTokens)
 		End Select
 	ElseIf InStr("'`~@", strToken) Then
 		Call objTokens.Dequeue()
-		
+
 		Dim strAlias
 		Select Case strToken
 			Case "'"
@@ -73,7 +73,7 @@ Function ReadForm(objTokens)
 				strError = "unknown token " & strAlias
 				Call REPL()
 		End Select
-		
+
 		Set ReadForm = New MalType
 		ReadForm.Type = TYPE_LIST
 		Set ReadForm.Value = CreateObject("System.Collections.ArrayList")
@@ -83,7 +83,7 @@ Function ReadForm(objTokens)
 		ReadForm.Value.Add ReadForm(objTokens)
 	ElseIf InStr(")]}", strToken) Then
 		Call objTokens.Dequeue()
-		
+
 		boolError = True
 		strError = "unbalanced parentheses"
 		Call REPL()
@@ -106,13 +106,13 @@ End Function
 
 Function ReadList(objTokens)
 	Call objTokens.Dequeue()
-	
+
 	If objTokens.Count = 0 Then
 		boolError = True
 		strError = "unbalanced parentheses"
 		Call REPL()
 	End If
-	
+
 	Set ReadList = New MalType
 	Set ReadList.Value = CreateObject("System.Collections.ArrayList")
 	ReadList.Type = TYPE_LIST
@@ -122,7 +122,7 @@ Function ReadList(objTokens)
 			.Add ReadForm(objTokens)
 		Wend
 	End With
-	
+
 	If objTokens.Dequeue() <> ")" Then
 		boolError = True
 		strError = "unbalanced parentheses"
@@ -132,23 +132,23 @@ End Function
 
 function ReadVector(objTokens)
 	Call objTokens.Dequeue()
-	
+
 	If objTokens.Count = 0 Then
 		boolError = True
 		strError = "unbalanced parentheses"
 		Call REPL()
 	End If
-	
+
 	Set ReadVector = New MalType
 	Set ReadVector.Value = CreateObject("System.Collections.ArrayList")
 	ReadVector.Type = TYPE_VECTOR
-	
+
 	With ReadVector.Value
 		While objTokens.Count > 1 And objTokens.Peek() <> "]"
 			.Add ReadForm(objTokens)
 		Wend
 	End With
-	
+
 	If objTokens.Dequeue() <> "]" Then
 		boolError = True
 		strError = "unbalanced parentheses"
@@ -158,7 +158,7 @@ End Function
 
 Function ReadHashmap(objTokens)
 	Call objTokens.Dequeue()
-	
+
 	If objTokens.Count = 0 Then
 		boolError = True
 		strError = "unbalanced parentheses"
@@ -168,7 +168,7 @@ Function ReadHashmap(objTokens)
 	Set ReadHashmap = New MalType
 	Set ReadHashmap.Value = CreateObject("Scripting.Dictionary")
 	ReadHashmap.Type = TYPE_HASHMAP
-	
+
 	Dim objKey, objValue
 	With ReadHashmap.Value
 		While objTokens.Count > 2 And objTokens.Peek() <> "}"
@@ -177,7 +177,7 @@ Function ReadHashmap(objTokens)
 			.Add objKey, objValue
 		Wend
 	End With
-	
+
 	If objTokens.Dequeue() <> "}" Then
 		boolError = True
 		strError = "unbalanced parentheses"
@@ -188,7 +188,7 @@ End Function
 Function ReadAtom(objTokens)
 	Dim strAtom
 	strAtom = objTokens.Dequeue()
-	
+
 	Dim objAtom
 	Set objAtom = New MalType
 	Select Case strAtom
@@ -218,7 +218,7 @@ Function ReadAtom(objTokens)
 					End If
 			End Select
 	End Select
-	
+
 	Set ReadAtom = objAtom
 End Function
 
@@ -228,7 +228,7 @@ Function ParseString(strRaw)
 		strError = "unterminated string, got EOF"
 		Call REPL()
 	End If
-	
+
 	Dim strTemp
 	strTemp = Mid(strRaw, 2, Len(strRaw) - 2)
 	Dim i
@@ -248,7 +248,7 @@ Function ParseString(strRaw)
 		End Select
 		i = i + 2
 	Wend
-	
+
 	If i <= Len(strTemp) Then
 		' Last char is not processed.
 		If Right(strTemp, 1) <> "\" Then

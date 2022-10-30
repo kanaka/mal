@@ -37,6 +37,25 @@ objCoreNS.Add "prn", GetRef("mprn") 'all 'to screen ret nil 'concat by space 're
 objCoreNS.Add "println", GetRef("mprintln") 'all 'to screen ret nil 'concat by space '!readable
 objCoreNS.Add "get", GetRef("mGet")
 objCoreNS.Add "set", GetRef("mSet")
+objCoreNS.Add "first", GetRef("mFirst")
+objCoreNS.Add "last", GetRef("mLast")
+
+Function mLast(objArgs)
+	Set objRes = New MalType
+	objRes.Type = TYPE_LIST
+	set objRes.value = createobject("system.collections.arraylist")
+	for i = 1 to objArgs.value.item(1).value.count - 1
+		objRes.value.add objArgs.value.item(1).value.item(i)
+	next
+	Set mLast= objRes
+End Function
+
+Function mFirst(objArgs)
+	'Set objRes = New MalType
+	Set objRes = objArgs.value.item(1).value.item(0)
+	Set mFirst= objRes
+	'msgbox 1
+End Function
 
 Function mGet(objArgs)
 	Set objRes = New MalType
