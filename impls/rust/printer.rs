@@ -22,7 +22,7 @@ impl MalVal {
             Int(i) => format!("{}", i),
             //Float(f)    => format!("{}", f),
             Str(s) => {
-                if s.starts_with("\u{29e}") {
+                if s.starts_with('\u{29e}') {
                     format!(":{}", &s[2..])
                 } else if print_readably {
                     format!("\"{}\"", escape_str(s))
@@ -31,8 +31,8 @@ impl MalVal {
                 }
             }
             Sym(s) => s.clone(),
-            List(l, _) => pr_seq(&**l, print_readably, "(", ")", " "),
-            Vector(l, _) => pr_seq(&**l, print_readably, "[", "]", " "),
+            List(l, _) => pr_seq(l, print_readably, "(", ")", " "),
+            Vector(l, _) => pr_seq(l, print_readably, "[", "]", " "),
             Hash(hm, _) => {
                 let l: Vec<MalVal> = hm
                     .iter()

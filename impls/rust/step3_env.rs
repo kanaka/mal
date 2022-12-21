@@ -31,7 +31,7 @@ fn read(str: &str) -> MalRet {
 // eval
 fn eval_ast(ast: &MalVal, env: &Env) -> MalRet {
     match ast {
-        Sym(_) => Ok(env_get(&env, &ast)?),
+        Sym(_) => Ok(env_get(env, ast)?),
         List(v, _) => {
             let mut lst: MalArgs = vec![];
             for a in v.iter() {
@@ -69,7 +69,7 @@ fn eval(ast: MalVal, env: Env) -> MalRet {
                     env_set(&env, l[1].clone(), eval(l[2].clone(), env.clone())?)
                 }
                 Sym(ref a0sym) if a0sym == "let*" => {
-                    let let_env = env_new(Some(env.clone()));
+                    let let_env = env_new(Some(env));
                     let (a1, a2) = (l[1].clone(), l[2].clone());
                     match a1 {
                         List(ref binds, _) | Vector(ref binds, _) => {
@@ -96,7 +96,7 @@ fn eval(ast: MalVal, env: Env) -> MalRet {
                 }
                 _ => match eval_ast(&ast, &env)? {
                     List(ref el, _) => {
-                        let ref f = el[0].clone();
+                        let f = &el[0].clone();
                         f.apply(el[1..].to_vec())
                     }
                     _ => error("expected a list"),
@@ -144,7 +144,7 @@ fn main() {
             Ok(line) => {
                 rl.add_history_entry(&line);
                 rl.save_history(".mal-history").unwrap();
-                if line.len() > 0 {
+                if !line.is_empty() {
                     match rep(&line, &repl_env) {
                         Ok(out) => println!("{}", out),
                         Err(e) => println!("Error: {}", format_error(e)),

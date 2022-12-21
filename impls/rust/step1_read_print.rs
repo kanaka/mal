@@ -31,7 +31,7 @@ fn main() {
             Ok(line) => {
                 rl.add_history_entry(&line);
                 rl.save_history(".mal-history").unwrap();
-                if line.len() > 0 {
+                if !line.is_empty() {
                     match reader::read_str(line) {
                         Ok(mv) => {
                             println!("{}", mv.pr_str(true));

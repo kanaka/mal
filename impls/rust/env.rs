@@ -21,7 +21,7 @@ pub type Env = Rc<EnvStruct>;
 pub fn env_new(outer: Option<Env>) -> Env {
     Rc::new(EnvStruct {
         data: RefCell::new(FnvHashMap::default()),
-        outer: outer,
+        outer,
     })
 }
 
