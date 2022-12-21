@@ -45,9 +45,9 @@ fn qq_iter(elts: &MalArgs) -> MalVal {
                 }
             }
         }
-        acc = list![Sym("cons".to_string()), quasiquote(&elt), acc];
+        acc = list![Sym("cons".to_string()), quasiquote(elt), acc];
     }
-    return acc;
+    acc
 }
 
 fn quasiquote(ast: &MalVal) -> MalVal {
@@ -60,10 +60,10 @@ fn quasiquote(ast: &MalVal) -> MalVal {
                     }
                 }
             }
-            return qq_iter(&v);
+            qq_iter(v)
         },
-        Vector(v, _) => return list![Sym("vec".to_string()), qq_iter(&v)],
-        Hash(_, _) | Sym(_)=> return list![Sym("quote".to_string()), ast.clone()],
+        Vector(v, _) => list![Sym("vec".to_string()), qq_iter(v)],
+        Hash(_, _) | Sym(_)=> list![Sym("quote".to_string()), ast.clone()],
         _ => ast.clone(),
     }
 }
@@ -95,12 +95,12 @@ fn macroexpand(mut ast: MalVal, env: &Env) -> (bool, MalRet) {
         //println!("macroexpand 2: {:?}", ast);
         was_expanded = true;
     }
-    ((was_expanded, Ok(ast)))
+    (was_expanded, Ok(ast))
 }
 
 fn eval_ast(ast: &MalVal, env: &Env) -> MalRet {
     match ast {
-        Sym(_) => Ok(env_get(&env, &ast)?),
+        Sym(_) => Ok(env_get(env, ast)?),
         List(v, _) => {
             let mut lst: MalArgs = vec![];
             for a in v.iter() {
@@ -187,7 +187,7 @@ fn eval(mut ast: MalVal, mut env: Env) -> MalRet {
                     }
                     Sym(ref a0sym) if a0sym == "defmacro!" => {
                         let (a1, a2) = (l[1].clone(), l[2].clone());
-                        let r = eval(a2, env.clone())?;
+                        let r = eval(a2, env)?;
                         match r {
                             MalFunc {
                                 eval,
@@ -197,12 +197,12 @@ fn eval(mut ast: MalVal, mut env: Env) -> MalRet {
                                 ..
                             } => Ok(env_set(
                                 &env,
-                                a1.clone(),
+                                a1,
                                 MalFunc {
-                                    eval: eval,
-                                    ast: ast.clone(),
+                                    eval,
+                                    ast,
                                     env: env.clone(),
-                                    params: params.clone(),
+                                    params,
                                     is_macro: true,
                                     meta: Rc::new(Nil),
                                 },
@@ -225,7 +225,7 @@ fn eval(mut ast: MalVal, mut env: Env) -> MalRet {
                             match l[2].clone() {
                                 List(c, _) => {
                                     let catch_env = env_bind(
-                                        Some(env.clone()),
+                                        Some(env),
                                         list!(vec![c[1].clone()]),
                                         vec![exc],
                                     )?;
@@ -263,9 +263,9 @@ fn eval(mut ast: MalVal, mut env: Env) -> MalRet {
                     Sym(ref a0sym) if a0sym == "fn*" => {
                         let (a1, a2) = (l[1].clone(), l[2].clone());
                         Ok(MalFunc {
-                            eval: eval,
+                            eval,
                             ast: Rc::new(a2),
-                            env: env,
+                            env,
                             params: Rc::new(a1),
                             is_macro: false,
                             meta: Rc::new(Nil),
@@ -280,7 +280,7 @@ fn eval(mut ast: MalVal, mut env: Env) -> MalRet {
                     }
                     _ => match eval_ast(&ast, &env)? {
                         List(ref el, _) => {
-                            let ref f = el[0].clone();
+                            let f = &el[0].clone();
                             let args = el[1..].to_vec();
                             match f {
                                 Func(_, _) => f.apply(args),
@@ -366,7 +366,7 @@ fn main() {
             Ok(line) => {
                 rl.add_history_entry(&line);
                 rl.save_history(".mal-history").unwrap();
-                if line.len() > 0 {
+                if !line.is_empty() {
                     match rep(&line, &repl_env) {
                         Ok(out) => println!("{}", out),
                         Err(e) => println!("Error: {}", format_error(e)),

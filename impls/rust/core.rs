@@ -138,7 +138,7 @@ fn keys(a: MalArgs) -> MalRet {
 
 fn vals(a: MalArgs) -> MalRet {
     match a[0] {
-        Hash(ref hm, _) => Ok(list!(hm.values().map(|v| { v.clone() }).collect())),
+        Hash(ref hm, _) => Ok(list!(hm.values().cloned().collect())),
         _ => error("keys requires Hash Map"),
     }
 }
@@ -212,7 +212,7 @@ fn apply(a: MalArgs) -> MalRet {
         List(ref v, _) | Vector(ref v, _) => {
             let f = &a[0];
             let mut fargs = a[1..a.len() - 1].to_vec();
-            fargs.extend_from_slice(&v);
+            fargs.extend_from_slice(v);
             f.apply(fargs)
         }
         _ => error("apply called with non-seq"),
@@ -237,8 +237,7 @@ fn conj(a: MalArgs) -> MalRet {
         List(ref v, _) => {
             let sl = a[1..]
                 .iter()
-                .rev()
-                .map(|a| a.clone())
+                .rev().cloned()
                 .collect::<Vec<MalVal>>();
             Ok(list!([&sl[..], v].concat()))
         }
@@ -251,7 +250,7 @@ fn seq(a: MalArgs) -> MalRet {
     match a[0] {
         List(ref v, _) | Vector(ref v, _) if v.len() == 0 => Ok(Nil),
         List(ref v, _) | Vector(ref v, _) => Ok(list!(v.to_vec())),
-        Str(ref s) if s.len() == 0 => Ok(Nil),
+        Str(ref s) if s.is_empty() => Ok(Nil),
         Str(ref s) if !a[0].keyword_q() => {
             Ok(list!(s.chars().map(|c| { Str(c.to_string()) }).collect()))
         }
@@ -271,12 +270,12 @@ pub fn ns() -> Vec<(&'static str, MalVal)> {
         ("symbol?", func(fn_is_type!(Sym(_)))),
         (
             "string?",
-            func(fn_is_type!(Str(ref s) if !s.starts_with("\u{29e}"))),
+            func(fn_is_type!(Str(ref s) if !s.starts_with('\u{29e}'))),
         ),
         ("keyword", func(|a| a[0].keyword())),
         (
             "keyword?",
-            func(fn_is_type!(Str(ref s) if s.starts_with("\u{29e}"))),
+            func(fn_is_type!(Str(ref s) if s.starts_with('\u{29e}'))),
         ),
         ("number?", func(fn_is_type!(Int(_)))),
         (
@@ -320,7 +319,7 @@ pub fn ns() -> Vec<(&'static str, MalVal)> {
         ("list?", func(fn_is_type!(List(_, _)))),
         ("vector", func(|a| Ok(vector!(a)))),
         ("vector?", func(fn_is_type!(Vector(_, _)))),
-        ("hash-map", func(|a| hash_map(a))),
+        ("hash-map", func(hash_map)),
         ("map?", func(fn_is_type!(Hash(_, _)))),
         ("assoc", func(assoc)),
         ("dissoc", func(dissoc)),

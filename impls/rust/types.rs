@@ -70,7 +70,7 @@ pub fn error(s: &str) -> MalRet {
 
 pub fn format_error(e: MalErr) -> String {
     match e {
-        ErrString(s) => s.clone(),
+        ErrString(s) => s,
         ErrMalVal(mv) => mv.pr_str(true),
     }
 }
@@ -82,7 +82,7 @@ pub fn atom(mv: &MalVal) -> MalVal {
 impl MalVal {
     pub fn keyword(&self) -> MalRet {
         match self {
-            Str(s) if s.starts_with("\u{29e}") => Ok(Str(s.to_string())),
+            Str(s) if s.starts_with('\u{29e}') => Ok(Str(s.to_string())),
             Str(s) => Ok(Str(format!("\u{29e}{}", s))),
             _ => error("invalid type for keyword"),
         }
@@ -125,7 +125,7 @@ impl MalVal {
 
     pub fn keyword_q(&self) -> bool {
         match self {
-            Str(s) if s.starts_with("\u{29e}") => true,
+            Str(s) if s.starts_with('\u{29e}') => true,
             _ => false,
         }
     }
@@ -162,9 +162,9 @@ impl MalVal {
 
     pub fn get_meta(&self) -> MalRet {
         match self {
-            List(_, meta) | Vector(_, meta) | Hash(_, meta) => Ok((&**meta).clone()),
-            Func(_, meta) => Ok((&**meta).clone()),
-            MalFunc { meta, .. } => Ok((&**meta).clone()),
+            List(_, meta) | Vector(_, meta) | Hash(_, meta) => Ok((**meta).clone()),
+            Func(_, meta) => Ok((**meta).clone()),
+            MalFunc { meta, .. } => Ok((**meta).clone()),
             _ => error("meta not supported by type"),
         }
     }
@@ -176,7 +176,7 @@ impl MalVal {
             | Hash(_, ref mut meta)
             | Func(_, ref mut meta)
             | MalFunc { ref mut meta, .. } => {
-                *meta = Rc::new((&*new_meta).clone());
+                *meta = Rc::new((*new_meta).clone());
             }
             _ => return error("with-meta not supported by type"),
         };

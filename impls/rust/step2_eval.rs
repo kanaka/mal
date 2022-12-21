@@ -71,7 +71,7 @@ fn eval(ast: MalVal, env: Env) -> MalRet {
             }
             match eval_ast(&ast, &env)? {
                 List(ref el, _) => {
-                    let ref f = el[0].clone();
+                    let f = &el[0].clone();
                     f.apply(el[1..].to_vec())
                 }
                 _ => error("expected a list"),
@@ -118,7 +118,7 @@ fn main() {
             Ok(line) => {
                 rl.add_history_entry(&line);
                 rl.save_history(".mal-history").unwrap();
-                if line.len() > 0 {
+                if !line.is_empty() {
                     match rep(&line, &repl_env) {
                         Ok(out) => println!("{}", out),
                         Err(e) => println!("Error: {}", format_error(e)),
