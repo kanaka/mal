@@ -9,16 +9,19 @@ Call REPL()
 Sub REPL()
 	Dim strCode, strResult
 	While True
-		If boolError Then
-			WScript.StdErr.WriteLine "ERROR: " & strError
-			boolError = False
-		End If
 		WScript.StdOut.Write("user> ")
+
 		On Error Resume Next
-		strCode = WScript.StdIn.ReadLine()
-		If Err.Number <> 0 Then WScript.Quit 0
+			strCode = WScript.StdIn.ReadLine()
+			If Err.Number <> 0 Then WScript.Quit 0
 		On Error Goto 0
-		WScript.Echo REP(strCode)
+
+		On Error Resume Next
+			WScript.Echo REP(strCode)
+			If Err.Number <> 0 Then
+				WScript.StdErr.WriteLine Err.Source + ": " + Err.Description 
+			End If
+		On Error Goto 0
 	Wend
 End Sub
 

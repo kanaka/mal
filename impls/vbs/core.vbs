@@ -1,20 +1,143 @@
-Const TYPE_LIST = 0
-Const TYPE_VECTOR = 1
-Const TYPE_HASHMAP = 2
-Const TYPE_BOOLEAN = 3
-Const TYPE_NIL = 4
-Const TYPE_KEYWORD = 5
-Const TYPE_STRING = 6
-Const TYPE_NUMBER = 7
-Const TYPE_SYMBOL = 8
-Const TYPE_FUNCTION = 9
-Const TYPE_LAMBDA = 9
-Const TYPE_SPECIAL = 10
+Option Explicit
+
+Dim TYPES
+Set TYPES = New MalTypes
+Class MalTypes
+	Public LIST, VECTOR, HASHMAP, [BOOLEAN], NIL
+	Public KEYWORD, [STRING], NUMBER, SYMBOL
+	Public LAMBDA, PROCEDURE
+
+	Public [TypeName]
+	Private Sub Class_Initialize
+		[TypeName] = Array( _
+				"LIST", "VECTOR", "HASHMAP", "BOOLEAN", _
+				"NIL", "KEYWORD", "STRING", "NUMBER", _
+				"SYMBOL", "LAMBDA", "PROCEDURE")
+
+		Dim i
+		For i = 0 To UBound([TypeName])
+			Execute "[" + [TypeName](i) + "] = " + CStr(i+10)
+		Next
+	End Sub
+End Class
 
 Class MalType
 	Public [Type]
 	Public Value
 End Class
+
+Function NewMalType(lngType, varValue)
+	Dim varResult
+	Set varResult = New MalType
+	With varResult
+		.Type = lngType
+		.Value = Wrap(varValue)
+	End With
+	Set NewMalType = varResult
+End Function
+
+Function Wrap(varValue)
+	Wrap = Array(varValue)
+End Function
+
+Function Unwrap(varValue)
+	If IsObject(varValue(0)) Then
+		Set Unwrap = varValue(0)
+	Else
+		Unwrap = varValue(0)
+	End If
+End Function
+
+Function ValueOf(objMalType)
+	If IsObject(Unwrap(objMalType.Value)) Then
+		Set ValueOf = Unwrap(objMalType.Value)
+	Else
+		ValueOf = Unwrap(objMalType.Value)
+	End If
+End Function
+
+Class MalList
+	Public [Type]
+	Public Value
+	
+	Public Function Add(objMalType)
+		Unwrap(Value).Add objMalType
+	End Function
+	
+	Public Function Item(i)
+		Set Item = Unwrap(Value).Item(i)
+	End Function
+
+	Public Function Count()
+		Count = Unwrap(Value).Count
+	End Function
+End Class
+
+Function NewMalList(arrValues)
+	Dim varResult
+	Set varResult = New MalList
+	With varResult
+		.Type = TYPES.LIST
+		.Value = Wrap(CreateObject("System.Collections.ArrayList"))
+
+		Dim i
+		For i = 0 To UBound(arrValues)
+			.Add arrValues(i)
+		Next
+	End With
+	Set NewMalList = varResult
+End Function
+
+Function NewMalVector(arrValues)
+	Dim varResult
+	Set varResult = New MalList
+	With varResult
+		.Type = TYPES.VECTOR
+		.Value = Wrap(CreateObject("System.Collections.ArrayList"))
+
+		Dim i
+		For i = 0 To UBound(arrValues)
+			.Add arrValues(i)
+		Next
+	End With
+	Set NewMalVector = varResult
+End Function
+
+Class MalHashmap
+	Public [Type]
+	Public Value
+	
+	Public Function Add(varKey, varValue)
+		Unwrap(Value).Add varKey, varValue
+	End Function
+	
+	Public Property Get Keys()
+		Keys = Unwrap(Value).Keys
+	End Property
+
+	Public Function Count()
+		Count = Unwrap(Value).Count
+	End Function
+
+	Public Function Item(varKey)
+		Set Item = Unwrap(Value).Item(varKey)
+	End Function
+End Class
+
+Function NewMalHashmap(arrKeys, arrValues)
+	Dim varResult
+	Set varResult = New MalHashmap
+	With varResult
+		.Type = TYPES.HASHMAP
+		.Value = Wrap(CreateObject("Scripting.Dictionary"))
+
+		Dim i
+		For i = 0 To UBound(arrKeys)
+			.Add arrKeys(i), arrValues(i)
+		Next
+	End With
+	Set NewMalHashmap = varResult
+End Function
 
 Public objCoreNS
 Set objCoreNS = CreateObject("Scripting.Dictionary")
