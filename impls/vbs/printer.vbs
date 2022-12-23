@@ -1,76 +1,87 @@
 Option Explicit
 
 Function PrintMalType(objMal, boolReadable)
-	'MsgBox 1
-	PrintMalType = ""
+	Dim varResult
+
+	varResult = ""
+
 	If TypeName(objMal) = "Nothing" Then
+		PrintMalType = ""
 		Exit Function
 	End If
 	
 	Dim i
 	Select Case objMal.Type
-		Case TYPE_LIST
-			With objMal.Value
+		Case TYPES.LIST
+			With ValueOf(objMal)
 				For i = 0 To .Count - 2
-					PrintMalType = PrintMalType & _
+					varResult = varResult & _
 						PrintMalType(.Item(i), boolReadable) & " "
 				Next
 				If .Count > 0 Then
-					PrintMalType = PrintMalType & _
+					varResult = varResult & _
 						PrintMalType(.Item(.Count - 1), boolReadable)
 				End If
 			End With
-			PrintMalType = "(" & PrintMalType & ")"
-		Case TYPE_VECTOR
-			With objMal.Value
+			varResult = "(" & varResult & ")"
+		Case TYPES.VECTOR
+			With ValueOf(objMal)
 				For i = 0 To .Count - 2
-					PrintMalType = PrintMalType & _
+					varResult = varResult & _
 						PrintMalType(.Item(i), boolReadable) & " "
 				Next
 				If .Count > 0 Then
-					PrintMalType = PrintMalType & _
+					varResult = varResult & _
 						PrintMalType(.Item(.Count - 1), boolReadable)
 				End If
 			End With
-			PrintMalType = "[" & PrintMalType & "]"
-		Case TYPE_HASHMAP
-			With objMal.Value
+			varResult = "[" & varResult & "]"
+		Case TYPES.HASHMAP
+			With ValueOf(objMal)
 				Dim arrKeys
 				arrKeys = .Keys
 				For i = 0 To .Count - 2
-					PrintMalType = PrintMalType & _
+					varResult = varResult & _
 						PrintMalType(arrKeys(i), boolReadable) & " " & _
 						PrintMalType(.Item(arrKeys(i)), boolReadable) & " "
 				Next
 				If .Count > 0 Then
-					PrintMalType = PrintMalType & _
+					varResult = varResult & _
 						PrintMalType(arrKeys(.Count - 1), boolReadable) & " " & _
 						PrintMalType(.Item(arrKeys(.Count - 1)), boolReadable)
 				End If
 			End With
-			PrintMalType = "{" & PrintMalType & "}"
-		Case TYPE_STRING
+			varResult = "{" & varResult & "}"
+		Case TYPES.STRING
 			If boolReadable Then
-				PrintMalType = EscapeString(objMal.Value)
+				varResult = EscapeString(ValueOf(objMal))
 			Else
-				'PrintMalType = """" & objMal.Value & """"
-				PrintMalType = objMal.Value
+				varResult = ValueOf(objMal)
 			End If
-		Case TYPE_BOOLEAN
-			If objMal.Value Then
-				PrintMalType = "true"
+		Case TYPES.BOOLEAN
+			If ValueOf(objMal) Then
+				varResult = "true"
 			Else
-				PrintMalType = "false"
+				varResult = "false"
 			End If
-		Case TYPE_NIL
-			PrintMalType = "nil"
-		Case TYPE_NUMBER
-			PrintMalType = CStr(objMal.Value)
-		Case TYPE_FUNCTION
-			PrintMalType = "#<function>"
+		Case TYPES.NIL
+			varResult = "nil"
+		Case TYPES.NUMBER
+			varResult = CStr(ValueOf(objMal))
+		Case TYPES.LAMBDA
+			varResult = "#<function>"
+		Case TYPES.PROCEDURE
+			varResult = "#<function>"
+		Case TYPES.KEYWORD
+			varResult = ValueOf(objMal)
+		Case TYPES.SYMBOL
+			varResult = ValueOf(objMal)
 		Case Else
-			PrintMalType = objMal.Value
+			Err.Raise vbObjectError, _
+				"PrintMalType", "unknown type"
 	End Select
+
+	PrintMalType = varResult
 End Function
 
 Function EscapeString(strRaw)

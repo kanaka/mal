@@ -4,229 +4,249 @@ Function ReadString(strCode)
 	Set ReadString = ReadForm(Tokenize(strCode))
 End Function
 
-Function Tokenize(strCode)
-	Dim objRE
-	Set objRE = New RegExp
-	With objRE
-		.Pattern = "[\s,]*(~@|[\[\]{}()'`~^@]|""(?:\\.|[^\\""])*""?|;.*|[^\s\[\]{}('""`,;)]*)"
-		.IgnoreCase = True
-		.Global = True
-	End With
+Class Tokens
+	Private strRaw, objTokens
+	Private objRE
 
-	Dim objTokens, objMatches, objMatch
-	Set objTokens = CreateObject("System.Collections.Queue")
-	Set objMatches = objRE.Execute(strCode)
-	Dim strToken
-	For Each objMatch In objMatches
-		strToken = objMatch.SubMatches(0)
-		If Not Left(strToken, 1) = ";" Then
-			objTokens.Enqueue strToken
-		End If
-	Next
+	Private Sub Class_Initialize
+		Set objRE = New RegExp
+		With objRE
+			.Pattern = "[\s,]*(~@|[\[\]{}()'`~^@]|""(?:\\.|[^\\""])*""?|;.*|[^\s\[\]{}('""`,;)]*)"
+			.IgnoreCase = True
+			.Global = True
+		End With
 
-	Set Tokenize = objTokens
+		Set objTokens = CreateObject("System.Collections.Queue")
+	End Sub
+
+	Public Function Init(strCode)
+		strRaw = strCode
+
+		Dim objMatches, objMatch
+		Set objMatches = objRE.Execute(strCode)
+		Dim strToken
+		For Each objMatch In objMatches
+			strToken = Trim(objMatch.SubMatches(0))
+			If Not (Left(strToken, 1) = ";" Or strToken = "") Then
+				' Drop comments
+				objTokens.Enqueue Trim(strToken)
+			End If
+		Next
+	End Function
+
+	Public Function Current()
+		Current = objTokens.Peek()
+	End Function
+
+	Public Function MoveToNext()
+		MoveToNext = objTokens.Dequeue()
+	End Function
+
+	Public Function AtEnd()
+		AtEnd = (objTokens.Count = 0)
+	End Function
+
+	Public Function Count()
+		Count = objTokens.Count
+	End Function
+End Class
+
+Function Tokenize(strCode) ' Return objTokens
+	Dim varResult
+	Set varResult = New Tokens
+	varResult.Init strCode
+	Set Tokenize = varResult
 End Function
 
-Public boolError, strError
-
-Function ReadForm(objTokens)
-	If objTokens.Count = 0 Then
-		Set ReadForm = Nothing
-		Exit Function
-	End If
-
-	If objTokens.Count = 1 And objTokens.Peek() = "" Then
-		Call objTokens.Dequeue()
+Function ReadForm(objTokens) ' Return Nothing / MalType
+	If objTokens.AtEnd() Then
 		Set ReadForm = Nothing
 		Exit Function
 	End If
 
 	Dim strToken
-	strToken = objTokens.Peek()
+	strToken = objTokens.Current()
 
+	Dim varResult
 	If InStr("([{", strToken) Then
 		Select Case strToken
 			Case "("
-				Set ReadForm = ReadList(objTokens)
+				Set varResult = ReadList(objTokens)
 			Case "["
-				Set ReadForm = ReadVector(objTokens)
+				Set varResult = ReadVector(objTokens)
 			Case "{"
-				Set ReadForm = ReadHashmap(objTokens)
+				Set varResult = ReadHashmap(objTokens)
 		End Select
 	ElseIf InStr("'`~@", strToken) Then
-		Call objTokens.Dequeue()
-
-		Dim strAlias
-		Select Case strToken
-			Case "'"
-				strAlias = "quote"
-			Case "`"
-				strAlias = "quasiquote"
-			Case "~"
-				strAlias = "unquote"
-			Case "~@"
-				strAlias = "splice-unquote"
-			Case "@"
-				strAlias = "deref"
-			Case Else
-				boolError = True
-				strError = "unknown token " & strAlias
-				Call REPL()
-		End Select
-
-		Set ReadForm = New MalType
-		ReadForm.Type = TYPE_LIST
-		Set ReadForm.Value = CreateObject("System.Collections.ArrayList")
-		ReadForm.Value.Add New MalType
-		ReadForm.Value.Item(0).Type = TYPE_SYMBOL
-		ReadForm.Value.Item(0).Value = strAlias
-		ReadForm.Value.Add ReadForm(objTokens)
+		Set varResult = ReadSpecial(objTokens)
 	ElseIf InStr(")]}", strToken) Then
-		Call objTokens.Dequeue()
-
-		boolError = True
-		strError = "unbalanced parentheses"
-		Call REPL()
+		Err.Raise vbObjectError, _
+			"ReadForm", "unbalanced parentheses"
 	ElseIf strToken = "^" Then
-		Call objTokens.Dequeue()
-		Set ReadForm = New MalType
-		ReadForm.Type = TYPE_LIST
-		Set ReadForm.Value = CreateObject("System.Collections.ArrayList")
-		ReadForm.Value.Add New MalType
-		ReadForm.Value.Item(0).Type = TYPE_SYMBOL
-		ReadForm.Value.Item(0).Value = "with-meta"
-		Dim objTemp
-		Set objTemp = ReadForm(objTokens)
-		ReadForm.Value.Add ReadForm(objTokens)
-		ReadForm.Value.Add objTemp
+		Set varResult = ReadMetadata(objTokens)
 	Else
-		Set ReadForm = ReadAtom(objTokens)
+		Set varResult = ReadAtom(objTokens)
 	End If
+
+	If Not objTokens.AtEnd() Then
+		'Err.Raise vbObjectError, _
+		'	"ReadForm", "extra token(s): " + objTokens.Current()
+	End If
+
+	Set ReadForm = varResult
+End Function
+
+Function ReadMetadata(objTokens)
+	Dim varResult
+
+	Call objTokens.MoveToNext()
+	Dim objTmp
+	Set objTmp = ReadForm(objTokens)
+	Set varResult = NewMalList(Array( _
+		NewMalType(TYPES.SYMBOL, "with-meta"), _
+		ReadForm(objTokens), objTmp))
+
+	Set ReadMetadata = varResult
+End Function
+
+Function ReadSpecial(objTokens)
+	Dim varResult
+
+	Dim strToken, strAlias
+	strToken = objTokens.Current()
+	Select Case strToken
+		Case "'"
+			strAlias = "quote"
+		Case "`"
+			strAlias = "quasiquote"
+		Case "~"
+			strAlias = "unquote"
+		Case "~@"
+			strAlias = "splice-unquote"
+		Case "@"
+			strAlias = "deref"
+		Case Else
+			Err.Raise vbObjectError, _
+				"ReadSpecial", "unknown token " & strAlias
+	End Select
+
+	Call objTokens.MoveToNext()
+	Set varResult = NewMalList(Array( _
+		NewMalType(TYPES.SYMBOL, strAlias), _ 
+		ReadForm(objTokens)))
+	Set ReadSpecial = varResult
 End Function
 
 Function ReadList(objTokens)
-	Call objTokens.Dequeue()
+	Dim varResult
+	Call objTokens.MoveToNext()
 
-	If objTokens.Count = 0 Then
-		boolError = True
-		strError = "unbalanced parentheses"
-		Call REPL()
+	If objTokens.AtEnd() Then
+		Err.Raise vbObjectError, _
+			"ReadList", "unbalanced parentheses"
 	End If
 
-	Set ReadList = New MalType
-	Set ReadList.Value = CreateObject("System.Collections.ArrayList")
-	ReadList.Type = TYPE_LIST
-
-	With ReadList.Value
-		While objTokens.Count > 1 And objTokens.Peek() <> ")"
+	Set varResult = NewMalList(Array())
+	With varResult
+		While objTokens.Count() > 1 And objTokens.Current() <> ")"
 			.Add ReadForm(objTokens)
 		Wend
 	End With
 
-	If objTokens.Dequeue() <> ")" Then
-		boolError = True
-		strError = "unbalanced parentheses"
-		Call REPL()
+	If objTokens.MoveToNext() <> ")" Then
+		Err.Raise vbObjectError, _
+			"ReadList", "unbalanced parentheses"
 	End If
+
+	Set ReadList = varResult
 End Function
 
-function ReadVector(objTokens)
-	Call objTokens.Dequeue()
+Function ReadVector(objTokens)
+	Dim varResult
+	Call objTokens.MoveToNext()
 
-	If objTokens.Count = 0 Then
-		boolError = True
-		strError = "unbalanced parentheses"
-		Call REPL()
+	If objTokens.AtEnd() Then
+		Err.Raise vbObjectError, _
+			"ReadVector", "unbalanced parentheses"
 	End If
 
-	Set ReadVector = New MalType
-	Set ReadVector.Value = CreateObject("System.Collections.ArrayList")
-	ReadVector.Type = TYPE_VECTOR
-
-	With ReadVector.Value
-		While objTokens.Count > 1 And objTokens.Peek() <> "]"
+	Set varResult = NewMalVector(Array())
+	With varResult
+		While objTokens.Count() > 1 And objTokens.Current() <> "]"
 			.Add ReadForm(objTokens)
 		Wend
 	End With
 
-	If objTokens.Dequeue() <> "]" Then
-		boolError = True
-		strError = "unbalanced parentheses"
-		Call REPL()
+	If objTokens.MoveToNext() <> "]" Then
+		Err.Raise vbObjectError, _
+			"ReadVector", "unbalanced parentheses"
 	End If
+
+	Set ReadVector = varResult
 End Function
 
 Function ReadHashmap(objTokens)
-	Call objTokens.Dequeue()
+	Dim varResult
+	Call objTokens.MoveToNext()
 
 	If objTokens.Count = 0 Then
-		boolError = True
-		strError = "unbalanced parentheses"
-		Call REPL()
+		Err.Raise vbObjectError, _
+			"ReadHashmap", "unbalanced parentheses"
 	End If
-	
-	Set ReadHashmap = New MalType
-	Set ReadHashmap.Value = CreateObject("Scripting.Dictionary")
-	ReadHashmap.Type = TYPE_HASHMAP
+	Set varResult = NewMalHashmap(Array(), Array())
 
 	Dim objKey, objValue
-	With ReadHashmap.Value
-		While objTokens.Count > 2 And objTokens.Peek() <> "}"
+	With varResult
+		While objTokens.Count > 2 And objTokens.Current() <> "}"
 			Set objKey = ReadForm(objTokens)
 			Set objValue = ReadForm(objTokens)
 			.Add objKey, objValue
 		Wend
 	End With
 
-	If objTokens.Dequeue() <> "}" Then
-		boolError = True
-		strError = "unbalanced parentheses"
-		Call REPL()
+	If objTokens.MoveToNext() <> "}" Then
+		Err.Raise vbObjectError, _
+			"ReadHashmap", "unbalanced parentheses"
 	End If
+
+	Set ReadHashmap = varResult
 End Function
 
 Function ReadAtom(objTokens)
-	Dim strAtom
-	strAtom = objTokens.Dequeue()
+	Dim varResult
 
-	Dim objAtom
-	Set objAtom = New MalType
+	Dim strAtom
+	strAtom = objTokens.MoveToNext()
+
 	Select Case strAtom
 		Case "true"
-			objAtom.Type = TYPE_BOOLEAN
-			objAtom.Value = True
+			Set varResult = NewMalType(TYPES.BOOLEAN, True)
 		Case "false"
-			objAtom.Type = TYPE_BOOLEAN
-			objAtom.Value = False
+			Set varResult = NewMalType(TYPES.BOOLEAN, False)
 		Case "nil"
-			objAtom.Type = TYPE_NIL
+			Set varResult = NewMalType(TYPES.NIL, Empty)
 		Case Else
 			Select Case Left(strAtom, 1)
 				Case ":"
-					objAtom.Type = TYPE_KEYWORD
-					objAtom.Value = strAtom
+					Set varResult = NewMalType(TYPES.KEYWORD, strAtom)
 				Case """"
-					objAtom.Type = TYPE_STRING
-					objAtom.Value = ParseString(strAtom)
+					Set varResult = NewMalType(TYPES.STRING, ParseString(strAtom))
 				Case Else
 					If IsNumeric(strAtom) Then
-						objAtom.Type = TYPE_NUMBER
-						objAtom.Value = Eval(strAtom)
+						Set varResult = NewMalType(TYPES.NUMBER, Eval(strAtom))
 					Else
-						objAtom.Type = TYPE_SYMBOL
-						objAtom.Value = strAtom
+						Set varResult = NewMalType(TYPES.SYMBOL, strAtom)
 					End If
 			End Select
 	End Select
 
-	Set ReadAtom = objAtom
+	Set ReadAtom = varResult
 End Function
 
 Function ParseString(strRaw)
 	If Right(strRaw, 1) <> """" Or Len(strRaw) < 2 Then
-		boolError = True
-		strError = "unterminated string, got EOF"
-		Call REPL()
+		Err.Raise vbObjectError, _
+			"ParseString", "unterminated string, got EOF"
 	End If
 
 	Dim strTemp
@@ -254,9 +274,8 @@ Function ParseString(strRaw)
 		If Right(strTemp, 1) <> "\" Then
 			ParseString = ParseString & Right(strTemp, 1)
 		Else
-			boolError = True
-			strError = "unterminated string, got EOF"
-			Call REPL()
+			Err.Raise vbObjectError, _
+				"ParseString", "unterminated string, got EOF"
 		End If
 	End If
 End Function
