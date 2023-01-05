@@ -36,13 +36,61 @@ function Scanner.isAtEnd(self)
 end
 
 function Scanner.is_special(char)
-  return char == '(' or char == ')'  or 
-         char == '[' or char == ']'  or 
-         char == '{' or char == '}'  or
-         char == '\'' or char == '`' or char == '"' or
-         char == '@' or char == '~' or 
-         char == '^' or char == '\0'
+  return char == '(' or char == ')'  or char == '[' or char == ']'  or
+         char == '{' or char == '}'  or char == '\'' or char == '`' or
+         char == '"' or char == '@' or char == '~' or char == '^' or
+         char == '\0'or char == ' ' or char == '\t' or char == '\n' or char == ','
 end
+
+function Scanner.escape(str)
+  local target = string.byte('\\')
+  local dq = string.byte('"')
+  local nl = string.byte('n')
+  local res = ''
+  local idx = 1
+  while idx <=  #str do 
+    if str:byte(idx) == target and str:byte(idx+1) == dq then
+        res = res .. '"'
+        idx = idx + 1
+    elseif str:byte(idx) == target and str:byte(idx+1) == nl then
+        res = res .. '\n'
+        idx = idx + 1
+    elseif str:byte(idx) == target and str:byte(idx+1) == target then
+        res = res .. '\\'
+        idx = idx + 1
+    else
+       res = res .. str:sub(idx,idx)
+    end
+
+    idx = idx + 1
+ 
+  end
+  for idx = 1, #str do 
+ end
+  return res
+end
+function Scanner.unescape(str)
+  local nl = string.byte('\n')
+  local bs = string.byte('\\')
+  local dq = string.byte('"')
+  local res = '"'
+  local idx = 1
+  while idx <= #str do
+    if str:byte(idx) == nl then
+      res = res .. '\\n'
+    elseif str:byte(idx) == bs then
+      res = res .. '\\\\'
+    elseif str:byte(idx) == dq then
+      res = res .. '\\"'
+    else
+      res = res .. str:sub(idx,idx)
+    end
+    idx = idx + 1
+  end
+  res = res .. '"'
+  return res
+end
+
 
 function Scanner.scanTokens(self)
   while not self:isAtEnd() do
@@ -63,18 +111,22 @@ end
 
 function Scanner.string(self)
   while self:peek() ~= '"' and not(self:isAtEnd()) do
+    if self:peek() == '\\' then 
+      self:advance()
+    end
     self:advance()
   end
-  print(string.format("peeeked %s", self:peek()))
   if self:isAtEnd() then
-    print("Error unterminated string at line %d", self.line)
+    print(string.format("Error unbalanced string at line %d", self.line))
+    table.insert(self.tokens, Token("STR", nil, self.line))
     return
   end
 
   self:advance() -- closing "
-
-  val = string.sub(self.source, self.start+1, self.index-2) -- trimmed opening and closing "
-
+  
+  -- trimmed opening and closing "
+  val = self.escape(string.sub(self.source, self.start+1, self.index-2))
+  
   table.insert(self.tokens, Token("STR", val, self.line))
 
 end
@@ -83,36 +135,36 @@ function Scanner.scanToken(self)
   char = self:advance()
   
   -- print(string.format("b c:%s, i:%d", char, self.index))
-  if char == ' ' or char == ',' or char == '\n' then
+  if char == ' ' or char == ',' or char == '\n' or char =='\t' then
     if char == '\n' then
       self.line = self.line + 1
     end
   elseif char == '~' then
     if self:match('@') then
-      table.insert(self.tokens, Token("TILDE_AT", "", self.line))
+      table.insert(self.tokens, Token("~@", "", self.line))
     else 
-      table.insert(self.tokens, Token("TILDE", "", self.line))
+      table.insert(self.tokens, Token("~", "", self.line))
     end
   elseif char == '[' then
-    table.insert(self.tokens, Token("L_BRA", "", self.line))
+    table.insert(self.tokens, Token("[", "", self.line))
   elseif char == ']' then
-    table.insert(self.tokens, Token("R_BRA", "", self.line))
+    table.insert(self.tokens, Token("]", "", self.line))
   elseif char == '(' then
-    table.insert(self.tokens, Token("L_PAR", "", self.line))
+    table.insert(self.tokens, Token("(", "", self.line))
   elseif char == ')' then
-    table.insert(self.tokens, Token("R_PAR", "", self.line))
+    table.insert(self.tokens, Token(")", "", self.line))
   elseif char == '{' then
-    table.insert(self.tokens, Token("L_CURLY", "", self.line))
+    table.insert(self.tokens, Token("{", "", self.line))
   elseif char == '}' then
-    table.insert(self.tokens, Token("R_CURLY", "", self.line))
+    table.insert(self.tokens, Token("}", "", self.line))
   elseif char == '\'' then
-    table.insert(self.tokens, Token("TICK", "", self.line))
+    table.insert(self.tokens, Token("'", "", self.line))
   elseif char == '`' then
-    table.insert(self.tokens, Token("BACKTICK", "", self.line))
+    table.insert(self.tokens, Token("`", "", self.line))
   elseif char == '^' then
-    table.insert(self.tokens, Token("CARROT", "", self.line))
+    table.insert(self.tokens, Token("^", "", self.line))
   elseif char == '@' then
-    table.insert(self.tokens, Token("AT", "", self.line))
+    table.insert(self.tokens, Token("@", "", self.line))
   elseif char == '"' then
     self:string()
 
@@ -134,5 +186,12 @@ function Scanner.scanToken(self)
   end
 
 end
+--[[ examples
+print(Scanner.escape("\\\\\\\\"))
 
+print(Scanner.escape('\\"he"l\\nlo"'))
+
+print(Scanner.unescape("\n"))
+print(Scanner.unescape('"hello"'))
+]]
 return Scanner
