@@ -49,11 +49,15 @@ function eval_ast(ast, env)
     return v
   elseif is_instanceOf(ast, HashMap) then
     local map = HashMap.new()
-    for i,v in pairs(ast) do
-      map[EVAL(i, env)] = EVAL(v, env)
+    for k,v in pairs(ast) do
+      map[EVAL(k, env)] = EVAL(v, env)
     end
     return map
   elseif is_instanceOf(ast, Sym) then
+    if string.byte(ast.val, 1, 1) == 202  and 
+       string.byte(ast.val, 2, 2) == 158  then  -- this magic numbers come from \u{29E}
+      return Sym.new(":" .. string.sub(ast.val, 3, #ast.val))
+    end
     if env[ast.val] == nil then
       types.throw(string.format("Value : '%s' does not exist", ast.val))
     else

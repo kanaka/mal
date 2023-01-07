@@ -197,6 +197,7 @@ function Reader.read_str(a)
   if not toks then
     return Err.new("No token")
   end
+  -- Reader.print_tokens(toks)
   local r = Reader(toks)
   return r:read_form()
 end

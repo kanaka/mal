@@ -174,7 +174,12 @@ function Scanner.scanToken(self)
     end
     val = string.sub(self.source, self.start + 1, self.current)
     table.insert(self.tokens, Token("CMT", val, self.line))
-
+  elseif char == ':' then
+    while not (self.is_special(self:peek())) and not(self:isAtEnd()) do
+      self:advance()
+    end
+    val = "\u{29E}" .. string.sub(self.source, self.start+1, self.index-1)
+    table.insert(self.tokens, Token("SYM", val, self.line))
   elseif not self.is_special(char)  then
     while not(self.is_special(self:peek())) do
       self:advance()
