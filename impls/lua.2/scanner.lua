@@ -1,4 +1,6 @@
 local Token = require('token')
+types = require("types")
+local throw = types.throw
 local Scanner = {}
 Scanner.__index = Scanner
 
@@ -39,7 +41,7 @@ function Scanner.is_special(char)
   return char == '(' or char == ')'  or char == '[' or char == ']'  or
          char == '{' or char == '}'  or char == '\'' or char == '`' or
          char == '"' or char == '@' or char == '~' or char == '^' or
-         char == '\0'or char == ' ' or char == '\t' or char == '\n' or char == ','
+         char == '\0'or char == ' ' or char == '\t' or char == '\n' or char == ',' or char == ';'
 end
 
 function Scanner.escape(str)
@@ -117,9 +119,7 @@ function Scanner.string(self)
     self:advance()
   end
   if self:isAtEnd() then
-    print(string.format("Error unbalanced string at line %d", self.line))
-    table.insert(self.tokens, Token("STR", nil, self.line))
-    return
+    throw(string.format("Error unbalanced string at line %d", self.line))
   end
 
   self:advance() -- closing "
@@ -182,7 +182,7 @@ function Scanner.scanToken(self)
     val = string.sub(self.source,self.start, self.index - 1)
     table.insert(self.tokens, Token("SYM", val, self.line))
   else 
-    print(string.format("Error: unknown char: %s at %d, %d", char , line , idx) )
+    throw(string.format("Error: unknown char: %s at %d, %d", char , line , idx) )
   end
 
 end

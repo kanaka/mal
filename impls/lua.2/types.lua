@@ -6,7 +6,7 @@ M.MalHashMap.__index = M.MalHashMap
 function M.MalHashMap.new(...)
   arg = table.pack(...)
   if #arg % 2 ~= 0 then
-    error("Hash map input must be even")
+    error("Hash map input must be even but got '" .. #arg .. "'")
   end
 
   local self = {}
@@ -52,7 +52,9 @@ function M.Err.new(val)
   return self
 end
 
-
+function M.throw(val)
+  error(M.Err.new(val))
+end
 
 
 M.MalNilType = {}
@@ -67,6 +69,14 @@ function M.MalNilType:tostring()
 end
 
 M.Nil = M.MalNilType.new()
+
+M.MalFunction = {}
+M.MalFunction.__index = M.MalFunction
+function M.MalFunction.new(fn, ast, env, params)
+  local self = {fn = fn, ast = ast, env = env, params = params}
+  return setmetatable(self, M.MalFunction)
+end
+
 
 
 function M.isinstanceof(obj, super)

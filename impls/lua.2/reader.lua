@@ -10,6 +10,8 @@ local HashMap = types.MalHashMap
 local Sym = types.Sym
 local is_instanceOf = types.isinstanceof
 local Err = types.Err
+local throw = types.throw
+local Function = types.MalFunction
 
 setmetatable(Reader, {
   __call = function (cls, ...)
@@ -69,7 +71,7 @@ function Reader.read_form(self)
      local meta = self:read_form()
      return List.new({Sym.new('with-meta'), self:read_form(), meta})
    elseif tok.typeof == ')' or tok.typeof == ']' or tok.typeof == '}' then
-     return Err.new("Syntax error")
+     throw("Syntax error unexpected '" .. tok.typeof .. "'")
    else
      return self:read_atom()
    end
@@ -78,9 +80,6 @@ end
 function Reader.read_atom(self)
   local token = self:advance()
   if token.typeof == "STR" then
-    if token.val == nil then
-      return Err.new("unterminated string")
-    end
     return token.val
   elseif token.typeof == "SYM" then
     if token.val == "true" then
@@ -96,15 +95,15 @@ function Reader.read_atom(self)
     end
 
   else
-    print(string.format("Error: is not atomic %s", token.typeof))
-    return Err.new("internal error")
+    
+    throw(string.format("Error: is not atomic %s", token.typeof))
   end
 end
 
 function Reader.read_seq(self, opening, closing, invalids)
   local tok = self:advance() -- consume opening
   if tok.typeof ~= opening then 
-    error("Error: expected '" .. opening .. "' got '" .. tok.typeof .. "'.")
+    throw("Error: expected '" .. opening .. "' got '" .. tok.typeof .. "'.")
   end
   tok = self:peek()
   local res = {} 
@@ -117,7 +116,7 @@ function Reader.read_seq(self, opening, closing, invalids)
 
     for i= 1, #invalids do 
       if tok.typeof == invalids[i] then
-        return Err.new("Error: invalid syntax")
+        throw("invalid syntax un expected '" .. tok.typeof .. "'")
       end
 
     end
@@ -163,7 +162,10 @@ function Reader.stringfy_val(val, readably)
   elseif is_instanceOf(val, Sym) then
     return val.val 
   elseif is_instanceOf(val, Err) then
-    return "Error:" .. Scanner.unescape(val.val)
+    return "Error: " .. Scanner.unescape(val.val)
+  elseif is_instanceOf(val, Function) then
+    res = "(fn* " -- .. Reader.stringfy_val(val.params) .. " " Reader.stringfy_val(val.ast) ..")"
+
   elseif type(val) == "string" then
     if readably then 
       res = Scanner.unescape(val)
@@ -176,6 +178,8 @@ function Reader.stringfy_val(val, readably)
     res = "nil"
   elseif type(val) == "boolean" then 
     res = tostring(val)
+  elseif type(val) == "function" then
+    res = "#<function>"
   else
     error(string.format("Error: unknown type %s", val))
 
