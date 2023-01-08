@@ -86,13 +86,15 @@ function Reader.read_atom(self)
       return true
     elseif token.val == "false" then
       return false
-    elseif token.val == 'nil' then
+    elseif token.val == 'Nil' then
       return Nil
     elseif string.match(token.val, '^-?%d+%.?%d*$') then
       return tonumber(token.val)
     else
       return Sym.new(token.val)
     end
+  elseif token.typeof == "EOF" then 
+    return Nil
 
   else
     
@@ -175,7 +177,7 @@ function Reader.stringfy_val(val, readably)
   elseif type(val) == "number" then
     res = tostring(val)
   elseif val == Nil then
-    res = "nil"
+    res = "Nil"
   elseif type(val) == "boolean" then 
     res = tostring(val)
   elseif type(val) == "function" then
