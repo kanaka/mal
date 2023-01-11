@@ -1,4 +1,5 @@
 Reader = require "reader"
+Printer = require "printer"
 types = require "types"
 local Sym = types.Sym
 local is_instanceOf = types.isinstanceof
@@ -28,7 +29,7 @@ function EVAL(a, env)
       new_list = eval_ast(a, env)
       return new_list[1](new_list[2],new_list[3])
     else 
-      throw("'" .. Reader.stringfy_val(a[1]) .. "' should be called with 2 elements")
+      throw("'" .. Printer.stringfy_val(a[1]) .. "' should be called with 2 elements")
     end
   else
      return eval_ast(a, env)
@@ -72,7 +73,7 @@ end
 
 
 function PRINT(a)
-  print(Reader.stringfy_val(a, true))
+  print(Printer.stringfy_val(a, true))
 end
 
 
@@ -101,7 +102,7 @@ function main()
       status, err = pcall(function () print(rep(line)) end)
       if not status then
         if is_instanceOf(err, Err) then
-          err = Reader.stringfy_val(err)
+          err = Printer.stringfy_val(err)
         end
         print(err)
         print(debug.traceback())

@@ -1,47 +1,62 @@
-types = require "types"
-Reader = require "reader"
-throw = types.throw
-Sym = types.Sym
-is_instanceOf = types.isinstanceof
+local types = require "types"
+local Printer = require "printer"
+local throw = types.throw
+local Sym = types.Sym
+local List = types.MalList
+local is_instanceOf = types.isinstanceof
 
-local M = {}
-M.Env = {}
-M.Env.__index = M.Env
+local Env = {}
+Env.__index = Env
 
-function M.Env.new(outer)
+function Env.new(outer)
   local self = {}
   self.outer = outer
-  setmetatable(self, M.Env)
+  setmetatable(self, Env)
   return self
 end
 
 
-function M.Env:set(key, val)
+function Env:bind(binds, exprs)
+  if not(is_instanceOf(binds, List)) then throw("binds should be list") end
+  if not(is_instanceOf(exprs, List)) then throw("exprs should be list") end
+
+  if #binds ~= #exprs then
+    throw("number of bindings and expressions should be equal")
+  end
+  for i, b in ipairs(binds) do
+    if not(is_instanceOf(b, Sym)) then
+      throw("%d/ in the binds should be Symbol  ",i, #binds)
+    end
+    print("binding " .. Printer.stringfy_val(b) .. " to " .. Printer.stringfy_val(exprs[i]))
+    self[Printer.stringfy_val(b)] = exprs[i]
+  end
+
+end
+
+function Env:set(key, val)
   assert(is_instanceOf(key, Sym), "key should be symbol")
-  self[Reader.stringfy_val(key)] = val
+  self[Printer.stringfy_val(key)] = val
   return self
 end
 
-function M.Env:find(key)
+function Env:find(key)
   assert(is_instanceOf(key, Sym), "key should be symbol")
-  if self[Reader.stringfy_val(key)] then
+  if self[Printer.stringfy_val(key)] then
     return self
   end
   if self.outer ~= nil then
    return self.outer:find(key)
   end
   return nil
-  
 end
 
-function M.Env:get(key)
+function Env:get(key)
   assert(is_instanceOf(key, Sym), "key should be symbol")
   local env = self:find(key)
   if env then
-    return env[Reader.stringfy_val(key)]
+    return env[Printer.stringfy_val(key)]
   end
-  throw(string.format("%s not found in any environments.", Reader.stringfy_val(key)))
-  
+  throw(string.format("%s not found in any environments.", Printer.stringfy_val(key)))
 end
 
-return M.Env
+return Env

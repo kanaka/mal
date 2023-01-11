@@ -1,4 +1,5 @@
 Reader = require "reader"
+Printer = require "printer"
 
 types = require "types"
 --local throw = types.throw
@@ -24,7 +25,7 @@ function EVAL(a)
 end
 
 function PRINT(a)
-  print(Reader.stringfy_val(a, true))
+  print(Printer.stringfy_val(a, true))
 end
 
 function rep(str)
@@ -43,7 +44,7 @@ function main()
       status, err = pcall( function () print(rep(line)) end)
       if not status then
         if is_instanceOf(err, Err) then
-          err = Reader.stringfy_val(err)
+          err = Printer.stringfy_val(err)
         end
         print(err)
         print(debug.traceback())

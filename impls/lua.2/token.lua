@@ -1,4 +1,4 @@
-Token = {}
+local Token = {}
 Token.__index = Token
 
 setmetatable(Token, {

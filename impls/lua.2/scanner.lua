@@ -1,5 +1,5 @@
 local Token = require('token')
-types = require("types")
+local types = require("types")
 local throw = types.throw
 local Scanner = {}
 Scanner.__index = Scanner
@@ -21,13 +21,13 @@ function Scanner.new(source)
 end
 
 function Scanner.advance(self)
-  ch = string.sub(self.source, self.index, self.index)
+  local ch = string.sub(self.source, self.index, self.index)
   self.index = self.index + 1
   return ch
 end
 
 function Scanner.peek(self)
-  if self:isAtEnd() then 
+  if self:isAtEnd() then
     return '\0'
   end
   return string.sub(self.source, self.index, self.index)
@@ -50,7 +50,7 @@ function Scanner.escape(str)
   local nl = string.byte('n')
   local res = ''
   local idx = 1
-  while idx <=  #str do 
+  while idx <=  #str do
     if str:byte(idx) == target and str:byte(idx+1) == dq then
         res = res .. '"'
         idx = idx + 1
@@ -65,10 +65,8 @@ function Scanner.escape(str)
     end
 
     idx = idx + 1
- 
+
   end
-  for idx = 1, #str do 
- end
   return res
 end
 function Scanner.unescape(str)
@@ -100,7 +98,7 @@ function Scanner.scanTokens(self)
     self:scanToken()
   end
   table.insert(self.tokens,Token("EOF", "", self.line))
-  return self.tokens 
+  return self.tokens
 end
 
 function Scanner.match(self, char)
@@ -113,7 +111,7 @@ end
 
 function Scanner.string(self)
   while self:peek() ~= '"' and not(self:isAtEnd()) do
-    if self:peek() == '\\' then 
+    if self:peek() == '\\' then
       self:advance()
     end
     self:advance()
@@ -123,17 +121,17 @@ function Scanner.string(self)
   end
 
   self:advance() -- closing "
-  
+
   -- trimmed opening and closing "
-  val = self.escape(string.sub(self.source, self.start+1, self.index-2))
-  
+  local val = self.escape(string.sub(self.source, self.start+1, self.index-2))
+
   table.insert(self.tokens, Token("STR", val, self.line))
 
 end
 
 function Scanner.scanToken(self)
-  char = self:advance()
-  
+  local char = self:advance()
+
   -- print(string.format("b c:%s, i:%d", char, self.index))
   if char == ' ' or char == ',' or char == '\n' or char =='\t' then
     if char == '\n' then
@@ -142,7 +140,7 @@ function Scanner.scanToken(self)
   elseif char == '~' then
     if self:match('@') then
       table.insert(self.tokens, Token("~@", "", self.line))
-    else 
+    else
       table.insert(self.tokens, Token("~", "", self.line))
     end
   elseif char == '[' then
@@ -172,22 +170,22 @@ function Scanner.scanToken(self)
     while self:peek() ~= '\n' and not(self:isAtEnd()) do
       self:advance()
     end
-    val = string.sub(self.source, self.start + 1, self.current)
+    local val = string.sub(self.source, self.start + 1, self.current)
     table.insert(self.tokens, Token("CMT", val, self.line))
   elseif char == ':' then
     while not (self.is_special(self:peek())) and not(self:isAtEnd()) do
       self:advance()
     end
-    val = "\u{29E}" .. string.sub(self.source, self.start+1, self.index-1)
+    local val = "\u{29E}" .. string.sub(self.source, self.start+1, self.index-1)
     table.insert(self.tokens, Token("SYM", val, self.line))
   elseif not self.is_special(char)  then
     while not(self.is_special(self:peek())) do
       self:advance()
     end
-    val = string.sub(self.source,self.start, self.index - 1)
+    local val = string.sub(self.source,self.start, self.index - 1)
     table.insert(self.tokens, Token("SYM", val, self.line))
-  else 
-    throw(string.format("Error: unknown char: %s at %d, %d", char , line , idx) )
+  else
+    throw(string.format("Error: unknown char: %s at %d, %d", char , self.line , self.index) )
   end
 
 end

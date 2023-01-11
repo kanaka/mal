@@ -9,6 +9,7 @@ local List = types.MalList
 local throw = types.throw
 local HashMap = types.MalHashMap
 local Vector = types.MalVector
+local Nil = types.Nil
 
 function raw_read(prompt)
   io.write(prompt)
@@ -67,15 +68,47 @@ function EVAL(a, env)
 
     end
 
+    if is_instanceOf(first_elem, Sym) and first_elem.val == "do" then
+      local res
+      for i=2,#a do 
+        res = EVAL(a[i], env)
+      end
+      return res
+    end
+    
+    if is_instanceOf(first_elem, Sym) and first_elem.val == "if" then 
+      if not (#a == 3 or #a == 4) then 
+        throw("if expected 2 or 3 arguments but got '" .. #a-1 .. "'.") 
+      end
+      local cond = EVAL(a[2], env)
+      if cond ~= false and cond ~= Nil then
+        return EVAL(a[3], env)
+      else
+        if #a == 4 then return EVAL(a[4], env) end
+        return Nil
+      end
+    end
+    if is_instanceOf(first_elem, Sym) and first_elem.val == "fn*" then 
+      if not (#a == 3 ) then throw("fn* expected 3 arguments but got '" .. #a-1 .. "'.") end
+      if false then throw("second parameter to fn* should have length 2 but got '" .. #a[2] .. "'.") end
+     return function (...) 
+        local closed_over_env = Env.new(env)
+        local temp = List.new(table.pack(...))
+        closed_over_env:bind(a[2], temp)
+      
+        return EVAL(a[3], closed_over_env) 
+      end
+    end
+  
     local new_list = eval_ast(a, env) 
     if type(new_list[1]) ~= "function" then
-      throw("First elem should be function or special form got :'" .. type(new_list[1]) .. "'.")
+      throw("First elem should be function or special form got :'" .. type(gonna_eval) .. "'.")
     end
 
-    if #a ~= 3 then 
+    if false then 
       throw("currently all builtins expects 2 arguments")
     end
-    return new_list[1](new_list[2],new_list[3]) --fixme: varargs?
+    return new_list[1](table.unpack(new_list,2)) --fixme: varargs?
 
   else
      return eval_ast(a, env)

@@ -31,14 +31,14 @@ function Reader.peek(self)
 end
 
 function Reader.advance(self)
-  tok = self.tokens[self.index]
+  local tok = self.tokens[self.index]
   self.index = self.index + 1
   return tok
 end
 
 
 
-Scanner = require "scanner"
+local Scanner = require "scanner"
 
 function Reader.read_form(self)
    local tok = self:peek()
@@ -86,37 +86,36 @@ function Reader.read_atom(self)
       return true
     elseif token.val == "false" then
       return false
-    elseif token.val == 'Nil' then
+    elseif token.val == 'nil' then
       return Nil
     elseif string.match(token.val, '^-?%d+%.?%d*$') then
       return tonumber(token.val)
     else
       return Sym.new(token.val)
     end
-  elseif token.typeof == "EOF" then 
+  elseif token.typeof == "EOF" then
     return Nil
 
   else
-    
     throw(string.format("Error: is not atomic %s", token.typeof))
   end
 end
 
 function Reader.read_seq(self, opening, closing, invalids)
   local tok = self:advance() -- consume opening
-  if tok.typeof ~= opening then 
+  if tok.typeof ~= opening then
     throw("Error: expected '" .. opening .. "' got '" .. tok.typeof .. "'.")
   end
   tok = self:peek()
-  local res = {} 
+  local res = {}
   while tok.typeof ~= closing do
-    if tok.typeof == "EOF" then 
+    if tok.typeof == "EOF" then
       print("Error: unexpected EOF before matching '" .. closing .. "'.")
       return {}
     end
 
 
-    for i= 1, #invalids do 
+    for i= 1, #invalids do
       if tok.typeof == invalids[i] then
         throw("invalid syntax un expected '" .. tok.typeof .. "'")
       end
@@ -130,64 +129,6 @@ function Reader.read_seq(self, opening, closing, invalids)
 end
 
 
-function Reader.stringfy_val(val, readably)
-  local res = ''
-  if is_instanceOf(val, Vector) then
-    res = res .. '['
-    for i=1, #val do
-      res = res .. Reader.stringfy_val(val[i],readably)
-      if i ~= #val then
-        res = res .. " "
-      end
-    end
-    res = res .. ']'
-  elseif is_instanceOf(val, List) then
-    res = res .. '('
-    for i=1, #val do
-      res = res .. Reader.stringfy_val(val[i],readably)
-      if i ~= #val then
-        res = res .. " "
-      end
-    end
-    res = res .. ')'
-  elseif is_instanceOf(val, HashMap) then
-    res = res .. '{'
-    for i,v in pairs(val) do
-      res = res .. Reader.stringfy_val(i, readably) .. " " .. Reader.stringfy_val(v,readably)
-      res = res .. " "
-    end
-    if #res > 1 then
-      res = string.sub(res, 1, #res-1) -- trim last space
-    end
-    res = res .. '}'
-  
-  elseif is_instanceOf(val, Sym) then
-    return val.val 
-  elseif is_instanceOf(val, Err) then
-    return "Error: " .. Scanner.unescape(val.val)
-  elseif is_instanceOf(val, Function) then
-    res = "(fn* " -- .. Reader.stringfy_val(val.params) .. " " Reader.stringfy_val(val.ast) ..")"
-
-  elseif type(val) == "string" then
-    if readably then 
-      res = Scanner.unescape(val)
-    else 
-      res = Scanner.escape(val)
-    end
-  elseif type(val) == "number" then
-    res = tostring(val)
-  elseif val == Nil then
-    res = "Nil"
-  elseif type(val) == "boolean" then 
-    res = tostring(val)
-  elseif type(val) == "function" then
-    res = "#<function>"
-  else
-    error(string.format("Error: unknown type %s", val))
-
-  end
-  return res
-end
 
 function Reader.print_tokens(tokens)
   for i,v in ipairs(tokens) do print(i,v:tostring()) end
