@@ -10,6 +10,7 @@ local throw = types.throw
 local HashMap = types.MalHashMap
 local Vector = types.MalVector
 local Nil = types.Nil
+local core = require "core"
 
 function raw_read(prompt)
   io.write(prompt)
@@ -153,10 +154,9 @@ end
 
 local repl_env = Env.new(nil)
 
-repl_env = repl_env:set(Sym.new('+'), function (a,b) return a+b end)
-repl_env:set(Sym.new('-'), function (a,b) return a-b end)
-repl_env:set(Sym.new('*'), function (a,b) return a*b end)
-repl_env:set(Sym.new('/'), function (a,b) return a/b end)
+for k,v in pairs(core) do
+  repl_env:set(k,v)
+end
 
 
 function rep(str)
@@ -165,13 +165,15 @@ end
 
 
 function main()
+    rep("(def! not (fn* (a) (if a false true)))")
+
     local line = ''
     while true do
       line = raw_read('user> ')
       if line == nil then
         break
       end
-      status, err = pcall(function () print(rep(line)) end)
+      local status, err = pcall(function () rep(line) end)
       if not status then
         if is_instanceOf(err, Err) then
           err = Printer.stringfy_val(err)

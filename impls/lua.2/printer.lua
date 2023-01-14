@@ -61,7 +61,7 @@ function Printer.stringfy_val(val, readably)
   elseif type(val) == "number" then
     res = tostring(val)
   elseif val == Nil then
-    res = "Nil"
+    res = "nil"
   elseif type(val) == "boolean" then
     res = tostring(val)
   elseif type(val) == "function" then

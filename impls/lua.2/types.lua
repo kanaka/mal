@@ -77,6 +77,36 @@ function M.MalFunction.new(fn, ast, env, params)
   return setmetatable(self, M.MalFunction)
 end
 
+function M.is_sequence(a)
+  return M.isinstanceof(a, M.MalList) or M.isinstanceof(a, M.MalVector)
+end
+
+
+function M.is_equal(a, b)
+  if M.isinstanceof(a, M.Sym) and M.isinstanceof(b, M.sym) then
+    return a.val == b.val
+  elseif M.is_sequence(a) and M.is_sequence(b) then
+    if #a ~= #b then return false end
+    for i,v in ipairs(a) do 
+      if not M.is_equal(v, b[i]) then
+        return false
+      end
+    end
+    return true
+  elseif M.isinstanceof(a, M.HashMap) and M.isinstanceof(b, M.HashMap) then
+    for k,v in pairs(a) do
+      if not ( M.is_equal(a[k],b[k])) then
+        return false
+      end
+    end
+    return true
+
+  else 
+    return a == b
+  end
+
+end
+
 
 
 function M.isinstanceof(obj, super)
