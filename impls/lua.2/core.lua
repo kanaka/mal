@@ -23,9 +23,9 @@ core[Sym.new('str')] = function (...)
   local args = table.pack(...)
   local res = ""
   for i,v in ipairs(args) do 
-    res = res .. Printer.stringfy_val(v, false) .. " "
+    res = res .. Printer.stringfy_val(v, false)
   end
-  return res:sub(1,#res-1) 
+  return res
 end
 
  core[Sym.new('prn')] = function (...) 
@@ -45,7 +45,8 @@ core[Sym.new('println')] = function (...)
   for i,v in ipairs(args) do 
     res = res .. Printer.stringfy_val(v, false) .. " "
   end
-  return res:sub(1,#res-1) 
+  print(res:sub(1,#res-1))
+  return Nil
 end
 
  
@@ -78,7 +79,7 @@ core[Sym.new('count')] = function (v)
   if is_sequence(v) then
     return #v
   end
-  throw("'empty expects parameter to be sequence or nil'")
+  throw("'count expects parameter to be sequence or nil'")
 end
 
 core[Sym.new('<')] = function (a, b) return a < b end

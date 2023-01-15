@@ -94,8 +94,9 @@ function EVAL(a, env)
       if false then throw("second parameter to fn* should have length 2 but got '" .. #a[2] .. "'.") end
      return function (...) 
         local closed_over_env = Env.new(env)
-        local temp = List.new(table.pack(...))
-        closed_over_env:bind(a[2], temp)
+        local exprs = List.new(table.pack(...))
+        local binds = a[2]
+        closed_over_env:bind(binds, exprs)
       
         return EVAL(a[3], closed_over_env) 
       end

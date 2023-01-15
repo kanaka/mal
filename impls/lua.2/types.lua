@@ -83,7 +83,7 @@ end
 
 
 function M.is_equal(a, b)
-  if M.isinstanceof(a, M.Sym) and M.isinstanceof(b, M.sym) then
+  if M.isinstanceof(a, M.Sym) and M.isinstanceof(b, M.Sym) then
     return a.val == b.val
   elseif M.is_sequence(a) and M.is_sequence(b) then
     if #a ~= #b then return false end
