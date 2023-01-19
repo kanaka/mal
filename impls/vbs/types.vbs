@@ -281,6 +281,7 @@ Class MalProcedure 'Extends MalType
 				i = i + 1
 			End If
 		Wend
+		
 		Set varRet = Evaluate(objCode, objNewEnv)
 		Set Apply = varRet
 	End Function

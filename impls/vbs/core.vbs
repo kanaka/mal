@@ -1,281 +1,142 @@
-Include "Types.vbs"
+Option Explicit
 
-Sub Include(strFileName)
-	With CreateObject("Scripting.FileSystemObject")
-		ExecuteGlobal .OpenTextFile( _
-			.GetParentFolderName( _
-			.GetFile(WScript.ScriptFullName)) & _
-			"\" & strFileName).ReadAll
-	End With
+Sub CheckArgNum(objArgs, lngArgNum)
+	If objArgs.Count - 1 <> lngArgNum Then
+		Err.Raise vbObjectError, _
+			"CheckArgNum", "Wrong number of arguments."
+	End IF
 End Sub
 
+Sub CheckType(objMal, varType)
+	If objMal.Type <> varType Then
+		Err.Raise vbObjectError, _
+			"CheckType", "Wrong argument type."
+	End IF
+End Sub
 
-' Public objCoreNS
-' Set objCoreNS = CreateObject("Scripting.Dictionary")
-' objCoreNS.Add "+", GetRef("Add")
-' objCoreNS.Add "-", GetRef("Subtract")
-' objCoreNS.Add "*", GetRef("Multiply")
-' objCoreNS.Add "/", GetRef("Divide")
-' objCoreNS.Add "list", GetRef("mMakeList")
-' objCoreNS.Add "list?", GetRef("mIsList") '1
-' objCoreNS.Add "empty?", GetRef("mIsListEmpty") '1
-' objCoreNS.Add "count", GetRef("mListCount") '1
-' objCoreNS.Add "=", GetRef("mEqual") '2 'both type & value
-' objCoreNS.Add "<", GetRef("mLess") '2 'number only
-' objCoreNS.Add ">", GetRef("mGreater") '2 'number only
-' objCoreNS.Add "<=", GetRef("mEqualLess") '2 'number only
-' objCoreNS.Add ">=", GetRef("mEqualGreater") '2 'number only
-' objCoreNS.Add "pr-str", GetRef("mprstr") 'all 'ret str 'readable 'concat by space
-' objCoreNS.Add "str", GetRef("mstr") 'all 'ret str '!readable 'concat by ""
-' objCoreNS.Add "prn", GetRef("mprn") 'all 'to screen ret nil 'concat by space 'readable
-' objCoreNS.Add "println", GetRef("mprintln") 'all 'to screen ret nil 'concat by space '!readable
-' objCoreNS.Add "get", GetRef("mGet")
-' objCoreNS.Add "set", GetRef("mSet")
-' objCoreNS.Add "first", GetRef("mFirst")
-' objCoreNS.Add "last", GetRef("mLast")
+Function IsListOrVec(objMal)
+	IsListOrVec = _
+		objMal.Type = TYPES.LIST Or _
+		objMal.Type = TYPES.VECTOR
+End Function
 
-' Function mLast(objArgs)
-' 	Set objRes = New MalType
-' 	objRes.Type = TYPE_LIST
-' 	set objRes.value = createobject("system.collections.arraylist")
-' 	for i = 1 to objArgs.value.item(1).value.count - 1
-' 		objRes.value.add objArgs.value.item(1).value.item(i)
-' 	next
-' 	Set mLast= objRes
-' End Function
+Sub CheckListOrVec(objMal)
+	If Not IsListOrVec(objMal) Then
+		Err.Raise vbObjectError, _
+			"CheckListOrVec", _
+			"Wrong argument type, need a list or a vector."
+	End If
+End Sub
 
-' Function mFirst(objArgs)
-' 	'Set objRes = New MalType
-' 	Set objRes = objArgs.value.item(1).value.item(0)
-' 	Set mFirst= objRes
-' 	'msgbox 1
-' End Function
+Dim objNS
+Set objNS = NewEnv(Nothing)
 
-' Function mGet(objArgs)
-' 	Set objRes = New MalType
-' 	'objRes.Type = 
-' 	Set objList = objArgs.value.item(1)
-' 	numIndex = objArgs.value.item(2).value
-' 	Set objRes = objList.value.Item(numIndex)
-' 	'MsgBox objRes.type
-' 	Set mGet = objRes
-' End Function
+Function MAdd(objArgs)
+	CheckArgNum objArgs, 2
+	CheckType objArgs.Item(1), TYPES.NUMBER
+	CheckType objArgs.Item(2), TYPES.NUMBER
+	Set MAdd = NewMalNum( _
+		objArgs.Item(1).Value + objArgs.Item(2).Value)
+End Function
+objNS.Add NewMalSym("+"), NewVbsProc("MAdd", False)
 
-' Function mSet(objArgs)
-' 	Set objRes = New MalType
-' 	'objRes.Type = 
-' 	'MsgBox 1
-' 	Set objList = objArgs.value.item(1)
-' 	numIndex = objArgs.value.item(2).value
-' 	'MsgBox numIndex
-' 	Set objReplace = objArgs.value.item(3)
-' 	Set objList.value.Item(numIndex) = objReplace
-' 	'MsgBox objRes.type
-' 	Set mSet = New MalType
-' 	mSet.Type = TYPE_NIL
-' End Function
+Function MSub(objArgs)
+	CheckArgNum objArgs, 2
+	CheckType objArgs.Item(1), TYPES.NUMBER
+	CheckType objArgs.Item(2), TYPES.NUMBER
+	Set MSub = NewMalNum( _
+		objArgs.Item(1).Value - objArgs.Item(2).Value)
+End Function
+objNS.Add NewMalSym("-"), NewVbsProc("MSub", False)
 
-' Function mprintln(objArgs)
-' 	Dim objRes,i
-' 	Set objRes = New MalType
-' 	objRes.Type = TYPE_NIL
-' 	For i = 1 To objArgs.Value.Count - 2
-' 		wsh.stdout.write PrintMalType(objArgs.Value.Item(i), False) & " "
-' 	Next
-' 	If objArgs.Value.Count - 1 > 0 Then
-' 		wsh.stdout.write PrintMalType(objArgs.Value.Item(objArgs.Value.Count - 1), False)
-' 	End If
-' 	Set mprintln=objRes
-' End Function
+Function MMul(objArgs)
+	CheckArgNum objArgs, 2
+	CheckType objArgs.Item(1), TYPES.NUMBER
+	CheckType objArgs.Item(2), TYPES.NUMBER
+	Set MMul = NewMalNum( _
+		objArgs.Item(1).Value * objArgs.Item(2).Value)
+End Function
+objNS.Add NewMalSym("*"), NewVbsProc("MMul", False)
 
-' Function mprn(objArgs)
-' 	Dim objRes,i
-' 	Set objRes = New MalType
-' 	objRes.Type = TYPE_NIL
-' 	For i = 1 To objArgs.Value.Count - 2
-' 		wsh.stdout.write PrintMalType(objArgs.Value.Item(i), True) & " "
-' 	Next
-' 	If objArgs.Value.Count - 1 > 0 Then
-' 		wsh.stdout.write PrintMalType(objArgs.Value.Item(objArgs.Value.Count - 1), True)
-' 	End If
-' 	Set mprn=objRes
-' End Function
+Function MDiv(objArgs)
+	CheckArgNum objArgs, 2
+	CheckType objArgs.Item(1), TYPES.NUMBER
+	CheckType objArgs.Item(2), TYPES.NUMBER
+	Set MDiv = NewMalNum( _
+		objArgs.Item(1).Value \ objArgs.Item(2).Value)
+End Function
+objNS.Add NewMalSym("/"), NewVbsProc("MDiv", False)
 
-' Function mstr(objArgs)
-' 	Dim objRes,i
-' 	Set objRes = New MalType
-' 	objRes.Type = TYPE_STRING
-' 	objRes.Value = ""
-' 	For i = 1 To objArgs.Value.Count - 1
-' 		objRes.Value = objRes.Value & PrintMalType(objArgs.Value.Item(i), False)
-' 	Next
-' 	Set mstr=objRes
-' End Function
+Function MList(objArgs)
+	Dim varRet
+	Set varRet = NewMalList(Array())
+	Dim i
+	For i = 1 To objArgs.Count - 1
+		varRet.Add objArgs.Item(i)
+	Next
+	Set MList = varRet
+End Function
+objNS.Add NewMalSym("list"), NewVbsProc("MList", False)
 
-' Function mprstr(objArgs)
-' 	Dim objRes,i
-' 	Set objRes = New MalType
-' 	objRes.Type = TYPE_STRING
-' 	objRes.Value = ""
-' 	For i = 1 To objArgs.Value.Count - 2
-' 		objRes.Value = objRes.Value & PrintMalType(objArgs.Value.Item(i), True) & " "
-' 	Next
-' 	If objArgs.Value.Count - 1 > 0 Then
-' 		objRes.Value = objRes.Value & PrintMalType(objArgs.Value.Item(objArgs.Value.Count - 1), True)
-' 	End If
-' 	Set mprstr=objRes
-' End Function
+Function MIsList(objArgs)
+	CheckArgNum objArgs, 1
 
-' Function mEqualGreater(objArgs)
-' 	CheckArgNum objArgs, 2
-' 	Dim objRes,i
-' 	Set objRes = New MalType
-' 	objRes.Type = TYPE_BOOLEAN
-' 	objRes.Value = (objArgs.Value.Item(1).Value >= objArgs.Value.Item(2).Value)
-' 	Set mEqualGreater = objRes
-' End Function
+	Set MIsList = NewMalBool(objArgs.Item(1).Type = TYPES.LIST)
+End Function
+objNS.Add NewMalSym("list?"), NewVbsProc("MIsList", False)
 
-' Function mEqualLess(objArgs)
-' 	CheckArgNum objArgs, 2
-' 	Dim objRes,i
-' 	Set objRes = New MalType
-' 	objRes.Type = TYPE_BOOLEAN
-' 	objRes.Value = (objArgs.Value.Item(1).Value <= objArgs.Value.Item(2).Value)
-' 	Set mEqualLess = objRes
-' End Function
+Function MIsEmpty(objArgs)
+	CheckArgNum objArgs, 1
+	CheckListOrVec objArgs.Item(1)
 
-' Function mGreater(objArgs)
-' 	CheckArgNum objArgs, 2
-' 	Dim objRes,i
-' 	Set objRes = New MalType
-' 	objRes.Type = TYPE_BOOLEAN
-' 	objRes.Value = (objArgs.Value.Item(1).Value > objArgs.Value.Item(2).Value)
-' 	Set mGreater = objRes
-' End Function
+	Set MIsEmpty = NewMalBool(objArgs.Item(1).Count = 0)
+End Function
+objNS.Add NewMalSym("empty?"), NewVbsProc("MIsEmpty", False)
 
+Function MCount(objArgs)
+	CheckArgNum objArgs, 1
+	CheckListOrVec objArgs.Item(1)
 
-' Function mLess(objArgs)
-' 	CheckArgNum objArgs, 2
-' 	Dim objRes,i
-' 	Set objRes = New MalType
-' 	objRes.Type = TYPE_BOOLEAN
-' 	objRes.Value = (objArgs.Value.Item(1).Value < objArgs.Value.Item(2).Value)
-' 	Set mLess = objRes
-' End Function
+	Set MCount = NewMalNum(objArgs.Item(1).Count)
+End Function
+objNS.Add NewMalSym("count"), NewVbsProc("MCount", False)
 
+Function MEqual(objArgs)
+	Dim varRet
+	CheckArgNum objArgs, 2
 
-' Function mEqual(objArgs)
-' 	CheckArgNum objArgs, 2
-' 	Dim objRes,i
-' 	Set objRes = New MalType
-' 	objRes.Type = TYPE_BOOLEAN
-' 	objRes.Value = (objArgs.Value.Item(1).Type = objArgs.Value.Item(2).Type) Or _
-' 		((objArgs.Value.Item(1).Type = TYPE_LIST Or objArgs.Value.Item(1).Type = TYPE_VECTOR) And _
-' 		(objArgs.Value.Item(2).Type = TYPE_LIST Or objArgs.Value.Item(2).Type = TYPE_VECTOR))
-' 	If objRes.Value Then
-' 		'MsgBox objArgs.Value.Item(1).Type
-' 		If objArgs.Value.Item(1).Type = TYPE_LIST Or objArgs.Value.Item(1).Type = TYPE_VECTOR Then
-' 			objRes.Value = _
-' 				(objArgs.Value.Item(1).Value.Count = objArgs.Value.Item(2).Value.Count)
-' 			If objRes.Value Then
-' 				Dim objTemp
-' 				For i = 0 To objArgs.Value.Item(1).Value.Count - 1
-' 					'an ugly recursion
-				
-' 					'MsgBox objArgs.Value.Item(1).Value.Item(i).type
-' 					Set objTemp = New MalType
-' 					objTemp.Type = TYPE_LIST
-' 					Set objTemp.Value = CreateObject("System.Collections.Arraylist")
-' 					objTemp.Value.Add Null
-' 					objTemp.Value.Add objArgs.Value.Item(1).Value.Item(i)
-' 					objTemp.Value.Add objArgs.Value.Item(2).Value.Item(i)
-					
-' 					objRes.Value = objRes.Value And mEqual(objTemp).Value
-' 				Next
-' 			End If
-' 		Else
-' 			'MsgBox objArgs.Value.Item(1).Value
-' 			'MsgBox objArgs.Value.Item(2).Value
-' 			objRes.Value = _
-' 				(objArgs.Value.Item(1).Value = objArgs.Value.Item(2).Value)
-' 		End If
-' 	End If
-' 	Set mEqual = objRes
-' End Function
+	Dim boolResult, i
+	If IsListOrVec(objArgs.Item(1)) And _
+		IsListOrVec(objArgs.Item(2)) Then
+		If objArgs.Item(1).Count <> objArgs.Item(2).Count Then
+			Set varRet = NewMalBool(False)
+		Else
+			boolResult = True
+			For i = 0 To objArgs.Item(1).Count - 1
+				boolResult = boolResult And _
+					MEqual(NewMalList(Array(Nothing, _
+					objArgs.Item(1).Item(i), _
+					objArgs.Item(2).Item(i)))).Value
+			Next
+			Set varRet = NewMalBool(boolResult)	
+		End If
+	Else
+		If objArgs.Item(1).Type <> objArgs.Item(2).Type Then
+			Set varRet = NewMalBool(False)
+		Else
+			Select Case objArgs.Item(1).Type
+				Case TYPES.HASHMAP
+					Err.Raise vbObjectError, _
+						"MEqual", "Not implement yet~"
+				Case Else
+					Set varRet = NewMalBool( _
+						objArgs.Item(1).Value = objArgs.Item(2).Value)
+			End Select
+		End If
+	End If
 
-' Sub Er(sInfo)
-' 	boolError = True
-' 	strError = sInfo
-' End Sub
+	Set MEqual = varRet
+End Function
+objNS.Add NewMalSym("="), NewVbsProc("MEqual", False)
 
-' Function mListCount(objArgs)
-' 	CheckArgNum objArgs, 1
-' 	Dim objRes,i
-' 	Set objRes = New MalType
-' 	objRes.Type = TYPE_NUMBER
-' 	If objArgs.Value.Item(1).Type = TYPE_LIST Then
-' 		objRes.Value = objArgs.Value.Item(1).Value.Count
-' 	ElseIf objArgs.Value.Item(1).Type = TYPE_NIL Then
-' 		objRes.Value = 0
-' 	Else
-' 		Er "can't count"
-' 	End If
-' 	Set mListCount = objRes
-' End Function
-
-' Function mIsListEmpty(objArgs)
-' 	CheckArgNum objArgs, 1
-' 	Dim objRes,i
-' 	Set objRes = New MalType
-' 	objRes.Type = TYPE_BOOLEAN
-' 	objRes.Value = (objArgs.Value.Item(1).Value.Count = 0)
-' 	Set mIsListEmpty = objRes
-' End Function
-
-' Function mIsList(objArgs)
-' 	CheckArgNum objArgs, 1
-' 	Dim objRes,i
-' 	Set objRes = New MalType
-' 	objRes.Type = TYPE_BOOLEAN
-' 	objRes.Value = (objArgs.Value.Item(1).Type = TYPE_LIST)
-' 	Set mIsList = objRes
-' End Function
-
-' Function mMakeList(objArgs)
-' 	Dim objRes,i
-' 	Set objRes = New MalType
-' 	objRes.Type = TYPE_LIST
-' 	Set objRes.Value = CreateObject("System.Collections.ArrayList")
-' 	For i = 1 To objArgs.Value.Count - 1
-' 		objRes.Value.Add objArgs.Value.Item(i)
-' 	Next
-' 	Set mMakeList = objRes
-' End Function
-
-' Function Add(objArgs)
-' 	CheckArgNum objArgs, 2
-' 	Set Add = New MalType
-' 	Add.Type = TYPE_NUMBER
-' 	Add.Value = objArgs.Value.Item(1).Value + objArgs.Value.Item(2).Value
-' End Function
-
-' Function Subtract(objArgs)
-' 	CheckArgNum objArgs, 2
-' 	Set Subtract = New MalType
-' 	Subtract.Type = TYPE_NUMBER
-' 	Subtract.Value = objArgs.Value.Item(1).Value - objArgs.Value.Item(2).Value
-' End Function
-
-' Function Multiply(objArgs)
-' 	CheckArgNum objArgs, 2
-' 	Set Multiply = New MalType
-' 	Multiply.Type = TYPE_NUMBER
-' 	Multiply.Value = objArgs.Value.Item(1).Value * objArgs.Value.Item(2).Value
-' End Function
-
-' Function Divide(objArgs)
-' 	CheckArgNum objArgs, 2
-' 	Set Divide = New MalType
-' 	Divide.Type = TYPE_NUMBER
-' 	Divide.Value = objArgs.Value.Item(1).Value \ objArgs.Value.Item(2).Value
-' End Function
+'Todo > < >= <= pr-str str prn println
