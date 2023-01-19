@@ -1,6 +1,6 @@
 Option Explicit
 
-Include "Core.vbs"
+Include "Types.vbs"
 Include "Reader.vbs"
 Include "Printer.vbs"
 

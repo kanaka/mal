@@ -13,7 +13,7 @@ Function PrintMalType(objMal, boolReadable)
 	Dim i
 	Select Case objMal.Type
 		Case TYPES.LIST
-			With ValueOf(objMal)
+			With objMal
 				For i = 0 To .Count - 2
 					varResult = varResult & _
 						PrintMalType(.Item(i), boolReadable) & " "
@@ -25,7 +25,7 @@ Function PrintMalType(objMal, boolReadable)
 			End With
 			varResult = "(" & varResult & ")"
 		Case TYPES.VECTOR
-			With ValueOf(objMal)
+			With objMal
 				For i = 0 To .Count - 2
 					varResult = varResult & _
 						PrintMalType(.Item(i), boolReadable) & " "
@@ -37,7 +37,7 @@ Function PrintMalType(objMal, boolReadable)
 			End With
 			varResult = "[" & varResult & "]"
 		Case TYPES.HASHMAP
-			With ValueOf(objMal)
+			With objMal
 				Dim arrKeys
 				arrKeys = .Keys
 				For i = 0 To .Count - 2
@@ -54,12 +54,12 @@ Function PrintMalType(objMal, boolReadable)
 			varResult = "{" & varResult & "}"
 		Case TYPES.STRING
 			If boolReadable Then
-				varResult = EscapeString(ValueOf(objMal))
+				varResult = EscapeString(objMal.Value)
 			Else
-				varResult = ValueOf(objMal)
+				varResult = objMal.Value
 			End If
 		Case TYPES.BOOLEAN
-			If ValueOf(objMal) Then
+			If objMal.Value Then
 				varResult = "true"
 			Else
 				varResult = "false"
@@ -67,15 +67,15 @@ Function PrintMalType(objMal, boolReadable)
 		Case TYPES.NIL
 			varResult = "nil"
 		Case TYPES.NUMBER
-			varResult = CStr(ValueOf(objMal))
+			varResult = CStr(objMal.Value)
 		Case TYPES.LAMBDA
 			varResult = "#<function>"
 		Case TYPES.PROCEDURE
 			varResult = "#<function>"
 		Case TYPES.KEYWORD
-			varResult = ValueOf(objMal)
+			varResult = objMal.Value
 		Case TYPES.SYMBOL
-			varResult = ValueOf(objMal)
+			varResult = objMal.Value
 		Case Else
 			Err.Raise vbObjectError, _
 				"PrintMalType", "unknown type"

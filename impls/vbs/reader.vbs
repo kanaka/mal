@@ -1,53 +1,63 @@
 Option Explicit
 
 Function ReadString(strCode)
-	Set ReadString = ReadForm(Tokenize(strCode))
+	Dim objTokens
+	Set objTokens = Tokenize(strCode)
+	Set ReadString = ReadForm(objTokens)
+	If Not objTokens.AtEnd() Then
+		Err.Raise vbObjectError, _
+			"ReadForm", "Extra token '" + objTokens.Current() + "'."
+	End If
 End Function
 
 Class Tokens
-	Private strRaw, objTokens
+	Private objQueue
 	Private objRE
 
 	Private Sub Class_Initialize
 		Set objRE = New RegExp
 		With objRE
-			.Pattern = "[\s,]*(~@|[\[\]{}()'`~^@]|""(?:\\.|[^\\""])*""?|;.*|[^\s\[\]{}('""`,;)]*)"
+			.Pattern = "[\s,]*" + _
+				"(" + _
+					"~@" + "|" + _
+					"[\[\]{}()'`~^@]" + "|" + _
+					"""(?:\\.|[^\\""])*""?" + "|" + _
+					";.*" + "|" + _
+					"[^\s\[\]{}('""`,;)]*" + _
+				")"
 			.IgnoreCase = True
 			.Global = True
 		End With
 
-		Set objTokens = CreateObject("System.Collections.Queue")
+		Set objQueue = CreateObject("System.Collections.Queue")
 	End Sub
 
 	Public Function Init(strCode)
-		strRaw = strCode
-
 		Dim objMatches, objMatch
 		Set objMatches = objRE.Execute(strCode)
 		Dim strToken
 		For Each objMatch In objMatches
 			strToken = Trim(objMatch.SubMatches(0))
 			If Not (Left(strToken, 1) = ";" Or strToken = "") Then
-				' Drop comments
-				objTokens.Enqueue Trim(strToken)
+				objQueue.Enqueue strToken
 			End If
 		Next
 	End Function
 
 	Public Function Current()
-		Current = objTokens.Peek()
+		Current = objQueue.Peek()
 	End Function
 
 	Public Function MoveToNext()
-		MoveToNext = objTokens.Dequeue()
+		MoveToNext = objQueue.Dequeue()
 	End Function
 
 	Public Function AtEnd()
-		AtEnd = (objTokens.Count = 0)
+		AtEnd = (objQueue.Count = 0)
 	End Function
 
 	Public Function Count()
-		Count = objTokens.Count
+		Count = objQueue.Count
 	End Function
 End Class
 
@@ -81,16 +91,11 @@ Function ReadForm(objTokens) ' Return Nothing / MalType
 		Set varResult = ReadSpecial(objTokens)
 	ElseIf InStr(")]}", strToken) Then
 		Err.Raise vbObjectError, _
-			"ReadForm", "unbalanced parentheses"
+			"ReadForm", "Unbalanced parentheses."
 	ElseIf strToken = "^" Then
 		Set varResult = ReadMetadata(objTokens)
 	Else
 		Set varResult = ReadAtom(objTokens)
-	End If
-
-	If Not objTokens.AtEnd() Then
-		'Err.Raise vbObjectError, _
-		'	"ReadForm", "extra token(s): " + objTokens.Current()
 	End If
 
 	Set ReadForm = varResult
@@ -100,11 +105,11 @@ Function ReadMetadata(objTokens)
 	Dim varResult
 
 	Call objTokens.MoveToNext()
-	Dim objTmp
-	Set objTmp = ReadForm(objTokens)
+	Dim objTemp
+	Set objTemp = ReadForm(objTokens)
 	Set varResult = NewMalList(Array( _
-		NewMalType(TYPES.SYMBOL, "with-meta"), _
-		ReadForm(objTokens), objTmp))
+		NewMalSym("with-meta"), _
+		ReadForm(objTokens), objTemp))
 
 	Set ReadMetadata = varResult
 End Function
@@ -127,13 +132,14 @@ Function ReadSpecial(objTokens)
 			strAlias = "deref"
 		Case Else
 			Err.Raise vbObjectError, _
-				"ReadSpecial", "unknown token " & strAlias
+				"ReadSpecial", "Unknown token '" & strAlias & "'."
 	End Select
 
 	Call objTokens.MoveToNext()
 	Set varResult = NewMalList(Array( _
-		NewMalType(TYPES.SYMBOL, strAlias), _ 
+		NewMalSym(strAlias), _ 
 		ReadForm(objTokens)))
+
 	Set ReadSpecial = varResult
 End Function
 
@@ -143,7 +149,7 @@ Function ReadList(objTokens)
 
 	If objTokens.AtEnd() Then
 		Err.Raise vbObjectError, _
-			"ReadList", "unbalanced parentheses"
+			"ReadList", "Unbalanced parentheses."
 	End If
 
 	Set varResult = NewMalList(Array())
@@ -155,7 +161,7 @@ Function ReadList(objTokens)
 
 	If objTokens.MoveToNext() <> ")" Then
 		Err.Raise vbObjectError, _
-			"ReadList", "unbalanced parentheses"
+			"ReadList", "Unbalanced parentheses."
 	End If
 
 	Set ReadList = varResult
@@ -167,10 +173,10 @@ Function ReadVector(objTokens)
 
 	If objTokens.AtEnd() Then
 		Err.Raise vbObjectError, _
-			"ReadVector", "unbalanced parentheses"
+			"ReadVector", "Unbalanced parentheses."
 	End If
 
-	Set varResult = NewMalVector(Array())
+	Set varResult = NewMalVec(Array())
 	With varResult
 		While objTokens.Count() > 1 And objTokens.Current() <> "]"
 			.Add ReadForm(objTokens)
@@ -179,7 +185,7 @@ Function ReadVector(objTokens)
 
 	If objTokens.MoveToNext() <> "]" Then
 		Err.Raise vbObjectError, _
-			"ReadVector", "unbalanced parentheses"
+			"ReadVector", "Unbalanced parentheses."
 	End If
 
 	Set ReadVector = varResult
@@ -191,10 +197,10 @@ Function ReadHashmap(objTokens)
 
 	If objTokens.Count = 0 Then
 		Err.Raise vbObjectError, _
-			"ReadHashmap", "unbalanced parentheses"
+			"ReadHashmap", "Unbalanced parentheses."
 	End If
-	Set varResult = NewMalHashmap(Array(), Array())
-
+	
+	Set varResult = NewMalMap(Array(), Array())
 	Dim objKey, objValue
 	With varResult
 		While objTokens.Count > 2 And objTokens.Current() <> "}"
@@ -203,12 +209,12 @@ Function ReadHashmap(objTokens)
 			.Add objKey, objValue
 		Wend
 	End With
-
+	
 	If objTokens.MoveToNext() <> "}" Then
 		Err.Raise vbObjectError, _
-			"ReadHashmap", "unbalanced parentheses"
+			"ReadHashmap", "Unbalanced parentheses."
 	End If
-
+	
 	Set ReadHashmap = varResult
 End Function
 
@@ -220,22 +226,22 @@ Function ReadAtom(objTokens)
 
 	Select Case strAtom
 		Case "true"
-			Set varResult = NewMalType(TYPES.BOOLEAN, True)
+			Set varResult = NewMalBool(True)
 		Case "false"
-			Set varResult = NewMalType(TYPES.BOOLEAN, False)
+			Set varResult = NewMalBool(False)
 		Case "nil"
-			Set varResult = NewMalType(TYPES.NIL, Empty)
+			Set varResult = NewMalNil()
 		Case Else
 			Select Case Left(strAtom, 1)
 				Case ":"
-					Set varResult = NewMalType(TYPES.KEYWORD, strAtom)
+					Set varResult = NewMalKwd(strAtom)
 				Case """"
-					Set varResult = NewMalType(TYPES.STRING, ParseString(strAtom))
+					Set varResult = NewMalStr(ParseString(strAtom))
 				Case Else
 					If IsNumeric(strAtom) Then
-						Set varResult = NewMalType(TYPES.NUMBER, Eval(strAtom))
+						Set varResult = NewMalNum(Eval(strAtom))
 					Else
-						Set varResult = NewMalType(TYPES.SYMBOL, strAtom)
+						Set varResult = NewMalSym(strAtom)
 					End If
 			End Select
 	End Select
@@ -246,7 +252,7 @@ End Function
 Function ParseString(strRaw)
 	If Right(strRaw, 1) <> """" Or Len(strRaw) < 2 Then
 		Err.Raise vbObjectError, _
-			"ParseString", "unterminated string, got EOF"
+			"ParseString", "Unterminated string, got EOF."
 	End If
 
 	Dim strTemp
@@ -275,7 +281,7 @@ Function ParseString(strRaw)
 			ParseString = ParseString & Right(strTemp, 1)
 		Else
 			Err.Raise vbObjectError, _
-				"ParseString", "unterminated string, got EOF"
+				"ParseString", "Unterminated string, got EOF."
 		End If
 	End If
 End Function
