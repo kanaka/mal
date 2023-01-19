@@ -239,11 +239,3 @@ Function NewVbsProc(strFnName, boolSpec)
 	varResult.Init GetRef(strFnName), True, boolSpec
 	Set NewVbsProc = varResult
 End Function
-
-Sub CheckArgNum(objArgs, lngExpect)
-	If objArgs.Value.Count - 1 <> lngExpect Then
-		boolError = True
-		strError = "wrong number of arguments"
-		Call REPL()
-	End If
-End Sub

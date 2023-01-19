@@ -1,67 +1,95 @@
 Option Explicit
 
-Include "Core.vbs"
+Include "Types.vbs"
 Include "Reader.vbs"
 Include "Printer.vbs"
 
-Dim objEnv
-Set objEnv = CreateObject("Scripting.Dictionary")
-objEnv.Add "+", GetRef("Add")
-objEnv.Add "-", GetRef("Subtract")
-objEnv.Add "*", GetRef("Multiply")
-objEnv.Add "/", GetRef("Divide")
+Class Enviroment
+	Private objDict
+	Private objSelf
 
-Sub CheckArgNum(objArgs, lngExpect)
-	If objArgs.Value.Count - 1 <> lngExpect Then
-		boolError = True
-		strError = "wrong number of arguments"
-		Call REPL()
-	End If
-End Sub
+	Private Sub Class_Initialize
+		Set objDict = CreateObject("Scripting.Dictionary")
+	End Sub
+
+	Public Function Add(objSymbol, objProcedure)
+		objDict.Add objSymbol.Value, objProcedure
+	End Function
+
+	Public Property Set Self(objThis)
+		Set objSelf = objThis
+	End Property
+
+	Public Function Find(varKey)
+		Set Find = objSelf
+	End Function
+
+	Public Function [Get](objSymbol)
+		If objDict.Exists(objSymbol.Value) Then
+			Set [Get] = objDict.Item(objSymbol.Value)
+		Else
+			Err.Raise vbObjectError, _
+				"Enviroment", "Symbol '" + PrintMalType(objSymbol, True) + "' not found."
+		End If
+	End Function
+End Class
+
+Dim objEnv
+Set objEnv = New Enviroment
+Set objEnv.Self = objEnv
 
 Function Add(objArgs)
 	CheckArgNum objArgs, 2
-	Set Add = New MalType
-	Add.Type = TYPE_NUMBER
-	Add.Value = objArgs.Value.Item(1).Value + objArgs.Value.Item(2).Value
+	Set Add = NewMalNum( _
+		objArgs.Item(1).Value + objArgs.Item(2).Value)
 End Function
+objEnv.Add NewMalSym("+"), NewVbsProc("Add", False)
 
-Function Subtract(objArgs)
+Function [Sub](objArgs)
 	CheckArgNum objArgs, 2
-	Set Subtract = New MalType
-	Subtract.Type = TYPE_NUMBER
-	Subtract.Value = objArgs.Value.Item(1).Value - objArgs.Value.Item(2).Value
+	Set [Sub] = NewMalNum( _
+		objArgs.Item(1).Value - objArgs.Item(2).Value)
 End Function
+objEnv.Add NewMalSym("-"), NewVbsProc("Sub", False)
 
-Function Multiply(objArgs)
+Function Mul(objArgs)
 	CheckArgNum objArgs, 2
-	Set Multiply = New MalType
-	Multiply.Type = TYPE_NUMBER
-	Multiply.Value = objArgs.Value.Item(1).Value * objArgs.Value.Item(2).Value
+	Set Mul = NewMalNum( _
+		objArgs.Item(1).Value * objArgs.Item(2).Value)
 End Function
+objEnv.Add NewMalSym("*"), NewVbsProc("Mul", False)
 
-Function Divide(objArgs)
+Function Div(objArgs)
 	CheckArgNum objArgs, 2
-	Set Divide = New MalType
-	Divide.Type = TYPE_NUMBER
-	Divide.Value = objArgs.Value.Item(1).Value \ objArgs.Value.Item(2).Value
+	Set Div = NewMalNum( _
+		objArgs.Item(1).Value \ objArgs.Item(2).Value)
 End Function
+objEnv.Add NewMalSym("/"), NewVbsProc("Div", False)
 
+Sub CheckArgNum(objArgs, lngArgNum)
+	If objArgs.Count - 1 <> lngArgNum Then
+		Err.Raise vbObjectError, _
+			"CheckArgNum", "Wrong number of arguments."
+	End IF
+End Sub
 
 Call REPL()
 Sub REPL()
 	Dim strCode, strResult
 	While True
-		If boolError Then
-			WScript.StdErr.WriteLine "ERROR: " & strError
-			boolError = False
-		End If
 		WScript.StdOut.Write("user> ")
+
 		On Error Resume Next
-		strCode = WScript.StdIn.ReadLine()
-		If Err.Number <> 0 Then WScript.Quit 0
+			strCode = WScript.StdIn.ReadLine()
+			If Err.Number <> 0 Then WScript.Quit 0
 		On Error Goto 0
-		WScript.Echo REP(strCode)
+
+		On Error Resume Next
+			WScript.Echo REP(strCode)
+			If Err.Number <> 0 Then
+				WScript.StdErr.WriteLine Err.Source + ": " + Err.Description 
+			End If
+		On Error Goto 0
 	Wend
 End Sub
 
@@ -69,57 +97,64 @@ Function Read(strCode)
 	Set Read = ReadString(strCode)
 End Function
 
-Function Evaluate(objCode, objEnv)
+Function Evaluate(objCode, objEnv) ' Return Nothing / objCode
 	If TypeName(objCode) = "Nothing" Then
-		Call REPL()
+		Set Evaluate = Nothing
+		Exit Function
 	End If
-	
-	If objCode.Type = TYPE_LIST Then
-		If objCode.Value.Count = 0 Then
+	Dim varRet
+	If objCode.Type = TYPES.LIST Then
+		If objCode.Count = 0 Then ' ()
 			Set Evaluate = objCode
 			Exit Function
 		End If
-		
-		Set Evaluate = EvaluateAST(objCode, objEnv)
-		Set Evaluate = Evaluate.Value.Item(0)(Evaluate)
+		Set objCode.Item(0) = Evaluate(objCode.Item(0), objEnv)
+		Set varRet = objCode.Item(0).Apply(objCode, objEnv)
 	Else
-		Set Evaluate = EvaluateAST(objCode, objEnv)
+		Set varRet = EvaluateAST(objCode, objEnv)
 	End If
+
+	Set Evaluate = varRet
 End Function
 
+
 Function EvaluateAST(objCode, objEnv)
-	Dim objResult, i
+	Dim varRet, i
 	Select Case objCode.Type
-		Case TYPE_SYMBOL
-			If objEnv.Exists(objCode.Value) Then
-				Set objResult = objEnv(objCode.Value)
-			Else
-				boolError = True
-				strError = "symbol not found"
-				Call REPL()
-			End If
-		Case TYPE_LIST
-			For i = 0 To objCode.Value.Count - 1
-				Set objCode.Value.Item(i) = Evaluate(objCode.Value.Item(i), objEnv)
+		Case TYPES.SYMBOL
+			Set varRet = objEnv.Get(objCode)
+		Case TYPES.LIST
+			Err.Raise vbObjectError, _
+				"EvaluateAST", "Unexpect type."
+		Case TYPES.VECTOR
+			For i = 0 To objCode.Count() - 1
+				Set objCode.Item(i) = Evaluate(objCode.Item(i))
 			Next
-			Set objResult = objCode
-		Case TYPE_VECTOR
-			For i = 0 To objCode.Value.Count - 1
-				Set objCode.Value.Item(i) = Evaluate(objCode.Value.Item(i), objEnv)
+			Set varRet = objCode
+		Case TYPES.HASHMAP
+			For Each i In objCode.Keys()
+				Set objCode.Item(i) = Evaluate(objCode.Item(i))
 			Next
-			Set objResult = objCode
-		Case TYPE_HASHMAP
-			Dim arrKeys
-			arrKeys = objCode.Value.Keys
-			For i = 0 To objCode.Value.Count - 1
-				Set objCode.Value.Item(arrKeys(i)) = _
-					Evaluate(objCode.Value.Item(arrKeys(i)), objEnv)
-			Next
-			Set objResult = objCode
+			Set varRet = objCode
 		Case Else
-			Set objResult = objCode
+			Set varRet = objCode
 	End Select
-	Set EvaluateAST = objResult
+	Set EvaluateAST = varRet
+End Function
+
+Function EvaluateRest(objCode, objEnv)
+	Dim varRet, i
+	Select Case objCode.Type
+		Case TYPES.LIST
+			For i = 1 To objCode.Count() - 1
+				Set objCode.Item(i) = Evaluate(objCode.Item(i), objEnv)
+			Next
+			Set varRet = objCode
+		Case Else
+			Err.Raise vbObjectError, _
+				"EvaluateRest", "Unexpected type."
+	End Select
+	Set EvaluateRest = varRet
 End Function
 
 Function Print(objCode)
