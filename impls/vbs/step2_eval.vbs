@@ -128,12 +128,12 @@ Function EvaluateAST(objCode, objEnv)
 				"EvaluateAST", "Unexpect type."
 		Case TYPES.VECTOR
 			For i = 0 To objCode.Count() - 1
-				Set objCode.Item(i) = Evaluate(objCode.Item(i))
+				Set objCode.Item(i) = Evaluate(objCode.Item(i), objEnv)
 			Next
 			Set varRet = objCode
 		Case TYPES.HASHMAP
 			For Each i In objCode.Keys()
-				Set objCode.Item(i) = Evaluate(objCode.Item(i))
+				Set objCode.Item(i) = Evaluate(objCode.Item(i), objEnv)
 			Next
 			Set varRet = objCode
 		Case Else
