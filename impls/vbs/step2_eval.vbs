@@ -40,6 +40,8 @@ Set objEnv.Self = objEnv
 
 Function Add(objArgs)
 	CheckArgNum objArgs, 2
+	CheckType objArgs.Item(1), TYPES.NUMBER
+	CheckType objArgs.Item(2), TYPES.NUMBER
 	Set Add = NewMalNum( _
 		objArgs.Item(1).Value + objArgs.Item(2).Value)
 End Function
@@ -47,6 +49,8 @@ objEnv.Add NewMalSym("+"), NewVbsProc("Add", False)
 
 Function [Sub](objArgs)
 	CheckArgNum objArgs, 2
+	CheckType objArgs.Item(1), TYPES.NUMBER
+	CheckType objArgs.Item(2), TYPES.NUMBER
 	Set [Sub] = NewMalNum( _
 		objArgs.Item(1).Value - objArgs.Item(2).Value)
 End Function
@@ -54,6 +58,8 @@ objEnv.Add NewMalSym("-"), NewVbsProc("Sub", False)
 
 Function Mul(objArgs)
 	CheckArgNum objArgs, 2
+	CheckType objArgs.Item(1), TYPES.NUMBER
+	CheckType objArgs.Item(2), TYPES.NUMBER
 	Set Mul = NewMalNum( _
 		objArgs.Item(1).Value * objArgs.Item(2).Value)
 End Function
@@ -61,6 +67,8 @@ objEnv.Add NewMalSym("*"), NewVbsProc("Mul", False)
 
 Function Div(objArgs)
 	CheckArgNum objArgs, 2
+	CheckType objArgs.Item(1), TYPES.NUMBER
+	CheckType objArgs.Item(2), TYPES.NUMBER
 	Set Div = NewMalNum( _
 		objArgs.Item(1).Value \ objArgs.Item(2).Value)
 End Function
@@ -70,6 +78,13 @@ Sub CheckArgNum(objArgs, lngArgNum)
 	If objArgs.Count - 1 <> lngArgNum Then
 		Err.Raise vbObjectError, _
 			"CheckArgNum", "Wrong number of arguments."
+	End IF
+End Sub
+
+Sub CheckType(objMal, varType)
+	If objMal.Type <> varType Then
+		Err.Raise vbObjectError, _
+			"CheckType", "Wrong argument type."
 	End IF
 End Sub
 
