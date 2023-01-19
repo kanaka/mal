@@ -20,8 +20,9 @@ Dim strCode
 While True 'REPL
 	WScript.StdOut.Write("user> ")
 	On Error Resume Next
-	strCode = WScript.StdIn.ReadLine()
-	If Err.Number <> 0 Then WScript.Quit 0
+		strCode = WScript.StdIn.ReadLine()
+		If Err.Number <> 0 Then WScript.Quit 0
 	On Error Goto 0
+	
 	WScript.Echo REP(strCode)
 Wend
