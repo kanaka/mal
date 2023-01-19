@@ -7,7 +7,7 @@ Include "Printer.vbs"
 Call REPL()
 
 Sub REPL()
-	Dim strCode, strResult
+	Dim strCode
 	While True
 		WScript.StdOut.Write("user> ")
 
