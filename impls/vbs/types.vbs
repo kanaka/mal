@@ -6,14 +6,14 @@ Set TYPES = New MalTypes
 Class MalTypes
 	Public LIST, VECTOR, HASHMAP, [BOOLEAN], NIL
 	Public KEYWORD, [STRING], NUMBER, SYMBOL
-	Public LAMBDA, PROCEDURE
+	Public PROCEDURE
 
 	Public [TypeName]
 	Private Sub Class_Initialize
 		[TypeName] = Array( _
 				"LIST", "VECTOR", "HASHMAP", "BOOLEAN", _
 				"NIL", "KEYWORD", "STRING", "NUMBER", _
-				"SYMBOL", "LAMBDA", "PROCEDURE")
+				"SYMBOL", "PROCEDURE")
 
 		Dim i
 		For i = 0 To UBound([TypeName])
@@ -202,32 +202,26 @@ Function NewMalMap(arrKeys, arrValues)
 	Set NewMalMap = varResult
 End Function
 
-Class MalProcedure 'Extends MalType
+Class VbsProcedure 'Extends MalType
 	Public [Type]
 	Public Value
 	
-	Public boolBuiltin
 	Public boolSpec
 	Private Sub Class_Initialize
 		[Type] = TYPES.PROCEDURE
 	End Sub
 
-	Public Function Init(objFunction, boolIsBuiltin, boolIsSpec)
+	Public Function Init(objFunction, boolIsSpec)
 		Set Value = objFunction
-        boolBuiltin = boolIsBuiltin
 		boolSpec = boolIsSpec
 	End Function
 
 	Public Function Apply(objArgs, objEnv)
 		Dim varResult
-		If boolBuiltin Then
-			If boolSpec Then
-				Set varResult = Value(objArgs, objEnv)
-			Else
-				Set varResult = Value(EvaluateRest(objArgs, objEnv))
-			End If
+		If boolSpec Then
+			Set varResult = Value(objArgs, objEnv)
 		Else
-			wsh.echo "impl later"	
+			Set varResult = Value(EvaluateRest(objArgs, objEnv))
 		End If
 		Set Apply = varResult
 	End Function
@@ -235,7 +229,66 @@ End Class
 
 Function NewVbsProc(strFnName, boolSpec)
 	Dim varResult
-	Set varResult = New MalProcedure
-	varResult.Init GetRef(strFnName), True, boolSpec
+	Set varResult = New VbsProcedure
+	varResult.Init GetRef(strFnName), boolSpec
 	Set NewVbsProc = varResult
+End Function
+
+Class MalProcedure 'Extends MalType
+	Public [Type]
+	Public Value
+	
+	Private Sub Class_Initialize
+		[Type] = TYPES.PROCEDURE
+	End Sub
+
+	Private objParams, objCode, objSavedEnv
+	Public Function Init(objP, objC, objE)
+		Set objParams = objP
+		Set objCode = objC
+		Set objSavedEnv = objE
+	End Function
+
+	Public Function Apply(objArgs, objEnv)
+		Dim varRet
+		
+		Dim objNewEnv
+		Set objNewEnv = NewEnv(objSavedEnv)
+		Dim i
+		i = 0
+		Dim objList
+		While i < objParams.Count
+			If objParams.Item(i).Value = "&" Then
+				If objParams.Count - 1 = i + 1 Then
+					Set objList = NewMalList(Array())
+					objNewEnv.Add objParams.Item(i + 1), objList
+					While i + 1 < objArgs.Count
+						objList.Add Evaluate(objArgs.Item(i + 1), objEnv)
+						i = i + 1
+					Wend
+					i = objParams.Count ' Break While
+				Else
+					Err.Raise vbObjectError, _
+						"MalProcedure", "Invalid parameter(s)."
+				End If
+			Else
+				If i + 1 >= objArgs.Count Then
+					Err.Raise vbObjectError, _
+						"MalProcedure", "Need more arguments."
+				End If
+				objNewEnv.Add objParams.Item(i), _
+					Evaluate(objArgs.Item(i + 1), objEnv)
+				i = i + 1
+			End If
+		Wend
+		Set varRet = Evaluate(objCode, objNewEnv)
+		Set Apply = varRet
+	End Function
+End Class
+
+Function NewMalProc(objParams, objCode, objEnv)
+	Dim varRet
+	Set varRet = New MalProcedure
+	varRet.Init objParams, objCode, objEnv
+	Set NewMalProc = varRet
 End Function

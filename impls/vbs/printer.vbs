@@ -68,8 +68,6 @@ Function PrintMalType(objMal, boolReadable)
 			varResult = "nil"
 		Case TYPES.NUMBER
 			varResult = CStr(objMal.Value)
-		Case TYPES.LAMBDA
-			varResult = "#<function>"
 		Case TYPES.PROCEDURE
 			varResult = "#<function>"
 		Case TYPES.KEYWORD
