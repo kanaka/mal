@@ -85,7 +85,16 @@ Function MIf(objArgs, objEnv)
 			"MIf", "Wrong number of arguments."
 	End If
 
-	If Evaluate(objArgs.Item(1), objEnv).Value Then
+	Dim objCond
+	Set objCond = Evaluate(objArgs.Item(1), objEnv)
+	Dim boolCond
+	If objCond.Type = TYPES.BOOLEAN Then
+		boolCond = objCond.Value
+	Else
+		boolCond = True
+	End If
+	boolCond = (boolCond And objCond.Type <> TYPES.NIL)
+	If boolCond Then
 		Set varRet = Evaluate(objArgs.Item(2), objEnv)
 	Else
 		If objArgs.Count - 1 = 3 Then
@@ -180,9 +189,12 @@ objNS.Add NewMalSym("empty?"), NewVbsProc("MIsEmpty", False)
 
 Function MCount(objArgs)
 	CheckArgNum objArgs, 1
-	CheckListOrVec objArgs.Item(1)
-
-	Set MCount = NewMalNum(objArgs.Item(1).Count)
+	If objArgs.Item(1).Type = TYPES.NIL Then
+		Set MCount = NewMalNum(0)
+	Else
+		CheckListOrVec objArgs.Item(1)
+		Set MCount = NewMalNum(objArgs.Item(1).Count)
+	End If
 End Function
 objNS.Add NewMalSym("count"), NewVbsProc("MCount", False)
 
@@ -239,3 +251,62 @@ REP "(def! not (fn* [bool] (if bool false true)))"
 REP "(def! <= (fn* [a b] (not (> a b))))"
 REP "(def! < (fn* [a b] (> b a)))"
 REP "(def! >= (fn* [a b] (not (> b a))))"
+
+Function MPrStr(objArgs)
+	Dim varRet
+	Dim strRet
+	strRet = ""
+	Dim i
+	If objArgs.Count - 1 >= 1 Then
+		strRet = PrintMalType(objArgs.Item(1), True)
+	End If
+	For i = 2 To objArgs.Count - 1
+		strRet = strRet + " " + _
+			PrintMalType(objArgs.Item(i), True)
+	Next
+	Set varRet = NewMalStr(strRet)
+	Set MPrStr = varRet
+End Function
+objNS.Add NewMalSym("pr-str"), NewVbsProc("MPrStr", False)
+
+Function MStr(objArgs)
+	Dim varRet
+	Dim strRet
+	strRet = ""
+	Dim i
+	For i = 1 To objArgs.Count - 1
+		strRet = strRet + _
+			PrintMalType(objArgs.Item(i), False)
+	Next
+	Set varRet = NewMalStr(strRet)
+	Set MStr = varRet
+End Function
+objNS.Add NewMalSym("str"), NewVbsProc("MStr", False)
+
+Function MPrn(objArgs)
+	Dim varRet
+	Dim objStr
+	Set objStr = MPrStr(objArgs)
+	WScript.StdOut.WriteLine objStr.Value
+	Set varRet = NewMalNil()
+	Set MPrn = varRet
+End Function
+objNS.Add NewMalSym("prn"), NewVbsProc("MPrn", False)
+
+Function MPrintln(objArgs)
+	Dim varRet
+	Dim strRes
+	strRes = ""
+	Dim i
+	If objArgs.Count - 1 >= 1 Then
+		strRes = PrintMalType(objArgs.Item(1), False)
+	End If
+	For i = 2 To objArgs.Count - 1
+		strRes = strRes + " " + _
+			PrintMalType(objArgs.Item(i), False)
+	Next
+	WScript.StdOut.WriteLine strRes
+	Set varRet = NewMalNil()
+	Set MPrintln = varRet
+End Function
+objNS.Add NewMalSym("println"), NewVbsProc("MPrintln", False)

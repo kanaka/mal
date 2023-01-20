@@ -47,7 +47,7 @@ Function NewMalBool(varValue)
 End Function
 
 Function NewMalNil()
-	Set NewMalNil = NewMalType(TYPES.NIL, Null)
+	Set NewMalNil = NewMalType(TYPES.NIL, Empty)
 End Function
 
 Function NewMalKwd(varValue)
