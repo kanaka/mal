@@ -110,7 +110,7 @@ Sub REPL()
 			If Err.Number <> 0 Then WScript.Quit 0
 		On Error Goto 0
 
-		'On Error Resume Next
+		On Error Resume Next
 			WScript.Echo REP(strCode)
 			If Err.Number <> 0 Then
 				WScript.StdErr.WriteLine Err.Source + ": " + Err.Description 
@@ -123,19 +123,19 @@ Function Read(strCode)
 	Set Read = ReadString(strCode)
 End Function
 
-Function Evaluate(objCode, objEnv) ' Return Nothing / objCode
+Function Evaluate(objCode, objEnv)
 	If TypeName(objCode) = "Nothing" Then
 		Set Evaluate = Nothing
 		Exit Function
 	End If
-	Dim varRet
+	Dim varRet, objFirst
 	If objCode.Type = TYPES.LIST Then
 		If objCode.Count = 0 Then ' ()
 			Set Evaluate = objCode
 			Exit Function
 		End If
-		Set objCode.Item(0) = Evaluate(objCode.Item(0), objEnv)
-		Set varRet = objCode.Item(0).Apply(objCode, objEnv)
+		Set objFirst = Evaluate(objCode.Item(0), objEnv)
+		Set varRet = objFirst.Apply(objCode, objEnv)
 	Else
 		Set varRet = EvaluateAST(objCode, objEnv)
 	End If
@@ -153,15 +153,16 @@ Function EvaluateAST(objCode, objEnv)
 			Err.Raise vbObjectError, _
 				"EvaluateAST", "Unexpect type."
 		Case TYPES.VECTOR
+			Set varRet = NewMalVec(Array())
 			For i = 0 To objCode.Count() - 1
-				Set objCode.Item(i) = Evaluate(objCode.Item(i), objEnv)
+				varRet.Add Evaluate(objCode.Item(i), objEnv)
 			Next
-			Set varRet = objCode
 		Case TYPES.HASHMAP
+			Set varRet = NewMalMap(Array(), Array())
 			For Each i In objCode.Keys()
-				Set objCode.Item(i) = Evaluate(objCode.Item(i), objEnv)
+				varRet.Add i, Evaluate(objCode.Item(i), objEnv)
 			Next
-			Set varRet = objCode
+		'Case Atom
 		Case Else
 			Set varRet = objCode
 	End Select
@@ -172,10 +173,10 @@ Function EvaluateRest(objCode, objEnv)
 	Dim varRet, i
 	Select Case objCode.Type
 		Case TYPES.LIST
+			Set varRet = NewMalList(Array(NewMalNil()))
 			For i = 1 To objCode.Count() - 1
-				Set objCode.Item(i) = Evaluate(objCode.Item(i), objEnv)
+				varRet.Add Evaluate(objCode.Item(i), objEnv)
 			Next
-			Set varRet = objCode
 		Case Else
 			Err.Raise vbObjectError, _
 				"EvaluateRest", "Unexpected type."

@@ -282,7 +282,7 @@ Class MalProcedure 'Extends MalType
 			End If
 		Wend
 		
-		Set varRet = Evaluate(objCode, objNewEnv)
+		Set varRet = Evaluate(objCode, objNewEnv) 'todo: make a objcode copy
 		Set Apply = varRet
 	End Function
 End Class

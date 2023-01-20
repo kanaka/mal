@@ -1,0 +1,6 @@
+(def! f (fn* [x] (list x)))
+(f 0)
+(f 1)
+
+((fn* [x] x) (list))
+((fn* [x] [x]) (list))
