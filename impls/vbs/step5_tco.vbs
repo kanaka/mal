@@ -6,10 +6,16 @@ Include "Printer.vbs"
 Include "Env.vbs"
 Include "Core.vbs"
 
+Class TailCall
+	Public objMalType
+	Public objEnv
+End Class
+
 Function EvalLater(objMal, objEnv)
-	' A fake implement, for compatibility.
 	Dim varRes
-	Set varRes = Evaluate(objMal, objEnv)
+	Set varRes = New TailCall
+	Set varRes.objMalType = objMal
+	Set varRes.objEnv = objEnv
 	Set EvalLater = varRes
 End Function
 
@@ -45,7 +51,7 @@ Function MLet(objArgs, objEnv)
 		objNewEnv.Add objSym, Evaluate(objBinds.Item(i + 1), objNewEnv)
 	Next
 
-	Set varRet = Evaluate(objArgs.Item(2), objNewEnv)
+	Set varRet = EvalLater(objArgs.Item(2), objNewEnv)
 	Set MLet = varRet
 End Function
 objNS.Add NewMalSym("let*"), NewVbsProc("MLet", True)
@@ -56,9 +62,12 @@ Function MDo(objArgs, objEnv)
 		Err.Raise vbObjectError, _
 			"MDo", "Need more arguments."
 	End If
-	For i = 1 To objArgs.Count - 1
-		Set varRet = Evaluate(objArgs.Item(i), objEnv)
+	For i = 1 To objArgs.Count - 2
+		Call Evaluate(objArgs.Item(i), objEnv)
 	Next
+	Set varRet = EvalLater( _
+		objArgs.Item(objArgs.Count - 1), _
+		objEnv)
 	Set MDo = varRet
 End Function
 objNS.Add NewMalSym("do"), NewVbsProc("MDo", True)
@@ -81,10 +90,10 @@ Function MIf(objArgs, objEnv)
 	End If
 	boolCond = (boolCond And objCond.Type <> TYPES.NIL)
 	If boolCond Then
-		Set varRet = Evaluate(objArgs.Item(2), objEnv)
+		Set varRet = EvalLater(objArgs.Item(2), objEnv)
 	Else
 		If objArgs.Count - 1 = 3 Then
-			Set varRet = Evaluate(objArgs.Item(3), objEnv)
+			Set varRet = EvalLater(objArgs.Item(3), objEnv)
 		Else
 			Set varRet = NewMalNil()
 		End If
@@ -137,24 +146,35 @@ Function Read(strCode)
 	Set Read = ReadString(strCode)
 End Function
 
-Function Evaluate(objCode, objEnv)
-	If TypeName(objCode) = "Nothing" Then
-		Set Evaluate = Nothing
-		Exit Function
-	End If
-	Dim varRet, objFirst
-	If objCode.Type = TYPES.LIST Then
-		If objCode.Count = 0 Then ' ()
-			Set Evaluate = objCode
+Function Evaluate(ByVal objCode, ByVal objEnv)
+	While True
+		If TypeName(objCode) = "Nothing" Then
+			Set Evaluate = Nothing
 			Exit Function
 		End If
-		Set objFirst = Evaluate(objCode.Item(0), objEnv)
-		Set varRet = objFirst.Apply(objCode, objEnv)
-	Else
-		Set varRet = EvaluateAST(objCode, objEnv)
-	End If
-
-	Set Evaluate = varRet
+		Dim varRet, objFirst
+		If objCode.Type = TYPES.LIST Then
+			If objCode.Count = 0 Then ' ()
+				Set Evaluate = objCode
+				Exit Function
+			End If
+			Set objFirst = Evaluate(objCode.Item(0), objEnv)
+			Set varRet = objFirst.Apply(objCode, objEnv)
+		Else
+			Set varRet = EvaluateAST(objCode, objEnv)
+		End If
+		
+		If TypeName(varRet) = "TailCall" Then
+			' NOTICE: If not specify 'ByVal', 
+			' Change of arguments will influence
+			' the caller's variable!
+			Set objCode = varRet.objMalType
+			Set objEnv = varRet.objEnv
+		Else
+			Set Evaluate = varRet
+			Exit Function
+		End If
+	Wend
 End Function
 
 

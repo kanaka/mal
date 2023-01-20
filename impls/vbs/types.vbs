@@ -251,7 +251,6 @@ Class MalProcedure 'Extends MalType
 
 	Public Function Apply(objArgs, objEnv)
 		Dim varRet
-		
 		Dim objNewEnv
 		Set objNewEnv = NewEnv(objSavedEnv)
 		Dim i
@@ -282,7 +281,7 @@ Class MalProcedure 'Extends MalType
 			End If
 		Wend
 		
-		Set varRet = Evaluate(objCode, objNewEnv) 'todo: make a objcode copy
+		Set varRet = EvalLater(objCode, objNewEnv)
 		Set Apply = varRet
 	End Function
 End Class
