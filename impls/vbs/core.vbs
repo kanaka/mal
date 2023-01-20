@@ -31,100 +31,6 @@ End Sub
 Dim objNS
 Set objNS = NewEnv(Nothing)
 
-Function MDef(objArgs, objEnv)
-	Dim varRet
-	CheckArgNum objArgs, 2
-	CheckType objArgs.Item(1), TYPES.SYMBOL
-	Set varRet = Evaluate(objArgs.Item(2), objEnv)
-	objEnv.Add objArgs.Item(1), varRet
-	Set MDef = varRet
-End Function
-objNS.Add NewMalSym("def!"), NewVbsProc("MDef", True)
-
-Function MLet(objArgs, objEnv)
-	Dim varRet
-	CheckArgNum objArgs, 2
-
-	Dim objBinds
-	Set objBinds = objArgs.Item(1)
-	CheckListOrVec objBinds
-	
-	If objBinds.Count Mod 2 <> 0 Then
-		Err.Raise vbObjectError, _
-			"MLet", "Wrong argument count."
-	End If
-
-	Dim objNewEnv
-	Set objNewEnv = NewEnv(objEnv)
-	Dim i, objSym
-	For i = 0 To objBinds.Count - 1 Step 2
-		Set objSym = objBinds.Item(i)
-		CheckType objSym, TYPES.SYMBOL
-		objNewEnv.Add objSym, Evaluate(objBinds.Item(i + 1), objNewEnv)
-	Next
-
-	Set varRet = Evaluate(objArgs.Item(2), objNewEnv)
-	Set MLet = varRet
-End Function
-objNS.Add NewMalSym("let*"), NewVbsProc("MLet", True)
-
-Function MDo(objArgs, objEnv)
-	Dim varRet, i
-	For i = 1 To objArgs.Count - 1
-		Set varRet = Evaluate(objArgs.Item(i), objEnv)
-	Next
-	Set MDo = varRet
-End Function
-objNS.Add NewMalSym("do"), NewVbsProc("MDo", True)
-
-Function MIf(objArgs, objEnv)
-	Dim varRet
-	If objArgs.Count - 1 <> 3 And _
-		objArgs.Count - 1 <> 2 Then
-		Err.Raise vbObjectError, _
-			"MIf", "Wrong number of arguments."
-	End If
-
-	Dim objCond
-	Set objCond = Evaluate(objArgs.Item(1), objEnv)
-	Dim boolCond
-	If objCond.Type = TYPES.BOOLEAN Then
-		boolCond = objCond.Value
-	Else
-		boolCond = True
-	End If
-	boolCond = (boolCond And objCond.Type <> TYPES.NIL)
-	If boolCond Then
-		Set varRet = Evaluate(objArgs.Item(2), objEnv)
-	Else
-		If objArgs.Count - 1 = 3 Then
-			Set varRet = Evaluate(objArgs.Item(3), objEnv)
-		Else
-			Set varRet = NewMalNil()
-		End If
-	End If
-	Set MIf = varRet
-End Function
-objNS.Add NewMalSym("if"), NewVbsProc("MIf", True)
-
-Function MFn(objArgs, objEnv)
-	Dim varRet
-	CheckArgNum objArgs, 2
-
-	Dim objParams, objCode
-	Set objParams = objArgs.Item(1)
-	CheckListOrVec objParams
-	Set objCode = objArgs.Item(2)
-	
-	Dim i
-	For i = 0 To objParams.Count - 1
-		CheckType objParams.Item(i), TYPES.SYMBOL
-	Next
-	Set varRet = NewMalProc(objParams, objCode, objEnv)
-	Set MFn = varRet
-End Function
-objNS.Add NewMalSym("fn*"), NewVbsProc("MFn", True)
-
 Function MAdd(objArgs)
 	CheckArgNum objArgs, 2
 	CheckType objArgs.Item(1), TYPES.NUMBER
@@ -247,11 +153,6 @@ Function MGreater(objArgs)
 End Function
 objNS.Add NewMalSym(">"), NewVbsProc("MGreater", False)
 
-REP "(def! not (fn* [bool] (if bool false true)))"
-REP "(def! <= (fn* [a b] (not (> a b))))"
-REP "(def! < (fn* [a b] (> b a)))"
-REP "(def! >= (fn* [a b] (not (> b a))))"
-
 Function MPrStr(objArgs)
 	Dim varRet
 	Dim strRet
@@ -310,3 +211,10 @@ Function MPrintln(objArgs)
 	Set MPrintln = varRet
 End Function
 objNS.Add NewMalSym("println"), NewVbsProc("MPrintln", False)
+
+Sub InitBuiltIn()
+	REP "(def! not (fn* [bool] (if bool false true)))"
+	REP "(def! <= (fn* [a b] (not (> a b))))"
+	REP "(def! < (fn* [a b] (> b a)))"
+	REP "(def! >= (fn* [a b] (not (> b a))))"
+End Sub
