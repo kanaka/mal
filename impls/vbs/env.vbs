@@ -21,6 +21,10 @@ Class Environment
 		Set objOuter = objEnv
 	End Property
 
+	Public Property Get Outer()
+		Set Outer = objOuter
+	End Property
+
 	Public Property Set Self(objEnv)
 		Set objSelf = objEnv
 	End Property
