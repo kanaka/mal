@@ -74,9 +74,11 @@ Function PrintMalType(objMal, boolReadable)
 			varResult = objMal.Value
 		Case TYPES.SYMBOL
 			varResult = objMal.Value
+		Case TYPES.ATOM
+			varResult = "(atom " + PrintMalType(objMal.Value, boolReadable) + ")"
 		Case Else
 			Err.Raise vbObjectError, _
-				"PrintMalType", "unknown type"
+				"PrintMalType", "Unknown type."
 	End Select
 
 	PrintMalType = varResult
