@@ -8,7 +8,7 @@ Include "Env.vbs"
 Dim objEnv
 Set objEnv = NewEnv(Nothing)
 
-Function MAdd(objArgs)
+Function MAdd(objArgs, objEnv)
 	CheckArgNum objArgs, 2
 	CheckType objArgs.Item(1), TYPES.NUMBER
 	CheckType objArgs.Item(2), TYPES.NUMBER
@@ -17,7 +17,7 @@ Function MAdd(objArgs)
 End Function
 objEnv.Add NewMalSym("+"), NewVbsProc("MAdd", False)
 
-Function MSub(objArgs)
+Function MSub(objArgs, objEnv)
 	CheckArgNum objArgs, 2
 	CheckType objArgs.Item(1), TYPES.NUMBER
 	CheckType objArgs.Item(2), TYPES.NUMBER
@@ -26,7 +26,7 @@ Function MSub(objArgs)
 End Function
 objEnv.Add NewMalSym("-"), NewVbsProc("MSub", False)
 
-Function MMul(objArgs)
+Function MMul(objArgs, objEnv)
 	CheckArgNum objArgs, 2
 	CheckType objArgs.Item(1), TYPES.NUMBER
 	CheckType objArgs.Item(2), TYPES.NUMBER
@@ -35,7 +35,7 @@ Function MMul(objArgs)
 End Function
 objEnv.Add NewMalSym("*"), NewVbsProc("MMul", False)
 
-Function MDiv(objArgs)
+Function MDiv(objArgs, objEnv)
 	CheckArgNum objArgs, 2
 	CheckType objArgs.Item(1), TYPES.NUMBER
 	CheckType objArgs.Item(2), TYPES.NUMBER
