@@ -38,41 +38,41 @@ Dim objEnv
 Set objEnv = New Enviroment
 Set objEnv.Self = objEnv
 
-Function Add(objArgs)
+Function MAdd(objArgs, objEnv)
 	CheckArgNum objArgs, 2
 	CheckType objArgs.Item(1), TYPES.NUMBER
 	CheckType objArgs.Item(2), TYPES.NUMBER
-	Set Add = NewMalNum( _
+	Set MAdd = NewMalNum( _
 		objArgs.Item(1).Value + objArgs.Item(2).Value)
 End Function
-objEnv.Add NewMalSym("+"), NewVbsProc("Add", False)
+objEnv.Add NewMalSym("+"), NewVbsProc("MAdd", False)
 
-Function [Sub](objArgs)
+Function MSub(objArgs, objEnv)
 	CheckArgNum objArgs, 2
 	CheckType objArgs.Item(1), TYPES.NUMBER
 	CheckType objArgs.Item(2), TYPES.NUMBER
-	Set [Sub] = NewMalNum( _
+	Set MSub = NewMalNum( _
 		objArgs.Item(1).Value - objArgs.Item(2).Value)
 End Function
-objEnv.Add NewMalSym("-"), NewVbsProc("Sub", False)
+objEnv.Add NewMalSym("-"), NewVbsProc("MSub", False)
 
-Function Mul(objArgs)
+Function MMul(objArgs, objEnv)
 	CheckArgNum objArgs, 2
 	CheckType objArgs.Item(1), TYPES.NUMBER
 	CheckType objArgs.Item(2), TYPES.NUMBER
-	Set Mul = NewMalNum( _
+	Set MMul = NewMalNum( _
 		objArgs.Item(1).Value * objArgs.Item(2).Value)
 End Function
-objEnv.Add NewMalSym("*"), NewVbsProc("Mul", False)
+objEnv.Add NewMalSym("*"), NewVbsProc("MMul", False)
 
-Function Div(objArgs)
+Function MDiv(objArgs, objEnv)
 	CheckArgNum objArgs, 2
 	CheckType objArgs.Item(1), TYPES.NUMBER
 	CheckType objArgs.Item(2), TYPES.NUMBER
-	Set Div = NewMalNum( _
+	Set MDiv = NewMalNum( _
 		objArgs.Item(1).Value \ objArgs.Item(2).Value)
 End Function
-objEnv.Add NewMalSym("/"), NewVbsProc("Div", False)
+objEnv.Add NewMalSym("/"), NewVbsProc("MDiv", False)
 
 Sub CheckArgNum(objArgs, lngArgNum)
 	If objArgs.Count - 1 <> lngArgNum Then

@@ -146,7 +146,6 @@ Sub InitArgs()
 	
 	If WScript.Arguments.Count > 0 Then
 		REP "(load-file """ + WScript.Arguments.Item(0) + """)"
-		wsh.echo 1111
 	End If
 End Sub
 

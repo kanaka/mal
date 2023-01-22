@@ -238,7 +238,7 @@ Class VbsProcedure 'Extends MalType
 		If boolSpec Then
 			Set varResult = Value(objArgs, objEnv)
 		Else
-			Set varResult = Value(EvaluateRest(objArgs, objEnv))
+			Set varResult = Value(EvaluateRest(objArgs, objEnv), objEnv)
 		End If
 		Set Apply = varResult
 	End Function

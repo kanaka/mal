@@ -31,7 +31,7 @@ End Sub
 Dim objNS
 Set objNS = NewEnv(Nothing)
 
-Function MAdd(objArgs)
+Function MAdd(objArgs, objEnv)
 	CheckArgNum objArgs, 2
 	CheckType objArgs.Item(1), TYPES.NUMBER
 	CheckType objArgs.Item(2), TYPES.NUMBER
@@ -40,7 +40,7 @@ Function MAdd(objArgs)
 End Function
 objNS.Add NewMalSym("+"), NewVbsProc("MAdd", False)
 
-Function MSub(objArgs)
+Function MSub(objArgs, objEnv)
 	CheckArgNum objArgs, 2
 	CheckType objArgs.Item(1), TYPES.NUMBER
 	CheckType objArgs.Item(2), TYPES.NUMBER
@@ -49,7 +49,7 @@ Function MSub(objArgs)
 End Function
 objNS.Add NewMalSym("-"), NewVbsProc("MSub", False)
 
-Function MMul(objArgs)
+Function MMul(objArgs, objEnv)
 	CheckArgNum objArgs, 2
 	CheckType objArgs.Item(1), TYPES.NUMBER
 	CheckType objArgs.Item(2), TYPES.NUMBER
@@ -58,7 +58,7 @@ Function MMul(objArgs)
 End Function
 objNS.Add NewMalSym("*"), NewVbsProc("MMul", False)
 
-Function MDiv(objArgs)
+Function MDiv(objArgs, objEnv)
 	CheckArgNum objArgs, 2
 	CheckType objArgs.Item(1), TYPES.NUMBER
 	CheckType objArgs.Item(2), TYPES.NUMBER
@@ -67,7 +67,7 @@ Function MDiv(objArgs)
 End Function
 objNS.Add NewMalSym("/"), NewVbsProc("MDiv", False)
 
-Function MList(objArgs)
+Function MList(objArgs, objEnv)
 	Dim varRet
 	Set varRet = NewMalList(Array())
 	Dim i
@@ -78,14 +78,14 @@ Function MList(objArgs)
 End Function
 objNS.Add NewMalSym("list"), NewVbsProc("MList", False)
 
-Function MIsList(objArgs)
+Function MIsList(objArgs, objEnv)
 	CheckArgNum objArgs, 1
 
 	Set MIsList = NewMalBool(objArgs.Item(1).Type = TYPES.LIST)
 End Function
 objNS.Add NewMalSym("list?"), NewVbsProc("MIsList", False)
 
-Function MIsEmpty(objArgs)
+Function MIsEmpty(objArgs, objEnv)
 	CheckArgNum objArgs, 1
 	CheckListOrVec objArgs.Item(1)
 
@@ -93,7 +93,7 @@ Function MIsEmpty(objArgs)
 End Function
 objNS.Add NewMalSym("empty?"), NewVbsProc("MIsEmpty", False)
 
-Function MCount(objArgs)
+Function MCount(objArgs, objEnv)
 	CheckArgNum objArgs, 1
 	If objArgs.Item(1).Type = TYPES.NIL Then
 		Set MCount = NewMalNum(0)
@@ -104,7 +104,7 @@ Function MCount(objArgs)
 End Function
 objNS.Add NewMalSym("count"), NewVbsProc("MCount", False)
 
-Function MEqual(objArgs)
+Function MEqual(objArgs, objEnv)
 	Dim varRet
 	CheckArgNum objArgs, 2
 
@@ -142,7 +142,7 @@ Function MEqual(objArgs)
 End Function
 objNS.Add NewMalSym("="), NewVbsProc("MEqual", False)
 
-Function MGreater(objArgs)
+Function MGreater(objArgs, objEnv)
 	Dim varRet
 	CheckArgNum objArgs, 2
 	CheckType objArgs.Item(1), TYPES.NUMBER
@@ -153,7 +153,7 @@ Function MGreater(objArgs)
 End Function
 objNS.Add NewMalSym(">"), NewVbsProc("MGreater", False)
 
-Function MPrStr(objArgs)
+Function MPrStr(objArgs, objEnv)
 	Dim varRet
 	Dim strRet
 	strRet = ""
@@ -170,7 +170,7 @@ Function MPrStr(objArgs)
 End Function
 objNS.Add NewMalSym("pr-str"), NewVbsProc("MPrStr", False)
 
-Function MStr(objArgs)
+Function MStr(objArgs, objEnv)
 	Dim varRet
 	Dim strRet
 	strRet = ""
@@ -184,17 +184,17 @@ Function MStr(objArgs)
 End Function
 objNS.Add NewMalSym("str"), NewVbsProc("MStr", False)
 
-Function MPrn(objArgs)
+Function MPrn(objArgs, objEnv)
 	Dim varRet
 	Dim objStr
-	Set objStr = MPrStr(objArgs)
+	Set objStr = MPrStr(objArgs, objEnv)
 	WScript.StdOut.WriteLine objStr.Value
 	Set varRet = NewMalNil()
 	Set MPrn = varRet
 End Function
 objNS.Add NewMalSym("prn"), NewVbsProc("MPrn", False)
 
-Function MPrintln(objArgs)
+Function MPrintln(objArgs, objEnv)
 	Dim varRet
 	Dim strRes
 	strRes = ""
@@ -220,7 +220,7 @@ Sub InitBuiltIn()
 	REP "(def! load-file (fn* (f) (eval (read-string (str ""(do "" (slurp f) ""\nnil)"")))))"
 End Sub
 
-Function MReadStr(objArgs)
+Function MReadStr(objArgs, objEnv)
 	Dim varRes
 	CheckArgNum objArgs, 1
 	CheckType objArgs.Item(1), TYPES.STRING
@@ -230,7 +230,7 @@ Function MReadStr(objArgs)
 End Function
 objNS.Add NewMalSym("read-string"), NewVbsProc("MReadStr", False)
 
-Function MSlurp(objArgs)
+Function MSlurp(objArgs, objEnv)
 	Dim varRes
 	CheckArgNum objArgs, 1
 	CheckType objArgs.Item(1), TYPES.STRING
@@ -248,7 +248,7 @@ Function MSlurp(objArgs)
 End Function
 objNS.Add NewMalSym("slurp"), NewVbsProc("MSlurp", False)
 
-Function MAtom(objArgs)
+Function MAtom(objArgs, objEnv)
 	Dim varRes
 	CheckArgNum objArgs, 1
 
@@ -257,7 +257,7 @@ Function MAtom(objArgs)
 End Function
 objNS.Add NewMalSym("atom"), NewVbsProc("MAtom", False)
 
-Function MIsAtom(objArgs)
+Function MIsAtom(objArgs, objEnv)
 	Dim varRes
 	CheckArgNum objArgs, 1
 
@@ -266,7 +266,7 @@ Function MIsAtom(objArgs)
 End Function
 objNS.Add NewMalSym("atom?"), NewVbsProc("MIsAtom", False)
 
-Function MDeref(objArgs)
+Function MDeref(objArgs, objEnv)
 	Dim varRes
 	CheckArgNum objArgs, 1
 	CheckType objArgs.Item(1), TYPES.ATOM
@@ -276,7 +276,7 @@ Function MDeref(objArgs)
 End Function
 objNS.Add NewMalSym("deref"), NewVbsProc("MDeref", False)
 
-Function MReset(objArgs)
+Function MReset(objArgs, objEnv)
 	Dim varRes
 	CheckArgNum objArgs, 2
 	CheckType objArgs.Item(1), TYPES.ATOM
@@ -294,24 +294,22 @@ Function MSwap(objArgs, objEnv)
 			"MSwap", "Need more arguments."
 	End If
 
-	Dim objAtom
-	Set objAtom = Evaluate(objArgs.Item(1), objEnv)
+	Dim objAtom, objFn
+	Set objAtom = objArgs.Item(1)
 	CheckType objAtom, TYPES.ATOM
-	
-	Dim objFn
-	Set objFn = Evaluate(objArgs.Item(2), objEnv)
+	Set objFn = objArgs.Item(2)
 	CheckType objFn, TYPES.PROCEDURE
 
-	Dim objProc
-	Set objProc = NewMalList(Array(objFn))
-	objProc.Add objAtom.Value
+	Dim objProg
+	Set objProg = NewMalList(Array(objFn))
+	objProg.Add objAtom.Value
 	Dim i
 	For i = 3 To objArgs.Count - 1
-		objProc.Add Evaluate(objArgs.Item(i), objEnv)
+		objProg.Add objArgs.Item(i)
 	Next
 
-	objAtom.Reset Evaluate(objProc, objEnv)
+	objAtom.Reset Evaluate(objProg, objEnv)
 	Set varRes = objAtom.Value
 	Set MSwap = varRes
 End Function
-objNS.Add NewMalSym("swap!"), NewVbsProc("MSwap", True)
+objNS.Add NewMalSym("swap!"), NewVbsProc("MSwap", False)
