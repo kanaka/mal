@@ -6,14 +6,14 @@ Set TYPES = New MalTypes
 Class MalTypes
 	Public LIST, VECTOR, HASHMAP, [BOOLEAN], NIL
 	Public KEYWORD, [STRING], NUMBER, SYMBOL
-	Public PROCEDURE
+	Public PROCEDURE, ATOM
 
 	Public [TypeName]
 	Private Sub Class_Initialize
 		[TypeName] = Array( _
 				"LIST", "VECTOR", "HASHMAP", "BOOLEAN", _
 				"NIL", "KEYWORD", "STRING", "NUMBER", _
-				"SYMBOL", "PROCEDURE")
+				"SYMBOL", "PROCEDURE", "ATOM")
 
 		Dim i
 		For i = 0 To UBound([TypeName])
@@ -30,9 +30,6 @@ Class MalType
 		[Type] = lngType
 		Value = varValue
 	End Function
-
-    Public Function Copy()
-    End Function
 End Class
 
 Function NewMalType(lngType, varValue)
@@ -64,6 +61,26 @@ End Function
 
 Function NewMalSym(varValue)
 	Set NewMalSym = NewMalType(TYPES.SYMBOL, varValue)
+End Function
+
+Class MalAtom
+	Public [Type]
+	Public Value
+
+	Public Sub Reset(objMal)
+		Set Value = objMal
+	End Sub
+
+	Private Sub Class_Initialize
+		[Type] = TYPES.ATOM
+	End Sub
+End Class
+
+Function NewMalAtom(varValue)
+	Dim varRes
+	Set varRes = New MalAtom
+	varRes.Reset varValue
+	Set NewMalAtom = varRes
 End Function
 
 Class MalList ' Extends MalType

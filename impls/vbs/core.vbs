@@ -217,4 +217,101 @@ Sub InitBuiltIn()
 	REP "(def! <= (fn* [a b] (not (> a b))))"
 	REP "(def! < (fn* [a b] (> b a)))"
 	REP "(def! >= (fn* [a b] (not (> b a))))"
+	REP "(def! load-file (fn* (f) (eval (read-string (str ""(do "" (slurp f) ""\nnil)"")))))"
 End Sub
+
+Function MReadStr(objArgs)
+	Dim varRes
+	CheckArgNum objArgs, 1
+	CheckType objArgs.Item(1), TYPES.STRING
+
+	Set varRes = ReadString(objArgs.Item(1).Value)
+	Set MReadStr = varRes
+End Function
+objNS.Add NewMalSym("read-string"), NewVbsProc("MReadStr", False)
+
+Function MSlurp(objArgs)
+	Dim varRes
+	CheckArgNum objArgs, 1
+	CheckType objArgs.Item(1), TYPES.STRING
+
+	Dim strRes
+	With CreateObject("Scripting.FileSystemObject")
+		strRes = .OpenTextFile( _
+			.GetParentFolderName( _
+			.GetFile(WScript.ScriptFullName)) & _
+			"\" & objArgs.Item(1).Value).ReadAll
+	End With
+
+	Set varRes = NewMalStr(strRes)
+	Set MSlurp = varRes
+End Function
+objNS.Add NewMalSym("slurp"), NewVbsProc("MSlurp", False)
+
+Function MAtom(objArgs)
+	Dim varRes
+	CheckArgNum objArgs, 1
+
+	Set varRes = NewMalAtom(objArgs.Item(1))
+	Set MAtom = varRes
+End Function
+objNS.Add NewMalSym("atom"), NewVbsProc("MAtom", False)
+
+Function MIsAtom(objArgs)
+	Dim varRes
+	CheckArgNum objArgs, 1
+
+	Set varRes = NewMalBool(objArgs.Item(1).Type = TYPES.ATOM)
+	Set MIsAtom = varRes
+End Function
+objNS.Add NewMalSym("atom?"), NewVbsProc("MIsAtom", False)
+
+Function MDeref(objArgs)
+	Dim varRes
+	CheckArgNum objArgs, 1
+	CheckType objArgs.Item(1), TYPES.ATOM
+
+	Set varRes = objArgs.Item(1).Value
+	Set MDeref = varRes
+End Function
+objNS.Add NewMalSym("deref"), NewVbsProc("MDeref", False)
+
+Function MReset(objArgs)
+	Dim varRes
+	CheckArgNum objArgs, 2
+	CheckType objArgs.Item(1), TYPES.ATOM
+
+	objArgs.Item(1).Reset objArgs.Item(2)
+	Set varRes = objArgs.Item(2)
+	Set MReset = varRes
+End Function
+objNS.Add NewMalSym("reset!"), NewVbsProc("MReset", False)
+
+Function MSwap(objArgs, objEnv)
+	Dim varRes
+	If objArgs.Count - 1 < 2 Then
+		Err.Raise vbObjectError, _
+			"MSwap", "Need more arguments."
+	End If
+
+	Dim objAtom
+	Set objAtom = Evaluate(objArgs.Item(1), objEnv)
+	CheckType objAtom, TYPES.ATOM
+	
+	Dim objFn
+	Set objFn = Evaluate(objArgs.Item(2), objEnv)
+	CheckType objFn, TYPES.PROCEDURE
+
+	Dim objProc
+	Set objProc = NewMalList(Array(objFn))
+	objProc.Add objAtom.Value
+	Dim i
+	For i = 3 To objArgs.Count - 1
+		objProc.Add Evaluate(objArgs.Item(i), objEnv)
+	Next
+
+	objAtom.Reset Evaluate(objProc, objEnv)
+	Set varRes = objAtom.Value
+	Set MSwap = varRes
+End Function
+objNS.Add NewMalSym("swap!"), NewVbsProc("MSwap", True)

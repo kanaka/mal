@@ -120,7 +120,35 @@ Function MFn(objArgs, objEnv)
 End Function
 objNS.Add NewMalSym("fn*"), NewVbsProc("MFn", True)
 
+Function MEval(objArgs, objEnv)
+	Dim varRes
+	CheckArgNum objArgs, 1
+
+	Set varRes = Evaluate(objArgs.Item(1), objEnv)
+	Set varRes = EvalLater(varRes, objNS)
+	Set MEval = varRes
+End Function
+objNS.Add NewMalSym("eval"), NewVbsProc("MEval", True)
+
 Call InitBuiltIn()
+
+Call InitArgs()
+Sub InitArgs()
+	Dim objArgs
+	Set objArgs = NewMalList(Array())
+
+	Dim i
+	For i = 1 To WScript.Arguments.Count - 1
+		objArgs.Add NewMalStr(WScript.Arguments.Item(i))
+	Next
+	
+	objNS.Add NewMalSym("*ARGV*"), objArgs
+	
+	If WScript.Arguments.Count > 0 Then
+		REP "(load-file """ + WScript.Arguments.Item(0) + """)"
+		wsh.echo 1111
+	End If
+End Sub
 
 Call REPL()
 Sub REPL()
@@ -197,7 +225,6 @@ Function EvaluateAST(objCode, objEnv)
 			For Each i In objCode.Keys()
 				varRet.Add i, Evaluate(objCode.Item(i), objEnv)
 			Next
-		'Case Atom
 		Case Else
 			Set varRet = objCode
 	End Select
