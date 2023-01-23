@@ -9,7 +9,7 @@ Call REPL()
 Sub REPL()
 	Dim strCode
 	While True
-		WScript.StdOut.Write("user> ")
+		WScript.StdOut.Write "user> "
 
 		On Error Resume Next
 			strCode = WScript.StdIn.ReadLine()

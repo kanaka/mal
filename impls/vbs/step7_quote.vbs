@@ -130,6 +130,71 @@ Function MEval(objArgs, objEnv)
 End Function
 objNS.Add NewMalSym("eval"), NewVbsProc("MEval", True)
 
+Function MQuote(objArgs, objEnv)
+	CheckArgNum objArgs, 1
+	Set MQuote = objArgs.Item(1)
+End Function
+objNS.Add NewMalSym("quote"), NewVbsProc("MQuote", True)
+
+Function MQuasiQuote(objArgs, objEnv)
+	Dim varRes
+	CheckArgNum objArgs, 1
+	
+	Set varRes = QuasiQuoteHelper(objArgs.Item(1), objEnv).Item(0)
+	Set MQuasiQuote = varRes
+End Function
+objNS.Add NewMalSym("quasiquote"), NewVbsProc("MQuasiQuote", True)
+
+Function QuasiQuoteHelper(objArg, objEnv)
+	Dim varRes
+	If IsListOrVec(objArg) Then
+		Dim i, j
+		Dim objList
+		If objArg.Count > 0 Then
+			If objArg.Item(0).Type = TYPES.SYMBOL Then
+				Select Case objArg.Item(0).Value
+					Case "unquote" ' ~x -> (x)
+						CheckArgNum objArg, 1
+						Set varRes = NewMalList(Array( _
+							Evaluate(objArg.Item(1), objEnv)))
+					Case "splice-unquote" ' ~@x -> x
+						CheckArgNum objArg, 1
+						Set varRes = Evaluate(objArg.Item(1), objEnv)
+						If Not IsListOrVec(varRes) Then
+							Err.Raise vbObjectError, _
+								"QuasiQuoteHelper", "Wrong return value type."
+						End If
+					Case Else ' (x y z) -> ((x y z))
+						Set varRes = NewMalList(Array())
+						varRes.Add NewMalList(Array())
+						For i = 0 To objArg.Count - 1
+							Set objList = QuasiQuoteHelper(objArg.Item(i), objEnv)
+							For j = 0 To objList.Count - 1
+								varRes.Item(0).Add objList.Item(j)
+							Next
+						Next
+				End Select
+			Else ' (x y z) -> ((x y z))
+				Set varRes = NewMalList(Array())
+				varRes.Add NewMalList(Array())
+				For i = 0 To objArg.Count - 1
+					Set objList = QuasiQuoteHelper(objArg.Item(i), objEnv)
+					For j = 0 To objList.Count - 1
+						varRes.Item(0).Add objList.Item(j)
+					Next
+				Next
+			End If
+		Else ' () -> (())
+			Set varRes = NewMalList(Array( _
+				NewMalList(Array())))
+		End If
+	Else ' x -> (x)
+		Set varRes = NewMalList(Array(objArg))
+	End If
+
+	Set QuasiQuoteHelper = varRes
+End Function
+
 Call InitBuiltIn()
 
 Call InitArgs()
@@ -160,7 +225,7 @@ Sub REPL()
 			If Err.Number <> 0 Then WScript.Quit 0
 		On Error Goto 0
 
-		On Error Resume Next
+		'On Error Resume Next
 			WScript.Echo REP(strCode)
 			If Err.Number <> 0 Then
 				WScript.StdErr.WriteLine Err.Source + ": " + Err.Description 

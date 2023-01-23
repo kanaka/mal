@@ -218,6 +218,7 @@ Sub InitBuiltIn()
 	REP "(def! < (fn* [a b] (> b a)))"
 	REP "(def! >= (fn* [a b] (not (> b a))))"
 	REP "(def! load-file (fn* (f) (eval (read-string (str ""(do "" (slurp f) ""\nnil)"")))))"
+	REP "(def! cons (fn* [a b] (concat (list a) b)))"
 End Sub
 
 Function MReadStr(objArgs, objEnv)
@@ -313,3 +314,34 @@ Function MSwap(objArgs, objEnv)
 	Set MSwap = varRes
 End Function
 objNS.Add NewMalSym("swap!"), NewVbsProc("MSwap", False)
+
+Function MConcat(objArgs, objEnv)
+	Dim varRes
+	Dim i, j
+	Set varRes = NewMalList(Array())
+	For i = 1 To objArgs.Count - 1
+		If Not IsListOrVec(objArgs.Item(i)) Then
+			Err.Raise vbObjectError, _
+				"MConcat", "Invaild argument(s)."
+		End If
+		
+		For j = 0 To objArgs.Item(i).Count - 1
+			varRes.Add objArgs.Item(i).Item(j)
+		Next
+	Next
+	Set MConcat = varRes
+End Function
+objNS.Add NewMalSym("concat"), NewVbsProc("MConcat", False)
+
+Function MVec(objArgs, objEnv)
+	Dim varRes
+	CheckArgNum objArgs, 1
+	CheckListOrVec objArgs.Item(1)
+	Set varRes = NewMalVec(Array())
+	Dim i
+	For i = 0 To objArgs.Item(1).Count - 1
+		varRes.Add objArgs.Item(1).Item(i)
+	Next
+	Set MVec = varRes
+End Function
+objNS.Add NewMalSym("vec"), NewVbsProc("MVec", False)

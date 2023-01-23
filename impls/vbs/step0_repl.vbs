@@ -18,7 +18,7 @@ End Function
 
 Dim strCode
 While True 'REPL
-	WScript.StdOut.Write("user> ")
+	WScript.StdOut.Write "user> "
 	On Error Resume Next
 		strCode = WScript.StdIn.ReadLine()
 		If Err.Number <> 0 Then WScript.Quit 0
