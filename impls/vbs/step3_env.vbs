@@ -103,7 +103,7 @@ Call REPL()
 Sub REPL()
 	Dim strCode, strResult
 	While True
-		WScript.StdOut.Write("user> ")
+		WScript.StdOut.Write "user> "
 
 		On Error Resume Next
 			strCode = WScript.StdIn.ReadLine()
@@ -162,7 +162,6 @@ Function EvaluateAST(objCode, objEnv)
 			For Each i In objCode.Keys()
 				varRet.Add i, Evaluate(objCode.Item(i), objEnv)
 			Next
-		'Case Atom
 		Case Else
 			Set varRet = objCode
 	End Select
