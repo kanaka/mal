@@ -308,6 +308,12 @@ End Function
 objNS.Add NewMalSym("macroexpand"), NewVbsProc("MMacroExpand", True)
 
 Call InitBuiltIn()
+Call InitMacro()
+
+Sub InitMacro()
+	REP "(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw ""odd number of forms to cond"")) (cons'cond (rest (rest xs)))))))"
+	REP "(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs))))))))"
+End Sub
 
 Call InitArgs()
 Sub InitArgs()
@@ -337,7 +343,7 @@ Sub REPL()
 			If Err.Number <> 0 Then WScript.Quit 0
 		On Error Goto 0
 
-		'On Error Resume Next
+		On Error Resume Next
 			WScript.Echo REP(strCode)
 			If Err.Number <> 0 Then
 				WScript.StdErr.WriteLine Err.Source + ": " + Err.Description 
