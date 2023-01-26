@@ -223,10 +223,16 @@ Class VbsProcedure 'Extends MalType
 	Public [Type]
 	Public Value
 	
+	Public IsMacro
 	Public boolSpec
 	Private Sub Class_Initialize
 		[Type] = TYPES.PROCEDURE
+		IsMacro = False
 	End Sub
+
+	Public Property Get IsSpecial()
+		IsSpecial = boolSpec
+	End Property
 
 	Public Function Init(objFunction, boolIsSpec)
 		Set Value = objFunction
@@ -255,8 +261,15 @@ Class MalProcedure 'Extends MalType
 	Public [Type]
 	Public Value
 	
+	Public IsMacro
+
+	Public Property Get IsSpecial()
+		IsSpecial = False
+	End Property
+
 	Private Sub Class_Initialize
 		[Type] = TYPES.PROCEDURE
+		IsMacro = False
 	End Sub
 
 	Private objParams, objCode, objSavedEnv
@@ -285,12 +298,12 @@ Class MalProcedure 'Extends MalType
 					i = objParams.Count ' Break While
 				Else
 					Err.Raise vbObjectError, _
-						"MalProcedure", "Invalid parameter(s)."
+						"MalProcedureApply", "Invalid parameter(s)."
 				End If
 			Else
 				If i + 1 >= objArgs.Count Then
 					Err.Raise vbObjectError, _
-						"MalProcedure", "Need more arguments."
+						"MalProcedureApply", "Need more arguments."
 				End If
 				objNewEnv.Add objParams.Item(i), _
 					Evaluate(objArgs.Item(i + 1), objEnv)
@@ -301,11 +314,60 @@ Class MalProcedure 'Extends MalType
 		Set varRet = EvalLater(objCode, objNewEnv)
 		Set Apply = varRet
 	End Function
+
+	Public Function MacroApply(objArgs, objEnv)
+		If Not IsMacro Then
+			Err.Raise vbObjectError, _
+				"MalMacroApply", "Not a macro."
+		End If
+
+		Dim varRet
+		Dim objNewEnv
+		Set objNewEnv = NewEnv(objSavedEnv)
+		Dim i
+		i = 0
+		Dim objList
+		While i < objParams.Count
+			If objParams.Item(i).Value = "&" Then
+				If objParams.Count - 1 = i + 1 Then
+					Set objList = NewMalList(Array())
+					objNewEnv.Add objParams.Item(i + 1), objList
+					While i + 1 < objArgs.Count
+						objList.Add objArgs.Item(i + 1)
+						i = i + 1
+					Wend
+					i = objParams.Count ' Break While
+				Else
+					Err.Raise vbObjectError, _
+						"MalMacroApply", "Invalid parameter(s)."
+				End If
+			Else
+				If i + 1 >= objArgs.Count Then
+					Err.Raise vbObjectError, _
+						"MalMacroApply", "Need more arguments."
+				End If
+				objNewEnv.Add objParams.Item(i), _
+					objArgs.Item(i + 1)
+				i = i + 1
+			End If
+		Wend
+		
+		Set varRet = Evaluate(objCode, objNewEnv)
+		Set MacroApply = varRet
+	End Function
 End Class
 
 Function NewMalProc(objParams, objCode, objEnv)
 	Dim varRet
 	Set varRet = New MalProcedure
 	varRet.Init objParams, objCode, objEnv
+	Set NewMalProc = varRet
+End Function
+
+Function NewMalMacro(objParams, objCode, objEnv)
+	Dim varRet
+	Set varRet = New MalProcedure
+	varRet.Init objParams, objCode, objEnv
+	varRet.IsMacro = True
 	Set NewMalProc = varRet
 End Function
