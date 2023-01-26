@@ -331,6 +331,8 @@ Class MalProcedure 'Extends MalType
 			If objParams.Item(i).Value = "&" Then
 				If objParams.Count - 1 = i + 1 Then
 					Set objList = NewMalList(Array())
+					
+					' No evaluation
 					objNewEnv.Add objParams.Item(i + 1), objList
 					While i + 1 < objArgs.Count
 						objList.Add objArgs.Item(i + 1)
@@ -346,12 +348,15 @@ Class MalProcedure 'Extends MalType
 					Err.Raise vbObjectError, _
 						"MalMacroApply", "Need more arguments."
 				End If
+				
+				' No evaluation
 				objNewEnv.Add objParams.Item(i), _
 					objArgs.Item(i + 1)
 				i = i + 1
 			End If
 		Wend
 		
+		' EvalLater -> Evaluate
 		Set varRet = Evaluate(objCode, objNewEnv)
 		Set MacroApply = varRet
 	End Function

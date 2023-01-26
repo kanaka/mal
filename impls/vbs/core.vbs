@@ -345,3 +345,67 @@ Function MVec(objArgs, objEnv)
 	Set MVec = varRes
 End Function
 objNS.Add NewMalSym("vec"), NewVbsProc("MVec", False)
+
+Function MNth(objArgs, objEnv)
+	Dim varRes
+	CheckArgNum objArgs, 2
+	CheckListOrVec objArgs.Item(1)
+	CheckType objArgs.Item(2), TYPES.NUMBER
+
+	If objArgs.Item(2).Value < objArgs.Item(1).Count Then
+		Set varRes = objArgs.Item(1).Item(objArgs.Item(2).Value)
+	Else
+		Err.Raise vbObjectError, _
+			"MNth", "Index out of bound."
+	End If
+
+	Set MNth = varRes
+End Function
+objNS.Add NewMalSym("nth"), NewVbsProc("MNth", False)
+
+Function MFirst(objArgs, objEnv)
+	Dim varRes
+	CheckArgNum objArgs, 1
+	
+	If objArgs.Item(1).Type = TYPES.NIL Then
+		Set varRes = NewMalNil()
+		Set MFirst = varRes
+		Exit Function
+	End If
+
+	CheckListOrVec objArgs.Item(1)
+
+	If objArgs.Item(1).Count < 1 Then
+		Set varRes = NewMalNil()
+	Else
+		Set varRes = objArgs.Item(1).Item(0)
+	End If
+
+	Set MFirst = varRes
+End Function
+objNS.Add NewMalSym("first"), NewVbsProc("MFirst", False)
+
+Function MRest(objArgs, objEnv)
+	Dim varRes
+	CheckArgNum objArgs, 1
+	
+	If objArgs.Item(1).Type = TYPES.NIL Then
+		Set varRes = NewMalNil()
+		Set MRest = varRes
+		Exit Function
+	End If
+
+	Dim objList
+	Set objList = objArgs.Item(1)
+	CheckListOrVec objList
+
+	Set varRes = NewMalList(Array())
+	Dim i
+	For i = 1 To objList.Count - 1
+		varRes.Add objList.Item(i)
+	Next
+	
+	Set MRest = varRes
+End Function
+objNS.Add NewMalSym("rest"), NewVbsProc("MRest", False)
+
