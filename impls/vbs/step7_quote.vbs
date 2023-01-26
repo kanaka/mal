@@ -140,59 +140,118 @@ Function MQuasiQuote(objArgs, objEnv)
 	Dim varRes
 	CheckArgNum objArgs, 1
 	
-	Set varRes = QuasiQuoteHelper(objArgs.Item(1), objEnv).Item(0)
+	Set varRes = EvalLater( _
+		MQuasiQuoteExpand(objArgs, objEnv), objEnv)
 	Set MQuasiQuote = varRes
 End Function
 objNS.Add NewMalSym("quasiquote"), NewVbsProc("MQuasiQuote", True)
 
-Function QuasiQuoteHelper(objArg, objEnv)
+Function MQuasiQuoteExpand(objArgs, objEnv)
 	Dim varRes
-	If IsListOrVec(objArg) Then
-		Dim i, j
-		Dim objList
-		If objArg.Count > 0 Then
-			If objArg.Item(0).Type = TYPES.SYMBOL Then
-				Select Case objArg.Item(0).Value
-					Case "unquote" ' ~x -> (x)
-						CheckArgNum objArg, 1
-						Set varRes = NewMalList(Array( _
-							Evaluate(objArg.Item(1), objEnv)))
-					Case "splice-unquote" ' ~@x -> x
-						CheckArgNum objArg, 1
-						Set varRes = Evaluate(objArg.Item(1), objEnv)
-						If Not IsListOrVec(varRes) Then
-							Err.Raise vbObjectError, _
-								"QuasiQuoteHelper", "Wrong return value type."
-						End If
-					Case Else ' (x y z) -> ((x y z))
-						Set varRes = NewMalList(Array())
-						varRes.Add NewMalList(Array())
-						For i = 0 To objArg.Count - 1
-							Set objList = QuasiQuoteHelper(objArg.Item(i), objEnv)
-							For j = 0 To objList.Count - 1
-								varRes.Item(0).Add objList.Item(j)
-							Next
-						Next
-				End Select
-			Else ' (x y z) -> ((x y z))
+	CheckArgNum objArgs, 1
+
+	Set varRes = ExpandHelper(objArgs.Item(1))
+	If varRes.Splice Then
+		Err.Raise vbObjectError, _
+			"MQuasiQuoteExpand", "Wrong return value type."
+	End If
+	Set varRes = varRes.Value
+
+	Set MQuasiQuoteExpand = varRes
+End Function
+objNS.Add NewMalSym("quasiquoteexpand"), NewVbsProc("MQuasiQuoteExpand", True)
+
+Class ExpandType
+	Public Splice
+	Public Value
+End Class
+
+Function NewExpandType(objValue, boolSplice)
+	Dim varRes
+	Set varRes = New ExpandType
+	Set varRes.Value = objValue
+	varRes.Splice = boolSplice
+	Set NewExpandType = varRes
+End Function
+
+Function ExpandHelper(objArg)
+	Dim varRes, boolSplice
+	Dim varBuilder, varEType, i
+	boolSplice = False
+	Select Case objArg.Type
+		Case TYPES.LIST
+			Dim boolNormal
+			boolNormal = False
+
+			' Check for unquotes.
+			Select Case objArg.Count
+				Case 2
+					' Maybe have a bug here
+					' like (unquote a b c) should be throw a error
+					If objArg.Item(0).Type = TYPES.SYMBOL Then
+						Select Case objArg.Item(0).Value
+							Case "unquote"
+								Set varRes = objArg.Item(1)
+							Case "splice-unquote"
+								Set varRes = objArg.Item(1)
+								boolSplice = True
+							Case Else
+								boolNormal = True
+						End Select
+					Else
+						boolNormal = True
+					End If
+				Case Else
+					boolNormal = True
+			End Select
+			
+			If boolNormal Then
 				Set varRes = NewMalList(Array())
-				varRes.Add NewMalList(Array())
+				Set varBuilder = varRes
+
 				For i = 0 To objArg.Count - 1
-					Set objList = QuasiQuoteHelper(objArg.Item(i), objEnv)
-					For j = 0 To objList.Count - 1
-						varRes.Item(0).Add objList.Item(j)
-					Next
+					Set varEType = ExpandHelper(objArg.Item(i))
+					If varEType.Splice Then
+						varBuilder.Add NewMalSym("concat")
+					Else
+						varBuilder.Add NewMalSym("cons")
+					End If
+					varBuilder.Add varEType.Value
+					varBuilder.Add NewMalList(Array())
+					Set varBuilder = varBuilder.Item(2)
 				Next
 			End If
-		Else ' () -> (())
+		Case TYPES.VECTOR
 			Set varRes = NewMalList(Array( _
-				NewMalList(Array())))
-		End If
-	Else ' x -> (x)
-		Set varRes = NewMalList(Array(objArg))
-	End If
+				NewMalSym("vec"), NewMalList(Array())))
+			
+			Set varBuilder = varRes.Item(1)
+			For i = 0 To objArg.Count - 1
+				Set varEType = ExpandHelper(objArg.Item(i))
+				If varEType.Splice Then
+					varBuilder.Add NewMalSym("concat")
+				Else
+					varBuilder.Add NewMalSym("cons")
+				End If
+				varBuilder.Add varEType.Value
+				varBuilder.Add NewMalList(Array())
+				Set varBuilder = varBuilder.Item(2)
+			Next
+		Case TYPES.HASHMAP
+			' Maybe have a bug here.
+			' e.g. {"key" ~value}
+			Set varRes = NewMalList(Array( _
+				NewMalSym("quote"), objArg))
+		Case TYPES.SYMBOL
+			Set varRes = NewMalList(Array( _
+				NewMalSym("quote"), objArg))
+		Case Else
+			' Maybe have a bug here.
+			' All unspecified type will return itself.
+			Set varRes = objArg
+	End Select
 
-	Set QuasiQuoteHelper = varRes
+	Set ExpandHelper = NewExpandType(varRes, boolSplice)
 End Function
 
 Call InitBuiltIn()
@@ -225,7 +284,7 @@ Sub REPL()
 			If Err.Number <> 0 Then WScript.Quit 0
 		On Error Goto 0
 
-		'On Error Resume Next
+		On Error Resume Next
 			WScript.Echo REP(strCode)
 			If Err.Number <> 0 Then
 				WScript.StdErr.WriteLine Err.Source + ": " + Err.Description 
