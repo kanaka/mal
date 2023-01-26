@@ -280,6 +280,11 @@ Class MalProcedure 'Extends MalType
 	End Function
 
 	Public Function Apply(objArgs, objEnv)
+		If IsMacro Then
+			Err.Raise vbObjectError, _
+				"MalProcedureApply", "Not a procedure."
+		End If
+
 		Dim varRet
 		Dim objNewEnv
 		Set objNewEnv = NewEnv(objSavedEnv)

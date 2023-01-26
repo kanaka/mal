@@ -409,3 +409,39 @@ Function MRest(objArgs, objEnv)
 End Function
 objNS.Add NewMalSym("rest"), NewVbsProc("MRest", False)
 
+Sub InitMacro()
+	REP "(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw ""odd number of forms to cond"")) (cons'cond (rest (rest xs)))))))"
+	REP "(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs))))))))"
+End Sub
+
+Class MalException
+	Private objDict
+	Private Sub Class_Initialize
+		Set objDict = CreateObject("Scripting.Dictionary")
+	End Sub
+
+	Public Sub Add(varKey, varValue)
+		objDict.Add varKey, varValue
+	End Sub
+
+	Public Function Item(varKey)
+		Set Item = objDict.Item(varKey)
+	End Function
+
+	Public Sub Remove(varKey)
+		objDict.Remove varKey
+	End Sub
+End Class
+
+Dim objExceptions
+Set objExceptions = New MalException
+
+Function MThrow(objArgs, objEnv)
+	CheckArgNum objArgs, 1
+	Dim strRnd
+	strRnd = CStr(Rnd())
+	objExceptions.Add strRnd, objArgs.Item(1)
+	Err.Raise vbObjectError, _
+		"MThrow", strRnd
+End Function
+objNS.Add NewMalSym("throw"), NewVbsProc("MThrow", False)
