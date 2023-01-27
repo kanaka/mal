@@ -392,7 +392,7 @@ Sub REPL()
 			If Err.Number <> 0 Then WScript.Quit 0
 		On Error Goto 0
 
-		On Error Resume Next
+		'On Error Resume Next
 			WScript.Echo REP(strCode)
 			If Err.Number <> 0 Then
 				If Err.Source = "MThrow" Then
