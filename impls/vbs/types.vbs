@@ -183,16 +183,60 @@ Class MalHashmap 'Extends MalType
 	Public Function Init(arrKeys, arrValues)
 		Dim i
 		For i = 0 To UBound(arrKeys)
-			.Add arrKeys(i), arrValues(i)
+			Add arrKeys(i), arrValues(i)
 		Next
 	End Function
-	
+
+	Private Function M2S(objKey)
+		Dim varRes
+		Select Case objKey.Type
+			Case TYPES.STRING
+				varRes = "S" + objKey.Value
+			Case TYPES.KEYWORD
+				varRes = "K" + objKey.Value
+			Case Else
+				Err.Raise vbObjectError, _
+					"MalHashmap", "Unexpect key type."
+		End Select
+		M2S = varRes
+	End Function
+
+	Private Function S2M(strKey)
+		Dim varRes
+		Select Case Left(strKey, 1)
+			Case "S"
+				Set varRes = NewMalStr(Right(strKey, Len(strKey) - 1))
+			Case "K"
+				Set varRes = NewMalKwd(Right(strKey, Len(strKey) - 1))
+			Case Else
+				Err.Raise vbObjectError, _
+					"MalHashmap", "Unexpect key type."
+		End Select
+		Set S2M = varRes
+	End Function
+
 	Public Function Add(varKey, varValue)
-		Value.Add varKey, varValue
+		If varKey.Type <> TYPES.STRING And _
+			varKey.Type <> TYPES.KEYWORD Then
+			Err.Raise vbObjectError, _
+				"MalHashmap", "Unexpect key type."
+		End If
+		
+		Set Value.Item(M2S(varKey)) = varValue
+		'Value.Add M2S(varKey), varValue
 	End Function
 	
 	Public Property Get Keys()
-		Keys = Value.Keys
+		Dim aKeys
+		aKeys = Value.Keys
+		Dim aRes()
+		ReDim aRes(UBound(aKeys))
+		Dim i
+		For i = 0 To UBound(aRes)
+			Set aRes(i) = S2M(aKeys(i))
+		Next
+
+		Keys = aRes
 	End Property
 
 	Public Function Count()
@@ -200,15 +244,26 @@ Class MalHashmap 'Extends MalType
 	End Function
 
 	Public Property Get Item(i)
-		Set Item = Value.Item(i)
+		Set Item = Value.Item(M2S(i))
 	End Property
 
+	Public Function Exists(varKey)
+		If varKey.Type <> TYPES.STRING And _
+			varKey.Type <> TYPES.KEYWORD Then
+			Err.Raise vbObjectError, _
+				"MalHashmap", "Unexpect key type."
+		End If
+		Exists = Value.Exists(M2S(varKey))
+	End Function
+
 	Public Property Let Item(i, varValue)
-		Value.Item(i) = varValue
+		wsh.echo 2
+		Value.Item(M2S(i)) = varValue
 	End Property
 
 	Public Property Set Item(i, varValue)
-		Set Value.Item(i) = varValue
+		wsh.echo 1
+		Set Value.Item(M2S(i)) = varValue
 	End Property
 End Class
 
@@ -370,7 +425,7 @@ Class MalProcedure 'Extends MalType
 		
 		' EvalLater -> Evaluate
 		Set varRet = Evaluate(objCode, objNewEnv)
-		Set ApplyWithoutEval = varRet
+		Set MacroApply = varRet
 	End Function
 
 

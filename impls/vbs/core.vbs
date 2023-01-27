@@ -119,7 +119,7 @@ Function MEqual(objArgs, objEnv)
 				boolResult = boolResult And _
 					MEqual(NewMalList(Array(Nothing, _
 					objArgs.Item(1).Item(i), _
-					objArgs.Item(2).Item(i)))).Value
+					objArgs.Item(2).Item(i))), objEnv).Value
 			Next
 			Set varRet = NewMalBool(boolResult)	
 		End If
@@ -129,8 +129,27 @@ Function MEqual(objArgs, objEnv)
 		Else
 			Select Case objArgs.Item(1).Type
 				Case TYPES.HASHMAP
-					Err.Raise vbObjectError, _
-						"MEqual", "Not implement yet~"
+					'Err.Raise vbObjectError, _
+					'	"MEqual", "Not implement yet~"
+					If UBound(objArgs.Item(1).Keys) <> UBound(objArgs.Item(2).Keys) Then
+						Set varRet = NewMalBool(False)
+						Set MEqual = varRet
+						Exit Function
+					End If
+					
+					boolResult = True
+					For Each i In objArgs.Item(1).Keys
+						If Not objArgs.Item(2).Exists(i) Then
+							Set varRet = NewMalBool(False)
+							Set MEqual = varRet
+							Exit Function
+						End If
+
+						boolResult = boolResult And _
+							MEqual(NewMalList(Array(Nothing, objArgs.Item(1).Item(i), objArgs.Item(2).Item(i))), objEnv).Value
+					Next
+					Set varRet = NewMalBool(boolResult)	
+					
 				Case Else
 					Set varRet = NewMalBool( _
 						objArgs.Item(1).Value = objArgs.Item(2).Value)
@@ -223,6 +242,7 @@ Sub InitBuiltIn()
 	REP "(def! true? (fn* [x] (= x true)))"
 	REP "(def! false? (fn* [x] (= x false)))"
 	REP "(def! vector (fn* [& args] (vec args)))"
+	REP "(def! vals (fn* [hmap] (map (fn* [key] (get hmap key)) (keys hmap))))"
 End Sub
 
 Function MReadStr(objArgs, objEnv)
@@ -575,3 +595,109 @@ Function MIsMap(objArgs, objEnv)
 	Set MIsMap = varRes
 End Function
 objNS.Add NewMalSym("map?"), NewVbsProc("MIsMap", False)
+
+Function MHashMap(objArgs, objEnv)
+	Dim varRes
+	If objArgs.Count Mod 2 <> 1 Then
+		Err.Raise vbObjectError, _
+			"MHashMap", "Unexpect argument(s)."
+	End If
+	Set varRes = NewMalMap(Array(), Array())
+	Dim i
+	For i = 1 To objArgs.Count - 1 Step 2
+		varRes.Add objArgs.Item(i), objArgs.Item(i + 1)
+	Next
+	Set MHashMap = varRes
+End Function
+objNS.Add NewMalSym("hash-map"), NewVbsProc("MHashMap", False)
+
+Function MAssoc(objArgs, objEnv)
+	Dim varRes
+	If objArgs.Count - 1 < 3 Or objArgs.Count Mod 2 <> 0 Then
+		Err.Raise vbObjectError, _
+			"MHashMap", "Unexpect argument(s)."
+	End If
+	
+	Dim objMap
+	Set objMap = objArgs.Item(1)
+	CheckType objMap, TYPES.HASHMAP
+
+	Dim i
+	Set varRes = NewMalMap(Array(), Array())
+	For Each i In objMap.Keys
+		varRes.Add i, objMap.Item(i)
+	Next
+	For i = 2 To objArgs.Count - 1 Step 2
+		varRes.Add objArgs.Item(i), objArgs.Item(i + 1)
+	Next
+
+	Set MAssoc = varRes
+End Function
+objNS.Add NewMalSym("assoc"), NewVbsProc("MAssoc", False)
+
+Function MGet(objArgs, objEnv)
+	Dim varRes
+	CheckArgNum objArgs, 2
+	
+	If objArgs.Item(1).Type = TYPES.NIL Then
+		Set varRes = NewMalNil()
+	Else
+		CheckType objArgs.Item(1), TYPES.HASHMAP
+		If objArgs.Item(1).Exists(objArgs.Item(2)) Then
+			Set varRes = objArgs.Item(1).Item(objArgs.Item(2))
+		Else
+			Set varRes = NewMalNil()
+		End If
+	End If
+	
+	Set MGet = varRes
+End Function
+objNS.Add NewMalSym("get"), NewVbsProc("MGet", False)
+
+Function MDissoc(objArgs, objEnv)
+	Dim varRes
+	'CheckArgNum objArgs, 2
+	CheckType objArgs.Item(1), TYPES.HASHMAP
+	
+	If objArgs.Item(1).Exists(objArgs.Item(2)) Then
+		Set varRes = NewMalMap(Array(), Array())
+		
+		Dim i
+		Dim j, boolFlag
+		For Each i In objArgs.Item(1).Keys
+			boolFlag = True
+			For j = 2 To objArgs.Count - 1
+				If i.Type = objArgs.Item(j).Type And _
+					i.Value = objArgs.Item(j).Value Then
+					boolFlag = False
+				End If
+			Next
+			If boolFlag Then
+				varRes.Add i, objArgs.Item(1).Item(i)
+			End If
+		Next
+	Else
+		Set varRes = objArgs.Item(1)
+	End If
+
+	Set MDissoc = varRes
+End Function
+objNS.Add NewMalSym("dissoc"), NewVbsProc("MDissoc", False)
+
+Function MKeys(objArgs, objEnv)
+	CheckArgNum objArgs, 1
+	CheckType objArgs.Item(1), TYPES.HASHMAP
+	Set MKeys = NewMalList(objArgs.Item(1).Keys)
+End Function
+objNS.Add NewMalSym("keys"), NewVbsProc("MKeys", False)
+
+' Function MVals
+' objNS.Add NewMalSym("vals"), NewVbsProc("MVals", False)
+
+Function MIsContains(objArgs, objEnv)
+	CheckArgNum objArgs, 2
+	CheckType objArgs.Item(1), TYPES.HASHMAP
+
+	Set MIsContains = NewMalBool(objArgs.Item(1).Exists(objArgs.Item(2)))
+End Function
+objNS.Add NewMalSym("contains?"), NewVbsProc("MIsContains", False)
