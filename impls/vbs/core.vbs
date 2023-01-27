@@ -219,6 +219,10 @@ Sub InitBuiltIn()
 	REP "(def! >= (fn* [a b] (not (> b a))))"
 	REP "(def! load-file (fn* (f) (eval (read-string (str ""(do "" (slurp f) ""\nnil)"")))))"
 	REP "(def! cons (fn* [a b] (concat (list a) b)))"
+	REP "(def! nil? (fn* [x] (= x nil)))"
+	REP "(def! true? (fn* [x] (= x true)))"
+	REP "(def! false? (fn* [x] (= x false)))"
+	REP "(def! vector (fn* [& args] (vec args)))"
 End Sub
 
 Function MReadStr(objArgs, objEnv)
@@ -444,4 +448,130 @@ Function MThrow(objArgs, objEnv)
 	Err.Raise vbObjectError, _
 		"MThrow", strRnd
 End Function
-objNS.Add NewMalSym("throw"), NewVbsProc("MThrow", False)
+objNS.Add NewMalSym("throw"), NewVbsProc("MThrow", True)
+
+Function MApply(objArgs, objEnv)
+	Dim varRes
+	If objArgs.Count - 1 < 2 Then
+		Err.Raise vbObjectError, _
+			"MApply", "Need more arguments."
+	End If
+	
+	Dim objFn
+	Set objFn = objArgs.Item(1)
+	CheckType objFn, TYPES.PROCEDURE
+	If objFn.IsSpecial Or objFn.IsMacro Then
+		Err.Raise vbObjectError, _
+			"MApply", "Need a function."
+	End If
+
+	Dim objAST
+	Set objAST = NewMalList(Array(objFn))
+	Dim i
+	For i = 2 To objArgs.Count - 2
+		objAST.Add objArgs.Item(i)
+	Next
+
+	Dim objSeq
+	Set objSeq = objArgs.Item(objArgs.Count - 1)
+	CheckListOrVec objSeq
+
+	For i = 0 To objSeq.Count - 1
+		objAST.Add objSeq.Item(i)
+	Next
+	
+	Set varRes = objFn.ApplyWithoutEval(objAST, objEnv)
+	Set MApply = varRes
+End Function
+objNS.Add NewMalSym("apply"), NewVbsProc("MApply", False)
+
+Function MMap(objArgs, objEnv)
+	Dim varRes
+	CheckArgNum objArgs, 2
+	Dim objFn, objSeq
+	Set objFn = objArgs.Item(1)
+	Set objSeq = objArgs.Item(2)
+	CheckType objFn, TYPES.PROCEDURE
+	CheckListOrVec objSeq
+	If objFn.IsSpecial Or objFn.IsMacro Then
+		Err.Raise vbObjectError, _
+			"MApply", "Need a function."
+	End If
+
+	Set varRes = NewMalList(Array())
+	Dim i
+	For i = 0 To objSeq.Count - 1
+		varRes.Add objFn.ApplyWithoutEval(NewMalList(Array( _
+			objFn, objSeq.Item(i))), objEnv)
+	Next
+
+	Set MMap = varRes
+End Function
+objNS.Add NewMalSym("map"), NewVbsProc("MMap", False)
+
+Function MIsSymbol(objArgs, objEnv)
+	Dim varRes
+	CheckArgNum objArgs, 1
+	Set varRes = NewMalBool(objArgs.Item(1).Type = TYPES.SYMBOL)
+	Set MIsSymbol = varRes
+End Function
+objNS.Add NewMalSym("symbol?"), NewVbsProc("MIsSymbol", False)
+
+Function MSymbol(objArgs, objEnv)
+	Dim varRes
+	CheckArgNum objArgs, 1
+	CheckType objArgs.Item(1), TYPES.STRING
+	Set varRes = NewMalSym(objArgs.Item(1).Value)
+	Set MSymbol = varRes
+End Function
+objNS.Add NewMalSym("symbol"), NewVbsProc("MSymbol", False)
+
+Function MKeyword(objArgs, objEnv)
+	Dim varRes
+	CheckArgNum objArgs, 1
+	Select Case objArgs.Item(1).Type
+		Case TYPES.STRING
+			Set varRes = NewMalKwd(":" + objArgs.Item(1).Value)
+		Case TYPES.KEYWORD
+			Set varRes = objArgs.Item(1)
+		Case Else
+			Err.Raise vbObjectError, _
+				"MKeyword", "Unexpect argument(s)."
+	End Select
+	Set MKeyword = varRes
+End Function
+objNS.Add NewMalSym("keyword"), NewVbsProc("MKeyword", False)
+
+Function MIsKeyword(objArgs, objEnv)
+	Dim varRes
+	CheckArgNum objArgs, 1
+	Set varRes = NewMalBool(objArgs.Item(1).Type = TYPES.KEYWORD)
+	Set MIsKeyword = varRes
+End Function
+objNS.Add NewMalSym("keyword?"), NewVbsProc("MIsKeyword", False)
+
+Function MIsSeq(objArgs, objEnv)
+	Dim varRes
+	CheckArgNum objArgs, 1
+	Set varRes = NewMalBool( _
+		objArgs.Item(1).Type = TYPES.LIST Or _
+		objArgs.Item(1).Type = TYPES.VECTOR)
+	Set MIsSeq = varRes
+End Function
+objNS.Add NewMalSym("sequential?"), NewVbsProc("MIsSeq", False)
+
+Function MIsVec(objArgs, objEnv)
+	Dim varRes
+	CheckArgNum objArgs, 1
+	Set varRes = NewMalBool(objArgs.Item(1).Type = TYPES.VECTOR)
+	Set MIsVec = varRes
+End Function
+objNS.Add NewMalSym("vector?"), NewVbsProc("MIsVec", False)
+
+Function MIsMap(objArgs, objEnv)
+	Dim varRes
+	CheckArgNum objArgs, 1
+	Set varRes = NewMalBool(objArgs.Item(1).Type = TYPES.HASHMAP)
+	Set MIsMap = varRes
+End Function
+objNS.Add NewMalSym("map?"), NewVbsProc("MIsMap", False)
