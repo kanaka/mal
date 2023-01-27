@@ -248,6 +248,13 @@ Class VbsProcedure 'Extends MalType
 		End If
 		Set Apply = varResult
 	End Function
+
+	Public Function ApplyWithoutEval(objArgs, objEnv)
+		Dim varResult
+		Set varResult = Value(objArgs, objEnv)
+		
+		Set ApplyWithoutEval = varResult
+	End Function
 End Class
 
 Function NewVbsProc(strFnName, boolSpec)
@@ -363,7 +370,49 @@ Class MalProcedure 'Extends MalType
 		
 		' EvalLater -> Evaluate
 		Set varRet = Evaluate(objCode, objNewEnv)
-		Set MacroApply = varRet
+		Set ApplyWithoutEval = varRet
+	End Function
+
+
+	Public Function ApplyWithoutEval(objArgs, objEnv)
+		Dim varRet
+		Dim objNewEnv
+		Set objNewEnv = NewEnv(objSavedEnv)
+		Dim i
+		i = 0
+		Dim objList
+		While i < objParams.Count
+			If objParams.Item(i).Value = "&" Then
+				If objParams.Count - 1 = i + 1 Then
+					Set objList = NewMalList(Array())
+					
+					' No evaluation
+					objNewEnv.Add objParams.Item(i + 1), objList
+					While i + 1 < objArgs.Count
+						objList.Add objArgs.Item(i + 1)
+						i = i + 1
+					Wend
+					i = objParams.Count ' Break While
+				Else
+					Err.Raise vbObjectError, _
+						"MalMacroApply", "Invalid parameter(s)."
+				End If
+			Else
+				If i + 1 >= objArgs.Count Then
+					Err.Raise vbObjectError, _
+						"MalMacroApply", "Need more arguments."
+				End If
+				
+				' No evaluation
+				objNewEnv.Add objParams.Item(i), _
+					objArgs.Item(i + 1)
+				i = i + 1
+			End If
+		Wend
+		
+		' EvalLater -> Evaluate
+		Set varRet = Evaluate(objCode, objNewEnv)
+		Set ApplyWithoutEval = varRet
 	End Function
 End Class
 

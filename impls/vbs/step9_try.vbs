@@ -309,6 +309,17 @@ objNS.Add NewMalSym("macroexpand"), NewVbsProc("MMacroExpand", True)
 
 Function MTry(objArgs, objEnv)
 	Dim varRes
+	
+	If objArgs.Count - 1 < 1 Then
+		Err.Raise vbObjectError, _
+			"MTry", "Need more arguments."
+	End If
+
+	If objArgs.Count - 1 = 1 Then
+		Set varRes = EvalLater(objArgs.Item(1), objEnv)
+		Set MTry = varRes
+		Exit Function
+	End If
 
 	CheckArgNum objArgs, 2
 	CheckType objArgs.Item(2), TYPES.LIST
