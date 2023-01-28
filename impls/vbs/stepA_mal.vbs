@@ -408,11 +408,13 @@ Sub REPL()
 			End If
 			If Err.Number <> 0 Then
 				If Err.Source = "MThrow" Then
-					WScript.StdErr.WriteLine Err.Source + ": " + _
+					'WScript.StdErr.WriteLine Err.Source + ": " + _
+					WScript.StdErr.WriteLine "Exception: " + _
 						PrintMalType(objExceptions.Item(Err.Description), True)
 					objExceptions.Remove Err.Description
 				Else
-					WScript.StdErr.WriteLine Err.Source + ": " + Err.Description
+					'WScript.StdErr.WriteLine Err.Source + ": " + Err.Description
+					WScript.StdErr.WriteLine "Exception: " + Err.Description
 				End If
 			End If
 		On Error Goto 0

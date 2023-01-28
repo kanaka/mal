@@ -384,7 +384,7 @@ Function MNth(objArgs, objEnv)
 		Set varRes = objArgs.Item(1).Item(objArgs.Item(2).Value)
 	Else
 		Err.Raise vbObjectError, _
-			"MNth", "Index out of bound."
+			"MNth", "Index out of bounds."
 	End If
 
 	Set MNth = varRes

@@ -399,15 +399,21 @@ Sub REPL()
 			If Err.Number <> 0 Then WScript.Quit 0
 		On Error Goto 0
 
+		Dim strRes
 		On Error Resume Next
-			WScript.Echo REP(strCode)
+			strRes = REP(strCode)
+			If strRes <> "" Then
+				WScript.Echo strRes
+			End If
 			If Err.Number <> 0 Then
 				If Err.Source = "MThrow" Then
-					WScript.StdErr.WriteLine Err.Source + ": " + _
+					'WScript.StdErr.WriteLine Err.Source + ": " + _
+					WScript.StdErr.WriteLine "Exception: " + _
 						PrintMalType(objExceptions.Item(Err.Description), True)
 					objExceptions.Remove Err.Description
 				Else
-					WScript.StdErr.WriteLine Err.Source + ": " + Err.Description
+					'WScript.StdErr.WriteLine Err.Source + ": " + Err.Description
+					WScript.StdErr.WriteLine "Exception: " + Err.Description
 				End If
 			End If
 		On Error Goto 0

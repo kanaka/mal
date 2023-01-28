@@ -42,7 +42,7 @@ Class Environment
 				Set varRet = objOuter.Find(varKey)
 			Else
 				Err.Raise vbObjectError, _
-					"Environment", "Symbol '" + varKey.Value + "' not found."
+					"Environment", "'" + varKey.Value + "' not found"
 			End If
 		End If
 

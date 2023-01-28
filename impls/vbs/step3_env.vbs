@@ -110,10 +110,15 @@ Sub REPL()
 			If Err.Number <> 0 Then WScript.Quit 0
 		On Error Goto 0
 
+		Dim strRes
 		On Error Resume Next
-			WScript.Echo REP(strCode)
+			strRes = REP(strCode)
+			If strRes <> "" Then
+				WScript.Echo strRes
+			End If
 			If Err.Number <> 0 Then
-				WScript.StdErr.WriteLine Err.Source + ": " + Err.Description 
+				'WScript.StdErr.WriteLine Err.Source + ": " + Err.Description 
+				WScript.StdErr.WriteLine "Exception: " + Err.Description 
 			End If
 		On Error Goto 0
 	Wend
