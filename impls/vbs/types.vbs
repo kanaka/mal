@@ -26,6 +26,23 @@ Class MalType
 	Public [Type]
 	Public Value
 
+	Private varMeta
+	Public Property Get MetaData()
+		If IsEmpty(varMeta) Then
+			Set MetaData = NewMalNil()
+		Else
+			Set MetaData = varMeta
+		End If
+	End Property
+	
+	Public Property Set MetaData(objMeta)
+		Set varMeta = objMeta
+	End Property
+	
+	Public Function Copy()
+		Set Copy = NewMalType([Type], Value)
+	End Function
+
 	Public Function Init(lngType, varValue)
 		[Type] = lngType
 		Value = varValue
@@ -66,6 +83,23 @@ End Function
 Class MalAtom
 	Public [Type]
 	Public Value
+	
+	Private varMeta
+	Public Property Get MetaData()
+		If IsEmpty(varMeta) Then
+			Set MetaData = NewMalNil()
+		Else
+			Set MetaData = varMeta
+		End If
+	End Property
+	
+	Public Property Set MetaData(objMeta)
+		Set varMeta = objMeta
+	End Property
+
+	Public Function Copy()
+		Set Copy = NewMalAtom(Value)
+	End Function
 
 	Public Sub Reset(objMal)
 		Set Value = objMal
@@ -87,6 +121,24 @@ Class MalList ' Extends MalType
 	Public [Type]
 	Public Value
 	
+	Private varMeta
+	Public Property Get MetaData()
+		If IsEmpty(varMeta) Then
+			Set MetaData = NewMalNil()
+		Else
+			Set MetaData = varMeta
+		End If
+	End Property
+	
+	Public Property Set MetaData(objMeta)
+		Set varMeta = objMeta
+	End Property
+
+	Public Function Copy()
+		Set Copy = New MalList
+		Set Copy.Value = Value
+	End Function
+
 	Private Sub Class_Initialize
 		[Type] = TYPES.LIST
 		Set Value = CreateObject("System.Collections.ArrayList")
@@ -131,6 +183,24 @@ Class MalVector ' Extends MalType
 	Public [Type]
 	Public Value
 	
+	Private varMeta
+	Public Property Get MetaData()
+		If IsEmpty(varMeta) Then
+			Set MetaData = NewMalNil()
+		Else
+			Set MetaData = varMeta
+		End If
+	End Property
+	
+	Public Property Set MetaData(objMeta)
+		Set varMeta = objMeta
+	End Property
+
+	Public Function Copy()
+		Set Copy = New MalVector
+		Set Copy.Value = Value
+	End Function
+
 	Private Sub Class_Initialize
 		[Type] = TYPES.VECTOR
 		Set Value = CreateObject("System.Collections.ArrayList")
@@ -174,6 +244,25 @@ End Function
 Class MalHashmap 'Extends MalType
 	Public [Type]
 	Public Value
+
+	Private varMeta
+	Public Property Get MetaData()
+		If IsEmpty(varMeta) Then
+			Set MetaData = NewMalNil()
+		Else
+			Set MetaData = varMeta
+		End If
+	End Property
+	
+	Public Property Set MetaData(objMeta)
+		Set varMeta = objMeta
+	End Property
+
+	Public Function Copy()
+		Set Copy = New MalHashmap
+		Set Copy.Value = Value
+	End Function
+
 
 	Private Sub Class_Initialize
 		[Type] = TYPES.HASHMAP
@@ -257,12 +346,10 @@ Class MalHashmap 'Extends MalType
 	End Function
 
 	Public Property Let Item(i, varValue)
-		wsh.echo 2
 		Value.Item(M2S(i)) = varValue
 	End Property
 
 	Public Property Set Item(i, varValue)
-		wsh.echo 1
 		Set Value.Item(M2S(i)) = varValue
 	End Property
 End Class
@@ -280,9 +367,11 @@ Class VbsProcedure 'Extends MalType
 	
 	Public IsMacro
 	Public boolSpec
+	Public MetaData
 	Private Sub Class_Initialize
 		[Type] = TYPES.PROCEDURE
 		IsMacro = False
+		Set MetaData = NewMalNil()
 	End Sub
 
 	Public Property Get IsSpecial()
@@ -310,6 +399,16 @@ Class VbsProcedure 'Extends MalType
 		
 		Set ApplyWithoutEval = varResult
 	End Function
+
+	Public Function Copy()
+		Dim varRes
+		Set varRes = New VbsProcedure
+		varRes.Type = [Type]
+		Set varRes.Value = Value
+		varRes.IsMacro = IsMacro
+		varRes.boolSpec = boolSpec
+		Set Copy = varRes
+	End Function
 End Class
 
 Function NewVbsProc(strFnName, boolSpec)
@@ -329,12 +428,14 @@ Class MalProcedure 'Extends MalType
 		IsSpecial = False
 	End Property
 
+	Public MetaData
 	Private Sub Class_Initialize
 		[Type] = TYPES.PROCEDURE
 		IsMacro = False
+		Set MetaData = NewMalNil()
 	End Sub
 
-	Private objParams, objCode, objSavedEnv
+	Public objParams, objCode, objSavedEnv
 	Public Function Init(objP, objC, objE)
 		Set objParams = objP
 		Set objCode = objC
@@ -469,6 +570,19 @@ Class MalProcedure 'Extends MalType
 		Set varRet = Evaluate(objCode, objNewEnv)
 		Set ApplyWithoutEval = varRet
 	End Function
+
+	
+	Public Function Copy()
+		Dim varRes
+		Set varRes = New MalProcedure
+		varRes.Type = [Type]
+		varRes.Value = Value
+		varRes.IsMacro = IsMacro
+		Set varRes.objParams = objParams
+		Set varRes.objCode = objCode
+		Set varRes.objSavedEnv = objSavedEnv
+		Set Copy = varRes
+	End Function
 End Class
 
 Function NewMalProc(objParams, objCode, objEnv)
@@ -484,4 +598,15 @@ Function NewMalMacro(objParams, objCode, objEnv)
 	varRet.Init objParams, objCode, objEnv
 	varRet.IsMacro = True
 	Set NewMalProc = varRet
+End Function
+
+Function SetMeta(objMal, objMeta)
+	Dim varRes
+	Set varRes = objMal.Copy
+	Set varRes.MetaData = objMeta
+	Set SetMeta = varRes
+End Function
+
+Function GetMeta(objMal)
+	Set GetMeta = objMal.MetaData
 End Function
