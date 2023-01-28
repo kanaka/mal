@@ -1,0 +1,4 @@
+(throw (list 1 2 3))
+(try* (throw {}) (catch* e (do (prn e) (throw e))))
+(try* (throw (list 1 2 3)) (catch* exc (do (prn "err:" exc) 7)))
+(try* (map throw (list "my err")) (catch* exc exc))

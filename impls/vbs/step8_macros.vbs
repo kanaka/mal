@@ -324,6 +324,7 @@ Sub InitArgs()
 	
 	If WScript.Arguments.Count > 0 Then
 		REP "(load-file """ + WScript.Arguments.Item(0) + """)"
+		WScript.Quit 0
 	End If
 End Sub
 

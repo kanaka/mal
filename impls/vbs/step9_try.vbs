@@ -337,25 +337,31 @@ Function MTry(objArgs, objEnv)
 	End If
 	
 	On Error Resume Next
-		Set varRes = Evaluate(objTry, objEnv)
-		If Err.Number <> 0 Then
-			Dim objException
+	Set varRes = Evaluate(objTry, objEnv)
+	If Err.Number <> 0 Then
+		Dim objException
 
-			If Err.Source <> "MThrow" Then
-				Set objException = NewMalStr(Err.Description)
-			Else
-				Set objException = objExceptions.Item(Err.Description)
-				objExceptions.Remove Err.Description
-			End If
-			
-			Call Err.Clear()
-
-			Set varRes = Evaluate(NewMalList(Array( _
-				NewMalSym("let*"), NewMalList(Array( _
-					objCatch.Item(1), objException)), _
-				objCatch.Item(2))), objEnv)
+		If Err.Source <> "MThrow" Then
+			Set objException = NewMalStr(Err.Description)
+		Else
+			Set objException = objExceptions.Item(Err.Description)
+			objExceptions.Remove Err.Description
 		End If
-	On Error Goto 0
+		
+		Call Err.Clear()
+		On Error Goto 0
+
+		' The code below may cause error too.
+		' So we should clear err info & throw out any errors.
+		' Use 'quote' to avoid eval objExp again.
+		Set varRes = Evaluate(NewMalList(Array( _
+			NewMalSym("let*"), NewMalList(Array( _
+				objCatch.Item(1), NewMalList(Array( _
+						NewMalSym("quote"), objException)))), _
+			objCatch.Item(2))), objEnv)
+	Else
+		On Error Goto 0
+	End If
 
 	Set MTry = varRes
 End Function
@@ -378,6 +384,7 @@ Sub InitArgs()
 	
 	If WScript.Arguments.Count > 0 Then
 		REP "(load-file """ + WScript.Arguments.Item(0) + """)"
+		WScript.Quit 0
 	End If
 End Sub
 

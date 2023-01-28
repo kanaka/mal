@@ -243,7 +243,7 @@ Sub InitBuiltIn()
 	REP "(def! false? (fn* [x] (= x false)))"
 	REP "(def! vector (fn* [& args] (vec args)))"
 	REP "(def! vals (fn* [hmap] (map (fn* [key] (get hmap key)) (keys hmap))))"
-	REP "(def! *host-language* ""Visual Basic Script"")"
+	REP "(def! *host-language* ""VBScript"")"
 End Sub
 
 Function MReadStr(objArgs, objEnv)
@@ -252,6 +252,9 @@ Function MReadStr(objArgs, objEnv)
 	CheckType objArgs.Item(1), TYPES.STRING
 
 	Set varRes = ReadString(objArgs.Item(1).Value)
+	If TypeName(varRes) = "Nothing" Then
+		Set varRes = NewMalNil()
+	End If
 	Set MReadStr = varRes
 End Function
 objNS.Add NewMalSym("read-string"), NewVbsProc("MReadStr", False)
@@ -415,7 +418,7 @@ Function MRest(objArgs, objEnv)
 	CheckArgNum objArgs, 1
 	
 	If objArgs.Item(1).Type = TYPES.NIL Then
-		Set varRes = NewMalNil()
+		Set varRes = NewMalList(Array())
 		Set MRest = varRes
 		Exit Function
 	End If
@@ -472,7 +475,7 @@ Function MThrow(objArgs, objEnv)
 	Err.Raise vbObjectError, _
 		"MThrow", strRnd
 End Function
-objNS.Add NewMalSym("throw"), NewVbsProc("MThrow", True)
+objNS.Add NewMalSym("throw"), NewVbsProc("MThrow", False)
 
 Function MApply(objArgs, objEnv)
 	Dim varRes
