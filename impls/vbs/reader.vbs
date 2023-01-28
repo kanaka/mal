@@ -6,7 +6,7 @@ Function ReadString(strCode)
 	Set ReadString = ReadForm(objTokens)
 	If Not objTokens.AtEnd() Then
 		Err.Raise vbObjectError, _
-			"ReadForm", "Extra token '" + objTokens.Current() + "'."
+			"ReadForm", "extra token '" + objTokens.Current() + "'."
 	End If
 End Function
 
@@ -91,7 +91,7 @@ Function ReadForm(objTokens) ' Return Nothing / MalType
 		Set varResult = ReadSpecial(objTokens)
 	ElseIf InStr(")]}", strToken) Then
 		Err.Raise vbObjectError, _
-			"ReadForm", "Unbalanced parentheses."
+			"ReadForm", "unbalanced parentheses."
 	ElseIf strToken = "^" Then
 		Set varResult = ReadMetadata(objTokens)
 	Else
@@ -132,7 +132,7 @@ Function ReadSpecial(objTokens)
 			strAlias = "deref"
 		Case Else
 			Err.Raise vbObjectError, _
-				"ReadSpecial", "Unknown token '" & strAlias & "'."
+				"ReadSpecial", "unknown token '" & strAlias & "'."
 	End Select
 
 	Call objTokens.MoveToNext()
@@ -149,7 +149,7 @@ Function ReadList(objTokens)
 
 	If objTokens.AtEnd() Then
 		Err.Raise vbObjectError, _
-			"ReadList", "Unbalanced parentheses."
+			"ReadList", "unbalanced parentheses."
 	End If
 
 	Set varResult = NewMalList(Array())
@@ -161,7 +161,7 @@ Function ReadList(objTokens)
 
 	If objTokens.MoveToNext() <> ")" Then
 		Err.Raise vbObjectError, _
-			"ReadList", "Unbalanced parentheses."
+			"ReadList", "unbalanced parentheses."
 	End If
 
 	Set ReadList = varResult
@@ -173,7 +173,7 @@ Function ReadVector(objTokens)
 
 	If objTokens.AtEnd() Then
 		Err.Raise vbObjectError, _
-			"ReadVector", "Unbalanced parentheses."
+			"ReadVector", "unbalanced parentheses."
 	End If
 
 	Set varResult = NewMalVec(Array())
@@ -185,7 +185,7 @@ Function ReadVector(objTokens)
 
 	If objTokens.MoveToNext() <> "]" Then
 		Err.Raise vbObjectError, _
-			"ReadVector", "Unbalanced parentheses."
+			"ReadVector", "unbalanced parentheses."
 	End If
 
 	Set ReadVector = varResult
@@ -197,7 +197,7 @@ Function ReadHashmap(objTokens)
 
 	If objTokens.Count = 0 Then
 		Err.Raise vbObjectError, _
-			"ReadHashmap", "Unbalanced parentheses."
+			"ReadHashmap", "unbalanced parentheses."
 	End If
 	
 	Set varResult = NewMalMap(Array(), Array())
@@ -212,7 +212,7 @@ Function ReadHashmap(objTokens)
 	
 	If objTokens.MoveToNext() <> "}" Then
 		Err.Raise vbObjectError, _
-			"ReadHashmap", "Unbalanced parentheses."
+			"ReadHashmap", "unbalanced parentheses."
 	End If
 	
 	Set ReadHashmap = varResult
@@ -252,7 +252,7 @@ End Function
 Function ParseString(strRaw)
 	If Right(strRaw, 1) <> """" Or Len(strRaw) < 2 Then
 		Err.Raise vbObjectError, _
-			"ParseString", "Unterminated string, got EOF."
+			"ParseString", "unterminated string, got EOF."
 	End If
 
 	Dim strTemp
@@ -281,7 +281,7 @@ Function ParseString(strRaw)
 			ParseString = ParseString & Right(strTemp, 1)
 		Else
 			Err.Raise vbObjectError, _
-				"ParseString", "Unterminated string, got EOF."
+				"ParseString", "unterminated string, got EOF."
 		End If
 	End If
 End Function
