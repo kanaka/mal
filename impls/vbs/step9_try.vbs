@@ -258,7 +258,7 @@ Function MDefMacro(objArgs, objEnv)
 	Dim varRet
 	CheckArgNum objArgs, 2
 	CheckType objArgs.Item(1), TYPES.SYMBOL
-	Set varRet = Evaluate(objArgs.Item(2), objEnv)
+	Set varRet = Evaluate(objArgs.Item(2), objEnv).Copy()
 	CheckType varRet, TYPES.PROCEDURE
 	varRet.IsMacro = True
 	objEnv.Add objArgs.Item(1), varRet
@@ -392,7 +392,7 @@ Sub REPL()
 			If Err.Number <> 0 Then WScript.Quit 0
 		On Error Goto 0
 
-		'On Error Resume Next
+		On Error Resume Next
 			WScript.Echo REP(strCode)
 			If Err.Number <> 0 Then
 				If Err.Source = "MThrow" Then

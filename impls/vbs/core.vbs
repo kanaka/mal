@@ -243,6 +243,7 @@ Sub InitBuiltIn()
 	REP "(def! false? (fn* [x] (= x false)))"
 	REP "(def! vector (fn* [& args] (vec args)))"
 	REP "(def! vals (fn* [hmap] (map (fn* [key] (get hmap key)) (keys hmap))))"
+	REP "(def! *host-language* ""Visual Basic Script"")"
 End Sub
 
 Function MReadStr(objArgs, objEnv)
@@ -333,7 +334,7 @@ Function MSwap(objArgs, objEnv)
 		objProg.Add objArgs.Item(i)
 	Next
 
-	objAtom.Reset Evaluate(objProg, objEnv)
+	objAtom.Reset objFn.ApplyWithoutEval(objProg, objEnv)
 	Set varRes = objAtom.Value
 	Set MSwap = varRes
 End Function
@@ -435,7 +436,10 @@ objNS.Add NewMalSym("rest"), NewVbsProc("MRest", False)
 
 Sub InitMacro()
 	REP "(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw ""odd number of forms to cond"")) (cons'cond (rest (rest xs)))))))"
-	REP "(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs))))))))"
+	'REP "(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs))))))))"
+	REP "(def! *gensym-counter* (atom 0))"
+	REP "(def! gensym (fn* [] (symbol (str ""G__"" (swap! *gensym-counter* (fn* [x] (+ 1 x)))))))"
+	REP "(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) (let* (condvar (gensym)) `(let* (~condvar ~(first xs)) (if ~condvar ~condvar (or ~@(rest xs)))))))))"
 End Sub
 
 Class MalException
@@ -630,7 +634,6 @@ Function MAssoc(objArgs, objEnv)
 	For i = 2 To objArgs.Count - 1 Step 2
 		varRes.Add objArgs.Item(i), objArgs.Item(i + 1)
 	Next
-
 	Set MAssoc = varRes
 End Function
 objNS.Add NewMalSym("assoc"), NewVbsProc("MAssoc", False)
@@ -691,9 +694,6 @@ Function MKeys(objArgs, objEnv)
 End Function
 objNS.Add NewMalSym("keys"), NewVbsProc("MKeys", False)
 
-' Function MVals
-' objNS.Add NewMalSym("vals"), NewVbsProc("MVals", False)
-
 Function MIsContains(objArgs, objEnv)
 	CheckArgNum objArgs, 2
 	CheckType objArgs.Item(1), TYPES.HASHMAP
@@ -701,3 +701,163 @@ Function MIsContains(objArgs, objEnv)
 	Set MIsContains = NewMalBool(objArgs.Item(1).Exists(objArgs.Item(2)))
 End Function
 objNS.Add NewMalSym("contains?"), NewVbsProc("MIsContains", False)
+
+Function MReadLine(objArgs, objEnv)
+	Dim varRes
+	CheckArgNum objArgs, 1
+	CheckType objArgs.Item(1), TYPES.STRING
+
+	Dim strInput
+	WScript.StdOut.Write objArgs.Item(1).Value
+	On Error Resume Next
+		strInput = WScript.StdIn.ReadLine()
+		If Err.Number <> 0 Then
+			Set varRes = NewMalNil()
+		Else
+			Set varRes = NewMalStr(strInput)
+		End If
+	On Error Goto 0
+	Set MReadLine = varRes
+End Function
+objNS.Add NewMalSym("readline"), NewVbsProc("MReadLine", False)
+
+Function MTimeMs(objArgs, objEnv)
+	Set MTimeMs = NewMalNum(CLng(Timer * 1000))
+End Function
+objNS.Add NewMalSym("time-ms"), NewVbsProc("MTimeMs", False)
+
+Function MIsStr(objArgs, objEnv)
+	CheckArgNum objArgs, 1
+	Set MIsStr = NewMalBool(objArgs.Item(1).Type = TYPES.STRING)
+End Function
+objNS.Add NewMalSym("string?"), NewVbsProc("MIsStr", False)
+
+Function MIsNum(objArgs, objEnv)
+	CheckArgNum objArgs, 1
+	Set MIsNum = NewMalBool(objArgs.Item(1).Type = TYPES.NUMBER)
+End Function
+objNS.Add NewMalSym("number?"), NewVbsProc("MIsNum", False)
+
+Function MIsFn(objArgs, objEnv)
+	CheckArgNum objArgs, 1
+	Dim varRes
+	varRes = objArgs.Item(1).Type = TYPES.PROCEDURE
+	If varRes Then
+		varRes = (Not objArgs.Item(1).IsMacro) And _
+			(Not objArgs.Item(1).IsSpecial)
+	End If
+	
+	Set MIsFn = NewMalBool(varRes)
+End Function
+objNS.Add NewMalSym("fn?"), NewVbsProc("MIsFn", False)
+
+
+Function MIsMacro(objArgs, objEnv)
+	CheckArgNum objArgs, 1
+	Dim varRes
+	varRes = objArgs.Item(1).Type = TYPES.PROCEDURE
+	If varRes Then
+		varRes = objArgs.Item(1).IsMacro And _
+			(Not objArgs.Item(1).IsSpecial)
+	End If
+	
+	Set MIsMacro = NewMalBool(varRes)
+End Function
+objNS.Add NewMalSym("macro?"), NewVbsProc("MIsMacro", False)
+
+
+Function MMeta(objArgs, objEnv)
+	CheckArgNum objArgs, 1
+	'CheckType objArgs.Item(1), TYPES.PROCEDURE
+
+	Dim varRes
+	Set varRes = GetMeta(objArgs.Item(1))
+	Set MMeta = varRes
+End Function
+objNS.Add NewMalSym("meta"), NewVbsProc("MMeta", False)
+
+Function MWithMeta(objArgs, objEnv)
+	CheckArgNum objArgs, 2
+	'CheckType objArgs.Item(1), TYPES.PROCEDURE
+
+	Dim varRes
+	Set varRes = SetMeta(objArgs.Item(1), objArgs.Item(2))
+	Set MWithMeta = varRes
+End Function
+objNS.Add NewMalSym("with-meta"), NewVbsProc("MWithMeta", False)
+
+Function MConj(objArgs, objEnv)
+	If objArgs.Count - 1 < 1 Then
+		Err.Raise vbObjectError, _
+			"MConj", "Need more arguments."
+	End If
+	Dim varRes
+	Dim objSeq
+	Set objSeq = objArgs.Item(1)
+	Dim i
+	Select Case objSeq.Type
+		Case TYPES.LIST
+			Set varRes = NewMalList(Array())
+			For i = objArgs.Count - 1 To 2 Step -1
+				varRes.Add objArgs.Item(i)
+			Next
+			For i = 0 To objSeq.Count - 1
+				varRes.Add objSeq.Item(i)
+			Next
+		Case TYPES.VECTOR
+			Set varRes = NewMalVec(Array())
+			For i = 0 To objSeq.Count - 1
+				varRes.Add objSeq.Item(i)
+			Next
+			For i = 2 To objArgs.Count - 1
+				varRes.Add objArgs.Item(i)
+			Next
+		Case Else	
+			Err.Raise vbObjectError, _
+				"MConj", "Unexpect argument type."
+	End Select
+	Set MConj = varRes
+End Function
+objNS.Add NewMalSym("conj"), NewVbsProc("MConj", False)
+
+Function MSeq(objArgs, objEnv)
+	CheckArgNum objArgs, 1
+	Dim objSeq
+	Set objSeq = objArgs.Item(1)
+	Dim varRes
+	Dim i
+	Select Case objSeq.Type
+		Case TYPES.STRING
+			If objSeq.Value = "" Then
+				Set varRes = NewMalNil()
+			Else
+				Set varRes = NewMalList(Array())
+				For i = 1 To Len(objSeq.Value)
+					varRes.Add NewMalStr(Mid(objSeq.Value, i, 1))
+				Next
+			End If
+		Case TYPES.LIST
+			If objSeq.Count = 0 Then
+				Set varRes = NewMalNil()
+			Else
+				Set varRes = objSeq
+			End If
+		Case TYPES.VECTOR
+			If objSeq.Count = 0 Then
+				Set varRes = NewMalNil()
+			Else
+				Set varRes = NewMalList(Array())
+				For i = 0 To objSeq.Count - 1
+					varRes.Add objSeq.Item(i)
+				Next
+			End If
+		Case TYPES.NIL
+			Set varRes = NewMalNil()
+		Case Else
+			Err.Raise vbObjectError, _
+				"MSeq", "Unexpect argument type."
+	End Select
+	Set MSeq = varRes
+End Function
+objNS.Add NewMalSym("seq"), NewVbsProc("MSeq", False)
+

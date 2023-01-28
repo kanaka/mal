@@ -307,6 +307,60 @@ Function MMacroExpand(objArgs, objEnv)
 End Function
 objNS.Add NewMalSym("macroexpand"), NewVbsProc("MMacroExpand", True)
 
+Function MTry(objArgs, objEnv)
+	Dim varRes
+	
+	If objArgs.Count - 1 < 1 Then
+		Err.Raise vbObjectError, _
+			"MTry", "Need more arguments."
+	End If
+
+	If objArgs.Count - 1 = 1 Then
+		Set varRes = EvalLater(objArgs.Item(1), objEnv)
+		Set MTry = varRes
+		Exit Function
+	End If
+
+	CheckArgNum objArgs, 2
+	CheckType objArgs.Item(2), TYPES.LIST
+
+	Dim objTry, objCatch
+	Set objTry = objArgs.Item(1)
+	Set objCatch = objArgs.Item(2)
+	
+	CheckArgNum objCatch, 2
+	CheckType objCatch.Item(0), TYPES.SYMBOL
+	CheckType objCatch.Item(1), TYPES.SYMBOL
+	If objCatch.Item(0).Value <> "catch*" Then
+		Err.Raise vbObjectError, _
+			"MTry", "Unexpect argument(s)."
+	End If
+	
+	On Error Resume Next
+		Set varRes = Evaluate(objTry, objEnv)
+		If Err.Number <> 0 Then
+			Dim objException
+
+			If Err.Source <> "MThrow" Then
+				Set objException = NewMalStr(Err.Description)
+			Else
+				Set objException = objExceptions.Item(Err.Description)
+				objExceptions.Remove Err.Description
+			End If
+			
+			Call Err.Clear()
+
+			Set varRes = Evaluate(NewMalList(Array( _
+				NewMalSym("let*"), NewMalList(Array( _
+					objCatch.Item(1), objException)), _
+				objCatch.Item(2))), objEnv)
+		End If
+	On Error Goto 0
+
+	Set MTry = varRes
+End Function
+objNS.Add NewMalSym("try*"), NewVbsProc("MTry", True)
+
 Call InitBuiltIn()
 Call InitMacro()
 
@@ -330,6 +384,7 @@ End Sub
 Call REPL()
 Sub REPL()
 	Dim strCode, strResult
+	REP "(println (str ""Mal [""*host-language*""]""))"
 	While True
 		WScript.StdOut.Write "user> "
 
@@ -341,7 +396,13 @@ Sub REPL()
 		On Error Resume Next
 			WScript.Echo REP(strCode)
 			If Err.Number <> 0 Then
-				WScript.StdErr.WriteLine Err.Source + ": " + Err.Description 
+				If Err.Source = "MThrow" Then
+					WScript.StdErr.WriteLine Err.Source + ": " + _
+						PrintMalType(objExceptions.Item(Err.Description), True)
+					objExceptions.Remove Err.Description
+				Else
+					WScript.StdErr.WriteLine Err.Source + ": " + Err.Description
+				End If
 			End If
 		On Error Goto 0
 	Wend
