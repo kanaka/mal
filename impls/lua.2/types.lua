@@ -77,6 +77,10 @@ function M.MalFunction.new(fn, ast, env, params)
   return setmetatable(self, M.MalFunction)
 end
 
+function M.is_malfunc(a)
+  return M.isinstanceof(a, M.MalFunction)
+end
+
 function M.is_sequence(a)
   return M.isinstanceof(a, M.MalList) or M.isinstanceof(a, M.MalVector)
 end

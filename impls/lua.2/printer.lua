@@ -50,7 +50,7 @@ function Printer.stringfy_val(val, readably)
   elseif is_instanceOf(val, Err) then
     return "Error: " .. Scanner.unescape(val.val)
   elseif is_instanceOf(val, Function) then
-    res = "(fn* " -- .. Printer.stringfy_val(val.params) .. " " Printer.stringfy_val(val.ast) ..")"
+    res = "(fn* "  .. Printer.stringfy_val(val.params) .. "-->" .. Printer.stringfy_val(val.ast) ..")"
 
   elseif type(val) == "string" then
     if readably then

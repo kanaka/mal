@@ -30,7 +30,7 @@ function Env:bind(binds, exprs)
     end
     if b.val ~= '&' then
       self.data[b.val] = exprs[i]
-      print(b.val .. ":" .. Printer.stringfy_val(exprs[i]) )
+      --print(b.val .. ":" .. Printer.stringfy_val(exprs[i]) )
     else
       if i == #binds or not(is_instanceOf(binds[i+1],Sym)) then 
         throw("Symbol '&' should be followed by an another symbol")
