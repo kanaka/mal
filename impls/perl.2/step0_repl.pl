@@ -1,5 +1,8 @@
 use v5.18;
 
+use Term::ReadLine;
+my $tty = Term::ReadLine->new('');
+
 my $prompt = 'user> ';
 
 sub Read {
@@ -22,6 +25,6 @@ sub rep {
     Print Eval Read $line;
 }
 
-while (print $prompt and defined (my $line = <>)) {
-    print rep $line;
+while (defined (my $line = $tty->readline($prompt))) {
+    print rep("$line") . "\n";
 }
