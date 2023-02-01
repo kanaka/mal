@@ -2,6 +2,7 @@ module mal
 
 type MalType = MalFalse
 	| MalFloat
+	| MalFn
 	| MalHashmap
 	| MalInt
 	| MalKeyword
@@ -55,28 +56,10 @@ pub:
 
 pub struct MalHashmap {
 pub:
-	hash map[string]MalType
+	hm map[string]MalType
 }
 
-pub fn mk_hashmap(list []MalType) !MalHashmap {
-	mut list_ := list[0..]
-	mut hash := map[string]MalType{}
-	for {
-		if list_.len == 0 {
-			break
-		}
-		if list_.len == 1 {
-			return error('odd number of hashmap args')
-		}
-		key, val := list_[0], list_[1]
-		if key is MalString {
-			hash['"${key.val}"'] = val
-		} else if key is MalKeyword {
-			hash[':${key.key}'] = val
-		} else {
-			return error('bad key type in hashmap')
-		}
-		list_ = list_[2..]
-	}
-	return MalHashmap{hash}
+pub struct MalFn {
+pub:
+	f fn ([]MalType) !MalType
 }

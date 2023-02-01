@@ -30,12 +30,32 @@ fn (mut r Reader) peek() ?Token {
 	return if r.pos < r.toks.len { r.toks[r.pos] } else { none }
 }
 
+fn hash_list(list []MalType) !map[string]MalType {
+	mut list_ := list[0..]
+	mut hash := map[string]MalType{}
+	if list_.len % 2 == 1 {
+		return error('extra hashmap param')
+	}
+	for list_.len > 0 {
+		key, val := list_[0], list_[1]
+		if key is MalString {
+			hash['"${key.val}"'] = val
+		} else if key is MalKeyword {
+			hash[':${key.key}'] = val
+		} else {
+			return error('bad hashmap key')
+		}
+		list_ = list_[2..]
+	}
+	return hash
+}
+
 fn (mut r Reader) read_form() !MalType {
 	tok := r.peek() or { return error('no form') }
 	return match true {
 		tok == '(' { MalList{r.read_list(')')!} }
 		tok == '[' { MalVector{r.read_list(']')!} }
-		tok == '{' { mk_hashmap(r.read_list('}')!)! }
+		tok == '{' { MalHashmap{hash_list(r.read_list('}')!)!} }
 		else { r.read_atom()! }
 	}
 }
@@ -84,12 +104,16 @@ fn tokenise(input string) ![]Token {
 	mut ret := []Token{}
 	mut input_ := input
 	for {
-		// println(input_)
+		$if tokenise ? {
+			println('INPUT: [${input_}]')
+		}
 		start, end := re.match_string(input_)
 		if start < 0 {
 			break
 		}
-		// println("TOKEN: '${input_[ re.groups[0]..re.groups[1] ]}'")
+		$if tokenise ? {
+			println('TOKEN: [${input_[re.groups[0]..re.groups[1]]}]')
+		}
 		if re.groups[1] > re.groups[0] {
 			tok := input_[re.groups[0]..re.groups[1]]
 			if tok[0] == `"` {

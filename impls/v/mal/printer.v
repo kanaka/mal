@@ -35,9 +35,12 @@ pub fn pr_str(ast MalType) string {
 			'[' + ast.vec.map(pr_str).join(' ') + ']'
 		}
 		MalHashmap {
-			'{' + maps.to_array(ast.hash, fn (k string, v MalType) string {
+			'{' + maps.to_array(ast.hm, fn (k string, v MalType) string {
 				return '${k} ${pr_str(v)}'
 			}).join(' ') + '}'
+		}
+		MalFn {
+			'<fn>'
 		}
 	}
 }
