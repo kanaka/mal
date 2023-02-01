@@ -12,12 +12,11 @@ endif
 
 IMPL ?= $(shell basename $(BASE))
 
-ALL_TESTS := $(shell echo test-0)
+ALL_TESTS := $(shell echo test-{0..1})
 
 
 default:
 
-.PHONY: test
 test:
 	$(MAKE) test-all BASIC=$(BASIC) |& \
 	    grep -E '(^TEST RESULTS|: .* tests$$)'
