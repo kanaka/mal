@@ -50,12 +50,28 @@ fn hash_list(list []MalType) !map[string]MalType {
 	return hash
 }
 
+fn (mut r Reader) macro_wrap(name string, num_forms int) !MalList {
+	_ := r.next() or { panic('token underflow') } // consume macro
+	mut list := []MalType{}
+	for _ in 0 .. num_forms {
+		list << r.read_form() or { return error('${name}: missing params') }
+	}
+	list << MalSymbol{name}
+	return MalList{list.reverse()}
+}
+
 fn (mut r Reader) read_form() !MalType {
 	tok := r.peek() or { return error('no form') }
 	return match true {
 		tok == '(' { MalList{r.read_list(')')!} }
 		tok == '[' { MalVector{r.read_list(']')!} }
 		tok == '{' { MalHashmap{hash_list(r.read_list('}')!)!} }
+		tok == "'" { r.macro_wrap('quote', 1)! }
+		tok == '`' { r.macro_wrap('quasiquote', 1)! }
+		tok == '~' { r.macro_wrap('unquote', 1)! }
+		tok == '~@' { r.macro_wrap('splice-unquote', 1)! }
+		tok == '@' { r.macro_wrap('deref', 1)! }
+		tok == '^' { r.macro_wrap('with-meta', 2)! }
 		else { r.read_atom()! }
 	}
 }
