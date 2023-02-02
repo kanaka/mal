@@ -98,7 +98,7 @@ fn (mut r Reader) read_atom() !MalType {
 		tok == 'nil' { MalNil{} }
 		tok == 'true' { MalTrue{} }
 		tok == 'false' { MalFalse{} }
-		tok[0] == `"` { MalString{tok[1..tok.len - 1]} }
+		tok[0] == `"` { MalString{unescape(tok[1..tok.len - 1])} }
 		tok[0] == `:` { MalKeyword{tok[1..]} }
 		r.re_int.matches_string(tok) { MalInt{tok.i64()} }
 		r.re_float.matches_string(tok) { MalFloat{tok.f64()} }

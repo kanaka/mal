@@ -2,20 +2,14 @@ module mal
 
 pub struct Env {
 pub:
-	outer &Env
+	outer &Env = unsafe { nil }
 pub mut:
 	data map[string]MalType = map[string]MalType{}
 }
 
-pub fn mk_outer_env() Env {
+pub fn mk_env(outer &Env) Env {
 	return Env{
-		outer: unsafe { nil }
-	}
-}
-
-pub fn mk_env(outer Env) Env {
-	return Env{
-		outer: &outer
+		outer: unsafe { outer }
 	}
 }
 

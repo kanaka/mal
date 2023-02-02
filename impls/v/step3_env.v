@@ -5,69 +5,38 @@ fn rep_read(input string) !mal.MalType {
 	return mal.read_str(input)!
 }
 
-fn rep_eval(ast mal.MalType, mut env mal.Env) !mal.MalType {
+fn eval(ast mal.MalType, mut env mal.Env) !mal.MalType {
 	match ast {
 		mal.MalList {
-			if ast.list.len < 1 {
-				return ast
-			}
-			list0 := ast.list[0]
-			special := if list0 is mal.MalSymbol { list0.sym } else { '' }
-			match special {
+			first := ast.first() or { return ast } // return empty list
+			match first.sym() or { '' } {
 				'def!' {
-					if ast.list.len < 3 {
-						return error('def!: missing param')
-					}
-					key := ast.list[1]
-					if key is mal.MalSymbol {
-						res := rep_eval(ast.list[2], mut env)!
-						return env.set(key.sym, res)
-					} else {
-						return error('def!: bad symbol')
-					}
+					ast.nth(2) or { return error('def!: missing param') }
+					sym := ast.list[1].sym() or { return error('def!: ${err}') }
+					return env.set(sym, eval(ast.list[2], mut env)!)
 				}
 				'let*' {
+					ast.nth(2) or { return error('let*: missing param') }
 					mut new_env := mal.mk_env(env)
-					if ast.list.len < 2 {
-						return error('let*: missing bindings')
-					}
-					bindings := ast.list[1]
-					mut list := match bindings {
-						mal.MalList { bindings.list }
-						mal.MalVector { bindings.vec }
-						else { return error('let*: bad bindings') }
-					}
-					list = list[0..] // shallow copy
-					if list.len % 2 == 1 {
+					mut pairs := ast.list[1].list_or_vec() or { return error('let*: ${err}') }
+					pairs = pairs[0..] // copy
+					if pairs.len % 2 == 1 {
 						return error('let*: extra binding param')
 					}
-					for list.len > 0 {
-						key := list[0]
-						if key is mal.MalSymbol {
-							res := rep_eval(list[1], mut new_env)!
-							new_env.set(key.sym, res)
-						} else {
-							return error('let*: bad binding symbol')
-						}
-						list = list[2..]
+					for pairs.len > 0 {
+						sym := pairs[0].sym() or { return error('let*: ${err}') }
+						new_env.set(sym, eval(pairs[1], mut new_env)!)
+						pairs = pairs[2..]
 					}
-					if ast.list.len > 2 {
-						return rep_eval(ast.list[2], mut new_env)!
-					} else {
-						return error('let*: missing exp')
-					}
+					return eval(ast.list[2], mut new_env)!
 				}
-				else { // list apply
+				else { // regular list apply
 					// BUG: https://github.com/vlang/v/issues/17156
 					// res := eval_ast(ast, env)! as mal.MalList
 					res_tmp := eval_ast(ast, mut env)!
 					res := res_tmp as mal.MalList
-					res0 := res.list[0]
-					if res0 is mal.MalFn {
-						return res0.f(res.list[1..])
-					} else {
-						return error('bad func')
-					}
+					fn_ := res.list[0].fn_()!
+					return fn_(res.rest())
 				}
 			}
 		}
@@ -84,15 +53,15 @@ fn eval_ast(ast mal.MalType, mut env mal.Env) !mal.MalType {
 			return env.get(ast.sym)!
 		}
 		mal.MalList {
-			return mal.MalList{ast.list.map(rep_eval(it, mut env)!)}
+			return mal.MalList{ast.list.map(eval(it, mut env)!)}
 		}
 		mal.MalVector {
-			return mal.MalVector{ast.vec.map(rep_eval(it, mut env)!)}
+			return mal.MalVector{ast.vec.map(eval(it, mut env)!)}
 		}
 		mal.MalHashmap {
 			mut hm := map[string]mal.MalType{}
 			for key in ast.hm.keys() {
-				hm[key] = rep_eval(ast.hm[key] or { panic('') }, mut env)!
+				hm[key] = eval(ast.hm[key] or { panic('') }, mut env)!
 			}
 			return mal.MalHashmap{hm}
 		}
@@ -103,29 +72,25 @@ fn eval_ast(ast mal.MalType, mut env mal.Env) !mal.MalType {
 }
 
 fn rep_print(ast mal.MalType) string {
-	return mal.pr_str(ast)
+	return mal.pr_str(ast, true)
 }
 
 fn rep(line string, mut env mal.Env) string {
-	if ast := rep_read(line) {
-		$if tokenise ? {
-			println('AST:\n${ast}')
-		}
-		if res := rep_eval(ast, mut env) {
-			return rep_print(res)
-		} else {
-			return 'EVAL ERROR: ${err}'
-		}
-	} else {
+    ast := rep_read(line) or {
 		return if err.msg() == 'no form' { '' } else { 'READ ERROR: ${err}' }
+    }
+	$if tokenise ? {
+		println('AST:\n${ast}')
 	}
+    res := eval(ast, mut env) or { return 'EVAL ERROR: ${err}' }
+    return rep_print(res)
 }
 
-fn get_args(op string, args []mal.MalType) !(i64, i64) {
-	if args.len != 2 {
+fn get_args(op string, args mal.MalList) !(i64, i64) {
+	if args.len() != 2 {
 		return error('${op}: takes 2 args')
 	}
-	arg0, arg1 := args[0], args[1]
+	arg0, arg1 := args.list[0], args.list[1]
 	if arg0 is mal.MalInt {
 		if arg1 is mal.MalInt {
 			return arg0.val, arg1.val
@@ -135,20 +100,20 @@ fn get_args(op string, args []mal.MalType) !(i64, i64) {
 }
 
 fn main() {
-	mut env := mal.mk_outer_env()
-	env.set('+', mal.MalType(mal.MalFn{fn (args []mal.MalType) !mal.MalType {
+	mut env := mal.Env{}
+	env.set('+', mal.MalType(mal.MalFn{fn (args mal.MalList) !mal.MalType {
 		a, b := get_args('+', args)!
 		return mal.MalInt{a + b}
 	}}))
-	env.set('-', mal.MalType(mal.MalFn{fn (args []mal.MalType) !mal.MalType {
+	env.set('-', mal.MalType(mal.MalFn{fn (args mal.MalList) !mal.MalType {
 		a, b := get_args('-', args)!
 		return mal.MalInt{a - b}
 	}}))
-	env.set('*', mal.MalType(mal.MalFn{fn (args []mal.MalType) !mal.MalType {
+	env.set('*', mal.MalType(mal.MalFn{fn (args mal.MalList) !mal.MalType {
 		a, b := get_args('*', args)!
 		return mal.MalInt{a * b}
 	}}))
-	env.set('/', mal.MalType(mal.MalFn{fn (args []mal.MalType) !mal.MalType {
+	env.set('/', mal.MalType(mal.MalFn{fn (args mal.MalList) !mal.MalType {
 		a, b := get_args('/', args)!
 		return mal.MalInt{a / b}
 	}}))
