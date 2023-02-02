@@ -33,10 +33,11 @@ my @tests = (
 );
 
 
-while (defined (my $line = $tty->readline($prompt))) {
 # for my $line (@tests) {
-    eval {
-        print rep("$line") . "\n";
-    };
-    print "$@\n" if $@;
+while (defined (my $line = $tty->readline($prompt))) {
+    eval { print rep("$line") . "\n" };
+    if (defined $@) {
+        die $@ if $@ =~ /(^>>|^---\s| via package ")/;
+        print "Error: $@\n";
+    }
 }
