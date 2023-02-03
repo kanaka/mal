@@ -1,5 +1,3 @@
-use v5.18;
-
 package Reader;
 
 use Mo;
