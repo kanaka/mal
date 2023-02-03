@@ -2,59 +2,63 @@ module mal
 
 import maps
 
-pub fn pr_str(ast MalType, readable bool) string {
+pub fn pr_str(ast Type, readable bool) string {
 	return match ast {
-		MalInt {
+		Int {
 			ast.val.str()
 		}
-		MalFloat {
+		Float {
 			ast.val.str()
 		}
-		MalString {
-            if readable { '"${escape(ast.val)}"' } else { ast.val }
+		String {
+			if readable {
+				'"${escape(ast.val)}"'
+			} else {
+				ast.val
+			}
 		}
-		MalKeyword {
+		Keyword {
 			':${ast.key}'
 		}
-		MalNil {
+		Nil {
 			'nil'
 		}
-		MalTrue {
+		True {
 			'true'
 		}
-		MalFalse {
+		False {
 			'false'
 		}
-		MalSymbol {
+		Symbol {
 			ast.sym
 		}
-		MalList {
+		List {
 			'(' + ast.list.map(pr_str(it, readable)).join(' ') + ')'
 		}
-		MalVector {
+		Vector {
 			'[' + ast.vec.map(pr_str(it, readable)).join(' ') + ']'
 		}
-		MalHashmap {
-			'{' + maps.to_array(ast.hm, fn [readable] (k string, v MalType) string {
+		Hashmap {
+			'{' + maps.to_array(ast.hm, fn [readable] (k string, v Type) string {
 				return '${k} ${pr_str(v, readable)}'
 			}).join(' ') + '}'
 		}
-		MalFn {
+		Fn {
 			'#<fn>'
 		}
 	}
 }
 
-fn escape( str string ) string {
-    return str
-        .replace('\\', '\\\\')
-        .replace('\n', '\\n')
-        .replace('"', '\\"')
+fn escape(str string) string {
+	return str
+		.replace('\\', '\\\\')
+		.replace('\n', '\\n')
+		.replace('"', '\\"')
 }
 
-fn unescape( str string ) string {
-    return str
-        .replace('\\n', '\n')
-        .replace('\\"', '"')
-        .replace('\\\\', '\\')
+fn unescape(str string) string {
+	return str
+		.replace('\\n', '\n')
+		.replace('\\"', '"')
+		.replace('\\\\', '\\')
 }

@@ -30,17 +30,17 @@ fn (mut r Reader) peek() ?Token {
 	return if r.pos < r.toks.len { r.toks[r.pos] } else { none }
 }
 
-fn hash_list(list []MalType) !map[string]MalType {
+fn hash_list(list []Type) !map[string]Type {
 	mut list_ := list[0..]
-	mut hash := map[string]MalType{}
+	mut hash := map[string]Type{}
 	if list_.len % 2 == 1 {
 		return error('extra hashmap param')
 	}
 	for list_.len > 0 {
 		key, val := list_[0], list_[1]
-		if key is MalString {
+		if key is String {
 			hash['"${key.val}"'] = val
-		} else if key is MalKeyword {
+		} else if key is Keyword {
 			hash[':${key.key}'] = val
 		} else {
 			return error('bad hashmap key')
@@ -50,22 +50,22 @@ fn hash_list(list []MalType) !map[string]MalType {
 	return hash
 }
 
-fn (mut r Reader) macro_wrap(name string, num_forms int) !MalList {
+fn (mut r Reader) macro_wrap(name string, num_forms int) !List {
 	_ := r.next() or { panic('token underflow') } // consume macro
-	mut list := []MalType{}
+	mut list := []Type{}
 	for _ in 0 .. num_forms {
-		list << r.read_form() or { return error('${name}: missing params') }
+		list << r.read_form() or { return error('${name}: missing param') }
 	}
-	list << MalSymbol{name}
-	return MalList{list.reverse()}
+	list << Symbol{name}
+	return List{list.reverse()}
 }
 
-fn (mut r Reader) read_form() !MalType {
+fn (mut r Reader) read_form() !Type {
 	tok := r.peek() or { return error('no form') }
 	return match true {
-		tok == '(' { MalList{r.read_list(')')!} }
-		tok == '[' { MalVector{r.read_list(']')!} }
-		tok == '{' { MalHashmap{hash_list(r.read_list('}')!)!} }
+		tok == '(' { List{r.read_list(')')!} }
+		tok == '[' { Vector{r.read_list(']')!} }
+		tok == '{' { Hashmap{hash_list(r.read_list('}')!)!} }
 		tok == "'" { r.macro_wrap('quote', 1)! }
 		tok == '`' { r.macro_wrap('quasiquote', 1)! }
 		tok == '~' { r.macro_wrap('unquote', 1)! }
@@ -76,9 +76,9 @@ fn (mut r Reader) read_form() !MalType {
 	}
 }
 
-fn (mut r Reader) read_list(end_paren string) ![]MalType {
+fn (mut r Reader) read_list(end_paren string) ![]Type {
 	_ := r.next() or { panic('token underflow') } // consume open paren
-	mut list := []MalType{}
+	mut list := []Type{}
 	for {
 		tok := r.peek() or { return error('unbalanced parens') }
 		match true {
@@ -91,22 +91,22 @@ fn (mut r Reader) read_list(end_paren string) ![]MalType {
 	return list
 }
 
-fn (mut r Reader) read_atom() !MalType {
+fn (mut r Reader) read_atom() !Type {
 	tok := r.next() or { panic('token underflow') }
 	return match true {
 		tok in [')', ']', '}'] { error('unbalanced parens') }
-		tok == 'nil' { MalNil{} }
-		tok == 'true' { MalTrue{} }
-		tok == 'false' { MalFalse{} }
-		tok[0] == `"` { MalString{unescape(tok[1..tok.len - 1])} }
-		tok[0] == `:` { MalKeyword{tok[1..]} }
-		r.re_int.matches_string(tok) { MalInt{tok.i64()} }
-		r.re_float.matches_string(tok) { MalFloat{tok.f64()} }
-		else { MalSymbol{tok} }
+		tok == 'nil' { Nil{} }
+		tok == 'true' { True{} }
+		tok == 'false' { False{} }
+		tok[0] == `"` { String{unescape(tok[1..tok.len - 1])} }
+		tok[0] == `:` { Keyword{tok[1..]} }
+		r.re_int.matches_string(tok) { Int{tok.i64()} }
+		r.re_float.matches_string(tok) { Float{tok.f64()} }
+		else { Symbol{tok} }
 	}
 }
 
-pub fn read_str(input string) !MalType {
+pub fn read_str(input string) !Type {
 	mut reader := Reader{
 		toks: tokenise(input)!
 		re_int: regex.regex_opt(mal.re_int) or { panic('regex_opt()') }

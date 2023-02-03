@@ -1,151 +1,145 @@
 module mal
 
-type MalType = MalFalse
-	| MalFloat
-	| MalFn
-	| MalHashmap
-	| MalInt
-	| MalKeyword
-	| MalList
-	| MalNil
-	| MalString
-	| MalSymbol
-	| MalTrue
-	| MalVector
+type Type = False
+	| Float
+	| Fn
+	| Hashmap
+	| Int
+	| Keyword
+	| List
+	| Nil
+	| String
+	| Symbol
+	| True
+	| Vector
 
-pub fn (t MalType) truthy() bool {
+pub fn (t Type) truthy() bool {
 	return !t.falsey()
 }
 
-pub fn (t MalType) falsey() bool {
-	return t is MalFalse || t is MalNil
+pub fn (t Type) falsey() bool {
+	return t is False || t is Nil
 }
 
-pub fn (t MalType) sym() !string {
-	return if t is MalSymbol { t.sym } else { error('symbol expected') }
+pub fn (t Type) sym() !string {
+	return if t is Symbol { t.sym } else { error('symbol expected') }
 }
 
-type MalFnFn = fn (args MalList) !MalType
+type FnFn = fn (args List) !Type
 
-pub fn (t MalType) fn_() !MalFnFn {
-	// BUG: https://github.com/vlang/v/issues/17204
-	// return if t is MalFn { t.f } else { error( 'function expected' ) }
-	if t is MalFn {
-		return t.f
-	} else {
-		return error('function expected')
-	}
+pub fn (t Type) fn_() !FnFn {
+	return if t is Fn { t.f } else { error('function expected') }
 }
 
-pub fn (t MalType) int_() !i64 {
-	return if t is MalInt { t.val } else { error('integer expected') }
+pub fn (t Type) int_() !i64 {
+	return if t is Int { t.val } else { error('integer expected') }
 }
 
-pub fn (t MalType) list() ![]MalType {
-	return if t is MalList { t.list } else { error('list expected') }
+pub fn (t Type) list() ![]Type {
+	return if t is List { t.list } else { error('list expected') }
 }
 
-pub fn (t MalType) list_or_vec() ![]MalType {
+pub fn (t Type) list_or_vec() ![]Type {
 	return match t {
-		MalList { t.list }
-		MalVector { t.vec }
+		List { t.list }
+		Vector { t.vec }
 		else { error('list/vector expected') }
 	}
 }
 
 // --
 
-pub struct MalInt {
+pub struct Int {
 pub:
 	val i64
 }
 
 // --
 
-pub struct MalFloat {
+pub struct Float {
 pub:
 	val f64
 }
 
 // --
 
-pub struct MalString {
+pub struct String {
 pub:
 	val string
 }
 
 // -
 
-pub struct MalKeyword {
+pub struct Keyword {
 pub:
 	key string
 }
 
 // --
 
-pub struct MalNil {}
+pub struct Nil {}
 
 // --
 
-pub struct MalTrue {}
+pub struct True {}
 
 // --
 
-pub struct MalFalse {}
+pub struct False {}
 
 // --
 
-pub struct MalSymbol {
+pub struct Symbol {
 pub:
 	sym string
 }
 
 // --
 
-pub struct MalList {
+pub struct List {
 pub:
-	list []MalType
+	list []Type
 }
 
-pub fn (l MalList) first() !MalType {
+pub fn (l List) first() !Type {
 	return if l.list.len > 0 { l.list[0] } else { error('list: empty') }
 }
 
-pub fn (l MalList) last() !MalType {
+pub fn (l List) last() !Type {
 	return if l.list.len > 0 { l.list.last() } else { error('list: empty') }
 }
 
-pub fn (l MalList) rest() MalList {
-	return if l.list.len > 0 { MalList{l.list[1..]} } else { MalList{} }
+pub fn (l List) rest() List {
+	return if l.list.len > 0 { List{l.list[1..]} } else { List{} }
 }
 
-pub fn (l MalList) len() int {
+pub fn (l List) len() int {
 	return l.list.len
 }
 
-pub fn (l MalList) nth(n int) !MalType {
+pub fn (l List) nth(n int) !Type {
 	return if n < l.list.len { l.list[n] } else { error('list: index oob') }
 }
 
 // --
 
-pub struct MalVector {
+pub struct Vector {
 pub:
-	vec []MalType
+	vec []Type
 }
 
 // --
 
-pub struct MalHashmap {
+pub struct Hashmap {
 pub:
-	hm map[string]MalType
+	hm map[string]Type
 }
 
 // --
 
-pub struct MalFn {
+pub struct Fn {
 pub:
 	// mut:
 	//    env Env
-	f MalFnFn
+	f FnFn
 }

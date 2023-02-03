@@ -1,21 +1,21 @@
 import mal
 import readline { read_line }
 
-fn rep_read(input string) !mal.MalType {
+fn rep_read(input string) !mal.Type {
 	return mal.read_str(input)!
 }
 
-fn eval(ast mal.MalType) mal.MalType {
+fn eval(ast mal.Type) mal.Type {
 	return ast
 }
 
-fn rep_print(ast mal.MalType) string {
+fn rep_print(ast mal.Type) string {
 	return mal.pr_str(ast, true)
 }
 
 fn rep(line string) string {
 	if ast := rep_read(line) {
-		$if tokenise ? {
+		$if ast ? {
 			println('AST:\n${ast}')
 		}
 		return rep_print(eval(ast))

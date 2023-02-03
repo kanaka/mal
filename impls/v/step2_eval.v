@@ -1,22 +1,22 @@
 import mal
 import readline { read_line }
 
-type RepEnv = map[string]mal.MalType
+type RepEnv = map[string]mal.Type
 
-fn rep_read(input string) !mal.MalType {
+fn rep_read(input string) !mal.Type {
 	return mal.read_str(input)!
 }
 
-fn eval(ast mal.MalType, env RepEnv) !mal.MalType {
+fn eval(ast mal.Type, env RepEnv) !mal.Type {
 	match ast {
-		mal.MalList {
+		mal.List {
 			if ast.list.len == 0 {
 				return ast
 			} else {
 				// BUG: https://github.com/vlang/v/issues/17156
-				// res := eval_ast(ast, env)! as mal.MalList
+				// res := eval_ast(ast, env)! as mal.List
 				res_tmp := eval_ast(ast, env)!
-				res := res_tmp as mal.MalList
+				res := res_tmp as mal.List
 				fn_ := res.list[0].fn_()!
 				return fn_(res.rest())
 			}
@@ -28,9 +28,9 @@ fn eval(ast mal.MalType, env RepEnv) !mal.MalType {
 	return ast
 }
 
-fn eval_ast(ast mal.MalType, env RepEnv) !mal.MalType {
+fn eval_ast(ast mal.Type, env RepEnv) !mal.Type {
 	match ast {
-		mal.MalSymbol {
+		mal.Symbol {
 			// return env[ ast.sym ] or { error( 'unknown: ${ast.sym}' ) }
 			if res := env[ast.sym] {
 				return res
@@ -38,18 +38,18 @@ fn eval_ast(ast mal.MalType, env RepEnv) !mal.MalType {
 				return error('unknown: ${ast.sym}')
 			}
 		}
-		mal.MalList {
-			return mal.MalList{ast.list.map(eval(it, env)!)}
+		mal.List {
+			return mal.List{ast.list.map(eval(it, env)!)}
 		}
-		mal.MalVector {
-			return mal.MalVector{ast.vec.map(eval(it, env)!)}
+		mal.Vector {
+			return mal.Vector{ast.vec.map(eval(it, env)!)}
 		}
-		mal.MalHashmap {
-			mut hm := map[string]mal.MalType{}
+		mal.Hashmap {
+			mut hm := map[string]mal.Type{}
 			for key in ast.hm.keys() {
 				hm[key] = eval(ast.hm[key] or { panic('') }, env)!
 			}
-			return mal.MalHashmap{hm}
+			return mal.Hashmap{hm}
 		}
 		else {
 			return ast
@@ -57,28 +57,28 @@ fn eval_ast(ast mal.MalType, env RepEnv) !mal.MalType {
 	}
 }
 
-fn rep_print(ast mal.MalType) string {
+fn rep_print(ast mal.Type) string {
 	return mal.pr_str(ast, true)
 }
 
 fn rep(line string, env RepEnv) string {
-    ast := rep_read(line) or {
+	ast := rep_read(line) or {
 		return if err.msg() == 'no form' { '' } else { 'READ ERROR: ${err}' }
-    }
-	$if tokenise ? {
+	}
+	$if ast ? {
 		println('AST:\n${ast}')
 	}
-    res := eval(ast, env) or { return 'EVAL ERROR: ${err}' }
-    return rep_print(res)
+	res := eval(ast, env) or { return 'EVAL ERROR: ${err}' }
+	return rep_print(res)
 }
 
-fn get_args(op string, args mal.MalList) !(i64, i64) {
+fn get_args(op string, args mal.List) !(i64, i64) {
 	if args.len() != 2 {
 		return error('${op}: takes 2 args')
 	}
 	arg0, arg1 := args.list[0], args.list[1]
-	if arg0 is mal.MalInt {
-		if arg1 is mal.MalInt {
+	if arg0 is mal.Int {
+		if arg1 is mal.Int {
 			return arg0.val, arg1.val
 		}
 	}
@@ -87,21 +87,21 @@ fn get_args(op string, args mal.MalList) !(i64, i64) {
 
 fn main() {
 	env := RepEnv({
-		'+': mal.MalType(mal.MalFn{fn (args mal.MalList) !mal.MalType {
+		'+': mal.Type(mal.Fn{fn (args mal.List) !mal.Type {
 			a, b := get_args('+', args)!
-			return mal.MalInt{a + b}
+			return mal.Int{a + b}
 		}})
-		'-': mal.MalType(mal.MalFn{fn (args mal.MalList) !mal.MalType {
+		'-': mal.Type(mal.Fn{fn (args mal.List) !mal.Type {
 			a, b := get_args('-', args)!
-			return mal.MalInt{a - b}
+			return mal.Int{a - b}
 		}})
-		'*': mal.MalType(mal.MalFn{fn (args mal.MalList) !mal.MalType {
+		'*': mal.Type(mal.Fn{fn (args mal.List) !mal.Type {
 			a, b := get_args('*', args)!
-			return mal.MalInt{a * b}
+			return mal.Int{a * b}
 		}})
-		'/': mal.MalType(mal.MalFn{fn (args mal.MalList) !mal.MalType {
+		'/': mal.Type(mal.Fn{fn (args mal.List) !mal.Type {
 			a, b := get_args('/', args)!
-			return mal.MalInt{a / b}
+			return mal.Int{a / b}
 		}})
 	})
 
