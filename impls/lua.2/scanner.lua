@@ -170,8 +170,8 @@ function Scanner.scanToken(self)
     while self:peek() ~= '\n' and not(self:isAtEnd()) do
       self:advance()
     end
-    local val = string.sub(self.source, self.start + 1, self.current)
-    table.insert(self.tokens, Token("CMT", val, self.line))
+    --local val = string.sub(self.source, self.start + 1, self.current)
+    --table.insert(self.tokens, Token("CMT", val, self.line))
   elseif char == ':' then
     while not (self.is_special(self:peek())) and not(self:isAtEnd()) do
       self:advance()

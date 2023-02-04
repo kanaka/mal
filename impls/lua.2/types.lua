@@ -85,6 +85,17 @@ function M.is_sequence(a)
   return M.isinstanceof(a, M.MalList) or M.isinstanceof(a, M.MalVector)
 end
 
+M.Atom = {}
+M.Atom.__index = M.Atom
+function M.Atom.new(val)
+  local self = {val = val}
+  return setmetatable(self, M.Atom)
+end
+
+function M.is_atom(v)
+  return M.isinstanceof(v, M.Atom)
+end
+
 
 function M.is_equal(a, b)
   if M.isinstanceof(a, M.Sym) and M.isinstanceof(b, M.Sym) then
@@ -94,8 +105,7 @@ function M.is_equal(a, b)
     for i,v in ipairs(a) do 
       if not M.is_equal(v, b[i]) then
         return false
-      end
-    end
+      end end
     return true
   elseif M.isinstanceof(a, M.HashMap) and M.isinstanceof(b, M.HashMap) then
     for k,v in pairs(a) do

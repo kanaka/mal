@@ -11,6 +11,7 @@ local Sym = types.Sym
 local is_instanceOf = types.isinstanceof
 local Err = types.Err
 local Function = types.MalFunction
+local Atom = types.Atom
 
 
 
@@ -51,6 +52,8 @@ function Printer.stringfy_val(val, readably)
     return "Error: " .. Scanner.unescape(val.val)
   elseif is_instanceOf(val, Function) then
     res = "(fn* "  .. Printer.stringfy_val(val.params) .. "-->" .. Printer.stringfy_val(val.ast) ..")"
+  elseif is_instanceOf(val, Atom) then
+    res = "(atom " .. Printer.stringfy_val(val.val) .. ")"
 
   elseif type(val) == "string" then
     if readably then
