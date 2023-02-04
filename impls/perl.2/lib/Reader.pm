@@ -2,6 +2,8 @@ package Reader;
 
 use Mo;
 
+use Types;
+
 has tokens => [];
 
 sub read_str {
@@ -45,11 +47,11 @@ sub read_form {
     $_ = $self->{tokens}[0];
     /^\($/ ? $self->read_list('list', ')') :
     /^\[$/ ? $self->read_list('vector', ']') :
-    /^\{$/ ? $self->read_hash('hash-map', '}') :
+    /^\{$/ ? $self->read_hash('hash_map', '}') :
     /^'$/ ? $self->read_quote('quote') :
     /^`$/ ? $self->read_quote('quasiquote') :
     /^~$/ ? $self->read_quote('unquote') :
-    /^~\@$/ ? $self->read_quote('splice-unquote') :
+    /^~\@$/ ? $self->read_quote('splice_unquote') :
     /^\@$/ ? $self->read_quote('deref') :
     /^\^$/ ? $self->with_meta :
     $self->read_atom;
@@ -59,7 +61,7 @@ sub read_list {
     my ($self, $type, $end) = @_;
     my $tokens = $self->{tokens};
     shift @$tokens;
-    my $list = bless [], $type;
+    my $list = $type->new([]);
     while (@$tokens > 0) {
         if ($tokens->[0] eq $end) {
             shift @$tokens;
@@ -74,7 +76,7 @@ sub read_hash {
     my ($self, $type, $end) = @_;
     my $tokens = $self->{tokens};
     shift @$tokens;
-    my $hash = bless [{}, []], $type;
+    my $hash = $type->new;
     while (@$tokens > 0) {
         if ($tokens->[0] eq $end) {
             shift @$tokens;
@@ -82,8 +84,7 @@ sub read_hash {
         }
         my $key = $self->read_form;
         my $val = $self->read_form;
-        $hash->[0]{$$key} = $val;
-        push @{$hash->[1]}, $key;
+        $hash->{$$key} = $val;
     }
     die "Reached end of input in 'read_hash'";
 }

@@ -3,7 +3,9 @@ use v5.18;
 package Types;
 
 
-
+#------------------------------------------------------------------------------
+# Base Classes:
+#------------------------------------------------------------------------------
 package List;
 
 sub new {
@@ -11,18 +13,51 @@ sub new {
     bless $list, $class;
 }
 
+
+#------------------------------------------------------------------------------
 package Atom;
 
-sub expand {
-    ${$_[0]};
+sub new {
+    my ($class, $atom) = @_;
+    bless \$atom, $class;
 }
 
+# sub expand {
+#     ${$_[0]};
+# }
 
 
+#------------------------------------------------------------------------------
+# List types:
+#------------------------------------------------------------------------------
 package list;
 use base 'List';
 
+#------------------------------------------------------------------------------
+package vector;
+use base 'List';
 
+#------------------------------------------------------------------------------
+package hash_map;
+use base 'List';
+use Tie::IxHash;
+
+sub new {
+    my $class = shift;
+    my %hash;
+    my $tie = tie(%hash, 'Tie::IxHash', @_);
+    my $hash = \%hash;
+    bless $hash, $class;
+}
+
+#------------------------------------------------------------------------------
+# Atom types:
+#------------------------------------------------------------------------------
+package string;
+use base 'Atom';
+
+package keyword;
+use base 'Atom';
 
 package number;
 use base 'Atom';
@@ -34,11 +69,6 @@ use overload
     '/' => \&divide,
     '""' => \&expand,
     ;
-
-sub new {
-    my ($class, $atom) = @_;
-    bless \$atom, $class;
-}
 
 sub plus {
     my ($x, $y) = @_;

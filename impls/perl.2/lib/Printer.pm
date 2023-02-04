@@ -17,12 +17,16 @@ sub pr_str {
         "(${\ join(' ', map pr_str($_), @$o)})" :
     $type eq 'vector' ?
         "[${\ join(' ', map pr_str($_), @$o)}]" :
-    $type eq 'hash-map' ?
+    $type eq 'hash_map' ?
         "{${\ join(' ', map {
-            (pr_str($_), pr_str($o->[0]{$$_}))
-        } @{$o->[1]})}}" :
-    $type =~ /^(?:(?:quasi|(?:splice-)?un)?quote|deref)$/ ?
-        "($type ${\ pr_str($o->[0])})" :
+            my ($key, $val) = ($_, $o->{$_});
+            $key = $key =~ /^:/
+            ? keyword->new($key)
+            : string->new($key);
+            (pr_str($key), pr_str($val))
+        } keys %$o)}}" :
+    $type =~ /^(?:(?:quasi|(?:splice_)?un)?quote|deref)$/ ?
+        "(${$type=~s/_/-/g;\$type} ${\ pr_str($o->[0])})" :
     $type eq 'string' ?
         do {
             $$o =~ s/([\n\t\"\\])/$escape->{$1}/ge;

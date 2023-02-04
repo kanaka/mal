@@ -26,8 +26,11 @@ sub eval_ast {
 
     my $type = ref($ast);
 
-    if ($type eq 'list') {
-        return bless [ map Eval::eval($_, $ns), @$ast ], $type;
+    if ($type eq 'list' or $type eq 'vector') {
+        return $type->new([ map Eval::eval($_, $ns), @$ast ]);
+    }
+    if ($type eq 'hash_map') {
+        return $type->new(map Eval::eval($_, $ns), %$ast);
     }
     elsif ($type eq 'symbol') {
         my $sym = $$ast;
