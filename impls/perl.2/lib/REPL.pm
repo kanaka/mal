@@ -1,7 +1,6 @@
-use v5.18;
+use v5.12;
 
-use FindBin qw($Bin);
-use lib "$Bin/lib";
+package REPL;
 
 use ReadLine;
 use Reader;
@@ -17,8 +16,7 @@ $env->set('-' => sub { $_[0] - $_[1] });
 $env->set('*' => sub { $_[0] * $_[1] });
 $env->set('/' => sub { $_[0] / $_[1] });
 
-our @tests;
-if (not @tests) {
+sub repl {
     while (defined (my $line = readline($prompt))) {
         try($line) if length $line;
     }

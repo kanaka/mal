@@ -1,0 +1,14 @@
+#!/usr/bin/env perl
+
+use v5.18;
+
+use FindBin qw($Bin);
+use lib "$Bin/lib";
+
+use REPL;
+
+our @tests;
+
+REPL->repl unless @tests;
+
+1;

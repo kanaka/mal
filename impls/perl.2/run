@@ -1,2 +1,5 @@
 #!/bin/bash
-exec perl $(dirname $0)/${STEP:-stepA_mal}.pl "${@}"
+
+set -eu
+
+exec perl "$(dirname "${BASH_SOURCE[0]}")/${STEP:-stepA_mal}.pl" "$@"
