@@ -41,7 +41,7 @@ fn hash_list(list []Type) !map[string]Type {
 		if key is String {
 			hash['"${key.val}"'] = val
 		} else if key is Keyword {
-			hash[':${key.key}'] = val
+			hash[':${key.kw}'] = val
 		} else {
 			return error('bad hashmap key')
 		}

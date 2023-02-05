@@ -13,12 +13,42 @@ type Type = False
 	| True
 	| Vector
 
+fn implicit_conv(a Type, b Type) !(Type, Type) {
+	// same type
+	if a.type_idx() == b.type_idx() {
+		return a, b
+	}
+	// automatic conversion
+	if a is Int && b is Float {
+		return Float{a.val}, b
+	}
+	if a is Float && b is Int {
+		return a, Float{b.val}
+	}
+    if a is Vector && b is List {
+        return List{a.vec}, b
+    }
+    if a is List && b is Vector {
+        return a, List{b.vec}
+    }
+	// fail
+	return error('type mismatch')
+}
+
+fn make_bool(cond bool) Type {
+	return if cond { True{} } else { False{} }
+}
+
 pub fn (t Type) truthy() bool {
 	return !t.falsey()
 }
 
 pub fn (t Type) falsey() bool {
-	return t is False || t is Nil
+	return t in [False, Nil]
+}
+
+pub fn (t Type) numeric() bool {
+	return t in [Int, Float]
 }
 
 pub fn (t Type) sym() !string {
@@ -43,7 +73,77 @@ pub fn (t Type) list_or_vec() ![]Type {
 	return match t {
 		List { t.list }
 		Vector { t.vec }
+        Nil { []Type{} }
+		//Nil { if allow_nil { []Type{} } else { error('list/vector expected') } }
 		else { error('list/vector expected') }
+	}
+}
+
+pub fn (t Type) eq(o Type) bool {
+    a, b := implicit_conv(t, o) or { return false }
+    match a {
+        List {
+            if a.list.len != (b as List).list.len {
+                return false
+            }
+            for i, aa in a.list {
+                if !aa.eq( (b as List).list[i] ) {
+                    return false
+                }
+            }
+            return true
+        }
+        Vector {
+            if a.vec.len != (b as Vector).vec.len {
+                return false
+            }
+            for i, aa in a.vec {
+                if !aa.eq( (b as Vector).vec[i] ) {
+                    return false
+                }
+            }
+            return true
+        }
+        Int {
+            return a.val == (b as Int).val
+        }
+        Float {
+            return a.val == (b as Float).val
+        }
+        String {
+            return a.val == (b as String).val
+        }
+        True {
+            return b is True
+        }
+        False {
+            return b is False
+        }
+        Nil {
+            return b is Nil
+        }
+        Keyword {
+            return a.kw == (b as Keyword).kw
+        }
+        Symbol {
+            return a.sym == (b as Symbol).sym
+        }
+        Hashmap {
+            return a.hm == (b as Hashmap).hm
+        }
+        Fn {
+            return a.f == (b as Fn).f
+        }
+    }
+}
+
+pub fn (t Type) lt(o Type) !bool {
+	a, b := implicit_conv(t, o)!
+	return match a {
+		Int { a.val < (b as Int).val }
+		Float { a.val < (b as Float).val }
+		String { a.val < (b as String).val }
+		else { error('invalid comparison') }
 	}
 }
 
@@ -72,7 +172,7 @@ pub:
 
 pub struct Keyword {
 pub:
-	key string
+	kw string
 }
 
 // --
@@ -110,7 +210,11 @@ pub fn (l List) last() !Type {
 }
 
 pub fn (l List) rest() List {
-	return if l.list.len > 0 { List{l.list[1..]} } else { List{} }
+	return if l.list.len > 1 { List{l.list[1..]} } else { List{} }
+}
+
+pub fn (l List) from(n int) List {
+	return if l.list.len > n { List{l.list[n..]} } else { List{} }
 }
 
 pub fn (l List) len() int {

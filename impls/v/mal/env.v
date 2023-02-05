@@ -1,5 +1,6 @@
 module mal
 
+[heap]
 pub struct Env {
 pub:
 	outer &Env = unsafe { nil }
@@ -9,7 +10,7 @@ pub mut:
 
 pub fn mk_env(outer &Env) Env {
 	return Env{
-		outer: unsafe { outer }
+		outer: outer
 	}
 }
 

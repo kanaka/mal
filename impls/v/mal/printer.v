@@ -1,6 +1,7 @@
 module mal
 
 import maps
+import regex
 
 pub fn pr_str(ast Type, readable bool) string {
 	return match ast {
@@ -18,7 +19,7 @@ pub fn pr_str(ast Type, readable bool) string {
 			}
 		}
 		Keyword {
-			':${ast.key}'
+			':${ast.kw}'
 		}
 		Nil {
 			'nil'
@@ -57,8 +58,12 @@ fn escape(str string) string {
 }
 
 fn unescape(str string) string {
-	return str
-		.replace('\\n', '\n')
-		.replace('\\"', '"')
-		.replace('\\\\', '\\')
+	mut re := regex.regex_opt('\\\\(.)') or { panic(err) }
+	return re.replace_by_fn(str, fn (re regex.RE, str string, start int, end int) string {
+		g := re.get_group_by_id(str, 0)
+		return match g {
+			'n' { '\n' }
+			else { g }
+		}
+	})
 }

@@ -17,7 +17,7 @@ fn eval(ast mal.Type, mut env mal.Env) !mal.Type {
 				}
 				'let*' {
 					ast.nth(2) or { return error('let*: missing param') }
-					mut new_env := mal.mk_env(env)
+					mut new_env := mal.mk_env(&env)
 					mut pairs := ast.list[1].list_or_vec() or { return error('let*: ${err}') }
 					pairs = pairs[0..] // copy
 					if pairs.len % 2 == 1 {
