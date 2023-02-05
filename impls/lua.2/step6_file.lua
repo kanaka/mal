@@ -159,7 +159,7 @@ end
 
 
 function PRINT(a)
-  print(Printer.stringfy_val(a, true))
+  return Printer.stringfy_val(a, true)
 end
 
 
@@ -179,13 +179,14 @@ function rep(str)
 end
 
 
+
 function main()
     rep("(def! not (fn* (a) (if a false true)))")
     rep("(def! load-file (fn* (f) (eval (read-string (str \"(do  \"(slurp f) \"\nnil)\")))))")
-    
+    repl_env:set(Sym.new("*ARGV*"), List.new(table.pack(table.unpack(arg,2))))
     if #arg > 0 then 
-      --repl_env:set(Sym.new("*ARGV*"), List.new({1,2,3}))
-      rep("(load-file \"" .. arg[1] .. "\")")
+      local file_to_run = table.remove(arg,1)
+      rep("(load-file \"" .. file_to_run .. "\")") 
       os.exit(0)
     end
 
@@ -195,7 +196,7 @@ function main()
       if line == nil then
         break
       end
-      local status, err = pcall(function () rep(line) end)
+      local status, err = pcall(function () print(rep(line)) end)
       if not status then
         if is_instanceOf(err, Err) then
           err = Printer.stringfy_val(err)
