@@ -104,12 +104,13 @@ sub read_atom {
         s/^$string_re$/$1/ or
             die "Reached end of input looking for '\"'";
         s/\\([nt\"\\])/$unescape->{$1}/ge;
-        return $_;
+        return string->new($_);
     }
-    return boolean::true if $_ eq 'true';
-    return boolean::false if $_ eq 'false';
-    return nil->new('nil') if $_ eq 'nil';
+    return true if $_ eq 'true';
+    return false if $_ eq 'false';
+    return nil if $_ eq 'nil';
     return number->new($_) if /^-?\d+$/;
+    return keyword->new($_) if /^:/;
     return symbol->new($_);
 }
 
@@ -127,15 +128,10 @@ sub with_meta {
     my $form = $self->read_form;
 
     bless [
-        symbol('with-meta'),
+        symbol->new('with-meta'),
         $form,
         $meta,
     ], 'list';
-}
-
-sub symbol {
-    $_ = $_[0];
-    bless \$_, 'symbol';
 }
 
 1;

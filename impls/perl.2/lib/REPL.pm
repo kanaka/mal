@@ -16,6 +16,9 @@ my $env = Env->new(
     exprs => Core::exprs(),
 );
 
+# Define: `not`
+rep('(def! not (fn* (a) (if a false true)))');
+
 sub repl {
     while (defined (my $line = readline($prompt))) {
         try($line) if length $line;
@@ -37,6 +40,5 @@ sub rep {
     $ast = Eval::eval($ast, $env);
     Printer::pr_str($ast);
 }
-
 
 1;

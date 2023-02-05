@@ -10,32 +10,34 @@ my $escape = {
 };
 
 sub pr_str {
-    my ($o) = @_;
+    my ($o, $raw) = @_;
+    $raw //= 0;
     my $type = ref $o or ::XXX $o;
 
+    $type eq 'string' ?
+        $raw ? $$o :
+            qq{"${$$o=~s/([\n\t\"\\])/$escape->{$1}/ge;$o}"} :
+    $type eq 'symbol' ? $$o :
+    $type eq 'keyword' ? $$o :
+    $type eq 'number' ? $$o :
+    $type eq 'boolean' ? "$o" :
+    $type eq 'nil' ? 'nil' :
     $type eq 'CODE' ? '<#function>' :
     $type eq 'list' ?
-        "(${\ join(' ', map pr_str($_), @$o)})" :
+        "(${\ join(' ', map pr_str($_, $raw), @$o)})" :
     $type eq 'vector' ?
-        "[${\ join(' ', map pr_str($_), @$o)}]" :
+        "[${\ join(' ', map pr_str($_, $raw), @$o)}]" :
     $type eq 'hash_map' ?
         "{${\ join(' ', map {
             my ($key, $val) = ($_, $o->{$_});
             $key = $key =~ /^:/
             ? keyword->new($key)
             : string->new($key);
-            (pr_str($key), pr_str($val))
+            (pr_str($key), pr_str($val, $raw))
         } keys %$o)}}" :
     $type =~ /^(?:(?:quasi|(?:splice_)?un)?quote|deref)$/ ?
-        "(${$type=~s/_/-/g;\$type} ${\ pr_str($o->[0])})" :
-    $type eq 'string' ?
-        do {
-            $$o =~ s/([\n\t\"\\])/$escape->{$1}/ge;
-            qq{"$$o"};
-        } :
-    $type eq 'boolean' ? "$o" :
-    $type eq 'nil' ? 'nil' :
-    $$o;
+        "(${$type=~s/_/-/g;\$type} ${\ pr_str($o->[0], $raw)})" :
+    ::XXX $o;
 }
 
 1;

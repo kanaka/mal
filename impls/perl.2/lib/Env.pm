@@ -14,7 +14,11 @@ sub BUILD {
     my $binds = $self->binds;
     my $exprs = $self->exprs;
     while (@$binds) {
-        $self->set(shift(@$binds), shift(@$exprs));
+        if ("$binds->[0]" eq '&') {
+            shift @$binds;
+            $exprs = [list->new([@$exprs])];
+        }
+        $self->set(shift(@$binds), shift(@$exprs) // nil);
     }
     delete $self->{binds};
     delete $self->{exprs};

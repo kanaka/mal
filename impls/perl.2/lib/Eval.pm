@@ -9,31 +9,22 @@ sub eval {
     my $type = ref($ast);
 
     if ($type eq 'list') {
-        if (@$ast eq 0) {
-            $ast;
-        }
-        else {
-            my $sym = $ast->[0];
-            if (ref($sym) eq 'symbol' and $$sym eq 'def!') {
-                def($ast, $env);
-            }
-            elsif (ref($sym) eq 'symbol' and $$sym eq 'do') {
-                Eval::do($ast, $env);
-            }
-            elsif (ref($sym) eq 'symbol' and $$sym eq 'fn*') {
-                fn($ast, $env);
-            }
-            elsif (ref($sym) eq 'symbol' and $$sym eq 'if') {
-                Eval::if($ast, $env);
-            }
-            elsif (ref($sym) eq 'symbol' and $$sym eq 'let*') {
-                let($ast, $env);
-            }
-            else {
-                my ($fn, @args) = @{eval_ast($ast, $env)};
-                $fn->(@args);
-            }
-        }
+        return $ast if @$ast eq 0;
+        my $sym = $ast->[0];
+        (ref($sym) eq 'symbol' and $$sym eq 'def!') ?
+            def($ast, $env) :
+        (ref($sym) eq 'symbol' and $$sym eq 'do') ?
+            Eval::do($ast, $env) :
+        (ref($sym) eq 'symbol' and $$sym eq 'fn*') ?
+            fn($ast, $env) :
+        (ref($sym) eq 'symbol' and $$sym eq 'if') ?
+            Eval::if($ast, $env) :
+        (ref($sym) eq 'symbol' and $$sym eq 'let*') ?
+            let($ast, $env) :
+        do {
+            my ($fn, @args) = @{eval_ast($ast, $env)};
+            $fn->(@args);
+        };
     }
     else {
         eval_ast($ast, $env);
@@ -57,11 +48,8 @@ sub eval_ast {
         defined $val or die;
         return $val;
     }
-    elsif ($type eq 'number') {
-        return $ast
-    }
     else {
-        $ast;
+        return $ast;
     }
 }
 
@@ -103,7 +91,7 @@ sub if {
         Eval::eval($then, $env);
     }
     else {
-        return(nil->new) unless defined $else;
+        return nil unless defined $else;
         Eval::eval($else, $env);
     }
 }

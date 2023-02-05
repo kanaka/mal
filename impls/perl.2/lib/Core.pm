@@ -8,19 +8,23 @@ use Mo;
 sub binds { [qw(
     = > >= < <=
     + - * /
-    count empty? list list? prn
+    count empty? list list?
+    pr-str str prn println
 )] }
 
 sub exprs { [
     \&equal_to, \&greater_than, \&greater_equal, \&less_than, \&less_equal,
     \&add, \&subtract, \&multiply, \&divide,
-    \&count, \&is_empty, \&list, \&is_list, \&prn,
+    \&count, \&is_empty, \&list, \&is_list,
+    \&pr_str, \&str, \&prn, \&println,
 ] }
 
 sub equal_to {
     my ($x, $y) = @_;
     return false
-        unless (ref($x) eq ref($y));
+        unless
+            ($x->isa('List') and $y->isa('List')) or
+            (ref($x) eq ref($y));
     if ($x->isa('List')) {
         return false unless @$x == @$y;
         for (my $i = 0; $i < @$x; $i++) {
@@ -29,7 +33,7 @@ sub equal_to {
         }
         return true;
     }
-    boolean->new($$x eq $$y);
+    boolean($$x eq $$y);
 }
 
 sub greater_than { $_[0] > $_[1] }
@@ -45,6 +49,9 @@ sub count { number->new(ref($_[0]) eq 'nil' ? 0 : scalar @{$_[0]}) }
 sub is_empty { boolean->new(@{$_[0]} == 0) }
 sub list { list->new([@_]) }
 sub is_list { boolean->new(ref($_[0]) eq 'list') }
-sub prn { printf "%s\n", Printer::pr_str(@_); nil->new }
+sub pr_str { string->new(join ' ', map Printer::pr_str($_), @_) }
+sub str { string->new(join '', map Printer::pr_str($_, 1), @_) }
+sub prn { printf "%s\n", join ' ', map Printer::pr_str($_), @_; nil->new }
+sub println { printf "%s\n", join ' ', map Printer::pr_str($_, 1), @_; nil->new }
 
 1;

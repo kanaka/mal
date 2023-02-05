@@ -4,13 +4,19 @@ package Types;
 
 use Exporter 'import';
 
-our @EXPORT = qw< num true false nil >;
+our @EXPORT = qw<
+    boolean
+    false
+    nil
+    true
+>;
 
-sub string { string->new(@_) }
-sub num { string->new(@_) }
-sub true { boolean::true() }
+sub boolean { boolean->new(@_) }
 sub false { boolean::false() }
 sub nil { nil->new }
+sub number { number->new(@_) }
+sub string { string->new(@_) }
+sub true { boolean::true() }
 
 
 #------------------------------------------------------------------------------
@@ -68,11 +74,22 @@ use base 'Atom';
 
 use overload '""' => sub { ${$_[0]} };
 
+
 package string;
 use base 'Atom';
 
+use overload '""' => sub { ${$_[0]} };
+
+
 package keyword;
 use base 'Atom';
+
+
+package nil;
+use base 'Atom';
+
+use overload '""' => sub { 'nil' };
+
 
 package boolean;
 use base 'Atom';
@@ -99,10 +116,6 @@ sub new {
     true;
 }
 
-package nil;
-use base 'Atom';
-
-use overload '""' => sub { 'nil' };
 
 package number;
 use base 'Atom';
