@@ -17,6 +17,15 @@ sub eval {
             if (ref($sym) eq 'symbol' and $$sym eq 'def!') {
                 def($ast, $env);
             }
+            elsif (ref($sym) eq 'symbol' and $$sym eq 'do') {
+                Eval::do($ast, $env);
+            }
+            elsif (ref($sym) eq 'symbol' and $$sym eq 'fn*') {
+                fn($ast, $env);
+            }
+            elsif (ref($sym) eq 'symbol' and $$sym eq 'if') {
+                Eval::if($ast, $env);
+            }
             elsif (ref($sym) eq 'symbol' and $$sym eq 'let*') {
                 let($ast, $env);
             }
@@ -58,14 +67,51 @@ sub eval_ast {
 
 sub def {
     my ($ast, $env) = @_;
-    my ($def, $sym, $val) = @$ast;
+    my ($n, $sym, $val) = @$ast;
     $env->set($$sym, Eval::eval($val, $env));
+}
+
+sub do {
+    my ($ast, $env) = @_;
+    my $ret;
+    for my $form (@{$ast}[1..(@$ast-1)]) {
+        $ret = Eval::eval($form, $env);
+    }
+    return $ret;
+}
+
+sub fn {
+    my ($ast, $env) = @_;
+    my ($n, $bind, $form) = @$ast;
+    sub {
+        $env = Env->new(
+            outer => $env,
+            binds => [@$bind],
+            exprs => [@_],
+        );
+        Eval::eval($form, $env);
+    };
+}
+
+sub if {
+    my ($ast, $env) = @_;
+    my ($n, $cond, $then, $else) = @$ast;
+
+    $cond = boolean->new(Eval::eval($cond, $env));
+
+    if ("$cond" eq 'true') {
+        Eval::eval($then, $env);
+    }
+    else {
+        return(nil->new) unless defined $else;
+        Eval::eval($else, $env);
+    }
 }
 
 sub let {
     my ($ast, $env) = @_;
     $env = Env->new(outer => $env);
-    my ($let, $def, $eval) = @$ast;
+    my ($n, $def, $eval) = @$ast;
     for (my $i = 0; $i < @$def; $i += 2) {
         my ($key, $val) = ($def->[$i], $def->[$i+1]);
         $env->set($$key, Eval::eval($val, $env));

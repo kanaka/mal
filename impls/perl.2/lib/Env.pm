@@ -2,20 +2,33 @@ package Env;
 
 use Types;
 
-use Mo qw< default >;
+use Mo qw< build default >;
 
 has outer => ( default => undef, lazy => 0);
-has ns => ( default => {}, lazy => 0 );
+has stash => ( default => {}, lazy => 0 );
+has binds => [];
+has exprs => [];
+
+sub BUILD {
+    my ($self) = @_;
+    my $binds = $self->binds;
+    my $exprs = $self->exprs;
+    while (@$binds) {
+        $self->set(shift(@$binds), shift(@$exprs));
+    }
+    delete $self->{binds};
+    delete $self->{exprs};
+}
 
 sub set {
     my ($self, $key, $val) = @_;
-    $self->{ns}{$key} = $val;
+    $self->{stash}{$key} = $val;
 }
 
 sub find {
     my ($self, $key) = @_;
     while ($self) {
-        if (defined $self->{ns}{$key}) {
+        if (defined $self->{stash}{$key}) {
             return $self;
         }
         $self = $self->{outer};
@@ -25,7 +38,7 @@ sub find {
 
 sub get {
     my ($self, $key) = @_;
-    $self->find($key)->{ns}{$key};
+    $self->find($key)->{stash}{$key};
 }
 
 1;

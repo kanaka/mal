@@ -7,14 +7,14 @@ use Reader;
 use Eval;
 use Printer;
 use Env;
+use Types;
+use Core;
 
 my $prompt = 'user> ';
-my $env = Env->new;
-
-$env->set('+' => sub { $_[0] + $_[1] });
-$env->set('-' => sub { $_[0] - $_[1] });
-$env->set('*' => sub { $_[0] * $_[1] });
-$env->set('/' => sub { $_[0] / $_[1] });
+my $env = Env->new(
+    binds => Core::binds(),
+    exprs => Core::exprs(),
+);
 
 sub repl {
     while (defined (my $line = readline($prompt))) {
@@ -37,5 +37,6 @@ sub rep {
     $ast = Eval::eval($ast, $env);
     Printer::pr_str($ast);
 }
+
 
 1;

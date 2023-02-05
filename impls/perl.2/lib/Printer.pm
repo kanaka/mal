@@ -11,8 +11,9 @@ my $escape = {
 
 sub pr_str {
     my ($o) = @_;
-    my $type = ref $o;
+    my $type = ref $o or ::XXX $o;
 
+    $type eq 'CODE' ? '<#function>' :
     $type eq 'list' ?
         "(${\ join(' ', map pr_str($_), @$o)})" :
     $type eq 'vector' ?
@@ -32,6 +33,8 @@ sub pr_str {
             $$o =~ s/([\n\t\"\\])/$escape->{$1}/ge;
             qq{"$$o"};
         } :
+    $type eq 'boolean' ? "$o" :
+    $type eq 'nil' ? 'nil' :
     $$o;
 }
 

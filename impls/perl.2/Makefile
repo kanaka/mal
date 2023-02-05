@@ -12,7 +12,7 @@ endif
 
 IMPL ?= $(shell basename $(BASE))
 
-ALL_TESTS := $(shell echo test-{0..3})
+ALL_TESTS := $(shell echo test-{0..4})
 
 
 default:

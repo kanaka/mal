@@ -100,20 +100,17 @@ sub read_atom {
     my ($self) = @_;
     my $atom = $_ = shift @{$self->{tokens}};
 
-    my $type =
-        /^-?\d+$/ ? 'number' :
-        /^"/ ? 'string' :
-        /^(true|false)$/ ? 'boolean' :
-        /^(nil)$/ ? 'nil' :
-        'symbol';
-
-    if ($type eq 'string') {
-        $atom =~ s/^$string_re$/$1/ or
+    if (/^"/) {
+        s/^$string_re$/$1/ or
             die "Reached end of input looking for '\"'";
-        $atom =~ s/\\([nt\"\\])/$unescape->{$1}/ge;
+        s/\\([nt\"\\])/$unescape->{$1}/ge;
+        return $_;
     }
-
-    return bless \$atom, $type;
+    return boolean::true if $_ eq 'true';
+    return boolean::false if $_ eq 'false';
+    return nil->new('nil') if $_ eq 'nil';
+    return number->new($_) if /^-?\d+$/;
+    return symbol->new($_);
 }
 
 sub read_quote {
