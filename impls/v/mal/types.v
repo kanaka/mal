@@ -25,12 +25,12 @@ fn implicit_conv(a Type, b Type) !(Type, Type) {
 	if a is Float && b is Int {
 		return a, Float{b.val}
 	}
-    if a is Vector && b is List {
-        return List{a.vec}, b
-    }
-    if a is List && b is Vector {
-        return a, List{b.vec}
-    }
+	if a is Vector && b is List {
+		return List{a.vec}, b
+	}
+	if a is List && b is Vector {
+		return a, List{b.vec}
+	}
 	// fail
 	return error('type mismatch')
 }
@@ -73,68 +73,68 @@ pub fn (t Type) list_or_vec() ![]Type {
 	return match t {
 		List { t.list }
 		Vector { t.vec }
-        Nil { []Type{} }
-		//Nil { if allow_nil { []Type{} } else { error('list/vector expected') } }
+		Nil { []Type{} }
+		// Nil { if allow_nil { []Type{} } else { error('list/vector expected') } }
 		else { error('list/vector expected') }
 	}
 }
 
 pub fn (t Type) eq(o Type) bool {
-    a, b := implicit_conv(t, o) or { return false }
-    match a {
-        List {
-            if a.list.len != (b as List).list.len {
-                return false
-            }
-            for i, aa in a.list {
-                if !aa.eq( (b as List).list[i] ) {
-                    return false
-                }
-            }
-            return true
-        }
-        Vector {
-            if a.vec.len != (b as Vector).vec.len {
-                return false
-            }
-            for i, aa in a.vec {
-                if !aa.eq( (b as Vector).vec[i] ) {
-                    return false
-                }
-            }
-            return true
-        }
-        Int {
-            return a.val == (b as Int).val
-        }
-        Float {
-            return a.val == (b as Float).val
-        }
-        String {
-            return a.val == (b as String).val
-        }
-        True {
-            return b is True
-        }
-        False {
-            return b is False
-        }
-        Nil {
-            return b is Nil
-        }
-        Keyword {
-            return a.kw == (b as Keyword).kw
-        }
-        Symbol {
-            return a.sym == (b as Symbol).sym
-        }
-        Hashmap {
-            return a.hm == (b as Hashmap).hm
-        }
-        Fn {
-            return a.f == (b as Fn).f
-        }
-    }
+	a, b := implicit_conv(t, o) or { return false }
+	match a {
+		List {
+			if a.list.len != (b as List).list.len {
+				return false
+			}
+			for i, aa in a.list {
+				if !aa.eq((b as List).list[i]) {
+					return false
+				}
+			}
+			return true
+		}
+		Vector {
+			if a.vec.len != (b as Vector).vec.len {
+				return false
+			}
+			for i, aa in a.vec {
+				if !aa.eq((b as Vector).vec[i]) {
+					return false
+				}
+			}
+			return true
+		}
+		Int {
+			return a.val == (b as Int).val
+		}
+		Float {
+			return a.val == (b as Float).val
+		}
+		String {
+			return a.val == (b as String).val
+		}
+		True {
+			return b is True
+		}
+		False {
+			return b is False
+		}
+		Nil {
+			return b is Nil
+		}
+		Keyword {
+			return a.kw == (b as Keyword).kw
+		}
+		Symbol {
+			return a.sym == (b as Symbol).sym
+		}
+		Hashmap {
+			return a.hm == (b as Hashmap).hm
+		}
+		Fn {
+			return a.f == (b as Fn).f
+		}
+	}
 }
 
 pub fn (t Type) lt(o Type) !bool {
