@@ -76,7 +76,7 @@ sub read_hash {
     my ($self, $type, $end) = @_;
     my $tokens = $self->{tokens};
     shift @$tokens;
-    my $hash = $type->new;
+    my $hash = $type->new([]);
     while (@$tokens > 0) {
         if ($tokens->[0] eq $end) {
             shift @$tokens;
@@ -104,14 +104,14 @@ sub read_atom {
         s/^$string_re$/$1/ or
             die "Reached end of input looking for '\"'";
         s/\\([nt\"\\])/$unescape->{$1}/ge;
-        return string->new($_);
+        return string($_);
     }
     return true if $_ eq 'true';
     return false if $_ eq 'false';
     return nil if $_ eq 'nil';
-    return number->new($_) if /^-?\d+$/;
-    return keyword->new($_) if /^:/;
-    return symbol->new($_);
+    return number($_) if /^-?\d+$/;
+    return keyword($_) if /^:/;
+    return symbol($_);
 }
 
 sub read_quote {
@@ -128,7 +128,7 @@ sub with_meta {
     my $form = $self->read_form;
 
     bless [
-        symbol->new('with-meta'),
+        symbol('with-meta'),
         $form,
         $meta,
     ], 'list';

@@ -1,6 +1,6 @@
-use v5.12;
-
 package REPL;
+
+use Mo;
 
 use ReadLine;
 use Reader;

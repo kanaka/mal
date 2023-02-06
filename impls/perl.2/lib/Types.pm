@@ -1,4 +1,4 @@
-use v5.18;
+use v5.10;
 
 package Types;
 
@@ -7,16 +7,23 @@ use Exporter 'import';
 our @EXPORT = qw<
     boolean
     false
+    function
+    keyword
+    list
     nil
+    number
+    string
+    symbol
     true
 >;
 
-sub boolean { boolean->new(@_) }
-sub false { boolean::false() }
-sub nil { nil->new }
-sub number { number->new(@_) }
-sub string { string->new(@_) }
-sub true { boolean::true() }
+sub boolean  { boolean ->new(@_) }
+sub function { function->new(@_) }
+sub keyword  { keyword ->new(@_) }
+sub list     { list    ->new(@_) }
+sub number   { number  ->new(@_) }
+sub string   { string  ->new(@_) }
+sub symbol   { symbol  ->new(@_) }
 
 
 #------------------------------------------------------------------------------
@@ -29,18 +36,20 @@ sub new {
     bless $list, $class;
 }
 
+package Map;
+
+sub new { die }
+
 
 #------------------------------------------------------------------------------
 package Atom;
+
+use overload '""' => sub { ${$_[0]} };
 
 sub new {
     my ($class, $atom) = @_;
     bless \$atom, $class;
 }
-
-# sub expand {
-#     ${$_[0]};
-# }
 
 
 #------------------------------------------------------------------------------
@@ -55,13 +64,13 @@ use base 'List';
 
 #------------------------------------------------------------------------------
 package hash_map;
-use base 'List';
+use base 'Map';
 use Tie::IxHash;
 
 sub new {
-    my $class = shift;
+    my ($class, $list) = @_;
     my %hash;
-    my $tie = tie(%hash, 'Tie::IxHash', @_);
+    my $tie = tie(%hash, 'Tie::IxHash', @$list);
     my $hash = \%hash;
     bless $hash, $class;
 }
@@ -69,16 +78,15 @@ sub new {
 #------------------------------------------------------------------------------
 # Atom types:
 #------------------------------------------------------------------------------
+package function;
+sub new { bless $_[1], $_[0] }
+
 package symbol;
 use base 'Atom';
-
-use overload '""' => sub { ${$_[0]} };
 
 
 package string;
 use base 'Atom';
-
-use overload '""' => sub { ${$_[0]} };
 
 
 package keyword;
@@ -88,32 +96,32 @@ use base 'Atom';
 package nil;
 use base 'Atom';
 
-use overload '""' => sub { 'nil' };
+{
+    package Types;
+    my $n;
+    BEGIN { $n = 1 }
+    use constant nil => bless \$n, 'nil';
+}
 
 
 package boolean;
 use base 'Atom';
 
-my $t = 1;
-my $f = 0;
-my $true  = do {bless \$t, 'boolean'};
-my $false = do {bless \$f, 'boolean'};
-sub true() { $true }
-sub false() { $false }
-
-use overload
-    '""' => sub {
-        ${$_[0]} ? 'true' : 'false';
-    };
+{
+    package Types;
+    my ($t, $f);
+    BEGIN { ($t, $f) = (1, 0) }
+    use constant true => bless \$t, 'boolean';
+    use constant false => bless \$f, 'boolean';
+}
 
 sub new {
     my ($class, $atom) = @_;
     my $type = ref($atom);
-    (not $type) ? $atom ? true : false :
-    $type eq 'nil' ? false :
+    (not $type) ? $atom ? Types::true : Types::false :
+    $type eq 'nil' ? Types::false :
     $type eq 'boolean' ? $atom :
-    (not($type) and $atom =~ /^(false|nil|)$/) ? false :
-    true;
+    Types::true;
 }
 
 

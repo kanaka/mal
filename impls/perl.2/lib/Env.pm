@@ -1,8 +1,8 @@
 package Env;
 
-use Types;
-
 use Mo qw< build default >;
+
+use Types;
 
 has outer => ( default => undef, lazy => 0);
 has stash => ( default => {}, lazy => 0 );
@@ -16,7 +16,7 @@ sub BUILD {
     while (@$binds) {
         if ("$binds->[0]" eq '&') {
             shift @$binds;
-            $exprs = [list->new([@$exprs])];
+            $exprs = [list([@$exprs])];
         }
         $self->set(shift(@$binds), shift(@$exprs) // nil);
     }
@@ -32,9 +32,7 @@ sub set {
 sub find {
     my ($self, $key) = @_;
     while ($self) {
-        if (defined $self->{stash}{$key}) {
-            return $self;
-        }
+        return $self if defined $self->{stash}{$key};
         $self = $self->{outer};
     }
     die "Symbol '$key' not found in Env";

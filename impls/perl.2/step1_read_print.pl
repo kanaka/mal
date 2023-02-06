@@ -1,4 +1,4 @@
-use v5.18;
+use v5.10;
 
 use Term::ReadLine;
 my $tty = Term::ReadLine->new('');

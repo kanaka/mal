@@ -6,47 +6,40 @@ use Types;
 
 sub eval {
     my ($ast, $env) = @_;
-    my $type = ref($ast);
 
-    if ($type eq 'list') {
-        return $ast if @$ast eq 0;
-        my $sym = $ast->[0];
-        (ref($sym) eq 'symbol' and $$sym eq 'def!') ?
-            def($ast, $env) :
-        (ref($sym) eq 'symbol' and $$sym eq 'do') ?
-            Eval::do($ast, $env) :
-        (ref($sym) eq 'symbol' and $$sym eq 'fn*') ?
-            fn($ast, $env) :
-        (ref($sym) eq 'symbol' and $$sym eq 'if') ?
-            Eval::if($ast, $env) :
-        (ref($sym) eq 'symbol' and $$sym eq 'let*') ?
-            let($ast, $env) :
-        do {
-            my ($fn, @args) = @{eval_ast($ast, $env)};
-            $fn->(@args);
-        };
+    if (not $ast->isa('list')) {
+        return eval_ast($ast, $env);
     }
-    else {
-        eval_ast($ast, $env);
-    }
+    return $ast if not @$ast;
+    my $sym = $ast->[0];
+    my $is_sym = ref($sym) eq 'symbol';
+    ($is_sym and $$sym eq 'def!') ?
+        Eval::def($ast, $env) :
+    ($is_sym and $$sym eq 'do') ?
+        Eval::do($ast, $env) :
+    ($is_sym and $$sym eq 'fn*') ?
+        Eval::fn($ast, $env) :
+    ($is_sym and $$sym eq 'if') ?
+        Eval::if($ast, $env) :
+    ($is_sym and $$sym eq 'let*') ?
+        Eval::let($ast, $env) :
+    do {
+        my ($fn, @args) = @{eval_ast($ast, $env)};
+        $fn->(@args);
+    };
 }
 
 sub eval_ast {
     my ($ast, $env) = @_;
 
-    my $type = ref($ast);
-
-    if ($type eq 'list' or $type eq 'vector') {
-        return $type->new([ map Eval::eval($_, $env), @$ast ]);
+    if ($ast->isa('List')) {
+        return ref($ast)->new([ map Eval::eval($_, $env), @$ast ]);
     }
-    if ($type eq 'hash_map') {
-        return $type->new(map Eval::eval($_, $env), %$ast);
+    if ($ast->isa('Map')) {
+        return ref($ast)->new([map Eval::eval($_, $env), %$ast]);
     }
-    elsif ($type eq 'symbol') {
-        my $sym = $$ast;
-        my $val = $env->get($sym);
-        defined $val or die;
-        return $val;
+    elsif ($ast->isa('symbol')) {
+        $env->get($$ast);
     }
     else {
         return $ast;
@@ -55,39 +48,36 @@ sub eval_ast {
 
 sub def {
     my ($ast, $env) = @_;
-    my ($n, $sym, $val) = @$ast;
+    my (undef, $sym, $val) = @$ast;
     $env->set($$sym, Eval::eval($val, $env));
 }
 
 sub do {
     my ($ast, $env) = @_;
-    my $ret;
-    for my $form (@{$ast}[1..(@$ast-1)]) {
-        $ret = Eval::eval($form, $env);
-    }
-    return $ret;
+    my (undef, @do) = @$ast;
+    my $list = eval_ast(list(\@do), $env);
+    pop @$list;
 }
 
 sub fn {
     my ($ast, $env) = @_;
-    my ($n, $bind, $form) = @$ast;
-    sub {
-        $env = Env->new(
-            outer => $env,
-            binds => [@$bind],
-            exprs => [@_],
-        );
-        Eval::eval($form, $env);
-    };
+    my (undef, $bind, $form) = @$ast;
+    function(
+        sub {
+            $env = Env->new(
+                outer => $env,
+                binds => [@$bind],
+                exprs => [@_],
+            );
+            Eval::eval($form, $env);
+        }
+    );
 }
 
 sub if {
     my ($ast, $env) = @_;
-    my ($n, $cond, $then, $else) = @$ast;
-
-    $cond = boolean->new(Eval::eval($cond, $env));
-
-    if ("$cond" eq 'true') {
+    my (undef, $cond, $then, $else) = @$ast;
+    if (${boolean(Eval::eval($cond, $env))}) {
         Eval::eval($then, $env);
     }
     else {
@@ -99,7 +89,7 @@ sub if {
 sub let {
     my ($ast, $env) = @_;
     $env = Env->new(outer => $env);
-    my ($n, $def, $eval) = @$ast;
+    my (undef, $def, $eval) = @$ast;
     for (my $i = 0; $i < @$def; $i += 2) {
         my ($key, $val) = ($def->[$i], $def->[$i+1]);
         $env->set($$key, Eval::eval($val, $env));
