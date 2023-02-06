@@ -3,6 +3,7 @@ module mal
 type Type = False
 	| Float
 	| Fn
+    | Closure
 	| Hashmap
 	| Int
 	| Keyword
@@ -55,9 +56,7 @@ pub fn (t Type) sym() !string {
 	return if t is Symbol { t.sym } else { error('symbol expected') }
 }
 
-type FnFn = fn (args List) !Type
-
-pub fn (t Type) fn_() !FnFn {
+pub fn (t Type) fn_() !FnDef {
 	return if t is Fn { t.f } else { error('function expected') }
 }
 
@@ -134,6 +133,11 @@ pub fn (t Type) eq(o Type) bool {
 		Fn {
 			return a.f == (b as Fn).f
 		}
+        Closure {
+            return a.env == (b as Closure).env &&
+                a.ast == (b as Closure).ast &&
+                a.params == (b as Closure).params
+        }
 	}
 }
 
@@ -241,9 +245,16 @@ pub:
 
 // --
 
+type FnDef = fn (args List) !Type
+
 pub struct Fn {
 pub:
-	// mut:
-	//    env Env
-	f FnFn
+    f FnDef
+}
+
+pub struct Closure {
+pub:
+    ast Type
+    params []string
+    env &Env
 }

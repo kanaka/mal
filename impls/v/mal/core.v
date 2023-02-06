@@ -3,7 +3,7 @@ module mal
 struct NSFn {
 pub:
 	sym string
-	fn_ FnFn
+	f FnDef
 }
 
 fn get_args(op string, args List) !(i64, i64) {

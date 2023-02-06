@@ -6,45 +6,38 @@ fn rep_read(input string) !mal.Type {
 }
 
 fn eval(ast mal.Type, mut env mal.Env) !mal.Type {
-	match ast {
-		mal.List {
-			first := ast.first() or { return ast } // return empty list
-			match first.sym() or { '' } {
-				'def!' {
-					ast.nth(2) or { return error('def!: missing param') }
-					sym := ast.list[1].sym() or { return error('def!: ${err}') }
-					return env.set(sym, eval(ast.list[2], mut env)!)
+	if ast is mal.List {
+		first := ast.first() or { return ast } // return empty list
+		match first.sym() or { '' } {
+			'def!' {
+				ast.nth(2) or { return error('def!: missing param') }
+				sym := ast.list[1].sym() or { return error('def!: ${err}') }
+				return env.set(sym, eval(ast.list[2], mut env)!)
+			}
+			'let*' {
+				ast.nth(2) or { return error('let*: missing param') }
+				mut new_env := mal.mk_env(&env)
+				mut pairs := ast.list[1].list_or_vec() or { return error('let*: ${err}') }
+				pairs = pairs[0..] // copy
+				if pairs.len % 2 == 1 {
+					return error('let*: extra binding param')
 				}
-				'let*' {
-					ast.nth(2) or { return error('let*: missing param') }
-					mut new_env := mal.mk_env(&env)
-					mut pairs := ast.list[1].list_or_vec() or { return error('let*: ${err}') }
-					pairs = pairs[0..] // copy
-					if pairs.len % 2 == 1 {
-						return error('let*: extra binding param')
-					}
-					for pairs.len > 0 {
-						sym := pairs[0].sym() or { return error('let*: ${err}') }
-						new_env.set(sym, eval(pairs[1], mut new_env)!)
-						pairs = pairs[2..]
-					}
-					return eval(ast.list[2], mut new_env)!
+				for pairs.len > 0 {
+					sym := pairs[0].sym() or { return error('let*: ${err}') }
+					new_env.set(sym, eval(pairs[1], mut new_env)!)
+					pairs = pairs[2..]
 				}
-				else { // regular list apply
-					// BUG: https://github.com/vlang/v/issues/17156
-					// res := eval_ast(ast, env)! as mal.List
-					res_tmp := eval_ast(ast, mut env)!
-					res := res_tmp as mal.List
-					fn_ := res.list[0].fn_()!
-					return fn_(res.rest())
-				}
+				return eval(ast.list[2], mut new_env)!
+			}
+			else { // regular list apply
+				res := eval_ast(ast, mut env)! as mal.List
+				f := res.list[0].fn_()!
+				return f(res.rest())
 			}
 		}
-		else {
-			return eval_ast(ast, mut env)!
-		}
+	} else {
+		return eval_ast(ast, mut env)!
 	}
-	return ast
 }
 
 fn eval_ast(ast mal.Type, mut env mal.Env) !mal.Type {

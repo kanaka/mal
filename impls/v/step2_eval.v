@@ -8,24 +8,17 @@ fn rep_read(input string) !mal.Type {
 }
 
 fn eval(ast mal.Type, env RepEnv) !mal.Type {
-	match ast {
-		mal.List {
-			if ast.list.len == 0 {
-				return ast
-			} else {
-				// BUG: https://github.com/vlang/v/issues/17156
-				// res := eval_ast(ast, env)! as mal.List
-				res_tmp := eval_ast(ast, env)!
-				res := res_tmp as mal.List
-				fn_ := res.list[0].fn_()!
-				return fn_(res.rest())
-			}
+	if ast is mal.List {
+		if ast.list.len == 0 {
+			return ast
+		} else {
+			res := eval_ast(ast, env)! as mal.List
+			f := res.list[0].fn_()!
+			return f(res.rest())
 		}
-		else {
-			return eval_ast(ast, env)!
-		}
+	} else {
+		return eval_ast(ast, env)!
 	}
-	return ast
 }
 
 fn eval_ast(ast mal.Type, env RepEnv) !mal.Type {
