@@ -11,7 +11,7 @@ has exprs => [];
 
 sub BUILD {
     my ($self) = @_;
-    my $binds = $self->binds;
+    my $binds = [ @{$self->binds} ];
     my $exprs = $self->exprs;
     while (@$binds) {
         if ("$binds->[0]" eq '&') {

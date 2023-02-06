@@ -7,26 +7,42 @@ use Types;
 sub eval {
     my ($ast, $env) = @_;
 
-    if (not $ast->isa('list')) {
-        return eval_ast($ast, $env);
+    while (1) {
+        return Eval::eval_ast($ast, $env) unless $ast->isa('list');
+        return $ast if not @$ast;
+        my ($a0, $a1, $a2, $a3) = @$ast;
+        my $sym = (ref($a0) eq 'symbol') ? $$a0 : '';
+        if ('def!' eq $sym) {
+            return $env->set($$a1, Eval::eval($a2, $env));
+        } elsif ('do' eq $sym) {
+            my (undef, @do) = @$ast;
+            $ast = pop @do;
+            eval_ast(list(\@do), $env);
+        } elsif ('if' eq $sym) {
+            $ast = ${boolean(Eval::eval($a1, $env))} ? $a2 :
+                defined $a3 ? $a3 : nil;
+        } elsif ('let*' eq $sym) {
+            $env = Env->new(outer => $env);
+            for (my $i = 0; $i < @$a1; $i += 2) {
+                $env->set(${$a1->[$i]}, Eval::eval($a1->[$i+1], $env));
+            }
+            $ast = $a2;
+        } elsif ('fn*' eq $sym) {
+            return function($a1, $a2, $env);
+        } else {
+            my ($f, @args) = @{eval_ast($ast, $env)};
+            if (ref($f) eq 'function') {
+                $ast = $f->{ast};
+                $env = Env->new(
+                    outer => $f->{env},
+                    binds => $f->{sig},
+                    exprs => \@args,
+                );
+            } else {
+                return $f->(@args);
+            }
+        }
     }
-    return $ast if not @$ast;
-    my $sym = $ast->[0];
-    my $is_sym = ref($sym) eq 'symbol';
-    ($is_sym and $$sym eq 'def!') ?
-        Eval::def($ast, $env) :
-    ($is_sym and $$sym eq 'do') ?
-        Eval::do($ast, $env) :
-    ($is_sym and $$sym eq 'fn*') ?
-        Eval::fn($ast, $env) :
-    ($is_sym and $$sym eq 'if') ?
-        Eval::if($ast, $env) :
-    ($is_sym and $$sym eq 'let*') ?
-        Eval::let($ast, $env) :
-    do {
-        my ($fn, @args) = @{eval_ast($ast, $env)};
-        $fn->(@args);
-    };
 }
 
 sub eval_ast {
@@ -44,57 +60,6 @@ sub eval_ast {
     else {
         return $ast;
     }
-}
-
-sub def {
-    my ($ast, $env) = @_;
-    my (undef, $sym, $val) = @$ast;
-    $env->set($$sym, Eval::eval($val, $env));
-}
-
-sub do {
-    my ($ast, $env) = @_;
-    my (undef, @do) = @$ast;
-    my $list = eval_ast(list(\@do), $env);
-    pop @$list;
-}
-
-sub fn {
-    my ($ast, $env) = @_;
-    my (undef, $bind, $form) = @$ast;
-    function(
-        sub {
-            $env = Env->new(
-                outer => $env,
-                binds => [@$bind],
-                exprs => [@_],
-            );
-            Eval::eval($form, $env);
-        }
-    );
-}
-
-sub if {
-    my ($ast, $env) = @_;
-    my (undef, $cond, $then, $else) = @$ast;
-    if (${boolean(Eval::eval($cond, $env))}) {
-        Eval::eval($then, $env);
-    }
-    else {
-        return nil unless defined $else;
-        Eval::eval($else, $env);
-    }
-}
-
-sub let {
-    my ($ast, $env) = @_;
-    $env = Env->new(outer => $env);
-    my (undef, $def, $eval) = @$ast;
-    for (my $i = 0; $i < @$def; $i += 2) {
-        my ($key, $val) = ($def->[$i], $def->[$i+1]);
-        $env->set($$key, Eval::eval($val, $env));
-    }
-    Eval::eval($eval, $env);
 }
 
 1;

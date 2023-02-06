@@ -17,13 +17,13 @@ our @EXPORT = qw<
     true
 >;
 
-sub boolean  { boolean ->new(@_) }
-sub function { function->new(@_) }
-sub keyword  { keyword ->new(@_) }
-sub list     { list    ->new(@_) }
-sub number   { number  ->new(@_) }
-sub string   { string  ->new(@_) }
-sub symbol   { symbol  ->new(@_) }
+sub boolean  { 'boolean' ->new(@_) }
+sub function { 'function'->new(@_) }
+sub keyword  { 'keyword' ->new(@_) }
+sub list     { 'list'    ->new(@_) }
+sub number   { 'number'  ->new(@_) }
+sub string   { 'string'  ->new(@_) }
+sub symbol   { 'symbol'  ->new(@_) }
 
 
 #------------------------------------------------------------------------------
@@ -79,7 +79,15 @@ sub new {
 # Atom types:
 #------------------------------------------------------------------------------
 package function;
-sub new { bless $_[1], $_[0] }
+sub new {
+    my ($class, $sig, $ast, $env) = @_;
+    my $self = bless {
+        ast => $ast,
+        sig => $sig,
+        env => $env,
+        fun => sub { Eval::eval($ast, $env) },
+    }, $class;
+}
 
 package symbol;
 use base 'Atom';
