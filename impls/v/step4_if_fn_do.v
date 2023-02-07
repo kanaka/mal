@@ -8,16 +8,17 @@ fn rep_read(input string) !mal.Type {
 fn eval(ast mal.Type, mut env mal.Env) !mal.Type {
 	if ast is mal.List {
 		first := ast.first() or { return ast } // return empty list
+		args := ast.rest()
 		match first.sym() or { '' } {
 			'def!' {
-				ast.nth(2) or { return error('def!: missing param') }
-				sym := ast.list[1].sym() or { return error('def!: ${err}') }
-				return env.set(sym, eval(ast.list[2], mut env)!)
+				mal.check_args(args, 2, 2) or { return error('def!: ${err}') }
+				sym := args.nth(0).sym() or { return error('def!: ${err}') }
+				return env.set(sym, eval(args.nth(1), mut env)!)
 			}
 			'let*' {
-				ast.nth(2) or { return error('let*: missing param') }
+				mal.check_args(args, 2, 2) or { return error('let*: ${err}') }
 				mut new_env := mal.mk_env(&env)
-				tmp := ast.list[1].list_or_vec() or { return error('let*: ${err}') }
+				tmp := args.nth(0).list_or_vec() or { return error('let*: ${err}') }
 				mut pairs := tmp[0..] // copy
 				if pairs.len % 2 == 1 {
 					return error('let*: extra binding param')
@@ -27,24 +28,23 @@ fn eval(ast mal.Type, mut env mal.Env) !mal.Type {
 					new_env.set(sym, eval(pairs[1], mut new_env)!)
 					pairs = pairs[2..]
 				}
-				return eval(ast.list[2], mut new_env)!
+				return eval(args.nth(1), mut new_env)!
 			}
 			'do' {
-				res := eval_ast(ast.rest(), mut env)! as mal.List
+				res := eval_ast(args, mut env)! as mal.List
 				return res.last() or { mal.Nil{} }
 			}
 			'if' {
-				ast.nth(2) or { return error('if: missing param') }
-				res := eval(ast.list[1], mut env)!
-				clause_n := if res.truthy() { 2 } else { 3 }
-				clause := ast.nth(clause_n) or { return mal.Nil{} }
+				mal.check_args(args, 2, 3) or { return error('if: ${err}') }
+				res := eval(args.nth(0), mut env)!
+				clause := args.nth(if res.truthy() { 1 } else { 2 })
 				return eval(clause, mut env)!
 			}
 			'fn*' {
-				ast.nth(2) or { return error('fn*: missing param') }
-				binds := ast.list[1].list_or_vec() or { return error('fn*: ${err}') }
+				mal.check_args(args, 2, 2) or { return error('fn*: ${err}') }
+				binds := args.nth(0).list_or_vec() or { return error('fn*: ${err}') }
 				syms := binds.map(it.sym() or { return error('fn*: ${err}') })
-				body := ast.list[2]
+				body := args.nth(1)
 				for i, sym in syms {
 					if sym == '&' && syms.len != i + 2 {
 						return error('fn*: & has 1 arg')
@@ -57,7 +57,7 @@ fn eval(ast mal.Type, mut env mal.Env) !mal.Type {
 							new_env.set(syms[i + 1], args.from(i))
 							break
 						} else {
-							new_env.set(sym, args.nth(i) or { mal.Nil{} })
+							new_env.set(sym, args.nth(i))
 						}
 					}
 					return eval(body, mut new_env)!
@@ -117,10 +117,11 @@ fn rep(line string, mut env mal.Env) string {
 fn main() {
 	// outer-most env
 	mut env := mal.Env{}
-	for nsfn in mal.get_core() {
-		env.set(nsfn.sym, mal.Fn{nsfn.f})
-	}
 
+	// core env
+	mal.add_core(mut env, eval)
+
+	// mal defined env
 	rep('(def! not (fn* (a) (if a false true)))', mut env)
 
 	for {

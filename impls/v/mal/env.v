@@ -20,12 +20,15 @@ pub fn (mut e Env) bind(syms []string, args List) {
 			e.set(syms[i + 1], args.from(i))
 			break
 		} else {
-			e.set(sym, args.nth(i) or { mal.Nil{} })
+			e.set(sym, args.nth(i))
 		}
 	}
 }
 
 pub fn (mut e Env) set(sym string, val Type) Type {
+	//$if env ? {
+	//	println('ENV: setting [${sym}] in 0x${voidptr(&e)} (outer 0x${voidptr(e.outer)})')
+	//}
 	e.data[sym] = val
 	return val
 }
@@ -33,6 +36,8 @@ pub fn (mut e Env) set(sym string, val Type) Type {
 pub fn (e Env) find(sym string) ?Type {
 	$if env ? {
 		println('ENV: looking for [${sym}] in\n${e.data}')
+		// println('ENV: finding [${sym}] in 0x${voidptr(&e)} (outer 0x${voidptr(e.outer)}):')
+		// println("${e.data}")
 	}
 	if res := e.data[sym] {
 		$if env ? {

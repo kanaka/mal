@@ -36,7 +36,7 @@ fn implicit_conv(a Type, b Type) !(Type, Type) {
 	return error('type mismatch')
 }
 
-fn make_bool(cond bool) Type {
+pub fn make_bool(cond bool) Type {
 	return if cond { True{} } else { False{} }
 }
 
@@ -205,19 +205,19 @@ pub:
 	list []Type
 }
 
-pub fn (l List) first() !Type {
-	return if l.list.len > 0 { l.list[0] } else { error('list: empty') }
+pub fn (l &List) first() !&Type {
+	return if l.list.len > 0 { &l.list[0] } else { error('list: empty') }
 }
 
-pub fn (l List) last() !Type {
-	return if l.list.len > 0 { l.list.last() } else { error('list: empty') }
+pub fn (l &List) last() !&Type {
+	return if l.list.len > 0 { &l.list[l.list.len - 1] } else { error('list: empty') }
 }
 
-pub fn (l List) rest() List {
-	return if l.list.len > 1 { List{l.list[1..]} } else { List{} }
+pub fn (l &List) rest() List {
+	return l.from(1)
 }
 
-pub fn (l List) from(n int) List {
+pub fn (l &List) from(n int) List {
 	return if l.list.len > n { List{l.list[n..]} } else { List{} }
 }
 
@@ -225,8 +225,8 @@ pub fn (l List) len() int {
 	return l.list.len
 }
 
-pub fn (l List) nth(n int) !Type {
-	return if n < l.list.len { l.list[n] } else { error('list: index oob') }
+pub fn (l &List) nth(n int) &Type {
+	return if n < l.list.len { &l.list[n] } else { Nil{} }
 }
 
 // --
@@ -245,16 +245,18 @@ pub:
 
 // --
 
-type FnDef = fn (args List) !Type
-
 pub struct Fn {
 pub:
-    f FnDef
+	f FnDef
 }
 
 pub struct Closure {
 pub:
-    ast Type
-    params []string
-    env &Env
+	ast    Type
+	params []string
+	env    &Env
+}
+
+fn (c Closure) str() string {
+	return 'mal.Closure{\n    <not displayed>\n}'
 }

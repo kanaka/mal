@@ -10,18 +10,21 @@ fn eval(ast_ mal.Type, mut env_ mal.Env) !mal.Type {
 	mut env := unsafe { &env_ }
 	for true {
 		if ast is mal.List {
-            node := ast as mal.List
-			first := node.first() or { return *ast } // return empty list
+			node := ast as mal.List
+			// BUG: receiver is not correctly passed by reference to first()
+			// https://github.com/vlang/v/issues/17249
+			first := (&node).first() or { return *ast } // return empty list
+			args := node.rest()
 			match first.sym() or { '' } {
 				'def!' {
-					node.nth(2) or { return error('def!: missing param') }
-					sym := node.list[1].sym() or { return error('def!: ${err}') }
-					return env.set(sym, eval(node.list[2], mut env)!)
+					mal.check_args(args, 2, 2) or { return error('def!: ${err}') }
+					sym := args.nth(0).sym() or { return error('def!: ${err}') }
+					return env.set(sym, eval(args.nth(1), mut env)!)
 				}
 				'let*' {
-					node.nth(2) or { return error('let*: missing param') }
+					mal.check_args(args, 2, 2) or { return error('let*: ${err}') }
 					env = unsafe { mal.mk_env(env) } // TCO
-					tmp := node.list[1].list_or_vec() or { return error('let*: ${err}') }
+					tmp := args.nth(0).list_or_vec() or { return error('let*: ${err}') }
 					mut pairs := tmp[0..] // copy
 					if pairs.len % 2 == 1 {
 						return error('let*: extra binding param')
@@ -31,50 +34,52 @@ fn eval(ast_ mal.Type, mut env_ mal.Env) !mal.Type {
 						env.set(sym, eval(pairs[1], mut env)!)
 						pairs = pairs[2..]
 					}
-					ast = unsafe { &node.list[2] } // TCO
+					ast = unsafe { args.nth(1) } // TCO
 				}
 				'do' {
-					if node.list.len > 2 {
-						node.list[1..node.list.len - 1].map(eval(it, mut env)!)
-					} else if node.list.len < 2 {
+					if args.len() > 1 {
+						args.list[0..args.list.len - 1].map(eval(it, mut env)!)
+					} else if args.len() == 0 {
 						return mal.Nil{}
 					}
-                    ast = unsafe { &node.list[node.list.len - 1] } // TCO
+					// BUG: receiver is not correctly passed by reference to last()
+					// https://github.com/vlang/v/issues/17249
+					ast = unsafe { (&args).last()! } // TCO
 				}
 				'if' {
-					node.nth(2) or { return error('if: missing param') }
-                    if eval(node.list[1], mut env)!.truthy() {
-                        ast = unsafe{ &node.list[2] } // TCO
-                    } else if node.list.len > 3 {
-                        ast = unsafe{ &node.list[3] } // TCO
-                    } else {
-                        return mal.Nil{}
-                    }
+					mal.check_args(args, 2, 3) or { return error('if: ${err}') }
+					if eval(args.nth(0), mut env)!.truthy() {
+						ast = unsafe { args.nth(1) } // TCO
+					} else if args.len() == 3 {
+						ast = unsafe { args.nth(2) } // TCO
+					} else {
+						return mal.Nil{}
+					}
 				}
 				'fn*' {
-					node.nth(2) or { return error('fn*: missing param') }
-					binds := node.list[1].list_or_vec() or { return error('fn*: ${err}') }
+					mal.check_args(args, 2, 2) or { return error('fn*: ${err}') }
+					binds := args.nth(0).list_or_vec() or { return error('fn*: ${err}') }
 					syms := binds.map(it.sym() or { return error('fn*: ${err}') })
 					for i, sym in syms {
 						if sym == '&' && syms.len != i + 2 {
 							return error('fn*: & has 1 arg')
 						}
 					}
-                    return mal.Closure{node.list[2], syms, env}
+					return mal.Closure{args.nth(1), syms, env}
 				}
 				else { // regular list apply
 					res := eval_ast(ast, mut env)! as mal.List
-                    list0 := res.list[0]
-                    if list0 is mal.Fn {
-                        return list0.f(res.rest())!
-                    } else if list0 is mal.Closure {
-                        ast = &list0.ast // TCO
-                        env = mal.mk_env(list0.env)
-                        env.bind(list0.params, res.rest())
-                    } else {
-                        return error( 'function expected' )
-                    }
-				 }
+					list0 := res.list[0]
+					if list0 is mal.Fn {
+						return list0.f(res.rest())!
+					} else if list0 is mal.Closure {
+						ast = &list0.ast // TCO
+						env = mal.mk_env(list0.env)
+						env.bind(list0.params, res.rest())
+					} else {
+						return error('function expected')
+					}
+				}
 			}
 		} else {
 			return eval_ast(ast, mut env)!
@@ -125,10 +130,11 @@ fn rep(line string, mut env mal.Env) string {
 fn main() {
 	// outer-most env
 	mut env := mal.Env{}
-	for nsfn in mal.get_core() {
-		env.set(nsfn.sym, mal.Fn{nsfn.f})
-	}
 
+	// core env
+	mal.add_core(mut env, eval)
+
+	// mal defined env
 	rep('(def! not (fn* (a) (if a false true)))', mut env)
 
 	for {
