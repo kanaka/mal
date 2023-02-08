@@ -120,14 +120,14 @@ fn tokenise(input string) ![]Token {
 	mut ret := []Token{}
 	mut input_ := input
 	for {
-		$if tokenise ? {
-			println('INPUT: [${input_}]')
+		$if token ? {
+			println('${input_}')
 		}
 		start, end := re.match_string(input_)
 		if start < 0 {
 			break
 		}
-		$if tokenise ? {
+		$if token ? {
 			println('TOKEN: [${input_[re.groups[0]..re.groups[1]]}]')
 		}
 		if re.groups[1] > re.groups[0] {

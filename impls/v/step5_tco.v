@@ -11,9 +11,7 @@ fn eval(ast_ mal.Type, mut env_ mal.Env) !mal.Type {
 	for true {
 		if ast is mal.List {
 			node := ast as mal.List
-			// BUG: receiver is not correctly passed by reference to first()
-			// https://github.com/vlang/v/issues/17249
-			first := (&node).first() or { return *ast } // return empty list
+			first := node.first() or { return *ast } // return empty list
 			args := node.rest()
 			match first.sym() or { '' } {
 				'def!' {
@@ -42,9 +40,7 @@ fn eval(ast_ mal.Type, mut env_ mal.Env) !mal.Type {
 					} else if args.len() == 0 {
 						return mal.Nil{}
 					}
-					// BUG: receiver is not correctly passed by reference to last()
-					// https://github.com/vlang/v/issues/17249
-					ast = unsafe { (&args).last()! } // TCO
+					ast = unsafe { args.last()! } // TCO
 				}
 				'if' {
 					mal.check_args(args, 2, 3) or { return error('if: ${err}') }

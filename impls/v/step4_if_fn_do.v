@@ -32,7 +32,7 @@ fn eval(ast mal.Type, mut env mal.Env) !mal.Type {
 			}
 			'do' {
 				res := eval_ast(args, mut env)! as mal.List
-				return res.last() or { mal.Nil{} }
+				return *res.last()!
 			}
 			'if' {
 				mal.check_args(args, 2, 3) or { return error('if: ${err}') }
