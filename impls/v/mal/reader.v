@@ -3,7 +3,7 @@ module mal
 import regex
 
 const (
-	re_token = '^[\\s,]*((?:~@)|(?:[\\[\\]{}()\'\`~^@])|("(?:(?:\\\\.)|[^\\\\"])*"?)|(?:;.*)|(?:[^\\s\\[\\\]{}(\'"`,;)]*))'
+	re_token = '^[\\s,]*((?:~@)|(?:[\\[\\]{}()\'\`~^@])|("(?:(?:\\\\.)|[^\\\\"])*"?)|(?:;[^\n]*)|(?:[^\\s\\[\\\]{}(\'"`,;)]*))'
 	re_int   = '^-?[0-9]+$'
 	re_float = '^-?[0-9]*\\.[0-9]+$'
 )
@@ -100,6 +100,7 @@ fn (mut r Reader) read_atom() !Type {
 		tok == 'false' { False{} }
 		tok[0] == `"` { String{unescape(tok[1..tok.len - 1])} }
 		tok[0] == `:` { Keyword{tok[1..]} }
+		tok[0] == `;` { r.read_form()! }
 		r.re_int.matches_string(tok) { Int{tok.i64()} }
 		r.re_float.matches_string(tok) { Float{tok.f64()} }
 		else { Symbol{tok} }

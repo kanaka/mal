@@ -47,6 +47,9 @@ pub fn pr_str(ast Type, readable bool) string {
 		Fn, Closure {
 			'#<fn>'
 		}
+		Atom {
+			'(atom ${pr_str(ast.typ, readable)})'
+		}
 	}
 }
 

@@ -73,4 +73,28 @@ pub fn add_core(mut env Env, eval_fn EvalFn) {
 		println(args.list.map(pr_str(it, false)).join(' '))
 		return Nil{}
 	})
+	add_fn(mut env, 'read-string', 1, 1, fn (args List) !Type {
+		return read_str(args.nth(0).str_()!)!
+	})
+	add_fn(mut env, 'slurp', 1, 1, fn (args List) !Type {
+		return String{os.read_file(args.nth(0).str_()!)!}
+	})
+	add_fn(mut env, 'atom', 1, 1, fn (args List) !Type {
+		return Atom{args.nth(0)}
+	})
+	add_fn(mut env, 'atom?', 1, 1, fn (args List) !Type {
+		return make_bool(args.nth(0) is Atom)
+	})
+	add_fn(mut env, 'deref', 1, 1, fn (args List) !Type {
+		return args.nth(0).atom()!.typ
+	})
+	add_fn(mut env, 'reset!', 2, 2, fn (args List) !Type {
+		return args.nth(0).atom()!.set(args.nth(1))
+	})
+	add_fn(mut env, 'swap!', 2, -1, fn [eval_fn] (args List) !Type {
+		atom := args.nth(0).atom()!
+		mut list := [atom.typ]
+		list << args.from(2).list
+		return atom.set(args.nth(1).fn_apply(eval_fn, List{list})!)
+	})
 }

@@ -1,9 +1,10 @@
 module mal
 
-type Type = False
+type Type = Atom
+	| Closure
+	| False
 	| Float
 	| Fn
-    | Closure
 	| Hashmap
 	| Int
 	| Keyword
@@ -14,7 +15,13 @@ type Type = False
 	| True
 	| Vector
 
-fn implicit_conv(a Type, b Type) !(Type, Type) {
+type FnDef = fn (args List) !Type
+
+// convert one or both arguments, where such an upward, non-destructive
+// conversion would enable their comparison
+fn implicit_conv(a_ Type, b_ Type) !(Type, Type) {
+	a := a_.resolve_atom()
+	b := b_.resolve_atom()
 	// same type
 	if a.type_idx() == b.type_idx() {
 		return a, b
@@ -52,30 +59,8 @@ pub fn (t Type) numeric() bool {
 	return t in [Int, Float]
 }
 
-pub fn (t Type) sym() !string {
-	return if t is Symbol { t.sym } else { error('symbol expected') }
-}
-
-pub fn (t Type) fn_() !FnDef {
-	return if t is Fn { t.f } else { error('function expected') }
-}
-
-pub fn (t Type) int_() !i64 {
-	return if t is Int { t.val } else { error('integer expected') }
-}
-
-pub fn (t Type) list() ![]Type {
-	return if t is List { t.list } else { error('list expected') }
-}
-
-pub fn (t Type) list_or_vec() ![]Type {
-	return match t {
-		List { t.list }
-		Vector { t.vec }
-		Nil { []Type{} }
-		// Nil { if allow_nil { []Type{} } else { error('list/vector expected') } }
-		else { error('list/vector expected') }
-	}
+pub fn (t Type) resolve_atom() Type {
+	return if t is Atom { t.typ.resolve_atom() } else { t }
 }
 
 pub fn (t Type) eq(o Type) bool {
@@ -133,11 +118,13 @@ pub fn (t Type) eq(o Type) bool {
 		Fn {
 			return a.f == (b as Fn).f
 		}
-        Closure {
-            return a.env == (b as Closure).env &&
-                a.ast == (b as Closure).ast &&
-                a.params == (b as Closure).params
-        }
+		Closure {
+			return
+				a.env == (b as Closure).env && a.ast == (b as Closure).ast && a.params == (b as Closure).params
+		}
+		Atom {
+			panic('unresolved atom')
+		}
 	}
 }
 
@@ -149,6 +136,51 @@ pub fn (t Type) lt(o Type) !bool {
 		String { a.val < (b as String).val }
 		else { error('invalid comparison') }
 	}
+}
+
+pub fn (t Type) fn_apply(eval_fn EvalFn, args List) !Type {
+	if t is Fn {
+		return t.f(args)!
+	} else if t is Closure {
+		mut env := mk_env(t.env)
+		env.bind(t.params, args)
+		return eval_fn(t.ast, mut env)!
+	} else {
+		return error('function expected')
+	}
+}
+
+pub fn (t Type) sym() !string {
+	return if t is Symbol { t.sym } else { error('symbol expected') }
+}
+
+pub fn (t Type) fn_() !FnDef {
+	return if t is Fn { t.f } else { error('function expected') }
+}
+
+pub fn (t Type) int_() !i64 {
+	return if t is Int { t.val } else { error('integer expected') }
+}
+
+pub fn (t Type) str_() !string {
+	return if t is String { t.val } else { error('string expected') }
+}
+
+pub fn (t Type) list() ![]Type {
+	return if t is List { t.list } else { error('list expected') }
+}
+
+pub fn (t Type) list_or_vec() ![]Type {
+	return match t {
+		List { t.list }
+		Vector { t.vec }
+		Nil { []Type{} }
+		else { error('list/vector expected') }
+	}
+}
+
+pub fn (t &Type) atom() !&Atom {
+	return if t is Atom { unsafe { &t } } else { error('atom expected') }
 }
 
 // --
@@ -259,4 +291,17 @@ pub:
 
 fn (c Closure) str() string {
 	return 'mal.Closure{\n    <not displayed>\n}'
+}
+
+// --
+
+pub struct Atom {
+pub mut:
+	typ Type = Nil{}
+}
+
+fn (a &Atom) set(t Type) Type {
+	mut mut_a := unsafe { a }
+	mut_a.typ = t
+	return t
 }
