@@ -93,8 +93,29 @@ pub fn add_core(mut env Env, eval_fn EvalFn) {
 	})
 	add_fn(mut env, 'swap!', 2, -1, fn [eval_fn] (args List) !Type {
 		atom := args.nth(0).atom()!
+		// BUG: << doesn't like templated sumtype array args
+		// https://github.com/vlang/v/issues/17259
+		// list := arrays.concat[Type]([atom.typ], ...args.from(2).list)
 		mut list := [atom.typ]
 		list << args.from(2).list
 		return atom.set(args.nth(1).fn_apply(eval_fn, List{list})!)
+	})
+	add_fn(mut env, 'cons', 2, 2, fn (args List) !Type {
+		// BUG: << doesn't like templated sumtype array args
+		// https://github.com/vlang/v/issues/17259
+		// return List{arrays.concat[Type]([*args.nth(0)], ...args.nth(1).list()!)}
+		mut list := [*args.nth(0)]
+		list << args.nth(1).list_or_vec()!
+		return List{list}
+	})
+	add_fn(mut env, 'concat', 0, -1, fn (args List) !Type {
+		mut list := []Type{}
+		for arg in args.list {
+			list << arg.list_or_vec()!
+		}
+		return List{list}
+	})
+	add_fn(mut env, 'vec', 1, 1, fn (args List) !Type {
+		return Vector{args.nth(0).list_or_vec()!}
 	})
 }
