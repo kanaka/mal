@@ -9,7 +9,7 @@ fn rep_read(input string) !mal.Type {
 fn quasiquote_list(list []mal.Type) !mal.Type {
 	mut res := []mal.Type{}
 	for elt in list.reverse() {
-		if elt is mal.List && (elt as mal.List).nth(0).eq(mal.Symbol{'splice-unquote'}) {
+		if elt is mal.List && elt.call_sym() or { '' } == 'splice-unquote' {
 			res = [mal.Symbol{'concat'}, elt.nth(1), mal.List{res}]
 		} else {
 			res = [mal.Symbol{'cons'}, quasiquote(elt)!, mal.List{res}]
@@ -95,7 +95,7 @@ fn eval(ast_ mal.Type, mut env_ mal.Env) !mal.Type {
 							return error('fn*: & has 1 arg')
 						}
 					}
-					return mal.Closure{args.nth(1), syms, env}
+					return mal.Closure{args.nth(1), syms, env, false}
 				}
 				'quote' {
 					mal.check_args(args, 1, 1) or { return error('quote: ${err}') }

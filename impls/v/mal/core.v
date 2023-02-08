@@ -118,4 +118,17 @@ pub fn add_core(mut env Env, eval_fn EvalFn) {
 	add_fn(mut env, 'vec', 1, 1, fn (args List) !Type {
 		return Vector{args.nth(0).list_or_vec()!}
 	})
+	add_fn(mut env, 'nth', 2, 2, fn (args List) !Type {
+		list := args.nth(0).list_or_vec()!
+		i := args.nth(1).int_()!
+		return if i < list.len { list[i] } else { error('out of range') }
+	})
+	add_fn(mut env, 'first', 1, 1, fn (args List) !Type {
+		list := List{args.nth(0).list_or_vec()!}
+		return *list.nth(0)
+	})
+	add_fn(mut env, 'rest', 1, 1, fn (args List) !Type {
+		list := List{args.nth(0).list_or_vec()!}
+		return list.rest()
+	})
 }

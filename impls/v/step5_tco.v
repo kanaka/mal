@@ -61,7 +61,7 @@ fn eval(ast_ mal.Type, mut env_ mal.Env) !mal.Type {
 							return error('fn*: & has 1 arg')
 						}
 					}
-					return mal.Closure{args.nth(1), syms, env}
+					return mal.Closure{args.nth(1), syms, env, false}
 				}
 				else { // regular list apply
 					res := eval_ast(ast, mut env)! as mal.List

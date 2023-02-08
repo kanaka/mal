@@ -6,15 +6,75 @@ fn rep_read(input string) !mal.Type {
 	return mal.read_str(input)!
 }
 
+fn quasiquote_list(list []mal.Type) !mal.Type {
+	mut res := []mal.Type{}
+	for elt in list.reverse() {
+		if elt is mal.List && elt.call_sym() or { '' } == 'splice-unquote' {
+			res = [mal.Symbol{'concat'}, elt.nth(1), mal.List{res}]
+		} else {
+			res = [mal.Symbol{'cons'}, quasiquote(elt)!, mal.List{res}]
+		}
+	}
+	return mal.List{res}
+}
+
+fn quasiquote(ast mal.Type) !mal.Type {
+	return match ast {
+		mal.List {
+			if ast.nth(0).eq(mal.Symbol{'unquote'}) {
+				*ast.nth(1)
+			} else {
+				quasiquote_list(ast.list)!
+			}
+		}
+		mal.Vector {
+			mal.List{[mal.Symbol{'vec'}, quasiquote_list(ast.vec)!]}
+		}
+		mal.Symbol, mal.Hashmap {
+			mal.List{[mal.Symbol{'quote'}, ast]}
+		}
+		else {
+			ast
+		}
+	}
+}
+
+fn is_macro_call(ast mal.Type, env mal.Env) ?mal.Closure {
+	if sym := ast.call_sym() {
+		if cls := env.find(sym) {
+			if cls is mal.Closure {
+				if cls.is_macro {
+					return cls
+				}
+			}
+		}
+	}
+	return none
+}
+
+fn macroexpand(ast_ mal.Type, env mal.Env) !mal.Type {
+	mut ast := unsafe { &ast_ }
+	for {
+		cls := is_macro_call(ast, env) or { break }
+		res := mal.apply(cls, eval, (ast as mal.List).rest())!
+		ast = unsafe { &res }
+	}
+	return *ast
+}
+
 fn eval(ast_ mal.Type, mut env_ mal.Env) !mal.Type {
 	mut ast := unsafe { &ast_ }
 	mut env := unsafe { &env_ }
 	for true {
 		if ast is mal.List {
-			node := ast as mal.List
-			first := node.first() or { return *ast } // return empty list
-			args := node.rest()
-			match first.sym() or { '' } {
+			expanded := macroexpand(ast, env)!
+			ast = unsafe { &expanded }
+			if ast !is mal.List {
+				return eval_ast(ast, mut env)!
+			}
+			ast0 := (ast as mal.List).first() or { return *ast } // return empty list
+			args := (ast as mal.List).rest()
+			match ast0.sym() or { '' } {
 				'def!' {
 					mal.check_args(args, 2, 2) or { return error('def!: ${err}') }
 					sym := args.nth(0).sym() or { return error('def!: ${err}') }
@@ -23,7 +83,7 @@ fn eval(ast_ mal.Type, mut env_ mal.Env) !mal.Type {
 				'let*' {
 					mal.check_args(args, 2, 2) or { return error('let*: ${err}') }
 					env = unsafe { mal.mk_env(env) } // TCO
-					tmp := args.nth(0).list_or_vec() or { return error('let*: ${err}') }
+					tmp := args.nth(0).sequence() or { return error('let*: ${err}') }
 					mut pairs := tmp[0..] // copy
 					if pairs.len % 2 == 1 {
 						return error('let*: extra binding param')
@@ -55,7 +115,7 @@ fn eval(ast_ mal.Type, mut env_ mal.Env) !mal.Type {
 				}
 				'fn*' {
 					mal.check_args(args, 2, 2) or { return error('fn*: ${err}') }
-					binds := args.nth(0).list_or_vec() or { return error('fn*: ${err}') }
+					binds := args.nth(0).sequence() or { return error('fn*: ${err}') }
 					syms := binds.map(it.sym() or { return error('fn*: ${err}') })
 					for i, sym in syms {
 						if sym == '&' && syms.len != i + 2 {
@@ -63,6 +123,31 @@ fn eval(ast_ mal.Type, mut env_ mal.Env) !mal.Type {
 						}
 					}
 					return mal.Closure{args.nth(1), syms, env, false}
+				}
+				'quote' {
+					mal.check_args(args, 1, 1) or { return error('quote: ${err}') }
+					return *args.nth(0)
+				}
+				'quasiquoteexpand' {
+					mal.check_args(args, 1, 1) or { return error('quasiquoteexpand: ${err}') }
+					return quasiquote(args.nth(0)) or { return error('quasiquoteexpand: ${err}') }
+				}
+				'quasiquote' {
+					mal.check_args(args, 1, 1) or { return error('quasiquote: ${err}') }
+					res := quasiquote(args.nth(0)) or { return error('quasiquote: ${err}') }
+					ast = unsafe { &res } // TCO
+				}
+				'defmacro!' {
+					mal.check_args(args, 2, 2) or { return error('defmacro!: ${err}') }
+					sym := args.nth(0).sym() or { return error('defmacro!: ${err}') }
+					cls := eval(args.nth(1), mut env)!.cls() or {
+						return error('defmacro!: ${err}')
+					}
+					return env.set(sym, cls.to_macro())
+				}
+				'macroexpand' {
+					mal.check_args(args, 1, 1) or { return error('macroexpand: ${err}') }
+					return macroexpand(args.nth(0), env)
 				}
 				else { // regular list apply
 					res := eval_ast(ast, mut env)! as mal.List
@@ -146,6 +231,8 @@ fn main() {
 	// mal defined env
 	rep('(def! not (fn* (a) (if a false true)))', mut env)
 	rep('(def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) "\nnil)")))))', mut
+		env)
+	rep('(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list \'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw "odd number of forms to cond")) (cons \'cond (rest (rest xs)))))))', mut
 		env)
 
 	if os.args.len > 1 {

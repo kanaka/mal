@@ -55,6 +55,18 @@ pub fn (t Type) falsey() bool {
 	return t in [False, Nil]
 }
 
+pub fn (t Type) call_sym() ?string {
+	if t is List {
+		if t.list.len > 0 {
+			list0 := t.list[0]
+			if list0 is Symbol {
+				return list0.sym
+			}
+		}
+	}
+	return none
+}
+
 pub fn (t Type) numeric() bool {
 	return t in [Int, Float]
 }
@@ -156,6 +168,10 @@ pub fn (t Type) sym() !string {
 
 pub fn (t Type) fn_() !FnDef {
 	return if t is Fn { t.f } else { error('function expected') }
+}
+
+pub fn (t Type) cls() !&Closure {
+	return if t is Closure { &t } else { error('closure expected') }
 }
 
 pub fn (t Type) int_() !i64 {
@@ -284,13 +300,24 @@ pub:
 
 pub struct Closure {
 pub:
-	ast    Type
-	params []string
-	env    &Env
+	ast      Type
+	params   []string
+	env      &Env
+	is_macro bool
 }
 
 fn (c Closure) str() string {
-	return 'mal.Closure{\n    <not displayed>\n}'
+	disp := if c.is_macro { 'macro' } else { 'closure' }
+	return 'mal.Closure{\n    <${disp}>\n}'
+}
+
+pub fn (c Closure) to_macro() Closure {
+	return Closure{
+		ast: c.ast
+		params: c.params
+		env: c.env
+		is_macro: true
+	}
 }
 
 // --

@@ -44,8 +44,15 @@ pub fn pr_str(ast Type, readable bool) string {
 				return '${k} ${pr_str(v, readable)}'
 			}).join(' ') + '}'
 		}
-		Fn, Closure {
+		Fn {
 			'#<fn>'
+		}
+		Closure {
+			if ast.is_macro {
+				'#<macro>'
+			} else {
+				'#<fn>'
+			}
 		}
 		Atom {
 			'(atom ${pr_str(ast.typ, readable)})'
