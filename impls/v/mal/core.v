@@ -2,6 +2,20 @@ module mal
 
 import os
 
+type EvalFn = fn (Type, mut Env) !Type
+
+pub fn apply(ast Type, eval_fn EvalFn, args List) !Type {
+	if ast is Fn {
+		return ast.f(args)!
+	} else if ast is Closure {
+		mut env := mk_env(ast.env)
+		env.bind(ast.params, args)
+		return eval_fn(ast.ast, mut env)!
+	} else {
+		return error('function expected')
+	}
+}
+
 pub fn check_args(args List, min int, max int) ! {
 	if args.len() < min {
 		return error('missing param')
@@ -16,8 +30,6 @@ pub fn add_fn(mut env Env, sym string, min int, max int, f FnDef) {
 		return f(args) or { error('${sym}: ${err}') }
 	}})
 }
-
-type EvalFn = fn (Type, mut Env) !Type
 
 pub fn add_core(mut env Env, eval_fn EvalFn) {
 	add_fn(mut env, '+', 2, 2, fn (args List) !Type {
@@ -39,10 +51,10 @@ pub fn add_core(mut env Env, eval_fn EvalFn) {
 		return make_bool(args.nth(0) is List)
 	})
 	add_fn(mut env, 'empty?', 1, 1, fn (args List) !Type {
-		return make_bool(args.nth(0).list_or_vec()!.len == 0)
+		return make_bool(args.nth(0).sequence()!.len == 0)
 	})
 	add_fn(mut env, 'count', 1, 1, fn (args List) !Type {
-		return Int{args.nth(0).list_or_vec()!.len}
+		return Int{args.nth(0).sequence()!.len}
 	})
 	add_fn(mut env, '=', 2, 2, fn (args List) !Type {
 		return make_bool(args.nth(0).eq(args.nth(1)))
@@ -98,37 +110,37 @@ pub fn add_core(mut env Env, eval_fn EvalFn) {
 		// list := arrays.concat[Type]([atom.typ], ...args.from(2).list)
 		mut list := [atom.typ]
 		list << args.from(2).list
-		return atom.set(args.nth(1).fn_apply(eval_fn, List{list})!)
+		return atom.set(apply(args.nth(1), eval_fn, List{list})!)
 	})
 	add_fn(mut env, 'cons', 2, 2, fn (args List) !Type {
 		// BUG: << doesn't like templated sumtype array args
 		// https://github.com/vlang/v/issues/17259
 		// return List{arrays.concat[Type]([*args.nth(0)], ...args.nth(1).list()!)}
 		mut list := [*args.nth(0)]
-		list << args.nth(1).list_or_vec()!
+		list << args.nth(1).sequence()!
 		return List{list}
 	})
 	add_fn(mut env, 'concat', 0, -1, fn (args List) !Type {
 		mut list := []Type{}
 		for arg in args.list {
-			list << arg.list_or_vec()!
+			list << arg.sequence()!
 		}
 		return List{list}
 	})
 	add_fn(mut env, 'vec', 1, 1, fn (args List) !Type {
-		return Vector{args.nth(0).list_or_vec()!}
+		return Vector{args.nth(0).sequence()!}
 	})
 	add_fn(mut env, 'nth', 2, 2, fn (args List) !Type {
-		list := args.nth(0).list_or_vec()!
+		list := args.nth(0).sequence()!
 		i := args.nth(1).int_()!
 		return if i < list.len { list[i] } else { error('out of range') }
 	})
 	add_fn(mut env, 'first', 1, 1, fn (args List) !Type {
-		list := List{args.nth(0).list_or_vec()!}
+		list := List{args.nth(0).sequence()!}
 		return *list.nth(0)
 	})
 	add_fn(mut env, 'rest', 1, 1, fn (args List) !Type {
-		list := List{args.nth(0).list_or_vec()!}
+		list := List{args.nth(0).sequence()!}
 		return list.rest()
 	})
 }

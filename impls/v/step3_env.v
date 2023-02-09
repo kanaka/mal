@@ -18,7 +18,7 @@ fn eval(ast mal.Type, mut env mal.Env) !mal.Type {
 			'let*' {
 				mal.check_args(args, 2, 2) or { return error('let*: ${err}') }
 				mut new_env := mal.mk_env(&env)
-				tmp := args.nth(0).list_or_vec() or { return error('let*: ${err}') }
+				tmp := args.nth(0).sequence() or { return error('let*: ${err}') }
 				mut pairs := tmp[0..] // copy
 				if pairs.len % 2 == 1 {
 					return error('let*: extra binding param')

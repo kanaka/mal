@@ -41,7 +41,7 @@ pub fn pr_str(ast Type, readable bool) string {
 		}
 		Hashmap {
 			'{' + maps.to_array(ast.hm, fn [readable] (k string, v Type) string {
-				return '${k} ${pr_str(v, readable)}'
+				return '${pr_str(unkey(k), readable)} ${pr_str(v, readable)}'
 			}).join(' ') + '}'
 		}
 		Fn {

@@ -1,5 +1,7 @@
 module mal
 
+import maps
+
 type Type = Atom
 	| Closure
 	| False
@@ -67,6 +69,22 @@ pub fn (t Type) call_sym() ?string {
 	return none
 }
 
+pub fn (t Type) key() !string {
+	return match t {
+		String { '"${t.val}' }
+		Keyword { ':${t.kw}' }
+		else { error('bad key') }
+	}
+}
+
+pub fn unkey(key string) Type {
+	return match key[0] {
+		`:` { Keyword{key[1..]} }
+		`"` { String{key[1..]} }
+		else { Nil{} }
+	}
+}
+
 pub fn (t Type) numeric() bool {
 	return t in [Int, Float]
 }
@@ -125,14 +143,23 @@ pub fn (t Type) eq(o Type) bool {
 			return a.sym == (b as Symbol).sym
 		}
 		Hashmap {
-			return a.hm == (b as Hashmap).hm
+			if a.hm.len != (b as Hashmap).hm.len {
+				return false
+			}
+			for k, v in a.hm {
+				bv := (b as Hashmap).hm[k] or { return false }
+				if !v.eq(bv) {
+					return false
+				}
+			}
+			return true
 		}
 		Fn {
 			return a.f == (b as Fn).f
 		}
 		Closure {
-			return
-				a.env == (b as Closure).env && a.ast == (b as Closure).ast && a.params == (b as Closure).params
+			bc := b as Closure
+			return a.env == bc.env && a.ast == bc.ast && a.params == bc.params
 		}
 		Atom {
 			panic('unresolved atom')
@@ -147,18 +174,6 @@ pub fn (t Type) lt(o Type) !bool {
 		Float { a.val < (b as Float).val }
 		String { a.val < (b as String).val }
 		else { error('invalid comparison') }
-	}
-}
-
-pub fn (t Type) fn_apply(eval_fn EvalFn, args List) !Type {
-	if t is Fn {
-		return t.f(args)!
-	} else if t is Closure {
-		mut env := mk_env(t.env)
-		env.bind(t.params, args)
-		return eval_fn(t.ast, mut env)!
-	} else {
-		return error('function expected')
 	}
 }
 
@@ -186,7 +201,7 @@ pub fn (t Type) list() ![]Type {
 	return if t is List { t.list } else { error('list expected') }
 }
 
-pub fn (t Type) list_or_vec() ![]Type {
+pub fn (t Type) sequence() ![]Type {
 	return match t {
 		List { t.list }
 		Vector { t.vec }

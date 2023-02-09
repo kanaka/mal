@@ -22,7 +22,7 @@ fn eval(ast_ mal.Type, mut env_ mal.Env) !mal.Type {
 				'let*' {
 					mal.check_args(args, 2, 2) or { return error('let*: ${err}') }
 					env = unsafe { mal.mk_env(env) } // TCO
-					tmp := args.nth(0).list_or_vec() or { return error('let*: ${err}') }
+					tmp := args.nth(0).sequence() or { return error('let*: ${err}') }
 					mut pairs := tmp[0..] // copy
 					if pairs.len % 2 == 1 {
 						return error('let*: extra binding param')
@@ -54,7 +54,7 @@ fn eval(ast_ mal.Type, mut env_ mal.Env) !mal.Type {
 				}
 				'fn*' {
 					mal.check_args(args, 2, 2) or { return error('fn*: ${err}') }
-					binds := args.nth(0).list_or_vec() or { return error('fn*: ${err}') }
+					binds := args.nth(0).sequence() or { return error('fn*: ${err}') }
 					syms := binds.map(it.sym() or { return error('fn*: ${err}') })
 					for i, sym in syms {
 						if sym == '&' && syms.len != i + 2 {

@@ -31,20 +31,14 @@ fn (mut r Reader) peek() ?Token {
 }
 
 fn hash_list(list []Type) !map[string]Type {
-	mut list_ := list[0..]
 	mut hash := map[string]Type{}
+	mut list_ := list[0..]
 	if list_.len % 2 == 1 {
 		return error('extra hashmap param')
 	}
 	for list_.len > 0 {
-		key, val := list_[0], list_[1]
-		if key is String {
-			hash['"${key.val}"'] = val
-		} else if key is Keyword {
-			hash[':${key.kw}'] = val
-		} else {
-			return error('bad hashmap key')
-		}
+		k, v := list_[0], list_[1]
+		hash[k.key() or { return error('bad hashmap key') }] = v
 		list_ = list_[2..]
 	}
 	return hash
