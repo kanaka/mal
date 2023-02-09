@@ -214,6 +214,14 @@ pub fn (t &Type) atom() !&Atom {
 	return if t is Atom { unsafe { &t } } else { error('atom expected') }
 }
 
+pub fn (t &Type) hashmap() !&Hashmap {
+	return match t {
+		Hashmap { unsafe { &t } }
+		Nil { &Hashmap{} }
+		else { error('hashmap expected') }
+	}
+}
+
 // --
 
 pub struct Int {
@@ -306,6 +314,53 @@ pub:
 	hm map[string]Type
 }
 
+pub fn (h &Hashmap) filter(list List) !Hashmap {
+	mut list_ := list.list.map(it.key()!)
+	return Hashmap{maps.filter(h.hm, fn [list_] (k string, _ Type) bool {
+		return k !in list_
+	})}
+}
+
+pub fn (h &Hashmap) get(key string) Type {
+	if val := h.hm[key] {
+		return val
+	} else {
+		return Nil{}
+	}
+}
+
+pub fn (h &Hashmap) has(key string) bool {
+	return if _ := h.hm[key] { true } else { false }
+}
+
+pub fn make_hashmap(srcs ...Type) !Hashmap {
+	mut hm := map[string]Type{}
+	for src in srcs {
+		match src {
+			List {
+				mut list := src.list[0..] // copy
+				if list.len % 2 == 1 {
+					return error('extra param')
+				}
+				for list.len > 0 {
+					k, v := list[0], list[1]
+					hm[k.key()!] = v
+					list = list[2..]
+				}
+			}
+			Hashmap {
+				for k, v in src.hm {
+					hm[k] = v
+				}
+			}
+			else {
+				panic('make_hashmap')
+			}
+		}
+	}
+	return Hashmap{hm}
+}
+
 // --
 
 pub struct Fn {
@@ -346,4 +401,16 @@ fn (a &Atom) set(t Type) Type {
 	mut mut_a := unsafe { a }
 	mut_a.typ = t
 	return t
+}
+
+// --
+
+struct Exception {
+	Error
+pub:
+	typ Type
+}
+
+fn (e Exception) msg() string {
+	return 'Exception'
 }

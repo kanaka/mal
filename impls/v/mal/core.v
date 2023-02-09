@@ -24,10 +24,14 @@ pub fn check_args(args List, min int, max int) ! {
 	}
 }
 
+fn wrap_err(sym string, err IError) IError {
+	return if err is Exception { IError(err) } else { error('${sym}: ${err}') }
+}
+
 pub fn add_fn(mut env Env, sym string, min int, max int, f FnDef) {
 	env.set(sym, Fn{fn [sym, min, max, f] (args List) !Type {
-		check_args(args, min, max) or { return error('${sym}: ${err}') }
-		return f(args) or { error('${sym}: ${err}') }
+		check_args(args, min, max) or { return wrap_err(sym, err) }
+		return f(args) or { return wrap_err(sym, err) }
 	}})
 }
 
@@ -142,5 +146,82 @@ pub fn add_core(mut env Env, eval_fn EvalFn) {
 	add_fn(mut env, 'rest', 1, 1, fn (args List) !Type {
 		list := List{args.nth(0).sequence()!}
 		return list.rest()
+	})
+	add_fn(mut env, 'throw', 1, 1, fn (args List) !Type {
+		return IError(Exception{Error{}, args.nth(0)})
+	})
+	add_fn(mut env, 'apply', 2, -1, fn [eval_fn] (args List) !Type {
+		// BUG: << doesn't like templated sumtype array args
+		// https://github.com/vlang/v/issues/17259
+		// list := arrays.concat(args.range(1, args.len() - 2).list, args.last()!.sequence()!)
+		mut list := args.list[1..args.len() - 1]
+		list << args.last()!.sequence()!
+		return apply(args.nth(0), eval_fn, List{list})
+	})
+	add_fn(mut env, 'map', 2, 2, fn [eval_fn] (args List) !Type {
+		mut list := []Type{}
+		for typ in args.nth(1).sequence()! {
+			list << apply(args.nth(0), eval_fn, List{[typ]})!
+		}
+		return List{list}
+	})
+	add_fn(mut env, 'nil?', 1, 1, fn (args List) !Type {
+		return make_bool(args.nth(0) is Nil)
+	})
+	add_fn(mut env, 'true?', 1, 1, fn (args List) !Type {
+		return make_bool(args.nth(0) is True)
+	})
+	add_fn(mut env, 'false?', 1, 1, fn (args List) !Type {
+		return make_bool(args.nth(0) is False)
+	})
+	add_fn(mut env, 'symbol?', 1, 1, fn (args List) !Type {
+		return make_bool(args.nth(0) is Symbol)
+	})
+	add_fn(mut env, 'symbol', 1, 1, fn (args List) !Type {
+		return Symbol{args.nth(0).str_()!}
+	})
+	add_fn(mut env, 'keyword', 1, 1, fn (args List) !Type {
+		arg0 := args.nth(0)
+		return match arg0 {
+			Keyword { arg0 }
+			String { Keyword{arg0.val} }
+			else { error('keyword/string expected') }
+		}
+	})
+	add_fn(mut env, 'keyword?', 1, 1, fn (args List) !Type {
+		return make_bool(args.nth(0) is Keyword)
+	})
+	add_fn(mut env, 'vector', -1, -1, fn (args List) !Type {
+		return Vector{args.list}
+	})
+	add_fn(mut env, 'vector?', 1, 1, fn (args List) !Type {
+		return make_bool(args.nth(0) is Vector)
+	})
+	add_fn(mut env, 'sequential?', 1, 1, fn (args List) !Type {
+		return make_bool(args.nth(0) in [Vector, List])
+	})
+	add_fn(mut env, 'hash-map', -1, -1, fn (args List) !Type {
+		return make_hashmap(args)!
+	})
+	add_fn(mut env, 'map?', 1, 1, fn (args List) !Type {
+		return make_bool(args.nth(0) is Hashmap)
+	})
+	add_fn(mut env, 'assoc', 2, -1, fn (args List) !Type {
+		return make_hashmap(Type(args.first()!.hashmap()!), args.rest())!
+	})
+	add_fn(mut env, 'dissoc', 2, -1, fn (args List) !Type {
+		return args.first()!.hashmap()!.filter(args.from(1))!
+	})
+	add_fn(mut env, 'get', 2, 2, fn (args List) !Type {
+		return args.nth(0).hashmap()!.get(args.nth(1).key()!)
+	})
+	add_fn(mut env, 'contains?', 2, 2, fn (args List) !Type {
+		return make_bool(args.nth(0).hashmap()!.has(args.nth(1).key()!))
+	})
+	add_fn(mut env, 'keys', 1, 1, fn (args List) !Type {
+		return List{args.nth(0).hashmap()!.hm.keys().map(unkey(it))}
+	})
+	add_fn(mut env, 'vals', 1, 1, fn (args List) !Type {
+		return List{args.nth(0).hashmap()!.hm.values()}
 	})
 }
