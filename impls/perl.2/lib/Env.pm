@@ -24,6 +24,13 @@ sub BUILD {
     delete $self->{exprs};
 }
 
+sub add {
+    my ($self, $ns) = @_;
+    my $stash = $self->stash;
+    %$stash = (%$stash, %$ns);
+    return $self;
+}
+
 sub set {
     my ($self, $key, $val) = @_;
     $self->{stash}{$key} = $val;

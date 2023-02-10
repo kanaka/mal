@@ -16,7 +16,10 @@ sub read_str {
 }
 
 my $lexer_re = qr/
-    [\s,]*
+    (?:
+        [\s,] |
+        ;.*
+    )*
     (
         ~@ |
         [\[\]{}()'`~^@] |
@@ -24,7 +27,6 @@ my $lexer_re = qr/
             \\. |
             [^\\"]
         )*"? |
-        ;.* |
         [^\s\[\]{}('"`,;)]*
     )
 /x;
@@ -34,7 +36,7 @@ sub tokenize {
     my $tokens = [];
     my $pos = pos($str) = 0;
     while ($pos < length($str) and $str =~ /\G$lexer_re/gc) {
-        push @$tokens, $1;
+        push @$tokens, $1 if length $1;
         $pos = pos($str);
     }
     die "Error at position $pos\n"
@@ -44,7 +46,7 @@ sub tokenize {
 
 sub read_form {
     my ($self) = @_;
-    $_ = $self->{tokens}[0];
+    local $_ = $self->{tokens}[0];
     /^\($/ ? $self->read_list('list', ')') :
     /^\[$/ ? $self->read_list('vector', ']') :
     /^\{$/ ? $self->read_hash('hash_map', '}') :
@@ -98,7 +100,7 @@ my $unescape = {
 };
 sub read_atom {
     my ($self) = @_;
-    my $atom = $_ = shift @{$self->{tokens}};
+    my $atom = local $_ = shift @{$self->{tokens}};
 
     if (/^"/) {
         s/^$string_re$/$1/ or
@@ -117,6 +119,9 @@ sub read_atom {
 sub read_quote {
     my ($self, $quote) = @_;
     shift @{$self->{tokens}};
+    if ($quote eq 'deref') {
+        return list([symbol($quote), $self->read_form]);
+    }
     bless [ $self->read_form ], $quote;
 }
 

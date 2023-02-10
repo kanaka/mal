@@ -3,21 +3,43 @@ package Core;
 use Mo;
 
 use Types;
+use Reader;
+use Eval;
 use Printer;
 
-sub binds { [qw(
-    = > >= < <=
-    + - * /
-    count empty? list list?
-    pr-str str prn println
-)] }
+sub ns {
+    {
+        '=' => \&equal_to,
+        '>' => \&greater_than,
+        '>=' => \&greater_equal,
+        '<' => \&less_than,
+        '<=' => \&less_equal,
+        '+' => \&add,
+        '-' => \&subtract,
+        '*' => \&multiply,
+        '/' => \&divide,
 
-sub exprs { [
-    \&equal_to, \&greater_than, \&greater_equal, \&less_than, \&less_equal,
-    \&add, \&subtract, \&multiply, \&divide,
-    \&count, \&is_empty, \&list_, \&is_list,
-    \&pr_str, \&str, \&prn, \&println,
-] }
+        'atom' => \&atom_,
+        'atom?' => \&atom_q,
+        'deref' => \&deref,
+        'reset!' => \&reset,
+        'swap!' => \&swap,
+
+        'list' => \&list_,
+        'list?' => \&list_q,
+
+        'count' => \&count,
+        'empty?' => \&empty_q,
+
+        'read-string' => \&read_string,
+        'slurp' => \&slurp,
+
+        'pr-str' => \&pr_str,
+        'str' => \&str,
+        'prn' => \&prn,
+        'println' => \&println,
+    }
+}
 
 sub equal_to {
     my ($x, $y) = @_;
@@ -45,10 +67,36 @@ sub subtract { $_[0] - $_[1] }
 sub multiply { $_[0] * $_[1] }
 sub divide { $_[0] / $_[1] }
 
-sub count { number(ref($_[0]) eq 'nil' ? 0 : scalar @{$_[0]}) }
-sub is_empty { boolean(@{$_[0]} == 0) }
+sub atom_ { atom(@_) }
+sub atom_q { boolean(ref($_[0]) eq 'atom') }
+sub deref { $_[0]->[0] }
+sub reset { $_[0]->[0] = $_[1] }
+sub swap {
+    my ($atom, $fn, @args) = @_;
+    # XXX All functions need to be function objects
+    # XXX Change function objects to be code refs
+    $atom->[0] = (ref($fn) eq 'CODE')
+      ? $fn->($atom->[0], @args)
+      : Eval::eval(
+            list([$fn, $atom->[0], @args]),
+            $fn->{env}
+        );
+}
+
 sub list_ { list([@_]) }
-sub is_list { boolean(ref($_[0]) eq 'list') }
+sub list_q { boolean(ref($_[0]) eq 'list') }
+sub count { number(ref($_[0]) eq 'nil' ? 0 : scalar @{$_[0]}) }
+sub empty_q { boolean(@{$_[0]} == 0) }
+
+sub read_string { Reader::read_str(@_) }
+sub slurp {
+    my ($file) = @_;
+    open my $slurp, '<', "$file" or
+        die "Couldn't open '$file' for input";
+    local $/;
+    string(<$slurp>);
+}
+
 sub pr_str { string(join ' ', map Printer::pr_str($_), @_) }
 sub str { string(join '', map Printer::pr_str($_, 1), @_) }
 sub prn { printf "%s\n", join ' ', map Printer::pr_str($_), @_; nil }

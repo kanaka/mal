@@ -1,14 +1,33 @@
 #!/usr/bin/env perl
 
-use v5.10;
+use v5.12;
 
 use FindBin qw($Bin);
 use lib "$Bin/lib";
+use Getopt::Long;
 
-use REPL;
+@ARGV = ('--shell') unless @ARGV;
 
-our @tests;
+my $shell;
+my $eval = '';
 
-REPL->repl unless @tests;
+GetOptions (
+    "shell" => \$shell,
+    "eval=s" => \$eval,
+) or die("Error in command line arguments\n");
 
-1;
+require REPL;
+
+if ($eval) {
+    if ($shell) {
+        REPL::rep(qq<(do $eval)>);
+    } else {
+        REPL::rep(qq<(prn (do $eval))>);
+    }
+} elsif (@ARGV) {
+    my $file = shift;
+    -f $file or die "No such file '$file'";
+    REPL::rep(qq<(load-file "$file")>);
+}
+
+REPL->repl if $shell;

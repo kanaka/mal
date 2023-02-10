@@ -13,8 +13,9 @@ my $escape = {
 
 sub pr_str {
     my ($o, $raw) = (@_, 0);
-    my $type = ref $o or ::XXX $o;
+    my $type = ref $o or return $o;
 
+    $type eq 'atom' ?  "(atom ${\pr_str($o->[0], $raw)})" :
     $type eq 'string' ?  $raw ? $$o :
         qq{"${$$o=~s/([\n\t\"\\])/$escape->{$1}/ge;$o}"} :
     $type eq 'symbol' ? $$o :

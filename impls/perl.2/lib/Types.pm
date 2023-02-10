@@ -1,10 +1,11 @@
-use v5.10;
+use v5.12;
 
 package Types;
 
 use Exporter 'import';
 
 our @EXPORT = qw<
+    atom
     boolean
     false
     function
@@ -17,6 +18,7 @@ our @EXPORT = qw<
     true
 >;
 
+sub atom     { 'atom'    ->new(@_) }
 sub boolean  { 'boolean' ->new(@_) }
 sub function { 'function'->new(@_) }
 sub keyword  { 'keyword' ->new(@_) }
@@ -40,15 +42,13 @@ package Map;
 
 sub new { die }
 
-
-#------------------------------------------------------------------------------
-package Atom;
+package Scalar;
 
 use overload '""' => sub { ${$_[0]} };
 
 sub new {
-    my ($class, $atom) = @_;
-    bless \$atom, $class;
+    my ($class, $scalar) = @_;
+    bless \$scalar, $class;
 }
 
 
@@ -76,7 +76,7 @@ sub new {
 }
 
 #------------------------------------------------------------------------------
-# Atom types:
+# Scalar types:
 #------------------------------------------------------------------------------
 package function;
 sub new {
@@ -89,20 +89,27 @@ sub new {
     }, $class;
 }
 
+
+package atom;
+sub new {
+    bless [$_[1] // die], $_[0];
+}
+
+
 package symbol;
-use base 'Atom';
+use base 'Scalar';
 
 
 package string;
-use base 'Atom';
+use base 'Scalar';
 
 
 package keyword;
-use base 'Atom';
+use base 'Scalar';
 
 
 package nil;
-use base 'Atom';
+use base 'Scalar';
 
 {
     package Types;
@@ -113,7 +120,7 @@ use base 'Atom';
 
 
 package boolean;
-use base 'Atom';
+use base 'Scalar';
 
 {
     package Types;
@@ -124,17 +131,17 @@ use base 'Atom';
 }
 
 sub new {
-    my ($class, $atom) = @_;
-    my $type = ref($atom);
-    (not $type) ? $atom ? Types::true : Types::false :
+    my ($class, $scalar) = @_;
+    my $type = ref($scalar);
+    (not $type) ? $scalar ? Types::true : Types::false :
     $type eq 'nil' ? Types::false :
-    $type eq 'boolean' ? $atom :
+    $type eq 'boolean' ? $scalar :
     Types::true;
 }
 
 
 package number;
-use base 'Atom';
+use base 'Scalar';
 
 sub boolean { boolean->new(@_) }
 
