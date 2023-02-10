@@ -68,13 +68,20 @@ fn eval(ast_ mal.Type, mut env_ mal.Env) !mal.Type {
 	for true {
 		if ast !is mal.List {
 			return eval_ast(ast, mut env)!
+		} else if (ast as mal.List).len() == 0 {
+			return *ast
 		}
+
+		// macro expansion
 		expanded := macroexpand(ast, env)!
 		ast = unsafe { &expanded }
 		if ast !is mal.List {
 			return eval_ast(ast, mut env)!
+		} else if (ast as mal.List).len() == 0 {
+			return *ast
 		}
-		ast0 := (ast as mal.List).first() or { return *ast } // return empty list
+
+		ast0 := (ast as mal.List).first()!
 		args := (ast as mal.List).rest()
 		match ast0.sym() or { '' } {
 			'def!' {
@@ -163,7 +170,7 @@ fn eval(ast_ mal.Type, mut env_ mal.Env) !mal.Type {
 						env = unsafe { mal.mk_env(env) }
 						env.set(sym, typ)
 					} else {
-						return mal.Nil{}
+						return err
 					}
 				}
 			}
