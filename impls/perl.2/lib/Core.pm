@@ -27,6 +27,8 @@ sub ns {
 
         'list' => \&list_,
         'list?' => \&list_q,
+        'cons' => \&cons,
+        'concat' => \&concat,
 
         'count' => \&count,
         'empty?' => \&empty_q,
@@ -38,6 +40,8 @@ sub ns {
         'str' => \&str,
         'prn' => \&prn,
         'println' => \&println,
+
+        'apply' => \&apply,
     }
 }
 
@@ -80,6 +84,8 @@ sub list_ { list([@_]) }
 sub list_q { boolean(ref($_[0]) eq 'list') }
 sub count { number(ref($_[0]) eq 'nil' ? 0 : scalar @{$_[0]}) }
 sub empty_q { boolean(@{$_[0]} == 0) }
+sub cons { list([$_[0], @{$_[1]}]) }
+sub concat { list([map @$_, @_]) }
 
 sub read_string { Reader::read_str(@_) }
 sub slurp {

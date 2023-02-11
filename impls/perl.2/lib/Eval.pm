@@ -18,6 +18,8 @@ sub eval {
             my (undef, @do) = @$ast;
             $ast = pop @do;
             eval_ast(list(\@do), $env);
+        } elsif ('fn*' eq $sym) {
+            return function($a1, $a2, $env);
         } elsif ('if' eq $sym) {
             $ast = ${boolean(Eval::eval($a1, $env))} ? $a2 :
                 defined $a3 ? $a3 : nil;
@@ -27,8 +29,12 @@ sub eval {
                 $env->set(${$a1->[$i]}, Eval::eval($a1->[$i+1], $env));
             }
             $ast = $a2;
-        } elsif ('fn*' eq $sym) {
-            return function($a1, $a2, $env);
+        } elsif ('quote' eq $sym) {
+            return $a1;
+        } elsif ('quasiquote' eq $sym) {
+            $ast = quasiquote($a1);
+        } elsif ('quasiquoteexpand' eq $sym) {
+            return quasiquote($a1);
         } else {
             my ($f, @args) = @{eval_ast($ast, $env)};
             return $f->(@args) if ref($f) eq 'CODE';
@@ -52,6 +58,33 @@ sub eval_ast {
     else {
         return $ast;
     }
+}
+
+sub quasiquote {
+    my ($ast) = @_;
+    return list([symbol('quote'), $ast])
+        if $ast->isa('Map') or $ast->isa('symbol');
+    return $ast unless $ast->isa('List');
+    my ($a0, $a1) = @$ast;
+    return $a1 if $a0 and $a0->isa('symbol') and "$a0" eq 'unquote';
+    return quasiquote_loop($ast);
+}
+
+sub quasiquote_loop {
+    my ($ast) = @_;
+    my $list = list([]);
+    for my $elt (reverse @$ast) {
+        if ($elt->isa('List') and
+            $elt->[0] and
+            $elt->[0]->isa('symbol') and
+            "$elt->[0]" eq 'splice-unquote'
+        ) {
+            $list = list([symbol('concat'), $elt->[1], $list]);
+        } else {
+            $list = list([symbol('cons'), quasiquote($elt), $list]);
+        }
+    }
+    return $list;
 }
 
 1;
