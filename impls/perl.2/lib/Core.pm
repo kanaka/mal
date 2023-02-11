@@ -73,14 +73,7 @@ sub deref { $_[0]->[0] }
 sub reset { $_[0]->[0] = $_[1] }
 sub swap {
     my ($atom, $fn, @args) = @_;
-    # XXX All functions need to be function objects
-    # XXX Change function objects to be code refs
-    $atom->[0] = (ref($fn) eq 'CODE')
-      ? $fn->($atom->[0], @args)
-      : Eval::eval(
-            list([$fn, $atom->[0], @args]),
-            $fn->{env}
-        );
+    $atom->[0] = apply($fn, deref($atom), @args);
 }
 
 sub list_ { list([@_]) }
@@ -101,5 +94,10 @@ sub pr_str { string(join ' ', map Printer::pr_str($_), @_) }
 sub str { string(join '', map Printer::pr_str($_, 1), @_) }
 sub prn { printf "%s\n", join ' ', map Printer::pr_str($_), @_; nil }
 sub println { printf "%s\n", join ' ', map Printer::pr_str($_, 1), @_; nil }
+
+sub apply {
+    my ($fn, @args) = @_;
+    ref($fn) eq 'CODE' ? $fn->(@args) : Eval::eval($fn->(@args));
+}
 
 1;

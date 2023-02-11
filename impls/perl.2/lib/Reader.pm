@@ -56,7 +56,7 @@ sub read_form {
     /^~\@$/ ? $self->read_quote('splice_unquote') :
     /^\@$/ ? $self->read_quote('deref') :
     /^\^$/ ? $self->with_meta :
-    $self->read_atom;
+    $self->read_scalar;
 }
 
 sub read_list {
@@ -84,11 +84,20 @@ sub read_hash {
             shift @$tokens;
             return $hash;
         }
-        my $key = $self->read_form;
+        my $key = $self->read_key;
         my $val = $self->read_form;
-        $hash->{$$key} = $val;
+        $hash->{$key} = $val;
     }
     die "Reached end of input in 'read_hash'";
+}
+
+sub read_key {
+    my ($self) = @_;
+    my $form = $self->read_form;
+    my $type = ref($form);
+    die "Type '$type' not supported as a hash-map key"
+        if not($form->isa('Scalar')) or $type eq 'symbol';
+    $form->isa('string') ? qq{"$$form} : $$form;
 }
 
 my $string_re = qr/"((?:\\.|[^\\"])*)"/;
@@ -98,9 +107,9 @@ my $unescape = {
     '"' => '"',
     '\\' => "\\",
 };
-sub read_atom {
+sub read_scalar {
     my ($self) = @_;
-    my $atom = local $_ = shift @{$self->{tokens}};
+    my $scalar = local $_ = shift @{$self->{tokens}};
 
     if (/^"/) {
         s/^$string_re$/$1/ or

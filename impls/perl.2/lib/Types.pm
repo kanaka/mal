@@ -81,11 +81,13 @@ sub new {
 package function;
 sub new {
     my ($class, $sig, $ast, $env) = @_;
-    my $self = bless {
-        ast => $ast,
-        sig => $sig,
-        env => $env,
-        fun => sub { Eval::eval($ast, $env) },
+    bless sub {
+        $ast,
+        Env->new(
+            outer => $env,
+            binds => $sig,
+            exprs => \@_,
+        );
     }, $class;
 }
 
@@ -146,6 +148,7 @@ use base 'Scalar';
 sub boolean { boolean->new(@_) }
 
 use overload
+    '""' => sub { ${$_[0]} },
     '+' => \&add,
     '-' => \&subtract,
     '*' => \&multiply,
@@ -155,7 +158,6 @@ use overload
     '>=' => \&greater_equal,
     '<' => \&less_than,
     '<=' => \&less_equal,
-    '""' => \&expand,
     ;
 
 sub greater_than {
@@ -217,7 +219,5 @@ sub divide {
     $y = ref($y) ? $$y : $y;
     $class->new(int($x / $y));
 }
-
-sub expand { ${$_[0]} }
 
 1;

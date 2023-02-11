@@ -31,16 +31,8 @@ sub eval {
             return function($a1, $a2, $env);
         } else {
             my ($f, @args) = @{eval_ast($ast, $env)};
-            if (ref($f) eq 'function') {
-                $ast = $f->{ast};
-                $env = Env->new(
-                    outer => $f->{env},
-                    binds => $f->{sig},
-                    exprs => \@args,
-                );
-            } else {
-                return $f->(@args);
-            }
+            return $f->(@args) if ref($f) eq 'CODE';
+            ($ast, $env) = $f->(@args);
         }
     }
 }

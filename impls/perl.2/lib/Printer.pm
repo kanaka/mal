@@ -1,6 +1,6 @@
 package Printer;
 
-use Mo;
+use Mo qw< xxx >;
 
 use Types;
 
@@ -13,7 +13,7 @@ my $escape = {
 
 sub pr_str {
     my ($o, $raw) = (@_, 0);
-    my $type = ref $o or return $o;
+    my $type = ref $o or XXX $o;
 
     $type eq 'atom' ?  "(atom ${\pr_str($o->[0], $raw)})" :
     $type eq 'string' ?  $raw ? $$o :
@@ -31,7 +31,11 @@ sub pr_str {
     $type eq 'hash_map' ?
         "{${\ join(' ', map {
             my ($key, $val) = ($_, $o->{$_});
-            $key = $key =~ /^:/ ? keyword($key) : string($key);
+            if ($key =~ /^:/) {
+                $key = keyword($key);
+            } elsif ($key =~ s/^\"//) {
+                $key = string($key);
+            }
             (pr_str($key, $raw), pr_str($val, $raw))
         } keys %$o)}}" :
     $type =~ /^(?:(?:quasi|(?:splice_)?un)?quote|deref)$/ ?
