@@ -61,7 +61,7 @@ fn eval(ast_ mal.Type, mut env_ mal.Env) !mal.Type {
 							return error('fn*: & has 1 arg')
 						}
 					}
-					return mal.Closure{args.nth(1), syms, env, false}
+					return mal.new_closure(args.nth(1), syms, env)
 				}
 				else { // regular list apply
 					res := eval_ast(ast, mut env)! as mal.List
@@ -90,17 +90,17 @@ fn eval_ast(ast mal.Type, mut env mal.Env) !mal.Type {
 			return env.get(ast.sym)!
 		}
 		mal.List {
-			return mal.List{ast.list.map(eval(it, mut env)!)}
+			return mal.new_list(ast.list.map(eval(it, mut env)!))
 		}
 		mal.Vector {
-			return mal.Vector{ast.vec.map(eval(it, mut env)!)}
+			return mal.new_vector(ast.vec.map(eval(it, mut env)!))
 		}
 		mal.Hashmap {
 			mut hm := map[string]mal.Type{}
 			for key in ast.hm.keys() {
 				hm[key] = eval(ast.hm[key] or { panic('') }, mut env)!
 			}
-			return mal.Hashmap{hm}
+			return mal.new_hashmap(hm)
 		}
 		else {
 			return ast

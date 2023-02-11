@@ -47,17 +47,17 @@ fn eval_ast(ast mal.Type, mut env mal.Env) !mal.Type {
 			return env.get(ast.sym)!
 		}
 		mal.List {
-			return mal.List{ast.list.map(eval(it, mut env)!)}
+			return mal.new_list(ast.list.map(eval(it, mut env)!))
 		}
 		mal.Vector {
-			return mal.Vector{ast.vec.map(eval(it, mut env)!)}
+			return mal.new_vector(ast.vec.map(eval(it, mut env)!))
 		}
 		mal.Hashmap {
 			mut hm := map[string]mal.Type{}
 			for key in ast.hm.keys() {
 				hm[key] = eval(ast.hm[key] or { panic('') }, mut env)!
 			}
-			return mal.Hashmap{hm}
+			return mal.new_hashmap(hm)
 		}
 		else {
 			return ast
@@ -95,22 +95,22 @@ fn get_args(op string, args mal.List) !(i64, i64) {
 
 fn main() {
 	mut env := mal.Env{}
-	env.set('+', mal.Type(mal.Fn{fn (args mal.List) !mal.Type {
+	env.set('+', mal.Type(mal.new_fn(fn (args mal.List) !mal.Type {
 		a, b := get_args('+', args)!
 		return mal.Int{a + b}
-	}}))
-	env.set('-', mal.Type(mal.Fn{fn (args mal.List) !mal.Type {
+	})))
+	env.set('-', mal.Type(mal.new_fn(fn (args mal.List) !mal.Type {
 		a, b := get_args('-', args)!
 		return mal.Int{a - b}
-	}}))
-	env.set('*', mal.Type(mal.Fn{fn (args mal.List) !mal.Type {
+	})))
+	env.set('*', mal.Type(mal.new_fn(fn (args mal.List) !mal.Type {
 		a, b := get_args('*', args)!
 		return mal.Int{a * b}
-	}}))
-	env.set('/', mal.Type(mal.Fn{fn (args mal.List) !mal.Type {
+	})))
+	env.set('/', mal.Type(mal.new_fn(fn (args mal.List) !mal.Type {
 		a, b := get_args('/', args)!
 		return mal.Int{a / b}
-	}}))
+	})))
 
 	for {
 		line := read_line('user> ') or {

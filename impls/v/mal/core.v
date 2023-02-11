@@ -1,8 +1,9 @@
 module mal
 
 import os
+import readline { read_line }
 
-type EvalFn = fn (Type, mut Env) !Type
+type EvalFn = fn (_ Type, mut _ Env) !Type
 
 pub fn apply(ast Type, eval_fn EvalFn, args List) !Type {
 	if ast is Fn {
@@ -29,10 +30,10 @@ fn wrap_err(sym string, err IError) IError {
 }
 
 pub fn add_fn(mut env Env, sym string, min int, max int, f FnDef) {
-	env.set(sym, Fn{fn [sym, min, max, f] (args List) !Type {
+	env.set(sym, new_fn(fn [sym, min, max, f] (args List) !Type {
 		check_args(args, min, max) or { return wrap_err(sym, err) }
 		return f(args) or { return wrap_err(sym, err) }
-	}})
+	}))
 }
 
 pub fn add_core(mut env Env, eval_fn EvalFn) {
@@ -114,25 +115,25 @@ pub fn add_core(mut env Env, eval_fn EvalFn) {
 		// list := arrays.concat[Type]([atom.typ], ...args.from(2).list)
 		mut list := [atom.typ]
 		list << args.from(2).list
-		return atom.set(apply(args.nth(1), eval_fn, List{list})!)
+		return atom.set(apply(args.nth(1), eval_fn, new_list(list))!)
 	})
 	add_fn(mut env, 'cons', 2, 2, fn (args List) !Type {
 		// BUG: << doesn't like templated sumtype array args
 		// https://github.com/vlang/v/issues/17259
-		// return List{arrays.concat[Type]([*args.nth(0)], ...args.nth(1).list()!)}
+		// return new_list(arrays.concat[Type]([*args.nth(0)], ...args.nth(1).list()!))
 		mut list := [*args.nth(0)]
 		list << args.nth(1).sequence()!
-		return List{list}
+		return new_list(list)
 	})
 	add_fn(mut env, 'concat', 0, -1, fn (args List) !Type {
 		mut list := []Type{}
 		for arg in args.list {
 			list << arg.sequence()!
 		}
-		return List{list}
+		return new_list(list)
 	})
 	add_fn(mut env, 'vec', 1, 1, fn (args List) !Type {
-		return Vector{args.nth(0).sequence()!}
+		return new_vector(args.nth(0).sequence()!)
 	})
 	add_fn(mut env, 'nth', 2, 2, fn (args List) !Type {
 		list := args.nth(0).sequence()!
@@ -140,11 +141,11 @@ pub fn add_core(mut env Env, eval_fn EvalFn) {
 		return if i < list.len { list[i] } else { error('out of range') }
 	})
 	add_fn(mut env, 'first', 1, 1, fn (args List) !Type {
-		list := List{args.nth(0).sequence()!}
+		list := new_list(args.nth(0).sequence()!)
 		return *list.nth(0)
 	})
 	add_fn(mut env, 'rest', 1, 1, fn (args List) !Type {
-		list := List{args.nth(0).sequence()!}
+		list := new_list(args.nth(0).sequence()!)
 		return list.rest()
 	})
 	add_fn(mut env, 'throw', 1, 1, fn (args List) !Type {
@@ -156,14 +157,14 @@ pub fn add_core(mut env Env, eval_fn EvalFn) {
 		// list := arrays.concat(args.range(1, args.len() - 2).list, args.last()!.sequence()!)
 		mut list := args.list[1..args.len() - 1]
 		list << args.last()!.sequence()!
-		return apply(args.nth(0), eval_fn, List{list})
+		return apply(args.nth(0), eval_fn, new_list(list))
 	})
 	add_fn(mut env, 'map', 2, 2, fn [eval_fn] (args List) !Type {
 		mut list := []Type{}
 		for typ in args.nth(1).sequence()! {
-			list << apply(args.nth(0), eval_fn, List{[typ]})!
+			list << apply(args.nth(0), eval_fn, new_list([typ]))!
 		}
-		return List{list}
+		return new_list(list)
 	})
 	add_fn(mut env, 'nil?', 1, 1, fn (args List) !Type {
 		return make_bool(args.nth(0) is Nil)
@@ -192,7 +193,7 @@ pub fn add_core(mut env Env, eval_fn EvalFn) {
 		return make_bool(args.nth(0) is Keyword)
 	})
 	add_fn(mut env, 'vector', -1, -1, fn (args List) !Type {
-		return Vector{args.list}
+		return new_vector(args.list)
 	})
 	add_fn(mut env, 'vector?', 1, 1, fn (args List) !Type {
 		return make_bool(args.nth(0) is Vector)
@@ -201,13 +202,13 @@ pub fn add_core(mut env Env, eval_fn EvalFn) {
 		return make_bool(args.nth(0) in [Vector, List])
 	})
 	add_fn(mut env, 'hash-map', -1, -1, fn (args List) !Type {
-		return make_hashmap(args)!
+		return new_hashmap({}).load(args)!
 	})
 	add_fn(mut env, 'map?', 1, 1, fn (args List) !Type {
 		return make_bool(args.nth(0) is Hashmap)
 	})
 	add_fn(mut env, 'assoc', 2, -1, fn (args List) !Type {
-		return make_hashmap(Type(args.first()!.hashmap()!), args.rest())!
+		return new_hashmap(args.first()!.hashmap()!.hm).load(args.rest())!
 	})
 	add_fn(mut env, 'dissoc', 2, -1, fn (args List) !Type {
 		return args.first()!.hashmap()!.filter(args.from(1))!
@@ -219,9 +220,41 @@ pub fn add_core(mut env Env, eval_fn EvalFn) {
 		return make_bool(args.nth(0).hashmap()!.has(args.nth(1).key()!))
 	})
 	add_fn(mut env, 'keys', 1, 1, fn (args List) !Type {
-		return List{args.nth(0).hashmap()!.hm.keys().map(unkey(it))}
+		return new_list(args.nth(0).hashmap()!.hm.keys().map(unkey(it)))
 	})
 	add_fn(mut env, 'vals', 1, 1, fn (args List) !Type {
-		return List{args.nth(0).hashmap()!.hm.values()}
+		return new_list(args.nth(0).hashmap()!.hm.values())
+	})
+	add_fn(mut env, 'readline', 1, 1, fn (args List) !Type {
+		if line := read_line(args.nth(0).str_()!) {
+			return String{line.replace('\n', '')}
+		} else {
+			println('') // newline
+			return Nil{}
+		}
+	})
+	add_fn(mut env, 'time-ms', -1, -1, fn (args List) !Type {
+		return error('not implemented')
+	})
+	add_fn(mut env, 'meta', 1, 1, fn (args List) !Type {
+		return args.nth(0).get_meta()
+	})
+	add_fn(mut env, 'with-meta', -1, -1, fn (args List) !Type {
+		return error('not implemented')
+	})
+	add_fn(mut env, 'fn?', -1, -1, fn (args List) !Type {
+		return error('not implemented')
+	})
+	add_fn(mut env, 'string?', -1, -1, fn (args List) !Type {
+		return error('not implemented')
+	})
+	add_fn(mut env, 'number?', -1, -1, fn (args List) !Type {
+		return error('not implemented')
+	})
+	add_fn(mut env, 'seq', -1, -1, fn (args List) !Type {
+		return error('not implemented')
+	})
+	add_fn(mut env, 'conj', -1, -1, fn (args List) !Type {
+		return error('not implemented')
 	})
 }

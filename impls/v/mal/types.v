@@ -36,10 +36,10 @@ fn implicit_conv(a_ Type, b_ Type) !(Type, Type) {
 		return a, Float{b.val}
 	}
 	if a is Vector && b is List {
-		return List{a.vec}, b
+		return new_list(a.vec), b
 	}
 	if a is List && b is Vector {
-		return a, List{b.vec}
+		return a, new_list(b.vec)
 	}
 	// fail
 	return error('type mismatch')
@@ -177,6 +177,28 @@ pub fn (t Type) lt(o Type) !bool {
 	}
 }
 
+pub fn (t Type) get_meta() !Type {
+	return match t {
+		Fn, Closure, List, Vector, Hashmap {
+			t.meta
+		}
+		else {
+			error('metadata not supported here')
+		}
+	}
+}
+
+pub fn (t Type) set_meta(meta Type) !Type {
+	return match t {
+		Fn, Closure, List, Vector, Hashmap {
+			t.with_meta(meta)
+		}
+		else {
+			error('metadata not supported here')
+		}
+	}
+}
+
 pub fn (t Type) sym() !string {
 	return if t is Symbol { t.sym } else { error('symbol expected') }
 }
@@ -214,10 +236,10 @@ pub fn (t &Type) atom() !&Atom {
 	return if t is Atom { unsafe { &t } } else { error('atom expected') }
 }
 
-pub fn (t &Type) hashmap() !&Hashmap {
+pub fn (t &Type) hashmap() !Hashmap {
 	return match t {
-		Hashmap { unsafe { &t } }
-		Nil { &Hashmap{} }
+		Hashmap { unsafe { t } }
+		Nil { new_hashmap({}) }
 		else { error('hashmap expected') }
 	}
 }
@@ -274,6 +296,20 @@ pub:
 pub struct List {
 pub:
 	list []Type
+	meta Type = Nil{}
+}
+
+pub fn new_list(list []Type) List {
+	return List{
+		list: list
+	}
+}
+
+pub fn (l &List) with_meta(meta Type) Type {
+	return List{
+		list: l.list
+		meta: meta
+	}
 }
 
 pub fn (l &List) first() !&Type {
@@ -289,7 +325,7 @@ pub fn (l &List) rest() List {
 }
 
 pub fn (l &List) from(n int) List {
-	return if l.list.len > n { List{l.list[n..]} } else { List{} }
+	return if l.list.len > n { new_list(l.list[n..]) } else { List{} }
 }
 
 pub fn (l List) len() int {
@@ -304,21 +340,74 @@ pub fn (l &List) nth(n int) &Type {
 
 pub struct Vector {
 pub:
-	vec []Type
+	vec  []Type
+	meta Type = Nil{}
+}
+
+pub fn new_vector(vec []Type) Vector {
+	return Vector{
+		vec: vec
+	}
+}
+
+pub fn (v &Vector) with_meta(meta Type) Type {
+	return Vector{
+		vec: v.vec
+		meta: meta
+	}
 }
 
 // --
 
 pub struct Hashmap {
 pub:
-	hm map[string]Type
+	hm   map[string]Type
+	meta Type = Nil{}
+}
+
+pub fn new_hashmap(from map[string]Type) Hashmap {
+	return Hashmap{
+		hm: from
+	}
+}
+
+fn (m map[string]Type) copy() map[string]Type {
+	mut hm := map[string]Type{}
+	for k, v in m {
+		hm[k] = v
+	}
+	return hm
+}
+
+pub fn (h &Hashmap) load(list List) !Hashmap {
+	mut hm := h.hm.copy()
+	mut list_ := list.list[0..] // copy
+	if list_.len % 2 == 1 {
+		return error('extra param')
+	}
+	for list_.len > 0 {
+		k, v := list_[0], list_[1]
+		hm[k.key()!] = v
+		list_ = list_[2..]
+	}
+	return Hashmap{
+		hm: hm
+		meta: h.meta
+	}
+}
+
+pub fn (h &Hashmap) with_meta(meta Type) Type {
+	return Hashmap{
+		hm: h.hm
+		meta: meta
+	}
 }
 
 pub fn (h &Hashmap) filter(list List) !Hashmap {
 	mut list_ := list.list.map(it.key()!)
-	return Hashmap{maps.filter(h.hm, fn [list_] (k string, _ Type) bool {
+	return new_hashmap(maps.filter(h.hm, fn [list_] (k string, _ Type) bool {
 		return k !in list_
-	})}
+	}))
 }
 
 pub fn (h &Hashmap) get(key string) Type {
@@ -333,40 +422,28 @@ pub fn (h &Hashmap) has(key string) bool {
 	return if _ := h.hm[key] { true } else { false }
 }
 
-pub fn make_hashmap(srcs ...Type) !Hashmap {
-	mut hm := map[string]Type{}
-	for src in srcs {
-		match src {
-			List {
-				mut list := src.list[0..] // copy
-				if list.len % 2 == 1 {
-					return error('extra param')
-				}
-				for list.len > 0 {
-					k, v := list[0], list[1]
-					hm[k.key()!] = v
-					list = list[2..]
-				}
-			}
-			Hashmap {
-				for k, v in src.hm {
-					hm[k] = v
-				}
-			}
-			else {
-				panic('make_hashmap')
-			}
-		}
-	}
-	return Hashmap{hm}
-}
-
 // --
 
 pub struct Fn {
 pub:
-	f FnDef
+	f    FnDef
+	meta Type = Nil{}
 }
+
+pub fn new_fn(f FnDef) Fn {
+	return Fn{
+		f: f
+	}
+}
+
+pub fn (f &Fn) with_meta(meta Type) Type {
+	return Fn{
+		f: f.f
+		meta: meta
+	}
+}
+
+// --
 
 pub struct Closure {
 pub:
@@ -374,6 +451,22 @@ pub:
 	params   []string
 	env      &Env
 	is_macro bool
+	meta     Type = Nil{}
+}
+
+pub fn new_closure(ast Type, params []string, env &Env) Closure {
+	return Closure{
+		ast: ast
+		params: params
+		env: env
+	}
+}
+
+pub fn (c &Closure) with_meta(meta Type) Type {
+	return Closure{
+		...c
+		meta: meta
+	}
 }
 
 fn (c Closure) str() string {
@@ -383,9 +476,7 @@ fn (c Closure) str() string {
 
 pub fn (c Closure) to_macro() Closure {
 	return Closure{
-		ast: c.ast
-		params: c.params
-		env: c.env
+		...c
 		is_macro: true
 	}
 }

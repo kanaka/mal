@@ -51,15 +51,15 @@ fn (mut r Reader) macro_wrap(name string, num_forms int) !List {
 		list << r.read_form() or { return error('${name}: missing param') }
 	}
 	list << Symbol{name}
-	return List{list.reverse()}
+	return new_list(list.reverse())
 }
 
 fn (mut r Reader) read_form() !Type {
 	tok := r.peek() or { return error('no form') }
 	return match true {
-		tok == '(' { List{r.read_list(')')!} }
-		tok == '[' { Vector{r.read_list(']')!} }
-		tok == '{' { Hashmap{hash_list(r.read_list('}')!)!} }
+		tok == '(' { new_list(r.read_list(')')!) }
+		tok == '[' { new_vector(r.read_list(']')!) }
+		tok == '{' { new_hashmap(hash_list(r.read_list('}')!)!) }
 		tok == "'" { r.macro_wrap('quote', 1)! }
 		tok == '`' { r.macro_wrap('quasiquote', 1)! }
 		tok == '~' { r.macro_wrap('unquote', 1)! }
