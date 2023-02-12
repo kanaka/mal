@@ -1,6 +1,6 @@
 package REPL;
 
-use Mo;
+use Mo qw< xxx >;
 
 use ReadLine;
 use Reader;

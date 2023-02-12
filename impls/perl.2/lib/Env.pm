@@ -1,6 +1,6 @@
 package Env;
 
-use Mo qw< build default >;
+use Mo qw< build default xxx >;
 
 use Types;
 

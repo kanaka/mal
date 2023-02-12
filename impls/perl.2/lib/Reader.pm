@@ -1,6 +1,6 @@
 package Reader;
 
-use Mo;
+use Mo qw< xxx >;
 
 use Types;
 
@@ -15,33 +15,22 @@ sub read_str {
     $reader->read_form;
 }
 
-my $lexer_re = qr/
-    (?:
-        [\s,] |
-        ;.*
-    )*
-    (
-        ~@ |
-        [\[\]{}()'`~^@] |
-        "(?:
-            \\. |
-            [^\\"]
-        )*"? |
-        [^\s\[\]{}('"`,;)]*
-    )
-/x;
-
 sub tokenize {
-    my ($str) = @_;
-    my $tokens = [];
-    my $pos = pos($str) = 0;
-    while ($pos < length($str) and $str =~ /\G$lexer_re/gc) {
-        push @$tokens, $1 if length $1;
-        $pos = pos($str);
-    }
-    die "Error at position $pos\n"
-        if $pos < length($str);
-    return $tokens;
+    [ $_[0] =~ /
+        (?:
+            [\s,] |
+            ;.*
+        )*
+        (
+            ~@ |
+            [\[\]{}()'`~^@] |
+            "(?:
+                \\. |
+                [^\\"]
+            )*"? |
+            [^\s\[\]{}('"`,;)]*
+        )
+    /xog ];
 }
 
 sub read_form {
@@ -53,7 +42,7 @@ sub read_form {
     /^'$/ ? $self->read_quote('quote') :
     /^`$/ ? $self->read_quote('quasiquote') :
     /^~$/ ? $self->read_quote('unquote') :
-    /^~\@$/ ? $self->read_quote('splice_unquote') :
+    /^~\@$/ ? $self->read_quote('splice-unquote') :
     /^\@$/ ? $self->read_quote('deref') :
     /^\^$/ ? $self->with_meta :
     $self->read_scalar;
@@ -128,10 +117,7 @@ sub read_scalar {
 sub read_quote {
     my ($self, $quote) = @_;
     shift @{$self->{tokens}};
-    if ($quote eq 'deref') {
-        return list([symbol($quote), $self->read_form]);
-    }
-    bless [ $self->read_form ], $quote;
+    return list([symbol($quote), $self->read_form]);
 }
 
 sub with_meta {

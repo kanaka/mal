@@ -16,6 +16,7 @@ our @EXPORT = qw<
     string
     symbol
     true
+    vector
 >;
 
 sub atom     { 'atom'    ->new(@_) }
@@ -26,6 +27,7 @@ sub list     { 'list'    ->new(@_) }
 sub number   { 'number'  ->new(@_) }
 sub string   { 'string'  ->new(@_) }
 sub symbol   { 'symbol'  ->new(@_) }
+sub vector   { 'vector'  ->new(@_) }
 
 
 #------------------------------------------------------------------------------

@@ -1,6 +1,6 @@
 package Eval;
 
-use Mo;
+use Mo qw< xxx >;
 
 use Types;
 
@@ -38,6 +38,7 @@ sub eval {
         } else {
             my ($f, @args) = @{eval_ast($ast, $env)};
             return $f->(@args) if ref($f) eq 'CODE';
+            XXX [$f, @args] unless ref($f) eq 'function';
             ($ast, $env) = $f->(@args);
         }
     }
@@ -62,9 +63,11 @@ sub eval_ast {
 
 sub quasiquote {
     my ($ast) = @_;
+    return list([symbol('vec'), quasiquote_loop($ast)])
+        if $ast->isa('vector');
     return list([symbol('quote'), $ast])
         if $ast->isa('Map') or $ast->isa('symbol');
-    return $ast unless $ast->isa('List');
+    return $ast unless $ast->isa('list');
     my ($a0, $a1) = @$ast;
     return $a1 if $a0 and $a0->isa('symbol') and "$a0" eq 'unquote';
     return quasiquote_loop($ast);

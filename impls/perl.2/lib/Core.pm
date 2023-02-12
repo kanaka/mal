@@ -1,6 +1,6 @@
 package Core;
 
-use Mo;
+use Mo qw< xxx >;
 
 use Types;
 use Reader;
@@ -29,6 +29,7 @@ sub ns {
         'list?' => \&list_q,
         'cons' => \&cons,
         'concat' => \&concat,
+        'vec' => \&vec,
 
         'count' => \&count,
         'empty?' => \&empty_q,
@@ -86,6 +87,7 @@ sub count { number(ref($_[0]) eq 'nil' ? 0 : scalar @{$_[0]}) }
 sub empty_q { boolean(@{$_[0]} == 0) }
 sub cons { list([$_[0], @{$_[1]}]) }
 sub concat { list([map @$_, @_]) }
+sub vec { vector([@{$_[0]}]) }
 
 sub read_string { Reader::read_str(@_) }
 sub slurp {
