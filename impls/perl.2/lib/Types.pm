@@ -1,5 +1,4 @@
-use v5.12;
-
+use strict; use warnings;
 package Types;
 
 use Exporter 'import';
@@ -18,6 +17,9 @@ our @EXPORT = qw<
     symbol
     true
     vector
+
+    WWW
+    XXX
 >;
 
 sub atom     { 'atom'    ->new(@_) }
@@ -30,6 +32,9 @@ sub number   { 'number'  ->new(@_) }
 sub string   { 'string'  ->new(@_) }
 sub symbol   { 'symbol'  ->new(@_) }
 sub vector   { 'vector'  ->new(@_) }
+
+sub WWW { require XXX; goto &XXX::WWW }
+sub XXX { require XXX; goto &XXX::XXX }
 
 
 #------------------------------------------------------------------------------

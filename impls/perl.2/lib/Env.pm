@@ -1,16 +1,15 @@
+use strict; use warnings;
 package Env;
-
-use Mo qw< build default xxx >;
 
 use Types;
 
-has outer => ( default => undef, lazy => 0);
-has stash => ( default => {}, lazy => 0 );
-has binds => [];
-has exprs => [];
-
-sub BUILD {
-    my ($self) = @_;
+sub new {
+    my $class = shift;
+    my $self = bless {
+        outer => undef,
+        stash => {},
+        @_
+    }, $class;
     my $binds = [ @{$self->{binds} // []} ];
     my $exprs = $self->{exprs} // [];
     while (@$binds) {
@@ -22,11 +21,12 @@ sub BUILD {
     }
     delete $self->{binds};
     delete $self->{exprs};
+    return $self;
 }
 
 sub add {
     my ($self, $ns) = @_;
-    my $stash = $self->stash;
+    my $stash = $self->{stash};
     %$stash = (%$stash, %$ns);
     return $self;
 }

@@ -1,10 +1,12 @@
+use strict; use warnings;
 package Reader;
-
-use Mo qw< xxx >;
 
 use Types;
 
-has tokens => [];
+sub new {
+    my $class = shift;
+    bless { @_ }, $class;
+}
 
 sub read_str {
     my ($str) = @_;

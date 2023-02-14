@@ -1,6 +1,5 @@
+use strict; use warnings;
 package ReadLine;
-
-use Mo qw< xxx >;
 
 BEGIN { $ENV{PERL_RL} = 'Gnu' }
 use Term::ReadLine;

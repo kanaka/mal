@@ -1,6 +1,5 @@
+use strict; use warnings;
 package Core;
-
-use Mo qw< xxx >;
 
 use Types;
 use Reader;

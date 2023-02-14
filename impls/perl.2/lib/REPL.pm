@@ -1,6 +1,5 @@
+use strict; use warnings;
 package REPL;
-
-use Mo qw< xxx >;
 
 use ReadLine;
 use Reader;

@@ -1,6 +1,5 @@
+use strict; use warnings;
 package Eval;
-
-use Mo qw< xxx >;
 
 use Types;
 

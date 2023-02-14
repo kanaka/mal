@@ -1,6 +1,5 @@
+use strict; use warnings;
 package Printer;
-
-use Mo qw< xxx >;
 
 use Types;
 
