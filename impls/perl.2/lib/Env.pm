@@ -11,8 +11,8 @@ has exprs => [];
 
 sub BUILD {
     my ($self) = @_;
-    my $binds = [ @{$self->binds} ];
-    my $exprs = $self->exprs;
+    my $binds = [ @{$self->{binds} // []} ];
+    my $exprs = $self->{exprs} // [];
     while (@$binds) {
         if ("$binds->[0]" eq '&') {
             shift @$binds;
@@ -42,12 +42,14 @@ sub find {
         return $self if defined $self->{stash}{$key};
         $self = $self->{outer};
     }
-    die "Symbol '$key' not found in Env";
+    return;
 }
 
 sub get {
     my ($self, $key) = @_;
-    $self->find($key)->{stash}{$key};
+    my $env = $self->find($key) or
+        die "Symbol '$key' not found in Env";
+    $env->{stash}{$key};
 }
 
 1;

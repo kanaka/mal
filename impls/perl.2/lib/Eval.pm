@@ -8,57 +8,126 @@ sub eval {
     my ($ast, $env) = @_;
 
     while (1) {
-        return Eval::eval_ast($ast, $env) unless $ast->isa('list');
-        return $ast if not @$ast;
+        return eval_ast($ast, $env) unless $ast->isa('list');
+#         unless ($ast->isa('list')) {
+#             $ast = eval_ast($ast, $env);
+#             return $ast;
+#         }
+
+        $ast = macroexpand($ast, $env);
+
+        return eval_ast($ast, $env) unless $ast->isa('list');
+#         unless ($ast->isa('list')) {
+#             $ast = eval_ast($ast, $env);
+#             return $ast;
+#         }
+
+        return $ast unless @$ast;
+#         unless (@$ast) {
+#             return $ast;
+#         }
+
         my ($a0, $a1, $a2, $a3) = @$ast;
         my $sym = (ref($a0) eq 'symbol') ? $$a0 : '';
         if ('def!' eq $sym) {
             return $env->set($$a1, Eval::eval($a2, $env));
+#             $ast = Eval::eval($a2, $env);
+#             $ast = $env->set($$a1, $ast);
+#             return $ast;
+        } elsif ('defmacro!' eq $sym) {
+            return $env->set($$a1, macro(Eval::eval($a2, $env)));
+#             $ast = Eval::eval($a2, $env);
+#             $ast = macro($ast);
+#             $ast = $env->set($$a1, $ast);
+#             return $ast;
         } elsif ('do' eq $sym) {
             my (undef, @do) = @$ast;
             $ast = pop @do;
             eval_ast(list(\@do), $env);
+#             $ast = $ast;
         } elsif ('fn*' eq $sym) {
             return function($a1, $a2, $env);
+#             $ast = function($a1, $a2, $env);
+#             return $ast;
         } elsif ('if' eq $sym) {
             $ast = ${boolean(Eval::eval($a1, $env))} ? $a2 :
                 defined $a3 ? $a3 : nil;
+#             $ast = Eval::eval($a1, $env);
+#             $ast = boolean($ast);
+#             $ast = $$ast;
+#             if ($ast) {
+#                 $ast = $a2;
+#             } else {
+#                 if (defined $a3) {
+#                     $ast = $a3;
+#                 } else {
+#                     $ast = nil;
+#                 }
+#             }
+#             $ast = $ast;
         } elsif ('let*' eq $sym) {
             $env = Env->new(outer => $env);
             for (my $i = 0; $i < @$a1; $i += 2) {
                 $env->set(${$a1->[$i]}, Eval::eval($a1->[$i+1], $env));
             }
             $ast = $a2;
+#             $ast = $ast;
+        } elsif ('macroexpand' eq $sym) {
+            return macroexpand($a1, $env);
+#             $ast = macroexpand($a1, $env);
+#             return $ast;
         } elsif ('quote' eq $sym) {
             return $a1;
+#             $ast = $a1;
+#             return $ast;
         } elsif ('quasiquote' eq $sym) {
             $ast = quasiquote($a1);
+#             $ast = $ast
         } elsif ('quasiquoteexpand' eq $sym) {
             return quasiquote($a1);
+#             $ast = quasiquote($a1);
+#             return $ast;
         } else {
             my ($f, @args) = @{eval_ast($ast, $env)};
             return $f->(@args) if ref($f) eq 'CODE';
-            XXX [$f, @args] unless ref($f) eq 'function';
+#             if (ref($f) eq 'CODE') {
+#                 $ast = $f->(@args);
+#                 return $ast;
+#             }
+#             XXX [$f, @args] unless ref($f) eq 'function';
             ($ast, $env) = $f->(@args);
+#             $ast = $ast;
         }
     }
 }
 
 sub eval_ast {
     my ($ast, $env) = @_;
+#     $ast =
+    $ast->isa('List') ? ref($ast)->new([ map Eval::eval($_, $env), @$ast ]) :
+    $ast->isa('Map') ? ref($ast)->new([map Eval::eval($_, $env), %$ast]) :
+    $ast->isa('symbol') ? $env->get($$ast) :
+    $ast;
+#     $ast;
+}
 
-    if ($ast->isa('List')) {
-        return ref($ast)->new([ map Eval::eval($_, $env), @$ast ]);
+sub macroexpand {
+    my ($ast, $env) = @_;
+    while (is_macro_call($ast, $env)) {
+        my ($name, @args) = @$ast;
+        $ast = Eval::eval($env->get($name)->(@args));
     }
-    if ($ast->isa('Map')) {
-        return ref($ast)->new([map Eval::eval($_, $env), %$ast]);
-    }
-    elsif ($ast->isa('symbol')) {
-        $env->get($$ast);
-    }
-    else {
-        return $ast;
-    }
+    return $ast;
+}
+
+sub is_macro_call {
+    my ($ast, $env) = @_;
+    my $a0;
+    (ref($ast) eq 'list' and
+        ($a0) = @$ast and
+        ref($a0) eq "symbol" and
+        $env->find("$a0")
+    ) ? ref($env->get("$a0")) eq 'macro' : 0;
 }
 
 sub quasiquote {

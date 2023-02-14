@@ -11,6 +11,7 @@ our @EXPORT = qw<
     function
     keyword
     list
+    macro
     nil
     number
     string
@@ -24,6 +25,7 @@ sub boolean  { 'boolean' ->new(@_) }
 sub function { 'function'->new(@_) }
 sub keyword  { 'keyword' ->new(@_) }
 sub list     { 'list'    ->new(@_) }
+sub macro    { bless $_[0], 'macro' }
 sub number   { 'number'  ->new(@_) }
 sub string   { 'string'  ->new(@_) }
 sub symbol   { 'symbol'  ->new(@_) }

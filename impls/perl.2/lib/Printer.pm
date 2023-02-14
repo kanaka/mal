@@ -24,6 +24,7 @@ sub pr_str {
     $type eq 'boolean' ? $$o ? 'true' : 'false' :
     $type eq 'nil' ? 'nil' :
     $type eq 'function' ? '<#function>' :
+    $type eq 'macro' ? '<#macro>' :
     $type eq 'list' ?
         "(${\ join(' ', map pr_str($_, $raw), @$o)})" :
     $type eq 'vector' ?
