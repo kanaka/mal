@@ -30,6 +30,9 @@ sub ns {
         'cons' => \&cons,
         'concat' => \&concat,
         'vec' => \&vec,
+        'nth' => \&nth,
+        'first' => \&first,
+        'rest' => \&rest,
 
         'count' => \&count,
         'empty?' => \&empty_q,
@@ -88,6 +91,18 @@ sub empty_q { boolean(@{$_[0]} == 0) }
 sub cons { list([$_[0], @{$_[1]}]) }
 sub concat { list([map @$_, @_]) }
 sub vec { vector([@{$_[0]}]) }
+sub nth {
+    my ($list, $index) = @_;
+    die "Index '$index' out of range" if $index >= @$list;
+    $list->[$index];
+}
+sub first { ref($_[0]) eq 'nil' ? nil : @{$_[0]} ? $_[0]->[0] : nil }
+sub rest {
+    my ($list) = @_;
+    return list([]) if $list->isa('nil') or not @$list;
+    shift @$list;
+    list([@$list]);
+}
 
 sub read_string { Reader::read_str(@_) }
 sub slurp {
