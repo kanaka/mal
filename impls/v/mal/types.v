@@ -190,7 +190,21 @@ pub fn (t Type) get_meta() !Type {
 
 pub fn (t Type) set_meta(meta Type) !Type {
 	return match t {
-		Fn, Closure, List, Vector, Hashmap {
+		// https://github.com/vlang/v/issues/17333
+		// Fn, Closure, List, Vector, Hashmap {
+		Fn {
+			t.with_meta(meta)
+		}
+		Closure {
+			t.with_meta(meta)
+		}
+		List {
+			t.with_meta(meta)
+		}
+		Vector {
+			t.with_meta(meta)
+		}
+		Hashmap {
 			t.with_meta(meta)
 		}
 		else {
@@ -306,10 +320,10 @@ pub fn new_list(list []Type) List {
 }
 
 pub fn (l &List) with_meta(meta Type) Type {
-	return List{
+	return Type(List{
 		list: l.list
 		meta: meta
-	}
+	})
 }
 
 pub fn (l &List) first() !&Type {
@@ -336,6 +350,15 @@ pub fn (l &List) nth(n int) &Type {
 	return if n < l.list.len { &l.list[n] } else { Nil{} }
 }
 
+pub fn (l &List) conj(list List) Type {
+	mut list_ := l.list[0..]
+	list_.prepend(list.list.reverse())
+	return Type(List{
+		...l
+		list: list_
+	})
+}
+
 // --
 
 pub struct Vector {
@@ -354,6 +377,15 @@ pub fn (v &Vector) with_meta(meta Type) Type {
 	return Vector{
 		vec: v.vec
 		meta: meta
+	}
+}
+
+pub fn (v &Vector) conj(list List) Type {
+	mut vec := v.vec[0..]
+	vec.insert(v.vec.len, list.list)
+	return Vector{
+		...v
+		vec: vec
 	}
 }
 
@@ -424,6 +456,7 @@ pub fn (h &Hashmap) has(key string) bool {
 
 // --
 
+[heap]
 pub struct Fn {
 pub:
 	f    FnDef
@@ -437,10 +470,16 @@ pub fn new_fn(f FnDef) Fn {
 }
 
 pub fn (f &Fn) with_meta(meta Type) Type {
-	return Fn{
-		f: f.f
+	ff := Fn{
+		...f
 		meta: meta
 	}
+	return ff
+}
+
+fn (f &Fn) str() string {
+	meta := f.meta.str().replace('\n', '\n    ')
+	return 'mal.Fn{\n    <fn>\n    meta: ${meta}\n}'
 }
 
 // --
@@ -471,7 +510,8 @@ pub fn (c &Closure) with_meta(meta Type) Type {
 
 fn (c Closure) str() string {
 	disp := if c.is_macro { 'macro' } else { 'closure' }
-	return 'mal.Closure{\n    <${disp}>\n}'
+	meta := c.meta.str().replace('\n', '\n    ')
+	return 'mal.Closure{\n    <${disp}>\n    meta: ${meta}\n}'
 }
 
 pub fn (c Closure) to_macro() Closure {

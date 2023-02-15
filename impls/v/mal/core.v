@@ -1,6 +1,7 @@
 module mal
 
 import os
+import time
 import readline { read_line }
 
 type EvalFn = fn (_ Type, mut _ Env) !Type
@@ -234,27 +235,61 @@ pub fn add_core(mut env Env, eval_fn EvalFn) {
 		}
 	})
 	add_fn(mut env, 'time-ms', -1, -1, fn (args List) !Type {
-		return error('not implemented')
+		return Int{time.ticks()}
 	})
 	add_fn(mut env, 'meta', 1, 1, fn (args List) !Type {
 		return args.nth(0).get_meta()
 	})
-	add_fn(mut env, 'with-meta', -1, -1, fn (args List) !Type {
-		return error('not implemented')
+	add_fn(mut env, 'with-meta', 2, 2, fn (args List) !Type {
+		return args.nth(0).set_meta(args.nth(1))!
 	})
-	add_fn(mut env, 'fn?', -1, -1, fn (args List) !Type {
-		return error('not implemented')
+	add_fn(mut env, 'fn?', 1, 1, fn (args List) !Type {
+		f := args.nth(0)
+		return make_bool(match f {
+			Fn { true }
+			Closure { !f.is_macro }
+			else { false }
+		})
 	})
-	add_fn(mut env, 'string?', -1, -1, fn (args List) !Type {
-		return error('not implemented')
+	add_fn(mut env, 'string?', 1, 1, fn (args List) !Type {
+		return make_bool(args.nth(0) is String)
 	})
-	add_fn(mut env, 'number?', -1, -1, fn (args List) !Type {
-		return error('not implemented')
+	add_fn(mut env, 'number?', 1, 1, fn (args List) !Type {
+		return make_bool(args.nth(0) in [Int, Float])
 	})
-	add_fn(mut env, 'seq', -1, -1, fn (args List) !Type {
-		return error('not implemented')
+	add_fn(mut env, 'seq', 1, 1, fn (args List) !Type {
+		return match args.nth(0) {
+			List, Vector {
+				if args.nth(0).sequence()!.len == 0 {
+					Nil{}
+				} else {
+					new_list(args.nth(0).sequence()!)
+				}
+			}
+			String {
+				if args.nth(0).str_()! == '' {
+					Nil{}
+				} else {
+					new_list(args.nth(0).str_()!.split('').map(Type(String{it})))
+				}
+			}
+			else {
+				Nil{}
+			}
+		}
 	})
-	add_fn(mut env, 'conj', -1, -1, fn (args List) !Type {
-		return error('not implemented')
+	add_fn(mut env, 'conj', 2, -1, fn (args List) !Type {
+		t := args.nth(0)
+		return match t {
+			// https://github.com/vlang/v/issues/17333
+			// List, Vector { t.conj(args.from(1)) }
+			List { t.conj(args.from(1)) }
+			Vector { t.conj(args.from(1)) }
+			else { error('vector/list expected') }
+		}
+	})
+	add_fn(mut env, 'macro?', 1, 1, fn (args List) !Type {
+		f := args.nth(0)
+		return make_bool(if f is Closure { f.is_macro } else { false })
 	})
 }

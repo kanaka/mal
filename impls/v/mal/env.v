@@ -26,37 +26,36 @@ pub fn (mut e Env) bind(syms []string, args List) {
 }
 
 pub fn (mut e Env) set(sym string, val Type) Type {
-	//$if env ? {
-	//	println('ENV: setting [${sym}] in 0x${voidptr(&e)} (outer 0x${voidptr(e.outer)})')
-	//}
+	$if env ? {
+		println('SET(${e.level()}): ${sym} ${pr_str(val, true)}')
+	}
 	e.data[sym] = val
 	return val
 }
 
 pub fn (e Env) find(sym string) ?Type {
-	$if env ? {
-		println('ENV: looking for [${sym}] in\n${e.data}')
-		// println('ENV: finding [${sym}] in 0x${voidptr(&e)} (outer 0x${voidptr(e.outer)}):')
-		// println("${e.data}")
-	}
 	if res := e.data[sym] {
 		$if env ? {
-			println('...found')
+			println('GET(${e.level()}): ${sym} ...found')
 		}
 		return res
 	}
 	if e.outer != unsafe { nil } {
 		$if env ? {
-			println('...checking outer')
+			println('GET(${e.level()}): ${sym} ...checking outer')
 		}
 		return e.outer.find(sym)
 	}
 	$if env ? {
-		println('...not found')
+		println('GET(${e.level()}): ${sym} ...not found')
 	}
 	return none
 }
 
 pub fn (e Env) get(sym string) !Type {
 	return e.find(sym) or { error("'${sym}' not found") }
+}
+
+pub fn (e Env) level() int {
+	return if e.outer == unsafe { nil } { 1 } else { 1 + e.outer.level() }
 }
