@@ -237,9 +237,9 @@ fn rep(line string, mut env mal.Env) string {
 		return rep_print(res)
 	} else {
 		if err is mal.Exception {
-			println('Exception: ${mal.pr_str(err.typ, true)}')
+			println('Uncaught exception: ${mal.pr_str(err.typ, true)}')
 		} else {
-			println('Error: ${err}')
+			println('Uncaught exception: ${err}')
 		}
 		return ''
 	}
