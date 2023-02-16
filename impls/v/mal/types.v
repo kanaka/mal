@@ -190,21 +190,7 @@ pub fn (t Type) get_meta() !Type {
 
 pub fn (t Type) set_meta(meta Type) !Type {
 	return match t {
-		// https://github.com/vlang/v/issues/17333
-		// Fn, Closure, List, Vector, Hashmap {
-		Fn {
-			t.with_meta(meta)
-		}
-		Closure {
-			t.with_meta(meta)
-		}
-		List {
-			t.with_meta(meta)
-		}
-		Vector {
-			t.with_meta(meta)
-		}
-		Hashmap {
+		Fn, Closure, List, Vector, Hashmap {
 			t.with_meta(meta)
 		}
 		else {

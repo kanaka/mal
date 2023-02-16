@@ -281,10 +281,7 @@ pub fn add_core(mut env Env, eval_fn EvalFn) {
 	add_fn(mut env, 'conj', 2, -1, fn (args List) !Type {
 		t := args.nth(0)
 		return match t {
-			// https://github.com/vlang/v/issues/17333
-			// List, Vector { t.conj(args.from(1)) }
-			List { t.conj(args.from(1)) }
-			Vector { t.conj(args.from(1)) }
+			List, Vector { t.conj(args.from(1)) }
 			else { error('vector/list expected') }
 		}
 	})
