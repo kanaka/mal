@@ -25,6 +25,6 @@ WORKDIR /mal
 RUN apt-get -y install git gcc
 
 # Install v
-RUN git clone https://github.com/vlang/v \
-	&& make -C v \
-	&& ln -s /mal/v/v /usr/bin/v
+RUN git clone https://github.com/vlang/v /v
+RUN make -C /v && ln -s /v/v /usr/bin/v
+RUN mkdir /.vmodules && chmod 777 /.vmodules
