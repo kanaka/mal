@@ -18,6 +18,11 @@ sub ns {
         '*' => \&multiply,
         '/' => \&divide,
 
+        'nil?' => \&nil_q,
+        'true?' => \&true_q,
+        'false?' => \&false_q,
+        'symbol?' => \&symbol_q,
+
         'atom' => \&atom_,
         'atom?' => \&atom_q,
         'deref' => \&deref,
@@ -32,6 +37,7 @@ sub ns {
         'nth' => \&nth,
         'first' => \&first,
         'rest' => \&rest,
+        'map' => \&map,
 
         'count' => \&count,
         'empty?' => \&empty_q,
@@ -45,6 +51,7 @@ sub ns {
         'println' => \&println,
 
         'apply' => \&apply,
+        'throw' => \&throw,
     }
 }
 
@@ -74,13 +81,18 @@ sub subtract { $_[0] - $_[1] }
 sub multiply { $_[0] * $_[1] }
 sub divide { $_[0] / $_[1] }
 
+sub nil_q { boolean(ref($_[0]) eq 'nil') }
+sub true_q { boolean(ref($_[0]) eq 'boolean' and "$_[0]") }
+sub false_q { boolean(ref($_[0]) eq 'boolean' and not "$_[0]") }
+sub symbol_q { boolean(ref($_[0]) eq 'symbol') }
+
 sub atom_ { atom(@_) }
 sub atom_q { boolean(ref($_[0]) eq 'atom') }
 sub deref { $_[0]->[0] }
 sub reset { $_[0]->[0] = $_[1] }
 sub swap {
     my ($atom, $fn, @args) = @_;
-    $atom->[0] = apply($fn, deref($atom), @args);
+    $atom->[0] = apply($fn, deref($atom), \@args);
 }
 
 sub list_ { list([@_]) }
@@ -102,6 +114,7 @@ sub rest {
     shift @$list;
     list([@$list]);
 }
+sub map { list([ map apply($_[0], $_, []), @{$_[1]} ]) }
 
 sub read_string { Reader::read_str(@_) }
 sub slurp {
@@ -119,7 +132,11 @@ sub println { printf "%s\n", join ' ', map Printer::pr_str($_, 1), @_; nil }
 
 sub apply {
     my ($fn, @args) = @_;
+    push @args, @{pop(@args)};
     ref($fn) eq 'CODE' ? $fn->(@args) : Eval::eval($fn->(@args));
+}
+sub throw {
+    die "$_[0]\n";
 }
 
 1;

@@ -86,6 +86,23 @@ sub eval {
             return quasiquote($a1);
 #             $ast = quasiquote($a1);
 #             return $ast;
+        } elsif ('try*' eq $sym) {
+            my $val = eval { Eval::eval($a1, $env) };
+            return $val unless $@;
+            my $err = $@;
+            chomp $err;
+            die "$err\n" unless defined $a2;
+            die "Invalid 'catch*' clause" unless
+                $a2 and $a2->isa('List') and
+                @$a2 and $a2->[0]->isa('symbol') and
+                ${$a2->[0]} eq 'catch*';
+            my $e;
+            (undef, $e, $ast) = @$a2;
+            $env = Env->new(
+                outer => $env,
+                binds => [$e],
+                exprs => [string($err)],
+            );
         } else {
             my ($f, @args) = @{eval_ast($ast, $env)};
             return $f->(@args) if ref($f) eq 'CODE';

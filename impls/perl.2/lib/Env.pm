@@ -48,7 +48,7 @@ sub find {
 sub get {
     my ($self, $key) = @_;
     my $env = $self->find($key) or
-        die "Symbol '$key' not found in Env";
+        die "'$key' not found\n";
     $env->{stash}{$key};
 }
 
