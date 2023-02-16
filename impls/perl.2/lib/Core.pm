@@ -8,36 +8,32 @@ use Printer;
 
 sub ns {
     {
+        '*' => \&multiply,
+        '+' => \&add,
+        '-' => \&subtract,
+        '/' => \&divide,
+        '<' => \&less_than,
+        '<=' => \&less_equal,
         '=' => \&equal_to,
         '>' => \&greater_than,
         '>=' => \&greater_equal,
-        '<' => \&less_than,
-        '<=' => \&less_equal,
-        '+' => \&add,
-        '-' => \&subtract,
-        '*' => \&multiply,
-        '/' => \&divide,
-
-        'nil?' => \&nil_q,
-        'true?' => \&true_q,
-        'false?' => \&false_q,
-        'symbol?' => \&symbol_q,
-
+        'apply' => \&apply,
         'atom' => \&atom_,
         'atom?' => \&atom_q,
+        'concat' => \&concat,
+        'cons' => \&cons,
+        'count' => \&count,
         'deref' => \&deref,
-        'reset!' => \&reset,
-        'swap!' => \&swap,
-
+        'empty?' => \&empty_q,
+        'false?' => \&false_q,
+        'first' => \&first,
         'list' => \&list_,
         'list?' => \&list_q,
-        'cons' => \&cons,
-        'concat' => \&concat,
-        'vec' => \&vec,
+        'map' => \&map_,
+        'nil?' => \&nil_q,
         'nth' => \&nth,
         'first' => \&first,
         'rest' => \&rest,
-        'map' => \&map,
 
         'count' => \&count,
         'empty?' => \&empty_q,
@@ -46,14 +42,44 @@ sub ns {
         'slurp' => \&slurp,
 
         'pr-str' => \&pr_str,
-        'str' => \&str,
-        'prn' => \&prn,
         'println' => \&println,
-
-        'apply' => \&apply,
+        'prn' => \&prn,
+        'read-string' => \&read_string,
+        'reset!' => \&reset,
+        'rest' => \&rest,
+        'slurp' => \&slurp,
+        'str' => \&str,
+        'swap!' => \&swap,
+        'symbol?' => \&symbol_q,
         'throw' => \&throw,
+        'true?' => \&true_q,
+        'vec' => \&vec,
     }
 }
+
+sub add { $_[0] + $_[1] }
+
+sub apply {
+    my ($fn, @args) = @_;
+    push @args, @{pop(@args)};
+    ref($fn) eq 'CODE' ? $fn->(@args) : Eval::eval($fn->(@args));
+}
+
+sub atom_ { atom(@_) }
+
+sub atom_q { boolean(ref($_[0]) eq 'atom') }
+
+sub concat { list([map @$_, @_]) }
+
+sub cons { list([$_[0], @{$_[1]}]) }
+
+sub count { number(ref($_[0]) eq 'nil' ? 0 : scalar @{$_[0]}) }
+
+sub deref { $_[0]->[0] }
+
+sub divide { $_[0] / $_[1] }
+
+sub empty_q { boolean(@{$_[0]} == 0) }
 
 sub equal_to {
     my ($x, $y) = @_;
@@ -72,51 +98,51 @@ sub equal_to {
     boolean($$x eq $$y);
 }
 
-sub greater_than { $_[0] > $_[1] }
-sub greater_equal { $_[0] >= $_[1] }
-sub less_than { $_[0] < $_[1] }
-sub less_equal { $_[0] <= $_[1] }
-sub add { $_[0] + $_[1] }
-sub subtract { $_[0] - $_[1] }
-sub multiply { $_[0] * $_[1] }
-sub divide { $_[0] / $_[1] }
-
-sub nil_q { boolean(ref($_[0]) eq 'nil') }
-sub true_q { boolean(ref($_[0]) eq 'boolean' and "$_[0]") }
 sub false_q { boolean(ref($_[0]) eq 'boolean' and not "$_[0]") }
-sub symbol_q { boolean(ref($_[0]) eq 'symbol') }
 
-sub atom_ { atom(@_) }
-sub atom_q { boolean(ref($_[0]) eq 'atom') }
-sub deref { $_[0]->[0] }
-sub reset { $_[0]->[0] = $_[1] }
-sub swap {
-    my ($atom, $fn, @args) = @_;
-    $atom->[0] = apply($fn, deref($atom), \@args);
-}
+sub first { ref($_[0]) eq 'nil' ? nil : @{$_[0]} ? $_[0]->[0] : nil }
+
+sub greater_equal { $_[0] >= $_[1] }
+
+sub greater_than { $_[0] > $_[1] }
+
+sub less_equal { $_[0] <= $_[1] }
+
+sub less_than { $_[0] < $_[1] }
 
 sub list_ { list([@_]) }
+
 sub list_q { boolean(ref($_[0]) eq 'list') }
-sub count { number(ref($_[0]) eq 'nil' ? 0 : scalar @{$_[0]}) }
-sub empty_q { boolean(@{$_[0]} == 0) }
-sub cons { list([$_[0], @{$_[1]}]) }
-sub concat { list([map @$_, @_]) }
-sub vec { vector([@{$_[0]}]) }
+
+sub map_ { list([ map apply($_[0], $_, []), @{$_[1]} ]) }
+
+sub multiply { $_[0] * $_[1] }
+
+sub nil_q { boolean(ref($_[0]) eq 'nil') }
+
 sub nth {
     my ($list, $index) = @_;
     die "Index '$index' out of range" if $index >= @$list;
     $list->[$index];
 }
-sub first { ref($_[0]) eq 'nil' ? nil : @{$_[0]} ? $_[0]->[0] : nil }
+
+sub pr_str { string(join ' ', map Printer::pr_str($_), @_) }
+
+sub println { printf "%s\n", join ' ', map Printer::pr_str($_, 1), @_; nil }
+
+sub prn { printf "%s\n", join ' ', map Printer::pr_str($_), @_; nil }
+
+sub read_string { Reader::read_str(@_) }
+
+sub reset { $_[0]->[0] = $_[1] }
+
 sub rest {
     my ($list) = @_;
     return list([]) if $list->isa('nil') or not @$list;
     shift @$list;
     list([@$list]);
 }
-sub map { list([ map apply($_[0], $_, []), @{$_[1]} ]) }
 
-sub read_string { Reader::read_str(@_) }
 sub slurp {
     my ($file) = @_;
     open my $slurp, '<', "$file" or
@@ -125,18 +151,23 @@ sub slurp {
     string(<$slurp>);
 }
 
-sub pr_str { string(join ' ', map Printer::pr_str($_), @_) }
 sub str { string(join '', map Printer::pr_str($_, 1), @_) }
-sub prn { printf "%s\n", join ' ', map Printer::pr_str($_), @_; nil }
-sub println { printf "%s\n", join ' ', map Printer::pr_str($_, 1), @_; nil }
 
-sub apply {
-    my ($fn, @args) = @_;
-    push @args, @{pop(@args)};
-    ref($fn) eq 'CODE' ? $fn->(@args) : Eval::eval($fn->(@args));
+sub subtract { $_[0] - $_[1] }
+
+sub symbol_q { boolean(ref($_[0]) eq 'symbol') }
+
+sub swap {
+    my ($atom, $fn, @args) = @_;
+    $atom->[0] = apply($fn, deref($atom), \@args);
 }
+
 sub throw {
     die "$_[0]\n";
 }
+
+sub true_q { boolean(ref($_[0]) eq 'boolean' and "$_[0]") }
+
+sub vec { vector([@{$_[0]}]) }
 
 1;
