@@ -3,7 +3,7 @@ module mal
 import regex
 
 const (
-	re_token = '^[\\s,]*((?:~@)|(?:[\\[\\]{}()\'\`~^@])|("(?:(?:\\\\.)|[^\\\\"])*"?)|(?:;[^\n]*)|(?:[^\\s\\[\\\]{}(\'"`,;)]*))'
+	re_token = '^[\\s,]*((?:~@)|(?:[\\[\\]{}()\'\`~^@])|(?:"(?:(?:\\\\.)|[^\\\\"])*("?))|(?:;[^\n]*)|(?:[^\\s\\[\\\]{}(\'"`,;)]*))'
 	re_int   = '^-?[0-9]+$'
 	re_float = '^-?[0-9]*\\.[0-9]+$'
 )
@@ -103,7 +103,7 @@ fn (mut r Reader) read_atom() !Type {
 
 pub fn read_str(input string) !Type {
 	mut reader := Reader{
-		toks: tokenise(input)!
+		toks: tokenise(input.trim_right("\r\n"))!
 		re_int: regex.regex_opt(mal.re_int) or { panic('regex_opt()') }
 		re_float: regex.regex_opt(mal.re_float) or { panic('regex_opt()') }
 	}
@@ -116,7 +116,7 @@ fn tokenise(input string) ![]Token {
 	mut input_ := input
 	for {
 		$if token ? {
-			println('${input_}')
+			println('remaining: ${input_}')
 		}
 		start, end := re.match_string(input_)
 		if start < 0 {
@@ -127,10 +127,8 @@ fn tokenise(input string) ![]Token {
 		}
 		if re.groups[1] > re.groups[0] {
 			tok := input_[re.groups[0]..re.groups[1]]
-			if tok[0] == `"` {
-				if tok.len == 1 || tok[tok.len - 1] != `"` {
-					return error('unbalanced quotes')
-				}
+			if tok[0] == `"` && re.groups[2] < 0 {
+				return error('unbalanced quotes')
 			}
 			ret << tok
 		}
