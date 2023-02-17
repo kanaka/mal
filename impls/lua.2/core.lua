@@ -55,9 +55,9 @@ end
  
 
 
-core[Sym.new('list')] = function (...) 
-  local args = table.pack(...) 
-  return List.new(args) 
+core[Sym.new('list')] = function (...)
+  local args = table.pack(...)
+  return List.new(args)
 end
 
 core[Sym.new('list?')] = function (v) 
@@ -67,6 +67,12 @@ core[Sym.new('list?')] = function (v)
     return false
   end
 end
+
+core[Sym.new('vec')] = function (...)
+  local args = table.pack(...)
+  return Vector.new(args)
+end
+
 
 core[Sym.new('empty?')] = function (v) 
   if is_sequence(v) then
@@ -128,5 +134,34 @@ core[Sym.new('swap!')] =  function (v, f, ...)
   v.val = f(v.val, ...)
   return v.val
 end
+
+core[Sym.new('cons')] = function (first, second, ...) 
+  if ... ~= nil then throw("cons expect expects 2 args got: " .. 2 + #table.pack(...)) end
+  if not(is_sequence(second, List)) then 
+    throw("second argument to cons should be Sequence")
+  end
+  local res = List.new({first, table.unpack(second)})
+
+  return res
+
+end
+
+core[Sym.new('concat')] = function (...) 
+  local args = table.pack(...) 
+  local tmp = {}
+  for i, v in ipairs(args) do 
+    if not(is_instanceOf(v, List)) then 
+      throw("argument to concat should be List at index:" .. i)
+    end
+    for ii, vv in ipairs(v) do 
+      table.insert(tmp, vv)
+    end
+  end
+  local res = List.new(tmp)
+
+  return res
+
+end
+
 
 return core
