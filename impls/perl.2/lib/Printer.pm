@@ -15,8 +15,8 @@ sub pr_str {
     my $type = ref $o or XXX $o;
 
     $type eq 'atom' ?  "(atom ${\pr_str($o->[0], $raw)})" :
-    $type eq 'string' ?  $raw ? $$o :
-        qq{"${$$o=~s/([\n\t\"\\])/$escape->{$1}/ge;$o}"} :
+    $type eq 'string' ? $raw ? $$o :
+        qq{"${local $_ = $$o; s/([\n\t\"\\])/$escape->{$1}/ge; \$_}"} :
     $type eq 'symbol' ? $$o :
     $type eq 'keyword' ? $$o :
     $type eq 'number' ? $$o :

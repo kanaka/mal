@@ -8,6 +8,7 @@ our @EXPORT = qw<
     boolean
     false
     function
+    hash_map
     keyword
     list
     macro
@@ -25,7 +26,8 @@ our @EXPORT = qw<
 sub atom     { 'atom'    ->new(@_) }
 sub boolean  { 'boolean' ->new(@_) }
 sub function { 'function'->new(@_) }
-sub keyword  { 'keyword' ->new(@_) }
+sub keyword  { local ($_) = @_; s/^://; 'keyword'->new(":$_") }
+sub hash_map { 'hash_map'->new(@_) }
 sub list     { 'list'    ->new(@_) }
 sub macro    { bless $_[0], 'macro' }
 sub number   { 'number'  ->new(@_) }

@@ -40,7 +40,7 @@ sub read_form {
     local $_ = $self->{tokens}[0];
     /^\($/ ? $self->read_list('list', ')') :
     /^\[$/ ? $self->read_list('vector', ']') :
-    /^\{$/ ? $self->read_hash('hash_map', '}') :
+    /^\{$/ ? $self->read_hash_map('hash_map', '}') :
     /^'$/ ? $self->read_quote('quote') :
     /^`$/ ? $self->read_quote('quasiquote') :
     /^~$/ ? $self->read_quote('unquote') :
@@ -65,7 +65,7 @@ sub read_list {
     die "Reached end of input in 'read_list'";
 }
 
-sub read_hash {
+sub read_hash_map {
     my ($self, $type, $end) = @_;
     my $tokens = $self->{tokens};
     shift @$tokens;
@@ -79,7 +79,7 @@ sub read_hash {
         my $val = $self->read_form;
         $hash->{$key} = $val;
     }
-    die "Reached end of input in 'read_hash'";
+    die "Reached end of input in 'read_hash_map'";
 }
 
 sub read_key {
