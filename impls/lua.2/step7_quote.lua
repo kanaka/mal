@@ -30,28 +30,39 @@ return #a > 0 and  is_instanceOf(a[1],Sym) and
         a[1].val == v
 end
 
+
+function quasiloop(a)
+  local res = List.new({})
+    for i=#a,1,-1 do
+      local elt = a[i]
+      if is_instanceOf(elt, List) and 
+        starts_with(elt, "splice-unquote") then
+
+      if #elt ~= 2 then throw("splice-unquote expected 1 argument bot got : " .. #elt) end
+
+        res = List.new({Sym.new( "concat"), elt[2], res})
+      else
+        res = List.new({Sym.new( "cons"), quasiquote(elt), res})
+      end
+    end
+    return res
+end
+
 function quasiquote(a)
 
-      if is_instanceOf(a,List) and starts_with(a, "unquote") then 
-        if #a-1 ~= 1 then throw("unquote expected 1 argument bot got : " .. #a) end
-        print("unquote hit")
-        return a[2]
-
-      elseif is_instanceOf(a, List) then
-        local res = List.new({})
-        for i=#a,1,-1 do
-          local elt = a[i]
-          if is_instanceOf(elt, List) and starts_with(elt, "splice-unquote") then
-
-            if #elt ~= 2 then throw("splice-unquote expected 1 argument bot got : " .. #elt) end
-
-            res = List.new({Sym.new( "concat"), elt[2], res})
-          else
-            res = List.new({Sym.new( "cons"), quasiquote(elt), res})
+      if is_instanceOf(a,List) then 
+        if starts_with(a, "unquote") then
+          if #a-1 ~= 1 then 
+            throw("unquote expected 1 argument bot got : " .. #a) 
           end
+          return a[2]
+        else
+          return quasiloop(a)
         end
-        return res
-      elseif is_instanceOf(a,Map) or is_instanceOf(a,Sym) then
+      elseif is_instanceOf(a, Vector) then 
+        local tmp = quasiloop(a)
+        return List.new({Sym.new("vec"), tmp})
+      elseif is_instanceOf(a,HashMap) or is_instanceOf(a,Sym) then
         return List.new({Sym.new('quote'), a})
 
       else
@@ -159,8 +170,7 @@ function EVAL(a, env)
       else
         if type(f) ~= "function" then
           throw("First elem should be function or special form got :'" .. type(f) .. "'.")
-        end
-     
+        end 
         return f(table.unpack(args)) --fixme: varargs?
       end
     end
@@ -169,7 +179,6 @@ end
 end
 
 
--- TODO: learn why we return map
 function eval_ast(ast, env)
   if is_instanceOf(ast, List) then
     local l = List.new()
