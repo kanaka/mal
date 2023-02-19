@@ -98,6 +98,7 @@ IMPL:
   - {IMPL: sml, sml_MODE: mosml}
   - {IMPL: tcl}
   - {IMPL: ts}
+  - {IMPL: v}
   - {IMPL: vala}
   - {IMPL: vb}
   - {IMPL: vhdl, NO_SELF_HOST_PERF: 1}  # perf timeout
