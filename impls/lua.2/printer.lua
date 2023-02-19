@@ -51,7 +51,8 @@ function Printer.stringfy_val(val, readably)
   elseif is_instanceOf(val, Err) then
     return "Error: " .. Scanner.unescape(val.val)
   elseif is_instanceOf(val, Function) then
-    res = "(fn* "  .. Printer.stringfy_val(val.params) .. "-->" .. Printer.stringfy_val(val.ast) ..")"
+    res = "(fn* "  .. Printer.stringfy_val(val.params) .. 
+    "-->" .. Printer.stringfy_val(val.ast) ..")" .. "ismacro: " .. tostring(val.is_macro)
   elseif is_instanceOf(val, Atom) then
     res = "(atom " .. Printer.stringfy_val(val.val) .. ")"
 

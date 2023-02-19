@@ -72,8 +72,8 @@ M.Nil = M.MalNilType.new()
 
 M.MalFunction = {}
 M.MalFunction.__index = M.MalFunction
-function M.MalFunction.new(fn, ast, env, params)
-  local self = {fn = fn, ast = ast, env = env, params = params}
+function M.MalFunction.new(fn, ast, env, params, is_macro)
+  local self = {fn = fn, ast = ast, env = env, params = params, is_macro = is_macro}
   return setmetatable(self, M.MalFunction)
 end
 

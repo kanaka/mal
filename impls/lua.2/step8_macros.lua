@@ -11,6 +11,7 @@ local HashMap = types.MalHashMap
 local Vector = types.MalVector
 local Nil = types.Nil
 local core = require "core"
+local Function = types.MalFunction
 
 function raw_read(prompt)
   io.write(prompt)
@@ -71,8 +72,34 @@ function quasiquote(a)
       end
 end
 
+function is_macro_call(ast, env)
+    if is_instanceOf(ast, List) and #ast >= 1 and is_instanceOf(ast[1], Sym) then
+    local status, first_env = pcall( function () return env:get(ast[1]) end)
+    if not status then return false end
+    if is_instanceOf(first_env, Function) and first_env.is_macro then
+      return true
+    else 
+      return false
+    end
+  else
+    return false
+  end
+
+end
+
+function macro_expand(ast, env)
+  while is_macro_call(ast, env) do
+    local macro = env:get(ast[1])
+    local f = macro.fn
+    ast = f(table.unpack(ast, 2))
+  end
+
+  return ast
+end
+
 function EVAL(a, env)
   while true do
+    a = macro_expand(a, env)
     if not(is_instanceOf(a, List)) then
        return eval_ast(a, env)
     end
@@ -143,25 +170,40 @@ function EVAL(a, env)
     elseif first_sym == "fn*" then 
       if (#a) ~= 3 then throw("fn* expected 2 arguments but got '" .. #a-1 .. "'.") end
       if false then throw("second parameter to fn* should have length 2 but got '" .. #a[2] .. "'.") end
-     return types.MalFunction.new(function (...) 
+     return Function.new(function (...) 
         local closed_over_env = Env.new(env)
         local exprs = List.new(table.pack(...))
         local binds = a[2]
         closed_over_env:bind(binds, exprs)
       
         return EVAL(a[3], closed_over_env) 
-      end, a[3], env, a[2])
+      end, a[3], env, a[2], false)
 
     elseif first_sym == "quote" then
       if #a-1 ~= 1 then throw("quote expects 1 argument got '" .. #a-1 .. "'.") end
       return a[2]
     elseif first_sym == "quasiquote" then
-      if #a-1 ~= 1 then throw("quasiquote expects 1 argument got '" .. #a-1 .. "'.") end
+      if #a-1 ~= 1 then throw("quote expects 1 argument got '" .. #a-1 .. "'.") end
       a = quasiquote(a[2])
-    elseif first_sym == "quasiquoteexpand" then
-      if #a-1 ~= 1 then throw("quasiquoteexpand expects 1 argument got '" .. #a-1 .. "'.") end
-      return quasiquote(a[2])
- 
+    elseif first_sym == "defmacro!" then
+      if #a ~= 3 then 
+        throw(string.format("defmacro! expects 2 arguments got: %d", #a-1))
+      end
+      if not(is_instanceOf(a[2], Sym)) then
+        throw("first argument to defmacro! must be symbol")
+      end
+      local value = EVAL(a[3], env)
+      if not(is_instanceOf(value, Function)) then
+        throw("second argument to defmacro must be function")
+      end
+      value.is_macro = true 
+      env:set(a[2], value)
+      return value
+
+
+    elseif first_sym == "macroexpand" then
+      if (#a) ~= 2 then throw("macroexpand expected 1 arguments but got '" .. #a-1 .. "'.") end
+      return macro_expand(a[2],env)
     else 
   
       local args = eval_ast(a, env) 
@@ -240,6 +282,7 @@ end
 function main()
     rep("(def! not (fn* (a) (if a false true)))")
     rep("(def! load-file (fn* (f) (eval (read-string (str \"(do  \"(slurp f) \"\nnil)\")))))")
+rep("(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))")
     repl_env:set(Sym.new("*ARGV*"), List.new(table.pack(table.unpack(arg,2))))
     if #arg > 0 then 
       local file_to_run = table.remove(arg,1)

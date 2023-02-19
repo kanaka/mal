@@ -74,7 +74,8 @@ core[Sym.new('vector')] = function (...)
 end
 
 core[Sym.new('vec')] = function (a)
-  return Vector.new(a)
+  local nt = table.pack(table.unpack(a)) -- this is done for copying
+  return Vector.new(nt)
 end
 
 
@@ -166,6 +167,39 @@ core[Sym.new('concat')] = function (...)
 
   return res
 
+end
+
+core[Sym.new('nth')] = function (v, idx, ...)
+  if ... ~= nil then throw("nth expect expects 2 args got: " .. 2 + #table.pack(...)) end
+  if not(is_sequence(v)) then
+    throw("first argument to nth should be Sequence")
+  end
+  if not(type(idx) == "number") then
+    throw("second argument to nth should be number")
+  end
+  if idx > #v - 1 or idx < 0 then
+    throw("invalid index")
+  end
+  return v[idx+1] or Nil
+end
+
+core[Sym.new('first')] = function (v, ...)
+  if ... ~= nil then throw("first expect expects 1 args got: " .. 1 + #table.pack(...)) end
+  if not(is_sequence(v) or v == Nil) then
+    throw("first argument to first should be Sequence or nil")
+  end
+  return v[1] or Nil
+end
+
+core[Sym.new('rest')] = function (v, ...)
+  if ... ~= nil then throw("rest expect expects 1 args got: " .. 1 + #table.pack(...)) end
+  if not(is_sequence(v) or v == Nil) then
+    throw("first argument to rest should be Sequence or nil")
+  end
+  if false and #v <= 1 then
+    return Nil
+  end 
+  return List.new({table.unpack(v,2)}) 
 end
 
 
