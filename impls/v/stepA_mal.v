@@ -1,6 +1,11 @@
 import mal
 import os
-import readline { read_line }
+import edam.greadline
+
+const (
+	history_file  = '~/.mal-history'
+	history_limit = 10000
+)
 
 fn rep_read(input string) !mal.Type {
 	return mal.read_str(input)!
@@ -281,11 +286,13 @@ fn main() {
 	} else {
 		// repl
 		rep('(println (str "Mal [" *host-language* "]"))', mut env)
+		greadline.history_file_read(os.expand_tilde_to_home(history_file))!
+		greadline.set_history_file_limit(history_limit)!
+		defer {
+			greadline.history_file_write() or {}
+		}
 		for {
-			line := read_line('user> ') or {
-				println('') // newline
-				break
-			}
+			line := greadline.readline('user> ') or { break }
 			out := rep(line, mut env)
 			if out.len > 0 {
 				println(out)

@@ -103,7 +103,7 @@ fn (mut r Reader) read_atom() !Type {
 
 pub fn read_str(input string) !Type {
 	mut reader := Reader{
-		toks: tokenise(input.trim_right("\r\n"))!
+		toks: tokenise(input.trim_right('\r\n'))!
 		re_int: regex.regex_opt(mal.re_int) or { panic('regex_opt()') }
 		re_float: regex.regex_opt(mal.re_float) or { panic('regex_opt()') }
 	}

@@ -21,10 +21,22 @@ WORKDIR /mal
 # Specific implementation requirements
 ##########################################################
 
-# Install other tools
+# fix ubuntu
+RUN ln -sf bash /bin/sh
+
+# install other tools
 RUN apt-get -y install git gcc
 
-# Install v
+# install v
 RUN git clone https://github.com/vlang/v /v
-RUN make -C /v && ln -s /v/v /usr/bin/v
-RUN mkdir /.vmodules && chmod 777 /.vmodules
+RUN cd /v && make && ./v symlink
+
+# install v modules
+RUN v -v install edam.greadline
+RUN mv /root/.vmodules /
+
+# fix permissions
+RUN find /v -type d -print0 | xargs -0 -- chmod a+x
+RUN chmod -R a+r /v
+RUN find /.vmodules -type d -print0 | xargs -0 -- chmod a+x
+RUN chmod -R a+r /.vmodules
