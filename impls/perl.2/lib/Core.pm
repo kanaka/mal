@@ -6,6 +6,8 @@ use Reader;
 use Eval;
 use Printer;
 
+our %meta;
+
 sub ns {
     {
         '*' => \&multiply,
@@ -22,6 +24,7 @@ sub ns {
         'atom' => \&atom_,
         'atom?' => \&atom_q,
         'concat' => \&concat,
+        'conj' => \&conj,
         'cons' => \&cons,
         'contains?' => \&contains_q,
         'count' => \&count,
@@ -30,6 +33,7 @@ sub ns {
         'empty?' => \&empty_q,
         'false?' => \&false_q,
         'first' => \&first,
+        'fn?' => \&fn_q,
         'get' => \&get,
         'hash-map' => \&hash_map_,
         'keys' => \&keys,
@@ -37,37 +41,36 @@ sub ns {
         'keyword?' => \&keyword_q,
         'list' => \&list_,
         'list?' => \&list_q,
+        'macro?' => \&macro_q,
         'map' => \&map_,
         'map?' => \&map_q,
+        'meta' => \&meta,
         'nil?' => \&nil_q,
         'nth' => \&nth,
-        'first' => \&first,
-        'rest' => \&rest,
-
-        'count' => \&count,
-        'empty?' => \&empty_q,
-
-        'read-string' => \&read_string,
-        'slurp' => \&slurp,
-
+        'number?' => \&number_q,
         'pr-str' => \&pr_str,
         'println' => \&println,
         'prn' => \&prn,
+        'readline' => \&readline_,
         'read-string' => \&read_string,
         'reset!' => \&reset,
         'rest' => \&rest,
+        'seq' => \&seq,
         'sequential?' => \&sequential_q,
         'slurp' => \&slurp,
         'str' => \&str,
+        'string?' => \&string_q,
         'swap!' => \&swap,
         'symbol' => \&symbol_,
         'symbol?' => \&symbol_q,
         'throw' => \&throw,
+        'time-ms' => \&time_ms,
         'true?' => \&true_q,
         'vals' => \&vals,
         'vec' => \&vec,
         'vector' => \&vector_,
         'vector?' => \&vector_q,
+        'with-meta' => \&with_meta,
     }
 }
 
@@ -93,6 +96,15 @@ sub atom_ { atom(@_) }
 sub atom_q { boolean(ref($_[0]) eq 'atom') }
 
 sub concat { list([map @$_, @_]) }
+
+sub conj {
+    my ($o, @args) = @_;
+    my $type = ref($o);
+    $type eq 'list' ? list([reverse(@args), @$o]) :
+    $type eq 'vector' ? vector([@$o, @args]) :
+    $type eq 'nil' ? nil :
+    throw("conj first arg type '$type' not allowed");
+}
 
 sub cons { list([$_[0], @{$_[1]}]) }
 
@@ -155,6 +167,8 @@ sub false_q { boolean(ref($_[0]) eq 'boolean' and not "$_[0]") }
 
 sub first { ref($_[0]) eq 'nil' ? nil : @{$_[0]} ? $_[0]->[0] : nil }
 
+sub fn_q { boolean(ref($_[0]) =~ /^(function|CODE)$/) }
+
 sub get {
     my ($map, $key) = @_;
     return nil unless ref($map) eq 'hash_map';
@@ -190,9 +204,13 @@ sub list_ { list([@_]) }
 
 sub list_q { boolean(ref($_[0]) eq 'list') }
 
+sub macro_q { boolean(ref($_[0]) eq 'macro') }
+
 sub map_ { list([ map apply($_[0], $_, []), @{$_[1]} ]) }
 
 sub map_q { boolean(ref($_[0]) eq "hash_map") }
+
+sub meta { $meta{"$_[0]"} // nil}
 
 sub multiply { $_[0] * $_[1] }
 
@@ -204,11 +222,20 @@ sub nth {
     $list->[$index];
 }
 
+sub number_q { boolean(ref($_[0]) eq "number") }
+
 sub pr_str { string(join ' ', map Printer::pr_str($_), @_) }
 
 sub println { printf "%s\n", join ' ', map Printer::pr_str($_, 1), @_; nil }
 
 sub prn { printf "%s\n", join ' ', map Printer::pr_str($_), @_; nil }
+
+sub readline_ {
+    print($_[0]);
+    my $l = readline(STDIN);
+    chomp $l;
+    string($l);
+}
 
 sub read_string { Reader::read_str(@_) }
 
@@ -219,6 +246,17 @@ sub rest {
     return list([]) if $list->isa('nil') or not @$list;
     shift @$list;
     list([@$list]);
+}
+
+sub seq {
+    my ($o) = @_;
+    my $type = ref($o);
+    $type eq 'list' ? @$o ? $o : nil :
+    $type eq 'vector' ? @$o ? list([@$o]) : nil :
+    $type eq 'string' ? length($$o)
+        ? list([map string($_), split //, $$o]) : nil :
+    $type eq 'nil' ? nil :
+    throw("seq does not support type '$type'");
 }
 
 sub sequential_q { boolean(ref($_[0]) =~ /^(list|vector)/) }
@@ -233,6 +271,8 @@ sub slurp {
 
 sub str { string(join '', map Printer::pr_str($_, 1), @_) }
 
+sub string_q { boolean(ref($_[0]) eq "string") }
+
 sub subtract { $_[0] - $_[1] }
 
 sub symbol_ { symbol($_[0]) }
@@ -246,6 +286,12 @@ sub swap {
 
 sub throw { die $_[0] }
 
+sub time_ms {
+    require Time::HiRes;
+    my ($s, $m) = Time::HiRes::gettimeofday();
+    number($s * 1000 + $m / 1000);
+}
+
 sub true_q { boolean(ref($_[0]) eq 'boolean' and "$_[0]") }
 
 sub vals { list([ values %{$_[0]} ]) }
@@ -255,5 +301,12 @@ sub vec { vector([@{$_[0]}]) }
 sub vector_ { vector([@_]) }
 
 sub vector_q { boolean(ref($_[0]) eq "vector") }
+
+sub with_meta {
+    my ($o, $m) = @_;
+    $o = ref($o) eq 'CODE' ? sub { goto &$o } : $o->clone;
+    $meta{$o} = $m;
+    $o;
+}
 
 1;

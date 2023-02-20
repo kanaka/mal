@@ -75,16 +75,16 @@ sub eval {
             return macroexpand($a1, $env);
 #             $ast = macroexpand($a1, $env);
 #             return $ast;
-        } elsif ('quote' eq $sym) {
-            return $a1;
-#             $ast = $a1;
-#             return $ast;
         } elsif ('quasiquote' eq $sym) {
             $ast = quasiquote($a1);
 #             $ast = $ast
         } elsif ('quasiquoteexpand' eq $sym) {
             return quasiquote($a1);
 #             $ast = quasiquote($a1);
+#             return $ast;
+        } elsif ('quote' eq $sym) {
+            return $a1;
+#             $ast = $a1;
 #             return $ast;
         } elsif ('try*' eq $sym) {
             local $@;

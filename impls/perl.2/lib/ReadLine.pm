@@ -25,10 +25,21 @@ sub readline {
     $tty->Attribs->{completion_function} = sub {
         my ($text, $line, $start) = @_;
         keys %{$env->{stash}}, qw(
-            true
+            catch*
+            def!
+            defmacro!
+            do
             false
+            fn*
+            if
+            let*
+            macroexpand
             nil
+            quasiquote
+            quasiquoteexpand
+            try*
             quote
+            true
         );
     };
     $tty->readline($prompt);

@@ -22,6 +22,7 @@ sub pr_str {
     $type eq 'number' ? $$o :
     $type eq 'boolean' ? $$o ? 'true' : 'false' :
     $type eq 'nil' ? 'nil' :
+    $type eq 'CODE' ? "<#$o>" :
     $type eq 'function' ? '<#function>' :
     $type eq 'macro' ? '<#macro>' :
     $type eq 'list' ?

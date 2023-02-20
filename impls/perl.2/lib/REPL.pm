@@ -13,6 +13,7 @@ my $prompt = 'user> ';
 my $env = Env->new->add(Core::ns);
 
 $env->set('*ARGV*', list([map string($_), @ARGV[1..$#ARGV]]));
+$env->set('*host-language*', string('perl.2'));
 $env->set(eval => sub { Eval::eval($_[0], $env) });
 
 # Define: `not`, 'load-file` and `cond`:

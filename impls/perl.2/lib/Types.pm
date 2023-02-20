@@ -26,10 +26,10 @@ our @EXPORT = qw<
 sub atom     { 'atom'    ->new(@_) }
 sub boolean  { 'boolean' ->new(@_) }
 sub function { 'function'->new(@_) }
-sub keyword  { local ($_) = @_; s/^://; 'keyword'->new(":$_") }
+sub keyword  { 'keyword' ->new(@_) }
 sub hash_map { 'hash_map'->new(@_) }
 sub list     { 'list'    ->new(@_) }
-sub macro    { bless $_[0], 'macro' }
+sub macro    { 'macro'   ->new(@_) }
 sub number   { 'number'  ->new(@_) }
 sub string   { 'string'  ->new(@_) }
 sub symbol   { 'symbol'  ->new(@_) }
@@ -49,10 +49,14 @@ sub new {
     bless $list, $class;
 }
 
+sub clone { ref($_[0])->new([@{$_[0]}]) }
+
+#------------------------------------------------------------------------------
 package Map;
 
 sub new { die }
 
+#------------------------------------------------------------------------------
 package Scalar;
 
 use overload '""' => sub { ${$_[0]} };
@@ -86,6 +90,10 @@ sub new {
     bless $hash, $class;
 }
 
+sub clone {
+    hash_map->new([ %{$_[0]} ]);
+}
+
 #------------------------------------------------------------------------------
 # Scalar types:
 #------------------------------------------------------------------------------
@@ -100,6 +108,18 @@ sub new {
             exprs => \@_,
         );
     }, $class;
+}
+sub clone {
+    my ($fn) = @_;
+    bless sub { goto &$fn }, ref($fn);
+}
+
+package macro;
+# use base 'function';
+sub new {
+    my ($class, $function) = @_;
+    XXX $function unless ref($function) eq 'function';
+    bless sub { goto &$function }, $class;
 }
 
 
@@ -119,6 +139,13 @@ use base 'Scalar';
 
 package keyword;
 use base 'Scalar';
+sub new {
+    my ($class, $scalar) = @_;
+    $scalar =~ s/^://;
+    $scalar = ":$scalar";
+    bless \$scalar, $class;
+}
+
 
 
 package nil;
