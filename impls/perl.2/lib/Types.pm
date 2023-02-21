@@ -60,6 +60,7 @@ sub new { die }
 package Scalar;
 
 use overload '""' => sub { ${$_[0]} };
+use overload cmp => sub { "$_[0]" cmp "$_[1]" };
 
 sub new {
     my ($class, $scalar) = @_;
@@ -84,6 +85,14 @@ use Tie::IxHash;
 
 sub new {
     my ($class, $list) = @_;
+    for (my $i = 0; $i < @$list; $i += 2) {
+        my $key = $list->[$i];
+        if (my $type = ref($key)) {
+            die "Type '$type' not supported as a hash-map key"
+                if not($key->isa('Scalar')) or $type eq 'symbol';
+            $list->[$i] = $type eq 'string' ? qq<"$key> : qq<$key>;
+        }
+    }
     my %hash;
     my $tie = tie(%hash, 'Tie::IxHash', @$list);
     my $hash = \%hash;

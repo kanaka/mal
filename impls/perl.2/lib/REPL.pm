@@ -10,8 +10,9 @@ use Types;
 use Core;
 
 my $prompt = 'user> ';
-my $env = Env->new->add(Core::ns);
+our $env = Env->new->add(Core::ns);
 
+$env->set('*file*', string($ARGV[0]));
 $env->set('*ARGV*', list([map string($_), @ARGV[1..$#ARGV]]));
 $env->set('*host-language*', string('perl.2'));
 $env->set(eval => sub { Eval::eval($_[0], $env) });
@@ -26,7 +27,10 @@ rep('
     (def! load-file (fn* (f)
         (eval (
             read-string (
-                str "(do " (slurp f) "\nnil)")))))');
+                str
+                    "(do "
+                    (slurp f)
+                    "\nnil)")))))');
 rep(q[
     (defmacro! cond (fn* (& xs)
         (if (> (count xs) 0)
@@ -36,7 +40,14 @@ rep(q[
                     (throw "odd number of forms to cond")
                 )
                 (cons 'cond (rest (rest xs)))))))]);
-$::x = 1;
+rep(q[
+    (println
+        (str
+            "Mal ["
+            *host-language*
+            "]"))])
+    unless $ENV{MAL_IMPL} or $ENV{STEP};
+
 sub repl {
     while (defined (my $line = readline($prompt, $env))) {
         try($line) if length $line;

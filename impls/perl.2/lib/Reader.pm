@@ -69,26 +69,15 @@ sub read_hash_map {
     my ($self, $type, $end) = @_;
     my $tokens = $self->{tokens};
     shift @$tokens;
-    my $hash = $type->new([]);
+    my $pairs = [];
     while (@$tokens > 0) {
         if ($tokens->[0] eq $end) {
             shift @$tokens;
-            return $hash;
+            return $type->new($pairs);
         }
-        my $key = $self->read_key;
-        my $val = $self->read_form;
-        $hash->{$key} = $val;
+        push @$pairs, $self->read_form, $self->read_form;
     }
     die "Reached end of input in 'read_hash_map'";
-}
-
-sub read_key {
-    my ($self) = @_;
-    my $form = $self->read_form;
-    my $type = ref($form);
-    die "Type '$type' not supported as a hash-map key"
-        if not($form->isa('Scalar')) or $type eq 'symbol';
-    $form->isa('string') ? qq{"$$form} : $$form;
 }
 
 my $string_re = qr/"((?:\\.|[^\\"])*)"/;
