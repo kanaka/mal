@@ -18,6 +18,14 @@ function M.MalHashMap.new(...)
   return self
 end
 
+function M.MalHashMap:keys()
+  local res = {}
+  for k,_ in pairs(self) do
+    table.insert(k)
+  end
+  return M.MalList.new(res)
+end
+
 M.MalList = {}
 M.MalList.__index = M.MalList
 

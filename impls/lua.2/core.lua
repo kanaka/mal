@@ -11,6 +11,8 @@ local Nil = types.Nil
 local throw = types.throw
 local Reader = require "reader"
 local Atom = types.Atom
+local Err = types.Err
+local Hashmap = types.MalHashMap
 
 core[Sym.new('pr-str')] = function (...)
   local res = ""
@@ -201,6 +203,222 @@ core[Sym.new('rest')] = function (v, ...)
   end 
   return List.new({table.unpack(v,2)}) 
 end
+
+core[Sym.new('throw')] = function (v, ...)
+  if ... ~= nil then throw("throw expect expects 1 args got: " .. 1 + #table.pack(...)) end
+  if v == nil then
+    return Err.new("")
+  end
+  if false and not(type(v) == "string" or v == Nil) then
+    throw("first argument to throw should be string or nil")
+  end
+  
+  return Err.new(Printer.stringfy_val(v)) 
+end
+
+
+core[Sym.new('map')] = function (f, seq, ...)  
+  if ... ~= nil then 
+    throw("map expect expects 1 args got: " .. 1 + #table.pack(...)) 
+  end
+
+  if not(is_instanceOf(f, Function) or type(f) == "function" ) then 
+    throw("map expect first argument to be function") 
+  end
+  if not(is_sequence(seq)) then
+    throw("map expect 2nd argument to be sequence") 
+  end
+  local constructor = Err.new
+  if is_instanceOf(f, Function) then
+    f = f.fn
+  end
+  if is_instanceOf(seq, List) then
+    constructor = List.new
+  elseif is_instanceOf(seq, Vector) then
+    constructor = Vector.new
+  end
+  local acc = {}
+  for _,v  in pairs(seq) do 
+    table.insert(acc, f(v))
+  end
+  return constructor(acc)
+  
+end
+
+core[Sym.new('apply')] = function (...)  
+  local args = table.pack(...)
+  if #args < 2  then 
+    throw("apply expect at leasth 2 args got: " ..  #args) 
+  end
+  local f = args[1]
+  if not(is_instanceOf(f, Function) or type(f) == "function" ) then 
+    throw("apply expect first argument to be function") 
+  end
+  local last_arg = args[#args]
+  if not(is_instanceOf(last_arg, List)) then
+    throw("apply expect last argument to be List") 
+  end
+  if is_instanceOf(f, Function) then
+    f = f.fn
+  end
+
+  for i=#args-1,2,-1 do
+    table.insert(last_arg, 1, args[i])
+  end
+  return f(table.unpack(last_arg))
+end
+
+
+
+
+
+core[Sym.new('nil?')] = function (v, ...)
+  if ... ~= nil then throw("nil? expect expects 1 args got: " .. 1 + #table.pack(...)) end
+  if v == nil then throw("nil? expect expects 1 args got: 0") end
+  return v == Nil
+end
+
+core[Sym.new('true?')] = function (v, ...)
+  if ... ~= nil then throw("true? expect expects 1 args got: " .. 1 + #table.pack(...)) end
+  if v == nil then throw("true? expect expects 1 args got: 0") end
+  return v == true
+end
+
+core[Sym.new('false?')] = function (v, ...)
+  if ... ~= nil then throw("false? expect expects 1 args got: " .. 1 + #table.pack(...)) end
+  if v == nil then throw("false? expect expects 1 args got: 0") end
+  return v == false
+end
+
+core[Sym.new('symbol?')] = function (v, ...)
+  if ... ~= nil then throw("symbol? expect expects 1 args got: " .. 1 + #table.pack(...)) end
+  if v == nil then throw("symbol? expect expects 1 args got: 0") end
+  return is_instanceOf(v, Sym)
+end
+
+core[Sym.new('sequential?')] = is_sequence
+
+core[Sym.new('vector?')] = function (v, ...)
+  if ... ~= nil then throw("vector? expect expects 1 args got: " .. 1 + #table.pack(...)) end
+  if v == nil then throw("vector? expect expects 1 args got: 0") end
+  return is_instanceOf(v, Vector)
+end
+
+core[Sym.new('hash-map')] = Hashmap.new
+
+core[Sym.new('keys')] = function (v, ...) 
+  if ... ~= nil then throw("keys expect expects 1 args got: " .. 1 + #table.pack(...)) end
+  if v == nil then throw("keys expect expects 1 args got: 0") end
+  if not(is_instanceOf(v, Hashmap)) then throw("keys expects its argument to be HashMap but got:" .. type(v) ) end
+
+  local res = {}
+  for k,_ in pairs(v) do
+    table.insert(res, k)
+  end
+  return List.new(res)
+ 
+end
+
+core[Sym.new('vals')] = function (v, ...) 
+  if ... ~= nil then throw("vals expect expects 1 args got: " .. 1 + #table.pack(...)) end
+  if v == nil then throw("vals expect expects 1 args got: 0") end
+  if not(is_instanceOf(v, Hashmap)) then throw("vals expects its argument to be HashMap but got:" .. type(v) ) end
+
+  local res = {}
+  for _,v in pairs(v) do
+    table.insert(res, k)
+  end
+  return List.new(res)
+ 
+end
+
+
+core[Sym.new('map?')] = function (v, ...) 
+  if ... ~= nil then throw("map? expect expects 1 args got: " .. 1 + #table.pack(...)) end
+  if v == nil then throw("map? expect expects 1 args got: 0") end
+  return is_instanceOf(v, Hashmap)
+end
+
+core[Sym.new('hash-map')] = Hashmap.new
+
+core[Sym.new('get')] = function (...)
+  local args = table.pack(...)
+  if #args ~= 2 then 
+    throw("map? expect expects 2 args got: " ..  #args)
+  end
+  local map = args[1]
+  local key = args[2]
+  if not(is_instanceOf(map, Hashmap)) then
+    throw("get expects first arg to be hashmap")
+  end
+   
+ return map[key] and map[key] or Nil
+end
+
+core[Sym.new('contains?')] = function (...)
+  local args = table.pack(...)
+  if #args ~= 2 then 
+    throw("contains? expect expects 1 args got: " ..  #args)
+  end
+  local map = args[1]
+  local key = args[2]
+  if not(is_instanceOf(map, Hashmap)) then
+    throw("contains? expects first arg to be hashmap")
+  end
+   
+ return map[key] and true or false
+end
+
+core[Sym.new('assoc')] = function (...)
+  local args = table.pack(...)
+  if #args % 2 ~= 1 then 
+    throw("assoc expect expects odd number of args got: " ..  #args)
+  end
+  local map = table.remove(args,1)
+  if not(is_instanceOf(map, Hashmap)) then
+    throw("assoc expects first arg to be hashmap")
+  end
+  local res = Hashmap.new()
+  for k,v in pairs(map) do
+    res[k] = v
+  end
+  for i=1,#args,2 do
+    print("associng")
+    res[args[i]] = args[i+1]
+  end
+   
+  return res
+end
+
+core[Sym.new('dissoc')] = function (...)
+  local args = table.pack(...)
+  if #args  ~= 2 then 
+    throw("assoc expect expects 2 args got: " ..  #args)
+  end
+  local map = args[1] 
+  if not(is_instanceOf(map, Hashmap)) then
+    throw("assoc expects first arg to be HashMap")
+  end
+  local list = args[2]
+  if not(is_instanceOf(list, List)) then
+    throw("assoc expects second arg to be List")
+  end
+
+  local res = Hashmap.new()
+  for k,v in pairs(map) do
+    for _, listval in pairs(list) do
+      if k == listval then 
+      else
+        res[k] = v
+      end
+    end
+  end
+
+   
+  return res
+end
+
+
 
 
 return core
