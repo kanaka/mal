@@ -270,7 +270,7 @@ function eval_ast(ast, env)
   elseif is_instanceOf(ast, Sym) then
     if string.byte(ast.val, 1, 1) == 202  and 
        string.byte(ast.val, 2, 2) == 158  then  -- this magic numbers come from \u{29E}
-      return Sym.new(":" .. string.sub(ast.val, 3, #ast.val))
+      return ast
     end
     return env:get(ast)
   
@@ -288,7 +288,7 @@ end
 local repl_env = Env.new(nil)
 
 for k,v in pairs(core) do
-  repl_env:set(k,v)
+  repl_env:set(Sym.new(k),v)
 end
 
 repl_env:set(Sym.new('eval'), function (ast)

@@ -12,7 +12,13 @@ function M.MalHashMap.new(...)
   local self = {}
   setmetatable(self, M.MalHashMap)
   for i= 1, #arg, 2 do 
-    self[arg[i]] = arg[i+1] 
+    if M.isinstanceof(arg[i], M.Sym) and "\u{29E}" == string.sub(arg[i].val,1,2) then
+      self[arg[i].val] = arg[i+1]
+    else
+
+      self[arg[i]] = arg[i+1] 
+    end
+
   end
 
   return self
