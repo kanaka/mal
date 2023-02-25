@@ -286,13 +286,13 @@ end
 core['symbol?'] = function (v, ...)
   if ... ~= nil then throw("symbol? expect expects 1 args got: " .. 1 + #table.pack(...)) end
   if v == nil then throw("symbol? expect expects 1 args got: 0") end
-  return is_instanceOf(v, Sym) and not( "\u{29E}" == string.sub(v.val,1,2))
+  return is_instanceOf(v, Sym)
 end
 
 core['keyword?'] = function (v, ...)
   if ... ~= nil then throw("keyword? expect expects 1 args got: " .. 1 + #table.pack(...)) end
   if v == nil then throw("keyword? expect expects 1 args got: 0") end
-  return is_instanceOf(v, Sym) and "\u{029e}" == string.sub(v.val,1,2)
+  return type(v) == "string" and "\u{029e}" == string.sub(v,1,2)
 
 end
 
@@ -308,7 +308,7 @@ core['keyword'] = function (...)
   if not( type(val) == "string") then
     throw("keyword expects string or keyword type")
   end
-  return Sym.new("\u{029e}" .. val)
+  return "\u{029e}" .. val
   
 end
 
@@ -347,11 +347,7 @@ core['keys'] = function (v, ...)
 
   local res = {}
   for k,_ in pairs(v) do
-    if type(k) == "string" and "\u{29E}" == string.sub(k, 1, 2) then
-      table.insert(res, Sym.new(k))
-    else
-      table.insert(res, k)
-    end
+    table.insert(res, k)
   end
   return List.new(res)
  
@@ -382,15 +378,12 @@ core['hash-map'] = Hashmap.new
 core['get'] = function (...)
   local args = table.pack(...)
   if #args ~= 2 then 
-    throw("map? expect expects 2 args got: " ..  #args)
+    throw("get expect expects 2 args got: " ..  #args)
   end
   local map = args[1]
   local key = args[2]
   if not(is_instanceOf(map, Hashmap)) then
     throw("get expects first arg to be hashmap")
-  end
-   if core['keyword?'](key) then
-    key = key.val
   end
    
   return map[key] and map[key] or Nil
@@ -406,15 +399,11 @@ core['contains?'] = function (...)
   if not(is_instanceOf(map, Hashmap)) then
     throw("contains? expects first arg to be hashmap")
   end
-  if core['keyword?'](key) then
-    key = key.val
-  end
-   
+     
   return map[key] and true or false
 end
 
 
---fixme every mapping place should check for keywords
 core['assoc'] = function (...)
   local args = table.pack(...)
   if #args % 2 ~= 1 then 
@@ -435,24 +424,18 @@ core['assoc'] = function (...)
   return res
 end
 
---fixme every mapping place should check for keywords
 core['dissoc'] = function (...)
   local args = table.pack(...)
-  if #args  ~= 2 then 
-    throw("assoc expect expects 2 args got: " ..  #args)
+  if #args  < 2 then 
+    throw("assoc expect expects at least 2 args got: " ..  #args)
   end
-  local map = args[1] 
+  local map = table.remove(args,1) 
   if not(is_instanceOf(map, Hashmap)) then
     throw("assoc expects first arg to be HashMap")
   end
-  local list = args[2]
-  if not(is_instanceOf(list, List)) then
-    throw("assoc expects second arg to be List")
-  end
-
   local res = Hashmap.new()
   for k,v in pairs(map) do
-    for _, listval in pairs(list) do
+    for _, listval in ipairs(args) do
       if k == listval then 
       else
         res[k] = v

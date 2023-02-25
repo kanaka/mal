@@ -121,7 +121,7 @@ function M.is_equal(a, b)
         return false
       end end
     return true
-  elseif M.isinstanceof(a, M.HashMap) and M.isinstanceof(b, M.HashMap) then
+  elseif M.isinstanceof(a, M.MalHashMap) and M.isinstanceof(b, M.MalHashMap) then
     for k,v in pairs(a) do
       if not ( M.is_equal(a[k],b[k])) then
         return false

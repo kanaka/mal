@@ -38,11 +38,6 @@ function Printer.stringfy_val(val, readably)
   elseif is_instanceOf(val, HashMap) then
     res = res .. '{'
     for i,v in pairs(val) do
-      if type(i) == "string" and 
-        "\u{29E}" == string.sub(i,1,2) then 
-        i = Sym.new(i)
-      end
-      
       res = res .. Printer.stringfy_val(i, readably) .. " " .. Printer.stringfy_val(v,readably)
       res = res .. " "
     end
@@ -52,7 +47,6 @@ function Printer.stringfy_val(val, readably)
     res = res .. '}'
 
   elseif is_instanceOf(val, Sym) then
-    if "\u{29E}" == string.sub(val.val, 1, 2) then return ":" .. string.sub(val.val, 3) end
     return val.val
   elseif is_instanceOf(val, Err) then
     return "exc is: " .. Scanner.escape(val.val)
@@ -63,6 +57,8 @@ function Printer.stringfy_val(val, readably)
     res = "(atom " .. Printer.stringfy_val(val.val) .. ")"
 
   elseif type(val) == "string" then
+    if "\u{29E}" == string.sub(val, 1, 2) then 
+      return ":" .. string.sub(val, 3) end
     if readably then
       res = Scanner.unescape(val)
     else

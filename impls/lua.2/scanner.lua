@@ -177,7 +177,7 @@ function Scanner.scanToken(self)
       self:advance()
     end
     local val = "\u{29E}" .. string.sub(self.source, self.start+1, self.index-1)
-    table.insert(self.tokens, Token("SYM", val, self.line))
+    table.insert(self.tokens, Token("STR", val, self.line))
   elseif not self.is_special(char)  then
     while not(self.is_special(self:peek())) do
       self:advance()
