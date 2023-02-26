@@ -33,7 +33,7 @@ core['str'] = function (...)
   return res
 end
 
- core['prn'] = function (...)
+core['prn'] = function (...)
   local res = ""
   local args = table.pack(...)
   for i,v in ipairs(args) do
@@ -180,7 +180,7 @@ core['nth'] = function (v, idx, ...)
     throw("second argument to nth should be number")
   end
   if idx > #v - 1 or idx < 0 then
-    throw("invalid index")
+    throw("index out of range")
   end
   return v[idx+1] or Nil
 end
@@ -207,13 +207,10 @@ end
 core['throw'] = function (v, ...)
   if ... ~= nil then throw("throw expect expects 1 args got: " .. 1 + #table.pack(...)) end
   if v == nil then
-    return Err.new("")
+    throw("")
   end
-  if false and not(type(v) == "string" or v == Nil) then
-    throw("first argument to throw should be string or nil")
-  end
-  
-  return Err.new(Printer.stringfy_val(v)) 
+
+  throw(v) 
 end
 
 --fixme
@@ -382,8 +379,8 @@ core['get'] = function (...)
   end
   local map = args[1]
   local key = args[2]
-  if not(is_instanceOf(map, Hashmap)) then
-    throw("get expects first arg to be hashmap")
+  if not(is_instanceOf(map, Hashmap) or map == Nil) then
+    throw("get expects first arg to be hashmap or nil")
   end
    
   return map[key] and map[key] or Nil
@@ -435,15 +432,16 @@ core['dissoc'] = function (...)
   end
   local res = Hashmap.new()
   for k,v in pairs(map) do
+    local keep = true
     for _, listval in ipairs(args) do
       if k == listval then 
-      else
-        res[k] = v
+        keep = false
       end
     end
+    if keep then 
+       res[k] = v
+    end
   end
-
-   
   return res
 end
 

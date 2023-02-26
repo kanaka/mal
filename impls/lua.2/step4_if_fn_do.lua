@@ -156,7 +156,7 @@ end
 local repl_env = Env.new(nil)
 
 for k,v in pairs(core) do
-  repl_env:set(k,v)
+  repl_env:set(Sym.new(k),v)
 end
 
 

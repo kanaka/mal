@@ -65,7 +65,7 @@ function Env:get(key)
   if env then
     return env.data[key.val]
   end
-  throw(string.format("'%s' not found.", Printer.stringfy_val(key)))
+  throw(string.format("'%s' not found", Printer.stringfy_val(key)))
 end
 
 return Env

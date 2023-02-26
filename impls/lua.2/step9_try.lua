@@ -97,14 +97,28 @@ function macro_expand(ast, env)
   return ast
 end
 
-function try(a, c, env)
+function try(a, env)
+  --assert(nil, "try is not refactored yet")
+  if #a > 2  and #a < 1 then
+    throw("try expected at 1 or 2 arguments but got '" .. #a .. "'.") 
+  end
+  if #a == 2 then
+    if not(is_instanceOf(a[2], List) and #a[2] == 3 and is_instanceOf(a[2][1],Sym) and 
+    a[2][1].val == "catch*" and is_instanceOf(a[2][2],Sym) ) then
+        throw("try expected 2nd argument as list with 3 elems " ..
+        "first elem being symbol 'catch*' " .. "second being symbol")
+    end
+  end
+  
+  local tb = a[1]
+  local cb = a[2] or List.new({ nil , Sym.new('_'), Sym.new('_')})
   local status, val = pcall( function ()
-    return EVAL(a, env)
+    return EVAL(tb, env)
   end ) 
   if not status then
     local env_with_ex = Env.new(env)
-    env_with_ex:set(c[2],val)
-    return EVAL(c[3], env_with_ex)
+    env_with_ex:set(cb[2],val)
+    return EVAL(cb[3], env_with_ex)
   end
   return val  
 end
@@ -123,6 +137,7 @@ function EVAL(a, env)
     end
     local first_elem = a[1]
     local first_sym = is_instanceOf(first_elem, Sym) and first_elem.val or ""
+    --print("First symbol= '" .. first_sym .. "'")
 
     if first_sym == "def!" then
       if #a ~= 3 then 
@@ -219,13 +234,8 @@ function EVAL(a, env)
       if (#a) ~= 2 then throw("macroexpand expected 1 arguments but got '" .. #a-1 .. "'.") end
       return macro_expand(a[2],env)
     elseif first_sym == "try*" then
-      if (#a) ~= 3 then throw("try expected 2 arguments but got '" .. #a-1 .. "'.") end
-      if not( is_instanceOf(a[3], List) and
-        #a[3] == 3  and is_instanceOf(a[3][1],Sym) and a[3][1].val == "catch*") then
-        throw("try expected 2nd argument as list with 3 elems" ..
-        "first elem being symbol 'catch*'")
-      end
-      return try(a[2], a[3], env)
+      table.remove(a,1) 
+      return try(a, env)
 
     else 
   
@@ -322,9 +332,9 @@ rep("(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (
       local status, err = pcall(function () print(rep(line)) end)
       if not status then
         if is_instanceOf(err, Err) then
-          err = Printer.stringfy_val(err)
+          err = Printer.stringfy_val(err, true)
         end
-        print(err)
+        print("Error: " .. err)
         print(debug.traceback())
       end
     end
