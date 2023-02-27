@@ -53,6 +53,7 @@ languages:
   - [objc          , Objective C      , C      , Static     , []]
   - [ocaml         , OCaml            , ML     , Static     , []]
   - [perl          , Perl             , C      , Dynamic    , []]
+  - [perl.2        , Perl             , C      , Dynamic    , []]
   - [perl6         , Perl 6           , C      , Dynamic    , []]
   - [php           , PHP              , C      , Dynamic    , []]
   - [picolisp      , Picolisp         , Lisp   , Dynamic    , []]
