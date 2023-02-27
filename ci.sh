@@ -54,7 +54,9 @@ if [ -z "${NO_DOCKER}" ]; then
     img_impl=$(echo "${MAL_IMPL:-${IMPL}}" | tr '[:upper:]' '[:lower:]')
     # We could just use make DOCKERIZE=1 instead but that does add
     # non-trivial startup overhead for each step.
-    MAKE="docker run -i -u $(id -u) -v `pwd`:/mal kanaka/mal-test-${img_impl%%-mal} ${MAKE}"
+    image=kanaka/mal-test-${img_impl%%-mal}
+    docker pull "$image" || make "docker-build^${IMPL}"
+    MAKE="docker run -i -u $(id -u) -v `pwd`:/mal $image ${MAKE}"
 fi
 
 case "${ACTION}" in
