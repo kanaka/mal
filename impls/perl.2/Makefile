@@ -20,16 +20,16 @@ GREP_RESULTS := grep -E '(^TEST RESULTS|: .* tests$$)'
 default:
 
 test:
-	$(MAKE) test-all BASIC=$(BASIC) |& $(GREP_RESULTS)
+	time $(MAKE) test-all BASIC=$(BASIC) |& $(GREP_RESULTS)
 
 test-all: $(ALL_TESTS)
 
-test-self-host:
-	$(MAKE) -C $(ROOT) MAL_IMPL=$(IMPL) test^mal^step{{0..4},{6..9},A} |& \
+test-self-host: docker-build
+	time $(MAKE) -C $(ROOT) MAL_IMPL=$(IMPL) test^mal^step{{0..4},{6..9},A} |& \
 	    $(GREP_RESULTS)
 
 $(ALL_TESTS):
-	$(MAKE) --no-print-directory -C $(ROOT) test^$(IMPL)^step$(@:test-%=%) \
+	time $(MAKE) --no-print-directory -C $(ROOT) test^$(IMPL)^step$(@:test-%=%) \
 	    DEFERRABLE=$(DEFERRABLE) OPTIONAL=$(OPTIONAL)
 
 docker-build:
