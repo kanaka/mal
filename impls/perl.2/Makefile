@@ -14,15 +14,24 @@ IMPL ?= $(shell basename $(BASE))
 
 ALL_TESTS := $(shell echo test-{{0..9},A})
 
+GREP_RESULTS := grep -E '(^TEST RESULTS|: .* tests$$)'
+
 
 default:
 
 test:
-	$(MAKE) test-all BASIC=$(BASIC) |& \
-	    grep -E '(^TEST RESULTS|: .* tests$$)'
+	$(MAKE) test-all BASIC=$(BASIC) |& $(GREP_RESULTS)
 
 test-all: $(ALL_TESTS)
+
+test-self-host:
+	$(MAKE) -C $(ROOT) MAL_IMPL=$(IMPL) test^mal^step{{0..4},{6..9},A} |& \
+	    $(GREP_RESULTS)
 
 $(ALL_TESTS):
 	$(MAKE) --no-print-directory -C $(ROOT) test^$(IMPL)^step$(@:test-%=%) \
 	    DEFERRABLE=$(DEFERRABLE) OPTIONAL=$(OPTIONAL)
+
+docker-build:
+	$(MAKE) -C $(ROOT) docker-build^$(IMPL)
+	@echo
