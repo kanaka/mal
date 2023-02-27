@@ -1,0 +1,5 @@
+#!/bin/bash
+
+set -eu
+
+exec perl "$(dirname "${BASH_SOURCE[0]}")/${STEP:-stepA_mal}.pl" "$@"

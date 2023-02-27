@@ -64,6 +64,7 @@ IMPL:
   - {IMPL: objc}
   - {IMPL: ocaml}
   - {IMPL: perl}
+  - {IMPL: perl.2}
   - {IMPL: perl6}
   - {IMPL: php}
   - {IMPL: picolisp}

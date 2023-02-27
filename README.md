@@ -101,6 +101,7 @@ FAQ](docs/FAQ.md) where I attempt to answer some common questions.
 | [Objective C](#objective-c) | [Joel Martin](https://github.com/kanaka)  |
 | [OCaml](#ocaml-4010) | [Chris Houser](https://github.com/chouser) |
 | [Perl](#perl-5) | [Joel Martin](https://github.com/kanaka)  |
+| [Perl #2](#perl-5-2) | [Ingy döt Net](https://github.com/ingydotnet)  |
 | [Perl 6](#perl-6) | [Hinrik Örn Sigurðsson](https://github.com/hinrik) |
 | [PHP](#php-53) | [Joel Martin](https://github.com/kanaka)  |
 | [Picolisp](#picolisp) | [Vasilij Schneidermann](https://github.com/wasamasa) |
@@ -829,6 +830,17 @@ Term::ReadLine::Gnu from CPAN.
 ```
 cd impls/perl
 perl stepX_YYY.pl
+```
+
+### Perl 5 #2
+
+This Perl 5 implementation should work with perl 5.10.1 and later.
+
+```
+cd impls/perl.2
+perl ./repl
+make test
+make test-self-host
 ```
 
 ### Perl 6
