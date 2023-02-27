@@ -22,6 +22,17 @@ die "Please install Term::ReadLine::Gnu from CPAN\n"
 
 sub readline {
     my ($prompt, $env) = @_;
+    $tty->ornaments(0);
+
+    if (not ($ENV{MAL_IMPL} or $ENV{STEP})) {
+        # These settings make the interactive repl nice to use but severely
+        # slow down the self-hosting tests.
+        $tty->parse_and_bind($_) for (
+            'set blink-matching-paren on',
+            'set show-all-if-ambiguous on',
+        );
+    }
+
     $tty->Attribs->{completion_function} = sub {
         my ($text, $line, $start) = @_;
         keys %{$env->{stash}}, qw(
