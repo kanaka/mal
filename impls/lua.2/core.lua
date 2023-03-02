@@ -210,6 +210,7 @@ core['throw'] = function (v, ...)
     throw("")
   end
 
+
   throw(v) 
 end
 
@@ -389,7 +390,7 @@ end
 core['contains?'] = function (...)
   local args = table.pack(...)
   if #args ~= 2 then 
-    throw("contains? expect expects 1 args got: " ..  #args)
+    throw("contains? expect expects 2 args got: " ..  #args)
   end
   local map = args[1]
   local key = args[2]
@@ -443,6 +444,86 @@ core['dissoc'] = function (...)
     end
   end
   return res
+end
+
+core['readline'] = function (...)
+  local args = table.pack(...)
+  if #args  ~= 1 then 
+    throw("readline expect expects 1 args got: " ..  #args)
+  end
+  local prompt = args[1]
+  if type(prompt) ~=  "string" then
+    throw("readline expects first arg to be string")
+  end
+  io.write(prompt)
+  local v = io.read()
+  if v == nil then
+    io.write('\n')
+  end
+  return v or Nil
+end
+
+core['time-ms'] = function (...)
+  assert(nil, 'time-ms not implemented yet')
+end
+core['meta'] = function (...)
+    local args = table.pack(...)
+    if #args ~= 1 then 
+      throw("fn? expect expects 1 args got: " ..  #args)
+    end
+ 
+    local m = getmetatable(obj)
+    if m == nil or m.meta == nil then return Nil end
+    return m.meta
+end
+
+core['with-meta'] = function (...)
+    local new_obj = types.copy(obj)
+    getmetatable(new_obj).meta = meta
+    return new_obj
+end
+
+core['fn?'] = function (...)
+  local args = table.pack(...)
+  if #args ~= 1 then 
+    throw("fn? expect expects 1 args got: " ..  #args)
+  end
+  return is_instanceOf(args[1],Function) or type(args[1]) == "function"
+  
+end
+
+core['number?'] = function (...)
+  local args = table.pack(...)
+  if #args ~= 1 then 
+    throw("number? expect expects 1 args got: " ..  #args)
+  end
+  return type(args[1]) == "number"
+end
+
+core['string?'] = function (...)
+  local args = table.pack(...)
+  if #args ~= 1 then 
+    throw("string? expect expects 1 args got: " ..  #args)
+  end
+  return type(args[1]) == "string"
+end
+
+core['macro?'] = function (...)
+  local args = table.pack(...)
+  if #args ~= 1 then 
+    throw("macro? expect expects 1 args got: " ..  #args)
+  end
+  return is_instanceOf(args[1], Function) and args[1].is_macro
+end
+
+
+core['seq'] = function (...)
+  assert(nil, 'seq not implemented yet')
+end
+
+
+core['conj'] = function (...)
+  assert(nil, 'conj not implemented yet')
 end
 
 

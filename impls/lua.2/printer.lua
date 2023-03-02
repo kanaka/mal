@@ -49,7 +49,7 @@ function Printer.stringfy_val(val, readably)
   elseif is_instanceOf(val, Sym) then
     return val.val
   elseif is_instanceOf(val, Err) then
-    return Printer.stringfy_val(val.val, true)
+    return Printer.stringfy_val(val.val,readably)
   elseif is_instanceOf(val, Function) then
     res = "(fn* "  .. Printer.stringfy_val(val.params) .. 
     "-->" .. Printer.stringfy_val(val.ast) ..")" .. "ismacro: " .. tostring(val.is_macro)
