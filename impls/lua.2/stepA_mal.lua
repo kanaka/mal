@@ -66,7 +66,7 @@ function quasiquote(a)
 end
 
 function is_macro_call(ast, env)
-    if is_instanceOf(ast, List) and #ast >= 1 and is_instanceOf(ast[1], Sym) then
+  if is_instanceOf(ast, List) and #ast >= 1 and is_instanceOf(ast[1], Sym) then
     local status, first_env = pcall( function () return env:get(ast[1]) end)
     if not status then return false end
     if is_instanceOf(first_env, Function) and first_env.is_macro then
@@ -92,6 +92,7 @@ end
 
 function try(a, env)
   --assert(nil, "try is not refactored yet")
+  a = table.pack(table.unpack(a,2)) -- removing try* symbol
   if #a > 2  and #a < 1 then
     throw("try expected at 1 or 2 arguments but got '" .. #a .. "'.") 
   end
@@ -131,7 +132,6 @@ function EVAL(a, env)
     local first_elem = a[1]
     local first_sym = is_instanceOf(first_elem, Sym) and first_elem.val or ""
     --print("First symbol= '" .. first_sym .. "'")
-
     if first_sym == "def!" then
       if #a ~= 3 then 
         throw(string.format("def! expects 2 arguments got: %d", #a-1))
@@ -225,13 +225,12 @@ function EVAL(a, env)
       if (#a) ~= 2 then throw("macroexpand expected 1 arguments but got '" .. #a-1 .. "'.") end
       return macro_expand(a[2],env)
     elseif first_sym == "try*" then
-      table.remove(a,1) 
       return try(a, env)
 
     else 
   
       local args = eval_ast(a, env) 
-      local f = table.remove(args,1)
+          local f = table.remove(args,1)
       if types.is_malfunc(f) then
         a = f.ast
         env = Env.new(f.env)
@@ -311,7 +310,17 @@ rep("(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (
   repl_env:set(Sym.new("*host-language*"), "lua")
   if #arg > 0 then 
     local file_to_run = table.remove(arg,1)
-    rep("(load-file \"" .. file_to_run .. "\")") 
+    local status, err = pcall(function ()
+      rep("(load-file \"" .. file_to_run .. "\")") 
+    end)
+    if not status then
+      if is_instanceOf(err, Err) then
+        err = Printer.stringfy_val(err, true)
+      end
+      print("Error: " .. err)
+      print(debug.traceback())
+    end
+
     os.exit(0)
   end
   rep("(println (str \"Mal [\" *host-language* \"]\"))")
