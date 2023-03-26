@@ -1,4 +1,4 @@
-FROM ubuntu:focal
+FROM ubuntu:22.04
 MAINTAINER Joel Martin <github@martintribe.org>
 
 ##########################################################
@@ -9,7 +9,7 @@ MAINTAINER Joel Martin <github@martintribe.org>
 RUN apt-get -y update
 
 # Required for running tests
-RUN apt-get -y install make python
+RUN apt-get -y install make python3 python-is-python3
 
 # Some typical implementation and test requirements
 RUN apt-get -y install curl libreadline-dev libedit-dev
@@ -25,7 +25,7 @@ WORKDIR /mal
 RUN DEBIAN_FRONTEND=noninteractive apt-get -y install gcc g++ bison flex groff make cmake pkg-config git
 
 # Prepackaged Scheme implementations
-RUN apt-get -y install gauche chicken-bin
+RUN apt-get -y install gauche chicken-bin guile-3.0
 RUN chicken-install r7rs
 
 # Chibi
