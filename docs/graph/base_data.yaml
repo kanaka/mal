@@ -70,7 +70,7 @@ languages:
   - [ruby          , Ruby             , OTHER  , Dynamic    , []]
   - [rust          , Rust             , C      , Static     , []]
   - [scala         , Scala            , C      , Static     , []]
-  - [scheme        , Scheme (R7RS)    , Lisp   , Dynamic    , [chibi,kawa,gauche,chicken,sagittarius,cyclone,foment]]
+  - [scheme        , Scheme (R7RS)    , Lisp   , Dynamic    , [chibi,kawa,gauche,chicken,sagittarius,cyclone,foment,guile]]
   - [skew          , Skew             , OTHER  , Static     , []]
   - [swift         , Swift 2          , C      , Static     , []]
   - [swift3        , Swift 3          , C      , Static     , []]
