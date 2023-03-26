@@ -22,7 +22,7 @@ haxe_MODE = neko
 matlab_MODE = octave
 # python, python2 or python3
 python_MODE = python
-# scheme (chibi, kawa, gauche, chicken, sagittarius, cyclone, foment)
+# scheme (chibi, kawa, gauche, chicken, sagittarius, cyclone, foment, guile)
 scheme_MODE = chibi
 # sml (polyml, mlton, mosml)
 sml_MODE = polyml
@@ -102,6 +102,7 @@ scheme_STEP_TO_PROG_chicken     = impls/scheme/$($(1))
 scheme_STEP_TO_PROG_sagittarius = impls/scheme/$($(1)).scm
 scheme_STEP_TO_PROG_cyclone     = impls/scheme/$($(1))
 scheme_STEP_TO_PROG_foment      = impls/scheme/$($(1)).scm
+scheme_STEP_TO_PROG_guile       = impls/scheme/$($(1)).scm
 
 # Map of step (e.g. "step8") to executable file for that step
 ada_STEP_TO_PROG =           impls/ada/$($(1))

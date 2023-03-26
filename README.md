@@ -1052,7 +1052,7 @@ scala -classpath target/scala*/classes stepX_YYY
 
 The Scheme implementation of MAL has been tested with Chibi-Scheme
 0.10, Kawa 3.1.1, Gauche 0.9.6, CHICKEN 5.1.0, Sagittarius 0.9.7,
-Cyclone 0.32.0 (Git version) and Foment 0.4 (Git version).  You should
+Cyclone 0.32.0 (Git version), Foment 0.4 (Git version) and Guile 3.0.1.  You should
 be able to get it running on other conforming R7RS implementations
 after figuring out how libraries are loaded and adjusting the
 `Makefile` and `run` script accordingly.
@@ -1076,6 +1076,8 @@ make cyclone
 scheme_MODE=cyclone ./run
 # foment
 scheme_MODE=foment ./run
+# guile
+scheme_MODE=guile ./run
 ```
 
 ### Skew ###
