@@ -120,10 +120,9 @@ function Scanner.string(self)
     throw(string.format("Error unbalanced string at line %d", self.line))
   end
 
-  self:advance() -- closing "
-
   -- trimmed opening and closing "
-  local val = self.escape(string.sub(self.source, self.start+1, self.index-2))
+  local val = Scanner.escape(string.sub(self.source, self.start+1, self.index-1))
+  self:advance() -- closing "
 
   table.insert(self.tokens, Token("STR", val, self.line))
 

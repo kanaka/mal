@@ -6,6 +6,7 @@ local Sym = types.Sym
 local Vector = types.MalVector
 local is_instanceOf = types.isinstanceof
 local is_sequence = types.is_sequence
+local is_func = types.is_func
 local Function = types.MalFunction
 local Nil = types.Nil
 local throw = types.throw
@@ -232,7 +233,6 @@ core['map'] = function (f, seq, ...)
   end
   local acc = {}
   for k,v  in ipairs(seq) do 
-    --print("iterating " .. Printer.stringfy_val(k) .."--".. Printer.stringfy_val(v))
     table.insert(acc, f(v))
   end
   return List.new(acc)
@@ -464,21 +464,38 @@ core['readline'] = function (...)
 end
 
 core['time-ms'] = function (...)
-  assert(nil, 'time-ms not implemented yet')
+  return math.floor(os.clock()*1000000)
 end
+-- TODO: handle built-in functions meta and with-meta
 core['meta'] = function (...)
     local args = table.pack(...)
     if #args ~= 1 then 
-      throw("fn? expect expects 1 args got: " ..  #args)
+      throw("meta expect expects 1 args got: " ..  #args)
+    end
+    local first = args[1]
+    if not(is_instanceOf(first, Hashmap) or is_sequence(first) or is_func(first)) then
+      throw("argument to meta should be one of {hashmap, list, vector, function}." .. type(first))
     end
  
-    local m = getmetatable(obj)
-    if m == nil or m.meta == nil then return Nil end
+    local m = getmetatable(first)
+    if m == nil or m.meta == nil then 
+      return Nil 
+    end
     return m.meta
 end
 
 core['with-meta'] = function (...)
-    local new_obj = types.copy(obj)
+    local args = table.pack(...)
+    if #args ~= 2 then 
+      throw("with-meta expect expects 2 args got: " ..  #args)
+    end
+    local first = args[1]
+    local meta = args[2]
+    if not(is_instanceOf(first, Hashmap) or is_sequence(first) or is_func(first)) then
+    throw("argument to with-meta should be one of {hashmap, list, vector, function}. got: " .. type(first))
+    end
+ 
+    local new_obj = types.copy(first)
     getmetatable(new_obj).meta = meta
     return new_obj
 end

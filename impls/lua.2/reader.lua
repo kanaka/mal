@@ -1,6 +1,7 @@
 local Reader = {}
 Reader.__index = Reader
 
+local Scanner = require "scanner"
 local types = require "types"
 
 local List = types.MalList
@@ -38,7 +39,6 @@ end
 
 
 
-local Scanner = require "scanner"
 
 function Reader.read_form(self)
    local tok = self:peek()
@@ -110,8 +110,8 @@ function Reader.read_seq(self, opening, closing, invalids)
   local res = {}
   while tok.typeof ~= closing do
     if tok.typeof == "EOF" then
-      print("Error: unexpected EOF before matching '" .. closing .. "'.")
-      return {}
+      throw("Error: unexpected EOF before matching '" .. closing .. "'at line:" .. tok.line)
+
     end
 
 

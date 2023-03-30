@@ -62,7 +62,7 @@ function Printer.stringfy_val(val, readably)
     if readably then
       res = Scanner.unescape(val)
     else
-      res = Scanner.escape(val)
+      res = val
     end
   elseif type(val) == "number" then
     res = tostring(val)

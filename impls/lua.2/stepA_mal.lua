@@ -13,60 +13,64 @@ local Vector = types.MalVector
 local Nil = types.Nil
 local core = require "core"
 local Function = types.MalFunction
+local FunctionRef = types.FunctionRef
 local readline = core.readline
 
 function READ(str)
-    return  Reader.read_str(str)
+  return  Reader.read_str(str)
 end
 
 function starts_with(a, v)
-return #a > 0 and  is_instanceOf(a[1],Sym) and 
-        a[1].val == v
+  return #a > 0 and  is_instanceOf(a[1],Sym) and 
+    a[1].val == v
 end
 
 
 function quasiloop(a)
   local res = List.new({})
-    for i=#a,1,-1 do
-      local elt = a[i]
-      if is_instanceOf(elt, List) and 
-        starts_with(elt, "splice-unquote") then
+  for i=#a,1,-1 do
+    local elt = a[i]
+    if is_instanceOf(elt, List) and 
+      starts_with(elt, "splice-unquote") then
 
-      if #elt ~= 2 then throw("splice-unquote expected 1 argument bot got : " .. #elt) end
-
-        res = List.new({Sym.new( "concat"), elt[2], res})
-      else
-        res = List.new({Sym.new( "cons"), quasiquote(elt), res})
+      if #elt ~= 2 then 
+        throw("splice-unquote expected 1 argument bot got : " .. #elt) 
       end
+
+      res = List.new({Sym.new( "concat"), elt[2], res})
+    else
+      res = List.new({Sym.new( "cons"), quasiquote(elt), res})
     end
-    return res
+  end
+  return res
 end
 
 function quasiquote(a)
 
-      if is_instanceOf(a,List) then 
-        if starts_with(a, "unquote") then
-          if #a-1 ~= 1 then 
-            throw("unquote expected 1 argument bot got : " .. #a) 
-          end
-          return a[2]
-        else
-          return quasiloop(a)
-        end
-      elseif is_instanceOf(a, Vector) then 
-        local tmp = quasiloop(a)
-        return List.new({Sym.new("vec"), tmp})
-      elseif is_instanceOf(a,HashMap) or is_instanceOf(a,Sym) then
-        return List.new({Sym.new('quote'), a})
-
-      else
-        return a
-
+  if is_instanceOf(a,List) then 
+    if starts_with(a, "unquote") then
+      if #a-1 ~= 1 then 
+        throw("unquote expected 1 argument bot got : " .. #a) 
       end
+      return a[2]
+    else
+      return quasiloop(a)
+    end
+  elseif is_instanceOf(a, Vector) then 
+    local tmp = quasiloop(a)
+    return List.new({Sym.new("vec"), tmp})
+  elseif is_instanceOf(a,HashMap) or is_instanceOf(a,Sym) then
+    return List.new({Sym.new('quote'), a})
+
+  else
+    return a
+
+  end
 end
 
 function is_macro_call(ast, env)
-  if is_instanceOf(ast, List) and #ast >= 1 and is_instanceOf(ast[1], Sym) then
+  if is_instanceOf(ast, List) and #ast >= 1 and
+    is_instanceOf(ast[1], Sym) then
     local status, first_env = pcall( function () return env:get(ast[1]) end)
     if not status then return false end
     if is_instanceOf(first_env, Function) and first_env.is_macro then
@@ -93,6 +97,7 @@ end
 function try(a, env)
   --assert(nil, "try is not refactored yet")
   a = table.pack(table.unpack(a,2)) -- removing try* symbol
+
   if #a > 2  and #a < 1 then
     throw("try expected at 1 or 2 arguments but got '" .. #a .. "'.") 
   end
@@ -153,7 +158,7 @@ function EVAL(a, env)
         throw("Second arg to let* should be list or vector")
       end
       if #a[2] % 2 ~= 0 then
-        throw(string.format("Length ofSecond arg to let* should be even number got: %d", #a[2]))
+        throw(string.format("Length of second arg to let* should be even number got: %d", #a[2]))
       end
 
       for i=1,#a[2],2 do 
@@ -188,7 +193,9 @@ function EVAL(a, env)
         end
       end
     elseif first_sym == "fn*" then 
-      if (#a) ~= 3 then throw("fn* expected 2 arguments but got '" .. #a-1 .. "'.") end
+      if #a ~= 3 then
+        throw("fn* expected 2 arguments but got '" .. #a-1 .. "'.") 
+      end
       if false then throw("second parameter to fn* should have length 2 but got '" .. #a[2] .. "'.") end
      return Function.new(function (...) 
         local closed_over_env = Env.new(env)
@@ -230,21 +237,21 @@ function EVAL(a, env)
     else 
   
       local args = eval_ast(a, env) 
-          local f = table.remove(args,1)
+      local f = table.remove(args,1)
       if types.is_malfunc(f) then
         a = f.ast
         env = Env.new(f.env)
         env:bind(f.params, args)
         
       else
-        if type(f) ~= "function" then
+        if not(type(f) == "function" or is_instanceOf(f, FunctionRef)) then
           throw("First elem should be function or special form got :'" .. type(f) .. "'.")
         end 
-        return f(table.unpack(args)) --fixme: varargs?
+        return f(table.unpack(args))
       end
     end
 
-end
+  end
 end
 
 
@@ -305,7 +312,7 @@ end
 function main()
   rep("(def! not (fn* (a) (if a false true)))")
   rep("(def! load-file (fn* (f) (eval (read-string (str \"(do  \"(slurp f) \"\nnil)\")))))")
-rep("(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))")
+  rep("(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))")
   repl_env:set(Sym.new("*ARGV*"), List.new(table.pack(table.unpack(arg,2))))
   repl_env:set(Sym.new("*host-language*"), "lua")
   if #arg > 0 then 
@@ -317,7 +324,7 @@ rep("(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (
       if is_instanceOf(err, Err) then
         err = Printer.stringfy_val(err, true)
       end
-      print("Error: " .. err)
+      print("lua mal Error: " .. err)
       print(debug.traceback())
     end
 

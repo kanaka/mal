@@ -43,6 +43,7 @@ languages:
   - [livescript    , LiveScript       , ML     , Dynamic    , []]
   - [logo          , Logo             , OTHER  , Dynamic    , []]
   - [lua           , Lua              , Algol  , Dynamic    , []]
+  - [lua.2         , Lua              , Algol  , Dynamic    , []]
   - [make          , GNU Make         , OTHER  , OTHER      , []]
   - [mal           , mal itself       , Lisp   , Dynamic    , []]
   - [matlab        , MATLAB           , Algol  , Dynamic    , []]

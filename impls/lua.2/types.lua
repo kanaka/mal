@@ -95,6 +95,11 @@ function M.is_malfunc(a)
   return M.isinstanceof(a, M.MalFunction)
 end
 
+function M.is_func(a)
+  return type(a) == "function" or (M.isinstanceof(a, M.MalFunction) and not a.is_macro) 
+end
+
+
 function M.is_sequence(a)
   return M.isinstanceof(a, M.MalList) or M.isinstanceof(a, M.MalVector)
 end
@@ -145,5 +150,45 @@ function M.isinstanceof(obj, super)
     mt = getmetatable(mt)
   end
 end
+
+
+function M.copy(obj)
+    if type(obj) == "function" then
+        return M.FunctionRef.new(obj)
+    end
+    if type(obj) ~= "table" then return obj end
+
+    -- copy object data
+    local new_obj = {}
+    for k,v in pairs(obj) do
+        new_obj[k] = v
+    end
+
+    -- copy metatable and link to original
+    local old_mt = getmetatable(obj)
+    if old_mt ~= nil then
+        local new_mt = {}
+        for k,v in pairs(old_mt) do
+            new_mt[k] = v
+        end
+        setmetatable(new_mt, old_mt)
+        setmetatable(new_obj, new_mt)
+    end
+
+    return new_obj
+end
+
+M.FunctionRef = {}
+M.FunctionRef.__index = M.FunctionRef
+
+function M.FunctionRef.new(fn)
+	local self = {fn = fn}
+	return setmetatable(self, M.FunctionRef)
+end
+
+function M.FunctionRef.__call(self, ...)
+	return self.fn(...)
+end
+
 
 return M
