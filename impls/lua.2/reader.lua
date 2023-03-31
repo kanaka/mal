@@ -76,7 +76,7 @@ function Reader.read_form(self)
      return self:read_atom()
    end
 end
--- fix read atom with types module
+
 function Reader.read_atom(self)
   local token = self:advance()
   if token.typeof == "STR" then

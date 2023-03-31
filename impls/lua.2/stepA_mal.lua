@@ -223,9 +223,10 @@ function EVAL(a, env)
       if not(is_instanceOf(value, Function)) then
         throw("second argument to defmacro must be function")
       end
-      value.is_macro = true 
-      env:set(a[2], value)
-      return value
+      local c_val = types.copy(value)
+      c_val.is_macro = true 
+      env:set(a[2], c_val)
+      return c_val
 
 
     elseif first_sym == "macroexpand" then

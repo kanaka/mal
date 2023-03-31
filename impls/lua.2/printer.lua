@@ -11,6 +11,7 @@ local Sym = types.Sym
 local is_instanceOf = types.isinstanceof
 local Err = types.Err
 local Function = types.MalFunction
+local FunctionRef = types.FunctionRef
 local Atom = types.Atom
 
 
@@ -70,7 +71,7 @@ function Printer.stringfy_val(val, readably)
     res = "nil"
   elseif type(val) == "boolean" then
     res = tostring(val)
-  elseif type(val) == "function" then
+  elseif type(val) == "function" or is_instanceOf(val, FunctionRef)  then
     res = "#<function>"
   else
     error(string.format("Error: unknown type %s", val))

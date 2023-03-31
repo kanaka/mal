@@ -96,7 +96,8 @@ function M.is_malfunc(a)
 end
 
 function M.is_func(a)
-  return type(a) == "function" or (M.isinstanceof(a, M.MalFunction) and not a.is_macro) 
+  return type(a) == "function" or (M.isinstanceof(a, M.MalFunction) and not a.is_macro)
+    or M.isinstanceof(a, M.FunctionRef)
 end
 
 

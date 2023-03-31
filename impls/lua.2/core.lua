@@ -466,7 +466,7 @@ end
 core['time-ms'] = function (...)
   return math.floor(os.clock()*1000000)
 end
--- TODO: handle built-in functions meta and with-meta
+
 core['meta'] = function (...)
     local args = table.pack(...)
     if #args ~= 1 then 
@@ -492,7 +492,7 @@ core['with-meta'] = function (...)
     local first = args[1]
     local meta = args[2]
     if not(is_instanceOf(first, Hashmap) or is_sequence(first) or is_func(first)) then
-    throw("argument to with-meta should be one of {hashmap, list, vector, function}. got: " .. type(first))
+      throw("argument to with-meta should be one of {hashmap, list, vector, function}. got: " .. type(first))
     end
  
     local new_obj = types.copy(first)
@@ -505,7 +505,8 @@ core['fn?'] = function (...)
   if #args ~= 1 then 
     throw("fn? expect expects 1 args got: " ..  #args)
   end
-  return is_instanceOf(args[1],Function) or type(args[1]) == "function"
+  local first = args[1]
+  return (is_instanceOf(first,Function) and not(first.is_macro) ) or type(first) == "function"
   
 end
 
@@ -522,7 +523,7 @@ core['string?'] = function (...)
   if #args ~= 1 then 
     throw("string? expect expects 1 args got: " ..  #args)
   end
-  return type(args[1]) == "string"
+  return type(args[1]) == "string" and "\u{029e}" ~= string.sub(args[1], 1, 2)
 end
 
 core['macro?'] = function (...)
@@ -533,17 +534,53 @@ core['macro?'] = function (...)
   return is_instanceOf(args[1], Function) and args[1].is_macro
 end
 
-
 core['seq'] = function (...)
-  assert(nil, 'seq not implemented yet')
+  local args = table.pack(...)
+  if #args ~= 1 then 
+    throw("seq expects 1 args got: " ..  #args)
+  end
+  local first = args[1]
+  if not(is_sequence(first) or type(first) == "string" or first == Nil)  then
+    throw("seq expects its arguments to be type of {list, vector, string or nil}.")
+  end
+  if first == Nil or first == "" or (is_sequence(first) and #first == 0 ) then 
+    return Nil
+  elseif (is_sequence(first)) then
+    return List.new({table.unpack(first)})
+  elseif type(first) == "string" then
+    local res = {}
+    for i= 1,#first do
+      table.insert(res,string.sub(first, i, i))
+    end
+    return  List.new(res)
+  else
+    assert(nil, "unreachable in built-in seq")
+  end
+  
+  
 end
-
 
 core['conj'] = function (...)
-  assert(nil, 'conj not implemented yet')
+  local args = table.pack(...)
+  if #args < 1 then 
+    throw("conj expects at least 1 args got: " ..  #args)
+  end
+  local first = args[1]
+  if not(is_sequence(first)) then
+    throw("conj expects its first argument to be type of {list, vector}.")
+  end
+  local cls = is_instanceOf(first, List) and List or Vector
+  local res = types.copy(first)
+  
+
+  for i = 2,#args do
+    if is_instanceOf(first, List)  then
+       table.insert(res, 1, args[i])
+    else 
+       table.insert(res, args[i])
+    end
+  end
+  return cls.new(res)
 end
-
-
-
 
 return core
