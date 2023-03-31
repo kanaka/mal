@@ -1,3 +1,4 @@
+#!/usr/bin/env lua
 Reader = require "reader"
 Printer = require "printer"
 

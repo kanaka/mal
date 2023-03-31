@@ -1,3 +1,4 @@
+#!/usr/bin/env lua
 local Reader = require "reader"
 local Printer = require "printer"
 local types = require "types"

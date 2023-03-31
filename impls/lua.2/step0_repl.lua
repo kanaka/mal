@@ -1,3 +1,4 @@
+#!/usr/bin/env lua
 function READ(prompt)
   io.write(prompt)
   return io.read()
