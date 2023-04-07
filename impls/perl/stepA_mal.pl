@@ -1,3 +1,5 @@
+#!/usr/bin/perl
+
 use strict;
 use warnings FATAL => "recursion";
 no if $] >= 5.018, warnings => "experimental::smartmatch";
