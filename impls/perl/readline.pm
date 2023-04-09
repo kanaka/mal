@@ -27,7 +27,7 @@ sub save_line {
 }
 
 sub load_history {
-    open my $fh, $history_file or return;
+    open my $fh, q{<}, $history_file or return;
 
     while ( my $line = <$fh> ) {
         chomp $line;
@@ -46,32 +46,25 @@ sub set_rl_mode {
 
 sub mal_readline {
     my ($prompt) = @_;
-    my $line = undef;
+    my $line;
     if ( !$_history_loaded ) {
         $_history_loaded = 1;
         load_history();
     }
 
     if ( $rl_mode eq "terminal" ) {
-        if ( defined( $line = $_rl->readline($prompt) ) ) {
-            save_line($line);
-            chomp $line;
-            return $line;
-        }
-        else {
-            return undef;
-        }
+        $line = $_rl->readline($prompt);
     }
     else {
         print "$prompt";
-        if ( defined( $line = readline(*STDIN) ) ) {
+        $line = readline(*STDIN);
+    }
+    if ($line) {
+        chomp $line;
+        if ($line) {
             save_line($line);
-            chomp($line);
-            return $line;
-        }
-        else {
-            return undef;
         }
     }
+    return $line;
 }
 1;

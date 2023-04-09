@@ -1,3 +1,4 @@
+package env;
 use strict;
 use warnings;
 
@@ -28,9 +29,10 @@ use Exporter 'import';
 
     sub get {
         my ( $self, $key ) = @_;
-        if    ( exists $self->{$key} ) { return $self->{$key}; }
-        elsif ( $self->{__outer__} )   { return $self->{__outer__}->get($key); }
-        else                           { return undef; }
+        while ( not $self->{$key} ) {
+            $self = $self->{__outer__} // return;
+        }
+        return $self->{$key};
     }
 
     sub set {
