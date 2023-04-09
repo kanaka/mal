@@ -159,10 +159,14 @@ sub swap_BANG {
 
 # Interop
 
+# Force array context so that undef is a valid result.
 sub pl_STAR {
-    my $result = eval( ${ $_[0] } );
-    die $@ if $@;
-    return pl_to_mal($result);
+    my ($perl) = @_;
+    ## no critic (BuiltinFunctions::ProhibitStringyEval)
+    my @result = eval ${$perl};
+    ## use critic
+    @result or die $@;
+    return pl_to_mal( $result[0] );
 }
 
 %core::ns = (

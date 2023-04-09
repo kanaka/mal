@@ -82,7 +82,7 @@ sub _equal_Q {
 
 # This function converts hash-map keys back into full objects
 
-sub thaw_key ($) {
+sub thaw_key {
     my ( $class, $value ) = split( / /, $_[0], 2 );
     return $class->new($value);
 }
