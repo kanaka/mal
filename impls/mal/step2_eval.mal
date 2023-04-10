@@ -8,7 +8,7 @@
 
 ;; eval
 (def! EVAL (fn* [ast env]
-  ;; (do (prn 'EVAL: ast))
+  ;; (do (prn "EVAL:" ast))
   (try*
     (cond
       (symbol? ast)
