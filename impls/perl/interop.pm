@@ -1,4 +1,5 @@
 package interop;
+use re '/msx';
 use strict;
 use warnings;
 

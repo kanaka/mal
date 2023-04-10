@@ -1,11 +1,12 @@
 package printer;
+use re '/msx';
 use strict;
 use warnings;
 
 use Exporter 'import';
 our @EXPORT_OK = qw( pr_list pr_str );
 
-use types qw(thaw_key $nil $true $false);
+use types qw(thaw_key);
 
 use List::Util qw(pairmap);
 
@@ -15,41 +16,39 @@ sub pr_str {
     if ( $obj->isa('Mal::List') ) {
         return '(' . pr_list( q{ }, $_r, @{$obj} ) . ')';
     }
-    elsif ( $obj->isa('Mal::Vector') ) {
+    if ( $obj->isa('Mal::Vector') ) {
         return '[' . pr_list( q{ }, $_r, @{$obj} ) . ']';
     }
-    elsif ( $obj->isa('Mal::HashMap') ) {
+    if ( $obj->isa('Mal::HashMap') ) {
         return
           '{'
           . pr_list( q{ }, $_r, pairmap { thaw_key($a) => $b } %{$obj} ) . '}';
     }
-    elsif ( $obj->isa('Mal::Keyword') ) {
+    if ( $obj->isa('Mal::Keyword') ) {
         return ":$$obj";
     }
-    elsif ( $obj->isa('Mal::String') ) {
+    if ( $obj->isa('Mal::String') ) {
         if ($_r) {
             my $str = $$obj;
             $str =~ s/\\/\\\\/g;
             $str =~ s/"/\\"/g;
             $str =~ s/\n/\\n/g;
-            return qq'"$str"';
+            return qq{"$str"};
         }
         else {
             return $$obj;
         }
     }
-    elsif ( $obj->isa('Mal::Atom') ) {
+    if ( $obj->isa('Mal::Atom') ) {
         return '(atom ' . pr_str( ${$obj} ) . ")";
     }
-    elsif ( $obj->isa('Mal::Function') ) {
+    if ( $obj->isa('Mal::Function') ) {
         return "<fn* $obj>";
     }
-    elsif ( $obj->isa('Mal::Macro') ) {
+    if ( $obj->isa('Mal::Macro') ) {
         return "<macro* $obj>";
     }
-    else {
-        return $$obj;
-    }
+    return ${$obj};
 }
 
 sub pr_list {

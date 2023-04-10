@@ -7,11 +7,12 @@ use feature qw(switch);
 use File::Basename 'dirname';
 use lib dirname(__FILE__);
 
+use English '-no_match_vars';
 use List::Util   qw(pairs pairmap);
 use Scalar::Util qw(blessed);
 
 use readline qw(mal_readline set_rl_mode);
-use types    qw($nil $true $false);
+use types    qw($nil $false);
 use reader   qw(read_str);
 use printer  qw(pr_str);
 use env;
@@ -55,26 +56,25 @@ sub quasiquote {
         return Mal::List->new(
             [ Mal::Symbol->new('vec'), quasiquote_loop($ast) ] );
     }
-    elsif ( $ast->isa('Mal::HashMap') or $ast->isa('Mal::Symbol') ) {
+    if ( $ast->isa('Mal::HashMap') or $ast->isa('Mal::Symbol') ) {
         return Mal::List->new( [ Mal::Symbol->new("quote"), $ast ] );
     }
-    elsif ( !$ast->isa('Mal::List') ) {
-        return $ast;
-    }
-    elsif ( starts_with( $ast, 'unquote' ) ) {
-        return $ast->[1];
-    }
-    else {
+    if ( $ast->isa('Mal::List') ) {
+        if ( starts_with( $ast, 'unquote' ) ) {
+            return $ast->[1];
+        }
         return quasiquote_loop($ast);
     }
+    return $ast;
 }
 
+## no critic (Subroutines::ProhibitExcessComplexity)
 sub EVAL {
     my ( $ast, $env ) = @_;
 
     my $dbgeval = $env->get('DEBUG-EVAL');
     if ( $dbgeval and $dbgeval ne $nil and $dbgeval ne $false ) {
-        print "EVAL: " . pr_str($ast) . "\n";
+        print 'EVAL: ', pr_str($ast), "\n";
     }
 
     if ( $ast->isa('Mal::Symbol') ) {
@@ -82,14 +82,14 @@ sub EVAL {
         die "'$$ast' not found\n" unless $val;
         return $val;
     }
-    elsif ( $ast->isa('Mal::Vector') ) {
+    if ( $ast->isa('Mal::Vector') ) {
         return ref($ast)->new( [ map { EVAL( $_, $env ) } @$ast ] );
     }
-    elsif ( $ast->isa('Mal::HashMap') ) {
+    if ( $ast->isa('Mal::HashMap') ) {
         return Mal::HashMap->new(
             { pairmap { $a => EVAL( $b, $env ) } %$ast } );
     }
-    elsif ( !$ast->isa('Mal::List') ) {
+    if ( not $ast->isa('Mal::List') ) {
         return $ast;
     }
 
@@ -126,39 +126,38 @@ sub EVAL {
         }
         when ('try*') {
             my ( undef, $try, $catch ) = @$ast;
-            local $@;
-            my $ret = eval { EVAL( $try, $env ) };
-            return $ret unless $@;
-            if ( $catch && ${ $catch->[0] } eq 'catch*' ) {
+            if ($catch) {
                 my ( undef, $binding, $body ) = @$catch;
-                my $exc;
-                if ( defined( blessed $@) && $@->isa('Mal::Type') ) {
-                    $exc = $@;
+                if ( my $ret = eval { EVAL( $try, $env ) } ) {
+                    return $ret;
                 }
-                else {
-                    chomp( my $msg = $@ );
-                    $exc = Mal::String->new($msg);
+                my $exc = $EVAL_ERROR;
+                if ( not blessed($exc) or not $exc->isa('Mal::Type') ) {
+                    chomp $exc;
+                    $exc = Mal::String->new($exc);
                 }
                 my $catch_env = Mal::Env->new( $env, [$binding], [$exc] );
                 @_ = ( $body, $catch_env );
                 goto &EVAL;
             }
-            else {
-                die $@;
-            }
+            @_ = ( $try, $env );
+            goto &EVAL;
         }
         when ('do') {
             my ( undef, @todo ) = @$ast;
-            my $last = pop @todo;
-            map { EVAL( $_, $env ) } @todo;
-            @_ = ( $last, $env );
+            my $final = pop @todo;
+            for (@todo) {
+                EVAL( $_, $env );
+            }
+            @_ = ( $final, $env );
             goto &EVAL;
         }
         when ('if') {
             my ( undef, $if, $then, $else ) = @$ast;
             my $cond = EVAL( $if, $env );
             if ( $cond eq $nil || $cond eq $false ) {
-                @_ = ( $else // $nil, $env );
+                $else // return $nil;
+                @_ = ( $else, $env );
             }
             else {
                 @_ = ( $then, $env );
@@ -230,28 +229,16 @@ if (@ARGV) {
     exit 0;
 }
 REP(q[(println (str "Mal [" *host-language* "]"))]);
-while (1) {
-    my $line = mal_readline("user> ");
-    if ( !defined $line ) { last; }
-    do {
-        local $@;
-        my $ret;
-        eval {
-            print( REP($line), "\n" );
-            1;
-        } or do {
-            my $err = $@;
-            if ( defined( blessed $err) && $err->isa('Mal::BlankException') ) {
-
-                # ignore and continue
-            }
-            elsif ( defined( blessed $err) && $err->isa('Mal::Type') ) {
-                print "Error: " . pr_str($err) . "\n";
-            }
-            else {
-                chomp $err;
-                print "Error: $err\n";
-            }
-        };
+while ( defined( my $line = mal_readline('user> ') ) ) {
+    eval {
+        print REP($line), "\n" or die $ERRNO;
+        1;
+    } or do {
+        my $err = $EVAL_ERROR;
+        next if defined blessed($err) and $err->isa('Mal::BlankException');
+        if ( defined blessed($err) and $err->isa('Mal::Type') ) {
+            $err = pr_str($err) . "\n";
+        }
+        print 'Error: ', $err or die $ERRNO;
     };
 }
