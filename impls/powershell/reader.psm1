@@ -40,7 +40,7 @@ function read_atom([Reader] $rdr) {
         return $s
     } elseif ($token -match "^`".*") {
         throw "expected '`"', got EOF"
-    } elseif ($token -match ":.*") {
+    } elseif ($token -match "^:.*") {
         return "$([char]0x29e)$($token.substring(1))"
     } elseif ($token -eq "true") {
         return $true
