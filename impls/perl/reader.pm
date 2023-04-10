@@ -11,13 +11,19 @@ use types qw($nil $true $false);
 
 {
 
+    ## no critic (ProhibitMultiplePackages)
     package Mal::Reader;
+    ## use critic
 
     sub new {
         my $class = shift;
-        bless { position => 0, tokens => shift } => $class;
+        return bless { position => 0, tokens => shift } => $class;
     }
-    sub next { my $self = shift; return $self->{tokens}[ $self->{position}++ ] }
+
+    sub next_ {
+        my $self = shift;
+        return $self->{tokens}[ $self->{position}++ ];
+    }
     sub peek { my $self = shift; return $self->{tokens}[ $self->{position} ] }
 }
 
@@ -28,9 +34,16 @@ sub tokenize {
     return grep { !/^;|^$/ } @tokens;
 }
 
+sub quote {
+    my ( $quoter, @args ) = @_;
+
+    # print "read_form: quote/$quoter/\n";
+    return Mal::List->new( [ Mal::Symbol->new($quoter), @args ] );
+}
+
 sub read_atom {
     my ($rdr) = @_;
-    my $token = $rdr->next();
+    my $token = $rdr->next_();
     given ($token) {
         when (/^-?[0-9]+$/) { return Mal::Integer->new($token) }
         when (/^"((?:\\.|[^\\"])*)"$/) {
@@ -39,11 +52,11 @@ sub read_atom {
         when (/^"/) {
             die "expected '\"', got EOF";
         }
-        when (/^:/)    { return Mal::Keyword->new($') }
-        when ('nil')   { return $nil }
-        when ('true')  { return $true }
-        when ('false') { return $false }
-        default        { return Mal::Symbol->new($token) }
+        when (/^:(.*)/) { return Mal::Keyword->new($1) }
+        when ('nil')    { return $nil }
+        when ('true')   { return $true }
+        when ('false')  { return $false }
+        default         { return Mal::Symbol->new($token) }
     }
 }
 
@@ -52,7 +65,7 @@ sub read_list {
     $start = $start // '(';
     $end   = $end   // ')';
 
-    my $token = $rdr->next();
+    my $token = $rdr->next_();
     my @lst   = ();
     if ( $token ne $start ) {
         die "expected '$start'";
@@ -65,7 +78,7 @@ sub read_list {
         last if ( $token eq $end );
         push( @lst, read_form($rdr) );
     }
-    $rdr->next();
+    $rdr->next_();
     return $class->new( \@lst );
 }
 
@@ -74,32 +87,29 @@ sub read_form {
     my $token = $rdr->peek();
     given ($token) {
         when ("'") {
-            $rdr->next();
-            Mal::List->new( [ Mal::Symbol->new('quote'), read_form($rdr) ] )
+            $rdr->next_();
+            return quote( 'quote', read_form($rdr) );
         }
         when ('`') {
-            $rdr->next();
-            Mal::List->new(
-                [ Mal::Symbol->new('quasiquote'), read_form($rdr) ] )
+            $rdr->next_();
+            return quote( 'quasiquote', read_form($rdr) );
         }
         when ('~') {
-            $rdr->next();
-            Mal::List->new( [ Mal::Symbol->new('unquote'), read_form($rdr) ] )
+            $rdr->next_();
+            return quote( 'unquote', read_form($rdr) );
         }
         when ('~@') {
-            $rdr->next();
-            Mal::List->new(
-                [ Mal::Symbol->new('splice-unquote'), read_form($rdr) ] )
+            $rdr->next_();
+            return quote( 'splice-unquote', read_form($rdr) );
         }
         when ('^') {
-            $rdr->next();
+            $rdr->next_();
             my $meta = read_form($rdr);
-            Mal::List->new(
-                [ Mal::Symbol->new('with-meta'), read_form($rdr), $meta ] )
+            return quote( 'with-meta', read_form($rdr), $meta );
         }
         when ('@') {
-            $rdr->next();
-            Mal::List->new( [ Mal::Symbol->new('deref'), read_form($rdr) ] )
+            $rdr->next_();
+            return quote( 'deref', read_form($rdr) );
         }
 
         when (')') { die "unexpected ')'" }

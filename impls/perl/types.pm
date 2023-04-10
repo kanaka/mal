@@ -6,6 +6,8 @@ use Exporter 'import';
 our @EXPORT_OK = qw(_equal_Q thaw_key
   $nil $true $false);
 
+## no critic (Modules::ProhibitMultiplePackages)
+
 # General functions
 
 sub _equal_Q {
@@ -51,7 +53,7 @@ sub _equal_Q {
 
     sub new {
         my $class = shift;
-        bless Mal::String->new("Blank Line") => $class;
+        return bless Mal::String->new("Blank Line") => $class;
     }
 }
 
@@ -76,13 +78,18 @@ sub _equal_Q {
     use overload
       '""'     => sub { my $self = shift; ref($self) . " " . $$self },
       fallback => 1;
-    sub new { my ( $class, $value ) = @_; bless \$value, $class }
+
+    sub new {
+        my ( $class, $value ) = @_;
+        return bless \$value, $class;
+    }
 }
 
 # This function converts hash-map keys back into full objects
 
 sub thaw_key {
-    my ( $class, $value ) = split( / /, $_[0], 2 );
+    my ($key) = @_;
+    my ( $class, $value ) = split( / /, $key, 2 );
     return $class->new($value);
 }
 
@@ -93,7 +100,10 @@ sub thaw_key {
 
     # Allow nil to be treated as an empty list or hash-map.
     use overload '@{}' => sub { [] }, '%{}' => sub { {} }, fallback => 1;
-    sub rest { Mal::List->new( [] ) }
+
+    sub rest {
+        return Mal::List->new( [] );
+    }
 }
 {
 
@@ -140,9 +150,21 @@ our $false = Mal::False->new('false');
 
     package Mal::Sequence;
     use parent -norequire, 'Mal::Type';
-    sub new   { my $class = shift; bless $_[0], $class }
-    sub rest  { my $arr   = $_[0]; Mal::List->new( [ @$arr[ 1 .. $#$arr ] ] ); }
-    sub clone { my $self  = shift; ref($self)->new( [@$self] ) }
+
+    sub new {
+        my ( $class, $data ) = @_;
+        return bless $data, $class;
+    }
+
+    sub rest {
+        my $arr = shift;
+        return Mal::List->new( [ @$arr[ 1 .. $#$arr ] ] );
+    }
+
+    sub clone {
+        my $self = shift;
+        return ref($self)->new( [@$self] );
+    }
 }
 
 # Lists
@@ -177,7 +199,11 @@ our $false = Mal::False->new('false');
         }
         return bless $src, $class;
     }
-    sub clone { my $self = shift; ref($self)->new( {%$self} ) }
+
+    sub clone {
+        my $self = shift;
+        return ref($self)->new( {%$self} );
+    }
 }
 
 # Functions
@@ -186,11 +212,15 @@ our $false = Mal::False->new('false');
 
     package Mal::Callable;
     use parent -norequire, 'Mal::Type';
-    sub new { my $class = shift; bless $_[0], $class }
+
+    sub new {
+        my ( $class, $data ) = @_;
+        return bless $data, $class;
+    }
 
     sub clone {
         my $self = shift;
-        bless sub { goto &$self }, ref($self);
+        return bless sub { goto &$self }, ref($self);
     }
 }
 
@@ -212,8 +242,16 @@ our $false = Mal::False->new('false');
 
     package Mal::Atom;
     use parent -norequire, 'Mal::Type';
-    sub new { my ( $class, $val ) = @_; bless \$val, $class }
-    sub clone { my $self = shift; ref($self)->new($$self) }
+
+    sub new {
+        my ( $class, $val ) = @_;
+        return bless \$val, $class;
+    }
+
+    sub clone {
+        my $self = shift;
+        return ref($self)->new($$self);
+    }
 }
 
 1;

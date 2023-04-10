@@ -25,6 +25,7 @@ sub save_line {
     open( my $fh, '>>', $history_file ) or return;
     say $fh $line;
     close $fh;
+    return;
 }
 
 sub load_history {
@@ -36,6 +37,7 @@ sub load_history {
     }
 
     close $fh;
+    return;
 }
 
 my $rl_mode = "terminal";
@@ -43,6 +45,7 @@ my $rl_mode = "terminal";
 sub set_rl_mode {
     my ($mode) = @_;
     $rl_mode = $mode;
+    return;
 }
 
 sub mal_readline {
