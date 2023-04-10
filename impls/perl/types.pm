@@ -1,4 +1,5 @@
 package types;
+use re '/msx';
 use strict;
 use warnings;
 
@@ -13,37 +14,23 @@ our @EXPORT_OK = qw(equal_q thaw_key
 
 sub equal_q {
     my ( $a, $b ) = @_;
-    unless ( ( ref $a eq ref $b )
-        || ( $a->isa('Mal::Sequence') && $b->isa('Mal::Sequence') ) )
-    {
-        return 0;
-    }
     if ( $a->isa('Mal::Sequence') ) {
-        unless ( scalar(@$a) == scalar(@$b) ) {
-            return 0;
-        }
-        for ( my $i = 0 ; $i < scalar(@$a) ; $i++ ) {
-            unless ( equal_q( $a->[$i], $b->[$i] ) ) {
-                return 0;
-            }
+        $b->isa('Mal::Sequence')     or return 0;
+        scalar @{$a} == scalar @{$b} or return 0;
+        for ( 0 .. $#{$a} ) {
+            equal_q( $a->[$_], $b->[$_] ) or return 0;
         }
         return 1;
     }
-    elsif ( $a->isa('Mal::HashMap') ) {
-        unless ( scalar( keys %$a ) == scalar( keys %$b ) ) {
-            return 0;
-        }
-        foreach my $k ( keys %$a ) {
-            unless ( equal_q( $a->{$k}, $b->{$k} ) ) {
-                return 0;
-            }
+    ref $b eq ref $a or return 0;
+    if ( $a->isa('Mal::HashMap') ) {
+        scalar keys %{$a} == scalar keys %{$b} or return 0;
+        while ( my ( $k, $v ) = each %{$a} ) {
+            equal_q( $v, $b->{$k} ) or return 0;
         }
         return 1;
     }
-    else {
-        return $$a eq $$b;
-    }
-    return 0;
+    return ${$a} eq ${$b};
 }
 
 # Errors/Exceptions
@@ -77,7 +64,7 @@ sub equal_q {
     # that strings and keywords are distinct: support for other kinds
     # of scalar is a bonus.
     use overload
-      '""'     => sub { my $self = shift; ref($self) . " " . $$self },
+      '""'     => sub { my $self = shift; ref($self) . q{ } . ${$self} },
       fallback => 1;
 
     sub new {
@@ -90,7 +77,7 @@ sub equal_q {
 
 sub thaw_key {
     my ($key) = @_;
-    my ( $class, $value ) = split( / /, $key, 2 );
+    my ( $class, $value ) = split m/[ ]/, $key, 2;
     return $class->new($value);
 }
 
@@ -160,12 +147,12 @@ our $false = Mal::False->new('false');
 
     sub rest {
         my $arr = shift;
-        return Mal::List->new( [ @$arr[ 1 .. $#$arr ] ] );
+        return Mal::List->new( [ @{$arr}[ 1 .. $#{$arr} ] ] );
     }
 
     sub clone {
         my $self = shift;
-        return ref($self)->new( [@$self] );
+        return ref($self)->new( [ @{$self} ] );
     }
 }
 
@@ -197,14 +184,14 @@ our $false = Mal::False->new('false');
     sub new {
         my ( $class, $src ) = @_;
         if ( reftype($src) eq 'ARRAY' ) {
-            $src = {@$src};
+            $src = { @{$src} };
         }
         return bless $src, $class;
     }
 
     sub clone {
         my $self = shift;
-        return ref($self)->new( {%$self} );
+        return ref($self)->new( { %{$self} } );
     }
 }
 
@@ -222,7 +209,7 @@ our $false = Mal::False->new('false');
 
     sub clone {
         my $self = shift;
-        return bless sub { goto &$self }, ref($self);
+        return bless sub { goto &{$self} }, ref $self;
     }
 }
 
@@ -252,7 +239,7 @@ our $false = Mal::False->new('false');
 
     sub clone {
         my $self = shift;
-        return ref($self)->new($$self);
+        return ref($self)->new( ${$self} );
     }
 }
 

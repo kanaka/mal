@@ -29,14 +29,14 @@ sub pr_str {
     }
     if ( $obj->isa('Mal::String') ) {
         if ($_r) {
-            my $str = $$obj;
+            my $str = ${$obj};
             $str =~ s/\\/\\\\/g;
             $str =~ s/"/\\"/g;
             $str =~ s/\n/\\n/g;
             return qq{"$str"};
         }
         else {
-            return $$obj;
+            return ${$obj};
         }
     }
     if ( $obj->isa('Mal::Atom') ) {
