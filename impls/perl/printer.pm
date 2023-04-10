@@ -1,4 +1,6 @@
+## no critic (NamingConventions::Capitalization)
 package printer;
+## use critic
 use re '/msx';
 use strict;
 use warnings;
@@ -40,7 +42,7 @@ sub pr_str {
         }
     }
     if ( $obj->isa('Mal::Atom') ) {
-        return '(atom ' . pr_str( ${$obj} ) . ")";
+        return '(atom ' . pr_str( ${$obj} ) . ')';
     }
     if ( $obj->isa('Mal::Function') ) {
         return "<fn* $obj>";

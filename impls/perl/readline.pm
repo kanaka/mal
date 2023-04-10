@@ -2,7 +2,9 @@
 # Term::ReadKey and either Term::ReadLine::Gnu (GPL) or
 # Term::ReadLine::Perl (GPL, Artistic) from CPAN.
 
+## no critic (NamingConventions::Capitalization)
 package readline;
+## use critic
 use re '/msx';
 use strict;
 use warnings;
@@ -20,13 +22,13 @@ $_rl->ornaments(0);
 my $OUT             = $_rl->OUT || \*STDOUT;
 my $_history_loaded = 0;
 
-my $history_file = $ENV{"HOME"} . "/.mal-history";
+my $history_file = "$ENV{'HOME'}/.mal-history";
 
 sub save_line {
     my ($line) = @_;
-    open( my $fh, '>>', $history_file ) or return;
-    say $fh $line;
-    close $fh or die $ERRNO;
+    open my $fh, '>>', $history_file or return;
+    say {$fh} $line or die $ERRNO;
+    close $fh       or die $ERRNO;
     return;
 }
 
@@ -43,7 +45,7 @@ sub load_history {
     return;
 }
 
-my $rl_mode = "terminal";
+my $rl_mode = 'terminal';
 
 sub set_rl_mode {
     my ($mode) = @_;
@@ -59,12 +61,12 @@ sub mal_readline {
         load_history();
     }
 
-    if ( $rl_mode eq "terminal" ) {
+    if ( $rl_mode eq 'terminal' ) {
         $line = $_rl->readline($prompt);
     }
     else {
-        print "$prompt";
-        $line = readline(*STDIN);
+        print $prompt or die $ERRNO;
+        $line = readline *STDIN;
     }
     if ($line) {
         chomp $line;

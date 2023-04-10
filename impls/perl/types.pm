@@ -1,4 +1,6 @@
+## no critic (NamingConventions::Capitalization)
 package types;
+## use critic
 use re '/msx';
 use strict;
 use warnings;
@@ -41,7 +43,7 @@ sub equal_q {
 
     sub new {
         my $class = shift;
-        return bless Mal::String->new("Blank Line") => $class;
+        return bless Mal::String->new('Blank Line') => $class;
     }
 }
 

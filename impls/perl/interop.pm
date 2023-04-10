@@ -1,4 +1,6 @@
+## no critic (NamingConventions::Capitalization)
 package interop;
+## use critic
 use re '/msx';
 use strict;
 use warnings;
