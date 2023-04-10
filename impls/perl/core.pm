@@ -1,4 +1,5 @@
 package core;
+use re '/msx';
 use strict;
 use warnings;
 
@@ -58,7 +59,7 @@ sub slurp {
 
 sub assoc {
     my ( $src_hsh, @keys ) = @_;
-    return Mal::HashMap->new( { %$src_hsh, @keys } );
+    return Mal::HashMap->new( { %{$src_hsh}, @keys } );
 }
 
 sub dissoc {
@@ -113,22 +114,22 @@ sub first {
 sub apply {
     my ( $f, @args ) = @_;
     my $more_args = pop @args;
-    return &{$f}( @args, @{$more_args} );
+    return $f->( @args, @{$more_args} );
 }
 
 sub mal_map {
     my ( $f, $args ) = @_;
-    return Mal::List->new( [ map { &$f($_) } @{$args} ] );
+    return Mal::List->new( [ map { $f->($_) } @{$args} ] );
 }
 
 sub conj {
     my ( $seq, @items ) = @_;
     my $new_seq = $seq->clone;
     if ( $new_seq->isa('Mal::List') ) {
-        unshift @$new_seq, reverse @items;
+        unshift @{$new_seq}, reverse @items;
     }
     else {
-        push @$new_seq, @items;
+        push @{$new_seq}, @items;
     }
     return $new_seq;
 }
@@ -167,7 +168,7 @@ sub with_meta {
 # Atom functions
 sub swap_BANG {
     my ( $atm, $f, @args ) = @_;
-    return $$atm = &$f( $$atm, @args );
+    return ${$atm} = $f->( ${$atm}, @args );
 }
 
 # Interop
@@ -178,7 +179,7 @@ sub pl_STAR {
     ## no critic (BuiltinFunctions::ProhibitStringyEval)
     my @result = eval ${$perl};
     ## use critic
-    @result or die $@;
+    @result or die $EVAL_ERROR;
     return pl_to_mal( $result[0] );
 }
 
@@ -188,7 +189,7 @@ sub mal_bool {
 }
 
 our %NS = (
-    '='        => sub { mal_bool( equal_q( $_[0], $_[1] ) ) },
+    q{=}       => sub { mal_bool( equal_q( $_[0], $_[1] ) ) },
     'throw'    => sub { die $_[0] },
     'nil?'     => sub { mal_bool( $_[0] eq $nil ) },
     'true?'    => sub { mal_bool( $_[0] eq $true ) },
@@ -213,11 +214,13 @@ our %NS = (
     '<='          => sub { mal_bool( ${ $_[0] } <= ${ $_[1] } ) },
     '>'           => sub { mal_bool( ${ $_[0] } > ${ $_[1] } ) },
     '>='          => sub { mal_bool( ${ $_[0] } >= ${ $_[1] } ) },
-    '+'           => sub { Mal::Integer->new( ${ $_[0] } + ${ $_[1] } ) },
-    '-'           => sub { Mal::Integer->new( ${ $_[0] } - ${ $_[1] } ) },
-    '*'           => sub { Mal::Integer->new( ${ $_[0] } * ${ $_[1] } ) },
-    '/'           => sub { Mal::Integer->new( ${ $_[0] } / ${ $_[1] } ) },
-    'time-ms'     => sub { Mal::Integer->new( int( time() * 1000 ) ) },
+    q{+}          => sub { Mal::Integer->new( ${ $_[0] } + ${ $_[1] } ) },
+    q{-}          => sub { Mal::Integer->new( ${ $_[0] } - ${ $_[1] } ) },
+    q{*}          => sub { Mal::Integer->new( ${ $_[0] } * ${ $_[1] } ) },
+    q{/}          => sub { Mal::Integer->new( ${ $_[0] } / ${ $_[1] } ) },
+    ## no critic (ValuesAndExpressions::ProhibitMagicNumbers)
+    'time-ms' => sub { Mal::Integer->new( int( time() * 1000 ) ) },
+    ## use critic
 
     'list'      => sub { Mal::List->new( \@_ ) },
     'list?'     => sub { mal_bool( $_[0]->isa('Mal::List') ) },

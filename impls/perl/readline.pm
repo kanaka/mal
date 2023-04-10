@@ -7,6 +7,7 @@ use re '/msx';
 use strict;
 use warnings;
 
+use English '-no_match_vars';
 use Term::ReadLine;
 
 use Exporter 'import';
@@ -25,7 +26,7 @@ sub save_line {
     my ($line) = @_;
     open( my $fh, '>>', $history_file ) or return;
     say $fh $line;
-    close $fh;
+    close $fh or die $ERRNO;
     return;
 }
 
@@ -34,10 +35,11 @@ sub load_history {
 
     while ( my $line = <$fh> ) {
         chomp $line;
-        $_rl->addhistory($line) if $line =~ /\S/;
+        $line =~ /\S/ or next;
+        $_rl->addhistory($line);
     }
 
-    close $fh;
+    close $fh or die $ERRNO;
     return;
 }
 

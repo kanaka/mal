@@ -30,13 +30,13 @@ sub READ {
 # eval
 sub starts_with {
     my ( $ast, $sym ) = @_;
-    return @$ast && $ast->[0]->isa('Mal::Symbol') && ${ $ast->[0] } eq $sym;
+    return @{$ast} && $ast->[0]->isa('Mal::Symbol') && ${ $ast->[0] } eq $sym;
 }
 
 sub quasiquote_loop {
     my ($ast) = @_;
     my $res = Mal::List->new( [] );
-    foreach my $elt ( reverse @$ast ) {
+    foreach my $elt ( reverse @{$ast} ) {
         if ( $elt->isa('Mal::List') and starts_with( $elt, 'splice-unquote' ) )
         {
             $res =
@@ -68,7 +68,6 @@ sub quasiquote {
     return $ast;
 }
 
-## no critic (Subroutines::ProhibitExcessComplexity)
 sub EVAL {
     my ( $ast, $env ) = @_;
 
@@ -78,36 +77,32 @@ sub EVAL {
     }
 
     if ( $ast->isa('Mal::Symbol') ) {
-        my $val = $env->get($$ast);
-        die "'$$ast' not found\n" unless $val;
-        return $val;
+        return $env->get( ${$ast} ) // die "'${$ast}' not found\n";
     }
     if ( $ast->isa('Mal::Vector') ) {
-        return ref($ast)->new( [ map { EVAL( $_, $env ) } @$ast ] );
+        return ref($ast)->new( [ map { EVAL( $_, $env ) } @{$ast} ] );
     }
     if ( $ast->isa('Mal::HashMap') ) {
         return Mal::HashMap->new(
             { pairmap { $a => EVAL( $b, $env ) } %$ast } );
     }
-    if ( not $ast->isa('Mal::List') ) {
-        return $ast;
-    }
+    $ast->isa('Mal::List') or return $ast;
 
     # apply list
 
-    unless (@$ast) { return $ast; }
-    my ($a0) = @$ast;
-    given ( $a0->isa('Mal::Symbol') ? $$a0 : $a0 ) {
+    @{$ast} or return $ast;
+    my ($a0) = @{$ast};
+    given ( $a0->isa('Mal::Symbol') ? ${$a0} : $a0 ) {
         when ('def!') {
-            my ( undef, $sym, $val ) = @$ast;
-            return $env->set( $$sym, EVAL( $val, $env ) );
+            my ( undef, $sym, $val ) = @{$ast};
+            return $env->set( ${$sym}, EVAL( $val, $env ) );
         }
         when ('let*') {
-            my ( undef, $bindings, $body ) = @$ast;
+            my ( undef, $bindings, $body ) = @{$ast};
             my $let_env = Mal::Env->new($env);
-            foreach my $pair ( pairs @$bindings ) {
-                my ( $k, $v ) = @$pair;
-                $let_env->set( $$k, EVAL( $v, $let_env ) );
+            foreach my $pair ( pairs @{$bindings} ) {
+                my ( $k, $v ) = @{$pair};
+                $let_env->set( ${$k}, EVAL( $v, $let_env ) );
             }
             @_ = ( $body, $let_env );
             goto &EVAL;
@@ -120,14 +115,14 @@ sub EVAL {
             goto &EVAL;
         }
         when ('defmacro!') {
-            my ( undef, $sym, $val ) = @$ast;
-            return $env->set( $$sym,
+            my ( undef, $sym, $val ) = @{$ast};
+            return $env->set( ${$sym},
                 Mal::Macro->new( EVAL( $val, $env )->clone ) );
         }
         when ('try*') {
-            my ( undef, $try, $catch ) = @$ast;
+            my ( undef, $try, $catch ) = @{$ast};
             if ($catch) {
-                my ( undef, $binding, $body ) = @$catch;
+                my ( undef, $binding, $body ) = @{$catch};
                 if ( my $ret = eval { EVAL( $try, $env ) } ) {
                     return $ret;
                 }
@@ -144,7 +139,7 @@ sub EVAL {
             goto &EVAL;
         }
         when ('do') {
-            my ( undef, @todo ) = @$ast;
+            my ( undef, @todo ) = @{$ast};
             my $final = pop @todo;
             for (@todo) {
                 EVAL( $_, $env );
@@ -153,7 +148,7 @@ sub EVAL {
             goto &EVAL;
         }
         when ('if') {
-            my ( undef, $if, $then, $else ) = @$ast;
+            my ( undef, $if, $then, $else ) = @{$ast};
             my $cond = EVAL( $if, $env );
             if ( $cond eq $nil || $cond eq $false ) {
                 $else // return $nil;
@@ -165,7 +160,7 @@ sub EVAL {
             goto &EVAL;
         }
         when ('fn*') {
-            my ( undef, $params, $body ) = @$ast;
+            my ( undef, $params, $body ) = @{$ast};
             return Mal::Function->new(
                 sub {
                     #print "running fn*\n";
@@ -176,13 +171,13 @@ sub EVAL {
         }
         default {
             my $f = EVAL( $a0, $env );
-            my ( undef, @args ) = @$ast;
+            my ( undef, @args ) = @{$ast};
             if ( $f->isa('Mal::Macro') ) {
-                @_ = ( &$f(@args), $env );
+                @_ = ( $f->(@args), $env );
                 goto &EVAL;
             }
             @_ = map { EVAL( $_, $env ) } @args;
-            goto &$f;
+            goto &{$f};
         }
     }
 }

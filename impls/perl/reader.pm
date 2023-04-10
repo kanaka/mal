@@ -11,6 +11,8 @@ use types qw($nil $true $false);
 
 ## no critic (RegularExpressions::RequireExtendedFormatting)
 ## no critic (RegularExpressions::ProhibitComplexRegexes)
+## no critic (RegularExpressions::RequireLineBoundaryMatching)
+## no critic (RegularExpressions::RequireDotMatchAnything)
 
 {
 
@@ -89,28 +91,28 @@ sub read_form {
     my ($rdr) = @_;
     my $token = $rdr->peek();
     given ($token) {
-        when ("'") {
+        when (q{'}) {
             $rdr->next_();
             return quote( 'quote', read_form($rdr) );
         }
-        when ('`') {
+        when (q{`}) {
             $rdr->next_();
             return quote( 'quasiquote', read_form($rdr) );
         }
-        when ('~') {
+        when (q{~}) {
             $rdr->next_();
             return quote( 'unquote', read_form($rdr) );
         }
-        when ('~@') {
+        when (q{~@}) {
             $rdr->next_();
             return quote( 'splice-unquote', read_form($rdr) );
         }
-        when ('^') {
+        when (q{^}) {
             $rdr->next_();
             my $meta = read_form($rdr);
             return quote( 'with-meta', read_form($rdr), $meta );
         }
-        when ('@') {
+        when (q{@}) {
             $rdr->next_();
             return quote( 'deref', read_form($rdr) );
         }

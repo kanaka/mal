@@ -19,7 +19,7 @@ sub pl_to_mal {
     if (/^HASH/) {
         return Mal::HashMap->new( { map { pl_to_mal($_) } %{$obj} } );
     }
-    if ( $_ eq '' ) {
+    if ( $_ eq q{} ) {
         if ( looks_like_number $obj ) {
             return Mal::Integer->new($obj);
         }
