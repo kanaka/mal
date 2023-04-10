@@ -17,45 +17,53 @@ our @EXPORT_OK = qw(%NS);
 # String functions
 
 sub pr_str {
-    return Mal::String->new( pr_list( q{ }, 1, @_ ) );
+    my @args = @_;
+    return Mal::String->new( pr_list( q{ }, 1, @args ) );
 }
 
 sub str {
-    return Mal::String->new( pr_list( q{}, 0, @_ ) );
+    my @args = @_;
+    return Mal::String->new( pr_list( q{}, 0, @args ) );
 }
 
 sub prn {
-    print pr_list( q{ }, 1, @_ ), "\n";
+    my @args = @_;
+    print pr_list( q{ }, 1, @args ), "\n";
     return $nil;
 }
 
 sub println {
-    print pr_list( q{ }, 0, @_ ), "\n";
+    my @args = @_;
+    print pr_list( q{ }, 0, @args ), "\n";
     return $nil;
 }
 
 sub core_readline {
-    my $line = mal_readline( ${ $_[0] } );
+    my ($prompt) = @_;
+    my $line = mal_readline( ${$prompt} );
     return defined $line ? Mal::String->new($line) : $nil;
 }
 
 sub slurp {
+    my ($filename) = @_;
     use autodie;
-    open( my $fh, '<', ${ $_[0] } );
+    open my $fh, q{<}, ${$filename};
     my $data = do { local $/; <$fh> };
-    Mal::String->new($data);
+    close $fh;
+    return Mal::String->new($data);
 }
 
 # Hash Map functions
 
 sub assoc {
-    my $src_hsh = shift;
-    return Mal::HashMap->new( { %$src_hsh, @_ } );
+    my ( $src_hsh, @keys ) = @_;
+    return Mal::HashMap->new( { %$src_hsh, @keys } );
 }
 
 sub dissoc {
-    my $new_hsh = { %{ shift @_ } };
-    delete @{$new_hsh}{@_};
+    my ( $map, @keys ) = @_;
+    my $new_hsh = { %{$map} };
+    delete @{$new_hsh}{@keys};
     return Mal::HashMap->new($new_hsh);
 }
 
@@ -70,20 +78,25 @@ sub contains_Q {
 }
 
 sub mal_keys {
-    my @ks = map { thaw_key($_) } keys %{ $_[0] };
-    return Mal::List->new( \@ks );
+    my ($map) = @_;
+    return Mal::List->new( [ map { thaw_key($_) } keys %{$map} ] );
 }
 
 sub mal_vals {
-    my @vs = values %{ $_[0] };
-    return Mal::List->new( \@vs );
+    my ($map) = @_;
+    return Mal::List->new( [ values %{$map} ] );
 }
 
 # Sequence functions
 
 sub cons {
     my ( $a, $b ) = @_;
-    Mal::List->new( [ $a, @$b ] );
+    return Mal::List->new( [ $a, @{$b} ] );
+}
+
+sub concat {
+    my @args = @_;
+    return Mal::List->new( [ map { @{$_} } @args ] );
 }
 
 sub nth {
@@ -97,25 +110,24 @@ sub first {
 }
 
 sub apply {
-    my $f = shift;
-    push @_, @{ pop @_ };
-    goto &$f;
+    my ( $f, @args ) = @_;
+    my $more_args = pop @args;
+    return &{$f}( @args, @{$more_args} );
 }
 
 sub mal_map {
-    my $f   = shift;
-    my @arr = map { &$f($_) } @{ $_[0] };
-    return Mal::List->new( \@arr );
+    my ( $f, $args ) = @_;
+    return Mal::List->new( [ map { &$f($_) } @{$args} ] );
 }
 
 sub conj {
-    my $seq     = shift;
+    my ( $seq, @items ) = @_;
     my $new_seq = $seq->clone;
     if ( $new_seq->isa('Mal::List') ) {
-        unshift @$new_seq, reverse @_;
+        unshift @$new_seq, reverse @items;
     }
     else {
-        push @$new_seq, @_;
+        push @$new_seq, @items;
     }
     return $new_seq;
 }
@@ -147,8 +159,9 @@ fieldhash my %meta;
 
 # Metadata functions
 sub with_meta {
-    my $new_obj = $_[0]->clone;
-    $meta{$new_obj} = $_[1];
+    my ( $old, $new_meta ) = @_;
+    my $new_obj = $old->clone;
+    $meta{$new_obj} = $new_meta;
     return $new_obj;
 }
 
@@ -220,7 +233,7 @@ our %NS = (
     'first'       => \&first,
     'rest'        => sub { $_[0]->rest() },
     'cons'        => \&cons,
-    'concat'      => sub { Mal::List->new( [ map @$_, @_ ] ) },
+    'concat'      => \&concat,
     'vec'         => sub { Mal::Vector->new( [ @{ $_[0] } ] ) },
     'empty?'      => sub { @{ $_[0] } ? $false : $true },
     'count'       => sub { Mal::Integer->new( scalar( @{ $_[0] } ) ) },

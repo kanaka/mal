@@ -9,24 +9,26 @@ use types;
 
 {
 
+    ## no critic (Modules::ProhibitMultiplePackages)
     package Mal::Env;
+    ## use critic
 
     sub new {
         my ( $class, $outer, $binds, $exprs ) = @_;
         my $data = { __outer__ => $outer };
         if ($binds) {
-            my @expr = @$exprs;
-            foreach my $bind (@$binds) {
-                if ( $$bind eq "&" ) {
+            for my $i ( 0 .. $#{$binds} ) {
+                if ( ${ $binds->[$i] } eq q{&} ) {
 
                     # variable length arguments
-                    @expr = ( Mal::List->new( [@expr] ) );
-                    next;
+                    $data->{ ${ $binds->[ $i + 1 ] } } =
+                      Mal::List->new( [ @{$exprs}[ $i .. $#{$exprs} ] ] );
+                    last;
                 }
-                $data->{$$bind} = shift @expr;
+                $data->{ ${ $binds->[$i] } } = $exprs->[$i];
             }
         }
-        bless $data => $class;
+        return bless $data => $class;
     }
 
     sub get {
@@ -37,7 +39,9 @@ use types;
         return $self->{$key};
     }
 
+    ## no critic (NamingConventions::ProhibitAmbiguousNames)
     sub set {
+        ## use critic
         my ( $self, $key, $value ) = @_;
         $self->{$key} = $value;
         return $value;

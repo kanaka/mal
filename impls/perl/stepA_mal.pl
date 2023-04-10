@@ -17,6 +17,9 @@ use printer  qw(pr_str);
 use env;
 use core qw(%NS);
 
+# False positives because of TCO.
+## no critic (Subroutines::RequireArgUnpacking)
+
 # read
 sub READ {
     my $str = shift;

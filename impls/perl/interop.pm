@@ -10,27 +10,21 @@ use types qw($nil);
 
 sub pl_to_mal {
     my ($obj) = @_;
-    for ( ref $obj ) {
-        if (/^ARRAY/) {
-            my @arr = map { pl_to_mal($_) } @$obj;
-            return Mal::List->new( \@arr );
-        }
-        elsif (/^HASH/) {
-            my %hsh = map { pl_to_mal($_) } %$obj;
-            return Mal::HashMap->new( \%hsh );
-        }
-        else {
-            if ( !defined($obj) ) {
-                return $nil;
-            }
-            elsif ( looks_like_number($obj) ) {
-                return Mal::Integer->new($obj);
-            }
-            else {
-                return Mal::String->new($obj);
-            }
-        }
+    defined $obj or return $nil;
+    $_ = ref $obj;
+    if (/^ARRAY/) {
+        return Mal::List->new( [ map { pl_to_mal($_) } @{$obj} ] );
     }
+    if (/^HASH/) {
+        return Mal::HashMap->new( { map { pl_to_mal($_) } %{$obj} } );
+    }
+    if ( $_ eq '' ) {
+        if ( looks_like_number $obj ) {
+            return Mal::Integer->new($obj);
+        }
+        return Mal::String->new($obj);
+    }
+    die 'Failed to convert a perl object to mal.';
 }
 
 1;
