@@ -9,6 +9,9 @@ our @EXPORT_OK = qw( read_str );
 
 use types qw($nil $true $false);
 
+## no critic (RegularExpressions::RequireExtendedFormatting)
+## no critic (RegularExpressions::ProhibitComplexRegexes)
+
 {
 
     ## no critic (ProhibitMultiplePackages)

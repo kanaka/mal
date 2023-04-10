@@ -3,6 +3,7 @@
 # Term::ReadLine::Perl (GPL, Artistic) from CPAN.
 
 package readline;
+use re '/msx';
 use strict;
 use warnings;
 

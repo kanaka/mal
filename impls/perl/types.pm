@@ -3,14 +3,15 @@ use strict;
 use warnings;
 
 use Exporter 'import';
-our @EXPORT_OK = qw(_equal_Q thaw_key
+
+our @EXPORT_OK = qw(equal_q thaw_key
   $nil $true $false);
 
 ## no critic (Modules::ProhibitMultiplePackages)
 
 # General functions
 
-sub _equal_Q {
+sub equal_q {
     my ( $a, $b ) = @_;
     unless ( ( ref $a eq ref $b )
         || ( $a->isa('Mal::Sequence') && $b->isa('Mal::Sequence') ) )
@@ -22,7 +23,7 @@ sub _equal_Q {
             return 0;
         }
         for ( my $i = 0 ; $i < scalar(@$a) ; $i++ ) {
-            unless ( _equal_Q( $a->[$i], $b->[$i] ) ) {
+            unless ( equal_q( $a->[$i], $b->[$i] ) ) {
                 return 0;
             }
         }
@@ -33,7 +34,7 @@ sub _equal_Q {
             return 0;
         }
         foreach my $k ( keys %$a ) {
-            unless ( _equal_Q( $a->{$k}, $b->{$k} ) ) {
+            unless ( equal_q( $a->{$k}, $b->{$k} ) ) {
                 return 0;
             }
         }
@@ -116,6 +117,7 @@ sub thaw_key {
     use parent -norequire, 'Mal::Scalar';
 }
 
+## no critic (Variables::ProhibitPackageVars)
 our $nil   = Mal::Nil->new('nil');
 our $true  = Mal::True->new('true');
 our $false = Mal::False->new('false');
