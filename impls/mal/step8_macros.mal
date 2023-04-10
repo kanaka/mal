@@ -44,7 +44,7 @@
 (def! EVAL (fn* [ast env]
   (do
     (if (env-get-or-nil env 'DEBUG-EVAL)
-      (prn 'EVAL: ast (env-as-map env)))
+      (println "EVAL:" (pr-str ast (env-as-map env))))
     (try*
       (cond
         (symbol? ast)
