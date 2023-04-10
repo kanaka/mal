@@ -1,7 +1,9 @@
+## no critic (NamingConventions::Capitalization)
 package reader;
+## use critic
 use strict;
 use warnings;
-no if $] >= 5.018, warnings => "experimental::smartmatch";
+no if $] >= 5.018, warnings => 'experimental::smartmatch';
 use feature qw(switch);
 
 use Exporter 'import';
@@ -50,12 +52,12 @@ sub read_atom {
     my ($rdr) = @_;
     my $token = $rdr->next_();
     given ($token) {
-        when (/^-?[0-9]+$/) { return Mal::Integer->new($token) }
+        when (/^-?\d+$/) { return Mal::Integer->new($token) }
         when (/^"((?:\\.|[^\\"])*)"$/) {
             return Mal::String->new( $1 =~ s/\\(.)/$1 =~ tr|n|\n|r/ger );
         }
         when (/^"/) {
-            die "expected '\"', got EOF";
+            die q{expected '"', got EOF};
         }
         when (/^:(.*)/) { return Mal::Keyword->new($1) }
         when ('nil')    { return $nil }
@@ -77,11 +79,9 @@ sub read_list {
     }
     while (1) {
         $token = $rdr->peek();
-        if ( !defined($token) ) {
-            die "expected '$end', got EOF";
-        }
+        defined $token or die "expected '$end', got EOF";
         last if ( $token eq $end );
-        push( @lst, read_form($rdr) );
+        push @lst, read_form($rdr);
     }
     $rdr->next_();
     return $class->new( \@lst );
@@ -117,11 +117,11 @@ sub read_form {
             return quote( 'deref', read_form($rdr) );
         }
 
-        when (')') { die "unexpected ')'" }
+        when (')') { die q{unexpected ')'} }
         when ('(') { return read_list( $rdr, 'Mal::List' ) }
-        when (']') { die "unexpected ']'" }
+        when (']') { die q{unexpected ']'} }
         when ('[') { return read_list( $rdr, 'Mal::Vector', '[', ']' ) }
-        when ('}') { die "unexpected '}'" }
+        when ('}') { die q[unexpected '}'] }
         when ('{') { return read_list( $rdr, 'Mal::HashMap', '{', '}' ) }
         default    { return read_atom($rdr) }
     }

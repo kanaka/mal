@@ -1,8 +1,8 @@
 #!/usr/bin/perl
 
 use strict;
-use warnings FATAL => "recursion";
-no if $] >= 5.018, warnings => "experimental::smartmatch";
+use warnings FATAL => 'recursion';
+no if $] >= 5.018, warnings => 'experimental::smartmatch';
 use feature qw(switch);
 use File::Basename 'dirname';
 use lib dirname(__FILE__);
@@ -57,7 +57,7 @@ sub quasiquote {
             [ Mal::Symbol->new('vec'), quasiquote_loop($ast) ] );
     }
     if ( $ast->isa('Mal::HashMap') or $ast->isa('Mal::Symbol') ) {
-        return Mal::List->new( [ Mal::Symbol->new("quote"), $ast ] );
+        return Mal::List->new( [ Mal::Symbol->new('quote'), $ast ] );
     }
     if ( $ast->isa('Mal::List') ) {
         if ( starts_with( $ast, 'unquote' ) ) {
@@ -68,12 +68,13 @@ sub quasiquote {
     return $ast;
 }
 
+## no critic (Subroutines::ProhibitExcessComplexity)
 sub EVAL {
     my ( $ast, $env ) = @_;
 
     my $dbgeval = $env->get('DEBUG-EVAL');
     if ( $dbgeval and $dbgeval ne $nil and $dbgeval ne $false ) {
-        print 'EVAL: ', pr_str($ast), "\n";
+        print 'EVAL: ', pr_str($ast), "\n" or die $ERRNO;
     }
 
     if ( $ast->isa('Mal::Symbol') ) {
@@ -208,15 +209,17 @@ $repl_env->set( '*ARGV*', Mal::List->new( \@_argv ) );
 # core.mal: defined using the language itself
 REP(q[(def! *host-language* "perl")]);
 REP(q[(def! not (fn* (a) (if a false true)))]);
-REP(
-q[(def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) "\nnil)")))))]
-);
-REP(
-q[(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw "odd number of forms to cond")) (cons 'cond (rest (rest xs)))))))]
-);
+REP(<<'EOF');
+(def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) "\nnil)")))))
+EOF
+REP(<<'EOF');
+(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs)
+(if (> (count xs) 1) (nth xs 1) (throw "odd number of forms to cond"))
+(cons 'cond (rest (rest xs)))))))
+EOF
 
-if ( @ARGV && $ARGV[0] eq "--raw" ) {
-    set_rl_mode("raw");
+if ( @ARGV && $ARGV[0] eq '--raw' ) {
+    set_rl_mode('raw');
     shift @ARGV;
 }
 if (@ARGV) {

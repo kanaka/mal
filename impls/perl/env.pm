@@ -1,4 +1,6 @@
+## no critic (NamingConventions::Capitalization)
 package env;
+## use critic
 use strict;
 use warnings;
 

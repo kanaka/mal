@@ -1,4 +1,6 @@
+## no critic (NamingConventions::Capitalization)
 package core;
+## use critic
 use re '/msx';
 use strict;
 use warnings;
@@ -30,13 +32,13 @@ sub str {
 
 sub prn {
     my @args = @_;
-    print pr_list( q{ }, 1, @args ), "\n";
+    print pr_list( q{ }, 1, @args ), "\n" or die $ERRNO;
     return $nil;
 }
 
 sub println {
     my @args = @_;
-    print pr_list( q{ }, 0, @args ), "\n";
+    print pr_list( q{ }, 0, @args ), "\n" or die $ERRNO;
     return $nil;
 }
 
@@ -74,7 +76,7 @@ sub get {
     return $hsh->{$key} // $nil;
 }
 
-sub contains_Q {
+sub contains_q {
     my ( $hsh, $key ) = @_;
     return mal_bool( exists $hsh->{$key} );
 }
@@ -103,7 +105,7 @@ sub concat {
 
 sub nth {
     my ( $seq, $i ) = @_;
-    return $seq->[$i] // die "nth: index out of bounds";
+    return $seq->[$i] // die 'nth: index out of bounds';
 }
 
 sub first {
@@ -152,7 +154,7 @@ sub seq {
         return Mal::List->new(
             [ map { Mal::String->new($_) } split //, ${$arg} ] );
     }
-    die "seq requires list or vector or string or nil";
+    die 'seq requires list or vector or string or nil';
 }
 
 fieldhash my %meta;
@@ -166,7 +168,7 @@ sub with_meta {
 }
 
 # Atom functions
-sub swap_BANG {
+sub swap_bang {
     my ( $atm, $f, @args ) = @_;
     return ${$atm} = $f->( ${$atm}, @args );
 }
@@ -174,7 +176,7 @@ sub swap_BANG {
 # Interop
 
 # Force array context so that undef is a valid result.
-sub pl_STAR {
+sub pl_star {
     my ($perl) = @_;
     ## no critic (BuiltinFunctions::ProhibitStringyEval)
     my @result = eval ${$perl};
@@ -231,7 +233,7 @@ our %NS = (
     'assoc'     => \&assoc,
     'dissoc'    => \&dissoc,
     'get'       => \&get,
-    'contains?' => \&contains_Q,
+    'contains?' => \&contains_q,
     'keys'      => \&mal_keys,
     'vals'      => \&mal_vals,
 
@@ -243,7 +245,7 @@ our %NS = (
     'concat'      => \&concat,
     'vec'         => sub { Mal::Vector->new( [ @{ $_[0] } ] ) },
     'empty?'      => sub { mal_bool( not @{ $_[0] } ) },
-    'count'       => sub { Mal::Integer->new( scalar( @{ $_[0] } ) ) },
+    'count'       => sub { Mal::Integer->new( scalar @{ $_[0] } ) },
     'apply'       => \&apply,
     'map'         => \&mal_map,
     'conj'        => \&conj,
@@ -255,9 +257,9 @@ our %NS = (
     'atom?'     => sub { mal_bool( $_[0]->isa('Mal::Atom') ) },
     'deref'     => sub { ${ $_[0] } },
     'reset!'    => sub { ${ $_[0] } = $_[1] },
-    'swap!'     => \&swap_BANG,
+    'swap!'     => \&swap_bang,
 
-    'pl*' => \&pl_STAR,
+    'pl*' => \&pl_star,
 );
 
 1;
