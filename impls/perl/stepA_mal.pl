@@ -2,8 +2,6 @@
 
 use strict;
 use warnings FATAL => 'recursion';
-no if $] >= 5.018, warnings => 'experimental::smartmatch';
-use feature qw(switch);
 use File::Basename 'dirname';
 use lib dirname(__FILE__);
 
@@ -93,12 +91,12 @@ sub EVAL {
 
     @{$ast} or return $ast;
     my ($a0) = @{$ast};
-    given ( $a0->isa('Mal::Symbol') ? ${$a0} : $a0 ) {
-        when ('def!') {
+    if ( $a0->isa('Mal::Symbol') ) {
+        if ( ${$a0} eq 'def!' ) {
             my ( undef, $sym, $val ) = @{$ast};
             return $env->set( ${$sym}, EVAL( $val, $env ) );
         }
-        when ('let*') {
+        if ( ${$a0} eq 'let*' ) {
             my ( undef, $bindings, $body ) = @{$ast};
             my $let_env = Mal::Env->new($env);
             foreach my $pair ( pairs @{$bindings} ) {
@@ -108,19 +106,19 @@ sub EVAL {
             @_ = ( $body, $let_env );
             goto &EVAL;
         }
-        when ('quote') {
+        if ( ${$a0} eq 'quote' ) {
             return $ast->[1];
         }
-        when ('quasiquote') {
+        if ( ${$a0} eq 'quasiquote' ) {
             @_ = ( quasiquote( $ast->[1] ), $env );
             goto &EVAL;
         }
-        when ('defmacro!') {
+        if ( ${$a0} eq 'defmacro!' ) {
             my ( undef, $sym, $val ) = @{$ast};
             return $env->set( ${$sym},
                 Mal::Macro->new( EVAL( $val, $env )->clone ) );
         }
-        when ('try*') {
+        if ( ${$a0} eq 'try*' ) {
             my ( undef, $try, $catch ) = @{$ast};
             if ($catch) {
                 my ( undef, $binding, $body ) = @{$catch};
@@ -139,7 +137,7 @@ sub EVAL {
             @_ = ( $try, $env );
             goto &EVAL;
         }
-        when ('do') {
+        if ( ${$a0} eq 'do' ) {
             my ( undef, @todo ) = @{$ast};
             my $final = pop @todo;
             for (@todo) {
@@ -148,7 +146,7 @@ sub EVAL {
             @_ = ( $final, $env );
             goto &EVAL;
         }
-        when ('if') {
+        if ( ${$a0} eq 'if' ) {
             my ( undef, $if, $then, $else ) = @{$ast};
             my $cond = EVAL( $if, $env );
             if ( $cond ne $nil and $cond ne $false ) {
@@ -161,7 +159,7 @@ sub EVAL {
             }
             return $nil;
         }
-        when ('fn*') {
+        if ( ${$a0} eq 'fn*' ) {
             my ( undef, $params, $body ) = @{$ast};
             return Mal::Function->new(
                 sub {
@@ -171,17 +169,15 @@ sub EVAL {
                 }
             );
         }
-        default {
-            my $f = EVAL( $a0, $env );
-            my ( undef, @args ) = @{$ast};
-            if ( $f->isa('Mal::Macro') ) {
-                @_ = ( $f->(@args), $env );
-                goto &EVAL;
-            }
-            @_ = map { EVAL( $_, $env ) } @args;
-            goto &{$f};
-        }
     }
+    my $f = EVAL( $a0, $env );
+    my ( undef, @args ) = @{$ast};
+    if ( $f->isa('Mal::Macro') ) {
+        @_ = ( $f->(@args), $env );
+        goto &EVAL;
+    }
+    @_ = map { EVAL( $_, $env ) } @args;
+    goto &{$f};
 }
 
 # print
