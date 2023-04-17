@@ -4,7 +4,6 @@ use warnings;
 
 use Exporter 'import';
 our @EXPORT_OK = qw( pl_to_mal );
-use List::Util   qw(pairmap);
 use Scalar::Util qw(looks_like_number);
 
 use types qw($nil);

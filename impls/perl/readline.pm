@@ -6,9 +6,10 @@ package readline;
 use strict;
 use warnings;
 
+use Term::ReadLine;
+
 use Exporter 'import';
 our @EXPORT_OK = qw( mal_readline set_rl_mode );
-use Term::ReadLine;
 
 my $_rl = Term::ReadLine->new('Mal');
 $_rl->ornaments(0);
@@ -67,4 +68,5 @@ sub mal_readline {
     }
     return $line;
 }
+
 1;

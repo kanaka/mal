@@ -2,24 +2,23 @@ use strict;
 use warnings FATAL => "recursion";
 no if $] >= 5.018, warnings => "experimental::smartmatch";
 use feature qw(switch);
-use File::Basename;
+use File::Basename 'dirname';
 use lib dirname(__FILE__);
 
-use Data::Dumper;
 use List::Util   qw(pairs pairmap);
 use Scalar::Util qw(blessed);
 
 use readline qw(mal_readline set_rl_mode);
-use types qw($nil $true $false);
-use reader;
-use printer;
+use types    qw($nil $true $false);
+use reader   qw(read_str);
+use printer  qw(pr_str);
 use env;
-use core;
+use core qw(%NS);
 
 # read
 sub READ {
     my $str = shift;
-    return reader::read_str($str);
+    return read_str($str);
 }
 
 # eval
@@ -70,7 +69,7 @@ sub EVAL {
 
     my $dbgeval = $env->get('DEBUG-EVAL');
     if ( $dbgeval and $dbgeval ne $nil and $dbgeval ne $false ) {
-        print "EVAL: " . printer::_pr_str($ast) . "\n";
+        print "EVAL: " . pr_str($ast) . "\n";
     }
 
     if ( $ast->isa('Mal::Symbol') ) {
@@ -187,7 +186,7 @@ sub EVAL {
 # print
 sub PRINT {
     my $exp = shift;
-    return printer::_pr_str($exp);
+    return pr_str($exp);
 }
 
 # repl
@@ -199,8 +198,8 @@ sub REP {
 }
 
 # core.pl: defined using perl
-foreach my $n ( keys %core::ns ) {
-    $repl_env->set( $n, $core::ns{$n} );
+while ( my ( $k, $v ) = each %NS ) {
+    $repl_env->set( $k, Mal::Function->new($v) );
 }
 $repl_env->set( 'eval',
     Mal::Function->new( sub { EVAL( $_[0], $repl_env ) } ) );
@@ -242,7 +241,7 @@ while (1) {
                 # ignore and continue
             }
             elsif ( defined( blessed $err) && $err->isa('Mal::Type') ) {
-                print "Error: " . printer::_pr_str($err) . "\n";
+                print "Error: " . pr_str($err) . "\n";
             }
             else {
                 chomp $err;
