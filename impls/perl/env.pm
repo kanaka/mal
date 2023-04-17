@@ -3,11 +3,13 @@ use strict;
 use warnings;
 
 use Exporter 'import';
+our @EXPORT_OK = ();
+
+use types;
 
 {
 
     package Mal::Env;
-    use Data::Dumper;
 
     sub new {
         my ( $class, $outer, $binds, $exprs ) = @_;

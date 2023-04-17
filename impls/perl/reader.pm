@@ -9,8 +9,6 @@ our @EXPORT_OK = qw( read_str );
 
 use types qw($nil $true $false);
 
-use Data::Dumper;
-
 {
 
     package Mal::Reader;

@@ -2,7 +2,6 @@ package types;
 use strict;
 use warnings;
 
-use Data::Dumper;
 use Exporter 'import';
 our @EXPORT_OK = qw(_equal_Q thaw_key
   $nil $true $false);

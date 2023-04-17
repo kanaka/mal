@@ -2,39 +2,40 @@ package core;
 use strict;
 use warnings;
 
-use Data::Dumper;
 use Hash::Util  qw(fieldhash);
-use List::Util  qw(pairmap);
 use Time::HiRes qw(time);
 
-use readline;
-use types   qw(_equal_Q thaw_key $nil $true $false);
-use reader  qw(read_str);
-use printer qw(_pr_str);
-use interop qw(pl_to_mal);
+use readline qw(mal_readline);
+use types    qw(_equal_Q thaw_key $nil $true $false);
+use reader   qw(read_str);
+use printer  qw(pr_list);
+use interop  qw(pl_to_mal);
+
+use Exporter 'import';
+our @EXPORT_OK = qw(%NS);
 
 # String functions
 
 sub pr_str {
-    return Mal::String->new( join( " ", map { _pr_str( $_, 1 ) } @_ ) );
+    return Mal::String->new( pr_list( q{ }, 1, @_ ) );
 }
 
 sub str {
-    return Mal::String->new( join( "", map { _pr_str( $_, 0 ) } @_ ) );
+    return Mal::String->new( pr_list( q{}, 0, @_ ) );
 }
 
 sub prn {
-    print join( " ", map { _pr_str( $_, 1 ) } @_ ) . "\n";
+    print pr_list( q{ }, 1, @_ ), "\n";
     return $nil;
 }
 
 sub println {
-    print join( " ", map { _pr_str( $_, 0 ) } @_ ) . "\n";
+    print pr_list( q{ }, 0, @_ ), "\n";
     return $nil;
 }
 
-sub mal_readline {
-    my $line = readline::mal_readline( ${ $_[0] } );
+sub core_readline {
+    my $line = mal_readline( ${ $_[0] } );
     return defined $line ? Mal::String->new($line) : $nil;
 }
 
@@ -169,7 +170,7 @@ sub pl_STAR {
     return pl_to_mal( $result[0] );
 }
 
-%core::ns = (
+our %NS = (
     '='        => sub { _equal_Q( $_[0], $_[1] ) ? $true : $false },
     'throw'    => sub { die $_[0] },
     'nil?'     => sub { $_[0] eq $nil              ? $true : $false },
@@ -188,7 +189,7 @@ sub pl_STAR {
     'str'         => \&str,
     'prn'         => \&prn,
     'println'     => \&println,
-    'readline'    => \&mal_readline,
+    'readline'    => \&core_readline,
     'read-string' => sub { read_str( ${ $_[0] } ) },
     'slurp'       => \&slurp,
     '<'           => sub { ${ $_[0] } < ${ $_[1] }  ? $true : $false },
@@ -238,9 +239,5 @@ sub pl_STAR {
 
     'pl*' => \&pl_STAR,
 );
-
-foreach my $f ( values %core::ns ) {
-    $f = Mal::Function->new($f);
-}
 
 1;
