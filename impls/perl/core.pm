@@ -105,12 +105,17 @@ sub concat {
 
 sub nth {
     my ( $seq, $i ) = @_;
-    return $seq->[$i] // die 'nth: index out of bounds';
+    return $seq->[ ${$i} ] // die 'nth: index out of bounds';
 }
 
 sub first {
     my ($seq) = @_;
     return $seq->[0] // $nil;
+}
+
+sub rest {
+    my ($l) = @_;
+    return Mal::List->new( [ @{$l}[ 1 .. $#{$l} ] ] );
 }
 
 sub apply {
@@ -220,7 +225,7 @@ our %NS = (
     'list?'     => sub { mal_bool( $_[0]->isa('Mal::List') ) },
     'vector'    => sub { Mal::Vector->new( \@_ ) },
     'vector?'   => sub { mal_bool( $_[0]->isa('Mal::Vector') ) },
-    'hash-map'  => sub { Mal::HashMap->new( \@_ ) },
+    'hash-map'  => sub { Mal::HashMap->new( {@_} ) },
     'map?'      => sub { mal_bool( $_[0]->isa('Mal::HashMap') ) },
     'assoc'     => \&assoc,
     'dissoc'    => \&dissoc,
@@ -230,9 +235,9 @@ our %NS = (
     'vals'      => \&mal_vals,
 
     'sequential?' => sub { mal_bool( $_[0]->isa('Mal::Sequence') ) },
-    'nth'         => sub { nth( $_[0], ${ $_[1] } ) },
+    'nth'         => \&nth,
     'first'       => \&first,
-    'rest'        => sub { $_[0]->rest() },
+    'rest'        => \&rest,
     'cons'        => \&cons,
     'concat'      => \&concat,
     'vec'         => sub { Mal::Vector->new( [ @{ $_[0] } ] ) },
