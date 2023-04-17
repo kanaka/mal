@@ -79,9 +79,6 @@ sub thaw_key {
     # Allow nil to be treated as an empty list or hash-map.
     use overload '@{}' => sub { [] }, '%{}' => sub { {} }, fallback => 1;
 
-    sub rest {
-        return Mal::List->new( [] );
-    }
 }
 {
 
@@ -135,11 +132,6 @@ our $false = Mal::False->new('false');
         return bless $data, $class;
     }
 
-    sub rest {
-        my $arr = shift;
-        return Mal::List->new( [ @{$arr}[ 1 .. $#{$arr} ] ] );
-    }
-
     sub clone {
         my $self = shift;
         return ref($self)->new( [ @{$self} ] );
@@ -168,13 +160,9 @@ our $false = Mal::False->new('false');
 
     package Mal::HashMap;
     use parent -norequire, 'Mal::Type';
-    use Scalar::Util qw(reftype);
 
     sub new {
         my ( $class, $src ) = @_;
-        if ( reftype($src) eq 'ARRAY' ) {
-            $src = { @{$src} };
-        }
         return bless $src, $class;
     }
 

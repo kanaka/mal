@@ -71,7 +71,7 @@ sub read_form {
         return Mal::Vector->new( read_list( $str, '\]' ) );
     }
     if ( ${$str} =~ s/ \A [{] // ) {
-        return Mal::HashMap->new( read_list( $str, '\}' ) );
+        return Mal::HashMap->new( { @{ read_list( $str, '\}' ) } } );
     }
     if ( ${$str} =~ s/ \A ( -? \d+ ) // ) {
         return Mal::Integer->new($1);
