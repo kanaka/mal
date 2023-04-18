@@ -13,7 +13,7 @@ use readline qw(mal_readline set_rl_mode);
 use types    qw(nil false);
 use reader   qw(read_str);
 use printer  qw(pr_str);
-use env;
+use Env;
 use core qw(%NS);
 
 # False positives because of TCO.
@@ -127,7 +127,7 @@ sub special_def {
 
 sub special_let {
     my ( $env, $bindings, $body ) = @_;
-    my $let_env = Mal::Env->new($env);
+    my $let_env = Env->new($env);
     foreach my $pair ( pairs @{$bindings} ) {
         my ( $k, $v ) = @{$pair};
         $let_env->set( ${$k}, EVAL( $v, $let_env ) );
@@ -164,7 +164,7 @@ sub special_try {
             chomp $exc;
             $exc = Mal::String->new($exc);
         }
-        my $catch_env = Mal::Env->new( $env, [$binding], [$exc] );
+        my $catch_env = Env->new( $env, [$binding], [$exc] );
         @_ = ( $body, $catch_env );
         goto &EVAL;
     }
@@ -200,7 +200,7 @@ sub special_fn {
     my ( $env, $params, $body ) = @_;
     return Mal::Function->new(
         sub {
-            @_ = ( $body, Mal::Env->new( $env, $params, \@_ ) );
+            @_ = ( $body, Env->new( $env, $params, \@_ ) );
             goto &EVAL;
         }
     );
@@ -213,7 +213,7 @@ sub PRINT {
 }
 
 # repl
-my $repl_env = Mal::Env->new();
+my $repl_env = Env->new();
 
 sub REP {
     my $str = shift;

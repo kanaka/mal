@@ -1,6 +1,6 @@
 SOURCES_BASE = readline.pm types.pm reader.pm printer.pm \
                interop.pm
-SOURCES_LISP = env.pm core.pm stepA_mal.pl
+SOURCES_LISP = Env.pm core.pm stepA_mal.pl
 SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
 
 all:
