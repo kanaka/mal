@@ -8,7 +8,7 @@ use warnings;
 use Exporter 'import';
 
 our @EXPORT_OK = qw(equal_q thaw_key
-  $nil $true $false);
+  nil true false);
 
 ## no critic (Modules::ProhibitMultiplePackages)
 
@@ -91,10 +91,12 @@ sub thaw_key {
     use parent -norequire, 'Mal::Scalar';
 }
 
-## no critic (Variables::ProhibitPackageVars)
-our $nil   = Mal::Nil->new('nil');
-our $true  = Mal::True->new('true');
-our $false = Mal::False->new('false');
+my $nil   = Mal::Nil->new('nil');
+my $true  = Mal::True->new('true');
+my $false = Mal::False->new('false');
+sub nil   { return $nil; }
+sub true  { return $true; }
+sub false { return $false; }
 
 {
 

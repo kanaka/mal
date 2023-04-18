@@ -8,7 +8,7 @@ use warnings;
 use Exporter 'import';
 our @EXPORT_OK = qw( read_str );
 
-use types qw($nil $true $false);
+use types qw(nil true false);
 
 my $separators = <<'EOF';
 (?: [\s,] | ; [^\n]* \n )*
@@ -87,9 +87,9 @@ sub read_form {
         return Mal::Keyword->new($1);
     }
     if ( ${$str} =~ s/ \A ( $normal+ ) // ) {
-        if ( $1 eq 'nil' )   { return $nil; }
-        if ( $1 eq 'true' )  { return $true; }
-        if ( $1 eq 'false' ) { return $false; }
+        if ( $1 eq 'nil' )   { return nil; }
+        if ( $1 eq 'true' )  { return true; }
+        if ( $1 eq 'false' ) { return false; }
         return Mal::Symbol->new($1);
     }
     if ( ${$str} =~ / \A [)\]}] / ) {

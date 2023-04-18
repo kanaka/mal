@@ -10,7 +10,7 @@ use Hash::Util  qw(fieldhash);
 use Time::HiRes qw(time);
 
 use readline qw(mal_readline);
-use types    qw(equal_q thaw_key $nil $true $false);
+use types    qw(equal_q thaw_key nil true false);
 use reader   qw(read_str);
 use printer  qw(pr_list);
 use interop  qw(pl_to_mal);
@@ -33,19 +33,19 @@ sub str {
 sub prn {
     my @args = @_;
     print pr_list( q{ }, 1, @args ), "\n" or die $ERRNO;
-    return $nil;
+    return nil;
 }
 
 sub println {
     my @args = @_;
     print pr_list( q{ }, 0, @args ), "\n" or die $ERRNO;
-    return $nil;
+    return nil;
 }
 
 sub core_readline {
     my ($prompt) = @_;
     my $line = mal_readline( ${$prompt} );
-    return defined $line ? Mal::String->new($line) : $nil;
+    return defined $line ? Mal::String->new($line) : nil;
 }
 
 sub slurp {
@@ -73,7 +73,7 @@ sub dissoc {
 
 sub get {
     my ( $hsh, $key ) = @_;
-    return $hsh->{$key} // $nil;
+    return $hsh->{$key} // nil;
 }
 
 sub contains_q {
@@ -110,7 +110,7 @@ sub nth {
 
 sub first {
     my ($seq) = @_;
-    return $seq->[0] // $nil;
+    return $seq->[0] // nil;
 }
 
 sub rest {
@@ -151,7 +151,7 @@ sub seq {
         return Mal::List->new(
             [ map { Mal::String->new($_) } split //, ${$arg} ] );
     }
-    return $nil;
+    return nil;
 }
 
 fieldhash my %meta;
@@ -184,15 +184,15 @@ sub pl_star {
 
 sub mal_bool {
     my ($test) = @_;
-    return $test ? $true : $false;
+    return $test ? true : false;
 }
 
 our %NS = (
     q{=}       => sub { mal_bool( equal_q( $_[0], $_[1] ) ) },
     'throw'    => sub { die $_[0] },
-    'nil?'     => sub { mal_bool( $_[0] eq $nil ) },
-    'true?'    => sub { mal_bool( $_[0] eq $true ) },
-    'false?'   => sub { mal_bool( $_[0] eq $false ) },
+    'nil?'     => sub { mal_bool( $_[0]->isa('Mal::Nil') ) },
+    'true?'    => sub { mal_bool( $_[0]->isa('Mal::True') ) },
+    'false?'   => sub { mal_bool( $_[0]->isa('Mal::False') ) },
     'number?'  => sub { mal_bool( $_[0]->isa('Mal::Integer') ) },
     'symbol'   => sub { Mal::Symbol->new( ${ $_[0] } ) },
     'symbol?'  => sub { mal_bool( $_[0]->isa('Mal::Symbol') ) },
@@ -249,7 +249,7 @@ our %NS = (
     'seq'         => \&seq,
 
     'with-meta' => \&with_meta,
-    'meta'      => sub { $meta{ $_[0] } // $nil },
+    'meta'      => sub { $meta{ $_[0] } // nil },
     'atom'      => sub { Mal::Atom->new( $_[0] ) },
     'atom?'     => sub { mal_bool( $_[0]->isa('Mal::Atom') ) },
     'deref'     => sub { ${ $_[0] } },
