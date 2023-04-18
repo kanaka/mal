@@ -1,44 +1,35 @@
 ## no critic (NamingConventions::Capitalization)
 package reader;
 ## use critic
+use re '/msx';
 use strict;
 use warnings;
-no if $] >= 5.018, warnings => 'experimental::smartmatch';
-use feature qw(switch);
 
 use Exporter 'import';
 our @EXPORT_OK = qw( read_str );
 
 use types qw($nil $true $false);
 
-## no critic (RegularExpressions::RequireExtendedFormatting)
-## no critic (RegularExpressions::ProhibitComplexRegexes)
-## no critic (RegularExpressions::RequireLineBoundaryMatching)
-## no critic (RegularExpressions::RequireDotMatchAnything)
+my $separators = <<'EOF';
+(?: [\s,] | ; [^\n]* \n )*
+EOF
 
-{
+my $normal = <<'EOF';
+[^\s,;'`~@^()[\]{}"]
+EOF
 
-    ## no critic (ProhibitMultiplePackages)
-    package Mal::Reader;
-    ## use critic
+sub read_list {
+    my ( $str, $end ) = @_;
 
-    sub new {
-        my $class = shift;
-        return bless { position => 0, tokens => shift } => $class;
+    # print "read_list: /${$str}/$end/\n";
+    my @lst;
+    while () {
+        ${$str} =~ s/ \A $separators //;
+        ${$str} or die "expected '$end', got EOF";
+        last if ( ${$str} =~ s/ \A $end // );
+        push @lst, read_form($str);
     }
-
-    sub next_ {
-        my $self = shift;
-        return $self->{tokens}[ $self->{position}++ ];
-    }
-    sub peek { my $self = shift; return $self->{tokens}[ $self->{position} ] }
-}
-
-sub tokenize {
-    my ($str) = @_;
-    my @tokens = $str =~
-      /[\s,]*(~@|[\[\]{}()'`~^@]|"(?:\\.|[^\\"])*"?|;.*|[^\s\[\]{}('"`,;)]*)/g;
-    return grep { !/^;|^$/ } @tokens;
+    return \@lst;
 }
 
 sub quote {
@@ -48,92 +39,68 @@ sub quote {
     return Mal::List->new( [ Mal::Symbol->new($quoter), @args ] );
 }
 
-sub read_atom {
-    my ($rdr) = @_;
-    my $token = $rdr->next_();
-    given ($token) {
-        when (/^-?\d+$/) { return Mal::Integer->new($token) }
-        when (/^"((?:\\.|[^\\"])*)"$/) {
-            return Mal::String->new( $1 =~ s/\\(.)/$1 =~ tr|n|\n|r/ger );
-        }
-        when (/^"/) {
-            die q{expected '"', got EOF};
-        }
-        when (/^:(.*)/) { return Mal::Keyword->new($1) }
-        when ('nil')    { return $nil }
-        when ('true')   { return $true }
-        when ('false')  { return $false }
-        default         { return Mal::Symbol->new($token) }
-    }
-}
-
-sub read_list {
-    my ( $rdr, $class, $start, $end ) = @_;
-    $start = $start // '(';
-    $end   = $end   // ')';
-
-    my $token = $rdr->next_();
-    my @lst   = ();
-    if ( $token ne $start ) {
-        die "expected '$start'";
-    }
-    while (1) {
-        $token = $rdr->peek();
-        defined $token or die "expected '$end', got EOF";
-        last if ( $token eq $end );
-        push @lst, read_form($rdr);
-    }
-    $rdr->next_();
-    return $class->new( \@lst );
-}
-
 sub read_form {
-    my ($rdr) = @_;
-    my $token = $rdr->peek();
-    given ($token) {
-        when (q{'}) {
-            $rdr->next_();
-            return quote( 'quote', read_form($rdr) );
-        }
-        when (q{`}) {
-            $rdr->next_();
-            return quote( 'quasiquote', read_form($rdr) );
-        }
-        when (q{~}) {
-            $rdr->next_();
-            return quote( 'unquote', read_form($rdr) );
-        }
-        when (q{~@}) {
-            $rdr->next_();
-            return quote( 'splice-unquote', read_form($rdr) );
-        }
-        when (q{^}) {
-            $rdr->next_();
-            my $meta = read_form($rdr);
-            return quote( 'with-meta', read_form($rdr), $meta );
-        }
-        when (q{@}) {
-            $rdr->next_();
-            return quote( 'deref', read_form($rdr) );
-        }
+    my $str = shift;
 
-        when (')') { die q{unexpected ')'} }
-        when ('(') { return read_list( $rdr, 'Mal::List' ) }
-        when (']') { die q{unexpected ']'} }
-        when ('[') { return read_list( $rdr, 'Mal::Vector', '[', ']' ) }
-        when ('}') { die q[unexpected '}'] }
-        when ('{') { return read_list( $rdr, 'Mal::HashMap', '{', '}' ) }
-        default    { return read_atom($rdr) }
+    # print "read_form: /${$str}/\n";
+
+    # Always skip initial separators.
+    ${$str} =~ s/ \A $separators //;
+
+    if ( ${$str} =~ s/ \A ' // ) {
+        return quote( 'quote', read_form($str) );
     }
+    if ( ${$str} =~ s/ \A ` // ) {
+        return quote( 'quasiquote', read_form($str) );
+    }
+    if ( ${$str} =~ s/ \A ~ // ) {
+        return quote( ${$str} =~ s/ \A @ // ? 'splice-unquote' : 'unquote',
+            read_form($str) );
+    }
+    if ( ${$str} =~ s/ \A \^ // ) {
+        my $meta = read_form($str);
+        return quote( 'with-meta', read_form($str), $meta );
+    }
+    if ( ${$str} =~ s/ \A @ // ) {
+        return quote( 'deref', read_form($str) );
+    }
+    if ( ${$str} =~ s/ \A [(] // ) {
+        return Mal::List->new( read_list( $str, '\)' ) );
+    }
+    if ( ${$str} =~ s/ \A \[ // ) {
+        return Mal::Vector->new( read_list( $str, '\]' ) );
+    }
+    if ( ${$str} =~ s/ \A [{] // ) {
+        return Mal::HashMap->new( read_list( $str, '\}' ) );
+    }
+    if ( ${$str} =~ s/ \A ( -? \d+ ) // ) {
+        return Mal::Integer->new($1);
+    }
+    if ( ${$str} =~ s/ \A " // ) {
+        ${$str} =~ s/ \A ( (?: \\ . | [^\\"] )* ) " //
+          or die 'expected ", got EOF';
+        return Mal::String->new( $1 =~ s/ \\ (.) / $1 =~ tr|n|\n|r /ger );
+    }
+    if ( ${$str} =~ s/ \A : // ) {
+        ${$str} =~ s/ \A ( $normal + ) //
+          or die 'letters expected after a colon';
+        return Mal::Keyword->new($1);
+    }
+    if ( ${$str} =~ s/ \A ( $normal+ ) // ) {
+        if ( $1 eq 'nil' )   { return $nil; }
+        if ( $1 eq 'true' )  { return $true; }
+        if ( $1 eq 'false' ) { return $false; }
+        return Mal::Symbol->new($1);
+    }
+    if ( ${$str} =~ / \A [)\]}] / ) {
+        die "unexpected '$1'";
+    }
+    die "Failed to parse '${$str}'";
 }
 
 sub read_str {
-    my ($str) = @_;
-    my @tokens = tokenize($str);
-
-    #print "tokens: " . Dumper(\@tokens);
-    if ( scalar(@tokens) == 0 ) { die Mal::BlankException->new(); }
-    return read_form( Mal::Reader->new( \@tokens ) );
+    my $str = shift;
+    return read_form( \$str );
 }
 
 #print Dumper(read_str("123"));

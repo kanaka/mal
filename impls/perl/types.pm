@@ -35,18 +35,6 @@ sub equal_q {
     return ${$a} eq ${$b};
 }
 
-# Errors/Exceptions
-
-{
-
-    package Mal::BlankException;
-
-    sub new {
-        my $class = shift;
-        return bless Mal::String->new('Blank Line') => $class;
-    }
-}
-
 # Superclass for all kinds of mal value
 
 {
