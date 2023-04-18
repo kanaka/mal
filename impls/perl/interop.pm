@@ -9,11 +9,11 @@ use Exporter 'import';
 our @EXPORT_OK = qw( pl_to_mal );
 use Scalar::Util qw(looks_like_number);
 
-use types qw($nil);
+use types qw(nil);
 
 sub pl_to_mal {
     my ($obj) = @_;
-    defined $obj or return $nil;
+    defined $obj or return nil;
     $_ = ref $obj;
     if (/^ARRAY/) {
         return Mal::List->new( [ map { pl_to_mal($_) } @{$obj} ] );

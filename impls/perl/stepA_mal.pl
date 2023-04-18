@@ -10,7 +10,7 @@ use List::Util   qw(pairs pairmap);
 use Scalar::Util qw(blessed);
 
 use readline qw(mal_readline set_rl_mode);
-use types    qw($nil $false);
+use types    qw(nil false);
 use reader   qw(read_str);
 use printer  qw(pr_str);
 use env;
@@ -86,7 +86,10 @@ sub EVAL {
     my ( $ast, $env ) = @_;
 
     my $dbgeval = $env->get('DEBUG-EVAL');
-    if ( $dbgeval and $dbgeval ne $nil and $dbgeval ne $false ) {
+    if (    $dbgeval
+        and not $dbgeval->isa('Mal::Nil')
+        and not $dbgeval->isa('Mal::False') )
+    {
         print 'EVAL: ', pr_str($ast), "\n" or die $ERRNO;
     }
 
@@ -182,7 +185,7 @@ sub special_do {
 sub special_if {
     my ( $env, $if, $then, $else ) = @_;
     my $cond = EVAL( $if, $env );
-    if ( $cond ne $nil and $cond ne $false ) {
+    if ( not $cond->isa('Mal::Nil') and not $cond->isa('Mal::False') ) {
         @_ = ( $then, $env );
         goto &EVAL;
     }
@@ -190,7 +193,7 @@ sub special_if {
         @_ = ( $else, $env );
         goto &EVAL;
     }
-    return $nil;
+    return nil;
 }
 
 sub special_fn {
