@@ -12,15 +12,16 @@ use Term::ReadLine;
 
 my $_rl = Term::ReadLine->new('Mal');
 $_rl->ornaments(0);
+
 #print "Using ReadLine implementation: " . $_rl->ReadLine() . "\n";
-my $OUT = $_rl->OUT || \*STDOUT;
+my $OUT             = $_rl->OUT || \*STDOUT;
 my $_history_loaded = 0;
 
 my $history_file = $ENV{"HOME"} . "/.mal-history";
 
 sub save_line {
     my ($line) = @_;
-    open(my $fh, '>>', $history_file) or return;
+    open( my $fh, '>>', $history_file ) or return;
     say $fh $line;
     close $fh;
 }
@@ -28,7 +29,7 @@ sub save_line {
 sub load_history {
     open my $fh, $history_file or return;
 
-    while(my $line = <$fh>)  {   
+    while ( my $line = <$fh> ) {
         chomp $line;
         $_rl->addhistory($line) if $line =~ /\S/;
     }
@@ -39,33 +40,36 @@ sub load_history {
 my $rl_mode = "terminal";
 
 sub set_rl_mode {
-    my($mode) = @_;
+    my ($mode) = @_;
     $rl_mode = $mode;
 }
 
 sub mal_readline {
-    my($prompt) = @_;
+    my ($prompt) = @_;
     my $line = undef;
-    if (! $_history_loaded) {
+    if ( !$_history_loaded ) {
         $_history_loaded = 1;
         load_history();
     }
 
-    if ($rl_mode eq "terminal") {
-        if (defined ($line = $_rl->readline($prompt))) {
+    if ( $rl_mode eq "terminal" ) {
+        if ( defined( $line = $_rl->readline($prompt) ) ) {
             save_line($line);
             chomp $line;
             return $line;
-        } else {
+        }
+        else {
             return undef;
         }
-    } else {
+    }
+    else {
         print "$prompt";
-        if (defined ($line = readline(*STDIN))) {
+        if ( defined( $line = readline(*STDIN) ) ) {
             save_line($line);
             chomp($line);
             return $line;
-        } else {
+        }
+        else {
             return undef;
         }
     }

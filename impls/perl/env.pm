@@ -3,34 +3,38 @@ use warnings;
 
 use Exporter 'import';
 
-
 {
+
     package Mal::Env;
     use Data::Dumper;
-    sub new  {
-        my ($class,$outer,$binds,$exprs) = @_;
+
+    sub new {
+        my ( $class, $outer, $binds, $exprs ) = @_;
         my $data = { __outer__ => $outer };
         if ($binds) {
-	    my @expr = @$exprs;
+            my @expr = @$exprs;
             foreach my $bind (@$binds) {
-                if ($$bind eq "&") {
+                if ( $$bind eq "&" ) {
+
                     # variable length arguments
-		    @expr = (Mal::List->new([@expr]));
-		    next;
+                    @expr = ( Mal::List->new( [@expr] ) );
+                    next;
                 }
-		$data->{$$bind} = shift @expr;
+                $data->{$$bind} = shift @expr;
             }
         }
-        bless $data => $class
+        bless $data => $class;
     }
+
     sub get {
-        my ($self, $key) = @_;
-        if (exists $self->{$key}) { return $self->{$key}; }
-        elsif ($self->{__outer__}) { return $self->{__outer__}->get($key); }
-        else { return undef; }
+        my ( $self, $key ) = @_;
+        if    ( exists $self->{$key} ) { return $self->{$key}; }
+        elsif ( $self->{__outer__} )   { return $self->{__outer__}->get($key); }
+        else                           { return undef; }
     }
+
     sub set {
-        my ($self, $key, $value) = @_;
+        my ( $self, $key, $value ) = @_;
         $self->{$key} = $value;
         return $value;
     }
