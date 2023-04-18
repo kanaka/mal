@@ -225,11 +225,6 @@ our $false = Mal::False->new('false');
         my ( $class, $val ) = @_;
         return bless \$val, $class;
     }
-
-    sub clone {
-        my $self = shift;
-        return ref($self)->new( ${$self} );
-    }
 }
 
 1;
