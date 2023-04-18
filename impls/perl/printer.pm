@@ -14,7 +14,7 @@ use List::Util qw(pairmap);
 
 sub pr_str {
     my ( $obj, $print_readably ) = @_;
-    my ($_r) = $print_readably // 1;
+    my $_r = $print_readably // 1;
     if ( $obj->isa('Mal::List') ) {
         return '(' . pr_list( q{ }, $_r, @{$obj} ) . ')';
     }
@@ -27,7 +27,7 @@ sub pr_str {
           . pr_list( q{ }, $_r, pairmap { thaw_key($a) => $b } %{$obj} ) . '}';
     }
     if ( $obj->isa('Mal::Keyword') ) {
-        return ":$$obj";
+        return ":${$obj}";
     }
     if ( $obj->isa('Mal::String') ) {
         if ($_r) {

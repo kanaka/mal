@@ -180,7 +180,6 @@ our $false = Mal::False->new('false');
 
     package Mal::HashMap;
     use parent -norequire, 'Mal::Type';
-    use List::Util   qw(pairmap);
     use Scalar::Util qw(reftype);
 
     sub new {

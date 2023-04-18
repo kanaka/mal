@@ -27,8 +27,8 @@ my $history_file = "$ENV{'HOME'}/.mal-history";
 sub save_line {
     my ($line) = @_;
     open my $fh, '>>', $history_file or return;
-    say {$fh} $line or die $ERRNO;
-    close $fh       or die $ERRNO;
+    print {$fh} "$line\n" or die $ERRNO;
+    close $fh             or die $ERRNO;
     return;
 }
 
