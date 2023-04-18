@@ -2,9 +2,7 @@
 # Term::ReadKey and either Term::ReadLine::Gnu (GPL) or
 # Term::ReadLine::Perl (GPL, Artistic) from CPAN.
 
-## no critic (NamingConventions::Capitalization)
-package readline;
-## use critic
+package Readline;
 use re '/msx';
 use strict;
 use warnings;

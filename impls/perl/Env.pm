@@ -5,7 +5,7 @@ use warnings;
 use Exporter 'import';
 our @EXPORT_OK = ();
 
-use types;
+use Types;
 
 sub new {
     my ( $class, $outer, $binds, $exprs ) = @_;

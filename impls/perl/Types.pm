@@ -1,6 +1,4 @@
-## no critic (NamingConventions::Capitalization)
-package types;
-## use critic
+package Types;
 use re '/msx';
 use strict;
 use warnings;

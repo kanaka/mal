@@ -1,6 +1,4 @@
-## no critic (NamingConventions::Capitalization)
-package printer;
-## use critic
+package Printer;
 use re '/msx';
 use strict;
 use warnings;
@@ -8,7 +6,7 @@ use warnings;
 use Exporter 'import';
 our @EXPORT_OK = qw( pr_list pr_str );
 
-use types qw(thaw_key);
+use Types qw(thaw_key);
 
 use List::Util qw(pairmap);
 
