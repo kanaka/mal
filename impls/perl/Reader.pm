@@ -1,6 +1,4 @@
-## no critic (NamingConventions::Capitalization)
-package reader;
-## use critic
+package Reader;
 use re '/msx';
 use strict;
 use warnings;
@@ -8,7 +6,7 @@ use warnings;
 use Exporter 'import';
 our @EXPORT_OK = qw( read_str );
 
-use types qw(nil true false);
+use Types qw(nil true false);
 
 my $separators = <<'EOF';
 (?: [\s,] | ; [^\n]* \n )*

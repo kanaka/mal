@@ -1,6 +1,4 @@
-## no critic (NamingConventions::Capitalization)
-package core;
-## use critic
+package Core;
 use re '/msx';
 use strict;
 use warnings;
@@ -9,11 +7,11 @@ use English '-no_match_vars';
 use Hash::Util  qw(fieldhash);
 use Time::HiRes qw(time);
 
-use readline qw(mal_readline);
-use types    qw(equal_q thaw_key nil true false);
-use reader   qw(read_str);
-use printer  qw(pr_list);
-use interop  qw(pl_to_mal);
+use Readline qw(mal_readline);
+use Types    qw(equal_q thaw_key nil true false);
+use Reader   qw(read_str);
+use Printer  qw(pr_list);
+use Interop  qw(pl_to_mal);
 
 use Exporter 'import';
 our @EXPORT_OK = qw(%NS);

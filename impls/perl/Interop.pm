@@ -1,6 +1,4 @@
-## no critic (NamingConventions::Capitalization)
-package interop;
-## use critic
+package Interop;
 use re '/msx';
 use strict;
 use warnings;
@@ -9,7 +7,7 @@ use Exporter 'import';
 our @EXPORT_OK = qw( pl_to_mal );
 use Scalar::Util qw(looks_like_number);
 
-use types qw(nil);
+use Types qw(nil);
 
 sub pl_to_mal {
     my ($obj) = @_;

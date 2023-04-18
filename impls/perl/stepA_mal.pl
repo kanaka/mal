@@ -9,12 +9,12 @@ use English '-no_match_vars';
 use List::Util   qw(pairs pairmap);
 use Scalar::Util qw(blessed);
 
-use readline qw(mal_readline set_rl_mode);
-use types    qw(nil false);
-use reader   qw(read_str);
-use printer  qw(pr_str);
+use Readline qw(mal_readline set_rl_mode);
+use Types    qw(nil false);
+use Reader   qw(read_str);
+use Printer  qw(pr_str);
 use Env;
-use core qw(%NS);
+use Core qw(%NS);
 
 # False positives because of TCO.
 ## no critic (Subroutines::RequireArgUnpacking)
