@@ -233,7 +233,6 @@ while ( defined( my $line = mal_readline('user> ') ) ) {
         1;
     } or do {
         my $err = $EVAL_ERROR;
-        next if defined blessed($err) and $err->isa('Mal::BlankException');
         if ( defined blessed($err) and $err->isa('Mal::Type') ) {
             $err = pr_str($err) . "\n";
         }
