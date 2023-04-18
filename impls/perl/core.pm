@@ -126,35 +126,27 @@ sub mal_map {
 
 sub conj {
     my ( $seq, @items ) = @_;
-    my $new_seq = $seq->clone;
-    if ( $new_seq->isa('Mal::List') ) {
-        unshift @{$new_seq}, reverse @items;
+    if ( $seq->isa('Mal::List') ) {
+        return Mal::List->new( [ reverse(@items), @{$seq} ] );
     }
     else {
-        push @{$new_seq}, @items;
+        return Mal::Vector->new( [ @{$seq}, @items ] );
     }
-    return $new_seq;
 }
 
 sub seq {
     my ($arg) = @_;
-    if ( $arg eq $nil ) {
-        return $nil;
-    }
-    if ( $arg->isa('Mal::List') ) {
-        @{$arg} or return $nil;
+    if ( $arg->isa('Mal::List') and @{$arg} ) {
         return $arg;
     }
-    if ( $arg->isa('Mal::Vector') ) {
-        @{$arg} or return $nil;
+    if ( $arg->isa('Mal::Vector') and @{$arg} ) {
         return Mal::List->new( [ @{$arg} ] );
     }
-    if ( $arg->isa('Mal::String') ) {
-        length ${$arg} or return $nil;
+    if ( $arg->isa('Mal::String') and length ${$arg} ) {
         return Mal::List->new(
             [ map { Mal::String->new($_) } split //, ${$arg} ] );
     }
-    die 'seq requires list or vector or string or nil';
+    return $nil;
 }
 
 fieldhash my %meta;

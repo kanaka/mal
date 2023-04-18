@@ -81,11 +81,11 @@ sub EVAL {
         return $env->get( ${$ast} ) // die "'${$ast}' not found\n";
     }
     if ( $ast->isa('Mal::Vector') ) {
-        return ref($ast)->new( [ map { EVAL( $_, $env ) } @{$ast} ] );
+        return Mal::Vector->new( [ map { EVAL( $_, $env ) } @{$ast} ] );
     }
     if ( $ast->isa('Mal::HashMap') ) {
         return Mal::HashMap->new(
-            { pairmap { $a => EVAL( $b, $env ) } %$ast } );
+            { pairmap { $a => EVAL( $b, $env ) } %{$ast} } );
     }
     $ast->isa('Mal::List') or return $ast;
 
@@ -151,14 +151,15 @@ sub EVAL {
         when ('if') {
             my ( undef, $if, $then, $else ) = @{$ast};
             my $cond = EVAL( $if, $env );
-            if ( $cond eq $nil || $cond eq $false ) {
-                $else // return $nil;
-                @_ = ( $else, $env );
-            }
-            else {
+            if ( $cond ne $nil and $cond ne $false ) {
                 @_ = ( $then, $env );
+                goto &EVAL;
             }
-            goto &EVAL;
+            if ( defined $else ) {
+                @_ = ( $else, $env );
+                goto &EVAL;
+            }
+            return $nil;
         }
         when ('fn*') {
             my ( undef, $params, $body ) = @{$ast};
@@ -197,14 +198,21 @@ sub REP {
     return PRINT( EVAL( READ($str), $repl_env ) );
 }
 
+# Command line arguments
+if ( $ARGV[0] eq '--raw' ) {
+    set_rl_mode('raw');
+    shift @ARGV;
+}
+my $script_file = shift @ARGV;
+
 # core.pl: defined using perl
 while ( my ( $k, $v ) = each %NS ) {
     $repl_env->set( $k, Mal::Function->new($v) );
 }
 $repl_env->set( 'eval',
     Mal::Function->new( sub { EVAL( $_[0], $repl_env ) } ) );
-my @_argv = map { Mal::String->new($_) } @ARGV[ 1 .. $#ARGV ];
-$repl_env->set( '*ARGV*', Mal::List->new( \@_argv ) );
+$repl_env->set( '*ARGV*',
+    Mal::List->new( [ map { Mal::String->new($_) } @ARGV ] ) );
 
 # core.mal: defined using the language itself
 REP(q[(def! *host-language* "perl")]);
@@ -218,12 +226,8 @@ REP(<<'EOF');
 (cons 'cond (rest (rest xs)))))))
 EOF
 
-if ( @ARGV && $ARGV[0] eq '--raw' ) {
-    set_rl_mode('raw');
-    shift @ARGV;
-}
-if (@ARGV) {
-    REP(qq[(load-file "$ARGV[0]")]);
+if ( defined $script_file ) {
+    REP(qq[(load-file "$script_file")]);
     exit 0;
 }
 REP(q[(println (str "Mal [" *host-language* "]"))]);
