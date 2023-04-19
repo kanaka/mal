@@ -24,15 +24,45 @@ MalType* READ(char* str) {
 MalType* EVAL(MalType* ast, Env* env) {
 
   /* forward references */
-  MalType* eval_ast(MalType* ast, Env* env);
+  list evaluate_list(list lst, Env* env);
+  list evaluate_vector(list lst, Env* env);
+  list evaluate_hashmap(list lst, Env* env);
   MalType* eval_defbang(MalType* ast, Env* env);
   MalType* eval_letstar(MalType* ast, Env* env);
+
+  MalType* dbgeval = env_get(env, "DEBUG-EVAL");
+  if (dbgeval && ! is_false(dbgeval) && ! is_nil(dbgeval))
+    printf("EVAL: %s\n", pr_str(ast, READABLY));
 
   /* NULL */
   if (!ast) { return make_nil(); }
 
+  if (is_symbol(ast)) {
+    MalType* symbol_value = env_get(env, ast->value.mal_symbol);
+    if (symbol_value)
+      return symbol_value;
+    else
+      return make_error_fmt("'%s' not found", ast->value.mal_symbol);
+  }
+
+  if (is_vector(ast)) {
+    list result = evaluate_vector(ast->value.mal_list, env);
+    if (result && is_error(result->data))
+      return result->data;
+    else
+      return make_vector(result);
+  }
+
+  if (is_hashmap(ast)) {
+    list result = evaluate_hashmap(ast->value.mal_list, env);
+    if (result && is_error(result->data))
+      return result->data;
+    else
+      return make_hashmap(result);
+  }
+
   /* not a list */
-  if (!is_list(ast)) { return eval_ast(ast, env); }
+  if (!is_list(ast)) { return ast; }
 
   /* empty list */
   if (ast->value.mal_list == NULL) { return ast; }
@@ -52,12 +82,10 @@ MalType* EVAL(MalType* ast, Env* env) {
     }
   }
   /* first element is not a special symbol */
-  MalType* evaluated_list = eval_ast(ast, env);
-
-  if (is_error(evaluated_list)) { return evaluated_list; }
+  list evlst = evaluate_list(ast->value.mal_list, env);
+  if (is_error(evlst->data)) return evlst->data;
 
   /* apply the first element of the list to the arguments */
-  list evlst = evaluated_list->value.mal_list;
   MalType* func = evlst->data;
 
   if (is_function(func)) {
@@ -92,10 +120,10 @@ int main(int argc, char** argv) {
   puts("Press Ctrl+d to exit\n");
 
   Env* repl_env = env_make(NULL, NULL, NULL, NULL);
-  repl_env = env_set_C_fn(repl_env, "+", mal_add);
-  repl_env = env_set_C_fn(repl_env, "-", mal_sub);
-  repl_env = env_set_C_fn(repl_env, "*", mal_mul);
-  repl_env = env_set_C_fn(repl_env, "/", mal_div);
+  env_set(repl_env, "+", make_function(mal_add));
+  env_set(repl_env, "-", make_function(mal_sub));
+  env_set(repl_env, "*", make_function(mal_mul));
+  env_set(repl_env, "/", make_function(mal_div));
 
   while (1) {
 
@@ -122,58 +150,6 @@ int main(int argc, char** argv) {
   return 0;
 }
 
-MalType* eval_ast(MalType* ast, Env* env) {
-
-  /* forward references */
-  list evaluate_list(list lst, Env* env);
-  list evaluate_vector(list lst, Env* env);
-  list evaluate_hashmap(list lst, Env* env);
-
-  if (is_symbol(ast)) {
-
-    MalType* symbol_value = env_get(env, ast);
-
-    if (symbol_value) {
-      return symbol_value;
-    } else {
-      return make_error_fmt("var '%s' not found", pr_str(ast, UNREADABLY));
-    }
-  }
-  else if (is_list(ast)) {
-
-    list result = evaluate_list(ast->value.mal_list, env);
-
-    if (!result || !is_error(result->data)) {
-      return make_list(result);
-    } else {
-      return result->data;
-    }
-  }
-  else if (is_vector(ast)) {
-
-    list result = evaluate_vector(ast->value.mal_list, env);
-
-    if (!result || !is_error(result->data)) {
-      return make_vector(result);
-    } else {
-      return result->data;
-    }
-  }
-  else if (is_hashmap(ast)) {
-
-    list result = evaluate_hashmap(ast->value.mal_list, env);
-
-    if (!result || !is_error(result->data)) {
-      return make_hashmap(result);
-    } else {
-      return result->data;
-    }
-  }
-  else {
-    return ast;
-  }
-}
-
 MalType* eval_defbang(MalType* ast, Env* env) {
 
   list lst = (ast->value.mal_list)->next;
@@ -185,7 +161,7 @@ MalType* eval_defbang(MalType* ast, Env* env) {
   MalType* result = EVAL(defbang_value, env);
 
   if (!is_error(result)) {
-    env_set(env, defbang_symbol, result);
+    env_set(env, defbang_symbol->value.mal_symbol, result);
   }
   return result;
 }
@@ -206,7 +182,7 @@ MalType* eval_letstar(MalType* ast, Env* env) {
 
     MalType* symbol = letstar_bindings_list->data;
     MalType* value = letstar_bindings_list->next->data;
-    letstar_env = env_set(letstar_env, symbol, EVAL(value, letstar_env));
+    env_set(letstar_env, symbol->value.mal_symbol, EVAL(value, letstar_env));
 
     letstar_bindings_list = letstar_bindings_list->next->next; /* pop symbol and value*/
   }

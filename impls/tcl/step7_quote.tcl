@@ -55,18 +55,24 @@ proc quasiquote {ast} {
     }
 }
 
-proc eval_ast {ast env} {
+proc EVAL {ast env} {
+    while {true} {
+
+    set dbgenv [$env find "DEBUG-EVAL"]
+    if {$dbgenv != 0} {
+        set dbgeval [$env get "DEBUG-EVAL"]
+        if {![false_q $dbgeval] && ![nil_q $dbgeval]} {
+            set img [PRINT $ast]
+            puts "EVAL: ${img}"
+        }
+    }
+
     switch [obj_type $ast] {
         "symbol" {
             set varname [obj_val $ast]
             return [$env get $varname]
         }
         "list" {
-            set res {}
-            foreach element [obj_val $ast] {
-                lappend res [EVAL $element $env]
-            }
-            return [list_new $res]
         }
         "vector" {
             set res {}
@@ -83,14 +89,8 @@ proc eval_ast {ast env} {
             return [hashmap_new $res]
         }
         default { return $ast }
-    }
-}
-
-proc EVAL {ast env} {
-    while {true} {
-        if {![list_q $ast]} {
-            return [eval_ast $ast $env]
         }
+
         lassign [obj_val $ast] a0 a1 a2 a3
         if {$a0 == ""} {
             return $ast
@@ -114,15 +114,13 @@ proc EVAL {ast env} {
             "quote" {
                 return $a1
             }
-            "quasiquoteexpand" {
-                return [quasiquote $a1]
-            }
             "quasiquote" {
                 set ast [quasiquote $a1]
             }
             "do" {
-                set el [list_new [lrange [obj_val $ast] 1 end-1]]
-                eval_ast $el $env
+                foreach element [lrange [obj_val $ast] 1 end-1] {
+                    EVAL $element $env
+                }
                 set ast [lindex [obj_val $ast] end]
                 # TCO: Continue loop
             }
@@ -146,8 +144,10 @@ proc EVAL {ast env} {
                 return [function_new $a2 $env $binds]
             }
             default {
-                set lst_obj [eval_ast $ast $env]
-                set lst [obj_val $lst_obj]
+                set lst {}
+                foreach element [obj_val $ast] {
+                    lappend lst [EVAL $element $env]
+                }
                 set f [lindex $lst 0]
                 set call_args [lrange $lst 1 end]
                 switch [obj_type $f] {

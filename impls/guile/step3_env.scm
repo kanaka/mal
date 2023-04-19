@@ -14,7 +14,7 @@
 ;;  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 (import (readline) (reader) (printer) (ice-9 match) (srfi srfi-43)
-        (srfi srfi-1) (ice-9 receive) (env))
+        (srfi srfi-1) (ice-9 receive) (env) (types))
 
 (define *primitives*
   `((+ ,+)
@@ -29,18 +29,6 @@
 (define (READ str)
   (read_str str))
 
-(define (eval_ast ast env)
-  (define (_eval x) (EVAL x env))
-  (match ast
-    ((? symbol? sym) (env-has sym env))
-    ((? list? lst) (map _eval lst))
-    ((? vector? vec) (vector-map (lambda (i x) (_eval x)) vec))
-    ((? hash-table? ht)
-     (define new-ht (make-hash-table))
-     (hash-for-each (lambda (k v) (hash-set! new-ht k (_eval v))) ht)
-     new-ht)
-    (else ast)))
-
 (define (EVAL ast env)
   (define (->list kvs) ((if (vector? kvs) vector->list identity) kvs))
   (define (%unzip2 kvs)
@@ -51,8 +39,16 @@
        ((null? (cdr next))
         (throw 'mal-error (format #f "let*: Invalid binding form '~a'" kvs))) 
        (else (lp (cddr next) (cons (car next) k) (cons (cadr next) v))))))
+  (when (cond-true? (env-check 'DEBUG-EVAL env))
+    (format #t "EVAL: ~a~%" (pr_str ast #t)))
   (match ast
-    ((? (lambda (x) (not (list? x)))) (eval_ast ast env))
+    ((? symbol? sym) (env-has sym env))
+    ((? vector? vec) (vector-map (lambda (i x) (EVAL x env)) vec))
+    ((? hash-table? ht)
+     (define new-ht (make-hash-table))
+     (hash-for-each (lambda (k v) (hash-set! new-ht k (EVAL v env))) ht)
+     new-ht)
+    ((? non-list?) ast)
     (() ast)
     (('def! k v) ((env 'set) k (EVAL v env)))
     (('let* kvs body)
@@ -62,7 +58,7 @@
          (for-each setter keys vals))
        (EVAL body new-env)))
     (else
-      (let ((el (eval_ast ast env)))
+      (let ((el (map (lambda (x) (EVAL x env)) ast)))
         (apply (car el) (cdr el))))))
 
 (define (PRINT exp)

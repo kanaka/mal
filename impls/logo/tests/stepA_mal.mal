@@ -23,7 +23,7 @@
 (logo-eval ":foo")
 ;=>8
 
-(logo-eval "apply \"word map [reverse ?] [Abc Abcd Abcde]")
+(logo-eval "apply \"word map \"reverse [Abc Abcd Abcde]")
 ;=>"cbAdcbAedcbA"
 
 (logo-eval "map [1 + ?] [1 2 3]")

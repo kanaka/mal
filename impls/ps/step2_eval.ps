@@ -13,50 +13,56 @@
 
 
 % eval
-/eval_ast { 2 dict begin
+/EVAL { 3 dict begin
     /env exch def
     /ast exch def
+
     %(eval_ast: ) print ast ==
+
     ast _symbol? { %if symbol
         env ast known {
             env ast get
         }{
-            (') ast false _pr_str (' not found)
-            concatenate concatenate _throw
+            (') ast
+            dup length string cvs
+            (' not found)
+            concatenate concatenate
+            _throw
         } ifelse
-    }{ ast _sequential? { %elseif list or vector
+    }{
+
+    ast _vector? {
         [
             ast /data get { %forall items
                 env EVAL
             } forall
-        ] ast _list? { _list_from_array }{ _vector_from_array } ifelse
-    }{ ast _hash_map? { %elseif list or vector
+        ] _vector_from_array
+    }{
+
+    ast _hash_map? {
         <<
             ast /data get { %forall entries
                 env EVAL
             } forall
         >> _hash_map_from_dict
-    }{ % else
+    }{
+
+    ast _list? not {
         ast
-    } ifelse } ifelse } ifelse
-end } def
+    }{
 
-/EVAL { 3 dict begin
-    /env exch def
-    /ast exch def
+    ast _count 0 eq {
+        ast
+    }{
 
-    %(EVAL: ) print ast true _pr_str print (\n) print
-    ast _list? not { %if not a list
-        ast env eval_ast
-    }{ %else apply the list
-        ast _count 0 eq {
-            ast
-        }{
-            /el ast env eval_ast def
-            el _rest el _first % stack: ast function
+        /a0 ast 0 _nth def
+
+            a0 env EVAL
+
+            [ ast _rest /data get { env EVAL } forall ] _list_from_array exch
             exec % apply function to args
-        } ifelse
-    } ifelse
+
+    } ifelse } ifelse } ifelse } ifelse } ifelse
 end } def
 
 

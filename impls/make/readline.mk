@@ -10,7 +10,7 @@ __mal_readline_included := true
 # have readline history.
 READLINE_EOF :=
 READLINE_HISTORY_FILE := $${HOME}/.mal-history
-READLINE = $(eval __readline_temp := $(shell \
+READLINE = $(eval __readline_temp := $(subst #,\#,$(subst $$,$$$$,$(shell \
  history -r $(READLINE_HISTORY_FILE); \
  read -u 0 -r -e -p $(if $(1),$(1),"user> ") line && \
  history -s -- "$${line}" && \
@@ -18,6 +18,6 @@ READLINE = $(eval __readline_temp := $(shell \
  echo "__||EOF||__"; \
  history -a $(READLINE_HISTORY_FILE) 2>/dev/null || \
  true \
-))$(if $(filter __||EOF||__,$(__readline_temp)),$(eval READLINE_EOF := yes),$(__readline_temp))
+))))$(if $(filter __||EOF||__,$(__readline_temp)),$(eval READLINE_EOF := yes),$(__readline_temp))$(if $(DEBUG_READLINE),$(warning readline/$(__readline_temp)/))
 
 endif

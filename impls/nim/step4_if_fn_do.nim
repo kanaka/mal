@@ -2,36 +2,33 @@ import rdstdin, tables, sequtils, types, reader, printer, env, core
 
 proc read(str: string): MalType = str.read_str
 
-proc eval(ast: MalType, env: var Env): MalType
+proc eval(ast: MalType, env: var Env): MalType =
 
-proc eval_ast(ast: MalType, env: var Env): MalType =
+  let dbgeval = env.get("DEBUG-EVAL")
+  if not (dbgeval.isNil or dbgeval.kind in {Nil, False}):
+    echo "EVAL: " & ast.pr_str
+
   case ast.kind
   of Symbol:
     result = env.get(ast.str)
-  of List:
-    result = list ast.list.mapIt(it.eval(env))
+    if result.isNil:
+      raise newException(ValueError, "'" & ast.str & "' not found")
   of Vector:
     result = vector ast.list.mapIt(it.eval(env))
   of HashMap:
     result = hash_map()
     for k, v in ast.hash_map.pairs:
       result.hash_map[k] = v.eval(env)
-  else:
-    result = ast
-
-proc eval(ast: MalType, env: var Env): MalType =
-  case ast.kind
   of List:
     if ast.list.len == 0: return ast
     let a0 = ast.list[0]
-    case a0.kind
-    of Symbol:
+    if a0.kind == Symbol:
       case a0.str
       of "def!":
         let
           a1 = ast.list[1]
           a2 = ast.list[2]
-        result = env.set(a1.str, a2.eval(env))
+        return env.set(a1.str, a2.eval(env))
 
       of "let*":
         let
@@ -45,11 +42,11 @@ proc eval(ast: MalType, env: var Env): MalType =
           for i in countup(0, a1.list.high, 2):
             letEnv.set(a1.list[i].str, a1.list[i+1].eval(letEnv))
         else: discard
-        result = a2.eval(letEnv)
+        return a2.eval(letEnv)
 
       of "do":
-        let el = (list ast.list[1 .. ^1]).eval_ast(env)
-        result = el.list[el.list.high]
+        let el = ast.list[1 .. ^1].mapIt(it.eval(env))
+        return el[el.high]
 
       of "if":
         let
@@ -58,29 +55,24 @@ proc eval(ast: MalType, env: var Env): MalType =
           cond = a1.eval(env)
 
         if cond.kind in {Nil, False}:
-          if ast.list.len > 3: result = ast.list[3].eval(env)
-          else: result = nilObj
-        else: result = a2.eval(env)
+          if ast.list.len > 3: return ast.list[3].eval(env)
+          else: return nilObj
+        else: return a2.eval(env)
 
       of "fn*":
         let
           a1 = ast.list[1]
           a2 = ast.list[2]
         var env2 = env
-        result = fun(proc(a: varargs[MalType]): MalType =
+        return fun(proc(a: varargs[MalType]): MalType =
           var newEnv = initEnv(env2, a1, list(a))
           a2.eval(newEnv))
 
-      else:
-        let el = ast.eval_ast(env)
-        result = el.list[0].fun(el.list[1 .. ^1])
-
-    else:
-      let el = ast.eval_ast(env)
-      result = el.list[0].fun(el.list[1 .. ^1])
+    let el = ast.list.mapIt(it.eval(env))
+    result = el[0].fun(el[1 .. ^1])
 
   else:
-    result = ast.eval_ast(env)
+    result = ast
 
 proc print(exp: MalType): string = exp.pr_str
 

@@ -13,12 +13,21 @@ READ = { str ->
 }
 
 // EVAL
-eval_ast = { ast, env ->
+EVAL = { ast, env ->
+    def dbgevalenv = env.find("DEBUG-EVAL");
+    if (dbgevalenv != null) {
+      def dbgeval = env.get("DEBUG-EVAL");
+      if (dbgeval != null && dbgeval != false) {
+        println("EVAL: ${printer.pr_str(ast,true)}")
+      }
+   }
+
     switch (ast) {
-        case MalSymbol: return env.get(ast);
-        case List:      return types.vector_Q(ast) ?
-                            types.vector(ast.collect { EVAL(it,env) }) :
-                            ast.collect { EVAL(it,env) }
+        case MalSymbol: return env.get(ast.value);
+        case List:      if (types.vector_Q(ast)) {
+                            return types.vector(ast.collect { EVAL(it, env) })
+                        }
+                        break;
         case Map:       def new_hm = [:]
                         ast.each { k,v ->
                             new_hm[k] = EVAL(v, env)
@@ -26,11 +35,7 @@ eval_ast = { ast, env ->
                         return new_hm
         default:        return ast
     }
-}
 
-EVAL = { ast, env ->
-    //println("EVAL: ${printer.pr_str(ast,true)}")
-    if (! types.list_Q(ast)) return eval_ast(ast, env)
     if (ast.size() == 0) return ast
 
     switch (ast[0]) {
@@ -43,7 +48,7 @@ EVAL = { ast, env ->
         }
         return EVAL(ast[2], let_env)
     case { it instanceof MalSymbol && it.value == "do" }:
-        return eval_ast(ast[1..-1], env)[-1]
+        return (ast[1..-1].collect { EVAL(it, env) })[-1]
     case { it instanceof MalSymbol && it.value == "if" }:
         def cond = EVAL(ast[1], env)
         if (cond == false || cond == null) {
@@ -58,7 +63,7 @@ EVAL = { ast, env ->
     case { it instanceof MalSymbol && it.value == "fn*" }:
         return new MalFunc(EVAL, ast[2], env, ast[1])
     default:
-        def el = eval_ast(ast, env)
+        def el = ast.collect { EVAL(it, env) }
         def (f, args) = [el[0], el.size() > 1 ? el[1..-1] : []]
         f(args)
     }

@@ -36,7 +36,7 @@ symbol = $(call _symbol,$(call str_decode,$($(1)_value)))
 symbol? = $(if $(call _symbol?,$(1)),$(__true),$(__false))
 
 # Keyword functions
-keyword = $(call _keyword,$(call str_decode,$($(1)_value)))
+keyword = $(if $(_keyword?),$(1),$(call _keyword,$(call str_decode,$($(1)_value))))
 keyword? = $(if $(call _keyword?,$(1)),$(__true),$(__false))
 
 

@@ -1,6 +1,6 @@
 import rl from './node_readline.js'
 const readline = rl.readline
-import { _list_Q } from './types'
+import { _list_Q, Vector } from './types'
 import { BlankException, read_str } from './reader'
 import { pr_str } from './printer'
 import { new_env, env_set, env_get } from './env'
@@ -9,23 +9,28 @@ import { new_env, env_set, env_get } from './env'
 const READ = str => read_str(str)
 
 // eval
-const eval_ast = (ast, env) => {
+const dbgevalsym = Symbol.for("DEBUG-EVAL")
+
+const EVAL = (ast, env) => {
+    if (dbgevalsym in env) {
+        const dbgeval = env_get(env, dbgevalsym)
+        if (dbgeval !== null && dbgeval !== false) {
+            console.log('EVAL:', pr_str(ast, true))
+        }
+    }
+
     if (typeof ast === 'symbol') {
         return env_get(env, ast)
-    } else if (ast instanceof Array) {
+    } else if (ast instanceof Vector) {
         return ast.map(x => EVAL(x, env))
     } else if (ast instanceof Map) {
         let new_hm = new Map()
         ast.forEach((v, k) => new_hm.set(k, EVAL(v, env)))
         return new_hm
-    } else {
+    } else if (!_list_Q(ast)) {
         return ast
     }
-}
 
-const EVAL = (ast, env) => {
-    //console.log('EVAL:', pr_str(ast, true))
-    if (!_list_Q(ast)) { return eval_ast(ast, env) }
     if (ast.length === 0) { return ast }
 
     const [a0, a1, a2, a3] = ast
@@ -39,7 +44,7 @@ const EVAL = (ast, env) => {
             }
             return EVAL(a2, let_env)
         default:
-            let [f, ...args] = eval_ast(ast, env)
+            const [f, ...args] = ast.map(x => EVAL(x, env))
             return f(...args)
     }
 }

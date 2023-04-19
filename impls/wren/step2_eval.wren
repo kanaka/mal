@@ -8,12 +8,15 @@ class Mal {
     return MalReader.read_str(str)
   }
 
-  static eval_ast(ast, env) {
+  static eval(ast, env) {
+    // System.print("EVAL: %(print(ast))")
+
+    // Process non-list types.
     if (ast is MalSymbol) {
       if (!env.containsKey(ast.value)) Fiber.abort("'%(ast.value)' not found")
       return env[ast.value]
     } else if (ast is MalList) {
-      return MalList.new(ast.elements.map { |e| eval(e, env) }.toList)
+      // The only case leading after this switch.
     } else if (ast is MalVector) {
       return MalVector.new(ast.elements.map { |e| eval(e, env) }.toList)
     } else if (ast is MalMap) {
@@ -25,12 +28,9 @@ class Mal {
     } else {
       return ast
     }
-  }
-
-  static eval(ast, env) {
-    if (!(ast is MalList)) return eval_ast(ast, env)
+    // ast is a list, search for special forms
     if (ast.isEmpty) return ast
-    var evaled_ast = eval_ast(ast, env)
+    var evaled_ast = ast.elements.map { |e| eval(e, env) }.toList
     var f = evaled_ast[0]
     return f.call(evaled_ast[1..-1])
   }

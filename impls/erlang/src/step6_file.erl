@@ -45,26 +45,37 @@ read(Input) ->
         {error, Reason} -> error(Reason)
     end.
 
-eval({list, [], _Meta}=AST, _Env) ->
+eval(Value, Env) ->
+    case env:find(Env, {symbol, "DEBUG-EVAL"}) of
+        nil -> none;
+        Env2 ->
+            case env:get(Env2, {symbol, "DEBUG-EVAL"}) of
+                Cond when Cond == false orelse Cond == nil -> none;
+                _ -> io:format("EVAL: ~s~n", [printer:pr_str(Value, true)])
+            end
+    end,
+    eval_ast(Value, Env).
+
+eval_list({list, [], _Meta}=AST, _Env) ->
     AST;
-eval({list, [{symbol, "def!"}, {symbol, A1}, A2], _Meta}, Env) ->
+eval_list({list, [{symbol, "def!"}, {symbol, A1}, A2], _Meta}, Env) ->
     Result = eval(A2, Env),
     env:set(Env, {symbol, A1}, Result),
     Result;
-eval({list, [{symbol, "def!"}, _A1, _A2], _Meta}, _Env) ->
+eval_list({list, [{symbol, "def!"}, _A1, _A2], _Meta}, _Env) ->
     error("def! called with non-symbol");
-eval({list, [{symbol, "def!"}|_], _Meta}, _Env) ->
+eval_list({list, [{symbol, "def!"}|_], _Meta}, _Env) ->
     error("def! requires exactly two arguments");
-eval({list, [{symbol, "let*"}, A1, A2], _Meta}, Env) ->
+eval_list({list, [{symbol, "let*"}, A1, A2], _Meta}, Env) ->
     NewEnv = env:new(Env),
     let_star(NewEnv, A1),
     eval(A2, NewEnv);
-eval({list, [{symbol, "let*"}|_], _Meta}, _Env) ->
+eval_list({list, [{symbol, "let*"}|_], _Meta}, _Env) ->
     error("let* requires exactly two arguments");
-eval({list, [{symbol, "do"}|Args], _Meta}, Env) ->
-    eval_ast({list, lists:droplast(Args), nil}, Env),
+eval_list({list, [{symbol, "do"}|Args], _Meta}, Env) ->
+    lists:map(fun(Elem) -> eval(Elem, Env) end, lists:droplast(Args)),
     eval(lists:last(Args), Env);
-eval({list, [{symbol, "if"}, Test, Consequent|Alternate], _Meta}, Env) ->
+eval_list({list, [{symbol, "if"}, Test, Consequent|Alternate], _Meta}, Env) ->
     case eval(Test, Env) of
         Cond when Cond == false orelse Cond == nil ->
             case Alternate of
@@ -74,39 +85,41 @@ eval({list, [{symbol, "if"}, Test, Consequent|Alternate], _Meta}, Env) ->
             end;
         _ -> eval(Consequent, Env)
     end;
-eval({list, [{symbol, "if"}|_], _Meta}, _Env) ->
+eval_list({list, [{symbol, "if"}|_], _Meta}, _Env) ->
     error("if requires test and consequent");
-eval({list, [{symbol, "fn*"}, {vector, Binds, _M1}, Body], _Meta}, Env) ->
+eval_list({list, [{symbol, "fn*"}, {vector, Binds, _M1}, Body], _Meta}, Env) ->
+    {closure, fun eval/2, Binds, Body, Env,  nil};
+eval_list({list, [{symbol, "fn*"}, {list, Binds, _M1}, Body], _Meta}, Env) ->
     {closure, fun eval/2, Binds, Body, Env, nil};
-eval({list, [{symbol, "fn*"}, {list, Binds, _M1}, Body], _Meta}, Env) ->
-    {closure, fun eval/2, Binds, Body, Env, nil};
-eval({list, [{symbol, "fn*"}|_], _Meta}, _Env) ->
+eval_list({list, [{symbol, "fn*"}|_], _Meta}, _Env) ->
     error("fn* requires 2 arguments");
-eval({list, [{symbol, "eval"}, AST], _Meta}, Env) ->
+eval_list({list, [{symbol, "eval"}, AST], _Meta}, Env) ->
     % Must use the root environment so the variables set within the parsed
     % expression will be visible within the repl.
     eval(eval(AST, Env), env:root(Env));
-eval({list, [{symbol, "eval"}|_], _Meta}, _Env) ->
+eval_list({list, [{symbol, "eval"}|_], _Meta}, _Env) ->
     error("eval requires 1 argument");
-eval({list, List, Meta}, Env) ->
-    case eval_ast({list, List, Meta}, Env) of
-        {list, [{closure, _Eval, Binds, Body, CE, _M1}|A], _M2} ->
+eval_list({list, [A0 | Args], _Meta}, Env) ->
+    case eval(A0, Env) of
+        {closure, _Eval, Binds, Body, CE, _MC} ->
             % The args may be a single element or a list, so always make it
             % a list and then flatten it so it becomes a list.
+            A = lists:map(fun(Elem) -> eval(Elem, Env) end, Args),
             NewEnv = env:new(CE),
             env:bind(NewEnv, Binds, lists:flatten([A])),
             eval(Body, NewEnv);
-        {list, [{function, F, _MF}|A], _M3} -> erlang:apply(F, [A]);
-        {list, [{error, Reason}], _M4} -> {error, Reason};
-        _ -> error("expected a list")
-    end;
-eval(Value, Env) ->
-    eval_ast(Value, Env).
+        {function, F, _MF} ->
+            A = lists:map(fun(Elem) -> eval(Elem, Env) end, Args),
+            erlang:apply(F, [A]);
+        {error, Reason} -> {error, Reason}
+    end.
 
 eval_ast({symbol, _Sym}=Value, Env) ->
     env:get(Env, Value);
-eval_ast({Type, Seq, _Meta}, Env) when Type == list orelse Type == vector ->
-    {Type, lists:map(fun(Elem) -> eval(Elem, Env) end, Seq), nil};
+eval_ast({list, Seq, Meta}, Env) ->
+    eval_list({list, Seq, Meta}, Env);
+eval_ast({vector, Seq, _Meta}, Env) ->
+    {vector, lists:map(fun(Elem) -> eval(Elem, Env) end, Seq), nil};
 eval_ast({map, M, _Meta}, Env) ->
     {map, maps:map(fun(_Key, Val) -> eval(Val, Env) end, M), nil};
 eval_ast(Value, _Env) ->

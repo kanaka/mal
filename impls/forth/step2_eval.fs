@@ -17,7 +17,9 @@ MalMap/Empty
 constant repl-env
 
 : read read-str ;
-: eval ( env obj ) mal-eval ;
+: eval ( env obj )
+    \ ." EVAL: " dup pr-str safe-type cr
+    mal-eval ;
 : print
     \ ." Type: " dup mal-type @ type-name safe-type cr
     pr-str ;

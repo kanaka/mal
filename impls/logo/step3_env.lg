@@ -8,39 +8,55 @@ to _read :str
 output read_str :str
 end
 
-to eval_ast :ast :env
-output case (obj_type :ast) [
-  [[symbol]  env_get :env :ast]
-  [[list]    obj_new "list    map [_eval ? :env] obj_val :ast]
-  [[vector]  obj_new "vector  map [_eval ? :env] obj_val :ast]
-  [[hashmap] obj_new "hashmap map [_eval ? :env] obj_val :ast]
-  [else :ast]
-]
-end
-
 to _eval :ast :env
-if (obj_type :ast) <> "list [output eval_ast :ast :env]
-if emptyp obj_val :ast [output :ast]
-localmake "a0 nth :ast 0
-case list obj_type :a0 obj_val :a0 [
-  [[[symbol def!]]
-    localmake "a1 nth :ast 1
-    localmake "a2 nth :ast 2
-    output env_set :env :a1 _eval :a2 :env ]
+if not memberp obj_type env_get :env symbol_new "DEBUG-EVAL [false nil notfound] [
+  (print "EVAL: _print :ast "/ map "_print env_keys :env)
+]
 
-  [[[symbol let*]]
-    localmake "a1 nth :ast 1
-    localmake "letenv env_new :env [] []
-    localmake "i 0
-    while [:i < _count :a1] [
-      ignore env_set :letenv nth :a1 :i _eval nth :a1 (:i + 1) :letenv
-      make "i (:i + 2)
+case obj_type :ast [
+
+  [[symbol]
+    localmake "val env_get :env :ast
+    if "notfound = obj_type :val [
+      (throw "error sentence (word "' symbol_value :ast "') [not found])
     ]
-    output _eval nth :ast 2 :letenv ]
+    output :val
+  ]
 
-  [else
-    make "el obj_val eval_ast :ast :env
-    output apply first :el butfirst :el ]
+  [[vector] output vector_new map [_eval ? :env] seq_val :ast]
+
+  [[map] output map_map [_eval ? :env] :ast]
+
+  [[list]
+    make "ast seq_val :ast
+    if emptyp :ast [output list_new []]
+    localmake "a0 first :ast
+    make "ast butfirst :ast
+    case ifelse "symbol = obj_type :a0 [symbol_value :a0] "" [
+
+    [[def!]
+      localmake "a1 first :ast
+      localmake "a2 item 2 :ast
+      localmake "val _eval :a2 :env
+      env_set :env :a1 :val
+      output :val ]
+
+    [[let*]
+      localmake "a1 first :ast
+      localmake "letenv env_new :env [] []
+      foreach seq_val first :ast [
+        if 1 = modulo # 2 [
+          env_set :letenv ? _eval first ?rest :letenv
+        ]
+      ]
+      output _eval item 2 :ast :letenv ]
+
+    [else
+      localmake "f _eval :a0 :env
+      output nativefn_apply :f map [_eval ? :env] :ast ]
+    ]
+  ]
+  [else output :ast]
 ]
 end
 
@@ -53,44 +69,40 @@ output _print _eval _read :str :repl_env
 end
 
 to mal_add :a :b
-output obj_new "number ((obj_val :a) + (obj_val :b))
+output number_new ((number_val :a) + (number_val :b))
 end
 
 to mal_sub :a :b
-output obj_new "number ((obj_val :a) - (obj_val :b))
+output number_new ((number_val :a) - (number_val :b))
 end
 
 to mal_mul :a :b
-output obj_new "number ((obj_val :a) * (obj_val :b))
+output number_new ((number_val :a) * (number_val :b))
 end
 
 to mal_div :a :b
-output obj_new "number ((obj_val :a) / (obj_val :b))
+output number_new ((number_val :a) / (number_val :b))
 end
 
-to repl
-localmake "running "true
-while [:running] [
-  localmake "line readline word "user> :space_char
-  ifelse :line=[] [
-    print "
-    make "running "false
-  ] [
-    if not emptyp :line [
-      catch "error [print rep :line]
-      localmake "exception error
-      if not emptyp :exception [
-        (print "Error: first butfirst :exception)
-      ]
-    ]
-  ]
+to print_exception :exception
+if not emptyp :exception [
+  (print "Error: item 2 :exception)
 ]
 end
 
-make "repl_env env_new [] [] []
-ignore env_set :repl_env obj_new "symbol "+ "mal_add
-ignore env_set :repl_env obj_new "symbol "- "mal_sub
-ignore env_set :repl_env obj_new "symbol "* "mal_mul
-ignore env_set :repl_env obj_new "symbol "/ "mal_div
+to repl
+do.until [
+    localmake "line readline "|user> |
+    if not emptyp :line [
+      catch "error [print rep :line]
+      print_exception error
+    ]
+] [:line = []]
+(print)
+end
+
+make "repl_env env_new [] map "symbol_new   [+       -       *       /      ] ~
+                          map "nativefn_new [mal_add mal_sub mal_mul mal_div]
+
 repl
 bye

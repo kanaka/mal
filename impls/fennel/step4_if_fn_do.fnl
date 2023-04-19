@@ -17,18 +17,17 @@
   [code-str]
   (reader.read_str code-str))
 
-;; forward declaration
-(var EVAL 1)
-
-(fn eval_ast
+(fn EVAL
   [ast env]
+  (let [dbgeval (e.env-get env "DEBUG-EVAL")]
+    (when (and dbgeval
+               (not (t.nil?* dbgeval))
+               (not (t.false?* dbgeval)))
+      (print (.. "EVAL: " (printer.pr_str ast true)))))
   (if (t.symbol?* ast)
-      (e.env-get env ast)
-      ;;
-      (t.list?* ast)
-      (t.make-list (u.map (fn [elt-ast]
-                            (EVAL elt-ast env))
-                          (t.get-value ast)))
+      (let [key (t.get-value ast)]
+        (or (e.env-get env key)
+            (u.throw* (t.make-string (.. "'" key "' not found")))))
       ;;
       (t.vector?* ast)
       (t.make-vector (u.map (fn [elt-ast]
@@ -40,14 +39,7 @@
                                 (EVAL elt-ast env))
                               (t.get-value ast)))
       ;;
-      ast))
-
-(set EVAL
-  (fn [ast env]
-      (if (not (t.list?* ast))
-          (eval_ast ast env)
-          ;;
-          (t.empty?* ast)
+          (or (not (t.list?* ast)) (t.empty?* ast))
           ast
           ;;
           (let [ast-elts (t.get-value ast)
@@ -72,10 +64,7 @@
                   (EVAL (. ast-elts 3) new-env))
                 ;;
                 (= "do" head-name)
-                (let [do-body-evaled (eval_ast (t.make-list
-                                                (u.slice ast-elts 2 -1))
-                                               env)]
-                  (u.last (t.get-value do-body-evaled)))
+                (u.last (u.map (fn [x] (EVAL x env)) (u.slice ast-elts 2 -1)))
                 ;;
                 (= "if" head-name)
                 (let [cond-res (EVAL (. ast-elts 2) env)]
@@ -94,10 +83,10 @@
                                (EVAL body
                                      (e.make-env env args params)))))
                 ;;
-                (let [eval-list (t.get-value (eval_ast ast env))
+                (let [eval-list (u.map (fn [x] (EVAL x env)) ast-elts)
                       f (. eval-list 1)
                       args (u.slice eval-list 2 -1)]
-                  ((t.get-value f) args)))))))
+                  ((t.get-value f) args))))))
 
 (fn PRINT
   [ast]

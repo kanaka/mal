@@ -23,8 +23,7 @@ ESC_DQUOTE := $(SLASH)$(DQUOTE)
 ESC_N := $(SLASH)n
 SQUOTE := '# '
 QQUOTE := `# `
-SPACE := 
-SPACE += 
+SPACE := $(hopefully_undefined) $(hopefully_undefined)
 MINUS := -
 NUMBERS := 0 1 2 3 4 5 6 7 8 9
 UNQUOTE := ~
@@ -35,7 +34,9 @@ define NEWLINE
 endef
 CARET := ^
 ATSIGN := @
+HASH := \#
 
+_HASH := ©
 # \u00ab
 _LP := «
 # \u00bb
@@ -86,12 +87,12 @@ _reverse = $(if $(1),$(call _reverse,$(wordlist 2,$(words $(1)),$(1)))) $(firstw
 # str_encode: take a string and return an encoded version of it with
 # every character separated by a space and special characters replaced
 # with special Unicode characters
-str_encode = $(strip $(eval __temp := $$(subst $$$$,$(_DOL) ,$$(subst $(SPLICE_UNQUOTE),$(_SUQ) ,$$(subst $$(LPAREN),$$(_LP) ,$$(subst $$(RPAREN),$$(_RP) ,$$(subst $$(LCURLY),$$(_LC) ,$$(subst $$(RCURLY),$$(_RC) ,$$(subst $$(NEWLINE),$$(_NL) ,$$(subst $$(SPACE),$(_SP) ,$$1)))))))))$(foreach a,$(gmsl_characters),$(eval __temp := $$(subst $$a,$$a$$(SPACE),$(__temp))))$(__temp))
+str_encode = $(strip $(eval __temp := $$(subst $$$$,$(_DOL) ,$$(subst $(SPLICE_UNQUOTE),$(_SUQ) ,$$(subst $$(LPAREN),$$(_LP) ,$$(subst $$(RPAREN),$$(_RP) ,$$(subst $$(LCURLY),$$(_LC) ,$$(subst $$(RCURLY),$$(_RC) ,$$(subst $$(NEWLINE),$$(_NL) ,$$(subst $$(HASH),$(_HASH) ,$$(subst $$(SPACE),$(_SP) ,$$1))))))))))$(foreach a,$(gmsl_characters),$(eval __temp := $$(subst $$a,$$a$$(SPACE),$(__temp))))$(__temp))
 
 # str_decode: take an encoded string an return an unencoded version of
 # it by replacing the special Unicode charactes with the real
 # characters and with all characters joined into a regular string
-str_decode = $(subst $(_SP),$(SPACE),$(subst $(_NL),$(NEWLINE),$(subst $(_LC),$(LCURLY),$(subst $(_RC),$(RCURLY),$(subst $(_LP),$(LPAREN),$(subst $(_RP),$(RPAREN),$(subst $(_SUQ),$(SPLICE_UNQUOTE),$(subst $(_DOL),$$,$(strip $(call _join,$(1)))))))))))
+str_decode = $(subst $(_SP),$(SPACE),$(subst $(_NL),$(NEWLINE),$(subst $(_LC),$(LCURLY),$(subst $(_RC),$(RCURLY),$(subst $(_LP),$(LPAREN),$(subst $(_RP),$(RPAREN),$(subst $(_SUQ),$(SPLICE_UNQUOTE),$(subst $(_DOL),$$,$(subst $(_HASH),$(HASH),$(strip $(call _join,$(1))))))))))))
 
 # Read a whole file substituting newlines with $(_NL)
 _read_file = $(subst $(_NL),$(NEWLINE),$(shell out=""; while read -r l; do out="$${out}$${l}$(_NL)"; done < $(1); echo "$$out"))

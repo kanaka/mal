@@ -18,7 +18,12 @@
 (de EVAL (Ast Env)
    (catch 'done
       (while t
-         (if (and (= (MAL-type Ast) 'list) (MAL-value Ast))
+       (when (and (get> Env 'DEBUG-EVAL)
+                  (not (memq (MAL-type @) '(nil false))))
+          (prinl "EVAL: " (pr-str Ast T)))
+
+       (case (MAL-type Ast)
+        (list
             (let (Ast* (MAL-value Ast)
                   A0* (MAL-value (car Ast*))
                   A1 (cadr Ast*)
@@ -26,6 +31,8 @@
                   A2 (caddr Ast*)
                   A3 (cadddr Ast*) )
                (cond
+                  ((not Ast*)
+                   (throw 'done Ast))
                   ((= A0* 'def!)
                    (throw 'done (set> Env A1* (EVAL A2 Env))) )
                   ((= A0* 'let*)
@@ -53,23 +60,24 @@
                                      (EVAL Body Env*) ) ) ) )
                       (throw 'done (MAL-func Env Body Binds Fn)) ) )
                   (T
-                     (let (Ast* (MAL-value (eval-ast Ast Env))
+                     (let (Ast* (mapcar '((Form) (EVAL Form Env)) Ast*)
                            Fn (car Ast*)
                            Args (cdr Ast*) )
                         (if (isa '+MALFn Fn)
                            (throw 'done (apply (MAL-value Fn) Args))
                            (let Env* (MAL-env (get Fn 'env) (get Fn 'params) Args)
-                              (setq Ast (get Fn 'ast) Env Env*) ) ) ) ) ) )
-            (throw 'done (eval-ast Ast Env)) ) ) ) )
-
-(de eval-ast (Ast Env)
-   (let Value (MAL-value Ast)
-      (case (MAL-type Ast)
-         (symbol (get> Env Value))
-         (list (MAL-list (mapcar '((Form) (EVAL Form Env)) Value)))
-         (vector (MAL-vector (mapcar '((Form) (EVAL Form Env)) Value)))
-         (map (MAL-map (mapcar '((Form) (EVAL Form Env)) Value)))
-         (T Ast) ) ) )
+                              (setq Ast (get Fn 'ast) Env Env*) ) ) ) ) ) ) )
+        (symbol
+         (let (Key   (MAL-value Ast)
+               Value (get> Env Key))
+            (if Value
+               (throw 'done Value)
+               (throw 'err (MAL-error (MAL-string (pack "'" Key "' not found")))))))
+        (vector (throw 'done
+          (MAL-vector (mapcar '((Form) (EVAL Form Env)) (MAL-value Ast)))))
+        (map (throw 'done
+          (MAL-map (mapcar '((Form) (EVAL Form Env)) (MAL-value Ast)))))
+        (T (throw 'done Ast))))))
 
 (set> *ReplEnv 'eval (MAL-fn (curry (*ReplEnv) (Form) (EVAL Form *ReplEnv))))
 (set> *ReplEnv '*ARGV* (MAL-list (mapcar MAL-string (cdr (argv)))))

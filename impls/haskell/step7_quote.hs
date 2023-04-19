@@ -10,12 +10,6 @@ import Printer(_pr_list, _pr_str)
 import Env (Env, env_apply, env_get, env_let, env_put, env_repl, env_set)
 import Core (ns)
 
---
---  Set this to True for a trace of each call to Eval.
---
-traceEval :: Bool
-traceEval = False
-
 -- read
 
 mal_read :: String -> IOThrows MalVal
@@ -65,9 +59,6 @@ apply_ast (MalSymbol "let*") _ _ = throwStr "invalid let*"
 apply_ast (MalSymbol "quote") [a1] _ = return a1
 apply_ast (MalSymbol "quote") _ _ = throwStr "invalid quote"
 
-apply_ast (MalSymbol "quasiquoteexpand") [a1] _ = quasiquote a1
-apply_ast (MalSymbol "quasiquoteexpand") _ _ = throwStr "invalid quasiquote"
-
 apply_ast (MalSymbol "quasiquote") [a1] env = eval env =<< quasiquote a1
 apply_ast (MalSymbol "quasiquote") _ _ = throwStr "invalid quasiquote"
 
@@ -106,15 +97,18 @@ apply_ast first rest env = do
 
 eval :: Env -> MalVal -> IOThrows MalVal
 eval env ast = do
+    traceEval <- liftIO $ env_get env "DEBUG-EVAL"
     case traceEval of
-        True -> liftIO $ do
+      Nothing                 -> pure ()
+      Just Nil                -> pure ()
+      Just (MalBoolean False) -> pure ()
+      Just _                  -> liftIO $ do
             putStr "EVAL: "
             putStr =<< _pr_str True ast
             putStr "   "
             env_put env
             putStrLn ""
             hFlush stdout
-        False -> pure ()
     case ast of
         MalSymbol sym -> do
             maybeVal <- liftIO $ env_get env sym

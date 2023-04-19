@@ -5,7 +5,6 @@ let meta obj =
     | T.List   { T.meta = meta } -> meta
     | T.Map    { T.meta = meta } -> meta
     | T.Vector { T.meta = meta } -> meta
-    | T.Symbol { T.meta = meta } -> meta
     | T.Fn     { T.meta = meta } -> meta
     | _ -> T.Nil
 
@@ -13,7 +12,7 @@ let rec pr_str mal_obj print_readably =
   let r = print_readably in
     match mal_obj with
       | T.Int i -> string_of_int i
-      | T.Symbol { T.value = s } -> s
+      | T.Symbol s -> s
       | T.Keyword s -> ":" ^ s
       | T.Nil -> "nil"
       | T.Bool true -> "true"

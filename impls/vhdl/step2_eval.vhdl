@@ -36,12 +36,16 @@ architecture test of step2_eval is
     end if;
   end procedure eval_native_func;
 
-  procedure eval_ast_seq(ast_seq: inout mal_seq_ptr; env: inout mal_val_ptr; result: inout mal_seq_ptr; err: out mal_val_ptr) is
+  procedure eval_ast_seq(ast_seq : inout mal_seq_ptr;
+                         skip    : in    natural;
+                         env     : inout mal_val_ptr;
+                         result  : inout mal_seq_ptr;
+                         err     :   out mal_val_ptr) is
     variable eval_err: mal_val_ptr;
   begin
-    result := new mal_seq(0 to ast_seq'length - 1);
+    result := new mal_seq(0 to ast_seq'length - 1 - skip);
     for i in result'range loop
-      EVAL(ast_seq(i), env, result(i), eval_err);
+      EVAL(ast_seq(skip + i), env, result(i), eval_err);
       if eval_err /= null then
         err := eval_err;
         return;
@@ -49,11 +53,19 @@ architecture test of step2_eval is
     end loop;
   end procedure eval_ast_seq;
 
-  procedure eval_ast(ast: inout mal_val_ptr; env: inout mal_val_ptr; result: out mal_val_ptr; err: out mal_val_ptr) is
-    variable key, val, eval_err: mal_val_ptr;
+  procedure EVAL(ast    : inout mal_val_ptr;
+                 env    : inout mal_val_ptr;
+                 result :   out mal_val_ptr;
+                 err    :   out mal_val_ptr) is
+    variable key, val, eval_err, call_args, sub_err, fn: mal_val_ptr;
     variable new_seq: mal_seq_ptr;
+    -- variable s: line;
     variable i: integer;
   begin
+    -- mal_printstr("EVAL: ");
+    -- pr_str(ast, true, s);
+    -- mal_printline(s.all);
+
     case ast.val_type is
       when mal_symbol =>
         new_string(ast.string_val, key);
@@ -64,8 +76,10 @@ architecture test of step2_eval is
         end if;
         result := val;
         return;
-      when mal_list | mal_vector | mal_hashmap =>
-        eval_ast_seq(ast.seq_val, env, new_seq, eval_err);
+      when mal_list =>
+        null;
+      when mal_vector | mal_hashmap =>
+        eval_ast_seq(ast.seq_val, 0, env, new_seq, eval_err);
         if eval_err /= null then
           err := eval_err;
           return;
@@ -76,28 +90,25 @@ architecture test of step2_eval is
         result := ast;
         return;
     end case;
-  end procedure eval_ast;
-
-  procedure EVAL(ast: inout mal_val_ptr; env: inout mal_val_ptr; result: out mal_val_ptr; err: out mal_val_ptr) is
-    variable a, call_args, sub_err: mal_val_ptr;
-  begin
-    if ast.val_type /= mal_list then
-      eval_ast(ast, env, result, err);
-      return;
-    end if;
 
     if ast.seq_val'length = 0 then
       result := ast;
       return;
     end if;
 
-    eval_ast(ast, env, a, sub_err);
+    EVAL(ast.seq_val(0), env, fn, sub_err);
     if sub_err /= null then
       err := sub_err;
       return;
     end if;
-    seq_drop_prefix(a, 1, call_args);
-    eval_native_func(a.seq_val(0), call_args, result);
+    -- Evaluate arguments
+    eval_ast_seq(ast.seq_val, 1, env, new_seq, sub_err);
+    if sub_err /= null then
+      err := sub_err;
+      return;
+    end if;
+    new_seq_obj(mal_list, new_seq, call_args);
+    eval_native_func(fn, call_args, result);
   end procedure EVAL;
 
   procedure mal_PRINT(exp: inout mal_val_ptr; result: out line) is

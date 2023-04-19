@@ -36,14 +36,8 @@ endef
 #   $(2): list/vector object of bind forms
 #   $(3): space separated list of expressions to bind
 ENV = $(strip $(foreach new_env,$(call _assoc!,$(call _hash_map),__outer__,$(if $(1),$(1),$(__nil))),$(if $(2),$(call BIND_ARGS,$(new_env),$(2),$(3)),$(new_env))))
-ENV_FIND = $(strip \
-             $(if $(call _contains?,$(1),$(subst =,$(__equal),$(2))),\
-               $(1),\
-               $(if $(call _EQ,$(__nil),$(call _get,$(1),__outer__)),\
-                 ,\
-                 $(call ENV_FIND,$(call _get,$(1),__outer__),$(2)))))
 
-ENV_GET = $(foreach env,|$(call ENV_FIND,$(1),$(2))|,$(if $(call _EQ,||,$(env)),$(call _error,'$(2)' not found)$(__nil),$(call _get,$(strip $(subst |,,$(env))),$(subst =,$(__equal),$(2)))))
+ENV_GET = $(if $(call _EQ,$(1),$(__nil)),,$(or $(_get),$(call ENV_GET,$(call _get,$(1),__outer__),$(2))))
 
 ENV_SET = $(if $(call _assoc!,$(1),$(subst =,$(__equal),$(2)),$(3)),$(1),)
 

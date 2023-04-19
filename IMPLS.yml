@@ -49,7 +49,7 @@ IMPL:
   - {IMPL: julia}
   - {IMPL: kotlin}
   - {IMPL: livescript}
-  - {IMPL: logo, NO_SELF_HOST: 1}  # step4 timeout
+  - {IMPL: logo}
   - {IMPL: lua}
   - {IMPL: make, NO_SELF_HOST: 1}  # step4 timeout
   - {IMPL: mal, MAL_IMPL: js,      BUILD_IMPL: js,  NO_SELF_HOST: 1}

@@ -30,10 +30,28 @@ DEF FNREAD(a$)
 =FNread_str(FNalloc_string(a$))
 
 DEF FNEVAL(ast%, env%)
-  IF NOT FNis_list(ast%) THEN =FNeval_ast(ast%, env%)
+  LOCAL car%, val%, key$
+  REM PRINT "EVAL: " + FNunbox_string(FNpr_str(ast%, TRUE))
+  IF FNis_symbol(ast%) THEN
+    val% = FNhashmap_get(env%, FNunbox_symbol(ast%))
+    IF val% = FNnil THEN ERROR &40E80922, "Symbol not in environment"
+    =val%
+  ENDIF
+  IF FNis_hashmap(ast%) THEN
+    val% = FNempty_hashmap
+    bindings% = FNhashmap_keys(ast%)
+    WHILE NOT FNis_empty(bindings%)
+      key$ = FNunbox_string(FNfirst(bindings%))
+      val% = FNhashmap_set(val%, key$, FNEVAL(FNhashmap_get(ast%, key$), env%))
+      bindings% = FNrest(bindings%)
+    ENDWHILE
+    =val%
+  ENDIF
+  IF NOT FNis_seq(ast%) THEN =ast%
   IF FNis_empty(ast%) THEN =ast%
-  ast% = FNeval_ast(ast%, env%)
-=FNcore_call(FNunbox_corefn(FNfirst(ast%)), FNrest(ast%))
+  car% = FNEVAL(FNfirst(ast%), env%)
+  IF FNis_vector(ast%) THEN =FNalloc_vector_pair(car%, FNeval_ast(FNrest(ast%), env%))
+  =FNcore_call(FNunbox_corefn(car%), FNeval_ast(FNrest(ast%), env%))
 
 DEF FNPRINT(a%)
 =FNunbox_string(FNpr_str(a%, TRUE))
@@ -42,30 +60,8 @@ DEF FNrep(a$)
 =FNPRINT(FNEVAL(FNREAD(a$), repl_env%))
 
 DEF FNeval_ast(ast%, env%)
-  LOCAL val%, car%, cdr%, map%, keys%, key$
-  IF FNis_symbol(ast%) THEN
-    val% = FNhashmap_get(env%, FNunbox_symbol(ast%))
-    IF val% = FNnil THEN ERROR &40E80922, "Symbol not in environment"
-    =val%
-  ENDIF
-  IF FNis_seq(ast%) THEN
     IF FNis_empty(ast%) THEN =ast%
-    car% = FNEVAL(FNfirst(ast%), env%)
-    cdr% = FNeval_ast(FNrest(ast%), env%)
-    IF FNis_vector(ast%) THEN =FNalloc_vector_pair(car%, cdr%)
-    =FNalloc_pair(car%, cdr%)
-  ENDIF
-  IF FNis_hashmap(ast%) THEN
-    map% = FNempty_hashmap
-    keys% = FNhashmap_keys(ast%)
-    WHILE NOT FNis_empty(keys%)
-      key$ = FNunbox_string(FNfirst(keys%))
-      map% = FNhashmap_set(map%, key$, FNEVAL(FNhashmap_get(ast%, key$), env%))
-      keys% = FNrest(keys%)
-    ENDWHILE
-    =map%
-  ENDIF
-=ast%
+    =FNalloc_pair(FNEVAL(FNfirst(ast%), env%), FNeval_ast(FNrest(ast%), env%))
 
 REM  Call a core function, taking the function number and a mal list of
 REM  objects to pass as arguments.

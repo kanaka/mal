@@ -30,22 +30,33 @@ fn read(str: &str) -> MalRet {
 }
 
 // eval
-fn eval_ast(ast: &MalVal, env: &Env) -> MalRet {
-    match ast {
-        Sym(_) => Ok(env_get(&env, &ast)?),
-        List(v, _) => {
+fn eval_ast(v: &MalArgs, env: &Env) -> Result<MalArgs, MalErr> {
             let mut lst: MalArgs = vec![];
             for a in v.iter() {
-                lst.push(eval(a.clone(), env.clone())?)
+                match eval(a.clone(), env.clone()) {
+                    Ok(elt) => lst.push(elt),
+                    Err(e) => return Err(e),
+                }
             }
-            Ok(list!(lst))
+            return Ok(lst);
+}
+
+fn eval(mut ast: MalVal, mut env: Env) -> MalRet {
+    let ret: MalRet;
+
+    'tco: loop {
+        match env_get(&env, "DEBUG-EVAL") {
+            None | Some(Bool(false)) | Some(Nil) => (),
+            _ => println!("EVAL: {}", print(&ast)),
         }
-        Vector(v, _) => {
-            let mut lst: MalArgs = vec![];
-            for a in v.iter() {
-                lst.push(eval(a.clone(), env.clone())?)
-            }
-            Ok(vector!(lst))
+        ret = match ast {
+        Sym(ref s) => match env_get(&env, s) {
+            Some(r) => Ok(r),
+            None => error (&format!("'{}' not found", s)),
+        }
+        Vector(ref v, _) => match eval_ast(&v, &env) {
+            Ok(lst) => Ok(vector!(lst)),
+            Err(e) => Err(e),
         }
         Hash(hm, _) => {
             let mut new_hm: FnvHashMap<String, MalVal> = FnvHashMap::default();
@@ -54,16 +65,7 @@ fn eval_ast(ast: &MalVal, env: &Env) -> MalRet {
             }
             Ok(Hash(Rc::new(new_hm), Rc::new(Nil)))
         }
-        _ => Ok(ast.clone()),
-    }
-}
-
-fn eval(mut ast: MalVal, mut env: Env) -> MalRet {
-    let ret: MalRet;
-
-    'tco: loop {
-        ret = match ast.clone() {
-            List(l, _) => {
+        List(ref l, _) => {
                 if l.len() == 0 {
                     return Ok(ast);
                 }
@@ -100,12 +102,12 @@ fn eval(mut ast: MalVal, mut env: Env) -> MalRet {
                         continue 'tco;
                     }
                     Sym(ref a0sym) if a0sym == "do" => {
-                        match eval_ast(&list!(l[1..l.len() - 1].to_vec()), &env)? {
-                            List(_, _) => {
+                        match eval_ast(&l[1..l.len() - 1].to_vec(), &env) {
+                            Ok(_) => {
                                 ast = l.last().unwrap_or(&Nil).clone();
                                 continue 'tco;
                             }
-                            _ => error("invalid do form"),
+                            Err(e) => return Err(e),
                         }
                     }
                     Sym(ref a0sym) if a0sym == "if" => {
@@ -141,8 +143,8 @@ fn eval(mut ast: MalVal, mut env: Env) -> MalRet {
                         }
                         continue 'tco;
                     }
-                    _ => match eval_ast(&ast, &env)? {
-                        List(ref el, _) => {
+                    _ => match eval_ast(&l, &env) {
+                        Ok(el) => {
                             let ref f = el[0].clone();
                             let args = el[1..].to_vec();
                             match f {
@@ -162,11 +164,11 @@ fn eval(mut ast: MalVal, mut env: Env) -> MalRet {
                                 _ => error("attempt to call non-function"),
                             }
                         }
-                        _ => error("expected a list"),
+                        Err(e) => return Err(e),
                     },
                 }
-            }
-            _ => eval_ast(&ast, &env),
+        }
+        _ => Ok(ast.clone()),
         };
 
         break;

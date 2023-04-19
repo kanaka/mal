@@ -23,6 +23,7 @@ from mal_types import MalSymbol, MalString, MalSyntaxException
 # Arpeggio grammar
 def mExpression():
     return [
+        mWithMetaExpression,
         mQuotedExpression,
         mQuasiQuotedExpression,
         mSpliceUnquotedExpression,
@@ -38,6 +39,10 @@ def mExpression():
         mBoolean,
         mSymbol,
     ]
+
+
+def mWithMetaExpression():
+    return "^", mExpression, mExpression
 
 
 def mQuotedExpression():
@@ -167,6 +172,9 @@ class ReadASTVisitor(PTNodeVisitor):
 
     def visit_mNil(self, node, children) -> MalNil:
         return MalNil()
+
+    def visit_mWithMetaExpression(self, node, children) -> MalList:
+        return MalList([MalSymbol("with-meta"), children[1], children[0]])
 
     def visit_mQuotedExpression(self, node, children) -> MalList:
         return MalList([MalSymbol("quote"), children[0]])

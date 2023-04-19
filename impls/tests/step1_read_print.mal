@@ -233,6 +233,10 @@ false
 @a
 ;=>(deref a)
 
+;; Colon character inside a symbol
+a:
+;=>a:
+
 ;>>> soft=True
 ;>>> optional=True
 ;;

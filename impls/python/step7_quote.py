@@ -33,23 +33,22 @@ def quasiquote(ast):
     else:
         return ast
 
-def eval_ast(ast, env):
+def EVAL(ast, env):
+  while True:
+
+    dbgeval = env.get_or_nil('DEBUG-EVAL')
+    if dbgeval is not None and dbgeval is not False:
+        print('EVAL: ' + printer._pr_str(ast))
+
     if types._symbol_Q(ast):
         return env.get(ast)
-    elif types._list_Q(ast):
-        return types._list(*map(lambda a: EVAL(a, env), ast))
     elif types._vector_Q(ast):
         return types._vector(*map(lambda a: EVAL(a, env), ast))
     elif types._hash_map_Q(ast):
         return types.Hash_Map((k, EVAL(v, env)) for k, v in ast.items())
-    else:
+    elif not types._list_Q(ast):
         return ast  # primitive value, return unchanged
-
-def EVAL(ast, env):
-    while True:
-        #print("EVAL %s" % printer._pr_str(ast))
-        if not types._list_Q(ast):
-            return eval_ast(ast, env)
+    else:
 
         # apply list
         if len(ast) == 0: return ast
@@ -69,13 +68,12 @@ def EVAL(ast, env):
             # Continue loop (TCO)
         elif "quote" == a0:
             return ast[1]
-        elif "quasiquoteexpand" == a0:
-            return quasiquote(ast[1]);
         elif "quasiquote" == a0:
             ast = quasiquote(ast[1]);
             # Continue loop (TCO)
         elif "do" == a0:
-            eval_ast(ast[1:-1], env)
+            for i in range(1, len(ast)-1):
+                EVAL(ast[i], env)
             ast = ast[-1]
             # Continue loop (TCO)
         elif "if" == a0:
@@ -91,13 +89,13 @@ def EVAL(ast, env):
             a1, a2 = ast[1], ast[2]
             return types._function(EVAL, Env, a2, env, a1)
         else:
-            el = eval_ast(ast, env)
-            f = el[0]
+            f = EVAL(a0, env)
+            args = ast[1:]
             if hasattr(f, '__ast__'):
                 ast = f.__ast__
-                env = f.__gen_env__(el[1:])
+                env = f.__gen_env__(types.List(EVAL(a, env) for a in args))
             else:
-                return f(*el[1:])
+                return f(*(EVAL(a, env) for a in args))
 
 # print
 def PRINT(exp):

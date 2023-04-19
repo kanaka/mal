@@ -34,4 +34,10 @@ class Env
         raise "'" + key.to_s + "' not found" if not env
         env.data[key]
     end
+
+    def get_or_nil(key)
+        env = find(key)
+        return nil if not env
+        env.data[key]
+    end
 end

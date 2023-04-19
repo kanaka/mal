@@ -2,44 +2,37 @@ import rdstdin, tables, sequtils, os, types, reader, printer, env, core
 
 proc read(str: string): MalType = str.read_str
 
-proc eval(ast: MalType, env: Env): MalType
-
-proc eval_ast(ast: MalType, env: var Env): MalType =
-  case ast.kind
-  of Symbol:
-    result = env.get(ast.str)
-  of List:
-    result = list ast.list.mapIt(it.eval(env))
-  of Vector:
-    result = vector ast.list.mapIt(it.eval(env))
-  of HashMap:
-    result = hash_map()
-    for k, v in ast.hash_map.pairs:
-      result.hash_map[k] = v.eval(env)
-  else:
-    result = ast
-
 proc eval(ast: MalType, env: Env): MalType =
   var ast = ast
   var env = env
 
-  template defaultApply =
-    let el = ast.eval_ast(env)
-    let f = el.list[0]
-    case f.kind
-    of MalFun:
-      ast = f.malfun.ast
-      env = initEnv(f.malfun.env, f.malfun.params, list(el.list[1 .. ^1]))
-    else:
-      return f.fun(el.list[1 .. ^1])
-
   while true:
-    if ast.kind != List: return ast.eval_ast(env)
+
+    let dbgeval = env.get("DEBUG-EVAL")
+    if not (dbgeval.isNil or dbgeval.kind in {Nil, False}):
+      echo "EVAL: " & ast.pr_str
+
+    case ast.kind
+    of Symbol:
+      let val = env.get(ast.str)
+      if val.isNil:
+        raise newException(ValueError, "'" & ast.str & "' not found")
+      return val
+    of List:
+      discard(nil) # Proceed after the case statement
+    of Vector:
+      return vector ast.list.mapIt(it.eval(env))
+    of HashMap:
+      result = hash_map()
+      for k, v in ast.hash_map.pairs:
+        result.hash_map[k] = v.eval(env)
+      return result
+    else:
+      return ast
     if ast.list.len == 0: return ast
 
     let a0 = ast.list[0]
-    case a0.kind
-    of Symbol:
+    if a0.kind == Symbol:
       case a0.str
       of "def!":
         let
@@ -59,13 +52,13 @@ proc eval(ast: MalType, env: Env): MalType =
         else: raise newException(ValueError, "Illegal kind in let*")
         ast = a2
         env = let_env
-        # Continue loop (TCO)
+        continue # TCO
 
       of "do":
         let last = ast.list.high
-        discard (list ast.list[1 ..< last]).eval_ast(env)
+        discard (ast.list[1 ..< last].mapIt(it.eval(env)))
         ast = ast.list[last]
-        # Continue loop (TCO)
+        continue # TCO
 
       of "if":
         let
@@ -74,9 +67,14 @@ proc eval(ast: MalType, env: Env): MalType =
           cond = a1.eval(env)
 
         if cond.kind in {Nil, False}:
-          if ast.list.len > 3: ast = ast.list[3]
-          else: ast = nilObj
-        else: ast = a2
+          if ast.list.len > 3:
+            ast = ast.list[3]
+            continue # TCO
+          else:
+            return nilObj
+        else:
+          ast = a2
+          continue # TCO
 
       of "fn*":
         let
@@ -88,11 +86,14 @@ proc eval(ast: MalType, env: Env): MalType =
           a2.eval(newEnv)
         return malfun(fn, a2, a1, env)
 
-      else:
-        defaultApply()
+    let f = eval(a0, env)
+    let args = ast.list[1 .. ^1].mapIt(it.eval(env))
+    if f.kind == MalFun:
+      ast = f.malfun.ast
+      env = initEnv(f.malfun.env, f.malfun.params, list(args))
+      continue # TCO
 
-    else:
-      defaultApply()
+    return f.fun(args)
 
 proc print(exp: MalType): string = exp.pr_str
 

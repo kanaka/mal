@@ -14,30 +14,30 @@ class Step4_if_fn_do {
     }
 
     // EVAL
-    static function eval_ast(ast:MalType, env:Env) {
-        return switch (ast) {
-            case MalSymbol(s): env.get(ast);
+    static function EVAL(ast:MalType, env:Env):MalType {
+        var dbgeval = env.get("DEBUG-EVAL");
+        if (dbgeval != null && dbgeval != MalFalse && dbgeval != MalNil)
+            Compat.println("EVAL: " + PRINT(ast));
+        var alst;
+        switch (ast) {
+            case MalSymbol(s):
+                 var  res = env.get(s);
+                 if (res == null) throw "'" + s + "' not found";
+                 return res;
             case MalList(l):
-                MalList(l.map(function(x) { return EVAL(x, env); }));
+                 alst = l;
             case MalVector(l):
-                MalVector(l.map(function(x) { return EVAL(x, env); }));
+                return MalVector(l.map(function(x) { return EVAL(x, env); }));
             case MalHashMap(m):
                 var new_map = new Map<String,MalType>();
                 for (k in m.keys()) {
                     new_map[k] = EVAL(m[k], env);
                 }
-                MalHashMap(new_map);
-            case _: ast;
+                return MalHashMap(new_map);
+            case _: return ast;
         }
-    }
-
-    static function EVAL(ast:MalType, env:Env):MalType {
-        if (!list_Q(ast)) { return eval_ast(ast, env); }
-
         // apply
-        var alst = _list(ast);
         if (alst.length == 0) { return ast; }
-
         switch (alst[0]) {
         case MalSymbol("def!"):
             return env.set(alst[1], EVAL(alst[2], env));
@@ -53,7 +53,9 @@ class Step4_if_fn_do {
             }
             return EVAL(alst[2], let_env);
         case MalSymbol("do"):
-            return last(eval_ast(MalList(alst.slice(1)), env));
+            for (i in 1...alst.length-1)
+                EVAL(alst[i], env);
+            return EVAL(alst[alst.length-1], env);
         case MalSymbol("if"):
             var cond = EVAL(alst[1], env);
             if (cond != MalFalse && cond != MalNil) {
@@ -68,10 +70,10 @@ class Step4_if_fn_do {
                 return EVAL(alst[2], new Env(env, _list(alst[1]), args));
             },null,null,null,false,nil);
         case _:
-            var el = eval_ast(ast, env);
-            var lst = _list(el);
-            switch (first(el)) {
-                case MalFunc(f,_,_,_,_,_): return f(_list(el).slice(1));
+            switch ( EVAL(alst[0], env)) {
+                case MalFunc(f,_,_,_,_,_):
+                    var args = alst.slice(1).map(function(x) { return EVAL(x, env); });
+                    return f(args);
                 case _: throw "Call of non-function";
             }
         }

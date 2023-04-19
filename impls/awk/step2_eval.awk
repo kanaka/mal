@@ -8,18 +8,20 @@ function READ(str)
 }
 
 function eval_ast(ast, env,    i, idx, len, new_idx, ret)
+# This function has two distinct purposes.
+# non empty list: a0 a1 .. an  ->  list: nil (eval a1) .. (eval an)
+# vector: a0 a1 .. an          ->  vector: (eval a0) (eval a1) .. (eval an)
 {
-	switch (ast) {
-	case /^'/:
-		if (ast in env) {
-			return types_addref(env[ast])
-		}
-		return "!\"'" substr(ast, 2) "' not found"
-	case /^[([]/:
 		idx = substr(ast, 2)
 		len = types_heap[idx]["len"]
 		new_idx = types_allocate()
-		for (i = 0; i < len; ++i) {
+		if (ast ~ /^\(/) {
+			types_heap[new_idx][0] = "#nil"
+			i = 1
+		} else {
+			i = 0
+		}
+		for (; i < len; ++i) {
 			ret = EVAL(types_addref(types_heap[idx][i]), env)
 			if (ret ~ /^!/) {
 				types_heap[new_idx]["len"] = i
@@ -30,7 +32,10 @@ function eval_ast(ast, env,    i, idx, len, new_idx, ret)
 		}
 		types_heap[new_idx]["len"] = len
 		return substr(ast, 1, 1) new_idx
-	case /^\{/:
+}
+
+function eval_map(ast, env,    i, idx, new_idx, ret)
+{
 		idx = substr(ast, 2)
 		new_idx = types_allocate()
 		for (i in types_heap[idx]) {
@@ -44,21 +49,41 @@ function eval_ast(ast, env,    i, idx, len, new_idx, ret)
 			}
 		}
 		return "{" new_idx
-	default:
-		return ast
-	}
 }
 
 function EVAL(ast, env,    new_ast, ret, idx, f, f_idx)
 {
-	if (ast !~ /^\(/) {
+	# print "EVAL: " printer_pr_str(ast, 1)
+
+	switch (ast) {
+	case /^'/:      # symbol
+		if (ast in env) {
+			ret = types_addref(env[ast])
+		} else {
+			ret = "!\"'" substr(ast, 2) "' not found"
+		}
+		types_release(ast)
+		return ret
+	case /^\[/:     # vector
 		ret = eval_ast(ast, env)
 		types_release(ast)
 		return ret
+	case /^\{/:     # map
+		ret = eval_map(ast, env)
+		types_release(ast)
+		return ret
+	case /^[^(]/:    # not a list
+		types_release(ast)
+		return ast
 	}
 	idx = substr(ast, 2)
 	if (types_heap[idx]["len"] == 0) {
 		return ast
+	}
+	f = EVAL(types_addref(types_heap[idx][0]), env)
+	if (f ~ /^!/) {
+		types_release(ast)
+		return f
 	}
 	new_ast = eval_ast(ast, env)
 	types_release(ast)
@@ -66,7 +91,6 @@ function EVAL(ast, env,    new_ast, ret, idx, f, f_idx)
 		return new_ast
 	}
 	idx = substr(new_ast, 2)
-	f = types_heap[idx][0]
 	if (f ~ /^&/) {
 		f_idx = substr(f, 2)
 		ret = @f_idx(idx)

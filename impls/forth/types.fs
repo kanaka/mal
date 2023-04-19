@@ -654,6 +654,15 @@ MalType%
   cell% field MalUserFn/body
 deftype MalUserFn
 
+: asMacro ( fn -- macro )
+    MalUserFn new
+    true                         over MalUserFn/is-macro?   !
+    over MalUserFn/env         @ over MalUserFn/env         !
+    over MalUserFn/formal-args @ over MalUserFn/formal-args !
+    over MalUserFn/var-arg     @ over MalUserFn/var-arg     !
+    swap MalUserFn/body        @ over MalUserFn/body        !
+;
+
 
 MalType%
   cell% field SpecialOp/xt

@@ -8,26 +8,24 @@
   (read_str str))
 
 ;; eval
-(define (eval-ast ast env)
+(define (EVAL ast env)
+  ; (printf "EVAL: ~a~n" (pr_str ast true))
   (cond
     [(symbol? ast)
      (or (hash-ref env ast
                    (lambda () (raise (string-append "'"
                                                     (symbol->string ast)
                                                     "' not found")))))]
-    [(_sequential? ast) (_map (lambda (x) (EVAL x env)) ast)]
+    [(vector? ast) (vector-map (lambda (x) (EVAL x env)) ast)]
     [(hash? ast) (make-hash
                   (dict-map ast (lambda (k v) (cons k (EVAL v env)))))]
+    [(list? ast)
+     (if (empty? ast)
+       ast
+       (let ([f (EVAL (first ast) env)]
+             [args (map (lambda (x) (EVAL x env)) (rest ast))])
+         (apply f args)))]
     [else ast]))
-
-(define (EVAL ast env)
-  (if (or (not (list? ast)) (empty? ast))
-        (eval-ast ast env)
-
-        (let* ([el (eval-ast ast env)]
-               [f (first el)]
-               [args (rest el)])
-          (apply f args))))
 
 ;; print
 (define (PRINT exp)

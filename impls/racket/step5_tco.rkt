@@ -9,18 +9,22 @@
   (read_str str))
 
 ;; eval
-(define (eval-ast ast env)
+(define (EVAL ast env)
+  (let ([dbgeval (send env get 'DEBUG-EVAL)])
+    (unless (or (void? dbgeval) (eq? dbgeval nil) (eq? dbgeval #f))
+      (printf "EVAL: ~a~n" (pr_str ast true))))
   (cond
-    [(symbol? ast) (send env get ast)]
-    [(_sequential? ast) (_map (lambda (x) (EVAL x env)) ast)]
+    [(symbol? ast)
+     (let ([val (send env get ast)])
+       (if (void? val)
+         (raise (string-append "'" (symbol->string ast) "' not found"))
+         val))]
+    [(vector? ast) (vector-map (lambda (x) (EVAL x env)) ast)]
     [(hash? ast) (make-hash
                   (dict-map ast (lambda (k v) (cons k (EVAL v env)))))]
-    [else ast]))
-
-(define (EVAL ast env)
-  (if (or (not (list? ast)) (empty? ast))
-        (eval-ast ast env)
-
+    [(list? ast)
+     (if (empty? ast)
+        ast
         (let ([a0 (_nth ast 0)])
           (cond
             [(eq? 'def! a0)
@@ -33,7 +37,7 @@
                     (_partition 2 (_to_list (_nth ast 1))))
                (EVAL (_nth ast 2) let-env))]
             [(eq? 'do a0)
-             (eval-ast (drop (drop-right ast 1) 1) env)
+             (map (lambda (x) (EVAL x env)) (drop (drop-right ast 1) 1))
              (EVAL (last ast) env)]
             [(eq? 'if a0)
              (let ([cnd (EVAL (_nth ast 1) env)])
@@ -49,16 +53,17 @@
                                             [binds (_nth ast 1)]
                                             [exprs args])))
                (_nth ast 2) env (_nth ast 1) #f nil)]
-            [else (let* ([el (eval-ast ast env)]
-                         [f (first el)]
-                         [args (rest el)])
+            [else
+             (let ([f (EVAL a0 env)]
+                   [args (map (lambda (x) (EVAL x env)) (rest ast))])
                     (if (malfunc? f)
                       (EVAL (malfunc-ast f)
                             (new Env%
                                  [outer (malfunc-env f)]
                                  [binds (malfunc-params f)]
                                  [exprs args]))
-                      (apply f args)))]))))
+                      (apply f args)))])))]
+    [else ast]))
 
 ;; print
 (define (PRINT exp)

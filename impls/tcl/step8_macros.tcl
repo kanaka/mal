@@ -55,51 +55,24 @@ proc quasiquote {ast} {
     }
 }
 
-proc is_macro_call {ast env} {
-    if {![list_q $ast]} {
-        return 0
-    }
-    set a0 [lindex [obj_val $ast] 0]
-    if {$a0 == "" || ![symbol_q $a0]} {
-        return 0
-    }
-    set varname [obj_val $a0]
-    set foundenv [$env find $varname]
-    if {$foundenv == 0} {
-        return 0
-    }
-    macro_q [$env get $varname]
-}
+proc EVAL {ast env} {
+    while {true} {
 
-proc macroexpand {ast env} {
-    while {[is_macro_call $ast $env]} {
-        set a0 [mal_first [list $ast]]
-        set macro_name [obj_val $a0]
-        set macro_obj [$env get $macro_name]
-        set macro_args [obj_val [mal_rest [list $ast]]]
-
-        set funcdict [obj_val $macro_obj]
-        set body [dict get $funcdict body]
-        set env [dict get $funcdict env]
-        set binds [dict get $funcdict binds]
-        set funcenv [Env new $env $binds $macro_args]
-        set ast [EVAL $body $funcenv]
+    set dbgenv [$env find "DEBUG-EVAL"]
+    if {$dbgenv != 0} {
+        set dbgeval [$env get "DEBUG-EVAL"]
+        if {![false_q $dbgeval] && ![nil_q $dbgeval]} {
+            set img [PRINT $ast]
+            puts "EVAL: ${img}"
+        }
     }
-    return $ast
-}
 
-proc eval_ast {ast env} {
     switch [obj_type $ast] {
         "symbol" {
             set varname [obj_val $ast]
             return [$env get $varname]
         }
         "list" {
-            set res {}
-            foreach element [obj_val $ast] {
-                lappend res [EVAL $element $env]
-            }
-            return [list_new $res]
         }
         "vector" {
             set res {}
@@ -116,18 +89,6 @@ proc eval_ast {ast env} {
             return [hashmap_new $res]
         }
         default { return $ast }
-    }
-}
-
-proc EVAL {ast env} {
-    while {true} {
-        if {![list_q $ast]} {
-            return [eval_ast $ast $env]
-        }
-
-        set ast [macroexpand $ast $env]
-        if {![list_q $ast]} {
-            return [eval_ast $ast $env]
         }
 
         lassign [obj_val $ast] a0 a1 a2 a3
@@ -153,9 +114,6 @@ proc EVAL {ast env} {
             "quote" {
                 return $a1
             }
-            "quasiquoteexpand" {
-                return [quasiquote $a1]
-            }
             "quasiquote" {
                 set ast [quasiquote $a1]
             }
@@ -164,12 +122,10 @@ proc EVAL {ast env} {
                 set value [EVAL $a2 $env]
                 return [$env set $varname [macro_new $value]]
             }
-            "macroexpand" {
-                return [macroexpand $a1 $env]
-            }
             "do" {
-                set el [list_new [lrange [obj_val $ast] 1 end-1]]
-                eval_ast $el $env
+                foreach element [lrange [obj_val $ast] 1 end-1] {
+                    EVAL $element $env
+                }
                 set ast [lindex [obj_val $ast] end]
                 # TCO: Continue loop
             }
@@ -193,10 +149,21 @@ proc EVAL {ast env} {
                 return [function_new $a2 $env $binds]
             }
             default {
-                set lst_obj [eval_ast $ast $env]
-                set lst [obj_val $lst_obj]
-                set f [lindex $lst 0]
-                set call_args [lrange $lst 1 end]
+                set f [EVAL $a0 $env]
+                set unevaluated_args [lrange [obj_val $ast] 1 end]
+                if {[macro_q $f]} {
+                    set fn [obj_val $f]
+                    set f_ast   [dict get $fn body]
+                    set f_env   [dict get $fn env]
+                    set f_binds [dict get $fn binds]
+                    set apply_env [Env new $f_env $f_binds $unevaluated_args]
+                    set ast [EVAL $f_ast $apply_env]
+                    continue
+                }
+                set call_args {}
+                foreach element $unevaluated_args {
+                    lappend call_args [EVAL $element $env]
+                }
                 switch [obj_type $f] {
                     function {
                         set fn [obj_val $f]

@@ -26,11 +26,8 @@ method set ($key, $value) {
   %.data{$key} = $value;
 }
 
-method find ($key) {
-  return %.data{$key} ?? self !! $.outer && $.outer.find($key);
-}
-
 method get ($key) {
-  my $env = self.find($key) or die X::MalNotFound.new(name => $key);
-  return $env.data{$key};
+  return %.data{$key} if %.data{$key};
+  return $.outer.get($key) if $.outer;
+  return 0;
 }

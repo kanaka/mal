@@ -21,13 +21,41 @@ MalType* READ(char* str) {
 MalType* EVAL(MalType* ast, Env* env) {
 
   /* forward references */
-  MalType* eval_ast(MalType* ast, Env* env);
+  list evaluate_list(list lst, Env* env);
+  list evaluate_vector(list lst, Env* env);
+  list evaluate_hashmap(list lst, Env* env);
+
+  /* printf("EVAL: %s\n", pr_str(ast, READABLY)); */
 
   /* NULL */
   if (!ast) { return make_nil(); }
 
+  if (is_symbol(ast)) {
+    MalType* symbol_value = hashmap_get(env->data, ast->value.mal_symbol);
+    if (symbol_value)
+      return symbol_value;
+    else
+      return make_error_fmt("'%s' not found", ast->value.mal_symbol);
+  }
+
+  if (is_vector(ast)) {
+    list result = evaluate_vector(ast->value.mal_list, env);
+    if (result && is_error(result->data))
+      return result->data;
+    else
+      return make_vector(result);
+  }
+
+  if (is_hashmap(ast)) {
+    list result = evaluate_hashmap(ast->value.mal_list, env);
+    if (result && is_error(result->data))
+      return result->data;
+    else
+      return make_hashmap(result);
+  }
+
   /* not a list */
-  if (!is_list(ast)) { return eval_ast(ast, env); }
+  if (!is_list(ast)) { return ast; }
 
   /* empty list */
   if (ast->value.mal_list == NULL) { return ast; }
@@ -35,12 +63,10 @@ MalType* EVAL(MalType* ast, Env* env) {
   /* list */
 
   /* evaluate the list */
-  MalType* evaluated_list = eval_ast(ast, env);
-
-  if (is_error(evaluated_list)) { return evaluated_list; }
+  list evlst = evaluate_list(ast->value.mal_list, env);
+  if (is_error(evlst->data)) return evlst->data;
 
   /* apply the first element of the list to the arguments */
-  list evlst = evaluated_list->value.mal_list;
   MalType* func = evlst->data;
 
   if (is_function(func)) {
@@ -110,58 +136,6 @@ int main(int argc, char** argv) {
   }
 
   return 0;
-}
-
-MalType* eval_ast(MalType* ast, Env* env) {
-
-  /* forward references */
-  list evaluate_list(list lst, Env* env);
-  list evaluate_vector(list lst, Env* env);
-  list evaluate_hashmap(list lst, Env* env);
-
-  if (is_symbol(ast)) {
-
-    MalType* symbol_value = hashmap_get(env->data, ast->value.mal_symbol);
-
-    if (symbol_value) {
-      return symbol_value;
-    } else {
-      return make_error_fmt("var '%s' not found", pr_str(ast, UNREADABLY));
-    }
-  }
-  else if (is_list(ast)) {
-
-    list result = evaluate_list(ast->value.mal_list, env);
-
-    if (!result || !is_error(result->data)) {
-      return make_list(result);
-    } else {
-      return result->data;
-    }
-  }
-  else if (is_vector(ast)) {
-
-    list result = evaluate_vector(ast->value.mal_list, env);
-
-    if (!result || !is_error(result->data)) {
-      return make_vector(result);
-    } else {
-      return result->data;
-    }
-  }
-  else if (is_hashmap(ast)) {
-
-    list result = evaluate_hashmap(ast->value.mal_list, env);
-
-    if (!result || !is_error(result->data)) {
-      return make_hashmap(result);
-    } else {
-      return result->data;
-    }
-  }
-  else {
-    return ast;
-  }
 }
 
 list evaluate_list(list lst, Env* env) {

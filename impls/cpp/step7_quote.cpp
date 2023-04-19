@@ -77,6 +77,12 @@ malValuePtr EVAL(malValuePtr ast, malEnvPtr env)
         env = replEnv;
     }
     while (1) {
+
+       const malEnvPtr dbgenv = env->find("DEBUG-EVAL");
+       if (dbgenv && dbgenv->get("DEBUG-EVAL")->isTrue()) {
+           std::cout << "EVAL: " << PRINT(ast) << "\n";
+       }
+
         const malList* list = DYNAMIC_CAST(malList, ast);
         if (!list || (list->count() == 0)) {
             return ast->eval(env);
@@ -144,11 +150,6 @@ malValuePtr EVAL(malValuePtr ast, malEnvPtr env)
                 ast = list->item(2);
                 env = inner;
                 continue; // TCO
-            }
-
-            if (special == "quasiquoteexpand") {
-                checkArgsIs("quasiquote", 1, argCount);
-                return quasiquote(list->item(1));
             }
 
             if (special == "quasiquote") {

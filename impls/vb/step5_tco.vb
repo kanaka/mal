@@ -19,34 +19,6 @@ Namespace Mal
         End Function
 
         ' eval
-        Shared Function eval_ast(ast As MalVal, env As MalEnv) As MalVal
-            If TypeOf ast Is MalSymbol Then
-                return env.do_get(DirectCast(ast, MalSymbol))
-            Else If TypeOf ast Is MalList Then
-                Dim old_lst As MalList = DirectCast(ast, MalList)
-                Dim new_lst As MalList
-                If ast.list_Q() Then
-                    new_lst = New MalList
-                Else
-                    new_lst = DirectCast(New MalVector, MalList)
-                End If
-                Dim mv As MalVal
-                For Each mv in old_lst.getValue()
-                    new_lst.conj_BANG(EVAL(mv, env))
-                Next
-                return new_lst
-            Else If TypeOf ast Is MalHashMap Then
-                Dim new_dict As New Dictionary(Of String, MalVal)
-                Dim entry As KeyValuePair(Of String, MalVal)
-                For Each entry in DirectCast(ast,MalHashMap).getValue()
-                    new_dict.Add(entry.Key, EVAL(DirectCast(entry.Value,MalVal), env))
-                Next
-                return New MalHashMap(new_dict)
-            Else
-                return ast
-            End If
-            return ast
-        End Function
 
         ' TODO: move to types.vb when it is ported
         Class FClosure
@@ -61,9 +33,36 @@ Namespace Mal
         Shared Function EVAL(orig_ast As MalVal, env As MalEnv) As MalVal
             Do
 
-            'Console.WriteLine("EVAL: {0}", printer._pr_str(orig_ast, true))
-            If not orig_ast.list_Q() Then
-                return eval_ast(orig_ast, env)
+            Dim dbgeval As MalVal = env.do_get("DEBUG-EVAL")
+            If dbgeval IsNot Nothing and dbgeval IsNot Mal.types.Nil and dbgeval IsNot Mal.types.MalFalse Then
+                Console.WriteLine("EVAL: {0}", printer._pr_str(orig_ast, true))
+            End If
+
+            If TypeOf orig_ast Is MalSymbol Then
+                Dim key As String = DirectCast(orig_ast, MalSymbol).getName()
+                Dim result As MalVal = env.do_get(key)
+                If result Is Nothing Then
+                    throw New Mal.types.MalException("'" & key & "' not found")
+                End If
+                return result
+            Else If TypeOf orig_ast Is MalVector Then
+                Dim old_lst As MalList = DirectCast(orig_ast, MalList)
+                Dim new_lst As MalList
+                    new_lst = DirectCast(New MalVector, MalList)
+                Dim mv As MalVal
+                For Each mv in old_lst.getValue()
+                    new_lst.conj_BANG(EVAL(mv, env))
+                Next
+                return new_lst
+            Else If TypeOf orig_ast Is MalHashMap Then
+                Dim new_dict As New Dictionary(Of String, MalVal)
+                Dim entry As KeyValuePair(Of String, MalVal)
+                For Each entry in DirectCast(orig_ast,MalHashMap).getValue()
+                    new_dict.Add(entry.Key, EVAL(DirectCast(entry.Value,MalVal), env))
+                Next
+                return New MalHashMap(new_dict)
+            Else If not orig_ast.list_Q() Then
+                return orig_ast
             End If
 
             ' apply list
@@ -100,7 +99,9 @@ Namespace Mal
                 orig_ast = a2
                 env = let_env
             Case "do"
-                eval_ast(ast.slice(1, ast.size()-1), env)
+                For i As Integer = 1 To ast.size()-2
+                    EVAL(ast(i), env)
+                Next
                 orig_ast = ast(ast.size()-1)
             Case "if"
                 Dim a1 As MalVal = ast(1)
@@ -127,7 +128,11 @@ Namespace Mal
                                       DirectCast(ast(1),MalList), f)
                 return DirectCast(mf,MalVal)
             Case Else
-                Dim el As MalList = DirectCast(eval_ast(ast, env), MalList)
+                Dim el As MalList = New MalList
+                Dim mv As MalVal
+                For Each mv In ast.getValue()
+                    el.conj_BANG(EVAL(mv, env))
+                Next
                 Dim f As MalFunc = DirectCast(el(0), MalFunc)
                 Dim fnast As MalVal = f.getAst()
                 If not fnast Is Nothing

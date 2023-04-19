@@ -6,7 +6,7 @@ import { Node, MalType, MalSymbol, MalFunction, MalNil, MalList, MalVector, MalB
 import { readStr } from "./reader";
 import { prStr } from "./printer";
 
-export const ns: Map<MalSymbol, MalFunction> = (() => {
+export const ns: Map<string, MalFunction> = (() => {
     const ns: { [symbol: string]: typeof MalFunction.prototype.func; } = {
         "="(a: MalType, b: MalType): MalBoolean {
             return new MalBoolean(equals(a, b));
@@ -435,7 +435,7 @@ export const ns: Map<MalSymbol, MalFunction> = (() => {
         },
     };
 
-    const map = new Map<MalSymbol, MalFunction>();
-    Object.keys(ns).forEach(key => map.set(MalSymbol.get(key), MalFunction.fromBootstrap(ns[key])));
+    const map : Map<string, MalFunction> = new Map<string, MalFunction>();
+    Object.keys(ns).forEach(key => map.set(key, MalFunction.fromBootstrap(ns[key])));
     return map;
 })();

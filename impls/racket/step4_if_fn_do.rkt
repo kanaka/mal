@@ -9,18 +9,22 @@
   (read_str str))
 
 ;; eval
-(define (eval-ast ast env)
+(define (EVAL ast env)
+  (let ([dbgeval (send env get 'DEBUG-EVAL)])
+    (unless (or (void? dbgeval) (eq? dbgeval nil) (eq? dbgeval #f))
+      (printf "EVAL: ~a~n" (pr_str ast true))))
   (cond
-    [(symbol? ast) (send env get ast)]
-    [(_sequential? ast) (_map (lambda (x) (EVAL x env)) ast)]
+    [(symbol? ast)
+     (let ([val (send env get ast)])
+       (if (void? val)
+         (raise (string-append "'" (symbol->string ast) "' not found"))
+         val))]
+    [(vector? ast) (vector-map (lambda (x) (EVAL x env)) ast)]
     [(hash? ast) (make-hash
                   (dict-map ast (lambda (k v) (cons k (EVAL v env)))))]
-    [else ast]))
-
-(define (EVAL ast env)
-  (if (or (not (list? ast)) (empty? ast))
-        (eval-ast ast env)
-
+    [(list? ast)
+     (if (empty? ast)
+        ast
         (let ([a0 (_nth ast 0)])
           (cond
             [(eq? 'def! a0)
@@ -33,7 +37,7 @@
                     (_partition 2 (_to_list (_nth ast 1))))
                (EVAL (_nth ast 2) let-env))]
             [(eq? 'do a0)
-             (last (eval-ast (rest ast) env))]
+             (last (map (lambda (x) (EVAL x env)) (drop ast 1)))]
             [(eq? 'if a0)
              (let ([cnd (EVAL (_nth ast 1) env)])
                (if (or (eq? cnd nil) (eq? cnd #f))
@@ -46,10 +50,11 @@
                                   (new Env% [outer env]
                                             [binds (_nth ast 1)]
                                             [exprs args])))]
-            [else (let* ([el (eval-ast ast env)]
-                         [f (first el)]
-                         [args (rest el)])
-                    (apply f args))]))))
+            [else
+             (let ([f (EVAL a0 env)]
+                   [args (map (lambda (x) (EVAL x env)) (rest ast))])
+               (apply f args))])))]
+    [else ast]))
 
 ;; print
 (define (PRINT exp)

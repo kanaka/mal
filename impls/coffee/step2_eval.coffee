@@ -7,24 +7,24 @@ printer = require "./printer.coffee"
 READ = (str) -> reader.read_str str
 
 # eval
-eval_ast = (ast, env) ->
-  if types._symbol_Q(ast) then env[ast.name]
-  else if types._list_Q(ast) then ast.map((a) -> EVAL(a, env))
+EVAL = (ast, env) ->
+  # console.log "EVAL:", printer._pr_str ast
+
+  if types._symbol_Q(ast) then return env[ast.name]
+  else if types._list_Q(ast) then # exit this switch
+  else if types._list_Q(ast) then # exit this switch
   else if types._vector_Q(ast)
-    types._vector(ast.map((a) -> EVAL(a, env))...)
+    return types._vector(ast.map((a) -> EVAL(a, env))...)
   else if types._hash_map_Q(ast)
     new_hm = {}
     new_hm[k] = EVAL(v, env) for k,v of ast
-    new_hm
-  else ast
+    return new_hm
+  else return ast
 
-EVAL = (ast, env) ->
-  #console.log "EVAL:", printer._pr_str ast
-  if !types._list_Q ast then return eval_ast ast, env
   if ast.length == 0 then return ast
 
   # apply list
-  [f, args...] = eval_ast ast, env
+  [f, args...] = ast.map((a) -> EVAL(a, env))
   f(args...)
 
 

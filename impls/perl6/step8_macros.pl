@@ -10,16 +10,6 @@ sub read ($str) {
   return read_str($str);
 }
 
-sub eval_ast ($ast, $env) {
-  given $ast {
-    when MalSymbol  { $env.get($ast.val) || die X::MalNotFound.new(name => $ast.val) }
-    when MalList    { MalList([$ast.map({ eval($_, $env) })]) }
-    when MalVector  { MalVector([$ast.map({ eval($_, $env) })]) }
-    when MalHashMap { MalHashMap($ast.kv.map({ $^a => eval($^b, $env) }).Hash) }
-    default         { $ast // $NIL }
-  }
-}
-
 sub qqLoop ($ast) {
   my $acc = MalList([]);
   for |$ast.val.reverse -> $elt {
@@ -50,24 +40,19 @@ sub quasiquote ($ast) {
   }
 }
 
-sub is_macro_call ($ast, $env) {
-  return so $ast ~~ MalList && $ast[0] ~~ MalSymbol
-    && $env.find($ast[0].val).?get($ast[0].val).?is_macro;
-}
-
-sub macroexpand ($ast is copy, $env is copy) {
-  while is_macro_call($ast, $env) {
-    my $func = $env.get($ast[0].val);
-    $ast = $func.apply($ast[1..*]);
-  }
-  return $ast;
-}
-
 sub eval ($ast is copy, $env is copy) {
   loop {
-    return eval_ast($ast, $env) if $ast !~~ MalList;
-    $ast = macroexpand($ast, $env);
-    return eval_ast($ast, $env) if $ast !~~ MalList;
+
+    say "EVAL: " ~ print($ast) unless $env.get('DEBUG-EVAL') ~~ 0|MalNil|MalFalse;
+
+    given $ast {
+      when MalSymbol  { return $env.get($ast.val) || die X::MalNotFound.new(name => $ast.val) }
+      when MalList    { }
+      when MalVector  { return MalVector([$ast.map({ eval($_, $env) })]) }
+      when MalHashMap { return MalHashMap($ast.kv.map({ $^a => eval($^b, $env) }).Hash) }
+      default         { return $ast // $NIL }
+    }
+
     return $ast if !$ast.elems;
 
     my ($a0, $a1, $a2, $a3) = $ast.val;
@@ -84,7 +69,7 @@ sub eval ($ast is copy, $env is copy) {
         $ast = $a2;
       }
       when 'do' {
-        eval_ast(MalList([$ast[1..*-2]]), $env);
+        $ast[1..*-2].map({ eval($_, $env) });
         $ast = $ast[*-1];
       }
       when 'if' {
@@ -104,7 +89,6 @@ sub eval ($ast is copy, $env is copy) {
         return MalFunction($a2, $env, @binds, &fn);
       }
       when 'quote' { return $a1 }
-      when 'quasiquoteexpand' { return quasiquote($a1) }
       when 'quasiquote' { $ast = quasiquote($a1) }
       when 'defmacro!' {
         my $func = eval($a2, $env);
@@ -112,9 +96,14 @@ sub eval ($ast is copy, $env is copy) {
         $func.is_macro = True;
         return $env.set($a1.val, $func);
       }
-      when 'macroexpand' { return macroexpand($a1, $env) }
       default {
-        my ($func, @args) = eval_ast($ast, $env).val;
+        my $func = eval($a0, $env);
+        my @args = $ast[1..*];
+        if $func.?is_macro {
+            $ast = $func.apply(@args);
+            next;
+        }
+        @args = @args.map({ eval($_, $env) });
         return $func.apply(|@args) if $func !~~ MalFunction;
         $ast = $func.ast;
         $env = MalEnv.new($func.env, $func.params, @args);

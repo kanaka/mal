@@ -45,11 +45,21 @@ class Mal {
     }
   }
 
-  static eval_ast(ast, env) {
+  static eval(ast, env) {
+
+    while (true) {
+      var tco = false
+
+      var dbgenv = env.find("DEBUG-EVAL")
+      if (dbgenv && env.get("DEBUG-EVAL")) {
+        System.print("EVAL: %(print(ast))")
+      }
+
+    // Process non-list types.
     if (ast is MalSymbol) {
       return env.get(ast.value)
     } else if (ast is MalList) {
-      return MalList.new(ast.elements.map { |e| eval(e, env) }.toList)
+      // The only case leading after this switch.
     } else if (ast is MalVector) {
       return MalVector.new(ast.elements.map { |e| eval(e, env) }.toList)
     } else if (ast is MalMap) {
@@ -61,12 +71,8 @@ class Mal {
     } else {
       return ast
     }
-  }
+    // ast is a list, search for special forms
 
-  static eval(ast, env) {
-    while (true) {
-      var tco = false
-      if (!(ast is MalList)) return eval_ast(ast, env)
       if (ast.isEmpty) return ast
       if (ast[0] is MalSymbol) {
         if (ast[0].value == "def!") {
@@ -83,8 +89,6 @@ class Mal {
           tco = true
         } else if (ast[0].value == "quote") {
           return ast[1]
-        } else if (ast[0].value == "quasiquoteexpand") {
-          return quasiquote(ast[1])
         } else if (ast[0].value == "quasiquote") {
           ast = quasiquote(ast[1])
           tco = true
@@ -109,7 +113,7 @@ class Mal {
         }
       }
       if (!tco) {
-        var evaled_ast = eval_ast(ast, env)
+        var evaled_ast = ast.elements.map { |e| eval(e, env) }.toList
         var f = evaled_ast[0]
         if (f is MalNativeFn) {
           return f.call(evaled_ast[1..-1])

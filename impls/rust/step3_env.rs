@@ -16,7 +16,7 @@ use rustyline::Editor;
 #[macro_use]
 #[allow(dead_code)]
 mod types;
-use crate::types::MalVal::{Hash, Int, List, Nil, Sym, Vector};
+use crate::types::MalVal::{Bool, Hash, Int, List, Nil, Sym, Vector};
 use crate::types::{error, format_error, func, MalArgs, MalErr, MalRet, MalVal};
 mod env;
 mod printer;
@@ -29,22 +29,30 @@ fn read(str: &str) -> MalRet {
 }
 
 // eval
-fn eval_ast(ast: &MalVal, env: &Env) -> MalRet {
+fn eval_ast(v: &MalArgs, env: &Env) -> Result<MalArgs, MalErr> {
+            let mut lst: MalArgs = vec![];
+            for a in v.iter() {
+                match eval(a.clone(), env.clone()) {
+                    Ok(elt) => lst.push(elt),
+                    Err(e) => return Err(e),
+                }
+            }
+            return Ok(lst);
+}
+
+fn eval(ast: MalVal, env: Env) -> MalRet {
+    match env_get(&env, "DEBUG-EVAL") {
+        None | Some(Bool(false)) | Some(Nil) => (),
+        _ => println!("EVAL: {}", print(&ast)),
+    }
     match ast {
-        Sym(_) => Ok(env_get(&env, &ast)?),
-        List(v, _) => {
-            let mut lst: MalArgs = vec![];
-            for a in v.iter() {
-                lst.push(eval(a.clone(), env.clone())?)
-            }
-            Ok(list!(lst))
+        Sym(ref s) => match env_get(&env, s) {
+            Some(r) => Ok(r),
+            None => error (&format!("'{}' not found", s)),
         }
-        Vector(v, _) => {
-            let mut lst: MalArgs = vec![];
-            for a in v.iter() {
-                lst.push(eval(a.clone(), env.clone())?)
-            }
-            Ok(vector!(lst))
+        Vector(ref v, _) => match eval_ast(&v, &env) {
+            Ok(lst) => Ok(vector!(lst)),
+            Err(e) => Err(e),
         }
         Hash(hm, _) => {
             let mut new_hm: FnvHashMap<String, MalVal> = FnvHashMap::default();
@@ -53,13 +61,7 @@ fn eval_ast(ast: &MalVal, env: &Env) -> MalRet {
             }
             Ok(Hash(Rc::new(new_hm), Rc::new(Nil)))
         }
-        _ => Ok(ast.clone()),
-    }
-}
-
-fn eval(ast: MalVal, env: Env) -> MalRet {
-    match ast.clone() {
-        List(l, _) => {
+        List(ref l, _) => {
             if l.len() == 0 {
                 return Ok(ast);
             }
@@ -94,16 +96,16 @@ fn eval(ast: MalVal, env: Env) -> MalRet {
                     };
                     eval(a2, let_env)
                 }
-                _ => match eval_ast(&ast, &env)? {
-                    List(ref el, _) => {
+                _ => match eval_ast(&l, &env) {
+                    Ok(el) => {
                         let ref f = el[0].clone();
                         f.apply(el[1..].to_vec())
                     }
-                    _ => error("expected a list"),
+                    Err(e) => return Err(e),
                 },
             }
         }
-        _ => eval_ast(&ast, &env),
+        _ => Ok(ast),
     }
 }
 

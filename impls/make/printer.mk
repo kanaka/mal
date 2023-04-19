@@ -34,7 +34,7 @@ keyword_pr_str = $(COLON)$(patsubst $(__keyword)%,%,$(call str_decode,$($(1)_val
 
 string_pr_str = $(if $(filter $(__keyword)%,$(call str_decode,$($(1)_value))),$(COLON)$(patsubst $(__keyword)%,%,$(call str_decode,$($(1)_value))),$(if $(2),"$(subst $(NEWLINE),$(ESC_N),$(subst $(DQUOTE),$(ESC_DQUOTE),$(subst $(SLASH),$(SLASH)$(SLASH),$(call str_decode,$($(1)_value)))))",$(call str_decode,$($(1)_value))))
 
-function_pr_str = <$(if $(word 6,$(value $(1)_value)),$(wordlist 1,5,$(value $(1)_value))...,$(value $(1)_value))>
+function_pr_str = <Function>
 
 list_pr_str = ($(foreach v,$(call __get_obj_values,$(1)),$(call _pr_str,$(v),$(2))))
 

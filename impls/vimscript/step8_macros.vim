@@ -44,63 +44,36 @@ function Quasiquote(ast)
   endif
 endfunction
 
-function IsMacroCall(ast, env)
-  if !ListQ(a:ast)
-    return 0
-  endif
-  let a0 = ListFirst(a:ast)
-  if !SymbolQ(a0)
-    return 0
-  endif
-  let macroname = a0.val
-  if empty(a:env.find(macroname))
-    return 0
-  endif
-  return MacroQ(a:env.get(macroname))
-endfunction
-
-function MacroExpand(ast, env)
-  let ast = a:ast
-  while IsMacroCall(ast, a:env)
-    let macroobj = a:env.get(ListFirst(ast).val)
-    let macroargs = ListRest(ast)
-    let ast = FuncInvoke(macroobj, macroargs)
-  endwhile
-  return ast
-endfunction
-
-function EvalAst(ast, env)
-  if SymbolQ(a:ast)
-    let varname = a:ast.val
-    return a:env.get(varname)
-  elseif ListQ(a:ast)
-    return ListNew(map(copy(a:ast.val), {_, e -> EVAL(e, a:env)}))
-  elseif VectorQ(a:ast)
-    return VectorNew(map(copy(a:ast.val), {_, e -> EVAL(e, a:env)}))
-  elseif HashQ(a:ast)
-    let ret = {}
-    for [k,v] in items(a:ast.val)
-      let newval = EVAL(v, a:env)
-      let ret[k] = newval
-    endfor
-    return HashNew(ret)
-  else
-    return a:ast
-  end
-endfunction
-
 function EVAL(ast, env)
   let ast = a:ast
   let env = a:env
 
   while 1
-    if !ListQ(ast)
-      return EvalAst(ast, env)
-    end
 
-    let ast = MacroExpand(ast, env)
+    let dbgeval = env.get("DEBUG-EVAL")
+    if !(empty(dbgeval) || FalseQ(dbgeval) || NilQ(dbgeval))
+      call PrintLn("EVAL: " . PrStr(ast, 1))
+    endif
+
+    if SymbolQ(ast)
+      let varname = ast.val
+      let val = env.get(varname)
+      if empty(val)
+        throw "'" . varname . "' not found"
+      endif
+      return val
+    elseif VectorQ(ast)
+      return VectorNew(map(copy(ast.val), {_, e -> EVAL(e, env)}))
+    elseif HashQ(ast)
+      let ret = {}
+      for [k,v] in items(ast.val)
+        let newval = EVAL(v, env)
+        let ret[k] = newval
+      endfor
+      return HashNew(ret)
+    endif
     if !ListQ(ast)
-      return EvalAst(ast, env)
+      return ast
     end
     if EmptyQ(ast)
       return ast
@@ -126,8 +99,6 @@ function EVAL(ast, env)
       " TCO
     elseif first_symbol == "quote"
       return ListNth(ast, 1)
-    elseif first_symbol == "quasiquoteexpand"
-      return Quasiquote(ListNth(ast, 1))
     elseif first_symbol == "quasiquote"
       let ast = Quasiquote(ListNth(ast, 1))
       " TCO
@@ -136,8 +107,6 @@ function EVAL(ast, env)
       let a2 = ListNth(ast, 2)
       let macro = MarkAsMacro(EVAL(a2, env))
       return env.set(a1.val, macro)
-    elseif first_symbol == "macroexpand"
-      return MacroExpand(ListNth(ast, 1), env)
     elseif first_symbol == "if"
       let condvalue = EVAL(ast.val[1], env)
       if FalseQ(condvalue) || NilQ(condvalue)
@@ -152,7 +121,9 @@ function EVAL(ast, env)
       " TCO
     elseif first_symbol == "do"
       let astlist = ast.val
-      call EvalAst(ListNew(astlist[1:-2]), env)
+      for elt in astlist[1:-2]
+        let ignored = EVAL(elt, env)
+      endfor
       let ast = astlist[-1]
       " TCO
     elseif first_symbol == "fn*"
@@ -164,9 +135,14 @@ function EVAL(ast, env)
       " TCO
     else
       " apply list
-      let el = EvalAst(ast, env)
-      let funcobj = ListFirst(el)
-      let args = ListRest(el)
+      let funcobj = EVAL(first, env)
+      let args = ListRest(ast)
+      if MacroQ(funcobj)
+        let ast = FuncInvoke(funcobj, args)
+        continue
+        " TCO
+      endif
+      let args = ListNew(map(copy(args.val), {_, e -> EVAL(e, env)}))
       if NativeFunctionQ(funcobj)
         return NativeFuncInvoke(funcobj, args)
       elseif FunctionQ(funcobj)

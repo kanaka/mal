@@ -32,36 +32,22 @@
     [else
      (foldr qq-loop null ast)]))
 
-(define (macro? ast env)
-  (and (list? ast)
-       (not (empty? ast))
-       (symbol? (first ast))
-       (not (equal? null (send env find (first ast))))
-       (let ([fn (send env get (first ast))])
-         (and (malfunc? fn) (malfunc-macro? fn)))))
-
-(define (macroexpand ast env)
-  (if (macro? ast env)
-    (let ([mac (malfunc-fn (send env get (first ast)))])
-      (macroexpand (apply mac (rest ast)) env))
-    ast))
-
-(define (eval-ast ast env)
+(define (EVAL ast env)
+  (let ([dbgeval (send env get 'DEBUG-EVAL)])
+    (unless (or (void? dbgeval) (eq? dbgeval nil) (eq? dbgeval #f))
+      (printf "EVAL: ~a~n" (pr_str ast true))))
   (cond
-    [(symbol? ast) (send env get ast)]
-    [(_sequential? ast) (_map (lambda (x) (EVAL x env)) ast)]
+    [(symbol? ast)
+     (let ([val (send env get ast)])
+       (if (void? val)
+         (raise (string-append "'" (symbol->string ast) "' not found"))
+         val))]
+    [(vector? ast) (vector-map (lambda (x) (EVAL x env)) ast)]
     [(hash? ast) (make-hash
                   (dict-map ast (lambda (k v) (cons k (EVAL v env)))))]
-    [else ast]))
-
-(define (EVAL ast env)
-  ;(printf "~a~n" (pr_str ast true))
-  (if (not (list? ast))
-    (eval-ast ast env)
-
-    (let ([ast (macroexpand ast env)])
-      (if (or (not (list? ast)) (empty? ast))
-        (eval-ast ast env)
+    [(list? ast)
+     (if (empty? ast)
+        ast
         (let ([a0 (_nth ast 0)])
           (cond
             [(eq? 'def! a0)
@@ -75,16 +61,12 @@
                (EVAL (_nth ast 2) let-env))]
             [(eq? 'quote a0)
              (_nth ast 1)]
-            [(eq? 'quasiquoteexpand a0)
-             (quasiquote (cadr ast))]
             [(eq? 'quasiquote a0)
              (EVAL (quasiquote (_nth ast 1)) env)]
             [(eq? 'defmacro! a0)
              (let* ([func (EVAL (_nth ast 2) env)]
                     [mac (struct-copy malfunc func [macro? #t])])
                (send env set (_nth ast 1) mac))]
-            [(eq? 'macroexpand a0)
-             (macroexpand (_nth ast 1) env)]
             [(eq? 'try* a0)
              (if (or (< (length ast) 3)
                      (not (eq? 'catch* (_nth (_nth ast 2) 0))))
@@ -101,7 +83,7 @@
                     [exn:fail? (lambda (exc) (efn (format "~a" exc)))])
                    (EVAL (_nth ast 1) env))))]
             [(eq? 'do a0)
-             (eval-ast (drop (drop-right ast 1) 1) env)
+             (map (lambda (x) (EVAL x env)) (drop (drop-right ast 1) 1))
              (EVAL (last ast) env)]
             [(eq? 'if a0)
              (let ([cnd (EVAL (_nth ast 1) env)])
@@ -117,16 +99,19 @@
                                             [binds (_nth ast 1)]
                                             [exprs args])))
                (_nth ast 2) env (_nth ast 1) #f nil)]
-            [else (let* ([el (eval-ast ast env)]
-                         [f (first el)]
-                         [args (rest el)])
+            [else
+             (let ([f (EVAL a0 env)])
+               (if (and (malfunc? f) (malfunc-macro? f))
+                 (EVAL (apply f (rest ast)) env)
+                 (let ([args (map (lambda (x) (EVAL x env)) (rest ast))])
                     (if (malfunc? f)
                       (EVAL (malfunc-ast f)
                             (new Env%
                                  [outer (malfunc-env f)]
                                  [binds (malfunc-params f)]
                                  [exprs args]))
-                      (apply f args)))]))))))
+                      (apply f args)))))])))]
+    [else ast]))
 
 ;; print
 (define (PRINT exp)
