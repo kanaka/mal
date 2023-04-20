@@ -62,7 +62,7 @@ rep_ env str = rep env str *> pure unit
 rep :: RefEnv -> String -> Effect String
 rep env str = do
   ast <- read str
-  result <- runEval $ evalAst env ast
+  result <- runEval $ eval env ast
   print result
 
 
@@ -102,39 +102,34 @@ setEval _ _           = throw "illegal call of eval"
 -- EVAL
 
 eval :: RefEnv -> MalExpr -> Eval MalExpr
-eval _ ast@(MalList _ Nil) = pure ast
-eval env (MalList _ ast)   = case ast of
-  MalSymbol "def!" : es             -> evalDef env es
-  MalSymbol "let*" : es             -> evalLet env es
-  MalSymbol "if" : es               -> evalIf env es
-  MalSymbol "do" : es               -> evalDo env es
-  MalSymbol "fn*" : es              -> evalFnMatch env es
-
-  MalSymbol "quote" : es            -> evalQuote env es
-  MalSymbol "quasiquote" : es       -> evalQuasiquote env es
-  MalSymbol "quasiquoteexpand" : es -> evalQuasiquoteexpand es
-
-  MalSymbol "defmacro!" : es        -> evalDefmacro env es
-  MalSymbol "macroexpand" : es      -> evalMacroexpand env es
-
-  MalSymbol "try*" : es             -> liftEffect $ evalTry env es
-  _                                 -> evalCallFn env ast
-eval env ast               = evalAst env ast
-
-
-evalAst :: RefEnv -> MalExpr -> Eval MalExpr
-evalAst env ast = do
-  newAst <- macroexpand env ast
-  case newAst of
+eval env ast = do
+  dbgeval <- liftEffect (Env.get env "DEBUG-EVAL")
+  liftEffect case dbgeval of
+    Nothing                 -> pure unit
+    Just MalNil             -> pure unit
+    Just (MalBoolean false) -> pure unit
+    _                       -> do
+      image <- print ast
+      log ("EVAL: " <> image)
+  case ast of
     MalSymbol s   -> do
       result <- liftEffect $ Env.get env s
       case result of
         Just k  -> pure k
         Nothing -> throw $ "'" <> s <> "'" <> " not found"
-    l@(MalList _ _ ) -> eval env l
-    MalVector _ es   -> toVector <$> traverse (evalAst env) es
-    MalHashMap _ es  -> toHashMap <$> traverse (evalAst env) es
-    _             -> pure newAst
+    MalList _ (MalSymbol "def!" : es)       -> evalDef env es
+    MalList _ (MalSymbol "let*" : es)       -> evalLet env es
+    MalList _ (MalSymbol "if" : es)         -> evalIf env es
+    MalList _ (MalSymbol "do" : es)         -> evalDo env es
+    MalList _ (MalSymbol "fn*" : es)        -> evalFnMatch env es
+    MalList _ (MalSymbol "quote" : es)      -> evalQuote env es
+    MalList _ (MalSymbol "quasiquote" : es) -> evalQuasiquote env es
+    MalList _ (MalSymbol "defmacro!" : es)  -> evalDefmacro env es
+    MalList _ (MalSymbol "try*" : es)       -> liftEffect $ evalTry env es
+    MalList _ (rawFunc : rawArgs)           -> evalCallFn env rawFunc rawArgs
+    MalVector _ es   -> toVector <$> traverse (eval env) es
+    MalHashMap _ es  -> toHashMap <$> traverse (eval env) es
+    _             -> pure ast
 
 
 
@@ -142,7 +137,7 @@ evalAst env ast = do
 
 evalDef :: RefEnv -> List MalExpr -> Eval MalExpr
 evalDef env (MalSymbol v : e : Nil) = do
-  evd <- evalAst env e
+  evd <- eval env e
   liftEffect $ Env.set env v evd
   pure evd
 evalDef _ _                         = throw "invalid def!"
@@ -155,18 +150,18 @@ evalLet :: RefEnv -> List MalExpr -> Eval MalExpr
 evalLet env (MalList _ ps : e : Nil)   = do
   letEnv <- liftEffect $ Env.newEnv env
   letBind letEnv ps
-  evalAst letEnv e
+  eval letEnv e
 evalLet env (MalVector _ ps : e : Nil) = do
   letEnv <- liftEffect $ Env.newEnv env
   letBind letEnv ps
-  evalAst letEnv e
+  eval letEnv e
 evalLet _ _                            = throw "invalid let*"
 
 
 letBind :: RefEnv -> List MalExpr -> Eval Unit
 letBind _ Nil                       = pure unit
 letBind env (MalSymbol ky : e : es) = do
-  ex <- evalAst env e
+  ex <- eval env e
   liftEffect $ Env.set env ky ex
   letBind env es
 letBind _ _                         = throw "invalid let*"
@@ -177,14 +172,14 @@ letBind _ _                         = throw "invalid let*"
 
 evalIf :: RefEnv -> List MalExpr -> Eval MalExpr
 evalIf env (b:t:e:Nil) = do
-  cond <- evalAst env b
-  evalAst env case cond of
+  cond <- eval env b
+  eval env case cond of
     MalNil           -> e
     MalBoolean false -> e
     _                -> t
 evalIf env (b:t:Nil)   = do
-  cond <- evalAst env b
-  evalAst env case cond of
+  cond <- eval env b
+  eval env case cond of
     MalNil           -> MalNil
     MalBoolean false -> MalNil
     _                -> t
@@ -195,7 +190,7 @@ evalIf _ _             = throw "invalid if"
 -- Do
 
 evalDo :: RefEnv -> List MalExpr -> Eval MalExpr
-evalDo env es = foldM (const $ evalAst env) MalNil es
+evalDo env es = foldM (const $ eval env) MalNil es
 
 
 
@@ -224,7 +219,7 @@ evalFn env params body = do
     fnEnv <- Env.newEnv env
     ok <- Env.sets fnEnv params' args
     if ok
-      then runEval $ evalAst fnEnv body'
+      then runEval $ eval fnEnv body'
       else throw "actual parameters do not match signature "
 
   unwrapSymbol :: MalExpr -> Eval String
@@ -241,13 +236,8 @@ evalQuote _ _       = throw "invalid quote"
 
 
 evalQuasiquote :: RefEnv -> List MalExpr -> Eval MalExpr
-evalQuasiquote env (e:Nil) = evalAst env =<< quasiquote e
+evalQuasiquote env (e:Nil) = eval env =<< quasiquote e
 evalQuasiquote  _ _        = throw "invalid quasiquote"
-
-
-evalQuasiquoteexpand :: List MalExpr -> Eval MalExpr
-evalQuasiquoteexpand (e:Nil) = quasiquote e
-evalQuasiquoteexpand _       = throw "invalid quasiquote"
 
 
 quasiquote :: MalExpr -> Eval MalExpr
@@ -275,7 +265,7 @@ qqIter elt acc                                                = do
 
 evalDefmacro :: RefEnv -> List MalExpr -> Eval MalExpr
 evalDefmacro env (MalSymbol a : b : Nil) = do
-  f <- evalAst env b
+  f <- eval env b
   case f of
     MalFunction fn@{macro:false} -> do
       let m = MalFunction $ fn {macro = true}
@@ -285,32 +275,17 @@ evalDefmacro env (MalSymbol a : b : Nil) = do
 evalDefmacro _ _                         = throw "invalid defmacro!"
 
 
-evalMacroexpand :: RefEnv -> List MalExpr -> Eval MalExpr
-evalMacroexpand env (a:Nil) = macroexpand env a
-evalMacroexpand _ _         = throw "invalid macroexpand"
-
-
-macroexpand :: RefEnv -> MalExpr -> Eval MalExpr
-macroexpand env ast@(MalList _ (MalSymbol a : args)) = do
-  maybeMacro <- liftEffect $ Env.get env a
-  case maybeMacro of
-    Just (MalFunction {fn:f, macro:true}) -> macroexpand env =<< (liftEffect $ f args)
-    _                                     -> pure ast
-macroexpand _ ast                                    = pure ast
-
-
-
 -- Try
 
 evalTry :: RefEnv -> List MalExpr -> Effect MalExpr
-evalTry env (a:Nil) = runEval $ evalAst env a
+evalTry env (a:Nil) = runEval $ eval env a
 evalTry env (thw : MalList _ (MalSymbol "catch*" : MalSymbol e : b : Nil) : Nil) = do
-  res <- try $ runEval $ evalAst env thw
+  res <- try $ runEval $ eval env thw
   case res of
     Left err -> do
       tryEnv <- Env.newEnv env
       Env.set tryEnv e $ MalString $ Ex.message err -- FIXME:
-      runEval $ evalAst tryEnv b
+      runEval $ eval tryEnv b
     Right v -> pure v
 evalTry _ _         = Ex.throw "invalid try*"
 
@@ -318,15 +293,21 @@ evalTry _ _         = Ex.throw "invalid try*"
 
 -- CALL FUNCTION
 
-evalCallFn :: RefEnv -> List MalExpr -> Eval MalExpr
-evalCallFn env ast = do
-  es <- traverse (evalAst env) ast
-  case es of
-    MalFunction {fn:f, ast:MalNil} : args                   -> liftEffect $ f args
-    MalFunction {ast:ast', params:params', env:env'} : args -> do
+evalCallFn :: RefEnv -> MalExpr -> List MalExpr -> Eval MalExpr
+evalCallFn env rawFunc rawArgs = do
+  func <- eval env rawFunc
+  case func of
+    MalFunction {fn:f, macro:true} -> do
+      newAst <- liftEffect $ f rawArgs
+      eval env newAst
+    MalFunction {fn:f, ast:MalNil} -> do
+      args <- traverse (eval env) rawArgs
+      liftEffect $ f args
+    MalFunction {ast:ast', params:params', env:env'} -> do
+      args <- traverse (eval env) rawArgs
       newEnv <- liftEffect $ Env.newEnv env'
       _ <- liftEffect $ Env.sets newEnv params' args
-      evalAst newEnv ast'
+      eval newEnv ast'
     _                                                       -> throw "invalid function"
 
 
