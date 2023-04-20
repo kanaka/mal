@@ -1,8 +1,8 @@
 "use strict";
 
-var readlineSync = require('readline-sync')
+import readlineSync from 'readline-sync'
 
-exports.readLine = function (x) {
+export const readLine = function (x) {
   return function () {
     const result =  readlineSync.question(x);
 
@@ -14,4 +14,4 @@ exports.readLine = function (x) {
 }
 
 
-exports.argv = process.argv;
+export const argv = process.argv;
