@@ -264,17 +264,20 @@ module Mal
         end,
 
         Types::Symbol.for("rest") => Types::Builtin.new("rest") do |list_or_vector|
-          if !list_or_vector.nil? && list_or_vector != Types::Nil.instance
-            result = list_or_vector[1..]
-
-            if result.nil?
-              result = Types::List.new
+          Types::List.new (
+            case list_or_vector
+            when Types::List, Types::Vector
+              if list_or_vector.empty?
+                []
+              else
+                list_or_vector[1..]
+              end
+            when Types::Nil
+              []
+            else
+              raise TypeError, "Unable to `rest`, too nervous"
             end
-
-            result.to_list
-          else
-            Types::List.new
-          end
+          )
         end,
 
         Types::Symbol.for("throw") => Types::Builtin.new("throw") do |to_throw|
@@ -369,7 +372,7 @@ module Mal
 
         Types::Symbol.for("sequential?") => Types::Builtin.new("sequential?") do |list_or_vector|
           case list_or_vector
-          when Types::List, Types::Vector
+         when Types::List, Types::Vector
             Types::True.instance
           else
             Types::False.instance
