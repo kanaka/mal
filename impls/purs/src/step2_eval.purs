@@ -15,7 +15,7 @@ import Effect.Exception (throw, try)
 import Reader (readStr)
 import Printer (printStr)
 import Readline (readLine)
-import Types (MalExpr(..), MalFn, toHashMap, toList, toVector)
+import Types (MalExpr(..), MalFn, toHashMap, toVector)
 
 
 -- MAIN
@@ -27,24 +27,22 @@ main = loop
 
 -- EVAL
 
-eval :: MalExpr -> Effect MalExpr
-eval ast@(MalList _ Nil) = pure ast
-eval (MalList _ ast)     = do
-  es <- traverse evalAst ast
+evalCallFn :: List MalExpr -> Effect MalExpr
+evalCallFn ast = do
+  es <- traverse eval ast
   case es of
     MalFunction {fn:f}: args -> f args
-    _                        -> pure $ toList es
-eval ast                 = evalAst ast
+    _                        -> throw $ "invalid function"
 
 
-evalAst :: MalExpr -> Effect MalExpr
-evalAst (MalSymbol s)      = case lookup s replEnv of
+eval :: MalExpr -> Effect MalExpr
+eval (MalSymbol s)      = case lookup s replEnv of
   Just f  -> pure f
   Nothing -> throw "invalid function"
-evalAst ast@(MalList _ _ ) = eval ast
-evalAst (MalVector _ es)   = toVector <$> (traverse eval es)
-evalAst (MalHashMap _ es)  = toHashMap <$> (traverse eval es)
-evalAst ast                = pure ast
+eval (MalList _ es@(_ : _)) = evalCallFn es
+eval (MalVector _ es)   = toVector <$> (traverse eval es)
+eval (MalHashMap _ es)  = toHashMap <$> (traverse eval es)
+eval ast                = pure ast
 
 
 
