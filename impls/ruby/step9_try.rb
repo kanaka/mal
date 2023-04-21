@@ -199,6 +199,6 @@ while line = _readline("user> ")
         else
             puts "Error: #{e}" 
         end
-        puts "\t#{e.backtrace.join("\n\t")}"
+        puts "\t#{e.backtrace[0..100].join("\n\t")}"
     end
 end
