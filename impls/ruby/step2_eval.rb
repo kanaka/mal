@@ -13,28 +13,26 @@ def EVAL(ast, env)
     #puts "EVAL: #{_pr_str(ast, true)}"
 
     case ast
-        when Symbol
+    in Symbol
             raise "'" + ast.to_s + "' not found" if not env.key? ast
             return env[ast]
-        when List   
-        when Vector
+    in Vector
             return Vector.new ast.map{|a| EVAL(a, env)}
-        when Hash
+    in Hash
             new_hm = {}
             ast.each{|k,v| new_hm[k] = EVAL(v, env)}
             return new_hm
-        else 
-            return ast
-    end
 
     # apply list
-    if ast.empty?
-        return ast
-    end
 
-    f = EVAL(ast[0], env)
-    args = ast.drop(1)
-    return f[*args.map{|a| EVAL(a, env)}]
+    in [a0, *]
+        f = EVAL(a0, env)
+        args = ast.drop(1)
+        return f[*args.map{|a| EVAL(a, env)}]
+
+    else                        # Empty list or scalar
+      return ast
+    end
 end
 
 # print

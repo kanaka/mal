@@ -19,51 +19,41 @@ def EVAL(ast, env)
     end
 
     case ast
-        when Symbol
+    in Symbol
             return env.get(ast)
-        when List   
-        when Vector
+    in Vector
             return Vector.new ast.map{|a| EVAL(a, env)}
-        when Hash
+    in Hash
             new_hm = {}
             ast.each{|k,v| new_hm[k] = EVAL(v, env)}
             return new_hm
-        else 
-            return ast
-    end
 
     # apply list
-    if ast.empty?
-        return ast
-    end
 
-    a0,a1,a2,a3 = ast
-    case a0
-    when :def!
+    in :def!, a1, a2
         return env.set(a1, EVAL(a2, env))
-    when :"let*"
+    in :"let*", a1, a2
         let_env = Env.new(env)
         a1.each_slice(2) do |a,e|
             let_env.set(a, EVAL(e, let_env))
         end
         env = let_env
         ast = a2 # Continue loop (TCO)
-    when :do
+    in [:do, *]
         ast[1..-2].map{|a| EVAL(a, env)}
         ast = ast.last # Continue loop (TCO)
-    when :if
+    in [:if, a1, a2, *]
         cond = EVAL(a1, env)
-        if not cond
-            return nil if a3 == nil
-            ast = a3 # Continue loop (TCO)
-        else
+        if cond
             ast = a2 # Continue loop (TCO)
+        else
+            ast = ast[3] # Continue loop (TCO)
         end
-    when :"fn*"
+    in :"fn*", a1, a2
         return Function.new(a2, env, a1) {|*args|
             EVAL(a2, Env.new(env, a1, List.new(args)))
         }
-    else
+    in [a0, *]
         f = EVAL(a0, env)
         args = ast.drop(1)
         if f.class == Function
@@ -73,6 +63,9 @@ def EVAL(ast, env)
         else
             return f[*args.map{|a| EVAL(a, env)}]
         end
+
+    else                        # Empty list or scalar
+      return ast
     end
 
     end
