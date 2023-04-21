@@ -5,7 +5,7 @@ class Env
         @outer = outer
         binds.each_index do |i|
             if binds[i] == :"&"
-                data[binds[i+1]] = exprs.drop(i)
+                data[binds[i+1]] = List.new exprs.drop(i)
                 break
             else
                 data[binds[i]] = exprs[i]
