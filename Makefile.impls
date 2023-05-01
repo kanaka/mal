@@ -20,6 +20,8 @@ d_MODE = gdc
 haxe_MODE = neko
 # octave or matlab
 matlab_MODE = octave
+# gm2 or m2lang
+modula2_MODE = gm2
 # python, python2 or python3
 python_MODE = python
 # scheme (chibi, kawa, gauche, chicken, sagittarius, cyclone, foment)
@@ -34,10 +36,10 @@ wasm_MODE = wasmtime
 # Implementation specific settings
 #
 
-IMPLS = ada ada.2 awk bash basic bbc-basic c c.2 chuck clojure coffee common-lisp cpp crystal cs d dart \
+IMPLS = ada ada.2 awk bash basic bbc-basic c c.2 chuck clojure coffee common-lisp cpp cpp.2 crystal cs d dart \
 	elisp elixir elm erlang es6 factor fantom fennel forth fsharp go groovy gnu-smalltalk \
 	guile haskell haxe hy io janet java java-truffle js jq julia kotlin livescript logo lua make mal \
-	matlab miniMAL nasm nim objc objpascal ocaml perl perl6 php picolisp pike plpgsql \
+	matlab miniMAL modula2 nasm nim objc objpascal ocaml perl perl6 php picolisp pike plpgsql \
 	plsql powershell prolog ps purs python python.2 r racket rexx rpython ruby ruby.2 rust scala scheme skew sml \
 	swift swift3 swift4 swift5 tcl ts vala vb vhdl vimscript wasm wren yorick xslt zig
 
@@ -117,6 +119,7 @@ clojure_STEP_TO_PROG =       $(clojure_STEP_TO_PROG_$(clojure_MODE))
 coffee_STEP_TO_PROG =        impls/coffee/$($(1)).coffee
 common-lisp_STEP_TO_PROG =   impls/common-lisp/$($(1))
 cpp_STEP_TO_PROG =           impls/cpp/$($(1))
+cpp.2_STEP_TO_PROG =         impls/cpp.2/$($(1))
 crystal_STEP_TO_PROG =       impls/crystal/$($(1))
 cs_STEP_TO_PROG =            impls/cs/$($(1)).exe
 d_STEP_TO_PROG =             impls/d/$($(1))
@@ -153,6 +156,7 @@ make_STEP_TO_PROG =          impls/make/$($(1)).mk
 mal_STEP_TO_PROG =           impls/mal/$($(1)).mal
 matlab_STEP_TO_PROG =        impls/matlab/$($(1)).m
 miniMAL_STEP_TO_PROG =       impls/miniMAL/$($(1)).json
+modula2_STEP_TO_PROG =       impls/modula2/$($(1)).mod
 nasm_STEP_TO_PROG =          impls/nasm/$($(1))
 nim_STEP_TO_PROG =           impls/nim/$($(1))
 objc_STEP_TO_PROG =          impls/objc/$($(1))
