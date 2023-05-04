@@ -1,44 +1,45 @@
-#include <iostream>
 #include <string>
-#include <vector>
 
-std::string READ(std::string input);
-std::string EVAL(std::string input);
-std::string PRINT(std::string input);
-std::string rep(std::string input);
 
-std::string READ(std::string input)
+
+std::wstring READ(std::wstring input);
+std::wstring EVAL(std::wstring input);
+std::wstring PRINT(std::wstring input);
+std::wstring rep(std::wstring input);
+
+std::wstring READ(std::wstring input)
 {
     return input;
 }
 
-std::string EVAL(std::string input)
+std::wstring EVAL(std::wstring input)
 {
     return input;
 }
 
-std::string PRINT(std::string input)
+std::wstring PRINT(std::wstring input)
 {
     return input;
 }
 
-std::string rep(std::string input)
+std::wstring rep(std::wstring input)
 {
     return PRINT(EVAL(READ(input)));
 }
 
 int main()
 {
-    std::string prompt = "user> ";
-    std::string input;
+    std::wstring prompt = L"user> ";
+    std::wstring input;
 
     while (true)
     {
-        std::cout << prompt;
-        if(!std::getline(std::cin, input))
+        std::wcout << prompt;
+        if(!std::getline(std::wcin, input))
             break;
-        std::cout << rep(input) << std::endl;
+        std::wcout << rep(input) << L'\n';
     }
+    std::wcout << L"\nExiting.\n";
 
     return 0;
 }
