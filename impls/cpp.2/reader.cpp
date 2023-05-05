@@ -25,8 +25,7 @@ std::vector<std::unique_ptr<Token> > read_str(std::string s, LineEdit& line)
             exit(0);
         }
         std::vector<std::unique_ptr<Token> > additional_tokens;
-        additional_tokens = tokenize(s, paren_count);
-        std::cout << "parens: " << paren_count << '\n';
+        additional_tokens = tokenize(input, paren_count);
         for (std::vector<std::unique_ptr<Token> >::iterator it = additional_tokens.begin();
              it != additional_tokens.end();
              ++it)
@@ -67,7 +66,7 @@ std::vector<std::unique_ptr<Token> > tokenize(std::string input_stream, unsigned
             tokens.push_back(std::make_unique<Token>(s, RPAREN));
             paren_count--;
         }
-        else if (ch == ')')
+        else if (ch == '.')
         {
             s += ch;
             tokens.push_back(std::make_unique<Token>(s, PERIOD));
@@ -183,38 +182,63 @@ std::vector<std::unique_ptr<Token> > tokenize(std::string input_stream, unsigned
                 switch (ch)
                 {
                     case '.':
-                        while (isdigit(ch))
+                        s += ch;
+                        ch = input_stream[index++];
+                        while (isdigit(ch) && index < input_stream.length())
                         {
                             s += ch;
                             ch = input_stream[index++];
                         }
-                        index--;
-                        tokens.push_back(std::make_unique<Token>(s, INTEGER));
+                        if (index < input_stream.length())
+                        {
+                            index--;
+                        }
+                        tokens.push_back(std::make_unique<Token>(s, DECIMAL));
                         break;
                     case '/':
-                        while ((isdigit(ch)) && index < input_stream.length())
+                        s += ch;
+                        ch = input_stream[index++];
+                        while (isdigit(ch) && index < input_stream.length())
                         {
                             s += ch;
                             ch = input_stream[index++];
                         }
-                        index--;
+                        if (index < input_stream.length())
+                        {
+                            index--;
+                        }
                         tokens.push_back(std::make_unique<Token>(s, RATIONAL));
                         break;
                     case '+':
-                        while ((isdigit(ch) || ch =='i') && index < input_stream.length())
+                        s += ch;
+                        ch = input_stream[index++];
+                        while ((isdigit(ch) || ch == 'i') && index < input_stream.length())
                         {
                             s += ch;
                             ch = input_stream[index++];
-                            if (ch == 'i')
-                            {
-                                break;
-                            }
                         }
-                        index--;
-                        tokens.push_back(std::make_unique<Token>(s, COMPLEX));
+                        if (index < input_stream.length())
+                        {
+                            index--;
+                        }
+                        else
+                        {
+                            s += ch;
+                        }
+                        if (ch == 'i')
+                        {
+                            tokens.push_back(std::make_unique<Token>(s, COMPLEX));
+                        }
+                        else
+                        {
+                            tokens.push_back(std::make_unique<Token>(s, SYMBOL));
+                        }
                         break;
                     default:
-                        index--;
+                        if (index < input_stream.length())
+                        {
+                            index--;
+                        }
                         tokens.push_back(std::make_unique<Token>(s, INTEGER));
                         break;
                 }
@@ -227,7 +251,7 @@ std::vector<std::unique_ptr<Token> > tokenize(std::string input_stream, unsigned
                 s += ch;
                 ch = input_stream[index++];
             }
-            if (index < input_stream.length())
+            if (index < input_stream.length() || ch == ')')
             {
                 index--;
             }
