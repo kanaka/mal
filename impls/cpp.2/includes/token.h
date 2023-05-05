@@ -7,7 +7,7 @@
 
 enum TokenType
 {
-    LPAREN, RPAREN,
+    LPAREN, RPAREN, PERIOD,
     COMMA, AT, QUOTE, QUASIQUOTE,
     SYMBOL, STRING, CHAR,
     INTEGER, DECIMAL, RATIONAL, COMPLEX,
@@ -35,6 +35,6 @@ private:
 
 std::ostream& operator<<(std::ostream &os, Token const & token);
 std::ostream& operator<<(std::ostream &os, std::unique_ptr<Token> const & token);
-std::ostream& operator<<(std::ostream &os, std::vector<std::unique_ptr<Token> > const & token);
+std::ostream& operator<<(std::ostream &os, std::vector<std::unique_ptr<Token> > & token);
 
 #endif

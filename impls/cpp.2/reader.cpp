@@ -9,7 +9,7 @@
 
 std::vector<std::unique_ptr<Token> > read_str(std::string s, LineEdit& line)
 {
-    int paren_count = 0;
+    unsigned int paren_count = 0;
     std::vector<std::unique_ptr<Token> > tokens;
     tokens = tokenize(s, paren_count);
     while (paren_count > 0)
@@ -22,10 +22,11 @@ std::vector<std::unique_ptr<Token> > read_str(std::string s, LineEdit& line)
         catch (EndOfInputException* e)
         {
             std::cout << "\nEscape during multi-line edit, exiting.\n";
-            abort();
+            exit(0);
         }
         std::vector<std::unique_ptr<Token> > additional_tokens;
         additional_tokens = tokenize(s, paren_count);
+        std::cout << "parens: " << paren_count << '\n';
         for (std::vector<std::unique_ptr<Token> >::iterator it = additional_tokens.begin();
              it != additional_tokens.end();
              ++it)
@@ -38,7 +39,7 @@ std::vector<std::unique_ptr<Token> > read_str(std::string s, LineEdit& line)
 }
 
 
-std::vector<std::unique_ptr<Token> > tokenize(std::string input_stream, int& paren_count)
+std::vector<std::unique_ptr<Token> > tokenize(std::string input_stream, unsigned int& paren_count)
 {
     unsigned int index = 0;
     std::vector<std::unique_ptr<Token> > tokens;
@@ -49,7 +50,6 @@ std::vector<std::unique_ptr<Token> > tokenize(std::string input_stream, int& par
         std::string s = "";
 
         ch = input_stream[index++];
-        s += ch;
 
         if (isspace(ch))
         {
@@ -65,10 +65,12 @@ std::vector<std::unique_ptr<Token> > tokenize(std::string input_stream, int& par
         {
             s += ch;
             tokens.push_back(std::make_unique<Token>(s, RPAREN));
-            if (paren_count > 0)
-            {
-                paren_count--;
-            }
+            paren_count--;
+        }
+        else if (ch == ')')
+        {
+            s += ch;
+            tokens.push_back(std::make_unique<Token>(s, PERIOD));
         }
         else if (ch == ',')
         {
@@ -125,7 +127,6 @@ std::vector<std::unique_ptr<Token> > tokenize(std::string input_stream, int& par
                                 s += ch;
                                 ch = input_stream[index++];
                             }
-                        }
                         index--;
                         tokens.push_back(std::make_unique<Token>(s, HEX));
                         break;
@@ -142,7 +143,7 @@ std::vector<std::unique_ptr<Token> > tokenize(std::string input_stream, int& par
                         break;
                     case '0':
                         ch = input_stream[index++];
-                        while (ch == '0')
+                        while ((ch == '0') && index < input_stream.length())
                         {
                             s += ch;
                             ch = input_stream[index++];
@@ -159,12 +160,15 @@ std::vector<std::unique_ptr<Token> > tokenize(std::string input_stream, int& par
                     case '6':
                     case '7':
                         ch = input_stream[index++];
-                        while (ch <= '0' && ch <= '7')
+                        while ((ch >= '0' && ch <= '7') && index < input_stream.length())
                         {
-                            s += ch;
                             ch = input_stream[index++];
+                            s += ch;
                         }
-                        index--;
+                        if (index < input_stream.length())
+                        {
+                            index--;
+                        }
                         tokens.push_back(std::make_unique<Token>(s, OCTAL));
                         break;
                 }
@@ -223,7 +227,14 @@ std::vector<std::unique_ptr<Token> > tokenize(std::string input_stream, int& par
                 s += ch;
                 ch = input_stream[index++];
             }
-            index--;
+            if (index < input_stream.length())
+            {
+                index--;
+            }
+            else
+            {
+                s += ch;
+            }
             tokens.push_back(std::make_unique<Token>(s, SYMBOL));
         }
     }

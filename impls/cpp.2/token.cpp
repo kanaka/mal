@@ -1,11 +1,12 @@
 #include <memory>
+#include <iostream>
 #include <vector>
 
 #include "token.h"
 
 
 std::vector<std::string> token_type_names = {
-    "LPAREN", "RPAREN",
+    "LPAREN", "RPAREN", "PERIOD",
     "COMMA", "AT", "QUOTE", "QUASIQUOTE",
     "SYMBOL", "STRING", "CHAR",
     "INTEGER", "DECIMAL", "RATIONAL", "COMPLEX",
@@ -15,10 +16,7 @@ std::vector<std::string> token_type_names = {
 
 std::ostream& operator<<(std::ostream &os, Token const & token)
 {
-    os << "Type: ";
-    os << token_type_names[token.type]; 
-    os << " Value:";
-    os << token.token;
+    os << "Type: " << token_type_names[token.type] << ", Value: " << token.token << '\n';
 
     return os;
 }
@@ -38,7 +36,7 @@ std::ostream& operator<<(std::ostream &os, std::vector<std::unique_ptr<Token> > 
          it != tokens.end();
          ++it)
     {
-        os << *it;
+        os << **it;
     }
 
     return os;

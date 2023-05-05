@@ -16,6 +16,6 @@ private:
 
 };
 
-std::vector<std::unique_ptr<Token> > tokenize(std::string input_stream, int& paren_count);
+std::vector<std::unique_ptr<Token> > tokenize(std::string input_stream, unsigned int& paren_count);
 std::vector<std::unique_ptr<Token> > read_str(std::string s, LineEdit& line);
 #endif

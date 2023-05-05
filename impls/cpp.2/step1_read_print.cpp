@@ -50,15 +50,7 @@ int main()
 
         std::vector<std::unique_ptr<Token> > tokens;
         tokens = read_str(input, line);
-
-        for (std::vector<std::unique_ptr<Token> >::iterator it = tokens.begin();
-             it != tokens.end();
-             ++it)
-        {
-            std::cout << **it << '\n';
-        }
-
-        // std::cout << tokens << '\n';
+        std::cout << tokens << '\n';
     }
     std::cout << "Exiting.\n";
 
