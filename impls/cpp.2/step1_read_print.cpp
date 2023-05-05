@@ -1,6 +1,10 @@
-#include <iostream>
 #include <string>
+#include <iostream>
 #include <vector>
+#include "lineedit.h"
+#include "token.h"
+#include "reader.h"
+
 
 std::string READ(std::string input);
 std::string EVAL(std::string input);
@@ -27,19 +31,36 @@ std::string rep(std::string input)
     return PRINT(EVAL(READ(input)));
 }
 
+
 int main()
 {
-    std::string prompt = "user> ";
-    std::string input;
+    LineEdit line;
 
     while (true)
     {
-        std::cout << prompt;
-        if(!std::getline(std::cin, input))
+        std::string input;
+        try
+        {
+            input = line.getline("user> ");
+        }
+        catch(EndOfInputException* e)
+        {
             break;
-        std::cout << rep(input) << std::endl;
+        }
+
+        std::vector<std::unique_ptr<Token> > tokens;
+        tokens = read_str(input, line);
+
+        for (std::vector<std::unique_ptr<Token> >::iterator it = tokens.begin();
+             it != tokens.end();
+             ++it)
+        {
+            std::cout << **it << '\n';
+        }
+
+        // std::cout << tokens << '\n';
     }
-    std::cout << std::endl << "Exiting." << std::endl;
+    std::cout << "Exiting.\n";
 
     return 0;
 }

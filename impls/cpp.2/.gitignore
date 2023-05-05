@@ -1,5 +1,5 @@
 .deps
 *.o
 *.a
-step0_repl
-step1_read_print
+bin
+bin/*

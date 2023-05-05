@@ -1,45 +1,51 @@
 #include <string>
+#include <iostream>
+#include "lineedit.h"
 
 
+std::string READ(std::string input);
+std::string EVAL(std::string input);
+std::string PRINT(std::string input);
+std::string rep(std::string input);
 
-std::wstring READ(std::wstring input);
-std::wstring EVAL(std::wstring input);
-std::wstring PRINT(std::wstring input);
-std::wstring rep(std::wstring input);
-
-std::wstring READ(std::wstring input)
+std::string READ(std::string input)
 {
     return input;
 }
 
-std::wstring EVAL(std::wstring input)
+std::string EVAL(std::string input)
 {
     return input;
 }
 
-std::wstring PRINT(std::wstring input)
+std::string PRINT(std::string input)
 {
     return input;
 }
 
-std::wstring rep(std::wstring input)
+std::string rep(std::string input)
 {
     return PRINT(EVAL(READ(input)));
 }
 
 int main()
 {
-    std::wstring prompt = L"user> ";
-    std::wstring input;
+    LineEdit line;
 
     while (true)
     {
-        std::wcout << prompt;
-        if(!std::getline(std::wcin, input))
+        std::string input;
+        try
+        {
+            input = line.getline("user> ");
+        }
+        catch(EndOfInputException* e)
+        {
             break;
-        std::wcout << rep(input) << L'\n';
+        }
+        std::cout << rep(input) << '\n';
     }
-    std::wcout << L"\nExiting.\n";
+    std::cout << "Exiting.\n";
 
     return 0;
 }
