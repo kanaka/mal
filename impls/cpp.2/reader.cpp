@@ -57,7 +57,7 @@ TokenVector tokenize(std::string input_stream, LineEdit& line, unsigned int inde
         }
         else if (ch == '(')
         {
-            tokens.append(std::make_unique<MalList>(read_str(input_stream, line, index)));
+            tokens.append(std::make_shared<MalList>(read_str(input_stream, line, index)));
         }
         else if (ch == ')')
         {
@@ -65,24 +65,24 @@ TokenVector tokenize(std::string input_stream, LineEdit& line, unsigned int inde
         }
         else if (ch == '.')
         {
-            tokens.append(std::make_unique<MalPeriod>());
+            tokens.append(std::make_shared<MalPeriod>());
         }
         else if (ch == ',')
         {
-            tokens.append(std::make_unique<MalComma>());
+            tokens.append(std::make_shared<MalComma>());
         }
         else if (ch == '@')
         {
-            tokens.append(std::make_unique<MalAt>());
+            tokens.append(std::make_shared<MalAt>());
         }
         else if (ch == '\'')
         {
-            tokens.append(std::make_unique<MalQuote>());
+            tokens.append(std::make_shared<MalQuote>());
         }
         else if (ch == '`')
         {
             s += ch;
-            tokens.append(std::make_unique<MalQuasiquote>());
+            tokens.append(std::make_shared<MalQuasiquote>());
         }
         else if (ch == '\"')
         {
@@ -99,7 +99,7 @@ TokenVector tokenize(std::string input_stream, LineEdit& line, unsigned int inde
                 s += ch;
                 ch = input_stream[index++];
             }
-            tokens.append(std::make_unique<MalString>(s));
+            tokens.append(std::make_shared<MalString>(s));
         }
 
         else if (isdigit(ch))
@@ -120,7 +120,7 @@ TokenVector tokenize(std::string input_stream, LineEdit& line, unsigned int inde
                                 ch = input_stream[index++];
                             }
                         index--;
-                        tokens.append(std::make_unique<MalHex>(s));
+                        tokens.append(std::make_shared<MalHex>(s));
                         break;
 
                     case 'b':
@@ -131,7 +131,7 @@ TokenVector tokenize(std::string input_stream, LineEdit& line, unsigned int inde
                             ch = input_stream[index++];
                         }
                         index--;
-                        tokens.append(std::make_unique<MalBinary>(s));
+                        tokens.append(std::make_shared<MalBinary>(s));
                         break;
                     case '0':
                         ch = input_stream[index++];
@@ -141,7 +141,7 @@ TokenVector tokenize(std::string input_stream, LineEdit& line, unsigned int inde
                             ch = input_stream[index++];
                         }
                         index--;
-                        tokens.append(std::make_unique<MalInteger>(s));
+                        tokens.append(std::make_shared<MalInteger>(s));
                         break;
 
                     case '1':
@@ -161,7 +161,7 @@ TokenVector tokenize(std::string input_stream, LineEdit& line, unsigned int inde
                         {
                             index--;
                         }
-                        tokens.append(std::make_unique<MalOctal>(s));
+                        tokens.append(std::make_shared<MalOctal>(s));
                         break;
                 }
             }
@@ -186,7 +186,7 @@ TokenVector tokenize(std::string input_stream, LineEdit& line, unsigned int inde
                         {
                             index--;
                         }
-                        tokens.append(std::make_unique<MalDecimal>(s));
+                        tokens.append(std::make_shared<MalDecimal>(s));
                         break;
                     case '/':
                         s += ch;
@@ -200,7 +200,7 @@ TokenVector tokenize(std::string input_stream, LineEdit& line, unsigned int inde
                         {
                             index--;
                         }
-                        tokens.append(std::make_unique<MalRational>(s));
+                        tokens.append(std::make_shared<MalRational>(s));
                         break;
                     case '+':
                         s += ch;
@@ -220,11 +220,11 @@ TokenVector tokenize(std::string input_stream, LineEdit& line, unsigned int inde
                         }
                         if (ch == 'i')
                         {
-                            tokens.append(std::make_unique<MalComplex>(s));
+                            tokens.append(std::make_shared<MalComplex>(s));
                         }
                         else
                         {
-                            tokens.append(std::make_unique<MalSymbol>(s));
+                            tokens.append(std::make_shared<MalSymbol>(s));
                         }
                         break;
                     default:
@@ -232,7 +232,7 @@ TokenVector tokenize(std::string input_stream, LineEdit& line, unsigned int inde
                         {
                             index--;
                         }
-                        tokens.append(std::make_unique<MalInteger>(s));
+                        tokens.append(std::make_shared<MalInteger>(s));
                         break;
                 }
             }
@@ -252,7 +252,7 @@ TokenVector tokenize(std::string input_stream, LineEdit& line, unsigned int inde
             {
                 s += ch;
             }
-            tokens.append(std::make_unique<MalSymbol>(s));
+            tokens.append(std::make_shared<MalSymbol>(s));
         }
     }
 

@@ -7,13 +7,14 @@
 
 class MalType;
 
-typedef std::unique_ptr<MalType> MalPtr;
+typedef std::shared_ptr<MalType> MalPtr;
 
 
 class TokenVector
 {
 public:
     TokenVector() {tokens.reserve(65535);};
+    //TokenVector(const TokenVector& t);                // copy c'tor
     size_t size() const {return tokens.size();};
     size_t capacity() const {return tokens.capacity();};
     size_t append(MalPtr token);
@@ -50,7 +51,7 @@ class MalAt: public MalType
 {
 public:
     MalAt(): MalType("@") {};
-    virtual std::string type() {return "At";};
+    virtual std::string type() {return "Deref";};
 };
 
 
@@ -74,7 +75,7 @@ class MalTilde: public MalType
 {
 public:
     MalTilde(): MalType("~") {};
-    virtual std::string type() {return "Tilde";};
+    virtual std::string type() {return "Splice";};
 };
 
 class MalComma: public MalType
@@ -88,8 +89,7 @@ public:
 class MalList: public MalType
 {
 public:
-    MalList(TokenVector& l);
-    void append(TokenVector& t);
+    MalList(const TokenVector& l);
     virtual std::string value();
     virtual std::string type() {return "List";};
 private:

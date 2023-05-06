@@ -2,9 +2,20 @@
 #include <memory>
 #include "types.h"
 
+// TokenVector::TokenVector(const TokenVector& t)
+// {
+//     tokens.reserve(65535);
+
+//     for (std::vector<MalPtr>::iterator it = t.tokens.begin(); it != t.tokens.end(); ++it)
+//     {
+//         tokens.push_back(*it);
+//     }
+// }
+
+
 size_t TokenVector::append(MalPtr token)
 {
-    tokens.push_back(std::move(token));
+    tokens.push_back(token);
 
     return this->size();
 }
@@ -13,7 +24,7 @@ size_t TokenVector::append(TokenVector& t)
 {
     for (std::vector<MalPtr>::iterator it = t.tokens.begin(); it != t.tokens.end(); ++it)
     {
-        this->tokens.push_back(std::move(*it));
+        this->tokens.push_back(*it);
     }
 
     return this->size();
@@ -35,10 +46,11 @@ std::string TokenVector::values()
 }
 
 
-MalList::MalList(TokenVector& l): MalType("")
+MalList::MalList(const TokenVector& l): MalType("")
 {
-    list.append(l);
+    list.append(const_cast<TokenVector&>(l));
 }
+
 
 std::string MalList::value()
 {
