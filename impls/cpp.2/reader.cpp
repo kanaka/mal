@@ -5,17 +5,18 @@
 #include <cstdlib>
 #include "lineedit.h"
 #include "reader.h"
-#include "token.h"
+#include "types.h"
 
-std::vector<std::unique_ptr<Token> > read_str(std::string s, LineEdit& line)
+unsigned int paren_count=0;
+
+TokenVector read_str(std::string s, LineEdit& line, unsigned int index=0)
 {
-    unsigned int paren_count = 0;
-    std::vector<std::unique_ptr<Token> > tokens;
-    tokens = tokenize(s, paren_count);
+    TokenVector tokens(tokenize(s, line, index));
+
     while (paren_count > 0)
     {
         std::string input = "";
-        try 
+        try
         {
             input = line.getline("..... ");
         }
@@ -24,24 +25,17 @@ std::vector<std::unique_ptr<Token> > read_str(std::string s, LineEdit& line)
             std::cout << "\nEscape during multi-line edit, exiting.\n";
             exit(0);
         }
-        std::vector<std::unique_ptr<Token> > additional_tokens;
-        additional_tokens = tokenize(input, paren_count);
-        for (std::vector<std::unique_ptr<Token> >::iterator it = additional_tokens.begin();
-             it != additional_tokens.end();
-             ++it)
-        {
-            tokens.push_back(std::move(*it));
-        }
+        TokenVector additional_tokens(tokenize(input, line, index));
+        tokens.append(additional_tokens);
     }
 
     return tokens;
 }
 
 
-std::vector<std::unique_ptr<Token> > tokenize(std::string input_stream, unsigned int& paren_count)
+TokenVector tokenize(std::string input_stream, LineEdit& line, unsigned int index)
 {
-    unsigned int index = 0;
-    std::vector<std::unique_ptr<Token> > tokens;
+    TokenVector tokens;
     char ch;
 
     while (index < input_stream.length())
@@ -54,42 +48,41 @@ std::vector<std::unique_ptr<Token> > tokenize(std::string input_stream, unsigned
         {
             continue;
         }
+        else if (ch == ';')
+        {
+            while (ch != '\n' && index < input_stream.length())
+            {
+                // discard comment
+            }
+        }
         else if (ch == '(')
         {
-            s += ch;
-            tokens.push_back(std::make_unique<Token>(s, LPAREN));
-            paren_count++;
+            tokens.append(std::make_unique<MalList>(read_str(input_stream, line, index)));
         }
         else if (ch == ')')
         {
-            s += ch;
-            tokens.push_back(std::make_unique<Token>(s, RPAREN));
-            paren_count--;
+            break;
         }
         else if (ch == '.')
         {
-            s += ch;
-            tokens.push_back(std::make_unique<Token>(s, PERIOD));
+            tokens.append(std::make_unique<MalPeriod>());
         }
         else if (ch == ',')
         {
-            s += ch;
-            tokens.push_back(std::make_unique<Token>(s, COMMA));
+            tokens.append(std::make_unique<MalComma>());
         }
         else if (ch == '@')
         {
-            s += ch;
-            tokens.push_back(std::make_unique<Token>(s, AT));
+            tokens.append(std::make_unique<MalAt>());
         }
         else if (ch == '\'')
         {
-            s += ch;
-            tokens.push_back(std::make_unique<Token>(s, QUOTE));
+            tokens.append(std::make_unique<MalQuote>());
         }
         else if (ch == '`')
         {
             s += ch;
-            tokens.push_back(std::make_unique<Token>(s, QUASIQUOTE));
+            tokens.append(std::make_unique<MalQuasiquote>());
         }
         else if (ch == '\"')
         {
@@ -106,7 +99,7 @@ std::vector<std::unique_ptr<Token> > tokenize(std::string input_stream, unsigned
                 s += ch;
                 ch = input_stream[index++];
             }
-            tokens.push_back(std::make_unique<Token>(s, STRING));
+            tokens.append(std::make_unique<MalString>(s));
         }
 
         else if (isdigit(ch))
@@ -127,7 +120,7 @@ std::vector<std::unique_ptr<Token> > tokenize(std::string input_stream, unsigned
                                 ch = input_stream[index++];
                             }
                         index--;
-                        tokens.push_back(std::make_unique<Token>(s, HEX));
+                        tokens.append(std::make_unique<MalHex>(s));
                         break;
 
                     case 'b':
@@ -138,7 +131,7 @@ std::vector<std::unique_ptr<Token> > tokenize(std::string input_stream, unsigned
                             ch = input_stream[index++];
                         }
                         index--;
-                        tokens.push_back(std::make_unique<Token>(s, BINARY));
+                        tokens.append(std::make_unique<MalBinary>(s));
                         break;
                     case '0':
                         ch = input_stream[index++];
@@ -148,7 +141,7 @@ std::vector<std::unique_ptr<Token> > tokenize(std::string input_stream, unsigned
                             ch = input_stream[index++];
                         }
                         index--;
-                        tokens.push_back(std::make_unique<Token>(s, INTEGER));
+                        tokens.append(std::make_unique<MalInteger>(s));
                         break;
 
                     case '1':
@@ -168,7 +161,7 @@ std::vector<std::unique_ptr<Token> > tokenize(std::string input_stream, unsigned
                         {
                             index--;
                         }
-                        tokens.push_back(std::make_unique<Token>(s, OCTAL));
+                        tokens.append(std::make_unique<MalOctal>(s));
                         break;
                 }
             }
@@ -193,7 +186,7 @@ std::vector<std::unique_ptr<Token> > tokenize(std::string input_stream, unsigned
                         {
                             index--;
                         }
-                        tokens.push_back(std::make_unique<Token>(s, DECIMAL));
+                        tokens.append(std::make_unique<MalDecimal>(s));
                         break;
                     case '/':
                         s += ch;
@@ -207,7 +200,7 @@ std::vector<std::unique_ptr<Token> > tokenize(std::string input_stream, unsigned
                         {
                             index--;
                         }
-                        tokens.push_back(std::make_unique<Token>(s, RATIONAL));
+                        tokens.append(std::make_unique<MalRational>(s));
                         break;
                     case '+':
                         s += ch;
@@ -227,11 +220,11 @@ std::vector<std::unique_ptr<Token> > tokenize(std::string input_stream, unsigned
                         }
                         if (ch == 'i')
                         {
-                            tokens.push_back(std::make_unique<Token>(s, COMPLEX));
+                            tokens.append(std::make_unique<MalComplex>(s));
                         }
                         else
                         {
-                            tokens.push_back(std::make_unique<Token>(s, SYMBOL));
+                            tokens.append(std::make_unique<MalSymbol>(s));
                         }
                         break;
                     default:
@@ -239,7 +232,7 @@ std::vector<std::unique_ptr<Token> > tokenize(std::string input_stream, unsigned
                         {
                             index--;
                         }
-                        tokens.push_back(std::make_unique<Token>(s, INTEGER));
+                        tokens.append(std::make_unique<MalInteger>(s));
                         break;
                 }
             }
@@ -259,7 +252,7 @@ std::vector<std::unique_ptr<Token> > tokenize(std::string input_stream, unsigned
             {
                 s += ch;
             }
-            tokens.push_back(std::make_unique<Token>(s, SYMBOL));
+            tokens.append(std::make_unique<MalSymbol>(s));
         }
     }
 

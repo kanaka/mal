@@ -49,7 +49,7 @@ int main()
         }
 
         std::vector<std::unique_ptr<Token> > tokens;
-        tokens = read_str(input, line);
+        tokens = read_str(input, line, 0);
         std::cout << tokens << '\n';
     }
     std::cout << "Exiting.\n";
