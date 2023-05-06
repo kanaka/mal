@@ -9,6 +9,7 @@
 
 unsigned int paren_count=0;
 
+
 TokenVector read_str(std::string s, LineEdit& line, unsigned int index=0)
 {
     TokenVector tokens(tokenize(s, line, index));
@@ -52,7 +53,7 @@ TokenVector tokenize(std::string input_stream, LineEdit& line, unsigned int inde
         {
             while (ch != '\n' && index < input_stream.length())
             {
-                // discard comment
+                index++;
             }
         }
         else if (ch == '(')
@@ -106,31 +107,48 @@ TokenVector tokenize(std::string input_stream, LineEdit& line, unsigned int inde
         {
             if (ch == '0')
             {
-                ch = input_stream[index];
-                s+= ch;
+                s += ch;
+                ch = input_stream[index++];
                 switch (ch)
                 {
                     case 'x':
+                        s += ch;
                         ch = input_stream[index++];
                         while ((isdigit(ch) ||
                                 (ch >= 'a' && ch <= 'f') || (ch >= 'A' && ch <= 'F'))
                                && index < input_stream.length())
-                            {
-                                s += ch;
-                                ch = input_stream[index++];
-                            }
-                        index--;
+                        {
+                            s += ch;
+                            ch = input_stream[index++];
+                        }
+                        if (index < input_stream.length())
+                        {
+                            index--;
+                        }
+                        else
+                        {
+                            s += ch;
+                        }
+
                         tokens.append(std::make_shared<MalHex>(s));
                         break;
 
                     case 'b':
+                        s += ch;
                         ch = input_stream[index++];
                         while ((ch == '0' || ch == '1') && index < input_stream.length())
                         {
                             s += ch;
                             ch = input_stream[index++];
                         }
-                        index--;
+                        if (index < input_stream.length())
+                        {
+                            index--;
+                        }
+                        else
+                        {
+                            s += ch;
+                        }
                         tokens.append(std::make_shared<MalBinary>(s));
                         break;
                     case '0':
@@ -140,7 +158,14 @@ TokenVector tokenize(std::string input_stream, LineEdit& line, unsigned int inde
                             s += ch;
                             ch = input_stream[index++];
                         }
-                        index--;
+                        if (index < input_stream.length())
+                        {
+                            index--;
+                        }
+                        else
+                        {
+                            s += ch;
+                        }
                         tokens.append(std::make_shared<MalInteger>(s));
                         break;
 
@@ -151,15 +176,20 @@ TokenVector tokenize(std::string input_stream, LineEdit& line, unsigned int inde
                     case '5':
                     case '6':
                     case '7':
+                        s += ch;
                         ch = input_stream[index++];
                         while ((ch >= '0' && ch <= '7') && index < input_stream.length())
                         {
-                            ch = input_stream[index++];
                             s += ch;
+                            ch = input_stream[index++];
                         }
                         if (index < input_stream.length())
                         {
                             index--;
+                        }
+                        else
+                        {
+                            s += ch;
                         }
                         tokens.append(std::make_shared<MalOctal>(s));
                         break;
@@ -186,6 +216,10 @@ TokenVector tokenize(std::string input_stream, LineEdit& line, unsigned int inde
                         {
                             index--;
                         }
+                        else
+                        {
+                            s += ch;
+                        }
                         tokens.append(std::make_shared<MalDecimal>(s));
                         break;
                     case '/':
@@ -199,6 +233,10 @@ TokenVector tokenize(std::string input_stream, LineEdit& line, unsigned int inde
                         if (index < input_stream.length())
                         {
                             index--;
+                        }
+                        else
+                        {
+                            s += ch;
                         }
                         tokens.append(std::make_shared<MalRational>(s));
                         break;

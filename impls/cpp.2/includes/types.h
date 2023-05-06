@@ -14,7 +14,6 @@ class TokenVector
 {
 public:
     TokenVector() {tokens.reserve(65535);};
-    //TokenVector(const TokenVector& t);                // copy c'tor
     size_t size() const {return tokens.size();};
     size_t capacity() const {return tokens.capacity();};
     size_t append(MalPtr token);

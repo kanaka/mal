@@ -2,16 +2,6 @@
 #include <memory>
 #include "types.h"
 
-// TokenVector::TokenVector(const TokenVector& t)
-// {
-//     tokens.reserve(65535);
-
-//     for (std::vector<MalPtr>::iterator it = t.tokens.begin(); it != t.tokens.end(); ++it)
-//     {
-//         tokens.push_back(*it);
-//     }
-// }
-
 
 size_t TokenVector::append(MalPtr token)
 {

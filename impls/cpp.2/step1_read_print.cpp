@@ -4,31 +4,28 @@
 #include "lineedit.h"
 #include "token.h"
 #include "reader.h"
+#include "printer.h"
 
 
-std::string READ(std::string input);
-std::string EVAL(std::string input);
-std::string PRINT(std::string input);
-std::string rep(std::string input);
+TokenVector READ(std::string input, LineEdit& line)
+{
+    return read_str(input, line, 0);
+}
 
-std::string READ(std::string input)
+TokenVector EVAL(TokenVector input)
 {
     return input;
 }
 
-std::string EVAL(std::string input)
+std::string PRINT(TokenVector input)
 {
-    return input;
+    pr_str(input);
+    return input.values();
 }
 
-std::string PRINT(std::string input)
+std::string rep(std::string input, LineEdit& line)
 {
-    return input;
-}
-
-std::string rep(std::string input)
-{
-    return PRINT(EVAL(READ(input)));
+    return PRINT(EVAL(READ(input, line)));
 }
 
 
@@ -47,9 +44,7 @@ int main()
         {
             break;
         }
-
-        TokenVector tokens(read_str(input, line, 0));
-        std::cout << tokens.values() << std::endl;
+        rep(input, line);
     }
     std::cout << "Exiting.\n";
 
