@@ -128,7 +128,7 @@ TokenVector MalVector::raw_value()
 
 MalHashmap::MalHashmap(TokenVector hm): MalType("{hash}")
 {
-    if (hm.size() % 2)
+    if (hm.size() == 0 || hm.size() % 2)
     {
         throw new InvalidHashmapException();
     }

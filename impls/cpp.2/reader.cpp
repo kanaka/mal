@@ -15,6 +15,8 @@ void read_hashmap(std::string input_stream);
 void read_string(std::string input_stream, char leading, TokenVector& tokens);
 void read_number(std::string input_stream, char leading, TokenVector& tokens);
 void read_symbol(std::string input_stream, char leading, TokenVector& tokens);
+bool is_syntax(char ch);
+
 
 unsigned int paren_count = 0;
 unsigned int square_bracket_count = 0;
@@ -199,7 +201,7 @@ void read_string(std::string input_stream, char leading, TokenVector& tokens)
         if ((ch == '\\' ) && s_index < input_stream.length())
         {
             ch = input_stream[s_index++];
-            if (s_index > input_stream.length())
+            if (s_index == input_stream.length())
             {
                 throw new IncompleteEscapeException();
             }
@@ -463,6 +465,17 @@ void read_number(std::string input_stream, char leading, TokenVector& tokens)
             tokens.append(std::make_shared<MalInteger>(s));
         }
     }
+    if (is_syntax(ch) && s_index >= input_stream.length())
+    {
+        s_index--;
+    }
+}
+
+bool is_syntax(char ch)
+{
+    return (ch == ')' || ch == ']' || ch == '}' 
+            || ch == '\"' || ch == '\'' || ch == '`'
+            || ch == '@' || ch == ',' || ch == '.');
 }
 
 void read_symbol(std::string input_stream, char leading, TokenVector& tokens)
@@ -471,12 +484,12 @@ void read_symbol(std::string input_stream, char leading, TokenVector& tokens)
 
     char ch = leading;
 
-    while ((!isspace(ch) && ch != ')' && ch != ']' && ch != '}') && s_index < input_stream.length())
+    while ((!isspace(ch) && !is_syntax(ch)) && s_index < input_stream.length())
     {
         s += ch;
         ch = input_stream[s_index++];
     }
-    if (s_index < input_stream.length() || ch == ')' || ch == ']' || ch == '}')
+    if (s_index < input_stream.length() || is_syntax(ch))
     {
         s_index--;
     }
