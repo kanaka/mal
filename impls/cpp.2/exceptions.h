@@ -21,10 +21,32 @@ public:
     UnbalancedStringException() {};
 };
 
+
+class UnbalancedHashmapException
+{
+public:
+    UnbalancedHashmapException() {};
+};
+
+
 class IncompleteComplexNumberException
 {
 public:
     IncompleteComplexNumberException() {};
 };
+
+
+class InvalidNumberException
+{
+public:
+    InvalidNumberException() {};
+};
+
+class InvalidHashmapException
+{
+public:
+    InvalidHashmapException() {};
+};
+
 
 #endif

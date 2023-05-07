@@ -65,9 +65,21 @@ int main()
         {
             std::cout << "(EOF|end of input|unbalanced string)." << '\n';
         }
+        catch(UnbalancedHashmapException* e)
+        {
+            std::cout << "(EOF|end of input|unbalanced hash map)." << '\n';
+        }
         catch(IncompleteComplexNumberException* e)
         {
             std::cout << "(incomplete complex)." << '\n';
+        }
+        catch(InvalidNumberException* e)
+        {
+            std::cout << "(invalid number)." << '\n';
+        }
+        catch(InvalidHashmapException* e)
+        {
+            std::cout << "(invalid hash map)." << '\n';
         }
     }
     std::cout << "Exiting.\n";

@@ -4,6 +4,8 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <map>
+
 
 class MalType;
 
@@ -19,6 +21,8 @@ public:
     size_t append(MalPtr token);
     size_t append(TokenVector& t);
     std::string values();
+    std::string types();
+    MalPtr operator[](unsigned int i);
 
 private:
     std::vector<MalPtr> tokens;
@@ -32,6 +36,7 @@ public:
     // virtual ~MalType() {std::cout << "Deleting " << value() << '\n'; };
     virtual std::string value() {return repr;};
     virtual std::string type() {return "{base}";};
+    virtual TokenVector raw_value() {TokenVector t; return t;};
 protected:
     std::string repr;
 };
@@ -83,6 +88,21 @@ public:
     virtual std::string type() {return "Comma";};
 };
 
+class MalNull: public MalType
+{
+public:
+    MalNull(): MalType("()") {};
+    virtual std::string type() {return "Null";};
+};
+
+
+class MalBoolean: public MalType
+{
+public:
+    MalBoolean(std::string r): MalType(r) {};
+    virtual std::string type() {return repr;};
+};
+
 
 class MalList: public MalType
 {
@@ -92,6 +112,7 @@ public:
     MalList(const TokenVector& l);
     virtual std::string value();
     virtual std::string type() {return "List";};
+    virtual TokenVector raw_value();
 private:
     TokenVector list;
 };
@@ -105,8 +126,20 @@ public:
     MalVector(const TokenVector& v);
     virtual std::string value();
     virtual std::string type() {return "Vector";};
+    virtual TokenVector raw_value();
 private:
     TokenVector vec;
+};
+
+
+class MalHashmap: public MalType
+{
+public:
+    MalHashmap(TokenVector hm);
+    virtual std::string type() {return "Hash Map";};
+    virtual std::string value();
+private:
+    std::map<std::string, MalType> hashmap;
 };
 
 
@@ -123,6 +156,14 @@ class MalSymbol: public MalAtom
 public:
     MalSymbol(std::string r): MalAtom(r) {};
     virtual std::string type() {return "Symbol";};
+};
+
+
+class MalKeyword: public MalSymbol
+{
+public:
+    MalKeyword(std::string r): MalSymbol(r) {};
+    virtual std::string type() {return "Keyword";};
 };
 
 
