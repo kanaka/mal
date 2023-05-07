@@ -9,7 +9,7 @@
 
 class EndOfInputException
 {
-public: 
+public:
     EndOfInputException() {};
 };
 

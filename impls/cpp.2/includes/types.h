@@ -97,6 +97,19 @@ private:
 };
 
 
+class MalVector: public MalType
+{
+public:
+    MalVector() = delete;
+    MalVector(std::string const r) = delete;
+    MalVector(const TokenVector& v);
+    virtual std::string value();
+    virtual std::string type() {return "Vector";};
+private:
+    TokenVector vec;
+};
+
+
 class MalAtom: public MalType
 {
 public:

@@ -8,7 +8,7 @@
 #include "types.h"
 
 
-TokenVector tokenize(std::string input_stream, LineEdit& line);
-TokenVector read_str(std::string s, LineEdit& line);
+TokenVector tokenize(std::string input_stream);
+TokenVector read_str(std::string s);
 
 #endif

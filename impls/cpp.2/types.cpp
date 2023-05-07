@@ -37,6 +37,10 @@ std::string TokenVector::values()
         {
             s += "(" + it->get()->value() + ")";
         }
+        else if (it->get()->type() == "Vector")
+        {
+            s += "[" + it->get()->value() + "]";
+        }
         else
         {
             s += it->get()->value();
@@ -55,4 +59,16 @@ MalList::MalList(const TokenVector& l): MalType("{list}")
 std::string MalList::value()
 {
     return list.values();
+}
+
+
+MalVector::MalVector(const TokenVector& v): MalType("{vector}")
+{
+    vec.append(const_cast<TokenVector&>(v));
+}
+
+
+std::string MalVector::value()
+{
+    return vec.values();
 }

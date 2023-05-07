@@ -1,15 +1,16 @@
 #include <string>
 #include <iostream>
 #include <vector>
+#include <cstdlib>
 #include "lineedit.h"
 #include "token.h"
 #include "reader.h"
 #include "printer.h"
+#include "exceptions.h"
 
-
-TokenVector READ(std::string input, LineEdit& line)
+TokenVector READ(std::string input)
 {
-    return read_str(input, line);
+    return read_str(input);
 }
 
 
@@ -26,9 +27,9 @@ std::string PRINT(TokenVector input)
 }
 
 
-std::string rep(std::string input, LineEdit& line)
+std::string rep(std::string input)
 {
-    return PRINT(EVAL(READ(input, line)));
+    return PRINT(EVAL(READ(input)));
 }
 
 
@@ -47,7 +48,27 @@ int main()
         {
             break;
         }
-        rep(input, line);
+
+        try
+        {
+            rep(input);
+        }
+        catch(UnbalancedParenthesesException* e)
+        {
+            std::cout << "(EOF|end of input|unbalanced)." << '\n';
+        }
+        catch(UnbalancedVectorException* e)
+        {
+            std::cout << "(EOF|end of input|unbalanced vector)." << '\n';
+        }
+        catch(UnbalancedStringException* e)
+        {
+            std::cout << "(EOF|end of input|unbalanced string)." << '\n';
+        }
+        catch(IncompleteComplexNumberException* e)
+        {
+            std::cout << "(incomplete complex)." << '\n';
+        }
     }
     std::cout << "Exiting.\n";
 

@@ -6,21 +6,23 @@
 #include "lineedit.h"
 #include "reader.h"
 #include "types.h"
+#include "exceptions.h"
 
 unsigned int paren_count = 0;
+unsigned int square_bracket_count = 0;
 unsigned int s_index = 0;
 
-TokenVector read_str(std::string s, LineEdit& line)
-{
-    s_index = 0;
-    TokenVector tokens;
-    tokens = tokenize(s, line);
 
-    return tokens;
+TokenVector read_str(std::string s)
+{
+    paren_count = 0;
+    square_bracket_count = 0;
+    s_index = 0;
+    return tokenize(s);
 }
 
 
-TokenVector tokenize(std::string input_stream, LineEdit& line)
+TokenVector tokenize(std::string input_stream)
 {
     TokenVector tokens;
     char ch;
@@ -45,13 +47,34 @@ TokenVector tokenize(std::string input_stream, LineEdit& line)
         else if (ch == '(')
         {
             paren_count++;
-            tokens.append(std::make_shared<MalList>(tokenize(input_stream, line)));
+            tokens.append(std::make_shared<MalList>(tokenize(input_stream)));
         }
         else if (ch == ')')
         {
             if (paren_count > 0)
             {
                 paren_count--;
+            }
+            else
+            {
+                throw new UnbalancedParenthesesException();
+            }
+            break;
+        }
+        else if (ch == '[')
+        {
+            square_bracket_count++;
+            tokens.append(std::make_shared<MalVector>(tokenize(input_stream)));
+        }
+        else if (ch == ']')
+        {
+            if (square_bracket_count > 0)
+            {
+                square_bracket_count--;
+            }
+            else
+            {
+                throw new UnbalancedVectorException();
             }
             break;
         }
@@ -92,6 +115,10 @@ TokenVector tokenize(std::string input_stream, LineEdit& line)
                 s += ch;
                 ch = input_stream[s_index++];
             }
+            if (s_index >= input_stream.length())
+            {
+                throw new UnbalancedStringException();
+            }
             s += '\"';
             tokens.append(std::make_shared<MalString>(s));
         }
@@ -122,7 +149,6 @@ TokenVector tokenize(std::string input_stream, LineEdit& line)
                         {
                             s += ch;
                         }
-
                         tokens.append(std::make_shared<MalHex>(s));
                         break;
 
@@ -190,82 +216,72 @@ TokenVector tokenize(std::string input_stream, LineEdit& line)
             }
             else
             {
-                while (isdigit(ch))
+                while (isdigit(ch) && s_index < input_stream.length())
                 {
                     s += ch;
                     ch = input_stream[s_index++];
+                    switch (ch)
+                    {
+                        case '.':
+                            s += ch;
+                            ch = input_stream[s_index++];
+                            while (isdigit(ch) && s_index < input_stream.length())
+                            {
+                                s += ch;
+                                ch = input_stream[s_index++];
+                            }
+                            tokens.append(std::make_shared<MalDecimal>(s));
+                            break;
+                        case '/':
+                            s += ch;
+                            ch = input_stream[s_index++];
+                            while (isdigit(ch) && s_index < input_stream.length())
+                            {
+                                s += ch;
+                                ch = input_stream[s_index++];
+                            }
+                            tokens.append(std::make_shared<MalRational>(s));
+                            break;
+                        case '+':
+                        case '-':
+                            s += ch;
+                            ch = input_stream[s_index++];
+                            while ((isdigit(ch) || ch == 'i') && s_index < input_stream.length())
+                            {
+                                s += ch;
+                                ch = input_stream[s_index++];
+                            }
+                            if (ch == 'i')
+                            {
+                                s += ch;
+                                tokens.append(std::make_shared<MalComplex>(s));
+                            }
+                            else
+                            {
+                                throw new IncompleteComplexNumberException();
+                            }
+                            if (s_index < input_stream.length())
+                            {
+                                s_index--;
+                            }
+                            else
+                            {
+                                s += ch;
+                            }
+                            break;
+                        default:
+                            break;
+                    }
                 }
-                switch (ch)
+                if (s_index < input_stream.length())
                 {
-                    case '.':
-                        s += ch;
-                        ch = input_stream[s_index++];
-                        while (isdigit(ch) && s_index < input_stream.length())
-                        {
-                            s += ch;
-                            ch = input_stream[s_index++];
-                        }
-                        if (s_index < input_stream.length())
-                        {
-                            s_index--;
-                        }
-                        else
-                        {
-                            s += ch;
-                        }
-                        tokens.append(std::make_shared<MalDecimal>(s));
-                        break;
-                    case '/':
-                        s += ch;
-                        ch = input_stream[s_index++];
-                        while (isdigit(ch) && s_index < input_stream.length())
-                        {
-                            s += ch;
-                            ch = input_stream[s_index++];
-                        }
-                        if (s_index < input_stream.length())
-                        {
-                            s_index--;
-                        }
-                        else
-                        {
-                            s += ch;
-                        }
-                        tokens.append(std::make_shared<MalRational>(s));
-                        break;
-                    case '+':
-                        s += ch;
-                        ch = input_stream[s_index++];
-                        while ((isdigit(ch) || ch == 'i') && s_index < input_stream.length())
-                        {
-                            s += ch;
-                            ch = input_stream[s_index++];
-                        }
-                        if (s_index < input_stream.length())
-                        {
-                            s_index--;
-                        }
-                        else
-                        {
-                            s += ch;
-                        }
-                        if (ch == 'i')
-                        {
-                            tokens.append(std::make_shared<MalComplex>(s));
-                        }
-                        else
-                        {
-                            tokens.append(std::make_shared<MalSymbol>(s));
-                        }
-                        break;
-                    default:
-                        if (s_index < input_stream.length())
-                        {
-                            s_index--;
-                        }
-                        tokens.append(std::make_shared<MalInteger>(s));
-                        break;
+                    s_index--;
                 }
+                else
+                {
+                    s += ch;
+                }
+                tokens.append(std::make_shared<MalInteger>(s));
             }
         }
         else
@@ -286,6 +302,16 @@ TokenVector tokenize(std::string input_stream, LineEdit& line)
             tokens.append(std::make_shared<MalSymbol>(s));
         }
     }
+
+    if (paren_count > 0)
+    {
+        throw new UnbalancedParenthesesException();
+    }
+    if (square_bracket_count > 0)
+    {
+        throw new UnbalancedVectorException();
+    }
+
 
     return tokens;
 }
