@@ -7,43 +7,29 @@
 #include "reader.h"
 #include "types.h"
 
-unsigned int paren_count=0;
+unsigned int paren_count = 0;
+unsigned int s_index = 0;
 
-
-TokenVector read_str(std::string s, LineEdit& line, unsigned int index=0)
+TokenVector read_str(std::string s, LineEdit& line)
 {
-    TokenVector tokens(tokenize(s, line, index));
-
-    while (paren_count > 0)
-    {
-        std::string input = "";
-        try
-        {
-            input = line.getline("..... ");
-        }
-        catch (EndOfInputException* e)
-        {
-            std::cout << "\nEscape during multi-line edit, exiting.\n";
-            exit(0);
-        }
-        TokenVector additional_tokens(tokenize(input, line, index));
-        tokens.append(additional_tokens);
-    }
+    s_index = 0;
+    TokenVector tokens;
+    tokens = tokenize(s, line);
 
     return tokens;
 }
 
 
-TokenVector tokenize(std::string input_stream, LineEdit& line, unsigned int index)
+TokenVector tokenize(std::string input_stream, LineEdit& line)
 {
     TokenVector tokens;
     char ch;
 
-    while (index < input_stream.length())
+    while (s_index < input_stream.length())
     {
         std::string s = "";
 
-        ch = input_stream[index++];
+        ch = input_stream[s_index++];
 
         if (isspace(ch))
         {
@@ -51,17 +37,22 @@ TokenVector tokenize(std::string input_stream, LineEdit& line, unsigned int inde
         }
         else if (ch == ';')
         {
-            while (ch != '\n' && index < input_stream.length())
+            while (ch != '\n' && s_index < input_stream.length())
             {
-                index++;
+                s_index++;
             }
         }
         else if (ch == '(')
         {
-            tokens.append(std::make_shared<MalList>(read_str(input_stream, line, index)));
+            paren_count++;
+            tokens.append(std::make_shared<MalList>(tokenize(input_stream, line)));
         }
         else if (ch == ')')
         {
+            if (paren_count > 0)
+            {
+                paren_count--;
+            }
             break;
         }
         else if (ch == '.')
@@ -87,19 +78,21 @@ TokenVector tokenize(std::string input_stream, LineEdit& line, unsigned int inde
         }
         else if (ch == '\"')
         {
-            while ((ch != '\"') && index < input_stream.length())
+            s += ch;
+            ch = input_stream[s_index++];
+            while ((ch != '\"') && s_index < input_stream.length())
             {
-                if ((ch == '\\' ) && index < input_stream.length())
+                if ((ch == '\\' ) && s_index < input_stream.length())
                 {
-                    ch = input_stream[index++];
                     if (ch == '\"')
                     {
                         s += ch;
                     }
                 }
                 s += ch;
-                ch = input_stream[index++];
+                ch = input_stream[s_index++];
             }
+            s += '\"';
             tokens.append(std::make_shared<MalString>(s));
         }
 
@@ -108,22 +101,22 @@ TokenVector tokenize(std::string input_stream, LineEdit& line, unsigned int inde
             if (ch == '0')
             {
                 s += ch;
-                ch = input_stream[index++];
+                ch = input_stream[s_index++];
                 switch (ch)
                 {
                     case 'x':
                         s += ch;
-                        ch = input_stream[index++];
+                        ch = input_stream[s_index++];
                         while ((isdigit(ch) ||
                                 (ch >= 'a' && ch <= 'f') || (ch >= 'A' && ch <= 'F'))
-                               && index < input_stream.length())
+                               && s_index < input_stream.length())
                         {
                             s += ch;
-                            ch = input_stream[index++];
+                            ch = input_stream[s_index++];
                         }
-                        if (index < input_stream.length())
+                        if (s_index < input_stream.length())
                         {
-                            index--;
+                            s_index--;
                         }
                         else
                         {
@@ -135,15 +128,15 @@ TokenVector tokenize(std::string input_stream, LineEdit& line, unsigned int inde
 
                     case 'b':
                         s += ch;
-                        ch = input_stream[index++];
-                        while ((ch == '0' || ch == '1') && index < input_stream.length())
+                        ch = input_stream[s_index++];
+                        while ((ch == '0' || ch == '1') && s_index < input_stream.length())
                         {
                             s += ch;
-                            ch = input_stream[index++];
+                            ch = input_stream[s_index++];
                         }
-                        if (index < input_stream.length())
+                        if (s_index < input_stream.length())
                         {
-                            index--;
+                            s_index--;
                         }
                         else
                         {
@@ -152,15 +145,15 @@ TokenVector tokenize(std::string input_stream, LineEdit& line, unsigned int inde
                         tokens.append(std::make_shared<MalBinary>(s));
                         break;
                     case '0':
-                        ch = input_stream[index++];
-                        while ((ch == '0') && index < input_stream.length())
+                        ch = input_stream[s_index++];
+                        while ((ch == '0') && s_index < input_stream.length())
                         {
                             s += ch;
-                            ch = input_stream[index++];
+                            ch = input_stream[s_index++];
                         }
-                        if (index < input_stream.length())
+                        if (s_index < input_stream.length())
                         {
-                            index--;
+                            s_index--;
                         }
                         else
                         {
@@ -177,15 +170,15 @@ TokenVector tokenize(std::string input_stream, LineEdit& line, unsigned int inde
                     case '6':
                     case '7':
                         s += ch;
-                        ch = input_stream[index++];
-                        while ((ch >= '0' && ch <= '7') && index < input_stream.length())
+                        ch = input_stream[s_index++];
+                        while ((ch >= '0' && ch <= '7') && s_index < input_stream.length())
                         {
                             s += ch;
-                            ch = input_stream[index++];
+                            ch = input_stream[s_index++];
                         }
-                        if (index < input_stream.length())
+                        if (s_index < input_stream.length())
                         {
-                            index--;
+                            s_index--;
                         }
                         else
                         {
@@ -200,21 +193,21 @@ TokenVector tokenize(std::string input_stream, LineEdit& line, unsigned int inde
                 while (isdigit(ch))
                 {
                     s += ch;
-                    ch = input_stream[index++];
+                    ch = input_stream[s_index++];
                 }
                 switch (ch)
                 {
                     case '.':
                         s += ch;
-                        ch = input_stream[index++];
-                        while (isdigit(ch) && index < input_stream.length())
+                        ch = input_stream[s_index++];
+                        while (isdigit(ch) && s_index < input_stream.length())
                         {
                             s += ch;
-                            ch = input_stream[index++];
+                            ch = input_stream[s_index++];
                         }
-                        if (index < input_stream.length())
+                        if (s_index < input_stream.length())
                         {
-                            index--;
+                            s_index--;
                         }
                         else
                         {
@@ -224,15 +217,15 @@ TokenVector tokenize(std::string input_stream, LineEdit& line, unsigned int inde
                         break;
                     case '/':
                         s += ch;
-                        ch = input_stream[index++];
-                        while (isdigit(ch) && index < input_stream.length())
+                        ch = input_stream[s_index++];
+                        while (isdigit(ch) && s_index < input_stream.length())
                         {
                             s += ch;
-                            ch = input_stream[index++];
+                            ch = input_stream[s_index++];
                         }
-                        if (index < input_stream.length())
+                        if (s_index < input_stream.length())
                         {
-                            index--;
+                            s_index--;
                         }
                         else
                         {
@@ -242,15 +235,15 @@ TokenVector tokenize(std::string input_stream, LineEdit& line, unsigned int inde
                         break;
                     case '+':
                         s += ch;
-                        ch = input_stream[index++];
-                        while ((isdigit(ch) || ch == 'i') && index < input_stream.length())
+                        ch = input_stream[s_index++];
+                        while ((isdigit(ch) || ch == 'i') && s_index < input_stream.length())
                         {
                             s += ch;
-                            ch = input_stream[index++];
+                            ch = input_stream[s_index++];
                         }
-                        if (index < input_stream.length())
+                        if (s_index < input_stream.length())
                         {
-                            index--;
+                            s_index--;
                         }
                         else
                         {
@@ -266,9 +259,9 @@ TokenVector tokenize(std::string input_stream, LineEdit& line, unsigned int inde
                         }
                         break;
                     default:
-                        if (index < input_stream.length())
+                        if (s_index < input_stream.length())
                         {
-                            index--;
+                            s_index--;
                         }
                         tokens.append(std::make_shared<MalInteger>(s));
                         break;
@@ -277,14 +270,14 @@ TokenVector tokenize(std::string input_stream, LineEdit& line, unsigned int inde
         }
         else
         {
-            while ((!isspace(ch) && ch != ')') && index < input_stream.length())
+            while ((!isspace(ch) && ch != ')') && s_index < input_stream.length())
             {
                 s += ch;
-                ch = input_stream[index++];
+                ch = input_stream[s_index++];
             }
-            if (index < input_stream.length() || ch == ')')
+            if (s_index < input_stream.length() || ch == ')')
             {
-                index--;
+                s_index--;
             }
             else
             {

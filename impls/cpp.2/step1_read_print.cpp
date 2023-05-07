@@ -9,19 +9,22 @@
 
 TokenVector READ(std::string input, LineEdit& line)
 {
-    return read_str(input, line, 0);
+    return read_str(input, line);
 }
+
 
 TokenVector EVAL(TokenVector input)
 {
     return input;
 }
 
+
 std::string PRINT(TokenVector input)
 {
     pr_str(input);
     return input.values();
 }
+
 
 std::string rep(std::string input, LineEdit& line)
 {

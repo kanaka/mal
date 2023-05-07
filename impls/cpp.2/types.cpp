@@ -1,4 +1,5 @@
 #include <string>
+#include <iostream>
 #include <memory>
 #include "types.h"
 
@@ -10,6 +11,7 @@ size_t TokenVector::append(MalPtr token)
     return this->size();
 }
 
+
 size_t TokenVector::append(TokenVector& t)
 {
     for (std::vector<MalPtr>::iterator it = t.tokens.begin(); it != t.tokens.end(); ++it)
@@ -19,6 +21,7 @@ size_t TokenVector::append(TokenVector& t)
 
     return this->size();
 }
+
 
 std::string TokenVector::values()
 {
@@ -30,13 +33,20 @@ std::string TokenVector::values()
         {
             s += " ";
         }
-        s += it->get()->value();
+        if (it->get()->type() == "List")
+        {
+            s += "(" + it->get()->value() + ")";
+        }
+        else
+        {
+            s += it->get()->value();
+        }
     }
     return s;
 }
 
 
-MalList::MalList(const TokenVector& l): MalType("")
+MalList::MalList(const TokenVector& l): MalType("{list}")
 {
     list.append(const_cast<TokenVector&>(l));
 }
@@ -44,6 +54,5 @@ MalList::MalList(const TokenVector& l): MalType("")
 
 std::string MalList::value()
 {
-    std::string s = "(" + list.values() + ")";
-    return s;
+    return list.values();
 }

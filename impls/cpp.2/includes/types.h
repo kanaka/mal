@@ -29,8 +29,7 @@ class MalType
 {
 public:
     MalType(std::string const r):repr(r) {};
-    MalType() = delete;
-    MalType(MalType const & t) = delete;
+    // virtual ~MalType() {std::cout << "Deleting " << value() << '\n'; };
     virtual std::string value() {return repr;};
     virtual std::string type() {return "{base}";};
 protected:
@@ -88,6 +87,8 @@ public:
 class MalList: public MalType
 {
 public:
+    MalList() = delete;
+    MalList(std::string const r) = delete;
     MalList(const TokenVector& l);
     virtual std::string value();
     virtual std::string type() {return "List";};

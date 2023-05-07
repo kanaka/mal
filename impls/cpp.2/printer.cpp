@@ -6,5 +6,5 @@
 
 void pr_str(TokenVector tokens)
 {
-    std::cout << tokens.values() << std::endl;
+    std::cout << tokens.values() << '\n';
 }
