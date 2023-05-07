@@ -128,18 +128,16 @@ TokenVector MalVector::raw_value()
 
 MalHashmap::MalHashmap(TokenVector hm): MalType("{hash}")
 {
-    if (!(hm.size() % 2))
+    if (hm.size() % 2)
     {
         throw new InvalidHashmapException();
     }
 
-    for (unsigned int i = 0;
-         i < hm.size()-1 && (hm[i]->type() == "String" ||  hm[i]->type() == "Keyword");
-         i+=2)
+    for (unsigned int i = 0; i < hm.size()-1; i+=2)
     {
         if (hm[i]->type() == "String" || hm[i]->type() == "Keyword")
         {
-            hashmap.emplace(hm[i]->value(), hm[i+1]->value());
+            hashmap.emplace(hm[i]->value(), hm[i+1]);
         }
         else
         {
@@ -159,7 +157,7 @@ std::string MalHashmap::value()
         {
             s += " ";
         }
-        s += it->first + " " + it->second.value();
+        s += it->first + " " + it->second->value();
     }
 
     return s;

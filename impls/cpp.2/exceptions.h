@@ -49,4 +49,10 @@ public:
 };
 
 
+class IncompleteEscapeException
+{
+public:
+    IncompleteEscapeException() {};
+};
+
 #endif

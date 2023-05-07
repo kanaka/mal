@@ -73,6 +73,10 @@ int main()
         {
             std::cout << "(incomplete complex)." << '\n';
         }
+        catch(IncompleteEscapeException* e)
+        {
+            std::cout << "(incomplete escape sequence)." << '\n';
+        }
         catch(InvalidNumberException* e)
         {
             std::cout << "(invalid number)." << '\n';

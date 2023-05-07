@@ -139,7 +139,7 @@ public:
     virtual std::string type() {return "Hash Map";};
     virtual std::string value();
 private:
-    std::map<std::string, MalType> hashmap;
+    std::map<std::string, std::shared_ptr<MalType> > hashmap;
 };
 
 
