@@ -59,23 +59,23 @@ int main()
         }
         catch(UnbalancedVectorException* e)
         {
-            std::cout << "(EOF|end of input|unbalanced vector)." << '\n';
+            std::cout << "(EOF|end of input|unbalanced)." << '\n';
         }
         catch(UnbalancedStringException* e)
         {
-            std::cout << "(EOF|end of input|unbalanced string)." << '\n';
+            std::cout << "(EOF|end of input|unbalanced)." << '\n';
         }
         catch(UnbalancedHashmapException* e)
         {
-            std::cout << "(EOF|end of input|unbalanced hash map)." << '\n';
+            std::cout << "(EOF|end of input|unbalanced)."  << '\n';
         }
         catch(IncompleteComplexNumberException* e)
         {
-            std::cout << "(incomplete complex)." << '\n';
+            std::cout << "(EOF|end of input|unbalanced)."  << '\n';
         }
         catch(IncompleteEscapeException* e)
         {
-            std::cout << "(incomplete escape sequence)." << '\n';
+            std::cout << "(EOF|end of input|unbalanced)."  << '\n';
         }
         catch(InvalidNumberException* e)
         {

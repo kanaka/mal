@@ -14,9 +14,9 @@ size_t TokenVector::append(MalPtr token)
 }
 
 
-size_t TokenVector::append(TokenVector& t)
+size_t TokenVector::append(const TokenVector& t)
 {
-    for (std::vector<MalPtr>::iterator it = t.tokens.begin(); it != t.tokens.end(); ++it)
+    for (std::vector<MalPtr>::const_iterator it = t.tokens.cbegin(); it != t.tokens.cend(); ++it)
     {
         this->tokens.push_back(*it);
     }
@@ -41,7 +41,7 @@ std::string TokenVector::values()
         {
             s += " ";
         }
-        if (it->get()->type() == "List")
+        else if (it->get()->type() == "List")
         {
             s += "(" + it->get()->value() + ")";
         }
@@ -52,6 +52,38 @@ std::string TokenVector::values()
         else if (it->get()->type() == "Hash Map")
         {
             s += "{" + it->get()->value() + "}";
+        }
+        else if (it->get()->type() == "Quote")
+        {
+            s += "(quote " + it->get()->value() + ")";
+        }
+        else if (it->get()->type() == "Quasiquote")
+        {
+            s += "(quasiquote " + it->get()->value() + ")";
+        }
+        else if (it->get()->type() == "Unquote")
+        {
+            s += "(unquote " + it->get()->value() + ")";
+        }
+        else if (it->get()->type() == "Splice")
+        {
+            s += "(splice " + it->get()->value() + ")";
+        }
+        else if (it->get()->type() == "Unsplice")
+        {
+            s += "(unsplice " + it->get()->value() + ")";
+        }
+        else if (it->get()->type() == "Deref")
+        {
+            s += "(deref " + it->get()->value() + ")";
+        }
+        else if (it->get()->type() == "Splice-unquote")
+        {
+            s += "(splice " + it->get()->value() + ")";
+        }
+        else if (it->get()->type() == "Meta")
+        {
+            s += "(meta " + it->get()->value() + ")";
         }
         else
         {
@@ -111,7 +143,7 @@ TokenVector MalList::raw_value()
 
 MalVector::MalVector(const TokenVector& v): MalType("{vector}")
 {
-    vec.append(const_cast<TokenVector&>(v));
+    vec.append(v);
 }
 
 
@@ -128,20 +160,22 @@ TokenVector MalVector::raw_value()
 
 MalHashmap::MalHashmap(TokenVector hm): MalType("{hash}")
 {
-    if (hm.size() == 0 || hm.size() % 2)
+    if (hm.size() > 0)
     {
-        throw new InvalidHashmapException();
-    }
-
-    for (unsigned int i = 0; i < hm.size()-1; i+=2)
-    {
-        if (hm[i]->type() == "String" || hm[i]->type() == "Keyword")
-        {
-            hashmap.emplace(hm[i]->value(), hm[i+1]);
-        }
-        else
+        if (hm.size() % 2)
         {
             throw new InvalidHashmapException();
+        }
+        for (unsigned int i = 0; i < hm.size()-1; i+=2)
+        {
+            if (hm[i]->type() == "String" || hm[i]->type() == "Keyword")
+            {
+                hashmap.emplace(hm[i]->value(), hm[i+1]);
+            }
+            else
+            {
+                throw new InvalidHashmapException();
+            }
         }
     }
 }
@@ -161,4 +195,21 @@ std::string MalHashmap::value()
     }
 
     return s;
+}
+
+
+MalReaderMacro::MalReaderMacro(const TokenVector& l): MalType("Reader Macro")
+{
+    list.append(l);
+}
+
+std::string MalReaderMacro::value()
+{
+    return list.values();
+}
+
+
+TokenVector MalReaderMacro::raw_value()
+{
+    return list;
 }

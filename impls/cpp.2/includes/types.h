@@ -19,7 +19,7 @@ public:
     size_t size() const {return tokens.size();};
     size_t capacity() const {return tokens.capacity();};
     size_t append(MalPtr token);
-    size_t append(TokenVector& t);
+    size_t append(const TokenVector& t);
     std::string values();
     std::string types();
     MalPtr operator[](unsigned int i);
@@ -49,52 +49,77 @@ public:
     virtual std::string type() {return "Period";};
 };
 
-
-class MalAt: public MalType
+class MalReaderMacro: public MalType
 {
 public:
-    MalAt(): MalType("@") {};
+    MalReaderMacro(const TokenVector& l);
+    virtual std::string type() {return "Reader Macro";};
+    virtual std::string value();
+    virtual TokenVector raw_value();
+    MalPtr operator[](unsigned int i);
+protected:
+    TokenVector list;
+};
+
+
+class MalAt: public MalReaderMacro
+{
+public:
+    MalAt(const TokenVector& l): MalReaderMacro(l) {};
     virtual std::string type() {return "Deref";};
 };
 
 
-class MalQuote: public MalType
+class MalTildeAt: public MalReaderMacro
 {
 public:
-    MalQuote(): MalType("\'") {};
+    MalTildeAt(const TokenVector& l): MalReaderMacro(l) {};
+    virtual std::string type() {return "Splice-unquote";};
+};
+
+class MalQuote: public MalReaderMacro
+{
+public:
+    MalQuote(const TokenVector& l): MalReaderMacro(l) {};
     virtual std::string type() {return "Quote";};
 };
 
 
-class MalQuasiquote: public MalType
+class MalQuasiquote: public MalReaderMacro
 {
 public:
-    MalQuasiquote(): MalType("`") {};
+    MalQuasiquote(const TokenVector& l): MalReaderMacro(l) {};
     virtual std::string type() {return "Quasiquote";};
 };
 
 
-class MalTilde: public MalType
+class MalTilde: public MalReaderMacro
 {
 public:
-    MalTilde(): MalType("~") {};
+    MalTilde(const TokenVector& l): MalReaderMacro(l) {};
     virtual std::string type() {return "Splice";};
 };
 
-class MalComma: public MalType
+class MalComma: public MalReaderMacro
 {
 public:
-    MalComma(): MalType(",") {};
-    virtual std::string type() {return "Comma";};
+    MalComma(const TokenVector& l): MalReaderMacro(l) {};
+    virtual std::string type() {return "Unquote";};
+};
+
+class MalMeta: public MalReaderMacro
+{
+public:
+    MalMeta(const TokenVector& l): MalReaderMacro(l) {};
+    virtual std::string type() {return "Meta";};
 };
 
 class MalNull: public MalType
 {
 public:
-    MalNull(): MalType("()") {};
+    MalNull(): MalType("nil") {};
     virtual std::string type() {return "Null";};
 };
-
 
 class MalBoolean: public MalType
 {

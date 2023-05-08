@@ -15,8 +15,14 @@ void read_hashmap(std::string input_stream);
 void read_string(std::string input_stream, char leading, TokenVector& tokens);
 void read_number(std::string input_stream, char leading, TokenVector& tokens);
 void read_symbol(std::string input_stream, char leading, TokenVector& tokens);
-bool is_syntax(char ch);
-
+template<class RM> void read_reader_macro(std::string input_stream, TokenVector& tokens);
+void read_tilde(std::string input_stream, TokenVector& tokens);
+void read_list(std::string input_stream, TokenVector& tokens);
+void close_list();
+void read_vector(std::string input_stream, TokenVector& tokens);
+void close_vector();
+void read_hashmap(std::string input_stream, TokenVector& tokens);
+void close_hashmap();
 
 unsigned int paren_count = 0;
 unsigned int square_bracket_count = 0;
@@ -30,127 +36,7 @@ TokenVector read_str(std::string s)
     square_bracket_count = 0;
     hm_count = 0;
     s_index = 0;
-    return tokenize(s);
-}
-
-
-TokenVector tokenize(std::string input_stream)
-{
-    TokenVector tokens;
-    char ch;
-
-    while (s_index < input_stream.length())
-    {
-        std::string s = "";
-
-        ch = input_stream[s_index++];
-
-        if (isspace(ch))
-        {
-            read_whitespace(input_stream);
-        }
-        else if (ch == ';')
-        {
-            read_comment(input_stream);
-        }
-        else if (ch == '(')
-        {
-            paren_count++;
-
-            ch = input_stream[s_index++];
-            while (isspace(ch))
-            {
-                ch = input_stream[s_index++];
-            }
-            if (ch == ')')
-            {
-                tokens.append(std::make_shared<MalNull>());
-            }
-            else
-            {
-                s_index--;
-                tokens.append(std::make_shared<MalList>(tokenize(input_stream)));
-            }
-        }
-        else if (ch == ')')
-        {
-            if (paren_count > 0)
-            {
-                paren_count--;
-            }
-            else
-            {
-                throw new UnbalancedParenthesesException();
-            }
-            break;
-        }
-        else if (ch == '[')
-        {
-            square_bracket_count++;
-            tokens.append(std::make_shared<MalVector>(tokenize(input_stream)));
-        }
-        else if (ch == ']')
-        {
-            if (square_bracket_count > 0)
-            {
-                square_bracket_count--;
-            }
-            else
-            {
-                throw new UnbalancedVectorException();
-            }
-            break;
-        }
-        else if (ch == '{')
-        {
-            hm_count++;
-            tokens.append(std::make_shared<MalHashmap>(tokenize(input_stream)));
-        }
-        else if (ch == '}')
-        {
-            if (hm_count > 0)
-            {
-                hm_count--;
-            }
-            else
-            {
-                throw new UnbalancedHashmapException();
-            }
-        }
-        else if (ch == '.')
-        {
-            tokens.append(std::make_shared<MalPeriod>());
-        }
-        else if (ch == ',')
-        {
-            tokens.append(std::make_shared<MalComma>());
-        }
-        else if (ch == '@')
-        {
-            tokens.append(std::make_shared<MalAt>());
-        }
-        else if (ch == '\'')
-        {
-            tokens.append(std::make_shared<MalQuote>());
-        }
-        else if (ch == '`')
-        {
-            s += ch;
-            tokens.append(std::make_shared<MalQuasiquote>());
-        }
-        else if (ch == '\"')
-        {
-            read_string(input_stream, ch, tokens);
-        }
-        else if (isdigit(ch))
-        {
-            read_number(input_stream, ch, tokens);
-        }
-        else
-        {
-            read_symbol(input_stream, ch, tokens);
-        }
-    }
+    TokenVector tokens = tokenize(s);
 
     if (paren_count > 0)
     {
@@ -168,17 +54,114 @@ TokenVector tokenize(std::string input_stream)
     return tokens;
 }
 
-void read_whitespace(std::string input_stream)
+TokenVector tokenize(std::string input_stream)
 {
-    for (char ch = ' '; isspace(ch) && s_index < input_stream.length(); s_index++)
+    TokenVector tokens;
+    char ch;
+
+    while (s_index < input_stream.length())
     {
-        ch = input_stream[s_index];
+        std::string s = "";
+
+        ch = input_stream[s_index++];
+
+        if (isspace(ch))
+        {
+            continue;
+        }
+        else
+        {
+            switch (ch)
+            {
+                case ';':
+                    read_comment(input_stream);
+                    break;
+
+                case '(':
+                    read_list(input_stream, tokens);
+                    break;
+
+                case ')':
+                    close_list();
+                    return tokens;
+                    break;
+                case '[':
+                    read_vector(input_stream, tokens);
+                    break;
+                case ']':
+                    close_vector();
+                    return tokens;
+                    break;
+                case '{':
+                    read_hashmap(input_stream, tokens);
+                    break;
+                case '}':
+                    close_hashmap();
+                    return tokens;
+                    break;
+                case '.':
+                    tokens.append(std::make_shared<MalPeriod>());
+                    break;
+                case '~':
+                    read_tilde(input_stream, tokens);
+                    break;
+                case ',':
+                    read_reader_macro<MalComma>(input_stream, tokens);
+                    break;
+                case '@':
+                    read_reader_macro<MalAt>(input_stream, tokens);
+                    break;
+                case '\'':
+                    read_reader_macro<MalQuote>(input_stream, tokens);
+                    break;
+                case '`':
+                    read_reader_macro<MalQuasiquote>(input_stream, tokens);
+                    break;
+                case '^':
+                    read_reader_macro<MalMeta>(input_stream, tokens);
+                    break;
+                case '\"':
+                    read_string(input_stream, ch, tokens);
+                    break;
+                default:
+                    if (isdigit(ch))
+                    {
+                        read_number(input_stream, ch, tokens);
+                    }
+                    else
+                    {
+                        read_symbol(input_stream, ch, tokens);
+                    }
+            }
+        }
     }
-    if (s_index < input_stream.length())
-    {
-        s_index--;
-    }
+
+    return tokens;
 }
+
+
+bool is_left_balanced(char ch)
+{
+    return (ch == '(' || ch == '[' || ch == '{' || ch == '\"');
+}
+
+
+bool is_right_balanced(char ch)
+{
+    return (ch == ')' || ch == ']' || ch == '}' || ch == '\"');
+}
+
+
+bool is_syntax(char ch) 
+{
+    return (is_left_balanced(ch) || is_right_balanced(ch)
+            || ch == '\'' || ch == '`' || ch == '^'
+            || ch == '@'  || ch == ',' || ch == '~'
+            || ch == '^'  ||  ch == '.' || ch == ';');
+}
+
+
+
 
 void read_comment(std::string input_stream)
 {
@@ -208,6 +191,7 @@ void read_string(std::string input_stream, char leading, TokenVector& tokens)
             switch (ch)
             {
                 case '\"':
+                case '\'':
                 case '\\':
                     s += ch;
                     break;
@@ -229,11 +213,12 @@ void read_string(std::string input_stream, char leading, TokenVector& tokens)
         s += ch;
         ch = input_stream[s_index++];
     }
-    if (s_index > input_stream.length())
+    if (ch != '\"')
     {
         throw new UnbalancedStringException();
     }
-    s += '\"';
+    s += ch;
+
     tokens.append(std::make_shared<MalString>(s));
 }
 
@@ -445,7 +430,7 @@ void read_number(std::string input_stream, char leading, TokenVector& tokens)
                         }
                         break;
                     default:
-                        if (!(isspace(ch) || ch == ')' || ch == ']'))
+                        if (!(isspace(ch) || is_syntax(ch)))
                         {
                             throw new InvalidNumberException();
                         }
@@ -454,7 +439,7 @@ void read_number(std::string input_stream, char leading, TokenVector& tokens)
         }
         if (!already_found)
         {
-            if (s_index < input_stream.length())
+            if (is_syntax(ch) || s_index < input_stream.length())
             {
                 s_index--;
             }
@@ -465,18 +450,8 @@ void read_number(std::string input_stream, char leading, TokenVector& tokens)
             tokens.append(std::make_shared<MalInteger>(s));
         }
     }
-    if (is_syntax(ch) && s_index >= input_stream.length())
-    {
-        s_index--;
-    }
 }
 
-bool is_syntax(char ch)
-{
-    return (ch == ')' || ch == ']' || ch == '}' 
-            || ch == '\"' || ch == '\'' || ch == '`'
-            || ch == '@' || ch == ',' || ch == '.');
-}
 
 void read_symbol(std::string input_stream, char leading, TokenVector& tokens)
 {
@@ -513,5 +488,120 @@ void read_symbol(std::string input_stream, char leading, TokenVector& tokens)
     else
     {
         tokens.append(std::make_shared<MalSymbol>(s));
+    }
+}
+
+
+void read_list(std::string input_stream, TokenVector& tokens)
+{
+
+    paren_count++;
+
+    tokens.append(std::make_shared<MalList>(tokenize(input_stream)));
+}
+
+void close_list()
+{
+    if (paren_count > 0)
+    {
+        paren_count--;
+    }
+    else
+    {
+        throw new UnbalancedParenthesesException();
+    }
+}
+
+void read_vector(std::string input_stream, TokenVector& tokens)
+{
+
+    square_bracket_count++;
+
+    tokens.append(std::make_shared<MalVector>(tokenize(input_stream)));
+}
+
+
+void close_vector()
+{
+    if (square_bracket_count > 0)
+    {
+        square_bracket_count--;
+    }
+    else
+    {
+        throw new UnbalancedVectorException();
+    }
+}
+
+void read_hashmap(std::string input_stream, TokenVector& tokens)
+{
+    hm_count++;
+
+    tokens.append(std::make_shared<MalHashmap>(tokenize(input_stream)));
+}
+
+
+void close_hashmap()
+{
+    if (hm_count > 0)
+    {
+        hm_count--;
+    }
+    else
+    {
+        throw new UnbalancedHashmapException();
+    }
+}
+
+
+template<class RM> void read_reader_macro(std::string input_stream, TokenVector& tokens)
+{
+    char ch = input_stream[s_index];
+    TokenVector rm_argument;
+
+    if (is_left_balanced(ch))
+    {
+        switch(ch)
+        {
+            case '(':
+                read_list(input_stream, rm_argument);
+                break;
+            case '[':
+                read_vector(input_stream, rm_argument);
+                break;
+            case '{':
+                read_hashmap(input_stream, rm_argument);
+                break;
+            case '\"':
+                read_string(input_stream, ch, rm_argument);
+                break;
+        }
+    }
+    else if (isdigit(ch))
+    {
+        s_index++;
+        read_number(input_stream, ch, rm_argument);
+    }
+    else
+    {
+        s_index++;
+        read_symbol(input_stream, ch, rm_argument);
+    }
+
+    tokens.append(std::make_shared<RM>(rm_argument));
+}
+
+
+void read_tilde(std::string input_stream, TokenVector& tokens)
+{
+    char ch = input_stream[s_index++];
+    if (ch == '@')
+    {
+        read_reader_macro<MalTildeAt>(input_stream, tokens);
+    }
+    else
+    {
+        s_index--;
+        read_reader_macro<MalAt>(input_stream, tokens);
     }
 }
