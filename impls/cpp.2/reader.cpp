@@ -9,7 +9,7 @@
 #include "exceptions.h"
 
 
-void read_whitespace(std::string input_stream);
+void read_whitespace(std::string input_stream, char leading);
 void read_comment(std::string input_stream);
 void read_hashmap(std::string input_stream);
 void read_string(std::string input_stream, char leading, TokenVector& tokens);
@@ -76,14 +76,11 @@ TokenVector tokenize(std::string input_stream)
                 case ';':
                     read_comment(input_stream);
                     break;
-
                 case '(':
                     read_list(input_stream, tokens);
                     break;
-
                 case ')':
                     close_list();
-                    return tokens;
                     break;
                 case '[':
                     read_vector(input_stream, tokens);
@@ -161,6 +158,22 @@ bool is_syntax(char ch)
 }
 
 
+void read_whitespace(std::string input_stream, char leading)
+{
+    char ch = leading;
+
+    if (!isspace(ch)) return;
+
+    while (isspace(ch) && s_index < input_stream.length())
+    {
+        ch = input_stream[s_index++];
+    }
+
+    if (s_index < input_stream.length())
+    {
+        s_index--;
+    }
+}
 
 
 void read_comment(std::string input_stream)
@@ -475,7 +488,7 @@ void read_symbol(std::string input_stream, char leading, TokenVector& tokens)
 
     if (s == "nil")
     {
-        tokens.append(std::make_shared<MalNull>());
+        tokens.append(std::make_shared<MalNil>());
     }
     else if (s == "true" || s == "false")
     {
@@ -494,11 +507,20 @@ void read_symbol(std::string input_stream, char leading, TokenVector& tokens)
 
 void read_list(std::string input_stream, TokenVector& tokens)
 {
-
-    paren_count++;
-
-    tokens.append(std::make_shared<MalList>(tokenize(input_stream)));
+    char ch = input_stream[s_index];
+    read_whitespace(input_stream, ch);
+    if (input_stream[s_index] == ')')
+    {
+        tokens.append(std::make_shared<MalNull>());
+        s_index++;
+    }
+    else
+    {
+        paren_count++;
+        tokens.append(std::make_shared<MalList>(tokenize(input_stream)));
+    }
 }
+
 
 void close_list()
 {
@@ -512,9 +534,9 @@ void close_list()
     }
 }
 
+
 void read_vector(std::string input_stream, TokenVector& tokens)
 {
-
     square_bracket_count++;
 
     tokens.append(std::make_shared<MalVector>(tokenize(input_stream)));

@@ -37,11 +37,12 @@ std::string TokenVector::values()
 
     for (std::vector<MalPtr>::iterator it = tokens.begin(); it != tokens.end(); ++it)
     {
-        if (it != tokens.begin())
+        if (it != tokens.begin() && !(it->get()->type() == "Unquote"))
         {
             s += " ";
         }
-        else if (it->get()->type() == "List")
+
+        if (it->get()->type() == "List")
         {
             s += "(" + it->get()->value() + ")";
         }
@@ -63,7 +64,8 @@ std::string TokenVector::values()
         }
         else if (it->get()->type() == "Unquote")
         {
-            s += "(unquote " + it->get()->value() + ")";
+            continue;
+            // s += "(unquote " + it->get()->value() + ")";
         }
         else if (it->get()->type() == "Splice")
         {
@@ -79,11 +81,11 @@ std::string TokenVector::values()
         }
         else if (it->get()->type() == "Splice-unquote")
         {
-            s += "(splice " + it->get()->value() + ")";
+            s += "(splice-unquote " + it->get()->value() + ")";
         }
         else if (it->get()->type() == "Meta")
         {
-            s += "(meta " + it->get()->value() + ")";
+            s += "(with-meta " + it->get()->value() + ")";
         }
         else
         {

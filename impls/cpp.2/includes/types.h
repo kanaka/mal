@@ -117,8 +117,16 @@ public:
 class MalNull: public MalType
 {
 public:
-    MalNull(): MalType("nil") {};
+    MalNull(): MalType("()") {};
+    MalNull(std::string n): MalType(n) {};
     virtual std::string type() {return "Null";};
+};
+
+class MalNil: public MalNull
+{
+public:
+    MalNil(): MalNull("nil") {};
+    virtual std::string type() {return "Nil";};
 };
 
 class MalBoolean: public MalType
