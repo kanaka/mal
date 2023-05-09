@@ -1,6 +1,8 @@
 #ifndef EXCEPTIONS_H
 #define EXCEPTIONS_H
 
+#include <string>
+
 class UnbalancedParenthesesException
 {
 public:
@@ -35,11 +37,31 @@ public:
     IncompleteComplexNumberException() {};
 };
 
-
 class InvalidNumberException
 {
 public:
-    InvalidNumberException() {};
+    InvalidNumberException(std::string v): number_value(v) {};
+    std::string value() const { return number_value; };
+protected:
+    std::string number_value;
+};
+
+class InvalidBinaryNumberException: public InvalidNumberException
+{
+public:
+    InvalidBinaryNumberException(std::string v): InvalidNumberException(v) {};
+};
+
+class InvalidOctalNumberException: public InvalidNumberException
+{
+public:
+    InvalidOctalNumberException(std::string v): InvalidNumberException(v) {};
+};
+
+class InvalidHexNumberException: public InvalidNumberException
+{
+public:
+    InvalidHexNumberException(std::string v): InvalidNumberException(v) {};
 };
 
 class InvalidHashmapException

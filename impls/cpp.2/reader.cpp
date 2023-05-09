@@ -14,6 +14,13 @@ void read_comment(std::string input_stream);
 void read_hashmap(std::string input_stream);
 void read_string(std::string input_stream, char leading, TokenVector& tokens);
 void read_number(std::string input_stream, char leading, TokenVector& tokens);
+void read_based_integer(std::string input_stream, TokenVector& tokens);
+void read_octal(std::string input_stream, char leading, TokenVector & tokens);
+void read_trailing_zeroes(std::string input_stream, char leading, TokenVector& tokens);
+void read_decimal(std::string input_stream, char leading, TokenVector& tokens);
+void read_fractional(std::string input_stream, std::string leading, TokenVector& tokens);
+void read_rational(std::string input_stream, std::string leading, TokenVector& tokens);
+void read_complex(std::string input_stream, std::string leading, TokenVector& tokens);
 void read_symbol(std::string input_stream, char leading, TokenVector& tokens);
 template<class RM> void read_reader_macro(std::string input_stream, TokenVector& tokens);
 void read_tilde(std::string input_stream, TokenVector& tokens);
@@ -23,6 +30,8 @@ void read_vector(std::string input_stream, TokenVector& tokens);
 void close_vector();
 void read_hashmap(std::string input_stream, TokenVector& tokens);
 void close_hashmap();
+
+
 
 unsigned int paren_count = 0;
 unsigned int square_bracket_count = 0;
@@ -145,23 +154,47 @@ bool is_left_balanced(char ch)
 
 bool is_right_balanced(char ch)
 {
-    return (ch == ')' || ch == ']' || ch == '}' || ch == '\"');
+    return (ch == ')' || ch == ']' || ch == '}');
 }
 
 
-bool is_syntax(char ch) 
+bool is_right_closed(char ch)
 {
-    return (is_left_balanced(ch) || is_right_balanced(ch)
+    return (is_right_balanced(ch) || ch == '\"');
+}
+
+bool is_syntax(char ch)
+{
+    return (is_left_balanced(ch) || is_right_closed(ch)
             || ch == '\'' || ch == '`' || ch == '^'
             || ch == '@'  || ch == ',' || ch == '~'
             || ch == '^'  ||  ch == '.' || ch == ';');
+}
+
+bool is_binary(char ch)
+{
+    return (ch == '0' || ch == '1');
+}
+
+bool between(char test, char ch1, char ch2)
+{
+    return ((test >= ch1) && (test <= ch2));
+}
+
+bool is_octal(char ch)
+{
+    return (is_binary(ch) || between(ch, '2', '7'));
+}
+
+bool is_hex(char ch)
+{
+    return (isdigit(ch) || between(ch, 'a', 'f') || between(ch, 'A', 'F'));
 }
 
 
 void read_whitespace(std::string input_stream, char leading)
 {
     char ch = leading;
-
     if (!isspace(ch)) return;
 
     while (isspace(ch) && s_index < input_stream.length())
@@ -169,10 +202,7 @@ void read_whitespace(std::string input_stream, char leading)
         ch = input_stream[s_index++];
     }
 
-    if (s_index < input_stream.length())
-    {
-        s_index--;
-    }
+    s_index--;
 }
 
 
@@ -244,92 +274,7 @@ void read_number(std::string input_stream, char leading, TokenVector& tokens)
 
     if (ch == '0')
     {
-        s += ch;
-        ch = input_stream[s_index++];
-        switch (ch)
-        {
-            case 'x':
-                s += ch;
-                ch = input_stream[s_index++];
-                while ((isdigit(ch) ||
-                        (ch >= 'a' && ch <= 'f') || (ch >= 'A' && ch <= 'F'))
-                        && s_index < input_stream.length())
-                {
-                    s += ch;
-                    ch = input_stream[s_index++];
-                }
-                if (s_index < input_stream.length())
-                {
-                    s_index--;
-                }
-                else
-                {
-                    s += ch;
-                }
-                tokens.append(std::make_shared<MalHex>(s));
-                break;
-
-            case 'b':
-                s += ch;
-                ch = input_stream[s_index++];
-                while ((ch == '0' || ch == '1') && s_index < input_stream.length())
-                {
-                    s += ch;
-                    ch = input_stream[s_index++];
-                }
-                if (s_index < input_stream.length())
-                {
-                    s_index--;
-                }
-                else
-                {
-                    s += ch;
-                }
-                tokens.append(std::make_shared<MalBinary>(s));
-                break;
-            case '0':
-                ch = input_stream[s_index++];
-                while ((ch == '0') && s_index < input_stream.length())
-                {
-                    s += ch;
-                    ch = input_stream[s_index++];
-                }
-                if (s_index < input_stream.length())
-                {
-                    s_index--;
-                }
-                else
-                {
-                    s += ch;
-                }
-                tokens.append(std::make_shared<MalInteger>(s));
-                break;
-
-            case '1':
-            case '2':
-            case '3':
-            case '4':
-            case '5':
-            case '6':
-            case '7':
-                s += ch;
-                ch = input_stream[s_index++];
-                while ((ch >= '0' && ch <= '7') && s_index < input_stream.length())
-                {
-                    s += ch;
-                    ch = input_stream[s_index++];
-                }
-                if (s_index < input_stream.length())
-                {
-                    s_index--;
-                }
-                else
-                {
-                    s += ch;
-                }
-                tokens.append(std::make_shared<MalOctal>(s));
-                break;
-        }
+        read_based_integer(input_stream, tokens);
     }
     else
     {
@@ -445,7 +390,7 @@ void read_number(std::string input_stream, char leading, TokenVector& tokens)
                     default:
                         if (!(isspace(ch) || is_syntax(ch)))
                         {
-                            throw new InvalidNumberException();
+                            throw new InvalidNumberException(s + ch);
                         }
                 }
             }
@@ -464,6 +409,124 @@ void read_number(std::string input_stream, char leading, TokenVector& tokens)
         }
     }
 }
+
+
+void read_based_integer(std::string input_stream, TokenVector& tokens)
+{
+    std::string s = "0";
+    char ch;
+
+    ch = input_stream[s_index++];
+    switch (ch)
+    {
+        case 'x':
+            s += ch;
+            ch = input_stream[s_index++];
+            while ((isdigit(ch) ||
+                    (ch >= 'a' && ch <= 'f') || (ch >= 'A' && ch <= 'F'))
+                    && s_index < input_stream.length())
+            {
+                s += ch;
+                ch = input_stream[s_index++];
+            }
+            if (s_index < input_stream.length())
+            {
+                s_index--;
+            }
+            else
+            {
+                s += ch;
+            }
+            tokens.append(std::make_shared<MalHex>(s));
+            break;
+
+        case 'b':
+            s += ch;
+            ch = input_stream[s_index++];
+            while ((ch == '0' || ch == '1') && s_index < input_stream.length())
+            {
+                s += ch;
+                ch = input_stream[s_index++];
+            }
+            if (s_index < input_stream.length())
+            {
+                s_index--;
+            }
+            else
+            {
+                s += ch;
+            }
+            tokens.append(std::make_shared<MalBinary>(s));
+            break;
+        case '0':
+            read_trailing_zeroes(input_stream, ch, tokens);
+            break;
+
+        case '1':
+        case '2':
+        case '3':
+        case '4':
+        case '5':
+        case '6':
+        case '7':
+            read_octal(input_stream, ch, tokens);
+            break;
+        default:
+            tokens.append(std::make_shared<MalInteger>(s));
+    }
+}
+
+void read_trailing_zeroes(std::string input_stream, char leading, TokenVector& tokens)
+{
+    std::string s = "";
+    char ch = leading;
+    s += ch;
+
+    while (ch == '0' && s_index < input_stream.length())
+    {
+        s += ch;
+        ch = input_stream[s_index++];
+    }
+    if (!(ch == '0' || isspace(ch) || is_right_balanced(ch)))
+    {
+        throw new InvalidNumberException(s + ch);
+    }
+    else if (s_index < input_stream.length())
+    {
+        s_index--;
+    }
+
+    tokens.append(std::make_shared<MalInteger>("0"));
+}
+
+
+
+void read_octal(std::string input_stream, char leading, TokenVector & tokens)
+{
+    std::string s = "0";
+    char ch = leading;
+
+    while (is_octal(ch) && s_index < input_stream.length())
+    {
+        s += ch;
+        ch = input_stream[s_index++];
+    }
+
+    if (!(is_octal(ch) || isspace(ch) || is_right_balanced(ch)))
+    {
+        throw new InvalidOctalNumberException(s + ch);
+    }
+    else if (s_index < input_stream.length())
+    {
+        s_index--;
+    }
+    else
+    {
+        s += ch;
+    }
+    tokens.append(std::make_shared<MalOctal>(s));
+}
+
 
 
 void read_symbol(std::string input_stream, char leading, TokenVector& tokens)
@@ -578,7 +641,7 @@ void close_hashmap()
 
 template<class RM> void read_reader_macro(std::string input_stream, TokenVector& tokens)
 {
-    char ch = input_stream[s_index];
+    char ch = input_stream[s_index++];
     TokenVector rm_argument;
 
     if (is_left_balanced(ch))
@@ -624,6 +687,6 @@ void read_tilde(std::string input_stream, TokenVector& tokens)
     else
     {
         s_index--;
-        read_reader_macro<MalAt>(input_stream, tokens);
+        read_reader_macro<MalTilde>(input_stream, tokens);
     }
 }

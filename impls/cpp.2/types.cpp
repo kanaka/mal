@@ -37,9 +37,9 @@ std::string TokenVector::values()
 
     for (std::vector<MalPtr>::iterator it = tokens.begin(); it != tokens.end(); ++it)
     {
-        if (it != tokens.begin() && !(it->get()->type() == "Unquote"))
+        if (it != tokens.begin() && !(it->get()->type() == "Comma"))
         {
-            s += " ";
+            s+= " ";
         }
 
         if (it->get()->type() == "List")
@@ -62,7 +62,7 @@ std::string TokenVector::values()
         {
             s += "(quasiquote " + it->get()->value() + ")";
         }
-        else if (it->get()->type() == "Unquote")
+        else if (it->get()->type() == "Comma")
         {
             continue;
             // s += "(unquote " + it->get()->value() + ")";
@@ -79,6 +79,10 @@ std::string TokenVector::values()
         {
             s += "(deref " + it->get()->value() + ")";
         }
+        else if (it->get()->type() == "Unquote")
+        {
+            s += "(unquote " + it->get()->value() + ")";
+        }
         else if (it->get()->type() == "Splice-unquote")
         {
             s += "(splice-unquote " + it->get()->value() + ")";
@@ -91,6 +95,7 @@ std::string TokenVector::values()
         {
             s += it->get()->value();
         }
+        // std::cout << it->get()->value() << std::endl;
     }
     return s;
 }
@@ -193,7 +198,16 @@ std::string MalHashmap::value()
         {
             s += " ";
         }
-        s += it->first + " " + it->second->value();
+        s += it->first + " ";
+
+        if (it->second->type() == "Hash Map")
+        {
+            s += '{' + it->second->value() +'}';
+        }
+        else
+        {
+            s += it->second->value();
+        }
     }
 
     return s;

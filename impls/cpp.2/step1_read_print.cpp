@@ -79,7 +79,7 @@ int main()
         }
         catch(InvalidNumberException* e)
         {
-            std::cout << "(invalid number)." << '\n';
+            std::cout << "(invalid number): " << e->value() << "." << '\n';
         }
         catch(InvalidHashmapException* e)
         {

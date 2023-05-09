@@ -70,6 +70,14 @@ public:
 };
 
 
+class MalTilde: public MalReaderMacro
+{
+public:
+    MalTilde(const TokenVector& l): MalReaderMacro(l) {};
+    virtual std::string type() {return "Unquote";};
+};
+
+
 class MalTildeAt: public MalReaderMacro
 {
 public:
@@ -92,19 +100,11 @@ public:
     virtual std::string type() {return "Quasiquote";};
 };
 
-
-class MalTilde: public MalReaderMacro
-{
-public:
-    MalTilde(const TokenVector& l): MalReaderMacro(l) {};
-    virtual std::string type() {return "Splice";};
-};
-
 class MalComma: public MalReaderMacro
 {
 public:
     MalComma(const TokenVector& l): MalReaderMacro(l) {};
-    virtual std::string type() {return "Unquote";};
+    virtual std::string type() {return "Comma";};
 };
 
 class MalMeta: public MalReaderMacro
