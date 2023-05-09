@@ -451,15 +451,16 @@ void read_decimal(std::string input_stream, char leading, TokenVector& tokens)
                     read_complex(input_stream, s, ch, tokens);
                     break;
                 default:
-                    throw new InvalidNumberException(s);
+                    break;
             }
         }
     }
-    if (!(isdigit(ch) || isspace(ch) || is_right_balanced(ch)))
+
+    if (!(isdigit(ch) || isspace(ch) || is_right_balanced(ch)  || ch == ','  || ch == ';'))
     {
         throw new InvalidNumberException(s + ch);
     }
-    else if (s_index < input_stream.length())
+    else if (s_index < input_stream.length() || isspace(ch) || is_right_balanced(ch) || ch == ','  || ch == ';')
     {
         s_index--;
     }
@@ -484,14 +485,15 @@ void read_fractional(std::string input_stream, std::string leading, TokenVector&
         if (ch == '+' || ch == '-')
         {
             read_complex(input_stream, s, ch, tokens);
+            return;
         }
     }
 
-    if (!(isdigit(ch) || isspace(ch) || is_right_balanced(ch)))
+    if (!(isdigit(ch) || isspace(ch) || is_right_balanced(ch)  || ch == ','  || ch == ';'))
     {
         throw new InvalidNumberException(s + ch);
     }
-    else if (s_index < input_stream.length())
+    else if (s_index < input_stream.length() || isspace(ch) || is_right_balanced(ch) || ch == ',')
     {
         s_index--;
     }
@@ -516,11 +518,11 @@ void read_rational(std::string input_stream, std::string leading, TokenVector& t
         ch = input_stream[s_index++];
     }
 
-    if (!(isdigit(ch) || isspace(ch) || is_right_balanced(ch)))
+    if (!(isdigit(ch) || isspace(ch) || is_right_balanced(ch)  || ch == ','  || ch == ';'))
     {
         throw new InvalidNumberException(s + ch);
     }
-    else if (s_index < input_stream.length())
+    else if (s_index < input_stream.length() || isspace(ch) || is_right_balanced(ch) || ch == ',')
     {
         s_index--;
     }

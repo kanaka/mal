@@ -77,4 +77,11 @@ public:
     IncompleteEscapeException() {};
 };
 
+
+class InvalidMetaException
+{
+public:
+    InvalidMetaException() {};
+};
+
 #endif

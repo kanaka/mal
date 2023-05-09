@@ -85,6 +85,11 @@ int main()
         {
             std::cout << "(invalid hash map)." << '\n';
         }
+
+        catch(InvalidMetaException* e)
+        {
+            std::cout << "(invalid meta expression)." << '\n';
+        }
     }
     std::cout << "Exiting.\n";
 

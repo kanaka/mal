@@ -89,7 +89,15 @@ std::string TokenVector::values()
         }
         else if (it->get()->type() == "Meta")
         {
-            s += "(with-meta " + it->get()->value() + ")";
+            if ((it+1) != tokens.end())
+            {
+                s += "(with-meta " + (it+1)->get()->value() + ' ' + it->get()->value() + ")";
+                it++;
+            }
+            else
+            {
+                throw new InvalidMetaException();
+            }
         }
         else
         {
