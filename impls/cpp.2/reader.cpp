@@ -15,12 +15,14 @@ void read_hashmap(std::string input_stream);
 void read_string(std::string input_stream, char leading, TokenVector& tokens);
 void read_number(std::string input_stream, char leading, TokenVector& tokens);
 void read_based_integer(std::string input_stream, TokenVector& tokens);
+void read_binary(std::string input_stream, TokenVector & tokens);
 void read_octal(std::string input_stream, char leading, TokenVector & tokens);
-void read_trailing_zeroes(std::string input_stream, char leading, TokenVector& tokens);
+void read_hex(std::string input_stream, TokenVector & tokens);
+void read_trailing_zeroes(std::string input_stream, TokenVector& tokens);
 void read_decimal(std::string input_stream, char leading, TokenVector& tokens);
 void read_fractional(std::string input_stream, std::string leading, TokenVector& tokens);
 void read_rational(std::string input_stream, std::string leading, TokenVector& tokens);
-void read_complex(std::string input_stream, std::string leading, TokenVector& tokens);
+void read_complex(std::string input_stream, std::string leading, char trailing, TokenVector& tokens);
 void read_symbol(std::string input_stream, char leading, TokenVector& tokens);
 template<class RM> void read_reader_macro(std::string input_stream, TokenVector& tokens);
 void read_tilde(std::string input_stream, TokenVector& tokens);
@@ -278,138 +280,9 @@ void read_number(std::string input_stream, char leading, TokenVector& tokens)
     }
     else
     {
-        bool already_found = false;
-        while (isdigit(ch) && s_index < input_stream.length())
-        {
-            s += ch;
-            ch = input_stream[s_index++];
-            if (!isdigit(ch))
-            {
-                switch (ch)
-                {
-                    case '.':
-                        s += ch;
-                        ch = input_stream[s_index++];
-                        while (isdigit(ch) && s_index < input_stream.length())
-                        {
-                            s += ch;
-                            ch = input_stream[s_index++];
-                        }
-                        if (ch == '+' || ch == '-')
-                        {
-                            while (isdigit(ch) && s_index < input_stream.length())
-                            {
-                                s += ch;
-                                ch = input_stream[s_index++];
-                            }
-                            if (ch == '.')
-                            {
-                                while (isdigit(ch) && s_index < input_stream.length())
-                                {
-                                    s += ch;
-                                    ch = input_stream[s_index++];
-                                }
-                            }
-                            if (ch == 'i')
-                            {
-                                s += ch;
-                                tokens.append(std::make_shared<MalComplex>(s));
-                                already_found = true;
-                            }
-                            else
-                            {
-                                throw new IncompleteComplexNumberException();
-                            }
-                        }
-                        else if (s_index < input_stream.length())
-                        {
-                            s_index--;
-                        }
-                        else
-                        {
-                            s += ch;
-                        }
-                        tokens.append(std::make_shared<MalDecimal>(s));
-                        already_found = true;
-                        break;
-                    case '/':
-                        s += ch;
-                        ch = input_stream[s_index++];
-                        while (isdigit(ch) && s_index < input_stream.length())
-                        {
-                            s += ch;
-                            ch = input_stream[s_index++];
-                        }
-                        if (s_index < input_stream.length())
-                        {
-                            s_index--;
-                        }
-                        else
-                        {
-                            s += ch;
-                        }
-                        tokens.append(std::make_shared<MalRational>(s));
-                        already_found = true;
-                        break;
-                    case '+':
-                    case '-':
-                        s += ch;
-                        ch = input_stream[s_index++];
-                        while ((isdigit(ch) || ch == 'i') && s_index < input_stream.length())
-                        {
-                            s += ch;
-                            ch = input_stream[s_index++];
-                        }
-                        if (ch == '.')
-                        {
-                            while (isdigit(ch) && s_index < input_stream.length())
-                            {
-                                s += ch;
-                                ch = input_stream[s_index++];
-                            }
-                        }
-                        if (ch == 'i')
-                        {
-                            s += ch;
-                            tokens.append(std::make_shared<MalComplex>(s));
-                            already_found = true;
-                        }
-                        else
-                        {
-                            throw new IncompleteComplexNumberException();
-                        }
-                        if (s_index < input_stream.length())
-                        {
-                            s_index--;
-                        }
-                        else
-                        {
-                            s += ch;
-                        }
-                        break;
-                    default:
-                        if (!(isspace(ch) || is_syntax(ch)))
-                        {
-                            throw new InvalidNumberException(s + ch);
-                        }
-                }
-            }
-        }
-        if (!already_found)
-        {
-            if (is_syntax(ch) || s_index < input_stream.length())
-            {
-                s_index--;
-            }
-            else
-            {
-                s += ch;
-            }
-            tokens.append(std::make_shared<MalInteger>(s));
-        }
+        read_decimal(input_stream, ch, tokens);
     }
 }
-
 
 void read_based_integer(std::string input_stream, TokenVector& tokens)
 {
@@ -420,46 +293,15 @@ void read_based_integer(std::string input_stream, TokenVector& tokens)
     switch (ch)
     {
         case 'x':
-            s += ch;
-            ch = input_stream[s_index++];
-            while ((isdigit(ch) ||
-                    (ch >= 'a' && ch <= 'f') || (ch >= 'A' && ch <= 'F'))
-                    && s_index < input_stream.length())
-            {
-                s += ch;
-                ch = input_stream[s_index++];
-            }
-            if (s_index < input_stream.length())
-            {
-                s_index--;
-            }
-            else
-            {
-                s += ch;
-            }
-            tokens.append(std::make_shared<MalHex>(s));
+            read_hex(input_stream, tokens);
             break;
 
         case 'b':
-            s += ch;
-            ch = input_stream[s_index++];
-            while ((ch == '0' || ch == '1') && s_index < input_stream.length())
-            {
-                s += ch;
-                ch = input_stream[s_index++];
-            }
-            if (s_index < input_stream.length())
-            {
-                s_index--;
-            }
-            else
-            {
-                s += ch;
-            }
-            tokens.append(std::make_shared<MalBinary>(s));
+            read_binary(input_stream, tokens);
             break;
+
         case '0':
-            read_trailing_zeroes(input_stream, ch, tokens);
+            read_trailing_zeroes(input_stream, tokens);
             break;
 
         case '1':
@@ -476,10 +318,10 @@ void read_based_integer(std::string input_stream, TokenVector& tokens)
     }
 }
 
-void read_trailing_zeroes(std::string input_stream, char leading, TokenVector& tokens)
+void read_trailing_zeroes(std::string input_stream, TokenVector& tokens)
 {
-    std::string s = "";
-    char ch = leading;
+    std::string s = "00";
+    char ch = '0';
     s += ch;
 
     while (ch == '0' && s_index < input_stream.length())
@@ -495,10 +337,40 @@ void read_trailing_zeroes(std::string input_stream, char leading, TokenVector& t
     {
         s_index--;
     }
-
+    else
+    {
+        s += ch;
+    }
     tokens.append(std::make_shared<MalInteger>("0"));
 }
 
+
+
+void read_binary(std::string input_stream, TokenVector & tokens)
+{
+    std::string s = "0b";
+    char ch = input_stream[s_index++];
+
+    while (is_binary(ch) && s_index < input_stream.length())
+    {
+        s += ch;
+        ch = input_stream[s_index++];
+    }
+
+    if (!(is_binary(ch) || isspace(ch) || is_right_balanced(ch)))
+    {
+        throw new InvalidBinaryNumberException(s + ch);
+    }
+    else if (s_index < input_stream.length())
+    {
+        s_index--;
+    }
+    else
+    {
+        s += ch;
+    }
+    tokens.append(std::make_shared<MalBinary>(s));
+}
 
 
 void read_octal(std::string input_stream, char leading, TokenVector & tokens)
@@ -528,6 +400,167 @@ void read_octal(std::string input_stream, char leading, TokenVector & tokens)
 }
 
 
+void read_hex(std::string input_stream, TokenVector & tokens)
+{
+    std::string s = "0x";
+    char ch = input_stream[s_index++];
+
+    while (is_hex(ch) && s_index < input_stream.length())
+    {
+        s += ch;
+        ch = input_stream[s_index++];
+    }
+
+    if (!(is_hex(ch) || isspace(ch) || is_right_balanced(ch)))
+    {
+        throw new InvalidHexNumberException(s + ch);
+    }
+    else if (s_index < input_stream.length())
+    {
+        s_index--;
+    }
+    else
+    {
+        s += ch;
+    }
+    tokens.append(std::make_shared<MalHex>(s));
+}
+
+
+void read_decimal(std::string input_stream, char leading, TokenVector& tokens)
+{
+    std::string s = "";
+    char ch = leading;
+
+    while (isdigit(ch) && s_index < input_stream.length())
+    {
+        s += ch;
+        ch = input_stream[s_index++];
+        if (!isdigit(ch))
+        {
+            switch(ch)
+            {
+                case '.':
+                    read_fractional(input_stream, s, tokens);
+                    break;
+                case '/':
+                    read_rational(input_stream, s, tokens);
+                    break;
+                case '-':
+                case '+':
+                    read_complex(input_stream, s, ch, tokens);
+                    break;
+                default:
+                    throw new InvalidNumberException(s);
+            }
+        }
+    }
+    if (!(isdigit(ch) || isspace(ch) || is_right_balanced(ch)))
+    {
+        throw new InvalidNumberException(s + ch);
+    }
+    else if (s_index < input_stream.length())
+    {
+        s_index--;
+    }
+    else
+    {
+        s += ch;
+    }
+    tokens.append(std::make_shared<MalInteger>(s));
+}
+
+
+void read_fractional(std::string input_stream, std::string leading, TokenVector& tokens)
+{
+    std::string s = leading + '.';
+    char ch = input_stream[s_index++];
+
+    while (isdigit(ch) && (s_index < input_stream.length()))
+    {
+        s += ch;
+        ch = input_stream[s_index++];
+
+        if (ch == '+' || ch == '-')
+        {
+            read_complex(input_stream, s, ch, tokens);
+        }
+    }
+
+    if (!(isdigit(ch) || isspace(ch) || is_right_balanced(ch)))
+    {
+        throw new InvalidNumberException(s + ch);
+    }
+    else if (s_index < input_stream.length())
+    {
+        s_index--;
+    }
+    else
+    {
+        s += ch;
+    }
+    tokens.append(std::make_shared<MalFractional>(s));
+}
+
+
+void read_rational(std::string input_stream, std::string leading, TokenVector& tokens)
+{
+    std::string s = leading;
+    char ch = '/';
+
+    s += ch;
+    ch = input_stream[s_index++];
+    while (isdigit(ch) && s_index < input_stream.length())
+    {
+        s += ch;
+        ch = input_stream[s_index++];
+    }
+
+    if (!(isdigit(ch) || isspace(ch) || is_right_balanced(ch)))
+    {
+        throw new InvalidNumberException(s + ch);
+    }
+    else if (s_index < input_stream.length())
+    {
+        s_index--;
+    }
+    else
+    {
+        s += ch;
+    }
+    tokens.append(std::make_shared<MalRational>(s));
+}
+
+
+void read_complex(std::string input_stream, std::string leading, char trailing, TokenVector& tokens)
+{
+    std::string s = leading;
+    char ch = trailing;
+
+    s += ch;
+    ch = input_stream[s_index++];
+    while ((isdigit(ch) || ch == 'i') && s_index < input_stream.length())
+    {
+        s += ch;
+        ch = input_stream[s_index++];
+        if (ch == '.')
+        {
+            s += ch;
+            ch = input_stream[s_index++];
+        }
+    }
+    if (ch == 'i')
+    {
+        s += ch;
+        tokens.append(std::make_shared<MalComplex>(s));
+    }
+    else
+    {
+        throw new IncompleteComplexNumberException();
+    }
+}
+
+
 
 void read_symbol(std::string input_stream, char leading, TokenVector& tokens)
 {
@@ -540,7 +573,7 @@ void read_symbol(std::string input_stream, char leading, TokenVector& tokens)
         s += ch;
         ch = input_stream[s_index++];
     }
-    if (s_index < input_stream.length() || is_syntax(ch))
+    if (s_index < input_stream.length() || is_right_balanced(ch))
     {
         s_index--;
     }

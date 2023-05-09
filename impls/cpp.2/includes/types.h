@@ -256,11 +256,11 @@ public:
 };
 
 
-class MalDecimal: public MalNumber
+class MalFractional: public MalNumber
 {
 public:
-    MalDecimal(std::string r): MalNumber(r) {};
-    virtual std::string type() {return "Decimal";};
+    MalFractional(std::string r): MalNumber(r) {};
+    virtual std::string type() {return "Fractional";};
 };
 
 
