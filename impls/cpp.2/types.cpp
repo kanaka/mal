@@ -42,68 +42,55 @@ std::string TokenVector::values()
             s+= " ";
         }
 
-        if (it->get()->type() == "List")
-        {
-            s += "(" + it->get()->value() + ")";
-        }
-        else if (it->get()->type() == "Vector")
-        {
-            s += "[" + it->get()->value() + "]";
-        }
-        else if (it->get()->type() == "Hash Map")
-        {
-            s += "{" + it->get()->value() + "}";
-        }
-        else if (it->get()->type() == "Quote")
-        {
-            s += "(quote " + it->get()->value() + ")";
-        }
-        else if (it->get()->type() == "Quasiquote")
-        {
-            s += "(quasiquote " + it->get()->value() + ")";
-        }
-        else if (it->get()->type() == "Comma")
-        {
-            continue;
-            // s += "(unquote " + it->get()->value() + ")";
-        }
-        else if (it->get()->type() == "Splice")
-        {
-            s += "(splice " + it->get()->value() + ")";
-        }
-        else if (it->get()->type() == "Unsplice")
-        {
-            s += "(unsplice " + it->get()->value() + ")";
-        }
-        else if (it->get()->type() == "Deref")
-        {
-            s += "(deref " + it->get()->value() + ")";
-        }
-        else if (it->get()->type() == "Unquote")
-        {
-            s += "(unquote " + it->get()->value() + ")";
-        }
-        else if (it->get()->type() == "Splice-unquote")
-        {
-            s += "(splice-unquote " + it->get()->value() + ")";
-        }
-        else if (it->get()->type() == "Meta")
-        {
-            if ((it+1) != tokens.end())
-            {
-                s += "(with-meta " + (it+1)->get()->value() + ' ' + it->get()->value() + ")";
-                it++;
-            }
-            else
-            {
-                throw new InvalidMetaException();
-            }
-        }
-        else
+        // if (it->get()->type() == "Quote")
+        // {
+        //     s += "(quote " + it->get()->value() + ")";
+        // }
+        // else if (it->get()->type() == "Quasiquote")
+        // {
+        //     s += "(quasiquote " + it->get()->value() + ")";
+        // }
+        // else if (it->get()->type() == "Comma")
+        // {
+        //     continue;
+        //     // s += "(unquote " + it->get()->value() + ")";
+        // }
+        // else if (it->get()->type() == "Splice")
+        // {
+        //     s += "(splice " + it->get()->value() + ")";
+        // }
+        // else if (it->get()->type() == "Unsplice")
+        // {
+        //     s += "(unsplice " + it->get()->value() + ")";
+        // }
+        // else if (it->get()->type() == "Deref")
+        // {
+        //     s += "(deref " + it->get()->value() + ")";
+        // }
+        // else if (it->get()->type() == "Unquote")
+        // {
+        //     s += "(unquote " + it->get()->value() + ")";
+        // }
+        // else if (it->get()->type() == "Splice-unquote")
+        // {
+        //     s += "(splice-unquote " + it->get()->value() + ")";
+        // }
+        // else if (it->get()->type() == "Meta")
+        // {
+        //     if ((it+1) != tokens.end())
+        //     {
+        //         s += "(with-meta " + (it+1)->get()->value() + ' ' + it->get()->value() + ")";
+        //         it++;
+        //     }
+        //     else
+        //     {
+        //         throw new InvalidMetaException();
+        //     }
+        // }
+        // else
         {
             s += it->get()->value();
         }
-        // std::cout << it->get()->value() << std::endl;
     }
     return s;
 }
@@ -144,32 +131,9 @@ MalList::MalList(const TokenVector& l): MalType("{list}")
 
 
 
-std::string MalList::value()
-{
-    return list.values();
-}
-
-
-TokenVector MalList::raw_value()
-{
-    return list;
-}
-
-
 MalVector::MalVector(const TokenVector& v): MalType("{vector}")
 {
     vec.append(v);
-}
-
-
-std::string MalVector::value()
-{
-    return vec.values();
-}
-
-TokenVector MalVector::raw_value()
-{
-    return vec;
 }
 
 
@@ -198,7 +162,7 @@ MalHashmap::MalHashmap(TokenVector hm): MalType("{hash}")
 
 std::string MalHashmap::value()
 {
-    std::string s = "";
+    std::string s = "{";
 
     for(auto it = hashmap.begin(); it != hashmap.end(); ++it)
     {
@@ -210,30 +174,27 @@ std::string MalHashmap::value()
 
         if (it->second->type() == "Hash Map")
         {
-            s += '{' + it->second->value() +'}';
+            s += it->second->value();
         }
         else
         {
             s += it->second->value();
         }
     }
+    s += '}';
 
     return s;
 }
 
 
-MalReaderMacro::MalReaderMacro(const TokenVector& l): MalType("Reader Macro")
-{
-    list.append(l);
-}
-
-std::string MalReaderMacro::value()
-{
-    return list.values();
-}
-
-
-TokenVector MalReaderMacro::raw_value()
-{
-    return list;
-}
+// std::string MalMeta::value()
+// {
+//     if (list.size() == 2)
+//     {
+//         return "(with-meta " + list[1]->value() + " " + list[0]->value() + ')';
+//     }
+//     else
+//     {
+//         throw new InvalidMetaException();
+//     }
+// }

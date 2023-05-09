@@ -9,6 +9,7 @@
 #include "exceptions.h"
 
 
+TokenVector read_form(std::string input_stream);
 void read_whitespace(std::string input_stream, char leading);
 void read_comment(std::string input_stream);
 void read_hashmap(std::string input_stream);
@@ -26,6 +27,7 @@ void read_complex(std::string input_stream, std::string leading, char trailing, 
 void read_symbol(std::string input_stream, char leading, TokenVector& tokens);
 template<class RM> void read_reader_macro(std::string input_stream, TokenVector& tokens);
 void read_tilde(std::string input_stream, TokenVector& tokens);
+void read_meta(std::string input_stream, TokenVector& tokens);
 void read_list(std::string input_stream, TokenVector& tokens);
 void close_list();
 void read_vector(std::string input_stream, TokenVector& tokens);
@@ -114,7 +116,7 @@ TokenVector tokenize(std::string input_stream)
                     read_tilde(input_stream, tokens);
                     break;
                 case ',':
-                    read_reader_macro<MalComma>(input_stream, tokens);
+                    continue;
                     break;
                 case '@':
                     read_reader_macro<MalAt>(input_stream, tokens);
@@ -126,7 +128,7 @@ TokenVector tokenize(std::string input_stream)
                     read_reader_macro<MalQuasiquote>(input_stream, tokens);
                     break;
                 case '^':
-                    read_reader_macro<MalMeta>(input_stream, tokens);
+                    read_meta(input_stream, tokens);
                     break;
                 case '\"':
                     read_string(input_stream, ch, tokens);
@@ -194,6 +196,13 @@ bool is_hex(char ch)
 }
 
 
+TokenVector read_form(std::string input_stream)
+{
+    return tokenize(input_stream);
+}
+
+
+
 void read_whitespace(std::string input_stream, char leading)
 {
     char ch = leading;
@@ -203,8 +212,10 @@ void read_whitespace(std::string input_stream, char leading)
     {
         ch = input_stream[s_index++];
     }
-
-    s_index--;
+    if (s_index < input_stream.length())
+    {
+        s_index--;
+    }
 }
 
 
@@ -442,14 +453,14 @@ void read_decimal(std::string input_stream, char leading, TokenVector& tokens)
             {
                 case '.':
                     read_fractional(input_stream, s, tokens);
-                    break;
+                    return;
                 case '/':
                     read_rational(input_stream, s, tokens);
-                    break;
+                    return;
                 case '-':
                 case '+':
                     read_complex(input_stream, s, ch, tokens);
-                    break;
+                    return;
                 default:
                     break;
             }
@@ -699,12 +710,10 @@ template<class RM> void read_reader_macro(std::string input_stream, TokenVector&
     }
     else if (isdigit(ch))
     {
-        s_index++;
         read_number(input_stream, ch, rm_argument);
     }
     else
     {
-        s_index++;
         read_symbol(input_stream, ch, rm_argument);
     }
 
@@ -725,3 +734,77 @@ void read_tilde(std::string input_stream, TokenVector& tokens)
         read_reader_macro<MalTilde>(input_stream, tokens);
     }
 }
+
+
+void read_meta(std::string input_stream, TokenVector& tokens)
+{
+    char ch = input_stream[s_index++];
+    TokenVector seq_argument, main_argument;
+
+    if (is_left_balanced(ch))
+    {
+        switch(ch)
+        {
+            case '(':
+                read_list(input_stream, seq_argument);
+                break;
+            case '[':
+                read_vector(input_stream, seq_argument);
+                break;
+            case '{':
+                read_hashmap(input_stream, seq_argument);
+                break;
+            case '\"':
+                read_string(input_stream, ch, seq_argument);
+                break;
+        }
+
+        read_whitespace(input_stream, ch);
+        if (s_index >= input_stream.length())
+        {
+            throw new InvalidMetaException();
+        }
+
+        s_index++;
+        ch = input_stream[s_index++];
+        std::cout << ch << std::endl;
+        if (is_left_balanced(ch))
+        {
+            switch(ch)
+            {
+                case '(':
+                    read_list(input_stream, main_argument);
+                    break;
+                case '[':
+                    read_vector(input_stream, main_argument);
+                    break;
+                case '{':
+                    read_hashmap(input_stream, main_argument);
+                    break;
+                case '\"':
+                    read_string(input_stream, ch, main_argument);
+                    break;
+            }
+        }
+        else if (isdigit(ch))
+        {
+            read_number(input_stream, ch, main_argument);
+        }
+        else if (!is_syntax(ch))
+        {
+            read_symbol(input_stream, ch, main_argument);
+        }
+        else
+        {
+            throw new InvalidMetaException();
+        }
+    }
+    else
+    {
+        throw new InvalidMetaException();
+    }
+
+
+    tokens.append(std::make_shared<MalMeta>(main_argument, seq_argument));
+}
+

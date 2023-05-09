@@ -52,10 +52,10 @@ public:
 class MalReaderMacro: public MalType
 {
 public:
-    MalReaderMacro(const TokenVector& l);
+    MalReaderMacro(const TokenVector& l): MalType("Reader Macro"), list(l) {};
     virtual std::string type() {return "Reader Macro";};
-    virtual std::string value();
-    virtual TokenVector raw_value();
+    virtual std::string value() {return list.values();};
+    virtual TokenVector raw_value() {return list;};
     MalPtr operator[](unsigned int i);
 protected:
     TokenVector list;
@@ -67,6 +67,7 @@ class MalAt: public MalReaderMacro
 public:
     MalAt(const TokenVector& l): MalReaderMacro(l) {};
     virtual std::string type() {return "Deref";};
+    virtual std::string value() {return "(deref " + list.values() + ')';};
 };
 
 
@@ -75,6 +76,7 @@ class MalTilde: public MalReaderMacro
 public:
     MalTilde(const TokenVector& l): MalReaderMacro(l) {};
     virtual std::string type() {return "Unquote";};
+    virtual std::string value() {return "(unquote " + list.values() + ')';};
 };
 
 
@@ -83,6 +85,7 @@ class MalTildeAt: public MalReaderMacro
 public:
     MalTildeAt(const TokenVector& l): MalReaderMacro(l) {};
     virtual std::string type() {return "Splice-unquote";};
+    virtual std::string value() {return "(splice-unquote " + list.values() + ')';};
 };
 
 class MalQuote: public MalReaderMacro
@@ -90,6 +93,7 @@ class MalQuote: public MalReaderMacro
 public:
     MalQuote(const TokenVector& l): MalReaderMacro(l) {};
     virtual std::string type() {return "Quote";};
+    virtual std::string value() {return "(quote " + list.values() + ")";};
 };
 
 
@@ -98,20 +102,17 @@ class MalQuasiquote: public MalReaderMacro
 public:
     MalQuasiquote(const TokenVector& l): MalReaderMacro(l) {};
     virtual std::string type() {return "Quasiquote";};
-};
-
-class MalComma: public MalReaderMacro
-{
-public:
-    MalComma(const TokenVector& l): MalReaderMacro(l) {};
-    virtual std::string type() {return "Comma";};
+    virtual std::string value() {return "(quasiquote " + list.values() + ')';};
 };
 
 class MalMeta: public MalReaderMacro
 {
 public:
-    MalMeta(const TokenVector& l): MalReaderMacro(l) {};
+    MalMeta(const TokenVector& seq, TokenVector& arg): MalReaderMacro(arg), sequence(seq) {};
     virtual std::string type() {return "Meta";};
+    virtual std::string value() {return "(with-meta " + sequence.values() + " " + list.values() + ')';};
+private:
+    TokenVector sequence;
 };
 
 class MalNull: public MalType
@@ -143,9 +144,9 @@ public:
     MalList() = delete;
     MalList(std::string const r) = delete;
     MalList(const TokenVector& l);
-    virtual std::string value();
+    virtual std::string value() {return "(" + list.values() + ")";};
     virtual std::string type() {return "List";};
-    virtual TokenVector raw_value();
+    virtual TokenVector raw_value() {return list;};
 private:
     TokenVector list;
 };
@@ -157,9 +158,9 @@ public:
     MalVector() = delete;
     MalVector(std::string const r) = delete;
     MalVector(const TokenVector& v);
-    virtual std::string value();
+    virtual std::string value() {return "[" + vec.values() + "]";};
     virtual std::string type() {return "Vector";};
-    virtual TokenVector raw_value();
+    virtual TokenVector raw_value() {return vec;};
 private:
     TokenVector vec;
 };
