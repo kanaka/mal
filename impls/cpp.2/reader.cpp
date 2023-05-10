@@ -86,6 +86,11 @@ TokenVector tokenize(std::string input_stream)
                     return tokens;
                 case '}':
                     close_hashmap();
+
+                    if (hm_count == 0)
+                    {
+                        return tokens;
+                    }
                     break;
                 case '.':
                     tokens.append(std::make_shared<MalPeriod>());
