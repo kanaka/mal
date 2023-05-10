@@ -7,16 +7,16 @@
 #include "lineedit.h"
 #include "types.h"
 
+extern unsigned int paren_count, square_bracket_count, hm_count, s_index;
+
 
 TokenVector tokenize(std::string input_stream);
 TokenVector read_str(std::string s);
 
-bool is_syntax(char ch);
-bool is_left_balanced(char ch);
-bool is_right_balanced(char ch);
-bool is_right_closed(char ch);
-bool is_hex(char ch);
-bool is_octal(char ch);
-bool is_binary(char ch);
+void read_whitespace(std::string input_stream, char leading);
+void read_comment(std::string input_stream);
+void read_string(std::string input_stream, char leading, TokenVector& tokens);
+void read_symbol(std::string input_stream, char leading, TokenVector& tokens);
+
 
 #endif
