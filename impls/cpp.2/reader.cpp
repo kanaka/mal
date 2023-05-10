@@ -11,6 +11,7 @@
 #include "parse_sequences.h"
 #include "parse_reader_macros.h"
 
+
 TokenVector read_form(std::string input_stream);
 
 
@@ -73,20 +74,18 @@ TokenVector tokenize(std::string input_stream)
                     break;
                 case ')':
                     close_list();
-                    break;
+                    return tokens;
                 case '[':
                     read_vector(input_stream, tokens);
                     break;
                 case ']':
                     close_vector();
                     return tokens;
-                    break;
                 case '{':
                     read_hashmap(input_stream, tokens);
-                    break;
+                    return tokens;
                 case '}':
                     close_hashmap();
-                    return tokens;
                     break;
                 case '.':
                     tokens.append(std::make_shared<MalPeriod>());
@@ -127,6 +126,7 @@ TokenVector tokenize(std::string input_stream)
 
     return tokens;
 }
+
 
 
 TokenVector read_form(std::string input_stream)
@@ -177,6 +177,7 @@ void read_string(std::string input_stream, char leading, TokenVector& tokens)
             {
                 throw new IncompleteEscapeException();
             }
+
             switch (ch)
             {
                 case '\"':
@@ -196,6 +197,7 @@ void read_string(std::string input_stream, char leading, TokenVector& tokens)
             ch = input_stream[s_index++];
             continue;
         }
+
         s += ch;
         ch = input_stream[s_index++];
     }
@@ -207,6 +209,7 @@ void read_string(std::string input_stream, char leading, TokenVector& tokens)
 
     tokens.append(std::make_shared<MalString>(s));
 }
+
 
 
 void read_symbol(std::string input_stream, char leading, TokenVector& tokens)

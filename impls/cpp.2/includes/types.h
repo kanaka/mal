@@ -130,6 +130,7 @@ public:
     virtual std::string type() {return "Nil";};
 };
 
+
 class MalBoolean: public MalType
 {
 public:

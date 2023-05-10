@@ -41,56 +41,7 @@ std::string TokenVector::values()
         {
             s+= " ";
         }
-
-        // if (it->get()->type() == "Quote")
-        // {
-        //     s += "(quote " + it->get()->value() + ")";
-        // }
-        // else if (it->get()->type() == "Quasiquote")
-        // {
-        //     s += "(quasiquote " + it->get()->value() + ")";
-        // }
-        // else if (it->get()->type() == "Comma")
-        // {
-        //     continue;
-        //     // s += "(unquote " + it->get()->value() + ")";
-        // }
-        // else if (it->get()->type() == "Splice")
-        // {
-        //     s += "(splice " + it->get()->value() + ")";
-        // }
-        // else if (it->get()->type() == "Unsplice")
-        // {
-        //     s += "(unsplice " + it->get()->value() + ")";
-        // }
-        // else if (it->get()->type() == "Deref")
-        // {
-        //     s += "(deref " + it->get()->value() + ")";
-        // }
-        // else if (it->get()->type() == "Unquote")
-        // {
-        //     s += "(unquote " + it->get()->value() + ")";
-        // }
-        // else if (it->get()->type() == "Splice-unquote")
-        // {
-        //     s += "(splice-unquote " + it->get()->value() + ")";
-        // }
-        // else if (it->get()->type() == "Meta")
-        // {
-        //     if ((it+1) != tokens.end())
-        //     {
-        //         s += "(with-meta " + (it+1)->get()->value() + ' ' + it->get()->value() + ")";
-        //         it++;
-        //     }
-        //     else
-        //     {
-        //         throw new InvalidMetaException();
-        //     }
-        // }
-        // else
-        {
-            s += it->get()->value();
-        }
+        s += it->get()->value();
     }
     return s;
 }

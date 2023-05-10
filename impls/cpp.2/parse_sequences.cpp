@@ -7,7 +7,6 @@
 #include "types.h"
 #include "token_types.h"
 #include "exceptions.h"
-#include "parse_numbers.h"
 #include "parse_sequences.h"
 
 
@@ -15,6 +14,7 @@ void read_list(std::string input_stream, TokenVector& tokens)
 {
     paren_count++;
     TokenVector ml = tokenize(input_stream);
+
     if (ml.values() == "")
     {
         tokens.append(std::make_shared<MalNull>());
@@ -58,6 +58,7 @@ void close_vector()
         throw new UnbalancedVectorException();
     }
 }
+
 
 void read_hashmap(std::string input_stream, TokenVector& tokens)
 {

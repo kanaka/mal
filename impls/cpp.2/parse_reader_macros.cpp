@@ -1,9 +1,6 @@
 
 #include <iostream>
 #include <memory>
-#include <vector>
-#include <cctype>
-#include <cstdlib>
 #include "reader.h"
 #include "types.h"
 #include "token_types.h"
