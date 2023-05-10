@@ -616,17 +616,15 @@ void read_symbol(std::string input_stream, char leading, TokenVector& tokens)
 
 void read_list(std::string input_stream, TokenVector& tokens)
 {
-    char ch = input_stream[s_index];
-    read_whitespace(input_stream, ch);
-    if (input_stream[s_index] == ')')
+    paren_count++;
+    TokenVector ml = tokenize(input_stream);
+    if (ml.values() == "")
     {
         tokens.append(std::make_shared<MalNull>());
-        s_index++;
     }
     else
     {
-        paren_count++;
-        tokens.append(std::make_shared<MalList>(tokenize(input_stream)));
+        tokens.append(std::make_shared<MalList>(ml));
     }
 }
 
