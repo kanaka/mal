@@ -1,3 +1,9 @@
+/* The following code applies the GNU Readline library, which is
+   licensed under the GPL version 3.0. Please refer to the file
+   'LICENSE' in the implementation subdirectory.
+*/
+
+
 #include <string>
 #include <iostream>
 #include "lineedit.h"

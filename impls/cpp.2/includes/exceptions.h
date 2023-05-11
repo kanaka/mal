@@ -84,4 +84,18 @@ public:
     InvalidMetaException() {};
 };
 
+
+class TooManyInputsException
+{
+public:
+    TooManyInputsException() {};
+};
+
+
+class ArityMismatchException
+{
+public:
+    ArityMismatchException() {};
+};
+
 #endif

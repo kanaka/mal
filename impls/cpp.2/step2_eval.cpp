@@ -3,16 +3,18 @@
    'LICENSE' in the implementation subdirectory.
 */
 
-
-#include <string>
+#include <functional>
 #include <iostream>
+#include <memory>
+#include <string>
 #include <vector>
 #include <cstdlib>
 #include "lineedit.h"
 #include "reader.h"
 #include "printer.h"
 #include "exceptions.h"
-
+#include "eval.h"
+#include "env.h"
 
 TokenVector READ(std::string input)
 {
@@ -22,7 +24,21 @@ TokenVector READ(std::string input)
 
 TokenVector EVAL(TokenVector input)
 {
-    return input;
+    TokenVector result;
+    while((input.peek()) != nullptr)
+    {
+        MalPtr curr = input.next();
+        if (curr->type() == MAL_LIST)
+        {
+            result.append(eval_ast(curr->raw_value(), global_env));
+        }
+        else
+        {
+            result.append(curr);
+        }
+    }
+
+    return result;
 }
 
 
@@ -91,10 +107,17 @@ int main()
         {
             std::cout << "(invalid hash map)." << '\n';
         }
-
         catch(InvalidMetaException* e)
         {
             std::cout << "(invalid meta expression)." << '\n';
+        }
+        catch(TooManyInputsException* e)
+        {
+            std::cout << "(too many elements in the REPL)." << '\n';
+        }
+        catch(ArityMismatchException* e)
+        {
+            std::cout << "(arity mismatch in function application)." << '\n';
         }
     }
     std::cout << "Exiting.\n";

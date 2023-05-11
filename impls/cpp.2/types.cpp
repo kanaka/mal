@@ -37,13 +37,38 @@ std::string TokenVector::values()
 
     for (std::vector<MalPtr>::iterator it = tokens.begin(); it != tokens.end(); ++it)
     {
-        if (it != tokens.begin() && !(it->get()->type() == "Comma"))
+        if (it != tokens.begin() && !(it->get()->type() == MAL_COMMA))
         {
             s+= " ";
         }
         s += it->get()->value();
     }
     return s;
+}
+
+
+MalPtr TokenVector::peek()
+{
+    if (current_token >= tokens.size())
+    {
+        return nullptr;
+    }
+    else
+    {
+        return tokens[current_token];
+    }
+}
+
+MalPtr TokenVector::next()
+{
+    if (current_token >= tokens.size())
+    {
+        return nullptr;
+    }
+    else
+    {
+        return tokens[current_token++];
+    }
 }
 
 
@@ -57,11 +82,11 @@ std::string TokenVector::types()
         {
             s += " ";
         }
-        if (it->get()->type() == "List")
+        if (it->get()->type() == MAL_LIST)
         {
             s += "List (" + it->get()->raw_value().types() + ")";
         }
-        else if (it->get()->type() == "Vector")
+        else if (it->get()->type() == MAL_VECTOR)
         {
             s += "Vector [" + it->get()->raw_value().types() + "]";
         }
@@ -98,7 +123,7 @@ MalHashmap::MalHashmap(TokenVector hm): MalType("{hash}")
         }
         for (unsigned int i = 0; i < hm.size()-1; i+=2)
         {
-            if (hm[i]->type() == "String" || hm[i]->type() == "Keyword")
+            if (hm[i]->type() == MAL_STRING || hm[i]->type() == MAL_KEYWORD)
             {
                 hashmap.emplace(hm[i]->value(), hm[i+1]);
             }
@@ -123,7 +148,7 @@ std::string MalHashmap::value()
         }
         s += it->first + " ";
 
-        if (it->second->type() == "Hash Map")
+        if (it->second->type() == MAL_HASHMAP)
         {
             s += it->second->value();
         }
@@ -136,16 +161,3 @@ std::string MalHashmap::value()
 
     return s;
 }
-
-
-// std::string MalMeta::value()
-// {
-//     if (list.size() == 2)
-//     {
-//         return "(with-meta " + list[1]->value() + " " + list[0]->value() + ')';
-//     }
-//     else
-//     {
-//         throw new InvalidMetaException();
-//     }
-// }

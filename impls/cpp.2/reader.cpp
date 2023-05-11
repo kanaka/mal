@@ -184,23 +184,6 @@ void read_string(std::string input_stream, char leading, TokenVector& tokens)
                 throw new IncompleteEscapeException();
             }
 
-            // switch (ch)
-            // {
-            //     case '\"':
-            //     case '\'':
-            //     case '\\':
-            //         s += ch;
-            //         break;
-            //     case 'n':
-            //         s += '\n';
-            //         break;
-            //     case 't':
-            //         s += '\t';
-            //         break;
-            //     default:
-            //         throw new IncompleteEscapeException();
-            // }
-
             s += ch;
 
             ch = input_stream[s_index++];
