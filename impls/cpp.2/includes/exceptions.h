@@ -64,6 +64,12 @@ public:
     InvalidHexNumberException(std::string v): InvalidNumberException(v) {};
 };
 
+class InvalidComplexNumberException: public InvalidNumberException
+{
+public:
+    InvalidComplexNumberException(std::string v): InvalidNumberException(v) {};
+};
+
 class InvalidHashmapException
 {
 public:
@@ -84,6 +90,19 @@ public:
     InvalidMetaException() {};
 };
 
+
+class InvalidPrimitiveException
+{
+public:
+    InvalidPrimitiveException() {};
+};
+
+
+class InvalidFunctionArgumentException
+{
+public:
+    InvalidFunctionArgumentException() {};
+};
 
 class TooManyInputsException
 {

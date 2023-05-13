@@ -2,12 +2,16 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <gmpxx.h>
 #include "exceptions.h"
 #include "types.h"
-#include "eval.h"
+#include "apply.h"
 #include "env.h"
+#include "eval.h"
 
-TokenVector eval_ast(TokenVector input, Environment env)
+
+
+TokenVector eval_ast(TokenVector& input, Environment env)
 {
     MalTypeName type = input.peek()->type();
 
@@ -29,16 +33,21 @@ TokenVector eval_ast(TokenVector input, Environment env)
 }
 
 
-TokenVector eval_list(TokenVector input, Environment env)
+TokenVector eval_list(TokenVector& input, Environment env)
 {
     MalTypeName type = input.peek()->type();
 
-    switch (type)
+    if (type == MAL_SYMBOL)
     {
-        case MAL_LIST:
-            return eval_list(input, env);
-            break;
-        default:
-            return input;
+        EnvPtr procedure = env.find(input.next());
+        return apply_fn(procedure, input);
+    }
+    else if(type == MAL_LIST)
+    {
+        return eval_list(input, env);
+    }
+    else
+    {
+        return input;
     }
 }

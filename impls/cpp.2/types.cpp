@@ -2,6 +2,8 @@
 #include <iostream>
 #include <memory>
 #include <map>
+#include <cctype>
+#include <gmpxx.h>
 #include "types.h"
 #include "exceptions.h"
 
@@ -160,4 +162,70 @@ std::string MalHashmap::value()
     s += '}';
 
     return s;
+}
+
+
+MalFractional::MalFractional(mpf_class f): MalNumber(""), internal_value(f)
+{
+    mp_exp_t exp;
+    repr = f.get_str(exp);
+}
+
+
+MalComplex::MalComplex(std::complex<mpf_class> c): MalNumber(""), internal_value(c)
+{
+    mp_exp_t rexp, iexp;
+    char imag_sign = (internal_value.imag() < 0) ? '-' : '+';
+    repr = internal_value.real().get_str(rexp) + imag_sign + internal_value.imag().get_str(iexp) + 'i';
+}
+
+
+MalComplex::MalComplex(std::string r): MalNumber(r)
+{
+    std::string real_repr = "";
+    std::string imag_repr = "";
+    char ch;
+    size_t curr = 0;
+
+    // collect the real part, seeking for the plus or minus sign that indicates
+    // the start of the imaginary part.
+    do
+    {
+        ch = repr[curr++];
+        real_repr += ch;
+    }
+    while ((isdigit(ch) || ch == '.') && curr < repr.length());
+
+    // if there is no imaginary part, assume imaginary_part == 0
+    if (curr == repr.length())
+    {
+        internal_value = std::complex<mpf_class>(mpf_class(real_repr), 0);
+    }
+    else
+    {
+        if (ch != '+' && ch != '-')
+        {
+            throw new InvalidComplexNumberException(repr);
+        }
+        else
+        {
+            if (ch == '-')
+            {
+                imag_repr += ch;
+            }
+            do
+            {
+                ch = repr[curr++];
+                imag_repr += ch;
+            }
+            while ((isdigit(ch) || ch == '.') && curr < repr.length());
+
+            if (ch != 'i')
+            {
+                throw new InvalidComplexNumberException(repr);
+            }
+        }
+    }
+
+    internal_value = std::complex<mpf_class>(mpf_class(real_repr), mpf_class(imag_repr));
 }

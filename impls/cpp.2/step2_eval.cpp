@@ -30,7 +30,8 @@ TokenVector EVAL(TokenVector input)
         MalPtr curr = input.next();
         if (curr->type() == MAL_LIST)
         {
-            result.append(eval_ast(curr->raw_value(), global_env));
+            auto v = curr->raw_value();
+            result.append(eval_ast(v, global_env));
         }
         else
         {

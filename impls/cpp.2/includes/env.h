@@ -26,7 +26,7 @@ class Env_Primitive: public Env_Symbol
 public:
     Env_Primitive(MalSymbol s, std::function<TokenVector(TokenVector)> f, int a): Env_Symbol(s), fn(f), arity(a) {};
     virtual Env_Element_Type type() {return ENV_PRIMITIVE;};
-    TokenVector apply(TokenVector args);
+    TokenVector apply(TokenVector& args);
 protected:
     std::function<TokenVector(TokenVector)> fn;
     int arity;
@@ -36,9 +36,9 @@ protected:
 class Env_Procedure: public Env_Symbol
 {
 public:
-    Env_Procedure(MalSymbol s, TokenVector f, int a): Env_Symbol(s), fn(f), arity(a) {};
+    Env_Procedure(MalSymbol s, TokenVector& f, int a): Env_Symbol(s), fn(f), arity(a) {};
     virtual Env_Element_Type type() {return ENV_PROCEDURE;};
-    TokenVector apply(TokenVector args);
+    TokenVector apply(TokenVector& args);
 protected:
     TokenVector fn;
     int arity;
@@ -52,7 +52,8 @@ class Environment
 {
 public:
     Environment() {};
-    EnvPtr find(MalSymbol p);
+    void append(EnvPtr element);
+    EnvPtr find(MalPtr p);
 
 private:
     std::vector<EnvPtr> env;
@@ -60,6 +61,8 @@ private:
 
 
 extern Environment global_env;
+
+void init_global_environment();
 
 
 #endif

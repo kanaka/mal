@@ -13,7 +13,6 @@ $(BIN)/lineedit.o $(BIN)/reader.o $(BIN)/types.o $(BIN)/printer.o \
 $(BIN)/parse_numbers.o $(BIN)/parse_sequences.o $(BIN)/parse_reader_macros.o \
 -o $(BIN)/step1_read_print
 
-
 step2_eval: step2_eval.cpp lineedit reader printer types parse_numbers parse_sequences parse_reader_macros eval env apply
 	$(CC) $(FLAGS) -I$(INC) $(LIBS) step2_eval.cpp \
 $(BIN)/lineedit.o $(BIN)/reader.o $(BIN)/types.o $(BIN)/printer.o \
@@ -21,12 +20,11 @@ $(BIN)/parse_numbers.o $(BIN)/parse_sequences.o $(BIN)/parse_reader_macros.o \
 $(BIN)/eval.o $(BIN)/env.o $(BIN)/apply.o \
 -o $(BIN)/step2_eval
 
-apply: apply.cpp types env
-	$(CC) $(FLAGS) -I$(INC) $(LIBS) -c apply.cpp -o $(BIN)/apply.o
-
-eval: eval.cpp types env
+eval: eval.cpp types env apply
 	$(CC) $(FLAGS) -I$(INC) $(LIBS) -c eval.cpp -o $(BIN)/eval.o
 
+apply: apply.cpp types env
+	$(CC) $(FLAGS) -I$(INC) $(LIBS) -c apply.cpp -o $(BIN)/apply.o
 env: env.cpp types
 	$(CC) $(FLAGS) -I$(INC) $(LIBS) -c env.cpp -o $(BIN)/env.o
 

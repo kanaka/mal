@@ -1,10 +1,12 @@
 #ifndef MAL_TYPES_H
 #define MAL_TYPES_H
 
+#include <complex>
 #include <memory>
 #include <string>
 #include <vector>
 #include <map>
+#include <gmpxx.h>
 
 
 enum MalTypeName
@@ -15,7 +17,7 @@ enum MalTypeName
     MAL_PERIOD, MAL_COMMA,
     MAL_READER_MACRO, MAL_AT, MAL_TILDE, MAL_TILDE_AT,
     MAL_QUOTE, MAL_QUASIQUOTE, MAL_META,
-    MAL_NUMBER, MAL_BINARY, MAL_OCTAL, MAL_HEX,
+    MAL_NUMBER, MAL_SYSTEM_INTEGER, MAL_BINARY, MAL_OCTAL, MAL_HEX,
     MAL_INTEGER, MAL_FRACTIONAL, MAL_RATIONAL, MAL_COMPLEX,
     MAL_VARIADIC    // special-case marker for variadic functions in environment
 };
@@ -53,6 +55,7 @@ public:
     virtual std::string value() {return repr;};
     virtual MalTypeName type() {return MAL_TYPE;};
     virtual TokenVector raw_value() {TokenVector t; return t;};
+    virtual MalPtr numeric_value() {return nullptr; };
 protected:
     std::string repr;
 };
@@ -249,31 +252,47 @@ public:
 class MalInteger: public MalNumber
 {
 public:
-    MalInteger(std::string r): MalNumber(r) {};
+    MalInteger(std::string r): MalNumber(r), internal_value(r) {};
+    MalInteger(mpz_class i): MalNumber(i.get_str()), internal_value(i) {};
     virtual MalTypeName type() {return MAL_INTEGER;};
+    virtual MalPtr numeric_value() {return std::make_shared<MalInteger>(internal_value);};
+protected:
+    mpz_class internal_value;
 };
 
 
-class MalHex: public MalInteger
+class MalSystemInteger: public MalNumber
 {
 public:
-    MalHex(std::string r): MalInteger(r) {};
+    MalSystemInteger(std::string r): MalNumber(r), internal_value(stoll(r)) {};
+    MalSystemInteger(unsigned long long int i): MalNumber(std::to_string(i)), internal_value(i) {};
+    virtual MalTypeName type() {return MAL_SYSTEM_INTEGER;};
+    virtual MalPtr numeric_value() {return std::make_shared<MalSystemInteger>(internal_value);};
+protected:
+    unsigned long long int internal_value;
+};
+
+
+class MalHex: public MalSystemInteger
+{
+public:
+    MalHex(std::string r): MalSystemInteger(r) { internal_value = stoll(r, nullptr, 16); };
     virtual MalTypeName type() {return MAL_HEX;};
 };
 
 
-class MalBinary: public MalInteger
+class MalBinary: public MalSystemInteger
 {
 public:
-    MalBinary(std::string r): MalInteger(r) {};
+    MalBinary(std::string r): MalSystemInteger(r) { internal_value = stoll(r, nullptr, 16); };
     virtual MalTypeName type() {return MAL_BINARY;};
 };
 
 
-class MalOctal: public MalInteger
+class MalOctal: public MalSystemInteger
 {
 public:
-    MalOctal(std::string r): MalInteger(r) {};
+    MalOctal(std::string r): MalSystemInteger(r) {internal_value = stoll(r, nullptr, 8); };
     virtual MalTypeName type() {return MAL_OCTAL;};
 };
 
@@ -281,24 +300,36 @@ public:
 class MalFractional: public MalNumber
 {
 public:
-    MalFractional(std::string r): MalNumber(r) {};
+    MalFractional(std::string r): MalNumber(r), internal_value(r) {};
+    MalFractional(mpf_class f);
     virtual MalTypeName type() {return MAL_FRACTIONAL;};
+    virtual MalPtr numeric_value() { return std::make_shared<MalFractional>(internal_value);};
+protected:
+    mpf_class internal_value;
 };
 
 
 class MalRational: public MalNumber
 {
 public:
-    MalRational(std::string r): MalNumber(r) {};
+    MalRational(std::string r): MalNumber(r), internal_value(r) {};
+    MalRational(mpq_class r): MalNumber(r.get_str()), internal_value(r) {};
     virtual MalTypeName type() {return MAL_RATIONAL;};
+    virtual MalPtr numeric_value() { return std::make_shared<MalRational>(internal_value);};
+protected:
+    mpq_class internal_value;
 };
 
 
 class MalComplex: public MalNumber
 {
 public:
-    MalComplex(std::string r): MalNumber(r) {};
+    MalComplex(std::string r);
+    MalComplex(std::complex<mpf_class> c);
     virtual MalTypeName type() {return MAL_COMPLEX;};
+    virtual MalPtr numeric_value() { return std::make_shared<MalComplex>(internal_value);};
+protected:
+    std::complex<mpf_class> internal_value;
 };
 
 #endif
