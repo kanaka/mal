@@ -4,6 +4,7 @@
 */
 
 #include <functional>
+#include <iostream>
 #include <typeinfo>
 #include <cstdlib>
 #include <cstdarg>
@@ -16,9 +17,8 @@
 Environment global_env;
 
 
-Env_Symbol::Env_Symbol(MalPtr s, MalPtr v)
+Env_Symbol::Env_Symbol(MalPtr s, MalPtr v): val(v)
 {
-    val = v;
     if (s != nullptr && s->type() == MAL_SYMBOL)
     {
         sym = s->value();
@@ -36,7 +36,7 @@ TokenVector Env_Primitive::apply(TokenVector& args)
     TokenVector result;
     size_t effective_arity = abs(arity);
 
-    if ((args.size() == effective_arity) || (arity < 0 && args.size() >= effective_arity))
+    if ((args.size() == effective_arity + 1) || (arity < 0 && args.size() >= effective_arity))
     {
         return fn(args);
     }
@@ -48,13 +48,12 @@ TokenVector Env_Primitive::apply(TokenVector& args)
 }
 
 
-
 TokenVector Env_Procedure::apply(TokenVector& args)
 {
     TokenVector result;
     size_t effective_arity = abs(arity);
 
-    if ((args.size() == effective_arity) || (arity < 0 && args.size() >= effective_arity))
+    if ((args.size() == effective_arity + 1) || (arity < 0 && args.size() >= effective_arity))
     {
         return apply_fn(fn, args);
     }
@@ -68,11 +67,11 @@ TokenVector Env_Procedure::apply(TokenVector& args)
 
 EnvPtr Environment::find(MalPtr p)
 {
-    if (p->type() != MAL_SYMBOL)
+    if (p->type() == MAL_SYMBOL)
     {
         for (std::vector<EnvPtr>::iterator it = env.begin(); it != env.end(); ++it)
         {
-            if(it->get()->symbol().value() == p->value())
+            if (it->get()->symbol().value() == p->value())
             {
                 return *it;
             }
@@ -82,11 +81,28 @@ EnvPtr Environment::find(MalPtr p)
     return nullptr;
 }
 
+
 void Environment::append(EnvPtr element)
 {
     env.push_back(element);
 }
 
+
+std::string Environment::element_names()
+{
+    std::string result;
+
+    for (std::vector<EnvPtr>::iterator it = env.begin(); it != env.end(); ++it)
+    {
+        if (it != env.begin())
+        {
+            result += ", ";
+        }
+        result += it->get()->symbol().value();
+    }
+
+    return result;
+}
 
 
 std::function<TokenVector(TokenVector&)> mal_plus([](TokenVector& tokens)->TokenVector
@@ -137,8 +153,56 @@ std::function<TokenVector(TokenVector&)> mal_plus([](TokenVector& tokens)->Token
 });
 
 
+std::function<TokenVector(TokenVector&)> mal_minus([](TokenVector& tokens)->TokenVector
+{
+    MalPtr x_peek = tokens.peek();
+
+    if (x_peek != nullptr)
+    {
+       switch (x_peek->type())
+       {
+            case MAL_INTEGER:
+            {
+                MalPtr x = tokens.next();
+                MalPtr y_peek = tokens.peek();
+
+                if (y_peek != nullptr)
+                {
+                    switch (y_peek->type())
+                    {
+                        case MAL_INTEGER:
+                        {
+                            MalPtr y = tokens.next();
+                            mpz_class xp = (dynamic_cast<MalInteger*>(&(*x)))->numeric_value();
+                            mpz_class yp = (dynamic_cast<MalInteger*>(&(*y)))->numeric_value();
+                            TokenVector result;
+                            result.append(std::make_shared<MalInteger>(xp - yp));
+                            return result;
+                        }
+                            break;
+                        default:
+                            throw InvalidFunctionArgumentException();
+                    }
+                }
+                else
+                {
+                    throw InvalidFunctionArgumentException();
+                }
+            }
+                break;
+            default:
+                throw InvalidFunctionArgumentException();
+        }
+    }
+    else
+    {
+        throw InvalidFunctionArgumentException();
+    }
+});
+
 
 void init_global_environment()
 {
     global_env.append(std::make_shared<Env_Primitive>(std::make_shared<MalSymbol>("+"), mal_plus, 2));
+    global_env.append(std::make_shared<Env_Primitive>(std::make_shared<MalSymbol>("-"), mal_minus, 2));
 }

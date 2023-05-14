@@ -24,22 +24,7 @@ TokenVector READ(std::string input)
 
 TokenVector EVAL(TokenVector input)
 {
-    TokenVector result;
-    while((input.peek()) != nullptr)
-    {
-        MalPtr curr = input.next();
-        if (curr->type() == MAL_LIST)
-        {
-            auto v = curr->raw_value();
-            result.append(eval_ast(v, global_env));
-        }
-        else
-        {
-            result.append(curr);
-        }
-    }
-
-    return result;
+    return eval_ast(input, global_env);
 }
 
 
@@ -58,6 +43,8 @@ std::string rep(std::string input)
 
 int main()
 {
+    init_global_environment();
+
     LineEdit line;
 
     while (true)
@@ -123,6 +110,10 @@ int main()
         catch(ArityMismatchException* e)
         {
             std::cout << "(arity mismatch in function application)." << '\n';
+        }
+        catch(ProcedureNotFoundException* e)
+        {
+            std::cout << "(procedure not found): " << e->value() << "." << '\n';
         }
     }
     std::cout << "Exiting.\n";

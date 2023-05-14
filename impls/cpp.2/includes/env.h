@@ -13,7 +13,10 @@
 #include <gmpxx.h>
 #include "types.h"
 
+
 enum Env_Element_Type {ENV_SYMBOL, ENV_PRIMITIVE, ENV_PROCEDURE};
+
+
 
 class Env_Symbol
 {
@@ -62,6 +65,9 @@ public:
     Environment() {};
     void append(EnvPtr element);
     EnvPtr find(MalPtr p);
+    size_t size() const {return env.size();};
+    std::vector<EnvPtr> elements() {return env;};
+    std::string element_names();
 
 private:
     std::vector<EnvPtr> env;

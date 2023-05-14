@@ -1,4 +1,11 @@
+
+/* The following code applies the GNU Readline library and the GNU GMP library,
+   which are licensed under the GPL version 3.0. Please refer to the file
+   'LICENSE' in the implementation subdirectory.
+*/
+
 #include <memory>
+#include <iostream>
 #include <string>
 #include <vector>
 #include <map>
@@ -18,7 +25,10 @@ TokenVector eval_ast(TokenVector& input, Environment env)
     switch (type)
     {
         case MAL_LIST:
-            return eval_list(input.next()->raw_value(), env);
+            {
+                TokenVector evlist = input.next()->raw_value();
+                return eval_list(evlist, env);
+            }
             break;
         default:
             if (input.size() <= 1)
@@ -39,7 +49,14 @@ TokenVector eval_list(TokenVector& input, Environment env)
 
     if (type == MAL_SYMBOL)
     {
-        EnvPtr procedure = env.find(input.next());
+        MalPtr proc_ptr = input.next();
+        EnvPtr procedure = env.find(proc_ptr);
+
+        if (procedure == nullptr)
+        {
+            throw new ProcedureNotFoundException(proc_ptr->value());
+        }
+
         if (procedure->type() == ENV_PRIMITIVE || procedure->type() == ENV_PROCEDURE)
         {
             return apply_fn(procedure, input);
