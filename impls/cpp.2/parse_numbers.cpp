@@ -16,7 +16,11 @@ void read_number(std::string input_stream, char leading, TokenVector& tokens)
 
     if (ch == '0')
     {
-        read_based_integer(input_stream, tokens);
+        if (input_stream[s_index]  == '.')
+        {
+            s_index++;
+            read_fractional(input_stream, "0.", tokens);
+        }
     }
     else
     {
@@ -272,6 +276,7 @@ void read_rational(std::string input_stream, std::string leading, TokenVector& t
     }
     tokens.append(std::make_shared<MalRational>(s));
 }
+
 
 
 void read_complex(std::string input_stream, std::string leading, char trailing, TokenVector& tokens)

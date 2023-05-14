@@ -17,7 +17,7 @@ TokenVector apply_fn(EnvPtr fn, TokenVector& args)
     }
     else
     {
-        return args;
+        return fn->apply(args);
     }
 }
 

@@ -1,13 +1,34 @@
+/* The following code applies the GNU Readline library and the GNU GMP library,
+   which are licensed under the GPL version 3.0. Please refer to the file
+   'LICENSE' in the implementation subdirectory.
+*/
+
 #include <functional>
 #include <typeinfo>
 #include <cstdlib>
 #include <cstdarg>
+#include <gmpxx.h>
 #include "exceptions.h"
 #include "types.h"
 #include "env.h"
 #include "apply.h"
 
 Environment global_env;
+
+
+Env_Symbol::Env_Symbol(MalPtr s, MalPtr v)
+{
+    val = v;
+    if (s != nullptr && s->type() == MAL_SYMBOL)
+    {
+        sym = s->value();
+    }
+    else
+    {
+        throw new InvalidEnvironmentSymbolException(s->value());
+    }
+}
+
 
 
 TokenVector Env_Primitive::apply(TokenVector& args)
@@ -67,26 +88,57 @@ void Environment::append(EnvPtr element)
 }
 
 
+
+std::function<TokenVector(TokenVector&)> mal_plus([](TokenVector& tokens)->TokenVector
+{
+    MalPtr x_peek = tokens.peek();
+
+    if (x_peek != nullptr)
+    {
+       switch (x_peek->type())
+       {
+            case MAL_INTEGER:
+            {
+                MalPtr x = tokens.next();
+                MalPtr y_peek = tokens.peek();
+
+                if (y_peek != nullptr)
+                {
+                    switch (y_peek->type())
+                    {
+                        case MAL_INTEGER:
+                        {
+                            MalPtr y = tokens.next();
+                            mpz_class xp = (dynamic_cast<MalInteger*>(&(*x)))->numeric_value();
+                            mpz_class yp = (dynamic_cast<MalInteger*>(&(*y)))->numeric_value();
+                            TokenVector result;
+                            result.append(std::make_shared<MalInteger>(xp + yp));
+                            return result;
+                        }
+                            break;
+                        default:
+                            throw InvalidFunctionArgumentException();
+                    }
+                }
+                else
+                {
+                    throw InvalidFunctionArgumentException();
+                }
+            }
+                break;
+            default:
+                throw InvalidFunctionArgumentException();
+        }
+    }
+    else
+    {
+        throw InvalidFunctionArgumentException();
+    }
+});
+
+
+
 void init_global_environment()
 {
-    global_env.append('+', [](MalPtr x, MalPtr y) {
-        if (x->type() == MAL_SYMBOL)
-        {
-            if (y->type() == MAL_SYMBOL)
-            {
-                mpz_class xp = x->numeric_value();
-                mpz_class yp = y->numeric_value();
-                mpz_class z = xp + yp;
-                return token;
-            }
-            else
-            {
-                throw InvalidFunctionArgumentException();
-            }
-        }
-        else
-        {
-            throw InvalidFunctionArgumentException();
-        }
-    });
+    global_env.append(std::make_shared<Env_Primitive>(std::make_shared<MalSymbol>("+"), mal_plus, 2));
 }

@@ -54,8 +54,7 @@ public:
     MalType(std::string const r):repr(r) {};
     virtual std::string value() {return repr;};
     virtual MalTypeName type() {return MAL_TYPE;};
-    virtual TokenVector raw_value() {TokenVector t; return t;};
-    virtual MalPtr numeric_value() {return nullptr; };
+    virtual TokenVector& raw_value() {TokenVector t, &r = t; return r;};
 protected:
     std::string repr;
 };
@@ -74,7 +73,7 @@ public:
     MalReaderMacro(const TokenVector& l): MalType("Reader Macro"), list(l) {};
     virtual MalTypeName type() {return MAL_READER_MACRO;};
     virtual std::string value() {return list.values();};
-    virtual TokenVector raw_value() {return list;};
+    virtual TokenVector& raw_value() {return list;};
     MalPtr operator[](unsigned int i);
 protected:
     TokenVector list;
@@ -151,7 +150,7 @@ public:
     MalList(const TokenVector& l);
     virtual std::string value() {return "(" + list.values() + ")";};
     virtual MalTypeName type() {return MAL_LIST;};
-    virtual TokenVector raw_value() {return list;};
+    virtual TokenVector& raw_value() {return list;};
 private:
     TokenVector list;
 };
@@ -184,7 +183,7 @@ public:
     MalVector(const TokenVector& v);
     virtual std::string value() {return "[" + vec.values() + "]";};
     virtual MalTypeName type() {return MAL_VECTOR;};
-    virtual TokenVector raw_value() {return vec;};
+    virtual TokenVector& raw_value() {return vec;};
 private:
     TokenVector vec;
 };
@@ -212,6 +211,7 @@ public:
 class MalSymbol: public MalAtom
 {
 public:
+    MalSymbol(): MalAtom("") {};
     MalSymbol(std::string r): MalAtom(r) {};
     virtual MalTypeName type() {return MAL_SYMBOL;};
 };
@@ -254,8 +254,9 @@ class MalInteger: public MalNumber
 public:
     MalInteger(std::string r): MalNumber(r), internal_value(r) {};
     MalInteger(mpz_class i): MalNumber(i.get_str()), internal_value(i) {};
+    virtual std::string value() {return internal_value.get_str();};
     virtual MalTypeName type() {return MAL_INTEGER;};
-    virtual MalPtr numeric_value() {return std::make_shared<MalInteger>(internal_value);};
+    virtual mpz_class numeric_value() {return internal_value;};
 protected:
     mpz_class internal_value;
 };
@@ -266,8 +267,9 @@ class MalSystemInteger: public MalNumber
 public:
     MalSystemInteger(std::string r): MalNumber(r), internal_value(stoll(r)) {};
     MalSystemInteger(unsigned long long int i): MalNumber(std::to_string(i)), internal_value(i) {};
+    virtual std::string value() {return std::to_string(internal_value);};
     virtual MalTypeName type() {return MAL_SYSTEM_INTEGER;};
-    virtual MalPtr numeric_value() {return std::make_shared<MalSystemInteger>(internal_value);};
+    virtual unsigned long long int numeric_value() {return internal_value;};
 protected:
     unsigned long long int internal_value;
 };
@@ -303,7 +305,7 @@ public:
     MalFractional(std::string r): MalNumber(r), internal_value(r) {};
     MalFractional(mpf_class f);
     virtual MalTypeName type() {return MAL_FRACTIONAL;};
-    virtual MalPtr numeric_value() { return std::make_shared<MalFractional>(internal_value);};
+    virtual mpf_class numeric_value() { return internal_value;};
 protected:
     mpf_class internal_value;
 };
@@ -314,8 +316,9 @@ class MalRational: public MalNumber
 public:
     MalRational(std::string r): MalNumber(r), internal_value(r) {};
     MalRational(mpq_class r): MalNumber(r.get_str()), internal_value(r) {};
+    virtual std::string value() {return internal_value.get_str();};
     virtual MalTypeName type() {return MAL_RATIONAL;};
-    virtual MalPtr numeric_value() { return std::make_shared<MalRational>(internal_value);};
+    virtual mpq_class numeric_value() { return internal_value;};
 protected:
     mpq_class internal_value;
 };
@@ -327,7 +330,7 @@ public:
     MalComplex(std::string r);
     MalComplex(std::complex<mpf_class> c);
     virtual MalTypeName type() {return MAL_COMPLEX;};
-    virtual MalPtr numeric_value() { return std::make_shared<MalComplex>(internal_value);};
+    virtual std::complex<mpf_class> numeric_value() { return internal_value;};
 protected:
     std::complex<mpf_class> internal_value;
 };

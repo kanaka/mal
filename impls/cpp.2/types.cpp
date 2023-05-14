@@ -1,3 +1,8 @@
+/* The following code applies the GNU Readline library and the GNU GMP library,
+   which are licensed under the GPL version 3.0. Please refer to the file
+   'LICENSE' in the implementation subdirectory.
+*/
+
 #include <string>
 #include <iostream>
 #include <memory>
@@ -168,15 +173,18 @@ std::string MalHashmap::value()
 MalFractional::MalFractional(mpf_class f): MalNumber(""), internal_value(f)
 {
     mp_exp_t exp;
-    repr = f.get_str(exp);
+    std::string mantissa = internal_value.get_str(exp);
+    repr = std::to_string(exp) + '.' + mantissa;
 }
-
 
 MalComplex::MalComplex(std::complex<mpf_class> c): MalNumber(""), internal_value(c)
 {
     mp_exp_t rexp, iexp;
     char imag_sign = (internal_value.imag() < 0) ? '-' : '+';
-    repr = internal_value.real().get_str(rexp) + imag_sign + internal_value.imag().get_str(iexp) + 'i';
+    std::string real_mantissa = internal_value.real().get_str(rexp);
+    std::string imag_mantissa = internal_value.imag().get_str(iexp);
+    repr = std::to_string(rexp) + (real_mantissa == "0" ? "" : '.' + real_mantissa)
+            + imag_sign + std::to_string(iexp) + (imag_mantissa == "0" ? "" : '.' + imag_mantissa) + 'i';
 }
 
 

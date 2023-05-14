@@ -1,9 +1,16 @@
 #ifndef ENV_H
 #define ENV_H
 
+/* The following code applies the GNU Readline library and the GNU GMP library,
+   which are licensed under the GPL version 3.0. Please refer to the file
+   'LICENSE' in the implementation subdirectory.
+*/
+
+
 #include <functional>
 #include <typeinfo>
 #include <cstdarg>
+#include <gmpxx.h>
 #include "types.h"
 
 enum Env_Element_Type {ENV_SYMBOL, ENV_PRIMITIVE, ENV_PROCEDURE};
@@ -11,10 +18,11 @@ enum Env_Element_Type {ENV_SYMBOL, ENV_PRIMITIVE, ENV_PROCEDURE};
 class Env_Symbol
 {
 public:
-    Env_Symbol(MalSymbol s, MalPtr v = nullptr): sym(s), val(v) {};
+    Env_Symbol(MalPtr s, MalPtr v = nullptr);
     virtual Env_Element_Type type() {return ENV_SYMBOL;};
     virtual MalSymbol symbol() {return sym;};
     virtual MalPtr value() {return val;};
+    virtual TokenVector apply(TokenVector& args) {return args;};
 protected:
     MalSymbol sym;
     MalPtr val;
@@ -24,11 +32,11 @@ protected:
 class Env_Primitive: public Env_Symbol
 {
 public:
-    Env_Primitive(MalSymbol s, std::function<TokenVector(TokenVector)> f, int a): Env_Symbol(s), fn(f), arity(a) {};
+    Env_Primitive(MalPtr s, std::function<TokenVector(TokenVector&)>& f, int a): Env_Symbol(s), fn(f), arity(a) {};
     virtual Env_Element_Type type() {return ENV_PRIMITIVE;};
-    TokenVector apply(TokenVector& args);
+    virtual TokenVector apply(TokenVector& args);
 protected:
-    std::function<TokenVector(TokenVector)> fn;
+    std::function<TokenVector(TokenVector&)> fn;
     int arity;
 };
 
@@ -36,9 +44,9 @@ protected:
 class Env_Procedure: public Env_Symbol
 {
 public:
-    Env_Procedure(MalSymbol s, TokenVector& f, int a): Env_Symbol(s), fn(f), arity(a) {};
+    Env_Procedure(MalPtr s, TokenVector& f, int a): Env_Symbol(s), fn(f), arity(a) {};
     virtual Env_Element_Type type() {return ENV_PROCEDURE;};
-    TokenVector apply(TokenVector& args);
+    virtual TokenVector apply(TokenVector& args);
 protected:
     TokenVector fn;
     int arity;

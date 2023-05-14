@@ -91,6 +91,15 @@ public:
 };
 
 
+class InvalidEnvironmentSymbolException
+{
+public:
+    InvalidEnvironmentSymbolException(std::string sym): symbol_value(sym) {};
+    std::string value() const { return symbol_value; };
+protected:
+    std::string symbol_value;
+};
+
 class InvalidPrimitiveException
 {
 public:
@@ -116,5 +125,16 @@ class ArityMismatchException
 public:
     ArityMismatchException() {};
 };
+
+
+class ApplyingNonFunctionException
+{
+public:
+    ApplyingNonFunctionException(std::string sym): symbol_value(sym) {};
+    std::string value() const { return symbol_value; };
+protected:
+    std::string symbol_value;
+};
+
 
 #endif

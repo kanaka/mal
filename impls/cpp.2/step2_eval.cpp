@@ -1,5 +1,5 @@
-/* The following code applies the GNU Readline library, which is
-   licensed under the GPL version 3.0. Please refer to the file
+/* The following code applies the GNU Readline library and the GNU GMP library,
+   which are licensed under the GPL version 3.0. Please refer to the file
    'LICENSE' in the implementation subdirectory.
 */
 
