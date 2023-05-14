@@ -22,10 +22,10 @@ enum MalTypeName
     MAL_VARIADIC    // special-case marker for variadic functions in environment
 };
 
-
 class MalType;
 
 typedef std::shared_ptr<MalType> MalPtr;
+
 
 
 class TokenVector
@@ -305,6 +305,7 @@ public:
     MalFractional(std::string r): MalNumber(r), internal_value(r) {};
     MalFractional(mpf_class f);
     virtual MalTypeName type() {return MAL_FRACTIONAL;};
+    virtual std::string value();
     virtual mpf_class numeric_value() { return internal_value;};
 protected:
     mpf_class internal_value;

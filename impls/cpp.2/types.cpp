@@ -66,6 +66,8 @@ MalPtr TokenVector::peek()
     }
 }
 
+
+
 MalPtr TokenVector::next()
 {
     if (current_token >= tokens.size())
@@ -77,6 +79,7 @@ MalPtr TokenVector::next()
         return tokens[current_token++];
     }
 }
+
 
 
 std::string TokenVector::types()
@@ -177,6 +180,18 @@ MalFractional::MalFractional(mpf_class f): MalNumber(""), internal_value(f)
     repr = std::to_string(exp) + '.' + mantissa;
 }
 
+
+std::string MalFractional::value()
+{
+    mp_exp_t decimal;
+    std::string v = internal_value.get_str(decimal);
+    std::string s = v.substr(0, decimal) + '.' + v.substr(decimal);
+
+    return s;
+}
+
+
+
 MalComplex::MalComplex(std::complex<mpf_class> c): MalNumber(""), internal_value(c)
 {
     mp_exp_t rexp, iexp;
@@ -199,15 +214,16 @@ MalComplex::MalComplex(std::string r): MalNumber(r)
     // the start of the imaginary part.
     do
     {
-        ch = repr[curr++];
         real_repr += ch;
+        ch = repr[curr++];
     }
     while ((isdigit(ch) || ch == '.') && curr < repr.length());
+
 
     // if there is no imaginary part, assume imaginary_part == 0
     if (curr == repr.length())
     {
-        internal_value = std::complex<mpf_class>(mpf_class(real_repr), 0);
+        imag_repr = "+0i";
     }
     else
     {
@@ -217,14 +233,14 @@ MalComplex::MalComplex(std::string r): MalNumber(r)
         }
         else
         {
-            if (ch == '-')
-            {
-                imag_repr += ch;
-            }
+            // if (ch == '-')
+            // {
+            //     imag_repr += ch;
+            // }
             do
             {
-                ch = repr[curr++];
                 imag_repr += ch;
+                ch = repr[curr++];
             }
             while ((isdigit(ch) || ch == '.') && curr < repr.length());
 
@@ -234,6 +250,12 @@ MalComplex::MalComplex(std::string r): MalNumber(r)
             }
         }
     }
+    real_repr += "e1";
+    std::cout << "real part: " << real_repr << std::endl;
+    mpf_class real_value(real_repr);
+    imag_repr += "e1";
+    std::cout << ", imag part: " << imag_repr << std::endl;
+    mpf_class imag_value(imag_repr);
 
-    internal_value = std::complex<mpf_class>(mpf_class(real_repr), mpf_class(imag_repr));
+    internal_value = std::complex<mpf_class>(real_value, imag_value);
 }

@@ -238,7 +238,7 @@ void read_fractional(std::string input_stream, std::string leading, TokenVector&
         throw new InvalidNumberException(s + ch);
     }
     else if (s_index < input_stream.length() || isspace(ch) || is_right_balanced(ch) || ch == ',')
-    {
+    { 
         s_index--;
     }
     else
