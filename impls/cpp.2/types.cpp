@@ -230,19 +230,25 @@ MalComplex::MalComplex(std::string r): MalNumber(r)
     {
         ch = repr[curr++];
     }
-    
+
     bool is_before_decimal = true;
 
-    while ((isdigit(ch) || ch == '.') && curr < repr.length() && is_before_decimal)
+    while ((isdigit(ch) || ch == '.') && curr < repr.length())
     {
         if (ch == '.')
         {
-            is_before_decimal = true;
+            if (is_before_decimal)
+            {
+                is_before_decimal = false;
+            }
+            else
+            {
+                throw new InvalidComplexNumberException(repr);
+            }
         }
         real_repr += ch;
         ch = repr[curr++];
     }
-
 
     // if there is no imaginary part, assume imaginary_part == 0
     if (curr == repr.length())
@@ -261,6 +267,11 @@ MalComplex::MalComplex(std::string r): MalNumber(r)
             {
                 ch = repr[curr++];
             }
+            else if (ch == '-')
+            {
+                imag_repr += ch;
+                ch = repr[curr++];
+            }
 
             is_before_decimal = true;
 
@@ -268,9 +279,15 @@ MalComplex::MalComplex(std::string r): MalNumber(r)
             {
                 if (ch == '.')
                 {
-                    is_before_decimal = true;
+                    if (is_before_decimal)
+                    {
+                        is_before_decimal = false;
+                    }
+                    else
+                    {
+                        throw new InvalidComplexNumberException(repr);
+                    }
                 }
-
                 imag_repr += ch;
                 ch = repr[curr++];
             }
@@ -287,6 +304,13 @@ MalComplex::MalComplex(std::string r): MalNumber(r)
     mpf_class imag_value(imag_repr);
 
     internal_value = std::complex<mpf_class>(real_value, imag_value);
+
+    mp_exp_t rexp, iexp;
+    char imag_sign = (internal_value.imag() < 0) ? '-' : '+';
+    std::string real_mantissa = internal_value.real().get_str(rexp);
+    std::string imag_mantissa = internal_value.imag().get_str(iexp);
+    repr = std::to_string(rexp) + (real_mantissa == "0" ? "" : '.' + real_mantissa)
+            + imag_sign + std::to_string(iexp) + (imag_mantissa == "0" ? "" : '.' + imag_mantissa) + 'i';
 }
 
 
