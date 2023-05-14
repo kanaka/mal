@@ -176,6 +176,12 @@ void read_decimal(std::string input_stream, char leading, TokenVector& tokens)
     std::string s = "";
     char ch = leading;
 
+    if (ch == '-' || ch == '+')
+    {
+        s += ch;
+        ch = input_stream[s_index++];
+    }
+
     while (isdigit(ch) && s_index < input_stream.length())
     {
         s += ch;

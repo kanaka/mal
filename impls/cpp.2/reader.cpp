@@ -117,7 +117,7 @@ TokenVector tokenize(std::string input_stream)
                     read_string(input_stream, ch, tokens);
                     break;
                 default:
-                    if (isdigit(ch))
+                    if (isdigit(ch) || ch == '-')
                     {
                         read_number(input_stream, ch, tokens);
                     }

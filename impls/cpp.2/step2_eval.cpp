@@ -100,6 +100,10 @@ int main()
         {
             std::cout << "(EOF|end of input|unbalanced)."  << '\n';
         }
+        catch(InvalidComplexNumberException* e)
+        {
+            std::cout << "(invalid complex number): " << e->value() << "." << '\n';
+        }
         catch(InvalidNumberException* e)
         {
             std::cout << "(invalid number): " << e->value() << "." << '\n';

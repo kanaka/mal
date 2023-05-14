@@ -330,6 +330,7 @@ class MalComplex: public MalNumber
 public:
     MalComplex(std::string r);
     MalComplex(std::complex<mpf_class> c);
+    virtual std::string value();
     virtual MalTypeName type() {return MAL_COMPLEX;};
     virtual std::complex<mpf_class> numeric_value() { return internal_value;};
 protected:

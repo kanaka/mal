@@ -185,6 +185,11 @@ std::string MalFractional::value()
 {
     mp_exp_t decimal;
     std::string v = internal_value.get_str(decimal);
+    if (internal_value < 0)
+    {
+        decimal++;
+    }
+
     std::string s = v.substr(0, decimal) + '.' + v.substr(decimal);
 
     return s;
@@ -203,6 +208,7 @@ MalComplex::MalComplex(std::complex<mpf_class> c): MalNumber(""), internal_value
 }
 
 
+
 MalComplex::MalComplex(std::string r): MalNumber(r)
 {
     std::string real_repr = "";
@@ -212,12 +218,30 @@ MalComplex::MalComplex(std::string r): MalNumber(r)
 
     // collect the real part, seeking for the plus or minus sign that indicates
     // the start of the imaginary part.
-    do
+
+    ch = repr[curr++];
+
+    if (ch == '-')
     {
         real_repr += ch;
         ch = repr[curr++];
     }
-    while ((isdigit(ch) || ch == '.') && curr < repr.length());
+    else if (ch == '+')
+    {
+        ch = repr[curr++];
+    }
+    
+    bool is_before_decimal = true;
+
+    while ((isdigit(ch) || ch == '.') && curr < repr.length() && is_before_decimal)
+    {
+        if (ch == '.')
+        {
+            is_before_decimal = true;
+        }
+        real_repr += ch;
+        ch = repr[curr++];
+    }
 
 
     // if there is no imaginary part, assume imaginary_part == 0
@@ -233,16 +257,24 @@ MalComplex::MalComplex(std::string r): MalNumber(r)
         }
         else
         {
-            // if (ch == '-')
-            // {
-            //     imag_repr += ch;
-            // }
-            do
+            if (ch == '+')
             {
+                ch = repr[curr++];
+            }
+
+            is_before_decimal = true;
+
+            while ((isdigit(ch) || ch == '.') && curr < repr.length())
+            {
+                if (ch == '.')
+                {
+                    is_before_decimal = true;
+                }
+
                 imag_repr += ch;
                 ch = repr[curr++];
             }
-            while ((isdigit(ch) || ch == '.') && curr < repr.length());
+
 
             if (ch != 'i')
             {
@@ -250,12 +282,47 @@ MalComplex::MalComplex(std::string r): MalNumber(r)
             }
         }
     }
-    real_repr += "e1";
-    std::cout << "real part: " << real_repr << std::endl;
+
     mpf_class real_value(real_repr);
-    imag_repr += "e1";
-    std::cout << ", imag part: " << imag_repr << std::endl;
     mpf_class imag_value(imag_repr);
 
     internal_value = std::complex<mpf_class>(real_value, imag_value);
+}
+
+
+std::string MalComplex::value()
+{
+    mp_exp_t real_decimal;
+    std::string v = internal_value.real().get_str(real_decimal);
+
+    if (internal_value.real() < 0)
+    {
+        real_decimal++;
+    }
+
+    std::string real_mantissa = v.substr(real_decimal);
+
+    if (real_mantissa.length() > 0)
+    {
+        real_mantissa = '.' + real_mantissa;
+    }
+
+    std::string real_repr = v.substr(0, real_decimal) + real_mantissa;
+
+    mp_exp_t imag_decimal;
+    v = internal_value.imag().get_str(imag_decimal);
+    if (internal_value.imag() < 0)
+    {
+        imag_decimal++;
+    }
+
+    std::string imag_mantissa = v.substr(imag_decimal);
+
+    if (imag_mantissa.length() > 0)
+    {
+        imag_mantissa = '.' + imag_mantissa;
+    }
+
+    std::string imag_repr = v.substr(0, imag_decimal) + imag_mantissa;
+    return real_repr + (internal_value.imag() < 0 ? "" : "+") + imag_repr + 'i';
 }
