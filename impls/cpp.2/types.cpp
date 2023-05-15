@@ -94,11 +94,11 @@ std::string TokenVector::types()
         }
         if (it->get()->type() == MAL_LIST)
         {
-            s += "List (" + it->get()->raw_value().types() + ")";
+            s += "List(" + it->get()->raw_value().types() + ")";
         }
         else if (it->get()->type() == MAL_VECTOR)
         {
-            s += "Vector [" + it->get()->raw_value().types() + "]";
+            s += "Vector[" + it->get()->raw_value().types() + "]";
         }
         else
         {

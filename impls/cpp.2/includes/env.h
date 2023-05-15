@@ -14,47 +14,7 @@
 #include "types.h"
 
 
-enum Env_Element_Type {ENV_SYMBOL, ENV_PRIMITIVE, ENV_PROCEDURE};
-
-
-
-class Env_Symbol
-{
-public:
-    Env_Symbol(MalPtr s, MalPtr v = nullptr);
-    virtual Env_Element_Type type() {return ENV_SYMBOL;};
-    virtual MalSymbol symbol() {return sym;};
-    virtual MalPtr value() {return val;};
-    virtual TokenVector apply(TokenVector& args) {return args;};
-protected:
-    MalSymbol sym;
-    MalPtr val;
-};
-
-
-class Env_Primitive: public Env_Symbol
-{
-public:
-    Env_Primitive(MalPtr s, std::function<TokenVector(TokenVector&)>& f, int a): Env_Symbol(s), fn(f), arity(a) {};
-    virtual Env_Element_Type type() {return ENV_PRIMITIVE;};
-    virtual TokenVector apply(TokenVector& args);
-protected:
-    std::function<TokenVector(TokenVector&)> fn;
-    int arity;
-};
-
-
-class Env_Procedure: public Env_Symbol
-{
-public:
-    Env_Procedure(MalPtr s, TokenVector& f, int a): Env_Symbol(s), fn(f), arity(a) {};
-    virtual Env_Element_Type type() {return ENV_PROCEDURE;};
-    virtual TokenVector apply(TokenVector& args);
-protected:
-    TokenVector fn;
-    int arity;
-};
-
+class Env_Symbol;
 
 typedef std::shared_ptr<Env_Symbol> EnvPtr;
 
@@ -72,6 +32,50 @@ public:
 private:
     std::vector<EnvPtr> env;
 };
+
+
+
+enum Env_Element_Type {ENV_SYMBOL, ENV_PRIMITIVE, ENV_PROCEDURE};
+
+
+
+class Env_Symbol
+{
+public:
+    Env_Symbol(MalPtr s, MalPtr v = nullptr);
+    virtual Env_Element_Type type() {return ENV_SYMBOL;};
+    virtual MalSymbol symbol() {return sym;};
+    virtual MalPtr value() {return val;};
+    virtual TokenVector apply(TokenVector& args, Environment env) {env.size(); return args;};
+protected:
+    MalSymbol sym;
+    MalPtr val;
+};
+
+
+class Env_Primitive: public Env_Symbol
+{
+public:
+    Env_Primitive(MalPtr s, std::function<TokenVector(TokenVector, Environment)>& f, int a): Env_Symbol(s), fn(f), arity(a) {};
+    virtual Env_Element_Type type() {return ENV_PRIMITIVE;};
+    virtual TokenVector apply(TokenVector& args, Environment env);
+protected:
+    std::function<TokenVector(TokenVector, Environment)> fn;
+    int arity;
+};
+
+
+class Env_Procedure: public Env_Symbol
+{
+public:
+    Env_Procedure(MalPtr s, TokenVector& f, int a): Env_Symbol(s), fn(f), arity(a) {};
+    virtual Env_Element_Type type() {return ENV_PROCEDURE;};
+    virtual TokenVector apply(TokenVector& args, Environment env);
+protected:
+    TokenVector fn;
+    int arity;
+};
+
 
 
 extern Environment global_env;

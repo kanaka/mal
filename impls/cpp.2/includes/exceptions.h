@@ -110,8 +110,20 @@ public:
 class InvalidFunctionArgumentException
 {
 public:
-    InvalidFunctionArgumentException() {};
+    InvalidFunctionArgumentException(std::string sym): symbol_value(sym) {};
+    std::string value() const { return symbol_value; };
+protected:
+    std::string symbol_value;
 };
+
+
+class MissingFunctionArgumentException
+{
+public:
+    MissingFunctionArgumentException() {};
+};
+
+
 
 class TooManyInputsException
 {

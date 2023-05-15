@@ -115,6 +115,14 @@ int main()
         {
             std::cout << "(procedure not found): " << e->value() << "." << '\n';
         }
+        catch(InvalidFunctionArgumentException* e)
+        {
+            std::cout << "(invalid function argument): " << e->value() << "." << '\n';
+        }
+        catch(MissingFunctionArgumentException* e)
+        {
+            std::cout << "(missing function argument)." << '\n';
+        }
     }
     std::cout << "Exiting.\n";
 

@@ -15,7 +15,7 @@
 #include "env.h"
 
 
-TokenVector apply_fn(EnvPtr fn, TokenVector& args)
+TokenVector apply_fn(EnvPtr fn, TokenVector args, Environment env)
 {
     if (fn->type() != ENV_PRIMITIVE)
     {
@@ -23,13 +23,14 @@ TokenVector apply_fn(EnvPtr fn, TokenVector& args)
     }
     else
     {
-        return fn->apply(args);
+        return fn->apply(args, env);
     }
 }
 
 
-TokenVector apply_fn(TokenVector fn, TokenVector& args)
+TokenVector apply_fn(TokenVector fn, TokenVector args, Environment env)
 {
+    env.size();
     fn.append(args);
     return fn;
 }
