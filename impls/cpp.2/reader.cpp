@@ -116,8 +116,18 @@ TokenVector tokenize(std::string input_stream)
                 case '\"':
                     read_string(input_stream, ch, tokens);
                     break;
+                case '-':
+                    if (isdigit(input_stream[s_index]))
+                    {
+                        read_number(input_stream, ch, tokens);
+                    }
+                    else
+                    {
+                        read_symbol(input_stream, ch, tokens);
+                    }
+                    break;
                 default:
-                    if (isdigit(ch) || ch == '-')
+                    if (isdigit(ch))
                     {
                         read_number(input_stream, ch, tokens);
                     }

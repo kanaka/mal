@@ -55,6 +55,21 @@ private:
 };
 
 
+inline bool is_mal_numeric(MalTypeName type)
+{
+    return (type == MAL_NUMBER
+            || type == MAL_INTEGER
+            || type == MAL_SYSTEM_INTEGER
+            || type == MAL_BINARY
+            || type == MAL_OCTAL
+            || type == MAL_HEX
+            || type == MAL_FRACTIONAL
+            || type == MAL_RATIONAL
+            || type == MAL_COMPLEX);
+}
+
+
+
 class MalType
 {
 public:

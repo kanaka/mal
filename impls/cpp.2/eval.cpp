@@ -26,7 +26,6 @@ TokenVector eval_ast(TokenVector& input, Environment env)
     {
         case MAL_LIST:
             {
-                std::cout << "evaluating list " << input.peek()->value()  << std::endl;
                 TokenVector evlist = input.next()->raw_value();
                 return eval_list(evlist, env);
             }
