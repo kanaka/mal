@@ -10,17 +10,17 @@
 #include "parse_reader_macros.h"
 
 
-void read_tilde(std::string input_stream, TokenVector& tokens)
+void read_unquote(std::string input_stream, TokenVector& tokens)
 {
     char ch = input_stream[s_index++];
     if (ch == '@')
     {
-        read_reader_macro<MalTildeAt>(input_stream, tokens);
+        read_reader_macro<MalSpliceUnquote>(input_stream, tokens);
     }
     else
     {
         s_index--;
-        read_reader_macro<MalTilde>(input_stream, tokens);
+        read_reader_macro<MalUnquote>(input_stream, tokens);
     }
 }
 

@@ -22,7 +22,7 @@ enum MalTypeName
     MAL_STRING, MAL_CHAR, MAL_BOOLEAN,
     MAL_LIST, MAL_NULL, MAL_NIL, MAL_VECTOR, MAL_HASHMAP,
     MAL_PERIOD, MAL_COMMA,
-    MAL_READER_MACRO, MAL_AT, MAL_TILDE, MAL_TILDE_AT,
+    MAL_READER_MACRO, MAL_DEREF, MAL_UNQUOTE, MAL_SPLICE_UNQUOTE,
     MAL_QUOTE, MAL_QUASIQUOTE, MAL_META,
     MAL_NUMBER, MAL_SYSTEM_INTEGER, MAL_BINARY, MAL_OCTAL, MAL_HEX,
     MAL_INTEGER, MAL_FRACTIONAL, MAL_RATIONAL, MAL_COMPLEX,
@@ -103,29 +103,29 @@ protected:
 };
 
 
-class MalAt: public MalReaderMacro
+class MalDeref: public MalReaderMacro
 {
 public:
-    MalAt(const TokenVector& l): MalReaderMacro(l) {};
-    virtual MalTypeName type() {return MAL_AT;};
+    MalDeref(const TokenVector& l): MalReaderMacro(l) {};
+    virtual MalTypeName type() {return MAL_DEREF;};
     virtual std::string value() {return "(deref " + list.values() + ')';};
 };
 
 
-class MalTilde: public MalReaderMacro
+class MalUnquote: public MalReaderMacro
 {
 public:
-    MalTilde(const TokenVector& l): MalReaderMacro(l) {};
-    virtual MalTypeName type() {return MAL_TILDE;};
+    MalUnquote(const TokenVector& l): MalReaderMacro(l) {};
+    virtual MalTypeName type() {return MAL_UNQUOTE;};
     virtual std::string value() {return "(unquote " + list.values() + ')';};
 };
 
 
-class MalTildeAt: public MalReaderMacro
+class MalSpliceUnquote: public MalReaderMacro
 {
 public:
-    MalTildeAt(const TokenVector& l): MalReaderMacro(l) {};
-    virtual MalTypeName type() {return MAL_TILDE_AT;};
+    MalSpliceUnquote(const TokenVector& l): MalReaderMacro(l) {};
+    virtual MalTypeName type() {return MAL_SPLICE_UNQUOTE;};
     virtual std::string value() {return "(splice-unquote " + list.values() + ')';};
 };
 

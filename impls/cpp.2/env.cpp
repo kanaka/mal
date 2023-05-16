@@ -151,7 +151,6 @@ WARNING: This function uses downcasting of a pointer from it's parent class to t
 actual subclass. This is VERY questionable, which is partly why this code is isolated
 into a separate template function.
 */
-
 template <class MX, class X, class MY, class Y, class Z, class RET> TokenVector apply_arith_form(MalPtr x, MalPtr y, std::function<Z(Z, Z)> op)
 {
     TokenVector result;

@@ -72,6 +72,9 @@ TokenVector eval_ast(TokenVector& input, Environment env)
                 return eval_hashmap(hm, env);
             }
             break;
+        case MAL_QUASIQUOTE:
+            return eval_quasiquoted(input.next()->raw_value(), env);
+            break;
         default:
             return input;
     }
@@ -142,5 +145,37 @@ TokenVector eval_hashmap(HashMapInternal input, Environment env)
     TokenVector result;
     MalPtr new_hm = std::make_shared<MalHashmap>(resultant);
     result.append(new_hm);
+    return result;
+}
+
+
+TokenVector eval_quasiquoted(TokenVector& input, Environment env, bool islist)
+{
+    TokenVector elements, result;
+
+    for (MalPtr elem = input.next(); elem != nullptr; elem = input.next())
+    {
+        if (elem->type() == MAL_LIST)
+        {
+            elements.append(eval_quasiquoted(elem->raw_value(), env, true));
+        }
+
+        else if(elem->type() == MAL_UNQUOTE)
+        {
+            elements.append(eval_ast(elem->raw_value(), env));
+        }
+        else
+        {
+            elements.append(elem);
+        }
+    }
+    if (islist)
+    {
+        result.append(std::make_shared<MalList>(elements));
+    }
+    else
+    {
+        result.append(std::make_shared<MalQuasiquote>(elements));
+    }
     return result;
 }

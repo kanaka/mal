@@ -96,13 +96,13 @@ TokenVector tokenize(std::string input_stream)
                     tokens.append(std::make_shared<MalPeriod>());
                     break;
                 case '~':
-                    read_tilde(input_stream, tokens);
+                    read_unquote(input_stream, tokens);
                     break;
                 case ',':
                     continue;
                     break;
                 case '@':
-                    read_reader_macro<MalAt>(input_stream, tokens);
+                    read_reader_macro<MalDeref>(input_stream, tokens);
                     break;
                 case '\'':
                     read_reader_macro<MalQuote>(input_stream, tokens);
