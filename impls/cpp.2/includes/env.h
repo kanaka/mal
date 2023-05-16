@@ -81,7 +81,7 @@ protected:
 
 
 
-extern Environment global_env;
+extern Environment repl_env;
 
 void init_global_environment();
 

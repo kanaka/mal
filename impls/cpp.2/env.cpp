@@ -15,7 +15,7 @@
 #include "env.h"
 #include "apply.h"
 
-Environment global_env;
+Environment repl_env;
 
 
 Env_Symbol::Env_Symbol(MalPtr s, MalPtr v): val(v), n_ary(0)
@@ -919,9 +919,9 @@ std::function<TokenVector(TokenVector, Environment)> mal_modulo([](TokenVector t
 
 void init_global_environment()
 {
-    global_env.append(std::make_shared<Env_Primitive>(std::make_shared<MalSymbol>("+"), mal_plus, -2));
-    global_env.append(std::make_shared<Env_Primitive>(std::make_shared<MalSymbol>("-"), mal_minus, -1));
-    global_env.append(std::make_shared<Env_Primitive>(std::make_shared<MalSymbol>("*"), mal_multiply, -2));
-    global_env.append(std::make_shared<Env_Primitive>(std::make_shared<MalSymbol>("/"), mal_divide, 2));
-    global_env.append(std::make_shared<Env_Primitive>(std::make_shared<MalSymbol>("%"), mal_modulo, 2));
+    repl_env.append(std::make_shared<Env_Primitive>(std::make_shared<MalSymbol>("+"), mal_plus, -2));
+    repl_env.append(std::make_shared<Env_Primitive>(std::make_shared<MalSymbol>("-"), mal_minus, -1));
+    repl_env.append(std::make_shared<Env_Primitive>(std::make_shared<MalSymbol>("*"), mal_multiply, -2));
+    repl_env.append(std::make_shared<Env_Primitive>(std::make_shared<MalSymbol>("/"), mal_divide, 2));
+    repl_env.append(std::make_shared<Env_Primitive>(std::make_shared<MalSymbol>("%"), mal_modulo, 2));
 }
