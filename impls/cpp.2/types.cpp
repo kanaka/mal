@@ -6,7 +6,7 @@
 #include <string>
 #include <iostream>
 #include <memory>
-#include <map>
+#include <unordered_map>
 #include <cctype>
 #include <gmpxx.h>
 #include "types.h"
@@ -143,6 +143,12 @@ MalHashmap::MalHashmap(TokenVector hm): MalType("{hash}")
             }
         }
     }
+}
+
+// ugly hack that leaks the underlying representation, nasty
+MalHashmap::MalHashmap(std::unordered_map<std::string, std::shared_ptr<MalType> > hm): MalType("{hash}")
+{
+    hashmap = hm;
 }
 
 

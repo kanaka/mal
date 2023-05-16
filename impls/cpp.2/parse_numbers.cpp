@@ -302,6 +302,8 @@ void read_complex(std::string input_stream, std::string leading, char trailing, 
             if (!decimal_point_found)
             {
                 decimal_point_found = true;
+                s += ch;
+                ch = input_stream[s_index++];
             }
             else
             {

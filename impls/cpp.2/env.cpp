@@ -18,7 +18,7 @@
 Environment global_env;
 
 
-Env_Symbol::Env_Symbol(MalPtr s, MalPtr v): val(v)
+Env_Symbol::Env_Symbol(MalPtr s, MalPtr v): val(v), n_ary(0)
 {
     if (s != nullptr && s->type() == MAL_SYMBOL)
     {
@@ -35,9 +35,9 @@ Env_Symbol::Env_Symbol(MalPtr s, MalPtr v): val(v)
 TokenVector Env_Primitive::apply(TokenVector& args, Environment env)
 {
     TokenVector result;
-    size_t effective_arity = abs(arity);
+    size_t effective_arity = abs(arity());
 
-    if ((args.size() == effective_arity + 1) || (arity < 0 && args.size() >= effective_arity))
+    if ((args.size() == effective_arity + 1) || (arity() < 0 && args.size() >= effective_arity))
     {
         return fn(eval_ast(args, env), env);
     }
@@ -55,9 +55,9 @@ TokenVector Env_Primitive::apply(TokenVector& args, Environment env)
 TokenVector Env_Procedure::apply(TokenVector& args, Environment env)
 {
     TokenVector result;
-    size_t effective_arity = abs(arity);
+    size_t effective_arity = abs(arity());
 
-    if ((args.size() == effective_arity + 1) || (arity < 0 && args.size() >= effective_arity))
+    if ((args.size() == effective_arity + 1) || (arity() < 0 && args.size() >= effective_arity))
     {
         return apply_fn(fn, args, env);
     }
@@ -144,11 +144,21 @@ template <class T> std::function<T(T, T)> apply_modulo([](T x, T y)->T
     return x % y;
 });
 
+/* apply_arith_form - utility class that encapsulated part of the repetitive code
+used in the arithmetic operation primitives.
 
+WARNING: This function uses downcasting of a pointer from it's parent class to the
+actual subclass. This is VERY questionable, which is partly why this code is isolated
+into a separate template function.
+*/
 
 template <class MX, class X, class MY, class Y, class Z, class RET> TokenVector apply_arith_form(MalPtr x, MalPtr y, std::function<Z(Z, Z)> op)
 {
     TokenVector result;
+
+    // WARNING: this code down-casts the parameters x and y to their
+    // respective types, then immeditately discards the resulting pointers.
+    // Take care in modifiying this code, if at all!
     Z xp((dynamic_cast<MX*>(&(*x)))->numeric_value());
     Z yp((dynamic_cast<MY*>(&(*y)))->numeric_value());
     result.append(std::make_shared<RET>(op(xp, yp)));

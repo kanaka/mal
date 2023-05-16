@@ -123,6 +123,10 @@ int main()
         {
             std::cout << "(missing function argument)." << '\n';
         }
+        catch(SymbolNotInitializedException* e)
+        {
+            std::cout << "(unbound symbol): " << e->value() << "." << '\n';
+        }
     }
     std::cout << "Exiting.\n";
 

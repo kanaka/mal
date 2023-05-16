@@ -159,5 +159,15 @@ protected:
 };
 
 
+class SymbolNotInitializedException
+{
+public:
+    SymbolNotInitializedException(std::string sym): symbol_value(sym) {};
+    std::string value() const { return symbol_value; };
+protected:
+    std::string symbol_value;
+};
+
+
 
 #endif

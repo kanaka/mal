@@ -181,7 +181,6 @@ void read_string(std::string input_stream, char leading, TokenVector& tokens)
     std::string s = "";
     char ch = leading;
 
-    s += ch;
     ch = input_stream[s_index++];
     while ((ch != '\"') && s_index < input_stream.length())
     {
@@ -207,7 +206,6 @@ void read_string(std::string input_stream, char leading, TokenVector& tokens)
     {
         throw new UnbalancedStringException();
     }
-    s += ch;
 
     tokens.append(std::make_shared<MalString>(s));
 }

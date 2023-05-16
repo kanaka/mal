@@ -47,34 +47,36 @@ public:
     virtual Env_Element_Type type() {return ENV_SYMBOL;};
     virtual MalSymbol symbol() {return sym;};
     virtual MalPtr value() {return val;};
+    virtual int arity() {return n_ary;};
     virtual TokenVector apply(TokenVector& args, Environment env) {env.size(); return args;};
 protected:
     MalSymbol sym;
     MalPtr val;
+    int n_ary;
 };
 
 
 class Env_Primitive: public Env_Symbol
 {
 public:
-    Env_Primitive(MalPtr s, std::function<TokenVector(TokenVector, Environment)>& f, int a): Env_Symbol(s), fn(f), arity(a) {};
+    Env_Primitive(MalPtr s, std::function<TokenVector(TokenVector, Environment)>& f, int a): Env_Symbol(s), fn(f) {n_ary = a;};
     virtual Env_Element_Type type() {return ENV_PRIMITIVE;};
     virtual TokenVector apply(TokenVector& args, Environment env);
+
 protected:
     std::function<TokenVector(TokenVector, Environment)> fn;
-    int arity;
 };
 
 
 class Env_Procedure: public Env_Symbol
 {
 public:
-    Env_Procedure(MalPtr s, TokenVector& f, int a): Env_Symbol(s), fn(f), arity(a) {};
+    Env_Procedure(MalPtr s, TokenVector& f, int a): Env_Symbol(s), fn(f) {n_ary = a;};
     virtual Env_Element_Type type() {return ENV_PROCEDURE;};
     virtual TokenVector apply(TokenVector& args, Environment env);
+
 protected:
     TokenVector fn;
-    int arity;
 };
 
 

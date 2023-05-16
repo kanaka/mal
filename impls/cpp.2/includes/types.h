@@ -12,7 +12,7 @@
 #include <memory>
 #include <string>
 #include <vector>
-#include <map>
+#include <unordered_map>
 #include <gmpxx.h>
 
 
@@ -26,7 +26,7 @@ enum MalTypeName
     MAL_QUOTE, MAL_QUASIQUOTE, MAL_META,
     MAL_NUMBER, MAL_SYSTEM_INTEGER, MAL_BINARY, MAL_OCTAL, MAL_HEX,
     MAL_INTEGER, MAL_FRACTIONAL, MAL_RATIONAL, MAL_COMPLEX,
-    MAL_VARIADIC    // special-case marker for variadic functions in environment
+    MAL_PROCEDURE, MAL_PRIMITIVE
 };
 
 class MalType;
@@ -47,6 +47,7 @@ public:
     std::string types();
     MalPtr next();
     MalPtr peek();
+    void clear() {tokens.clear();};
     MalPtr operator[](unsigned int i);
 
 private:
@@ -68,7 +69,7 @@ inline bool is_mal_numeric(MalTypeName type)
             || type == MAL_COMPLEX);
 }
 
-
+typedef std::unordered_map<std::string, std::shared_ptr<MalType> > HashMapInternal;
 
 class MalType
 {
@@ -215,10 +216,12 @@ class MalHashmap: public MalType
 {
 public:
     MalHashmap(TokenVector hm);
+    MalHashmap(std::unordered_map<std::string, std::shared_ptr<MalType> > hm);
     virtual MalTypeName type() {return MAL_HASHMAP;};
     virtual std::string value();
+    HashMapInternal internal_map() {return hashmap;};
 private:
-    std::map<std::string, std::shared_ptr<MalType> > hashmap;
+    HashMapInternal hashmap;
 };
 
 
@@ -260,6 +263,7 @@ class MalString: public MalAtom
 public:
     MalString(std::string r): MalAtom(r) {};
     virtual MalTypeName type() {return MAL_STRING;};
+    virtual std::string value() {return "\"" + repr + "\"";};
 };
 
 
@@ -358,5 +362,27 @@ public:
 protected:
     std::complex<mpf_class> internal_value;
 };
+
+
+class MalProcedure: public MalSymbol
+{
+public:
+    MalProcedure(std::string r, int a): MalSymbol(r), arity(a) {};
+    virtual MalTypeName type() {return MAL_PROCEDURE;};
+    virtual std::string value() {return "<procedure (" + repr + " " + std::to_string(arity) + ")>";};
+protected:
+    int arity;
+};
+
+class MalPrimitive: public MalSymbol
+{
+public:
+    MalPrimitive(std::string r, int a): MalSymbol(r), arity(a) {};
+    virtual MalTypeName type() {return MAL_PRIMITIVE;};
+    virtual std::string value() {return "<primitive procedure (" + repr + " " + std::to_string(arity) + ")>";};
+protected:
+    int arity;
+};
+
 
 #endif
