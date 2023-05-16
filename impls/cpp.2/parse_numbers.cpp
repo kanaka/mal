@@ -292,12 +292,21 @@ void read_complex(std::string input_stream, std::string leading, char trailing, 
 
     s += ch;
     ch = input_stream[s_index++];
-    while ((isdigit(ch) || ch == 'i') && s_index < input_stream.length())
+    while (isdigit(ch) && s_index < input_stream.length())
     {
+        bool decimal_point_found = false;
         s += ch;
         ch = input_stream[s_index++];
         if (ch == '.')
         {
+            if (!decimal_point_found)
+            {
+                decimal_point_found = true;
+            }
+            else
+            {
+                throw new InvalidComplexNumberException(s);
+            }
             s += ch;
             ch = input_stream[s_index++];
         }

@@ -81,7 +81,7 @@ int main()
         }
         catch(IncompleteComplexNumberException* e)
         {
-            std::cout << "(EOF|end of input|unbalanced)."  << '\n';
+            std::cout << "(EOF|end of input|incomplete complex number)."  << '\n';
         }
         catch(IncompleteEscapeException* e)
         {

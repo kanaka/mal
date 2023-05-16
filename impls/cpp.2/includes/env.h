@@ -22,7 +22,7 @@ typedef std::shared_ptr<Env_Symbol> EnvPtr;
 class Environment
 {
 public:
-    Environment() {};
+    Environment(std::shared_ptr<Environment> p = nullptr): parent(p) {};
     void append(EnvPtr element);
     EnvPtr find(MalPtr p);
     size_t size() const {return env.size();};
@@ -30,6 +30,7 @@ public:
     std::string element_names();
 
 private:
+    std::shared_ptr<Environment> parent;
     std::vector<EnvPtr> env;
 };
 

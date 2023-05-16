@@ -80,7 +80,13 @@ EnvPtr Environment::find(MalPtr p)
                 return *it;
             }
         }
+
+        if (parent != nullptr)
+        {
+            return parent->find(p);
+        }
     }
+
 
     return nullptr;
 }
