@@ -42,16 +42,33 @@ std::string TokenVector::values()
 {
     std::string s = "";
 
-    for (std::vector<MalPtr>::iterator it = tokens.begin(); it != tokens.end(); ++it)
+    for (auto it = tokens.begin(); it != tokens.end(); ++it)
     {
         if (it != tokens.begin() && !(it->get()->type() == MAL_COMMA))
         {
-            s+= " ";
+            s += " ";
         }
         s += it->get()->value();
     }
     return s;
 }
+
+
+std::string TokenVector::values_remainder()
+{
+    std::string s = "";
+
+    for (auto i = current_token; i < tokens.size(); ++i)
+    {
+        if (i > current_token && !(tokens[i]->type() == MAL_COMMA))
+        {
+            s += " ";
+        }
+        s += tokens[i]->value();
+    }
+    return s;
+}
+
 
 
 MalPtr TokenVector::peek()

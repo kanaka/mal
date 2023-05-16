@@ -17,11 +17,17 @@
 #include "eval.h"
 
 
-
 TokenVector eval_ast(TokenVector& input, Environment env)
 {
     TokenVector result;
-    MalTypeName type = input.peek()->type();
+    MalPtr peek = input.peek();
+
+    if (peek == nullptr)
+    {
+        return result;
+    }
+
+    MalTypeName type = peek->type();
 
     switch (type)
     {
@@ -97,7 +103,7 @@ TokenVector eval_list(TokenVector& input, Environment env)
 
         if (procedure->type() == ENV_PRIMITIVE || procedure->type() == ENV_PROCEDURE)
         {
-            return apply_fn(procedure, eval_ast(input, env), env);
+            return apply_fn(procedure, input, env);
         }
         else
         {
@@ -106,7 +112,7 @@ TokenVector eval_list(TokenVector& input, Environment env)
     }
     else if(type == MAL_LIST)
     {
-        return apply_fn(eval_ast(input.next()->raw_value(), env), eval_ast(input, env), env);
+        return apply_fn(eval_ast(input.next()->raw_value(), env), input, env);
     }
     else
     {

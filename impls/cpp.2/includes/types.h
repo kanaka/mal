@@ -44,6 +44,7 @@ public:
     size_t append(MalPtr token);
     size_t append(const TokenVector& t);
     std::string values();
+    std::string values_remainder();
     std::string types();
     MalPtr next();
     MalPtr peek();

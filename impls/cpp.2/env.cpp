@@ -39,12 +39,11 @@ TokenVector Env_Primitive::apply(TokenVector& args, Environment env)
 
     if ((args.size() == effective_arity + 1) || (arity() < 0 && args.size() >= effective_arity))
     {
-        return fn(eval_ast(args, env), env);
+        return fn(args, env);
     }
     else
     {
-        return fn(eval_ast(args, env), env);
-        // throw new ArityMismatchException();
+        throw new ArityMismatchException();
     }
 
 
@@ -171,32 +170,33 @@ std::function<TokenVector(TokenVector, Environment)> mal_plus([](TokenVector tok
 
     if (x_peek != nullptr)
     {
-        TokenVector x_list;
+        TokenVector x_tokens;
 
         if (x_peek->type() == MAL_LIST)
         {
-            x_list = eval_list(tokens.next()->raw_value(), env);
+            x_tokens = eval_list(tokens.next()->raw_value(), env);
         }
         else
         {
-            x_list.append(tokens.next());
+            x_tokens.append(tokens.next());
         }
+
 
         MalPtr y_peek = tokens.peek();
         if (y_peek != nullptr)
         {
-            TokenVector y_list;
+            TokenVector y_tokens;
             if (y_peek->type() == MAL_LIST)
             {
-                y_list = eval_list(tokens.next()->raw_value(), env);
+                y_tokens = eval_list(tokens.next()->raw_value(), env);
             }
             else
             {
-                y_list.append(tokens.next());
+                y_tokens.append(tokens.next());
             }
 
-            MalPtr x = x_list.next();
-            MalPtr y = y_list.next();
+            MalPtr x = x_tokens.next();
+            MalPtr y = y_tokens.next();
 
             TokenVector result;
 
@@ -342,32 +342,32 @@ std::function<TokenVector(TokenVector, Environment)> mal_minus([](TokenVector to
 
     if (x_peek != nullptr)
     {
-        TokenVector x_list;
+        TokenVector x_tokens;
 
         if (x_peek->type() == MAL_LIST)
         {
-            x_list = eval_list(tokens.next()->raw_value(), env);
+            x_tokens = eval_list(tokens.next()->raw_value(), env);
         }
         else
         {
-            x_list.append(tokens.next());
+            x_tokens.append(tokens.next());
         }
 
         MalPtr y_peek = tokens.peek();
         if (y_peek != nullptr)
         {
-            TokenVector y_list;
+            TokenVector y_tokens;
             if (y_peek->type() == MAL_LIST)
             {
-                y_list = eval_list(tokens.next()->raw_value(), env);
+                y_tokens = eval_list(tokens.next()->raw_value(), env);
             }
             else
             {
-                y_list.append(tokens.next());
+                y_tokens.append(tokens.next());
             }
 
-            MalPtr x = x_list.next();
-            MalPtr y = y_list.next();
+            MalPtr x = x_tokens.next();
+            MalPtr y = y_tokens.next();
 
             TokenVector result;
 
@@ -513,32 +513,32 @@ std::function<TokenVector(TokenVector, Environment)> mal_multiply([](TokenVector
 
     if (x_peek != nullptr)
     {
-        TokenVector x_list;
+        TokenVector x_tokens;
 
         if (x_peek->type() == MAL_LIST)
         {
-            x_list = eval_list(tokens.next()->raw_value(), env);
+            x_tokens = eval_list(tokens.next()->raw_value(), env);
         }
         else
         {
-            x_list.append(tokens.next());
+            x_tokens.append(tokens.next());
         }
 
         MalPtr y_peek = tokens.peek();
         if (y_peek != nullptr)
         {
-            TokenVector y_list;
+            TokenVector y_tokens;
             if (y_peek->type() == MAL_LIST)
             {
-                y_list = eval_list(tokens.next()->raw_value(), env);
+                y_tokens = eval_list(tokens.next()->raw_value(), env);
             }
             else
             {
-                y_list.append(tokens.next());
+                y_tokens.append(tokens.next());
             }
 
-            MalPtr x = x_list.next();
-            MalPtr y = y_list.next();
+            MalPtr x = x_tokens.next();
+            MalPtr y = y_tokens.next();
 
             TokenVector result;
 
@@ -684,32 +684,32 @@ std::function<TokenVector(TokenVector, Environment)> mal_divide([](TokenVector t
 
     if (x_peek != nullptr)
     {
-        TokenVector x_list;
+        TokenVector x_tokens;
 
         if (x_peek->type() == MAL_LIST)
         {
-            x_list = eval_list(tokens.next()->raw_value(), env);
+            x_tokens = eval_list(tokens.next()->raw_value(), env);
         }
         else
         {
-            x_list.append(tokens.next());
+            x_tokens.append(tokens.next());
         }
 
         MalPtr y_peek = tokens.peek();
         if (y_peek != nullptr)
         {
-            TokenVector y_list;
+            TokenVector y_tokens;
             if (y_peek->type() == MAL_LIST)
             {
-                y_list = eval_list(tokens.next()->raw_value(), env);
+                y_tokens = eval_list(tokens.next()->raw_value(), env);
             }
             else
             {
-                y_list.append(tokens.next());
+                y_tokens.append(tokens.next());
             }
 
-            MalPtr x = x_list.next();
-            MalPtr y = y_list.next();
+            MalPtr x = x_tokens.next();
+            MalPtr y = y_tokens.next();
 
             TokenVector result;
 
@@ -855,32 +855,32 @@ std::function<TokenVector(TokenVector, Environment)> mal_modulo([](TokenVector t
 
     if (x_peek != nullptr)
     {
-        TokenVector x_list;
+        TokenVector x_tokens;
 
         if (x_peek->type() == MAL_LIST)
         {
-            x_list = eval_list(tokens.next()->raw_value(), env);
+            x_tokens = eval_ast(tokens.next()->raw_value(), env);
         }
         else
         {
-            x_list.append(tokens.next());
+            x_tokens.append(tokens.next());
         }
 
         MalPtr y_peek = tokens.peek();
         if (y_peek != nullptr)
         {
-            TokenVector y_list;
+            TokenVector y_tokens;
             if (y_peek->type() == MAL_LIST)
             {
-                y_list = eval_list(tokens.next()->raw_value(), env);
+                y_tokens = eval_list(tokens.next()->raw_value(), env);
             }
             else
             {
-                y_list.append(tokens.next());
+                y_tokens.append(tokens.next());
             }
 
-            MalPtr x = x_list.next();
-            MalPtr y = y_list.next();
+            MalPtr x = x_tokens.next();
+            MalPtr y = y_tokens.next();
 
             TokenVector result;
 
@@ -922,6 +922,6 @@ void init_global_environment()
     global_env.append(std::make_shared<Env_Primitive>(std::make_shared<MalSymbol>("+"), mal_plus, -2));
     global_env.append(std::make_shared<Env_Primitive>(std::make_shared<MalSymbol>("-"), mal_minus, -1));
     global_env.append(std::make_shared<Env_Primitive>(std::make_shared<MalSymbol>("*"), mal_multiply, -2));
-    global_env.append(std::make_shared<Env_Primitive>(std::make_shared<MalSymbol>("/"), mal_divide, -2));
-    global_env.append(std::make_shared<Env_Primitive>(std::make_shared<MalSymbol>("%"), mal_modulo, -2));
+    global_env.append(std::make_shared<Env_Primitive>(std::make_shared<MalSymbol>("/"), mal_divide, 2));
+    global_env.append(std::make_shared<Env_Primitive>(std::make_shared<MalSymbol>("%"), mal_modulo, 2));
 }
