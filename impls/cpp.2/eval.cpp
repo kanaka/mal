@@ -216,7 +216,7 @@ TokenVector eval_hashmap(HashMapInternal input, Environment env)
     {
         TokenVector temp;
         temp.append(element.second);
-        resultant.emplace(element.first, eval_ast(temp, env).next());
+        resultant.emplace(element.first, EVAL(temp, env).next());
         temp.clear();
     }
 
