@@ -17,7 +17,60 @@
 #include "eval.h"
 
 
-TokenVector eval_ast(TokenVector& input, Environment env)
+TokenVector EVAL(TokenVector input, Environment& env)
+{
+
+    if (input.empty())
+    {
+        return input;
+    }
+
+    auto type = input.peek()->type();
+
+    if (is_mal_container(type) || type == MAL_SYMBOL)
+    {
+        TokenVector result = eval_ast(input, env);
+
+
+        if (result.empty())
+        {
+            return result;
+        }
+        else
+        {
+            if (type == MAL_LIST)
+            {
+                TokenVector procedure, cdr;
+
+                if (result.peek() == nullptr || result.peek()->raw_value().empty())
+                {
+                    throw new ProcedureNotFoundException("");
+                }
+                procedure.append(result.next()->raw_value());
+                cdr.append(result.cdr());
+
+                EnvPtr fn = env.get(procedure[0]);
+                if (fn == nullptr)
+                {
+                    throw new ProcedureNotFoundException(procedure[0]->value());
+                }
+
+                return apply_fn(fn, cdr);
+            }
+            else
+            {
+                return result;
+            }
+        }
+    }
+    else
+    {
+        return input;
+    }
+}
+
+
+TokenVector eval_ast(TokenVector input, Environment env)
 {
     TokenVector result;
     MalPtr peek = input.peek();
@@ -34,34 +87,53 @@ TokenVector eval_ast(TokenVector& input, Environment env)
         case MAL_SYMBOL:
             {
                 MalPtr symbol = input.next();
-                EnvPtr p = env.find(symbol);
+
+                if (symbol == nullptr)
+                {
+                    throw new SymbolNotInitializedException("");
+                }
+
+                EnvPtr p = env.get(symbol);
+
                 if (p == nullptr)
                 {
                     throw new SymbolNotInitializedException(symbol->value());
                 }
-                else if (p->type() == ENV_PRIMITIVE)
+
+                if (p->type() == ENV_PRIMITIVE)
                 {
-                    MalPtr prim = std::make_shared<MalPrimitive>(p->value()->value(), p->arity());
+                    MalPtr prim = std::make_shared<MalPrimitive>(p->symbol().value(), p->arity());
                     result.append(prim);
-                    return result;
                 }
                 else if (p->type() == ENV_PROCEDURE)
                 {
                     MalPtr proc = std::make_shared<MalProcedure>(p->value()->value(), p->arity());
                     result.append(proc);
-                    return result;
+                }
+                else if (p->type() == ENV_SYMBOL)
+                {
+                    result.append(p->value());
                 }
                 else
                 {
-                    result.append(p->value());
-                    return result;
+                    throw new SymbolNotInitializedException("");
                 }
+                return result;
             }
             break;
         case MAL_LIST:
             {
-                TokenVector evlist = input.next()->raw_value();
-                return eval_list(evlist, env);
+                TokenVector sourcelist, evlist;
+                sourcelist = input.next()->raw_value();
+                for (auto elem = sourcelist.next(); elem != nullptr; elem = sourcelist.next())
+                {
+                    TokenVector temp;
+                    temp.append(elem);
+                    evlist.append(EVAL(temp, env));
+                    temp.clear();
+                }
+
+                return evlist;
             }
             break;
         case MAL_VECTOR:
@@ -86,7 +158,7 @@ TokenVector eval_ast(TokenVector& input, Environment env)
     }
 }
 
-
+/* 
 TokenVector eval_list(TokenVector& input, Environment env)
 {
     MalTypeName type = input.peek()->type();
@@ -118,15 +190,15 @@ TokenVector eval_list(TokenVector& input, Environment env)
     {
         return input;
     }
-}
+} */
 
-TokenVector eval_vec(TokenVector& input, Environment env)
+TokenVector eval_vec(TokenVector input, Environment env)
 {
     TokenVector temp, elements;
     for (MalPtr elem = input.next(); elem != nullptr; elem = input.next())
     {
         temp.append(elem);
-        elements.append(eval_ast(temp, env));
+        elements.append(EVAL(temp, env));
         temp.clear();
     }
 
@@ -155,7 +227,7 @@ TokenVector eval_hashmap(HashMapInternal input, Environment env)
 }
 
 
-TokenVector eval_quasiquoted(TokenVector& input, Environment env, bool islist)
+TokenVector eval_quasiquoted(TokenVector input, Environment env, bool islist)
 {
     TokenVector elements, result;
 

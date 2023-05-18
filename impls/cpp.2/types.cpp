@@ -40,16 +40,24 @@ MalPtr TokenVector::operator[](unsigned int i)
 
 std::string TokenVector::values()
 {
+    if (tokens.size() == 0) return "";
+
     std::string s = "";
 
-    for (auto it = tokens.begin(); it != tokens.end(); ++it)
+    bool rest = false;
+    for (auto elem : tokens)
     {
-        if (it != tokens.begin() && !(it->get()->type() == MAL_COMMA))
+        if (rest && !(elem->type() == MAL_COMMA))
         {
             s += " ";
         }
-        s += it->get()->value();
+        else
+        {
+            rest = true;
+        }
+        s += elem->value();
     }
+
     return s;
 }
 
@@ -69,6 +77,18 @@ std::string TokenVector::values_remainder()
     return s;
 }
 
+
+
+TokenVector TokenVector::cdr()
+{
+    TokenVector result;
+
+    for (auto i = current_token; i < tokens.size(); ++i)
+    {
+        result.append(tokens[i]);
+    }
+    return result;
+}
 
 
 MalPtr TokenVector::peek()
@@ -372,4 +392,19 @@ std::string MalComplex::value()
 
     std::string imag_repr = v.substr(0, imag_decimal) + imag_mantissa;
     return real_repr + (internal_value.imag() < 0 ? "" : "+") + imag_repr + 'i';
+}
+
+
+TokenVector MalProcedure::raw_value()
+{
+    TokenVector t;
+    t.append(std::make_shared<MalSymbol>(repr));
+    return t;
+}
+
+TokenVector MalPrimitive::raw_value()
+{
+    TokenVector t;
+    t.append(std::make_shared<MalSymbol>(repr));
+    return t;
 }

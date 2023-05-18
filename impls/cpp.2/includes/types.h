@@ -48,7 +48,9 @@ public:
     std::string types();
     MalPtr next();
     MalPtr peek();
+    TokenVector cdr();
     void clear() {tokens.clear();};
+    bool empty() {return tokens.size() == 0;};
     MalPtr operator[](unsigned int i);
 
 private:
@@ -70,7 +72,17 @@ inline bool is_mal_numeric(MalTypeName type)
             || type == MAL_COMPLEX);
 }
 
+inline bool is_mal_container(MalTypeName type)
+{
+    return (type == MAL_LIST
+            || type == MAL_VECTOR
+            || type == MAL_HASHMAP);
+}
+
+
+
 typedef std::unordered_map<std::string, std::shared_ptr<MalType> > HashMapInternal;
+
 
 class MalType
 {
@@ -78,7 +90,7 @@ public:
     MalType(std::string const r):repr(r) {};
     virtual std::string value() {return repr;};
     virtual MalTypeName type() {return MAL_TYPE;};
-    virtual TokenVector& raw_value() {TokenVector t, &r = t; return r;};
+    virtual TokenVector raw_value() {TokenVector t, &r = t; return r;};
 protected:
     std::string repr;
 };
@@ -97,7 +109,7 @@ public:
     MalReaderMacro(const TokenVector& l): MalType("Reader Macro"), list(l) {};
     virtual MalTypeName type() {return MAL_READER_MACRO;};
     virtual std::string value() {return list.values();};
-    virtual TokenVector& raw_value() {return list;};
+    virtual TokenVector raw_value() {return list;};
     MalPtr operator[](unsigned int i);
 protected:
     TokenVector list;
@@ -174,7 +186,7 @@ public:
     MalList(const TokenVector& l);
     virtual std::string value() {return "(" + list.values() + ")";};
     virtual MalTypeName type() {return MAL_LIST;};
-    virtual TokenVector& raw_value() {return list;};
+    virtual TokenVector raw_value() {return list;};
 private:
     TokenVector list;
 };
@@ -207,7 +219,7 @@ public:
     MalVector(const TokenVector& v);
     virtual std::string value() {return "[" + vec.values() + "]";};
     virtual MalTypeName type() {return MAL_VECTOR;};
-    virtual TokenVector& raw_value() {return vec;};
+    virtual TokenVector raw_value() {return vec;};
 private:
     TokenVector vec;
 };
@@ -371,6 +383,7 @@ public:
     MalProcedure(std::string r, int a): MalSymbol(r), arity(a) {};
     virtual MalTypeName type() {return MAL_PROCEDURE;};
     virtual std::string value() {return "<procedure (" + repr + " " + std::to_string(arity) + ")>";};
+    virtual TokenVector raw_value();
 protected:
     int arity;
 };
@@ -381,6 +394,7 @@ public:
     MalPrimitive(std::string r, int a): MalSymbol(r), arity(a) {};
     virtual MalTypeName type() {return MAL_PRIMITIVE;};
     virtual std::string value() {return "<primitive procedure (" + repr + " " + std::to_string(arity) + ")>";};
+    virtual TokenVector raw_value();
 protected:
     int arity;
 };

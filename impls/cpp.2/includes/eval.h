@@ -10,10 +10,12 @@
 #include "env.h"
 #include "types.h"
 
-TokenVector eval_ast(TokenVector& input, Environment env);
-TokenVector eval_list(TokenVector& input, Environment env);
-TokenVector eval_vec(TokenVector& input, Environment env);
+
+TokenVector EVAL(TokenVector input, Environment& env);
+TokenVector eval_ast(TokenVector input, Environment env);
+// TokenVector eval_list(TokenVector& input, Environment env);
+TokenVector eval_vec(TokenVector input, Environment env);
 TokenVector eval_hashmap(HashMapInternal input, Environment env);
-TokenVector eval_quasiquoted(TokenVector& input, Environment env, bool islist = false);
+TokenVector eval_quasiquoted(TokenVector input, Environment env, bool islist = false);
 
 #endif
