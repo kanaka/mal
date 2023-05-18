@@ -20,6 +20,16 @@ $(BIN)/parse_numbers.o $(BIN)/parse_sequences.o $(BIN)/parse_reader_macros.o \
 $(BIN)/eval.o $(BIN)/env.o $(BIN)/apply.o \
 -o $(BIN)/step2_eval
 
+
+step3_env: step2_eval.cpp lineedit reader printer types parse_numbers parse_sequences parse_reader_macros eval env apply
+	$(CC) $(FLAGS) -I$(INC) $(LIBS) step3_env.cpp \
+$(BIN)/lineedit.o $(BIN)/reader.o $(BIN)/types.o $(BIN)/printer.o \
+$(BIN)/parse_numbers.o $(BIN)/parse_sequences.o $(BIN)/parse_reader_macros.o \
+$(BIN)/eval.o $(BIN)/env.o $(BIN)/apply.o \
+-o $(BIN)/step3_env
+
+
+
 eval: eval.cpp types env apply
 	$(CC) $(FLAGS) -I$(INC) $(LIBS) -c eval.cpp -o $(BIN)/eval.o
 

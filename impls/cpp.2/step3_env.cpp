@@ -3,9 +3,11 @@
    'LICENSE' in the implementation subdirectory.
 */
 
+#include <exception>
 #include <functional>
 #include <iostream>
 #include <memory>
+#include <new>
 #include <string>
 #include <vector>
 #include <cstdlib>
@@ -16,16 +18,9 @@
 #include "eval.h"
 #include "env.h"
 
-
 TokenVector READ(std::string input)
 {
     return read_str(input);
-}
-
-
-TokenVector EVAL(TokenVector input, Environment& env)
-{
-    return eval_ast(input, env);
 }
 
 
@@ -127,6 +122,11 @@ int main()
         catch(SymbolNotInitializedException* e)
         {
             std::cout << "(unbound symbol): " << e->value() << "." << '\n';
+        }
+
+        catch(std::exception *e)
+        {
+            std::cout << e->what() << "." << '\n';
         }
     }
     std::cout << "Exiting.\n";
