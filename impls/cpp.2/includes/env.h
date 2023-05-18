@@ -23,6 +23,7 @@ class Environment
 {
 public:
     Environment(std::shared_ptr<Environment> p = nullptr): parent(p) {};
+    Environment(std::shared_ptr<Environment> p, TokenVector binds, TokenVector exprs);
     void set(EnvPtr element);
     void set(std::string symbol, MalPtr value);
     void set(MalPtr symbol, MalPtr value);

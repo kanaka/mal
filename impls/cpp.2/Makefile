@@ -21,13 +21,21 @@ $(BIN)/eval.o $(BIN)/env.o $(BIN)/apply.o \
 -o $(BIN)/step2_eval
 
 
-step3_env: step2_eval.cpp lineedit reader printer types parse_numbers parse_sequences parse_reader_macros eval env apply
+step3_env: step3_env.cpp lineedit reader printer types parse_numbers parse_sequences parse_reader_macros eval env apply
 	$(CC) $(FLAGS) -I$(INC) $(LIBS) step3_env.cpp \
 $(BIN)/lineedit.o $(BIN)/reader.o $(BIN)/types.o $(BIN)/printer.o \
 $(BIN)/parse_numbers.o $(BIN)/parse_sequences.o $(BIN)/parse_reader_macros.o \
 $(BIN)/eval.o $(BIN)/env.o $(BIN)/apply.o \
 -o $(BIN)/step3_env
 
+
+
+step4_if_fn_do: step4_if_fn_do.cpp lineedit reader printer types parse_numbers parse_sequences parse_reader_macros eval env apply
+	$(CC) $(FLAGS) -I$(INC) $(LIBS) step4_if_fn_do.cpp \
+$(BIN)/lineedit.o $(BIN)/reader.o $(BIN)/types.o $(BIN)/printer.o \
+$(BIN)/parse_numbers.o $(BIN)/parse_sequences.o $(BIN)/parse_reader_macros.o \
+$(BIN)/eval.o $(BIN)/env.o $(BIN)/apply.o \
+-o $(BIN)/step4_if_fn_do
 
 
 eval: eval.cpp types env apply

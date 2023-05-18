@@ -42,6 +42,18 @@ TokenVector EVAL(TokenVector input, Environment& env)
         {
             return eval_let(input.next()->raw_value(), env);
         }
+        else if (form == "do")
+        {
+            return eval_do(input.next()->raw_value(), env);
+        }
+        else if (form == "if")
+        {
+            return eval_if(input.next()->raw_value(), env);
+        }
+        else if (form == "fn*")
+        {
+            return eval_fn(input.next()->raw_value(), env);
+        }
         else
         {
             TokenVector result = eval_ast(input, env);
@@ -344,4 +356,56 @@ TokenVector eval_quasiquoted(TokenVector input, Environment env, bool islist)
         result.append(std::make_shared<MalQuasiquote>(elements));
     }
     return result;
+}
+
+
+TokenVector eval_do(TokenVector input, Environment& env)
+{
+    auto discard = input.next();       // discard the 'do' symbol
+    TokenVector final_value;
+    for (auto element = input.next(); element != nullptr; element = input.next())
+    {
+        final_value.clear();
+        final_value.append(element);
+        EVAL(final_value, env);
+    }
+    return final_value;
+}
+
+TokenVector eval_if(TokenVector input, Environment& env)
+{
+    auto discard = input.next();    // discard the 'if' symbol
+    TokenVector test;
+    test.append(input.next());
+    auto clause = EVAL(test, env).next();
+
+    if (clause->value() != "false" && clause->value() != "nil" && clause->value() != "()")
+    {
+        TokenVector temp;
+        temp.append(input.next());
+        return EVAL(temp, env);
+    }
+    else
+    {
+        discard = input.next();      // discard the true condition
+        if (input.peek() == nullptr)
+        {
+            TokenVector temp;
+            temp.append(clause);
+            return temp;
+        }
+        else
+        {
+            TokenVector temp;
+            temp.append(input.next());
+            return EVAL(temp, env);
+        }
+    }
+}
+
+
+TokenVector eval_fn(TokenVector input, Environment& env)
+{
+    env.size();
+    return input;
 }

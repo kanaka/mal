@@ -74,6 +74,23 @@ TokenVector Env_Procedure::apply(TokenVector& args)
 }
 
 
+Environment::Environment(std::shared_ptr<Environment> p, TokenVector binds, TokenVector exprs): parent(p)
+{
+    if (binds.size() != exprs.size())
+    {
+        throw new UnequalBindExprListsException(binds.values(), exprs.values());
+    }
+    else
+    {
+        for (size_t i = 0; i < binds.size(); i++)
+        {
+            this->set(binds[i], exprs[i]);
+        }
+    }
+}
+
+
+
 bool Environment::find(MalPtr p, bool local)
 {
     if (p->type() == MAL_SYMBOL)
