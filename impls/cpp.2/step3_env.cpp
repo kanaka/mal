@@ -121,7 +121,7 @@ int main()
         }
         catch(SymbolNotInitializedException* e)
         {
-            std::cout << ".*\\'?" << e->value() << "\\'? not found.*" << "\n";
+            std::cout << "'" << e->value() << "' not found" << "\n";
         }
         catch(InvalidDefineException* e)
         {
