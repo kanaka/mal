@@ -48,6 +48,7 @@ public:
     std::string types();
     MalPtr next();
     MalPtr peek();
+    MalPtr car() {return tokens[0];};
     TokenVector cdr();
     void clear() {tokens.clear();};
     bool empty() {return tokens.size() == 0;};

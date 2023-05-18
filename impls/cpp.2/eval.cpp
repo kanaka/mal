@@ -19,7 +19,6 @@
 
 TokenVector EVAL(TokenVector input, Environment& env)
 {
-
     if (input.empty())
     {
         return input;
@@ -27,39 +26,56 @@ TokenVector EVAL(TokenVector input, Environment& env)
 
     auto type = input.peek()->type();
 
-    if (is_mal_container(type) || type == MAL_SYMBOL)
+    if (type == MAL_SYMBOL || type == MAL_VECTOR || type == MAL_HASHMAP)
     {
-        TokenVector result = eval_ast(input, env);
+        return eval_ast(input, env);
+    }
+    else if (type == MAL_LIST)
+    {
+        auto form = input.peek()->raw_value().car()->value();
 
-
-        if (result.empty())
+        if (form == "def!")
         {
-            return result;
+            return eval_def(input.next()->raw_value(), env);
+        }
+        else if (form == "let*")
+        {
+            return eval_let(input.next()->raw_value(), env);
         }
         else
         {
-            if (type == MAL_LIST)
+            TokenVector result = eval_ast(input, env);
+
+            if (result.empty())
             {
-                TokenVector procedure, cdr;
-
-                if (result.peek() == nullptr || result.peek()->raw_value().empty())
-                {
-                    throw new ProcedureNotFoundException("");
-                }
-                procedure.append(result.next()->raw_value());
-                cdr.append(result.cdr());
-
-                EnvPtr fn = env.get(procedure[0]);
-                if (fn == nullptr)
-                {
-                    throw new ProcedureNotFoundException(procedure[0]->value());
-                }
-
-                return apply_fn(fn, cdr);
+                return result;
             }
             else
             {
-                return result;
+                if (type == MAL_LIST)
+                {
+                    if (result.peek() == nullptr || result.peek()->raw_value().empty())
+                    {
+                        throw new ProcedureNotFoundException("");
+                    }
+                    else
+                    {
+                        TokenVector procedure, cdr;
+                        cdr.append(result.cdr());
+
+                        EnvPtr fn = env.get(result.car());
+                        if (fn == nullptr)
+                        {
+                            throw new ProcedureNotFoundException(procedure[0]->value());
+                        }
+
+                        return apply_fn(fn, cdr);
+                    }
+                }
+                else
+                {
+                    return result;
+                }
             }
         }
     }
@@ -70,7 +86,7 @@ TokenVector EVAL(TokenVector input, Environment& env)
 }
 
 
-TokenVector eval_ast(TokenVector input, Environment env)
+TokenVector eval_ast(TokenVector input, Environment& env)
 {
     TokenVector result;
     MalPtr peek = input.peek();
@@ -158,41 +174,8 @@ TokenVector eval_ast(TokenVector input, Environment env)
     }
 }
 
-/* 
-TokenVector eval_list(TokenVector& input, Environment env)
-{
-    MalTypeName type = input.peek()->type();
 
-    if (type == MAL_SYMBOL)
-    {
-        MalPtr proc_ptr = input.next();
-        EnvPtr procedure = env.find(proc_ptr);
-
-        if (procedure == nullptr)
-        {
-            throw new ProcedureNotFoundException(proc_ptr->value());
-        }
-
-        if (procedure->type() == ENV_PRIMITIVE || procedure->type() == ENV_PROCEDURE)
-        {
-            return apply_fn(procedure, input, env);
-        }
-        else
-        {
-            throw new ApplyingNonFunctionException(procedure->value()->value());
-        }
-    }
-    else if(type == MAL_LIST)
-    {
-        return apply_fn(eval_ast(input.next()->raw_value(), env), input, env);
-    }
-    else
-    {
-        return input;
-    }
-} */
-
-TokenVector eval_vec(TokenVector input, Environment env)
+TokenVector eval_vec(TokenVector input, Environment& env)
 {
     TokenVector temp, elements;
     for (MalPtr elem = input.next(); elem != nullptr; elem = input.next())
@@ -208,7 +191,7 @@ TokenVector eval_vec(TokenVector input, Environment env)
     return result;
 }
 
-TokenVector eval_hashmap(HashMapInternal input, Environment env)
+TokenVector eval_hashmap(HashMapInternal input, Environment& env)
 {
     HashMapInternal resultant;
 
@@ -225,6 +208,97 @@ TokenVector eval_hashmap(HashMapInternal input, Environment env)
     result.append(new_hm);
     return result;
 }
+
+
+TokenVector eval_def(TokenVector input, Environment& env)
+{
+    if (input.next()->value() == "def!")
+    {
+        auto symbol = input.next();
+
+        if (symbol == nullptr || symbol->type() != MAL_SYMBOL)
+        {
+            throw new InvalidDefineException(input.values());
+        }
+
+        auto val_ptr = input.next();
+        TokenVector val_vec;
+        val_vec.append(val_ptr);
+        auto value = EVAL(val_vec, env);
+
+        env.set(symbol, value.next());
+
+        return value;
+    }
+    else
+    {
+        throw new InvalidDefineException(input.values());
+    }
+}
+
+TokenVector eval_let(TokenVector input, Environment& env)
+{
+    if (input.next()->value() == "let*")
+    {
+        Environment current_env(std::make_shared<Environment>(env));
+
+        auto var_head = input.next();
+        if (var_head->type() == MAL_LIST)
+        {
+            auto var_list = var_head->raw_value();
+            for (auto element = var_list.next(); element != nullptr; element = var_list.next())
+            {
+                if (element->type() == MAL_LIST)
+                {
+                    auto key_value_pair = element->raw_value();
+                    auto symbol = key_value_pair.next();
+                    if (symbol == nullptr || symbol->type() != MAL_SYMBOL)
+                    {
+                        throw new InvalidLetException(input.values());
+                    }
+                    else
+                    {
+                        auto val_ptr = key_value_pair.next();
+                        TokenVector val_vec;
+                        val_vec.append(val_ptr);
+                        auto value = EVAL(val_vec, env);
+
+                        current_env.set(symbol, value.next());
+                    }
+                }
+                else
+                {
+                    throw new InvalidLetException(input.values());
+                }
+            }
+
+            TokenVector final_value;
+            for (auto element = input.next(); element != nullptr; element = input.next())
+            {
+                final_value.clear();
+                TokenVector elem_val;
+                elem_val.append(element);
+                final_value.append(EVAL(elem_val, current_env));
+            }
+
+            return final_value;
+        }
+        else
+        {
+            throw new InvalidLetException(input.values());
+
+        }
+
+
+        TokenVector temp;
+        return temp;
+    }
+    else
+    {
+        throw new InvalidLetException(input.next()->value());
+    }
+}
+
 
 
 TokenVector eval_quasiquoted(TokenVector input, Environment env, bool islist)

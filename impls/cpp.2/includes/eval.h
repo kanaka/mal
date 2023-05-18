@@ -12,10 +12,11 @@
 
 
 TokenVector EVAL(TokenVector input, Environment& env);
-TokenVector eval_ast(TokenVector input, Environment env);
-// TokenVector eval_list(TokenVector& input, Environment env);
-TokenVector eval_vec(TokenVector input, Environment env);
-TokenVector eval_hashmap(HashMapInternal input, Environment env);
+TokenVector eval_ast(TokenVector input, Environment& env);
+TokenVector eval_vec(TokenVector input, Environment& env);
+TokenVector eval_hashmap(HashMapInternal input, Environment& env);
+TokenVector eval_def(TokenVector input, Environment& env);
+TokenVector eval_let(TokenVector input, Environment& env);
 TokenVector eval_quasiquoted(TokenVector input, Environment env, bool islist = false);
 
 #endif

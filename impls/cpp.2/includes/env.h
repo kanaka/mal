@@ -23,7 +23,9 @@ class Environment
 {
 public:
     Environment(std::shared_ptr<Environment> p = nullptr): parent(p) {};
-    void append(EnvPtr element);
+    void set(EnvPtr element);
+    void set(std::string symbol, MalPtr value);
+    void set(MalPtr symbol, MalPtr value);
     bool find(MalPtr p);
     EnvPtr get(MalPtr p);
     size_t size() const {return env.size();};

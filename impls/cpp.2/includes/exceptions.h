@@ -169,4 +169,24 @@ protected:
 };
 
 
+class InvalidDefineException
+{
+public:
+    InvalidDefineException(std::string sym): symbol_value(sym) {};
+    std::string value() const { return symbol_value; };
+protected:
+    std::string symbol_value;
+};
+
+
+class InvalidLetException
+{
+public:
+    InvalidLetException(std::string sym): symbol_value(sym) {};
+    std::string value() const { return symbol_value; };
+protected:
+    std::string symbol_value;
+};
+
+
 #endif

@@ -113,9 +113,20 @@ EnvPtr Environment::get(MalPtr p)
 }
 
 
-void Environment::append(EnvPtr element)
+void Environment::set(EnvPtr element)
 {
     env.push_back(element);
+}
+
+
+void Environment::set(MalPtr symbol, MalPtr value)
+{
+    env.push_back(std::make_shared<Env_Symbol>(symbol, value));
+}
+
+void Environment::set(std::string symbol, MalPtr value)
+{
+    env.push_back(std::make_shared<Env_Symbol>(std::make_shared<MalSymbol>(symbol), value));
 }
 
 
@@ -874,9 +885,9 @@ std::function<TokenVector(TokenVector)> mal_modulo([](TokenVector tokens)->Token
 
 void init_global_environment()
 {
-    repl_env.append(std::make_shared<Env_Primitive>(std::make_shared<MalSymbol>("+"), mal_plus, -2));
-    repl_env.append(std::make_shared<Env_Primitive>(std::make_shared<MalSymbol>("-"), mal_minus, -1));
-    repl_env.append(std::make_shared<Env_Primitive>(std::make_shared<MalSymbol>("*"), mal_multiply, -2));
-    repl_env.append(std::make_shared<Env_Primitive>(std::make_shared<MalSymbol>("/"), mal_divide, 2));
-    repl_env.append(std::make_shared<Env_Primitive>(std::make_shared<MalSymbol>("%"), mal_modulo, 2));
+    repl_env.set(std::make_shared<Env_Primitive>(std::make_shared<MalSymbol>("+"), mal_plus, -2));
+    repl_env.set(std::make_shared<Env_Primitive>(std::make_shared<MalSymbol>("-"), mal_minus, -1));
+    repl_env.set(std::make_shared<Env_Primitive>(std::make_shared<MalSymbol>("*"), mal_multiply, -2));
+    repl_env.set(std::make_shared<Env_Primitive>(std::make_shared<MalSymbol>("/"), mal_divide, 2));
+    repl_env.set(std::make_shared<Env_Primitive>(std::make_shared<MalSymbol>("%"), mal_modulo, 2));
 }
