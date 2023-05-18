@@ -31,6 +31,11 @@ Env_Symbol::Env_Symbol(MalPtr s, MalPtr v): val(v), n_ary(0)
 }
 
 
+void Env_Symbol::set(MalPtr value)
+{
+    val = value;
+}
+
 
 TokenVector Env_Primitive::apply(TokenVector& args)
 {
@@ -69,7 +74,7 @@ TokenVector Env_Procedure::apply(TokenVector& args)
 }
 
 
-bool Environment::find(MalPtr p)
+bool Environment::find(MalPtr p, bool local)
 {
     if (p->type() == MAL_SYMBOL)
     {
@@ -81,10 +86,29 @@ bool Environment::find(MalPtr p)
             }
         }
 
-        if (parent != nullptr)
+        if (parent != nullptr && !local)
         {
             return parent->find(p);
         }
+    }
+
+    return false;
+}
+
+
+bool Environment::find(std::string s, bool local)
+{
+    for (std::vector<EnvPtr>::iterator it = env.begin(); it != env.end(); ++it)
+    {
+        if (it->get()->symbol().value() == s)
+        {
+            return true;
+        }
+    }
+
+    if (parent != nullptr && !local)
+    {
+        return parent->find(s);
     }
 
     return false;
@@ -113,19 +137,58 @@ EnvPtr Environment::get(MalPtr p)
 }
 
 
+EnvPtr Environment::get(std::string symbol)
+{
+    for (std::vector<EnvPtr>::iterator it = env.begin(); it != env.end(); ++it)
+    {
+        if (it->get()->symbol().value() == symbol)
+        {
+            return *it;
+        }
+    }
+
+    if (parent != nullptr)
+    {
+        return parent->get(symbol);
+    }
+
+    return nullptr;
+}
+
+
 void Environment::set(EnvPtr element)
 {
-    env.push_back(element);
+    auto el_symbol = element->symbol().value();
+    if (find(el_symbol, true))
+    {
+        EnvPtr existing_entry = get(el_symbol);
+        existing_entry->set(element->value());
+    }
+    else
+    {
+        env.push_back(element);
+    }
 }
 
 
 void Environment::set(MalPtr symbol, MalPtr value)
 {
+    if (find(symbol->value(), true))
+    {
+        EnvPtr existing_entry = get(symbol->value());
+        existing_entry->set(value);
+    }
     env.push_back(std::make_shared<Env_Symbol>(symbol, value));
 }
 
+
 void Environment::set(std::string symbol, MalPtr value)
 {
+    if (find(symbol, true))
+    {
+        EnvPtr existing_entry = get(symbol);
+        existing_entry->set(value);
+    }
     env.push_back(std::make_shared<Env_Symbol>(std::make_shared<MalSymbol>(symbol), value));
 }
 

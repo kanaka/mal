@@ -26,8 +26,10 @@ public:
     void set(EnvPtr element);
     void set(std::string symbol, MalPtr value);
     void set(MalPtr symbol, MalPtr value);
-    bool find(MalPtr p);
+    bool find(MalPtr p, bool local = false);
+    bool find(std::string s, bool local = false);
     EnvPtr get(MalPtr p);
+    EnvPtr get(std::string symbol);
     size_t size() const {return env.size();};
     std::vector<EnvPtr> elements() {return env;};
     std::string element_names();
@@ -51,6 +53,7 @@ public:
     virtual MalSymbol symbol() {return sym;};
     virtual MalPtr value() {return val;};
     virtual int arity() {return n_ary;};
+    virtual void set(MalPtr value);
     virtual TokenVector apply(TokenVector& args) {return args;};
 protected:
     MalSymbol sym;

@@ -45,7 +45,6 @@ TokenVector EVAL(TokenVector input, Environment& env)
         else
         {
             TokenVector result = eval_ast(input, env);
-
             if (result.empty())
             {
                 return result;
@@ -60,16 +59,25 @@ TokenVector EVAL(TokenVector input, Environment& env)
                     }
                     else
                     {
-                        TokenVector procedure, cdr;
-                        cdr.append(result.cdr());
+                        EnvPtr fn = nullptr;
+                        auto p_type = result.car()->type();
 
-                        EnvPtr fn = env.get(result.car());
-                        if (fn == nullptr)
+                        if (p_type == MAL_SYMBOL)
                         {
-                            throw new ProcedureNotFoundException(procedure[0]->value());
+                            fn = env.get(result.car());
+                        }
+                        else if (p_type == MAL_PRIMITIVE || p_type == MAL_PROCEDURE)
+                        {
+                            auto procedure = result.next()->raw_value().car();
+                            fn = env.get(procedure);
                         }
 
-                        return apply_fn(fn, cdr);
+                        if (fn == nullptr)
+                        {
+                            throw new ProcedureNotFoundException(result.car()->value());
+                        }
+
+                        return apply_fn(fn, result.cdr());
                     }
                 }
                 else
@@ -221,14 +229,28 @@ TokenVector eval_def(TokenVector input, Environment& env)
             throw new InvalidDefineException(input.values());
         }
 
-        auto val_ptr = input.next();
-        TokenVector val_vec;
-        val_vec.append(val_ptr);
-        auto value = EVAL(val_vec, env);
+        if (env.find(symbol))
+        {
+            auto sym_ptr = env.get(symbol);
+            auto val_ptr = input.next();
+            TokenVector val_vec;
+            val_vec.append(val_ptr);
+            auto value = EVAL(val_vec, env);
 
-        env.set(symbol, value.next());
+            sym_ptr->set(value.car());
+            return value;
+        }
+        else
+        {
+            auto val_ptr = input.next();
+            TokenVector val_vec;
+            val_vec.append(val_ptr);
+            auto value = EVAL(val_vec, env);
 
-        return value;
+            env.set(symbol, value.next());
+
+            return value;
+        }
     }
     else
     {
@@ -243,32 +265,28 @@ TokenVector eval_let(TokenVector input, Environment& env)
         Environment current_env(std::make_shared<Environment>(env));
 
         auto var_head = input.next();
-        if (var_head->type() == MAL_LIST)
+        if (var_head->type() == MAL_LIST || var_head->type() == MAL_VECTOR)
         {
             auto var_list = var_head->raw_value();
-            for (auto element = var_list.next(); element != nullptr; element = var_list.next())
+            while (var_list.peek() != nullptr)
             {
-                if (element->type() == MAL_LIST)
+                auto symbol = var_list.next();
+                if (symbol == nullptr || symbol->type() != MAL_SYMBOL)
                 {
-                    auto key_value_pair = element->raw_value();
-                    auto symbol = key_value_pair.next();
-                    if (symbol == nullptr || symbol->type() != MAL_SYMBOL)
-                    {
-                        throw new InvalidLetException(input.values());
-                    }
-                    else
-                    {
-                        auto val_ptr = key_value_pair.next();
-                        TokenVector val_vec;
-                        val_vec.append(val_ptr);
-                        auto value = EVAL(val_vec, env);
-
-                        current_env.set(symbol, value.next());
-                    }
+                    throw new InvalidLetException(input.values());
                 }
                 else
                 {
-                    throw new InvalidLetException(input.values());
+                    auto val_ptr = var_list.next();
+                    if (val_ptr == nullptr)
+                    {
+                        throw new InvalidLetException(input.values());
+                    }
+                    TokenVector val_vec;
+                    val_vec.append(val_ptr);
+                    auto value = EVAL(val_vec, current_env);
+
+                    current_env.set(symbol, value.next());
                 }
             }
 
@@ -288,10 +306,6 @@ TokenVector eval_let(TokenVector input, Environment& env)
             throw new InvalidLetException(input.values());
 
         }
-
-
-        TokenVector temp;
-        return temp;
     }
     else
     {

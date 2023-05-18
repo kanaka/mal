@@ -121,7 +121,15 @@ int main()
         }
         catch(SymbolNotInitializedException* e)
         {
-            std::cout << "(unbound symbol): " << e->value() << "." << '\n';
+            std::cout << ".*\\'?" << e->value() << "\\'? not found.*" << "\n";
+        }
+        catch(InvalidDefineException* e)
+        {
+            std::cout << "(invalid function syntax): " << e->value() << "." << '\n';
+        }
+        catch(InvalidLetException* e)
+        {
+            std::cout << "(invalid let syntax): " << e->value() << "." << '\n';
         }
 
         catch(std::exception *e)
