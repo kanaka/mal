@@ -131,7 +131,18 @@ int main()
         {
             std::cout << "(invalid let syntax): " << e->value() << "." << '\n';
         }
-
+        catch(InvalidEnvironmentSymbolException* e)
+        {
+            std::cout << "(invalid environment symbol): " << e->value() << "." << '\n';
+        }
+        catch(UnequalBindExprListsException* e)
+        {
+            std::cout << "(unequal number of parameters and arguments): " << e->value() << "." << '\n';
+        }
+        catch(InvalidBindExprListsException* e)
+        {
+            std::cout << "(parameters and/or arguments not lists or vectors): " << e->value() << "." << '\n';
+        }
         catch(std::exception *e)
         {
             std::cout << e->what() << "." << '\n';

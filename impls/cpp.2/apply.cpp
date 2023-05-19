@@ -17,7 +17,7 @@
 
 TokenVector apply_fn(EnvPtr fn, TokenVector args)
 {
-    if (fn->type() != ENV_PRIMITIVE)
+    if (fn->type() != ENV_PRIMITIVE && fn->type() != ENV_PROCEDURE)
     {
         throw new InvalidPrimitiveException();
     }
@@ -25,11 +25,4 @@ TokenVector apply_fn(EnvPtr fn, TokenVector args)
     {
         return fn->apply(args);
     }
-}
-
-
-TokenVector apply_fn(TokenVector fn, TokenVector args)
-{
-    fn.append(args);
-    return fn;
 }

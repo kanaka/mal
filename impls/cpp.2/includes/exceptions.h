@@ -199,5 +199,14 @@ protected:
 };
 
 
+class InvalidBindExprListsException
+{
+public:
+    InvalidBindExprListsException(std::string b, std::string e): binds(b), exprs(e) {};
+    std::string value() const { return binds + ": " + exprs; };
+protected:
+    std::string binds, exprs;
+};
+
 
 #endif

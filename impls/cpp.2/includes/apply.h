@@ -15,6 +15,6 @@
 
 TokenVector apply_fn(EnvPtr fn, TokenVector args);
 
-TokenVector apply_fn(TokenVector fn, TokenVector args);
+// TokenVector apply_fn(ProcedurePtr p, TokenVector args);
 
 #endif

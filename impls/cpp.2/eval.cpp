@@ -78,12 +78,25 @@ TokenVector EVAL(TokenVector input, Environment& env)
                         {
                             fn = env.get(result.car());
                         }
-                        else if (p_type == MAL_PRIMITIVE || p_type == MAL_PROCEDURE)
+                        else if (p_type == MAL_PRIMITIVE)
                         {
                             auto procedure = result.next()->raw_value().car();
                             fn = env.get(procedure);
                         }
+                        else if (p_type == MAL_PROCEDURE)
+                        {
+                            auto procedure = result.next();
+                            TokenVector raw_args;
+                            raw_args.append(result.cdr());
+                            auto cooked_args = EVAL(raw_args, env);
+                            TokenVector args;
+                            args.append(std::make_shared<MalList>(cooked_args));
 
+                            // WARNING: This function uses downcasting of a pointer from it's parent class to the
+                            // actual subclass. This is VERY questionable, and if possible a better solution 
+                            // should be found!
+                            return (dynamic_cast<MalProcedure*>(&(*procedure)))->fn(args);
+                        }
                         if (fn == nullptr)
                         {
                             throw new ProcedureNotFoundException(result.car()->value());
@@ -143,8 +156,7 @@ TokenVector eval_ast(TokenVector input, Environment& env)
                 }
                 else if (p->type() == ENV_PROCEDURE)
                 {
-                    MalPtr proc = std::make_shared<MalProcedure>(p->value()->value(), p->arity());
-                    result.append(proc);
+                    result.append((dynamic_cast<Env_Procedure*>(&(*p)))->fn());
                 }
                 else if (p->type() == ENV_SYMBOL)
                 {
@@ -406,6 +418,27 @@ TokenVector eval_if(TokenVector input, Environment& env)
 
 TokenVector eval_fn(TokenVector input, Environment& env)
 {
-    env.size();
-    return input;
+    auto discard = input.next();    // discard the 'fn*' symbol
+    TokenVector parameters;
+    parameters.append(input.next());
+    TokenVector arguments, body;
+    body = input.cdr();
+    std::shared_ptr<Environment> parent = std::make_shared<Environment>(env);
+    std::function<TokenVector(TokenVector)> closure([parameters, body, parent](TokenVector arguments)->TokenVector {
+        auto current_env = Environment(parent, parameters, arguments);
+        TokenVector final_value;
+        TokenVector input = body;
+        for (auto element = input.next(); element != nullptr; element = input.next())
+        {
+            final_value.clear();
+            final_value.append(element);
+            final_value = EVAL(final_value, current_env);
+        }
+        return final_value;
+    });
+
+    TokenVector procedure;
+    procedure.append(std::make_shared<MalProcedure>(closure, parameters.size()));
+
+    return procedure;
 }

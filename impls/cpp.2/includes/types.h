@@ -9,11 +9,18 @@
 
 
 #include <complex>
+#include <functional>
 #include <memory>
 #include <string>
 #include <vector>
 #include <unordered_map>
 #include <gmpxx.h>
+
+
+class Environment;
+class Env_Symbol;
+
+typedef std::shared_ptr<Env_Symbol> EnvPtr;
 
 
 enum MalTypeName
@@ -28,6 +35,8 @@ enum MalTypeName
     MAL_INTEGER, MAL_FRACTIONAL, MAL_RATIONAL, MAL_COMPLEX,
     MAL_PROCEDURE, MAL_PRIMITIVE
 };
+
+
 
 class MalType;
 
@@ -83,6 +92,11 @@ inline bool is_mal_container(MalTypeName type)
 
 
 typedef std::unordered_map<std::string, std::shared_ptr<MalType> > HashMapInternal;
+
+
+typedef std::function<TokenVector(TokenVector)> Procedure;
+typedef std::shared_ptr<Procedure> ProcedurePtr;
+
 
 
 class MalType
@@ -381,11 +395,12 @@ protected:
 class MalProcedure: public MalSymbol
 {
 public:
-    MalProcedure(std::string r, int a): MalSymbol(r), arity(a) {};
+    MalProcedure(Procedure p, int a): MalSymbol("<function>"), procedure(p), arity(a) {};
     virtual MalTypeName type() {return MAL_PROCEDURE;};
-    virtual std::string value() {return "<procedure (" + repr + " " + std::to_string(arity) + ")>";};
     virtual TokenVector raw_value();
+    virtual TokenVector fn(TokenVector args) {return procedure(args);};
 protected:
+    Procedure procedure;
     int arity;
 };
 
