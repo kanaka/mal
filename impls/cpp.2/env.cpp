@@ -82,15 +82,20 @@ Environment::Environment(std::shared_ptr<Environment> p, TokenVector binds, Toke
     {
         throw new InvalidBindExprListsException(binds.values(), exprs.values());
     }
-    if (binds.size() != exprs.size())
+
+    auto parameters = binds.next()->raw_value();
+    auto arguments = exprs.next()->raw_value();
+
+    if (parameters.size() != arguments.size())
     {
         throw new UnequalBindExprListsException(binds.values(), exprs.values());
     }
     else
     {
-        for (size_t i = 0; i < binds.size(); i++)
+
+        for (size_t i = 0; i < parameters.size(); i++)
         {
-            this->set(binds[i], exprs[i]);
+            this->set(parameters[i], arguments[i]);
         }
     }
 }
