@@ -6,6 +6,7 @@
 #include <exception>
 #include <functional>
 #include <iostream>
+#include <fstream>
 #include <memory>
 #include <new>
 #include <string>
@@ -18,6 +19,8 @@
 #include "eval.h"
 #include "env.h"
 
+void init_prelude();
+
 TokenVector READ(std::string input)
 {
     return read_str(input);
@@ -26,8 +29,7 @@ TokenVector READ(std::string input)
 
 std::string PRINT(TokenVector input)
 {
-    pr_str(input);
-    return input.values();
+    return pr_str(input);
 }
 
 
@@ -40,6 +42,7 @@ std::string rep(std::string input)
 int main()
 {
     init_global_environment();
+    init_prelude();
 
     LineEdit line;
 
@@ -57,7 +60,7 @@ int main()
 
         try
         {
-            rep(input);
+            std::cout << rep(input) << '\n';
         }
         catch(UnbalancedParenthesesException* e)
         {
@@ -143,6 +146,11 @@ int main()
         {
             std::cout << "(parameters and/or arguments not lists or vectors): " << e->value() << "." << '\n';
         }
+        catch(NonNumericComparisonException* e)
+        {
+            std::cout << "(non-numeric comparison): " << e->value() << "." << '\n';
+        }
+
         catch(std::exception *e)
         {
             std::cout << e->what() << "." << '\n';
@@ -151,4 +159,18 @@ int main()
     std::cout << "Exiting.\n";
 
     return 0;
+}
+
+
+void init_prelude()
+{
+    char buff[65536];
+    std::ifstream prelude("prelude.mal", std::ios::in);
+
+    while (!prelude.eof())
+    {
+        prelude.getline(buff, 65535);
+        std::string procedure = buff;
+        EVAL(READ(procedure), repl_env);
+    }
 }

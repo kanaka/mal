@@ -4,6 +4,6 @@
 #include "types.h"
 
 
-void pr_str(TokenVector tokens);
+std::string pr_str(TokenVector tokens, bool print_readably = false);
 
 #endif

@@ -90,6 +90,19 @@ inline bool is_mal_container(MalTypeName type)
 }
 
 
+inline bool is_mal_reader_macro(MalTypeName type)
+{
+    return (type == MAL_READER_MACRO
+            || type == MAL_QUOTE
+            || type == MAL_QUASIQUOTE
+            || type == MAL_UNQUOTE
+            || type == MAL_SPLICE_UNQUOTE
+            || type == MAL_DEREF
+            || type == MAL_META
+            );
+}
+
+
 
 typedef std::unordered_map<std::string, std::shared_ptr<MalType> > HashMapInternal;
 

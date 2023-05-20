@@ -209,4 +209,14 @@ protected:
 };
 
 
+class NonNumericComparisonException
+{
+public:
+    NonNumericComparisonException(std::string b, std::string e): car(b), cdr(e) {};
+    std::string value() const { return car + ": " + cdr; };
+protected:
+    std::string car, cdr;
+};
+
+
 #endif

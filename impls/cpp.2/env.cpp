@@ -43,7 +43,7 @@ TokenVector Env_Primitive::apply(TokenVector& args)
     TokenVector result;
     size_t effective_arity = abs(arity());
 
-    if ((args.size() == effective_arity) || (arity() < 0 && args.size() >= effective_arity))
+    if ((args.size() == effective_arity) || (arity() < 0 && args.size() >= effective_arity-1))
     {
         return procedure(args);
     }
@@ -64,7 +64,7 @@ TokenVector Env_Procedure::apply(TokenVector& args)
     TokenVector result;
     size_t effective_arity = abs(arity());
 
-    if ((args.size() == effective_arity + 1) || (arity() < 0 && args.size() >= effective_arity))
+    if ((args.size() == effective_arity) || (arity() < 0 && args.size() >= effective_arity))
     {
         return (dynamic_cast<MalProcedure*>(&(*procedure)))->fn(args);
     }
