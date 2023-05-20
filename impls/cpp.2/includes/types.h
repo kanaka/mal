@@ -25,7 +25,7 @@ typedef std::shared_ptr<Env_Symbol> EnvPtr;
 
 enum MalTypeName
 {
-    MAL_TYPE, MAL_ATOM, MAL_SYMBOL, MAL_KEYWORD,
+    MAL_TYPE, MAL_ATOM, MAL_SYMBOL, MAL_KEYWORD, MAL_REST_ARG,
     MAL_STRING, MAL_CHAR, MAL_BOOLEAN,
     MAL_LIST, MAL_NULL, MAL_NIL, MAL_VECTOR, MAL_HASHMAP,
     MAL_PERIOD, MAL_COMMA,
@@ -59,7 +59,8 @@ public:
     MalPtr peek();
     MalPtr car() {return tokens[0];};
     TokenVector cdr();
-    void clear() {tokens.clear();};
+    TokenVector rest();
+    void clear() {tokens.clear(); current_token = 0;};
     bool empty() {return tokens.size() == 0;};
     MalPtr operator[](unsigned int i);
 
@@ -85,6 +86,7 @@ inline bool is_mal_numeric(MalTypeName type)
 inline bool is_mal_container(MalTypeName type)
 {
     return (type == MAL_LIST
+            || type == MAL_NULL
             || type == MAL_VECTOR
             || type == MAL_HASHMAP);
 }
@@ -237,8 +239,6 @@ public:
 };
 
 
-
-
 class MalVector: public MalType
 {
 public:
@@ -288,6 +288,14 @@ class MalKeyword: public MalSymbol
 public:
     MalKeyword(std::string r): MalSymbol(r) {};
     virtual MalTypeName type() {return MAL_KEYWORD;};
+};
+
+
+class MalRestArg: public MalSymbol
+{
+public:
+    MalRestArg(): MalSymbol("&") {};
+    virtual MalTypeName type() {return MAL_REST_ARG;};
 };
 
 

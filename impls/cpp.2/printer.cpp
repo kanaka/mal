@@ -71,8 +71,6 @@ std::string pr_str(TokenVector tokens, bool print_readably)
                 default:
                     s += token->value();
             }
-
-                s += " ";
         }
         return s;
     }

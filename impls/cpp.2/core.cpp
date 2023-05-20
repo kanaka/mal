@@ -9,7 +9,7 @@
 #include "types.h"
 #include "env.h"
 #include "apply.h"
-
+#include "printer.h"
 
 
 template <class T> std::function<T(T, T)> apply_plus([](T x, T y)->T
@@ -769,30 +769,98 @@ Procedure mal_equal([](TokenVector tokens)->TokenVector
 
     if (car.peek()->type() != cdr.peek()->type())
     {
-        return mal_false;
+        if (!(is_mal_container(car.peek()->type()) && is_mal_container(cdr.peek()->type())))
+        {
+            return mal_false;
+        }
+    }
+
+    if (is_mal_numeric(car.peek()->type()))
+    {
+        switch (car.peek()->type())
+        {
+            case MAL_INTEGER:
+                {
+                    auto comp1 = dynamic_cast<MalInteger*>(&(*car.next()))->numeric_value();
+                    auto comp2 = dynamic_cast<MalInteger*>(&(*cdr.next()))->numeric_value();
+                    if (comp1 == comp2)
+                    {
+                        return mal_true;
+                    }
+                    else
+                    {
+                        return mal_false;
+                    }
+                }
+                break;
+            case MAL_RATIONAL:
+                {
+                    auto comp1 = dynamic_cast<MalRational*>(&(*car.next()))->numeric_value();
+                    auto comp2 = dynamic_cast<MalRational*>(&(*cdr.next()))->numeric_value();
+                    if (comp1 == comp2)
+                    {
+                        return mal_true;
+                    }
+                    else
+                    {
+                        return mal_false;
+                    }
+                }
+                break;
+            case MAL_FRACTIONAL:
+                {
+                    auto comp1 = dynamic_cast<MalFractional*>(&(*car.next()))->numeric_value();
+                    auto comp2 = dynamic_cast<MalFractional*>(&(*cdr.next()))->numeric_value();
+                    if (comp1 == comp2)
+                    {
+                        return mal_true;
+                    }
+                    else
+                    {
+                        return mal_false;
+                    }
+                }
+                break;
+            case MAL_COMPLEX:
+                {
+                    auto comp1 = dynamic_cast<MalComplex*>(&(*car.next()))->numeric_value();
+                    auto comp2 = dynamic_cast<MalComplex*>(&(*cdr.next()))->numeric_value();
+                    if (comp1 == comp2)
+                    {
+                        return mal_true;
+                    }
+                    else
+                    {
+                        return mal_false;
+                    }
+                }
+                break;
+            default:
+                throw new NonNumericComparisonException(car.next()->value(), cdr.next()->value());
+        }
     }
     else if (is_mal_container(car.peek()->type()) || is_mal_reader_macro(car.peek()->type()))
     {
-        auto car_list = car.next()->raw_value();
-        auto cdr_list = cdr.next()->raw_value();
+        auto car_list = car.peek()->raw_value();
+        auto cdr_list = cdr.peek()->raw_value();
 
         if (car_list.size() != cdr_list.size())
         {
             return mal_false;
         }
 
-
-        for (size_t i = 0; i < car_list.size(); i++)
+        for (size_t i = 0; i < cdr_list.size(); ++i)
         {
             TokenVector comp;
-            comp.append(car_list);
-            comp.append(cdr_list);
+            comp.append(car_list.next());
+            comp.append(cdr_list.next());
+
             if (mal_equal(comp).peek()->value() == "false")
             {
                 return mal_false;
             }
+            comp.clear();
         }
-
         return mal_true;
     }
 
@@ -854,11 +922,11 @@ Procedure mal_greater_than([](TokenVector tokens)->TokenVector
                 auto comp2 = dynamic_cast<MalInteger*>(&(*cdr.next()))->numeric_value();
                 if (comp1 > comp2)
                 {
-                    return mal_false;
+                    return mal_true;
                 }
                 else
                 {
-                    return mal_true;
+                    return mal_false;
                 }
             }
             break;
@@ -868,11 +936,11 @@ Procedure mal_greater_than([](TokenVector tokens)->TokenVector
                 auto comp2 = dynamic_cast<MalRational*>(&(*cdr.next()))->numeric_value();
                 if (comp1 > comp2)
                 {
-                    return mal_false;
+                    return mal_true;
                 }
                 else
                 {
-                    return mal_true;
+                    return mal_false;
                 }
             }
             break;
@@ -882,11 +950,11 @@ Procedure mal_greater_than([](TokenVector tokens)->TokenVector
                 auto comp2 = dynamic_cast<MalFractional*>(&(*cdr.next()))->numeric_value();
                 if (comp1 > comp2)
                 {
-                    return mal_false;
+                    return mal_true;
                 }
                 else
                 {
-                    return mal_true;
+                    return mal_false;
                 }
             }
             break;
@@ -926,11 +994,11 @@ Procedure mal_less_than([](TokenVector tokens)->TokenVector
                 auto comp2 = dynamic_cast<MalInteger*>(&(*cdr.next()))->numeric_value();
                 if (comp1 < comp2)
                 {
-                    return mal_false;
+                    return mal_true;
                 }
                 else
                 {
-                    return mal_true;
+                    return mal_false;
                 }
             }
             break;
@@ -940,11 +1008,11 @@ Procedure mal_less_than([](TokenVector tokens)->TokenVector
                 auto comp2 = dynamic_cast<MalRational*>(&(*cdr.next()))->numeric_value();
                 if (comp1 < comp2)
                 {
-                    return mal_false;
+                    return mal_true;
                 }
                 else
                 {
-                    return mal_true;
+                    return mal_false;
                 }
             }
             break;
@@ -954,11 +1022,11 @@ Procedure mal_less_than([](TokenVector tokens)->TokenVector
                 auto comp2 = dynamic_cast<MalFractional*>(&(*cdr.next()))->numeric_value();
                 if (comp1 < comp2)
                 {
-                    return mal_false;
+                    return mal_true;
                 }
                 else
                 {
-                    return mal_true;
+                    return mal_false;
                 }
             }
             break;
@@ -999,11 +1067,11 @@ Procedure mal_greater_equal([](TokenVector tokens)->TokenVector
                 auto comp2 = dynamic_cast<MalInteger*>(&(*cdr.next()))->numeric_value();
                 if (comp1 >= comp2)
                 {
-                    return mal_false;
+                    return mal_true;
                 }
                 else
                 {
-                    return mal_true;
+                    return mal_false;
                 }
             }
             break;
@@ -1013,11 +1081,11 @@ Procedure mal_greater_equal([](TokenVector tokens)->TokenVector
                 auto comp2 = dynamic_cast<MalRational*>(&(*cdr.next()))->numeric_value();
                 if (comp1 >= comp2)
                 {
-                    return mal_false;
+                    return mal_true;
                 }
                 else
                 {
-                    return mal_true;
+                    return mal_false;
                 }
             }
             break;
@@ -1027,11 +1095,11 @@ Procedure mal_greater_equal([](TokenVector tokens)->TokenVector
                 auto comp2 = dynamic_cast<MalFractional*>(&(*cdr.next()))->numeric_value();
                 if (comp1 >= comp2)
                 {
-                    return mal_false;
+                    return mal_true;
                 }
                 else
                 {
-                    return mal_true;
+                    return mal_false;
                 }
             }
             break;
@@ -1071,11 +1139,11 @@ Procedure mal_less_equal([](TokenVector tokens)->TokenVector
                 auto comp2 = dynamic_cast<MalInteger*>(&(*cdr.next()))->numeric_value();
                 if (comp1 <= comp2)
                 {
-                    return mal_false;
+                    return mal_true;
                 }
                 else
                 {
-                    return mal_true;
+                    return mal_false;
                 }
             }
             break;
@@ -1085,11 +1153,11 @@ Procedure mal_less_equal([](TokenVector tokens)->TokenVector
                 auto comp2 = dynamic_cast<MalRational*>(&(*cdr.next()))->numeric_value();
                 if (comp1 <= comp2)
                 {
-                    return mal_false;
+                    return mal_true;
                 }
                 else
                 {
-                    return mal_true;
+                    return mal_false;
                 }
             }
             break;
@@ -1099,11 +1167,11 @@ Procedure mal_less_equal([](TokenVector tokens)->TokenVector
                 auto comp2 = dynamic_cast<MalFractional*>(&(*cdr.next()))->numeric_value();
                 if (comp1 <= comp2)
                 {
-                    return mal_false;
+                    return mal_true;
                 }
                 else
                 {
-                    return mal_true;
+                    return mal_false;
                 }
             }
             break;
@@ -1129,12 +1197,12 @@ Procedure mal_count([](TokenVector tokens)->TokenVector
     if (tokens.peek()->type() == MAL_LIST || tokens.peek()->type() == MAL_VECTOR)
     {
         auto size = tokens.next()->raw_value().size();
-        auto count = std::make_shared<MalSystemInteger>(size);
+        auto count = std::make_shared<MalInteger>(size);
         result.append(count);
     }
     else
     {
-        auto count = std::make_shared<MalSystemInteger>(0);
+        auto count = std::make_shared<MalInteger>(0);
         result.append(count);
     }
 
@@ -1196,7 +1264,7 @@ Procedure mal_is_list([](TokenVector tokens)->TokenVector
     mal_true.append(std::make_shared<MalBoolean>("true"));
     mal_false.append(std::make_shared<MalBoolean>("false"));
 
-    if (tokens.peek()->type() == MAL_LIST)
+    if (tokens.peek()->type() == MAL_LIST || tokens.peek()->type() == MAL_NULL)
     {
         return mal_true;
     }
@@ -1226,26 +1294,77 @@ Procedure mal_is_number([](TokenVector tokens)->TokenVector
 
 // printing
 
-/* Procedure mal_print([](TokenVector tokens)->TokenVector
+Procedure mal_prn([](TokenVector tokens)->TokenVector
 {
-
+    if (tokens.size() > 0)
+    {
+        for (auto token = tokens.next(); token != nullptr; token = tokens.next())
+        {
+            TokenVector temp;
+            temp.append(token);
+            std::cout << pr_str(temp, true);
+            if (tokens.peek() != nullptr)
+            {
+                std::cout << " ";
+            }
+            temp.clear();
+        }
+        std::cout << "\n";
+    }
+    TokenVector mal_nil;
+    mal_nil.append(std::make_shared<MalNil>());
+    return mal_nil;
 });
 
-Procedure mal_pr_str([](TokenVector tokens)->TokenVector
-{
 
+Procedure mal_str([](TokenVector tokens)->TokenVector
+{
+    std::string s = "";
+
+    if (tokens.size() > 0)
+    {
+        for (auto token = tokens.next(); token != nullptr; token = tokens.next())
+        {
+            s += pr_str(tokens, false);
+        }
+    }
+    TokenVector str;
+    str.append(std::make_shared<MalString>(s));
+    return str;
 });
 
 
 Procedure mal_println([](TokenVector tokens)->TokenVector
 {
-
+    if (tokens.size() > 0)
+    {
+        for (auto token = tokens.next(); token != nullptr; token = tokens.next())
+        {
+            std::cout << pr_str(tokens, false) << " ";
+        }
+    }
+    std::cout << "\n";
+    TokenVector mal_nil;
+    mal_nil.append(std::make_shared<MalNil>());
+    return mal_nil;
 });
 
-Procedure mal_print_all([](TokenVector tokens)->TokenVector
-{
 
-}); */
+Procedure mal_pr_str([](TokenVector tokens)->TokenVector
+{
+    std::string s = "";
+
+    if (tokens.size() > 0)
+    {
+        for (auto token = tokens.next(); token != nullptr; token = tokens.next())
+        {
+            s += pr_str(tokens, true) + " ";
+        }
+    }
+    TokenVector str;
+    str.append(std::make_shared<MalString>(s));
+    return str;
+});
 
 
 
@@ -1279,8 +1398,8 @@ void init_global_environment()
     repl_env.set(std::make_shared<Env_Primitive>(std::make_shared<MalSymbol>("number?"), mal_is_number, 1));
 
     // printing values
-    // repl_env.set(std::make_shared<Env_Primitive>(std::make_shared<MalSymbol>("prn"), mal_print, 1));
-    // repl_env.set(std::make_shared<Env_Primitive>(std::make_shared<MalSymbol>("str"), mal_print_str, -1));
-    // repl_env.set(std::make_shared<Env_Primitive>(std::make_shared<MalSymbol>("prn-str"), mal_print_all, -1));
-    // repl_env.set(std::make_shared<Env_Primitive>(std::make_shared<MalSymbol>("println"), mal_println, -1));
+    repl_env.set(std::make_shared<Env_Primitive>(std::make_shared<MalSymbol>("prn"), mal_prn, -1));
+    repl_env.set(std::make_shared<Env_Primitive>(std::make_shared<MalSymbol>("str"), mal_str, -1));
+    repl_env.set(std::make_shared<Env_Primitive>(std::make_shared<MalSymbol>("pr-str"), mal_pr_str, -1));
+    repl_env.set(std::make_shared<Env_Primitive>(std::make_shared<MalSymbol>("println"), mal_println, -1));
 }

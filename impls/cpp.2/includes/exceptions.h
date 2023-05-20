@@ -219,4 +219,13 @@ protected:
 };
 
 
+
+
+class NullTokenException
+{
+public:
+    NullTokenException() {};
+};
+
+
 #endif

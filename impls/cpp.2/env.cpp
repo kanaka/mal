@@ -77,8 +77,7 @@ TokenVector Env_Procedure::apply(TokenVector& args)
 
 Environment::Environment(std::shared_ptr<Environment> p, TokenVector binds, TokenVector exprs): parent(p)
 {
-    if (((binds.peek()->type() != MAL_LIST) && (binds.peek()->type() != MAL_VECTOR))
-        || ((exprs.peek()->type() != MAL_LIST) && (exprs.peek()->type() != MAL_VECTOR)))
+    if (!is_mal_container(binds.peek()->type()) || !is_mal_container(exprs.peek()->type()))
     {
         throw new InvalidBindExprListsException(binds.values(), exprs.values());
     }
@@ -86,17 +85,40 @@ Environment::Environment(std::shared_ptr<Environment> p, TokenVector binds, Toke
     auto parameters = binds.next()->raw_value();
     auto arguments = exprs.next()->raw_value();
 
+    bool rests = false;
+
     if (parameters.size() != arguments.size())
     {
-        throw new UnequalBindExprListsException(binds.values(), exprs.values());
-    }
-    else
-    {
-
-        for (size_t i = 0; i < parameters.size(); i++)
+        if (parameters.size() > 1)
         {
-            this->set(parameters[i], arguments[i]);
+            if (parameters[parameters.size()-2]->type() == MAL_REST_ARG)
+            {
+                rests = true;
+            }
+            else
+            {
+                throw new UnequalBindExprListsException(parameters.values(), arguments.values());
+            }
         }
+        else
+        {
+            throw new UnequalBindExprListsException(parameters.values(), arguments.values());
+        }
+    }
+
+    size_t count = parameters.size() - (rests ? 2 : 0);
+    std::cout << count << std::endl;
+
+    for (size_t i = 0; i < count; i++)
+    {
+        std::cout << parameters.peek()->value() << std::endl;
+        this->set(parameters.next(), arguments.next());
+    }
+    if (rests)
+    {
+        parameters.next();         // discard rest-arg symbol
+        auto rest = std::make_shared<MalList>(arguments.rest());
+        this->set(parameters.next(), rest);
     }
 }
 

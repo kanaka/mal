@@ -92,6 +92,9 @@ TokenVector tokenize(std::string input_stream)
                         return tokens;
                     }
                     break;
+                case '&':
+                    tokens.append(std::make_shared<MalRestArg>());
+                    break;
                 case '.':
                     tokens.append(std::make_shared<MalPeriod>());
                     break;

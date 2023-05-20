@@ -150,7 +150,10 @@ int main()
         {
             std::cout << "(non-numeric comparison): " << e->value() << "." << '\n';
         }
-
+        catch(NullTokenException* e)
+        {
+            std::cout << "(null token)." << '\n';
+        }
         catch(std::exception *e)
         {
             std::cout << e->what() << "." << '\n';

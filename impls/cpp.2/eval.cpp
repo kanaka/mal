@@ -25,7 +25,6 @@ TokenVector EVAL(TokenVector input, Environment& env)
     }
 
     auto type = input.peek()->type();
-
     if (type == MAL_SYMBOL || type == MAL_VECTOR || type == MAL_HASHMAP)
     {
         return eval_ast(input, env);
@@ -253,12 +252,16 @@ TokenVector eval_def(TokenVector input, Environment& env)
             throw new InvalidDefineException(input.values());
         }
 
-        if (env.find(symbol))
+        if (env.find(symbol, true))
         {
-            auto sym_ptr = env.get(symbol);
+            auto sym_ptr = env.get(symbol);    // get the pointer to the local symbol
             auto val_ptr = input.next();
             TokenVector val_vec;
             val_vec.append(val_ptr);
+            if (val_ptr == nullptr)
+            {
+                throw new ArityMismatchException();
+            }
             auto value = EVAL(val_vec, env);
 
             sym_ptr->set(value.car());
@@ -267,12 +270,18 @@ TokenVector eval_def(TokenVector input, Environment& env)
         else
         {
             auto val_ptr = input.next();
+            if (val_ptr == nullptr)
+            {
+                throw new ArityMismatchException();
+            }
+
+            auto placeholder = std::make_shared<MalNull>();
+            env.set(symbol, placeholder);      // pre-initialize symbol in environment
+            auto sym_ptr = env.get(symbol);    // and retrieve the pointer to the env entry
             TokenVector val_vec;
             val_vec.append(val_ptr);
             auto value = EVAL(val_vec, env);
-
-            env.set(symbol, value.next());
-
+            sym_ptr->set(value.next());
             return value;
         }
     }
@@ -292,6 +301,25 @@ TokenVector eval_let(TokenVector input, Environment& env)
         if (var_head->type() == MAL_LIST || var_head->type() == MAL_VECTOR)
         {
             auto var_list = var_head->raw_value();
+
+            // pre-initialize all of the binds
+            auto pre_list = var_list;
+            while (pre_list.peek() != nullptr)
+            {
+                auto symbol = pre_list.next();
+                if (symbol == nullptr || symbol->type() != MAL_SYMBOL)
+                {
+                    throw new InvalidLetException(input.values());
+                }
+                else
+                {
+                    auto placeholder = std::make_shared<MalNull>();
+                    current_env.set(symbol, placeholder);      // pre-initialize symbol in environment
+                    pre_list.next();
+                }
+            }
+
+            // re-bind with all of the values
             while (var_list.peek() != nullptr)
             {
                 auto symbol = var_list.next();
@@ -306,11 +334,14 @@ TokenVector eval_let(TokenVector input, Environment& env)
                     {
                         throw new InvalidLetException(input.values());
                     }
+
+                    auto sym_ptr = current_env.get(symbol);    // and retrieve the pointer to the env entry
+
                     TokenVector val_vec;
                     val_vec.append(val_ptr);
                     auto value = EVAL(val_vec, current_env);
 
-                    current_env.set(symbol, value.next());
+                    sym_ptr->set(value.next());
                 }
             }
 
@@ -379,10 +410,11 @@ TokenVector eval_do(TokenVector input, Environment& env)
     {
         final_value.clear();
         final_value.append(element);
-        EVAL(final_value, env);
+        final_value = EVAL(final_value, env);
     }
     return final_value;
 }
+
 
 TokenVector eval_if(TokenVector input, Environment& env)
 {
@@ -391,7 +423,7 @@ TokenVector eval_if(TokenVector input, Environment& env)
     test.append(input.next());
     auto clause = EVAL(test, env).next();
 
-    if (clause->value() != "false" && clause->value() != "nil" && clause->value() != "()")
+    if (clause->value() != "false" && clause->value() != "nil")
     {
         TokenVector temp;
         temp.append(input.next());
@@ -403,7 +435,7 @@ TokenVector eval_if(TokenVector input, Environment& env)
         if (input.peek() == nullptr)
         {
             TokenVector temp;
-            temp.append(clause);
+            temp.append(std::make_shared<MalNil>());
             return temp;
         }
         else
@@ -422,7 +454,7 @@ TokenVector eval_fn(TokenVector input, Environment& env)
     TokenVector parameters;
     parameters.append(input.next());
     TokenVector arguments, body;
-    body = input.cdr();
+    body = input.rest();
     std::shared_ptr<Environment> parent = std::make_shared<Environment>(env);
     std::function<TokenVector(TokenVector)> closure([parameters, body, parent](TokenVector arguments)->TokenVector {
         auto current_env = Environment(parent, parameters, arguments);

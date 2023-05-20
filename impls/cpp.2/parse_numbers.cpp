@@ -21,6 +21,10 @@ void read_number(std::string input_stream, char leading, TokenVector& tokens)
             s_index++;
             read_fractional(input_stream, "0.", tokens);
         }
+        else
+        {
+            read_based_integer(input_stream, tokens);
+        }
     }
     else
     {
@@ -57,8 +61,22 @@ void read_based_integer(std::string input_stream, TokenVector& tokens)
         case '7':
             read_octal(input_stream, ch, tokens);
             break;
-        default:
+        case ' ':
+        case ')':
+        case ']':
+        case '}':
             tokens.append(std::make_shared<MalInteger>(s));
+            s_index--;
+            break;
+        default:
+            if (s_index >= input_stream.length())
+            {
+                tokens.append(std::make_shared<MalInteger>(s));
+            }
+            else
+            {
+                throw new InvalidNumberException(s);
+            }
     }
 }
 
