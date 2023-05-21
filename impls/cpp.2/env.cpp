@@ -87,39 +87,25 @@ Environment::Environment(std::shared_ptr<Environment> p, TokenVector binds, Toke
 
     bool rests = false;
 
-    if (parameters.size() != arguments.size())
+    for (auto parameter = parameters.next(); parameter != nullptr; parameter = parameters.next())
     {
-        if (parameters.size() > 1)
+        if (parameter->type() == MAL_REST_ARG)
         {
-            if (parameters[parameters.size()-2]->type() == MAL_REST_ARG)
-            {
-                rests = true;
-            }
-            else
-            {
-                throw new UnequalBindExprListsException(parameters.values(), arguments.values());
-            }
+            rests = true;
+            break;
         }
-        else
-        {
-            throw new UnequalBindExprListsException(parameters.values(), arguments.values());
-        }
+        this->set(parameter, arguments.next());
     }
 
-    size_t count = parameters.size() - (rests ? 2 : 0);
-    std::cout << count << std::endl;
-
-    for (size_t i = 0; i < count; i++)
-    {
-        std::cout << parameters.peek()->value() << std::endl;
-        this->set(parameters.next(), arguments.next());
-    }
     if (rests)
     {
-        parameters.next();         // discard rest-arg symbol
         auto rest = std::make_shared<MalList>(arguments.rest());
-        this->set(parameters.next(), rest);
+        this->set(parameters.peek(), rest);
     }
+    else if (parameters.size() != arguments.size())
+    {
+        throw new UnequalBindExprListsException(parameters.values(), arguments.values());
+    } 
 }
 
 
