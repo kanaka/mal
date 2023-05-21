@@ -117,7 +117,7 @@ TokenVector tokenize(std::string input_stream)
                     read_meta(input_stream, tokens);
                     break;
                 case '\"':
-                    read_string(input_stream, ch, tokens);
+                    read_string(input_stream, tokens);
                     break;
                 case '-':
                     if (isdigit(input_stream[s_index]))
@@ -179,10 +179,10 @@ void read_comment(std::string input_stream)
 }
 
 
-void read_string(std::string input_stream, char leading, TokenVector& tokens)
+void read_string(std::string input_stream, TokenVector& tokens)
 {
     std::string s = "";
-    char ch = leading;
+    char ch;
 
     ch = input_stream[s_index++];
     while ((ch != '\"') && s_index < input_stream.length())

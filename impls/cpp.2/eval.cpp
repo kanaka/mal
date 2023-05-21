@@ -282,7 +282,9 @@ TokenVector eval_def(TokenVector input, Environment& env)
             val_vec.append(val_ptr);
             auto value = EVAL(val_vec, env);
             sym_ptr->set(value.next());
-            return value;
+            TokenVector result;
+            result.append(env.get(symbol)->value());
+            return result;
         }
     }
     else

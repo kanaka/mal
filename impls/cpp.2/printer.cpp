@@ -9,9 +9,10 @@ std::string pr_formatted_string(MalPtr p);
 
 std::string pr_str(TokenVector tokens, bool print_readably)
 {
+    std::string s = "";
+
     if (print_readably)
     {
-        std::string s = "";
         for (auto token = tokens.next(); token != nullptr; token = tokens.next())
         {
             switch (token->type())
@@ -65,19 +66,23 @@ std::string pr_str(TokenVector tokens, bool print_readably)
                     s  += "}";
                 }
                     break;
-                case MAL_STRING:
-                    s += pr_formatted_string(token);
-                    break;
+                // case MAL_STRING:
+                //     s += pr_formatted_string(token);
+                //     break;
                 default:
                     s += token->value();
             }
         }
-        return s;
     }
     else
     {
-        return tokens.values();
+        for (auto token = tokens.next(); token != nullptr; token = tokens.next())
+        {
+            s += token->value();
+        }
     }
+
+    return s;
 }
 
 
@@ -89,6 +94,11 @@ std::string pr_formatted_string(MalPtr p)
     for (size_t i = 0; i < source.length(); i++)
     {
         char ch = source[i];
+
+        if (ch == '\"')
+        {
+            continue;
+        }
 
         if (ch == '\\' && i < source.length()-1)
         {

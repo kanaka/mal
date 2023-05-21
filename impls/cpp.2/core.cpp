@@ -1325,7 +1325,9 @@ Procedure mal_str([](TokenVector tokens)->TokenVector
     {
         for (auto token = tokens.next(); token != nullptr; token = tokens.next())
         {
-            s += pr_str(tokens, false);
+            TokenVector t;
+            t.append(token);
+            s += pr_str(t, false);
         }
     }
     TokenVector str;
@@ -1336,14 +1338,21 @@ Procedure mal_str([](TokenVector tokens)->TokenVector
 
 Procedure mal_println([](TokenVector tokens)->TokenVector
 {
+    std::string s = "";
     if (tokens.size() > 0)
     {
         for (auto token = tokens.next(); token != nullptr; token = tokens.next())
         {
-            std::cout << pr_str(tokens, false) << " ";
+            TokenVector t;
+            t.append(token);
+            s += pr_str(t, false);
+            if (tokens.peek() != nullptr)
+            {
+                std::cout << " ";
+            }
         }
     }
-    std::cout << "\n";
+    std::cout << s << "\n";
     TokenVector mal_nil;
     mal_nil.append(std::make_shared<MalNil>());
     return mal_nil;
@@ -1358,7 +1367,9 @@ Procedure mal_pr_str([](TokenVector tokens)->TokenVector
     {
         for (auto token = tokens.next(); token != nullptr; token = tokens.next())
         {
-            s += pr_str(tokens, true) + " ";
+            TokenVector t;
+            t.append(token);
+            s += pr_str(t, true);
         }
     }
     TokenVector str;

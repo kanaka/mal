@@ -44,7 +44,7 @@ void read_meta(std::string input_stream, TokenVector& tokens)
                 read_hashmap(input_stream, seq_argument);
                 break;
             case '\"':
-                read_string(input_stream, ch, seq_argument);
+                read_string(input_stream, seq_argument);
                 break;
         }
 
@@ -71,7 +71,7 @@ void read_meta(std::string input_stream, TokenVector& tokens)
                     read_hashmap(input_stream, main_argument);
                     break;
                 case '\"':
-                    read_string(input_stream, ch, main_argument);
+                    read_string(input_stream, main_argument);
                     break;
             }
         }

@@ -28,8 +28,7 @@ TokenVector EVAL(TokenVector input)
 
 std::string PRINT(TokenVector input)
 {
-    pr_str(input);
-    return input.values();
+    return pr_str(input);
 }
 
 
@@ -57,7 +56,7 @@ int main()
 
         try
         {
-            rep(input);
+            std::cout << rep(input) << '\n';
         }
         catch(UnbalancedParenthesesException* e)
         {

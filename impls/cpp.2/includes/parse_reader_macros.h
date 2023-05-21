@@ -30,7 +30,7 @@ template<class RM> void read_reader_macro(std::string input_stream, TokenVector&
                 read_hashmap(input_stream, rm_argument);
                 break;
             case '\"':
-                read_string(input_stream, ch, rm_argument);
+                read_string(input_stream, rm_argument);
                 break;
         }
     }
