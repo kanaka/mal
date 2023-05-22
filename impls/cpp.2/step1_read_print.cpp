@@ -28,7 +28,7 @@ TokenVector EVAL(TokenVector input)
 
 std::string PRINT(TokenVector input)
 {
-    return pr_str(input);
+    return pr_str(input, true);
 }
 
 

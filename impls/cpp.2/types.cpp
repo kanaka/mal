@@ -13,6 +13,31 @@
 #include "exceptions.h"
 
 
+
+TokenVector::TokenVector(const TokenVector& t)
+{
+    tokens.reserve(65535);
+    current_token = t.current_token;
+
+    for (std::vector<MalPtr>::const_iterator it = t.tokens.cbegin(); it != t.tokens.cend(); ++it)
+    {
+        this->tokens.push_back(*it);
+    }
+}
+
+
+const TokenVector& TokenVector::operator=(const TokenVector& t)
+{
+    this->clear();
+    for (std::vector<MalPtr>::const_iterator it = t.tokens.cbegin(); it != t.tokens.cend(); ++it)
+    {
+        this->tokens.push_back(*it);
+    }
+
+    return t;
+}
+
+
 size_t TokenVector::append(MalPtr token)
 {
     if (token == nullptr)

@@ -48,6 +48,8 @@ class TokenVector
 {
 public:
     TokenVector(): current_token(0) {tokens.reserve(65535);};
+    TokenVector(const TokenVector& t);
+    const TokenVector& operator=(const TokenVector& t);
     size_t size() const {return tokens.size();};
     size_t capacity() const {return tokens.capacity();};
     size_t append(MalPtr token);
@@ -194,6 +196,8 @@ class MalMeta: public MalReaderMacro
 public:
     MalMeta(const TokenVector& seq, TokenVector& arg): MalReaderMacro(arg), sequence(seq) {};
     virtual MalTypeName type() {return MAL_META;};
+    virtual TokenVector meta_target() {return sequence;};
+    virtual TokenVector meta_arguments() {return list;};
     virtual std::string value() {return "(with-meta " + sequence.values() + " " + list.values() + ')';};
 private:
     TokenVector sequence;
@@ -318,7 +322,7 @@ class MalString: public MalAtom
 public:
     MalString(std::string r): MalAtom(r) {};
     virtual MalTypeName type() {return MAL_STRING;};
-    virtual std::string value() {return "\"" + repr + "\"";};
+    virtual std::string value() {return repr;};
 };
 
 

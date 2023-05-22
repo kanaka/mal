@@ -56,7 +56,7 @@ void read_meta(std::string input_stream, TokenVector& tokens)
 
         s_index++;
         ch = input_stream[s_index++];
-        std::cout << ch << std::endl;
+
         if (is_left_balanced(ch))
         {
             switch(ch)
@@ -92,7 +92,6 @@ void read_meta(std::string input_stream, TokenVector& tokens)
     {
         throw new InvalidMetaException();
     }
-
 
     tokens.append(std::make_shared<MalMeta>(main_argument, seq_argument));
 }

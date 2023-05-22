@@ -42,7 +42,11 @@ std::string pr_str(TokenVector tokens, bool print_readably)
                     s += "(deref " + pr_list(token->raw_value()) + ")";
                     break;
                 case MAL_META:
-                    s += "(with-meta " + pr_list(token->raw_value()) + ")";
+                {
+                    auto args = (dynamic_cast<MalMeta*>(&(*token)))->meta_target();
+                    auto sequence = (dynamic_cast<MalMeta*>(&(*token)))->meta_arguments();
+                    s += "(with-meta " + pr_list(args) + " " + pr_list(sequence) + ")";
+                }
                     break;
 
                 case MAL_HASHMAP:
@@ -51,22 +55,31 @@ std::string pr_str(TokenVector tokens, bool print_readably)
                     // actual subclass. This is VERY questionable, and if possible a better solution should be found!
                     HashMapInternal hm((dynamic_cast<MalHashmap*>(&(*token)))->internal_map());
                     s  += "{";
-                    for (auto hash: hm)
+                    if (hm.size() == 0)
                     {
-                        if (hash.first[0] == ':')
-                        {
-                            s += hash.first + " ";
-                        }
-                        else
-                        {
-                            s += "\"" + hash.first + "\" ";
-                        }
-                        TokenVector temp;
-                        temp.append(hash.second);
-                        s += pr_str(temp, true);
-                        temp.clear();
+                        s += "}";
                     }
-                    s  += "}";
+                    else
+                    {
+                        for (auto hash: hm)
+                        {
+                            if (hash.first[0] == ':')
+                            {
+                                s += hash.first + " ";
+                            }
+                            else
+                            {
+                                s += "\"" + hash.first + "\" ";
+                            }
+
+                            TokenVector temp;
+                            temp.append(hash.second);
+                            s += pr_str(temp, true);
+                            s += " ";
+                            temp.clear();
+                        }
+                        s[s.length()-1]  = '}';
+                    }
                 }
                     break;
                 case MAL_STRING:
@@ -94,63 +107,43 @@ std::string pr_str(TokenVector tokens, bool print_readably)
 
 std::string pr_formatted_string(MalPtr p)
 {
-    std::string s = "";
+    std::string s = "\"";
     auto source = p->value(); // string to parse
+
 
     for (size_t i = 0; i < source.length(); i++)
     {
         char ch = source[i];
 
-        if (ch == '\"' && (i == 0 || i == source.length()-1))
+        switch (ch)
         {
-            s += '\\';
-            s += ch;
-        }
-        else if (ch == '\\')
-        {
-            s += ch;
-            s += ch;
-            i++;
-            if (i >= source.length())
+            case '\\':
+            case '\"':
             {
-                throw new IncompleteEscapeException();
+                s += '\\';
+                s += ch;
             }
-
-            ch = source[i];
-            switch (ch)
+                break;
+            case '\n':
             {
-                case '\\':
-                case '\'':
-                case '\"':
-                {
-                    s += '\\';
-                    s += ch;
-                }
-                    break;
-                case 'n':
-                {
-                    s += 'n';
-                }
-                    break;
-                case 't':
-                 {
-                    s += 't';
-                 }
-                    break;
-                default:
-                {
-                    throw new IncompleteEscapeException();
-                }
-
+                s += '\\';
+                s += 'n';
             }
-        }
-        else
-        {
-            s += ch;
+                break;
+            case '\t':
+                {
+                s += '\\';
+                s += 't';
+                }
+                break;
+            default:
+            {
+                s += ch;
+            }
         }
     }
 
-    return s;
+    return s + "\"";
 }
 
 

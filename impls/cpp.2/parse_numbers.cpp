@@ -9,6 +9,7 @@
 #include "exceptions.h"
 #include "parse_numbers.h"
 
+
 void read_number(std::string input_stream, char leading, TokenVector& tokens)
 {
     std::string s;
@@ -31,6 +32,7 @@ void read_number(std::string input_stream, char leading, TokenVector& tokens)
         read_decimal(input_stream, ch, tokens);
     }
 }
+
 
 void read_based_integer(std::string input_stream, TokenVector& tokens)
 {

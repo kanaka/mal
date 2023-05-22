@@ -29,7 +29,7 @@ TokenVector READ(std::string input)
 
 std::string PRINT(TokenVector input)
 {
-    return pr_str(input);
+    return pr_str(input, true);
 }
 
 

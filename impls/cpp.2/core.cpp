@@ -1294,9 +1294,14 @@ Procedure mal_is_number([](TokenVector tokens)->TokenVector
 
 // printing
 
-std::string filter_escapes(std::string source)
+std::string filter_escapes(std::string source, bool complete = false)
 {
     std::string s = "";
+
+    if (source.empty())
+    {
+        return s;
+    }
 
     for (size_t i = 0; i < source.size(); ++i)
     {
@@ -1304,16 +1309,41 @@ std::string filter_escapes(std::string source)
 
         if (ch == '\\')
         {
-            s += ch;
-            i++;
-            ch = source[i];
-            if (ch == '\"' || ch == '\\' || ch == '\'' || ch == 'n' || ch == 't')
+            if (complete)
             {
-                s += ch;
+                i++;
+                ch = source[i];
+                if (ch == '\"' || ch == '\\' || ch == '\'')
+                {
+                    s += ch;
+                }
+                else if (ch == 'n')
+                {
+                    s += '\n';
+                }
+                else
+                {
+                    throw new UnbalancedStringException();
+                }
             }
             else
             {
-                throw new UnbalancedStringException();
+                i++;
+                ch = source[i];
+                if (ch == '\"' || ch == '\\' || ch == '\'')
+                {
+                    s += '\\';
+                    s += ch;
+                }
+                else if (ch == 'n')
+                {
+                    s += '\\';
+                    s += 'n';
+                }
+                else
+                {
+                    throw new UnbalancedStringException();
+                }
             }
         }
         else if (ch != '\"')
@@ -1337,14 +1367,9 @@ Procedure mal_str([](TokenVector tokens)->TokenVector
 
     if (tokens.size() > 0)
     {
-
         s += pr_str(tokens, false);
     }
     TokenVector str;
-    if (s != "")
-    {
-        s = filter_escapes(s);
-    }
     str.append(std::make_shared<MalString>(s));
     return str;
 });
@@ -1378,8 +1403,12 @@ Procedure mal_pr_str([](TokenVector tokens)->TokenVector
 
 Procedure mal_prn([](TokenVector tokens)->TokenVector
 {
-    auto str = mal_pr_str(tokens);
-    std::cout << filter_escapes(str.values()) << "\n";
+    if (tokens.size() > 0)
+    {
+        std::cout << mal_pr_str(tokens).values();
+    }
+
+    std::cout << '\n';
 
     TokenVector mal_nil;
     mal_nil.append(std::make_shared<MalNil>());
@@ -1389,8 +1418,22 @@ Procedure mal_prn([](TokenVector tokens)->TokenVector
 
 Procedure mal_println([](TokenVector tokens)->TokenVector
 {
-    auto str = mal_str(tokens);
-    std::cout << str.values().substr(1, str.values().length()-2);
+    if (tokens.values().length() != 0)
+    {
+        for (size_t i = 0; i < tokens.size(); ++i)
+        {
+            TokenVector temp;
+            temp.append(tokens[i]);
+            auto str = mal_str(temp);
+            std::string s = str.values();
+            std::cout << s;
+            if (i < tokens.size()-1)
+            {
+                std::cout << " ";
+            }
+            temp.clear();
+        }
+    }
     std::cout << '\n';
 
     TokenVector mal_nil;

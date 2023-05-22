@@ -185,26 +185,42 @@ void read_string(std::string input_stream, TokenVector& tokens)
     char ch;
 
     ch = input_stream[s_index++];
+
     while ((ch != '\"') && s_index < input_stream.length())
     {
         if ((ch == '\\' ) && s_index < input_stream.length())
         {
-            s += ch;
             ch = input_stream[s_index++];
             if (s_index == input_stream.length())
             {
                 throw new IncompleteEscapeException();
             }
 
-            s += ch;
-
-            ch = input_stream[s_index++];
-            continue;
+            if (ch == '\"' || ch == '\\')
+            {
+                s += ch;
+            }
+            else if (ch == 'n')
+            {
+                s += '\n';
+            }
+            else if (ch == 't')
+            {
+                s += '\t';
+            }
+            else
+            {
+                throw new UnbalancedStringException();
+            }
         }
 
-        s += ch;
+        else
+        {
+            s += ch;
+        }
         ch = input_stream[s_index++];
     }
+
     if (ch != '\"')
     {
         throw new UnbalancedStringException();
