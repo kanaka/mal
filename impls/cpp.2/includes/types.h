@@ -27,7 +27,7 @@ enum MalTypeName
 {
     MAL_TYPE, MAL_ATOM, MAL_SYMBOL, MAL_KEYWORD, MAL_REST_ARG,
     MAL_STRING, MAL_CHAR, MAL_BOOLEAN,
-    MAL_LIST, MAL_NULL, MAL_NIL, MAL_VECTOR, MAL_HASHMAP,
+    MAL_LIST, MAL_NULL, MAL_NIL, MAL_PRINT_NIL, MAL_VECTOR, MAL_HASHMAP,
     MAL_PERIOD, MAL_COMMA,
     MAL_READER_MACRO, MAL_DEREF, MAL_UNQUOTE, MAL_SPLICE_UNQUOTE,
     MAL_QUOTE, MAL_QUASIQUOTE, MAL_META,
@@ -238,6 +238,12 @@ public:
     virtual MalTypeName type() {return MAL_NIL;};
 };
 
+class MalPrintNil: public MalNull
+{
+public:
+    MalPrintNil(): MalNull("nil") {};
+    virtual MalTypeName type() {return MAL_PRINT_NIL;};
+};
 
 class MalVector: public MalType
 {

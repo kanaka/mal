@@ -4,8 +4,9 @@
 #include "printer.h"
 #include "exceptions.h"
 
-std::string pr_formatted_string(MalPtr p);
 
+std::string pr_formatted_string(MalPtr p);
+std::string pr_list(TokenVector list);
 
 std::string pr_str(TokenVector tokens, bool print_readably)
 {
@@ -17,29 +18,31 @@ std::string pr_str(TokenVector tokens, bool print_readably)
         {
             switch (token->type())
             {
+                case MAL_PRINT_NIL:
+                    continue;
                 case MAL_LIST:
-                    s += "(" + pr_str(token->raw_value(), true) + ")";
+                    s += "(" + pr_list(token->raw_value()) + ")";
                     break;
                 case MAL_VECTOR:
-                    s += "[" + pr_str(token->raw_value(), true) + "]";
+                    s += "[" + pr_list(token->raw_value()) + "]";
                     break;
                 case MAL_QUOTE:
-                    s += "(quote " + pr_str(token->raw_value(), true) + ")";
+                    s += "(quote " + pr_list(token->raw_value()) + ")";
                     break;
                 case MAL_QUASIQUOTE:
-                    s += "(quasiquote " + pr_str(token->raw_value(), true) + ")";
+                    s += "(quasiquote " + pr_list(token->raw_value()) + ")";
                     break;
                 case MAL_UNQUOTE:
-                    s += "(unquote " + pr_str(token->raw_value(), true) + ")";
+                    s += "(unquote " + pr_list(token->raw_value()) + ")";
                     break;
                 case MAL_SPLICE_UNQUOTE:
-                    s += "(splice-unquote " + pr_str(token->raw_value(), true) + ")";
+                    s += "(splice-unquote " + pr_list(token->raw_value()) + ")";
                     break;
                 case MAL_DEREF:
-                    s += "(deref " + pr_str(token->raw_value(), true) + ")";
+                    s += "(deref " + pr_list(token->raw_value()) + ")";
                     break;
                 case MAL_META:
-                    s += "(with-meta " + pr_str(token->raw_value(), true) + ")";
+                    s += "(with-meta " + pr_list(token->raw_value()) + ")";
                     break;
 
                 case MAL_HASHMAP:
@@ -52,11 +55,11 @@ std::string pr_str(TokenVector tokens, bool print_readably)
                     {
                         if (hash.first[0] == ':')
                         {
-                            s+= hash.first + " ";
+                            s += hash.first + " ";
                         }
                         else
                         {
-                            s+= "\"" + hash.first + "\" ";
+                            s += "\"" + hash.first + "\" ";
                         }
                         TokenVector temp;
                         temp.append(hash.second);
@@ -66,9 +69,9 @@ std::string pr_str(TokenVector tokens, bool print_readably)
                     s  += "}";
                 }
                     break;
-                // case MAL_STRING:
-                //     s += pr_formatted_string(token);
-                //     break;
+                case MAL_STRING:
+                    s += pr_formatted_string(token);
+                    break;
                 default:
                     s += token->value();
             }
@@ -78,7 +81,10 @@ std::string pr_str(TokenVector tokens, bool print_readably)
     {
         for (auto token = tokens.next(); token != nullptr; token = tokens.next())
         {
-            s += token->value();
+            if (token->type() != MAL_PRINT_NIL)
+            {
+                s += token->value();
+            }
         }
     }
 
@@ -95,43 +101,73 @@ std::string pr_formatted_string(MalPtr p)
     {
         char ch = source[i];
 
-        if (ch == '\"')
+        if (ch == '\"' && (i == 0 || i == source.length()-1))
         {
-            continue;
+            s += '\\';
+            s += ch;
         }
-
-        if (ch == '\\' && i < source.length()-1)
+        else if (ch == '\\')
         {
-            ch = source[++i];
+            s += ch;
+            s += ch;
+            i++;
+            if (i >= source.length())
+            {
+                throw new IncompleteEscapeException();
+            }
+
+            ch = source[i];
             switch (ch)
             {
                 case '\\':
                 case '\'':
                 case '\"':
                 {
+                    s += '\\';
                     s += ch;
                 }
                     break;
                 case 'n':
                 {
-                    s += '\n';
+                    s += 'n';
                 }
                     break;
                 case 't':
                  {
-                    s += '\t';
+                    s += 't';
                  }
                     break;
                 default:
                 {
                     throw new IncompleteEscapeException();
                 }
+
             }
         }
         else
         {
             s += ch;
         }
+    }
+
+    return s;
+}
+
+
+std::string pr_list(TokenVector list)
+{
+    std::string s = "";
+
+    for (auto element = list.next(); element != nullptr; element = list.next())
+    {
+        TokenVector temp;
+        temp.append(element);
+        s += pr_str(temp, true);
+        if (list.peek() != nullptr)
+        {
+            s += " ";
+        }
+        temp.clear();
     }
 
     return s;
