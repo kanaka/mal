@@ -228,4 +228,13 @@ public:
 };
 
 
+class InvalidConsPairException
+{
+public:
+    InvalidConsPairException(std::string p): pair(p) {};
+    std::string value() const { return pair; };
+protected:
+    std::string pair;
+};
+
 #endif

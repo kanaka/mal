@@ -1210,21 +1210,74 @@ Procedure mal_count([](TokenVector tokens)->TokenVector
 });
 
 
-// Procedure mal_cons([](TokenVector tokens)->TokenVector
-// {
+Procedure mal_cons([](TokenVector tokens)->TokenVector
+{
+    TokenVector temp, result;
 
-// });
+    temp.append(tokens.next());
+    auto type = tokens.peek()->type();
+    if (type == MAL_LIST)
+    {
+        auto elements = tokens.next()->raw_value();
+        for (auto element = elements.next(); element != nullptr; element = elements.next())
+        {
+            temp.append(element);
+        }
+        result.append(std::make_shared<MalList>(temp));
+    }
+    else if (type == MAL_VECTOR)
+    {
+        auto elements = tokens.next()->raw_value();
+        for (auto element = elements.next(); element != nullptr; element = elements.next())
+        {
+            temp.append(element);
+        }
+        result.append(std::make_shared<MalVector>(temp));
+    }
+    else
+    {
+        throw new InvalidConsPairException(tokens.peek()->value());
+    }
 
-// Procedure mal_car([](TokenVector tokens)->TokenVector
-// {
+    return result;
+});
 
-// });
+Procedure mal_car([](TokenVector tokens)->TokenVector
+{
+    auto type = tokens.peek()->type();
+    if (is_mal_container(type))
+    {
+        TokenVector result;
+        result.append(tokens.next()->raw_value().car());
+        return result;
+    }
+    else
+    {
+        throw new InvalidConsPairException(tokens.peek()->value());
+    }
+});
 
 
-// Procedure mal_cdr([](TokenVector tokens)->TokenVector
-// {
-
-// });
+Procedure mal_cdr([](TokenVector tokens)->TokenVector
+{
+    auto type = tokens.peek()->type();
+    if (is_mal_container(type))
+    {
+        TokenVector result, collector;
+        auto elements = tokens.next()->raw_value();
+        elements.next();                // discard car value
+        for (auto element = elements.next(); element != nullptr; element = elements.next())
+        {
+            collector.append(element);
+        }
+        result.append(std::make_shared<MalList>(collector));
+        return result;
+    }
+    else
+    {
+        throw new InvalidConsPairException(tokens.peek()->value());
+    }
+});
 
 Procedure mal_is_empty([](TokenVector tokens)->TokenVector
 {
@@ -1463,9 +1516,9 @@ void init_global_environment()
     // list manipulation
     repl_env.set(std::make_shared<Env_Primitive>(std::make_shared<MalSymbol>("list"), mal_list, -1));
     repl_env.set(std::make_shared<Env_Primitive>(std::make_shared<MalSymbol>("count"), mal_count, 1));
-    // repl_env.set(std::make_shared<Env_Primitive>(std::make_shared<MalSymbol>("cons"), mal_cons, 2));
-    // repl_env.set(std::make_shared<Env_Primitive>(std::make_shared<MalSymbol>("car"), mal_car, 2));
-    // repl_env.set(std::make_shared<Env_Primitive>(std::make_shared<MalSymbol>("cdr"), mal_cdr, 2));
+    repl_env.set(std::make_shared<Env_Primitive>(std::make_shared<MalSymbol>("cons"), mal_cons, 2));
+    repl_env.set(std::make_shared<Env_Primitive>(std::make_shared<MalSymbol>("car"), mal_car, 1));
+    repl_env.set(std::make_shared<Env_Primitive>(std::make_shared<MalSymbol>("cdr"), mal_cdr, 1));
     repl_env.set(std::make_shared<Env_Primitive>(std::make_shared<MalSymbol>("empty?"), mal_is_empty, 1));
 
     // type predicates

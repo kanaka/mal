@@ -154,6 +154,10 @@ int main()
         {
             std::cout << "(null token)." << '\n';
         }
+        catch(InvalidConsPairException* e)
+        {
+            std::cout << "(invalid arguments for CON, CAR or CDR): " << e->value() << "." << '\n';
+        }
         catch(std::exception *e)
         {
             std::cout << e->what() << "." << '\n';
