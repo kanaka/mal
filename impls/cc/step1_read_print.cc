@@ -1,0 +1,42 @@
+#include "printer.hh"
+#include "reader.hh"
+#include <iostream>
+#include <string>
+
+std::unique_ptr<MalType> read(const std::string &input)
+{
+    return read_str(input);
+}
+
+std::unique_ptr<MalType> eval(std::unique_ptr<MalType> input)
+{
+    return input;
+}
+
+std::string print(std::unique_ptr<MalType> input)
+{
+    return pr_str(std::move(input));
+}
+
+std::string rep(const std::string &input)
+{
+    auto read_result = read(input);
+    auto eval_result = eval(std::move(read_result));
+    auto print_result = print(std::move(eval_result));
+    return print_result;
+}
+
+int main(int argc, char *argv[])
+{
+    std::string input;
+
+    while (!std::cin.eof())
+    {
+        std::cout << "user> ";
+        std::getline(std::cin, input);
+        auto rep_result = rep(input);
+        std::cout << rep_result << std::endl;
+    }
+
+    return 0;
+}
