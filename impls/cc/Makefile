@@ -1,11 +1,12 @@
 LD=$(CXX)
-DEBUG=-ggdb
-CXXFLAGS=-O3 -Wall $(DEBUG) $(INCPATHS) -std=c++11
-LDFLAGS=-O3 $(DEBUG) $(LIBPATHS) -L. -lreadline -lhistory
+DEBUG=-g
+CXXFLAGS=-O0 -Wall $(DEBUG) $(INCPATHS) -std=c++17
+LDFLAGS=-O0 $(DEBUG) $(LIBPATHS) -L. -lreadline -lhistory
 
-LIBSOURCES=Core.cpp Environment.cpp Reader.cpp ReadLine.cpp String.cpp \
+#LIBSOURCES=Core.cpp Environment.cpp Reader.cpp ReadLine.cpp String.cpp \
 			Types.cpp Validation.cpp
-LIBOBJS=$(LIBSOURCES:%.cpp=%.o)
+LIBSOURCES=reader.cc printer.cc
+LIBOBJS=$(LIBSOURCES:%.cc=%.o)
 
 MAINS=$(wildcard step*.cc)
 TARGETS=$(MAINS:%.cc=%)
@@ -21,10 +22,10 @@ dist: mal
 mal: stepA_mal
 	cp $< $@
 
-.deps: *.cc *.h
+.deps: *.cc *.hh
 	$(CXX) $(CXXFLAGS) -MM *.cc > .deps
 
-$(TARGETS): %: %.o #libmal.a
+$(TARGETS): %: %.o libmal.a
 	$(LD) $^ -o $@ $(LDFLAGS)
 
 libmal.a: $(LIBOBJS)
