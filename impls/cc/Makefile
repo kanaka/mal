@@ -1,5 +1,5 @@
 LD=$(CXX)
-DEBUG=-g
+DEBUG=-ggdb
 CXXFLAGS=-O0 -Wall $(DEBUG) $(INCPATHS) -std=c++17
 LDFLAGS=-O0 $(DEBUG) $(LIBPATHS) -L. -lreadline -lhistory
 
