@@ -12,8 +12,8 @@ public:
         iter_ = std::sregex_iterator(input.begin(), input.end(), regex_);
     }
 
-    std::string next() { return (*iter_++).str(1); }
-    std::string peak() const { return (*iter_).str(1); }
+    std::string next() { return iter_++->str(1); }
+    std::string peak() const { return iter_->str(1); }
     bool empty() const
     {
         return iter_ == std::sregex_iterator() ||
