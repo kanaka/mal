@@ -3,7 +3,7 @@
 #include <iostream>
 #include <sstream>
 
-std::unique_ptr<MalType> read_form(Reader &reader);
+std::shared_ptr<MalType> read_form(Reader &reader);
 
 Reader tokenize(const std::string &input)
 {
@@ -46,7 +46,7 @@ std::string unescape(const std::string &token)
     return oss.str();
 }
 
-std::unique_ptr<MalType> read_atom(Reader &reader)
+std::shared_ptr<MalType> read_atom(Reader &reader)
 {
     if (reader.empty())
     {
@@ -63,20 +63,20 @@ std::unique_ptr<MalType> read_atom(Reader &reader)
             return nullptr;
         }
 
-        return std::make_unique<MalSymbol>(unescaped_token);
+        return std::make_shared<MalSymbol>(unescaped_token);
     }
 
     int result;
     auto [ptr, ec] = std::from_chars(token.c_str(), token.c_str() + token.size(), result);
     if (ec == std::errc() && ptr == token.c_str() + token.size())
     {
-        return std::make_unique<MalInt>(result);
+        return std::make_shared<MalInt>(result);
     }
 
-    return std::make_unique<MalSymbol>(token);
+    return std::make_shared<MalSymbol>(token);
 }
 
-std::unique_ptr<MalList> read_list(Reader &reader, char lparen, char rparen)
+std::shared_ptr<MalList> read_list(Reader &reader, char lparen, char rparen)
 {
     if (reader.empty())
     {
@@ -84,7 +84,7 @@ std::unique_ptr<MalList> read_list(Reader &reader, char lparen, char rparen)
         return nullptr;
     }
 
-    auto list = std::make_unique<MalList>(lparen, rparen);
+    auto list = std::make_shared<MalList>(lparen, rparen);
     auto token = read_form(reader);
 
     while (token && (token->type() != MalType::Type::Symbol ||
@@ -103,27 +103,27 @@ std::unique_ptr<MalList> read_list(Reader &reader, char lparen, char rparen)
     return list;
 }
 
-std::unique_ptr<MalList> read_macro(Reader &reader, const std::string &name)
+std::shared_ptr<MalList> read_macro(Reader &reader, const std::string &name)
 {
     auto macro = read_form(reader);
-    auto result = std::make_unique<MalList>('(', ')');
-    result->push_back(std::make_unique<MalSymbol>(name));
+    auto result = std::make_shared<MalList>('(', ')');
+    result->push_back(std::make_shared<MalSymbol>(name));
     result->push_back(std::move(macro));
     return result;
 }
 
-std::unique_ptr<MalList> read_meta(Reader &reader)
+std::shared_ptr<MalList> read_meta(Reader &reader)
 {
     auto map = read_form(reader);
     auto vector = read_form(reader);
-    auto result = std::make_unique<MalList>('(', ')');
-    result->push_back(std::make_unique<MalSymbol>("with-meta"));
+    auto result = std::make_shared<MalList>('(', ')');
+    result->push_back(std::make_shared<MalSymbol>("with-meta"));
     result->push_back(std::move(vector));
     result->push_back(std::move(map));
     return result;
 }
 
-std::unique_ptr<MalType> read_form(Reader &reader)
+std::shared_ptr<MalType> read_form(Reader &reader)
 {
     if (reader.empty())
     {
@@ -162,7 +162,7 @@ std::unique_ptr<MalType> read_form(Reader &reader)
     }
 }
 
-std::unique_ptr<MalType> read_str(const std::string &input)
+std::shared_ptr<MalType> read_str(const std::string &input)
 {
     auto reader = tokenize(input);
     return read_form(reader);

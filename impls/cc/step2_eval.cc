@@ -5,7 +5,7 @@
 #include <numeric>
 #include <string>
 
-std::unique_ptr<MalType> eval(std::unique_ptr<MalType> input, const std::map<std::string, std::function<int(std::vector<int>)>> &env);
+std::shared_ptr<MalType> eval(std::shared_ptr<MalType> input, const std::map<std::string, std::function<int(std::vector<int>)>> &env);
 
 std::map<std::string, std::function<int(std::vector<int>)>> repl_env = {
     {"+", [](std::vector<int> args)
@@ -18,12 +18,12 @@ std::map<std::string, std::function<int(std::vector<int>)>> repl_env = {
      { return args[0] / args[1]; }},
 };
 
-std::unique_ptr<MalType> read(const std::string &input)
+std::shared_ptr<MalType> read(const std::string &input)
 {
     return read_str(input);
 }
 
-std::unique_ptr<MalType> eval_ast(std::unique_ptr<MalType> ast, const std::map<std::string, std::function<int(std::vector<int>)>> &env)
+std::shared_ptr<MalType> eval_ast(std::shared_ptr<MalType> ast, const std::map<std::string, std::function<int(std::vector<int>)>> &env)
 {
     switch (ast->type())
     {
@@ -39,12 +39,12 @@ std::unique_ptr<MalType> eval_ast(std::unique_ptr<MalType> ast, const std::map<s
             std::cerr << "Invallid symbol";
             return nullptr;
         }
-        return std::make_unique<MalFunc>(iter->second);
+        return std::make_shared<MalFunc>(iter->second);
     }
     case MalType::Type::List:
     {
         auto &list = static_cast<MalList &>(*ast);
-        auto new_list = std::make_unique<MalList>(list.lparen(), list.rparen());
+        auto new_list = std::make_shared<MalList>(list.lparen(), list.rparen());
         for (auto &a : list)
         {
             auto l = eval(std::move(a), env);
@@ -59,7 +59,7 @@ std::unique_ptr<MalType> eval_ast(std::unique_ptr<MalType> ast, const std::map<s
     }
 }
 
-std::unique_ptr<MalType> eval(std::unique_ptr<MalType> input, const std::map<std::string, std::function<int(std::vector<int>)>> &env)
+std::shared_ptr<MalType> eval(std::shared_ptr<MalType> input, const std::map<std::string, std::function<int(std::vector<int>)>> &env)
 {
     if (!input)
         return nullptr;
@@ -79,16 +79,16 @@ std::unique_ptr<MalType> eval(std::unique_ptr<MalType> input, const std::map<std
         return nullptr;
 
     auto &new_list = static_cast<MalList &>(*plist);
-    auto &func = static_cast<const MalFunc &>(new_list[0]);
+    auto &func = static_cast<const MalFunc &>(*new_list[0]);
 
     std::vector<int> args;
     for (unsigned i = 1; i < new_list.size(); ++i)
-        args.push_back(static_cast<const MalInt &>(new_list[i]));
+        args.push_back(static_cast<const MalInt &>(*new_list[i]));
 
-    return std::make_unique<MalInt>(func(args));
+    return std::make_shared<MalInt>(func(args));
 }
 
-std::string print(std::unique_ptr<MalType> input)
+std::string print(std::shared_ptr<MalType> input)
 {
     return pr_str(std::move(input));
 }

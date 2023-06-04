@@ -69,15 +69,15 @@ public:
     MalList(char lparen, char rparen)
         : MalType(Type::List), lparen_(lparen), rparen_(rparen) {}
 
-    const MalType &operator[](std::size_t pos) const { return *list_[pos]; }
+    const std::shared_ptr<MalType> &operator[](std::size_t pos) const { return list_[pos]; }
     [[nodiscard]] bool empty() const noexcept { return list_.empty(); }
     std::size_t size() const noexcept { return list_.size(); }
-    void push_back(std::unique_ptr<MalType> value) { return list_.push_back(std::move(value)); }
+    void push_back(std::shared_ptr<MalType> value) { return list_.push_back(std::move(value)); }
 
-    std::vector<std::unique_ptr<MalType>>::iterator begin() noexcept { return list_.begin(); }
-    std::vector<std::unique_ptr<MalType>>::const_iterator begin() const noexcept { return list_.begin(); }
-    std::vector<std::unique_ptr<MalType>>::iterator end() noexcept { return list_.end(); }
-    std::vector<std::unique_ptr<MalType>>::const_iterator end() const noexcept { return list_.end(); }
+    std::vector<std::shared_ptr<MalType>>::iterator begin() noexcept { return list_.begin(); }
+    std::vector<std::shared_ptr<MalType>>::const_iterator begin() const noexcept { return list_.begin(); }
+    std::vector<std::shared_ptr<MalType>>::iterator end() noexcept { return list_.end(); }
+    std::vector<std::shared_ptr<MalType>>::const_iterator end() const noexcept { return list_.end(); }
 
     char lparen() const { return lparen_; }
     char rparen() const { return rparen_; }
@@ -89,7 +89,7 @@ public:
 private:
     char lparen_;
     char rparen_;
-    std::vector<std::unique_ptr<MalType>> list_;
+    std::vector<std::shared_ptr<MalType>> list_;
 };
 
 class MalFunc : public MalType
@@ -101,5 +101,5 @@ public:
     int operator()(std::vector<int> args) const { return func_(args); }
 
 private:
-    const std::function<int(std::vector<int>)> &func_;
+    std::function<int(std::vector<int>)> func_;
 };

@@ -29,7 +29,7 @@ std::string escape(const std::string &token)
     return oss.str();
 }
 
-std::string pr_str(std::unique_ptr<MalType> input, bool print_readably)
+std::string pr_str(std::shared_ptr<MalType> input, bool print_readably)
 {
     if (!input)
     {
