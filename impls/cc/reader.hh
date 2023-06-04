@@ -27,4 +27,4 @@ private:
     std::sregex_iterator iter_;
 };
 
-std::unique_ptr<MalType> read_str(const std::string &input);
+std::shared_ptr<MalType> read_str(const std::string &input);

@@ -3,17 +3,17 @@
 #include <iostream>
 #include <string>
 
-std::unique_ptr<MalType> read(const std::string &input)
+std::shared_ptr<MalType> read(const std::string &input)
 {
     return read_str(input);
 }
 
-std::unique_ptr<MalType> eval(std::unique_ptr<MalType> input)
+std::shared_ptr<MalType> eval(std::shared_ptr<MalType> input)
 {
     return input;
 }
 
-std::string print(std::unique_ptr<MalType> input)
+std::string print(std::shared_ptr<MalType> input)
 {
     return pr_str(std::move(input));
 }
