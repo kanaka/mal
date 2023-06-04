@@ -56,6 +56,9 @@ public:
     bool operator!=(const std::string &str) const noexcept { return symbol_ != str; }
     bool operator!=(const char *str) const noexcept { return symbol_ != str; }
 
+    bool is_string() const { return symbol_[0] == '"'; }
+    bool is_keyword() const { return symbol_[0] == ':'; }
+
 private:
     std::string symbol_;
 };
@@ -78,6 +81,10 @@ public:
 
     char lparen() const { return lparen_; }
     char rparen() const { return rparen_; }
+
+    bool is_list() const { return lparen_ == '('; }
+    bool is_vector() const { return lparen_ == '['; }
+    bool is_map() const { return lparen_ == '{'; }
 
 private:
     char lparen_;

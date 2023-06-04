@@ -29,8 +29,8 @@ std::unique_ptr<MalType> eval_ast(std::unique_ptr<MalType> ast, const std::map<s
     {
     case MalType::Type::Symbol:
     {
-        std::string symbol = static_cast<MalSymbol &>(*ast);
-        if (symbol[0] == '"' || symbol[0] == ':')
+        auto symbol = static_cast<MalSymbol &>(*ast);
+        if (symbol.is_string() || symbol.is_keyword())
             return ast;
 
         auto iter = env.find(symbol);
@@ -67,11 +67,11 @@ std::unique_ptr<MalType> eval(std::unique_ptr<MalType> input, const std::map<std
     if (input->type() != MalType::Type::List)
         return eval_ast(std::move(input), env);
 
-    auto list = static_cast<MalList *>(input.get());
-    if (list->empty())
+    auto &list = static_cast<MalList &>(*input);
+    if (list.empty())
         return input;
 
-    if (list->lparen() != '(')
+    if (!list.is_list())
         return eval_ast(std::move(input), env);
 
     auto plist = eval_ast(std::move(input), env);
