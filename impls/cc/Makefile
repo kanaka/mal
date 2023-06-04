@@ -1,7 +1,7 @@
 LD=$(CXX)
 DEBUG=-ggdb
-CXXFLAGS=-O0 -Wall $(DEBUG) $(INCPATHS) -std=c++17
-LDFLAGS=-O0 $(DEBUG) $(LIBPATHS) -L. -lreadline -lhistory
+CXXFLAGS=-Og -Wall $(DEBUG) $(INCPATHS) -std=c++17
+LDFLAGS=-Og $(DEBUG) $(LIBPATHS) -L. -lreadline -lhistory
 
 #LIBSOURCES=Core.cpp Environment.cpp Reader.cpp ReadLine.cpp String.cpp \
 			Types.cpp Validation.cpp

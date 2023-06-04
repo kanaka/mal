@@ -3,7 +3,7 @@
 #include <iostream>
 #include <sstream>
 
-std::unique_ptr<MalType> read_from(Reader &reader);
+std::unique_ptr<MalType> read_form(Reader &reader);
 
 Reader tokenize(const std::string &input)
 {
@@ -85,13 +85,13 @@ std::unique_ptr<MalList> read_list(Reader &reader, char lparen, char rparen)
     }
 
     auto list = std::make_unique<MalList>(lparen, rparen);
-    auto token = read_from(reader);
+    auto token = read_form(reader);
 
     while (token && (token->type() != MalType::Type::Symbol ||
                      static_cast<MalSymbol &>(*token) != std::string(1, rparen)))
     {
         list->push_back(std::move(token));
-        token = read_from(reader);
+        token = read_form(reader);
     }
 
     if (!token)
@@ -105,7 +105,7 @@ std::unique_ptr<MalList> read_list(Reader &reader, char lparen, char rparen)
 
 std::unique_ptr<MalList> read_macro(Reader &reader, const std::string &name)
 {
-    auto macro = read_from(reader);
+    auto macro = read_form(reader);
     auto result = std::make_unique<MalList>('(', ')');
     result->push_back(std::make_unique<MalSymbol>(name));
     result->push_back(std::move(macro));
@@ -114,8 +114,8 @@ std::unique_ptr<MalList> read_macro(Reader &reader, const std::string &name)
 
 std::unique_ptr<MalList> read_meta(Reader &reader)
 {
-    auto map = read_from(reader);
-    auto vector = read_from(reader);
+    auto map = read_form(reader);
+    auto vector = read_form(reader);
     auto result = std::make_unique<MalList>('(', ')');
     result->push_back(std::make_unique<MalSymbol>("with-meta"));
     result->push_back(std::move(vector));
@@ -123,7 +123,7 @@ std::unique_ptr<MalList> read_meta(Reader &reader)
     return result;
 }
 
-std::unique_ptr<MalType> read_from(Reader &reader)
+std::unique_ptr<MalType> read_form(Reader &reader)
 {
     if (reader.empty())
     {
@@ -165,5 +165,5 @@ std::unique_ptr<MalType> read_from(Reader &reader)
 std::unique_ptr<MalType> read_str(const std::string &input)
 {
     auto reader = tokenize(input);
-    return read_from(reader);
+    return read_form(reader);
 }
