@@ -1,5 +1,6 @@
 #pragma once
 
+#include <functional>
 #include <memory>
 #include <string>
 #include <vector>
@@ -11,7 +12,8 @@ public:
     {
         Int,
         Symbol,
-        List
+        List,
+        Func
     };
 
     MalType(Type t) : type_(t) {}
@@ -81,4 +83,16 @@ private:
     char lparen_;
     char rparen_;
     std::vector<std::unique_ptr<MalType>> list_;
+};
+
+class MalFunc : public MalType
+{
+public:
+    MalFunc(const std::function<int(std::vector<int>)> &func)
+        : MalType(Type::Func), func_(func) {}
+
+    int operator()(std::vector<int> args) const { return func_(args); }
+
+private:
+    const std::function<int(std::vector<int>)> &func_;
 };
