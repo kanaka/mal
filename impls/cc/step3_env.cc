@@ -63,6 +63,8 @@ std::shared_ptr<MalType> eval(std::shared_ptr<MalType> input, Env *env)
     {
         std::string key = static_cast<const MalSymbol &>(*list[1]);
         auto val = eval(list[2], env);
+        if (!val)
+            return nullptr;
         env->set(key, val);
         return val;
     }
@@ -75,6 +77,8 @@ std::shared_ptr<MalType> eval(std::shared_ptr<MalType> input, Env *env)
         {
             std::string key = static_cast<const MalSymbol &>(*bindings[i]);
             auto val = eval(bindings[i + 1], &new_env);
+            if (!val)
+                return nullptr;
             new_env.set(key, val);
         }
         return eval(list[2], &new_env);

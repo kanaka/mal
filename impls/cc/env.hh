@@ -12,7 +12,7 @@ public:
     explicit Env(const Env *outer)
         : outer_(outer) {}
 
-    void set(const std::string &key, std::shared_ptr<MalType> value) { data_.emplace(key, value); }
+    void set(const std::string &key, std::shared_ptr<MalType> value) { data_[key] = value; }
 
     const Env *find(const std::string &key) const
     {
