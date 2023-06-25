@@ -11,6 +11,7 @@ class Reader
   INTEGER_REGEX = /[0-9]+/
   SYMBOL_REGEX = /[0-9a-zA-Z\/\+\-\*]+/
   SPECIAL_CHARS = ['~', '`', "'", '@', '~@', '^']
+  SPECIAL_FORMS = ['let*', 'def!']
   KEYWORD_PREFIX = ':'
 
   def initialize(tokens)
@@ -63,6 +64,8 @@ class Reader
       MalKeywordType.new(current)
     elsif INTEGER_REGEX.match? current
       MalIntegerType.new(current)
+    elsif SPECIAL_FORMS.include? current
+      MalSpecialFormType.new(current)
     elsif SYMBOL_REGEX.match? current
       MalSymbolType.new(current)
     else

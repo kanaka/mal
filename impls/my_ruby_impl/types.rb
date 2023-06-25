@@ -70,6 +70,9 @@ end
 class MalModifierType < MalType
 end
 
+class MalSpecialFormType < MalType
+end
+
 class MalDerefType < MalModifierType
   def identifier
     'deref '
