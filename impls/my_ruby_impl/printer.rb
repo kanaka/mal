@@ -1,11 +1,11 @@
 class Printer
   def self.pr_str(ast)
     case ast
-    when MalListType
+    when MalCollectionType
       pr_list_type(ast)
     when MalModifierType
       pr_modifier_type(ast)
-    when MalScalarType, MalOperatorType
+    when MalScalarType
       pr_scalar_type(ast)
     end
   end

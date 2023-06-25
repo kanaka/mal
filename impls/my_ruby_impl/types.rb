@@ -15,14 +15,16 @@ end
 class MalScalarType < MalType
 end
 
-class MalListType < MalType
+class MalCollectionType < MalType
   extend Forwardable
 
-  def initialize
-    @data = []
+  def initialize(data = nil)
+    @data = data || []
   end
   def_delegator :@data, :append, :<<
+end
 
+class MalListType < MalCollectionType
   def begin_char
     '('
   end
@@ -32,7 +34,7 @@ class MalListType < MalType
   end
 end
 
-class MalVectorType < MalListType
+class MalVectorType < MalCollectionType
   def begin_char
     '['
   end
@@ -42,7 +44,7 @@ class MalVectorType < MalListType
   end
 end
 
-class MalHashMapType < MalListType
+class MalHashMapType < MalCollectionType
   def begin_char
     '{'
   end
@@ -54,6 +56,9 @@ end
 
 
 class MalIntegerType < MalScalarType
+  def initialize(data)
+    @data = data.to_i
+  end
 end
 
 class MalSymbolType < MalScalarType
