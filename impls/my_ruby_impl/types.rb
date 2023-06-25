@@ -62,9 +62,6 @@ end
 class MalKeywordType < MalScalarType
 end
 
-class MalOperatorType < MalType
-end
-
 class MalModifierType < MalType
 end
 

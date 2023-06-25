@@ -9,8 +9,7 @@ class Reader
 
   LINE_REGEX = /[\s,]*(~@|[\[\]{}()'`~^@]|"(?:\\.|[^\\"])*"?|;.*|[^\s\[\]{}('"`,;)]*)/
   INTEGER_REGEX = /[0-9]+/
-  SYMBOL_REGEX = /[0-9a-zA-Z]+/
-  OPERATORS = ['/', '+', '-', '*']
+  SYMBOL_REGEX = /[0-9a-zA-Z\/\+\-\*]+/
   SPECIAL_CHARS = ['~', '`', "'", '@', '~@', '^']
   KEYWORD_PREFIX = ':'
 
@@ -62,8 +61,6 @@ class Reader
       raise EOFError.new
     elsif current && current[0] == KEYWORD_PREFIX
       MalKeywordType.new(current)
-    elsif OPERATORS.include? current
-      MalOperatorType.new(current)
     elsif INTEGER_REGEX.match? current
       MalIntegerType.new(current)
     elsif SYMBOL_REGEX.match? current
