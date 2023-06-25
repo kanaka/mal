@@ -6,7 +6,7 @@ class Evaluator
   def self.eval_ast(ast, env)
     case ast
     when MalSymbolType
-      env.fetch(ast.data) { raise SymbolNotFound.new("#{ast.data} symbol not found") }
+      env.get(ast)
     when MalListType
       MalListType.new(ast.data.map{ |item| REPL.evals(item, env) })
     when MalVectorType
