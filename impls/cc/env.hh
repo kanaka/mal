@@ -12,6 +12,24 @@ public:
     explicit Env(const Env *outer)
         : outer_(outer) {}
 
+    Env(const MalList &binds, std::vector<std::shared_ptr<MalType>> exprs, const Env *outer)
+        : outer_(outer)
+    {
+        for (unsigned i = 0; i < binds.size(); ++i)
+        {
+            auto symbol = static_cast<const MalSymbol &>(*binds[i]);
+            if (symbol == "&")
+            {
+                auto rest = std::make_shared<MalList>('(', ')');
+                for (unsigned j = i; j < exprs.size(); ++j)
+                    rest->push_back(exprs[j]);
+                set(static_cast<const MalSymbol &>(*binds[i + 1]), rest);
+                break;
+            }
+            set(symbol, exprs[i]);
+        }
+    }
+
     void set(const std::string &key, std::shared_ptr<MalType> value) { data_[key] = value; }
 
     const Env *find(const std::string &key) const

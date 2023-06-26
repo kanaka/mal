@@ -19,6 +19,8 @@ public:
     MalType(Type t) : type_(t) {}
     virtual ~MalType() = default;
 
+    virtual bool operator==(const MalType &rhs) const noexcept = 0;
+
     Type type() const { return type_; }
 
 private:
@@ -32,6 +34,8 @@ public:
         : MalType(Type::Int), val_(val) {}
 
     operator int() const { return val_; }
+
+    virtual bool operator==(const MalType &rhs) const noexcept override { return val_ == static_cast<const MalInt &>(rhs).val_; };
 
 private:
     int val_;
@@ -49,15 +53,19 @@ public:
         return *this;
     }
 
-    operator std::string() const { return symbol_; }
+    operator std::string() const { return symbol_[0] == '"' ? symbol_.substr(1, symbol_.length() - 2) : symbol_; }
 
     bool operator==(const std::string &str) const noexcept { return symbol_ == str; }
     bool operator==(const char *str) const noexcept { return symbol_ == str; }
     bool operator!=(const std::string &str) const noexcept { return symbol_ != str; }
     bool operator!=(const char *str) const noexcept { return symbol_ != str; }
 
+    virtual bool operator==(const MalType &rhs) const noexcept override { return symbol_ == static_cast<const MalSymbol &>(rhs).symbol_; };
+
     bool is_string() const { return symbol_[0] == '"'; }
     bool is_keyword() const { return symbol_[0] == ':'; }
+
+    operator bool() const { return symbol_ != "nil" && symbol_ != "false"; }
 
 private:
     std::string symbol_;
@@ -72,7 +80,7 @@ public:
     const std::shared_ptr<MalType> &operator[](std::size_t pos) const { return list_[pos]; }
     [[nodiscard]] bool empty() const noexcept { return list_.empty(); }
     std::size_t size() const noexcept { return list_.size(); }
-    void push_back(std::shared_ptr<MalType> value) { return list_.push_back(std::move(value)); }
+    void push_back(std::shared_ptr<MalType> value) { return list_.push_back(value); }
 
     std::vector<std::shared_ptr<MalType>>::iterator begin() noexcept { return list_.begin(); }
     std::vector<std::shared_ptr<MalType>>::const_iterator begin() const noexcept { return list_.begin(); }
@@ -86,6 +94,24 @@ public:
     bool is_vector() const { return lparen_ == '['; }
     bool is_map() const { return lparen_ == '{'; }
 
+    virtual bool operator==(const MalType &rhs) const noexcept override
+    {
+        auto rhs_list = static_cast<const MalList &>(rhs);
+
+        if (rhs_list.size() != list_.size())
+            return false;
+
+        for (unsigned i = 0; i < list_.size(); ++i)
+        {
+            if (rhs_list[i]->type() != list_[i]->type())
+                return false;
+            if (!(*(rhs_list[i]) == *(list_[i])))
+                return false;
+        }
+
+        return true;
+    };
+
 private:
     char lparen_;
     char rparen_;
@@ -95,11 +121,13 @@ private:
 class MalFunc : public MalType
 {
 public:
-    MalFunc(const std::function<int(std::vector<int>)> &func)
+    MalFunc(const std::function<std::shared_ptr<MalType>(std::vector<std::shared_ptr<MalType>>)> &func)
         : MalType(Type::Func), func_(func) {}
 
-    int operator()(std::vector<int> args) const { return func_(args); }
+    std::shared_ptr<MalType> operator()(std::vector<std::shared_ptr<MalType>> args) const { return func_(args); }
+
+    virtual bool operator==(const MalType &rhs) const noexcept override { return false; }
 
 private:
-    std::function<int(std::vector<int>)> func_;
+    std::function<std::shared_ptr<MalType>(std::vector<std::shared_ptr<MalType>>)> func_;
 };

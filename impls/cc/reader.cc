@@ -90,7 +90,7 @@ std::shared_ptr<MalList> read_list(Reader &reader, char lparen, char rparen)
     while (token && (token->type() != MalType::Type::Symbol ||
                      static_cast<MalSymbol &>(*token) != std::string(1, rparen)))
     {
-        list->push_back(std::move(token));
+        list->push_back(token);
         token = read_form(reader);
     }
 
@@ -108,7 +108,7 @@ std::shared_ptr<MalList> read_macro(Reader &reader, const std::string &name)
     auto macro = read_form(reader);
     auto result = std::make_shared<MalList>('(', ')');
     result->push_back(std::make_shared<MalSymbol>(name));
-    result->push_back(std::move(macro));
+    result->push_back(macro);
     return result;
 }
 
@@ -118,8 +118,8 @@ std::shared_ptr<MalList> read_meta(Reader &reader)
     auto vector = read_form(reader);
     auto result = std::make_shared<MalList>('(', ')');
     result->push_back(std::make_shared<MalSymbol>("with-meta"));
-    result->push_back(std::move(vector));
-    result->push_back(std::move(map));
+    result->push_back(vector);
+    result->push_back(map);
     return result;
 }
 
