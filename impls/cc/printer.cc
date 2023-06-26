@@ -6,7 +6,7 @@ std::string escape(const std::string &token)
     std::ostringstream oss;
 
     oss << '"';
-    for (unsigned int i = 1; i < token.size() - 1; ++i)
+    for (unsigned int i = 0; i < token.size(); ++i)
     {
         switch (token[i])
         {
@@ -40,8 +40,8 @@ std::string pr_str(std::shared_ptr<MalType> input, bool print_readably)
     {
     case MalType::Type::Symbol:
     {
-        std::string symbol = static_cast<MalSymbol &>(*input);
-        return (print_readably && symbol[0] == '"') ? escape(symbol) : symbol;
+        auto symbol = static_cast<MalSymbol &>(*input);
+        return (print_readably && symbol.is_string()) ? escape(symbol) : static_cast<std::string>(symbol);
     }
     case MalType::Type::Int:
         return std::to_string(static_cast<MalInt &>(*input));
@@ -54,13 +54,15 @@ std::string pr_str(std::shared_ptr<MalType> input, bool print_readably)
         {
             for (auto &l : list)
             {
-                oss << pr_str(std::move(l)) << ' ';
+                oss << pr_str(l, print_readably) << ' ';
             }
             oss.seekp(-1, oss.end);
         }
         oss << list.rparen();
         return oss.str();
     }
+    case MalType::Type::Func:
+        return "#<function>";
     default:
         return "";
     }
