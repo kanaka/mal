@@ -9,10 +9,10 @@
 class Env
 {
 public:
-    explicit Env(const Env *outer)
+    explicit Env(std::shared_ptr<Env> outer)
         : outer_(outer) {}
 
-    Env(const MalList &binds, std::vector<std::shared_ptr<MalType>> exprs, const Env *outer)
+    Env(const MalList &binds, std::vector<std::shared_ptr<MalType>> exprs, std::shared_ptr<Env> outer)
         : outer_(outer)
     {
         for (unsigned i = 0; i < binds.size(); ++i)
@@ -51,6 +51,6 @@ public:
     }
 
 private:
-    const Env *outer_;
+    std::shared_ptr<Env> outer_;
     std::map<std::string, std::shared_ptr<MalType>> data_;
 };
