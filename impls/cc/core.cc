@@ -155,27 +155,28 @@ std::shared_ptr<MalType> le(std::vector<std::shared_ptr<MalType>> args)
     return result ? std::make_shared<MalSymbol>(true_) : std::make_shared<MalSymbol>(false_);
 }
 
-std::map<std::string, std::shared_ptr<MalType>> ns_ = {
-    {"true", std::make_shared<MalSymbol>(true_)},
-    {"false", std::make_shared<MalSymbol>(false_)},
-    {"nil", std::make_shared<MalSymbol>(nil_)},
-    {"+", std::make_shared<MalFunc>(add)},
-    {"-", std::make_shared<MalFunc>(sub)},
-    {"*", std::make_shared<MalFunc>(mul)},
-    {"/", std::make_shared<MalFunc>(divide)},
-    {"pr-str", std::make_shared<MalFunc>(prstr)},
-    {"str", std::make_shared<MalFunc>(str)},
-    {"prn", std::make_shared<MalFunc>(prn)},
-    {"println", std::make_shared<MalFunc>(println)},
-    {"list", std::make_shared<MalFunc>(list)},
-    {"list?", std::make_shared<MalFunc>(is_list)},
-    {"empty?", std::make_shared<MalFunc>(empty)},
-    {"count", std::make_shared<MalFunc>(count)},
-    {"=", std::make_shared<MalFunc>(eq)},
-    {"<", std::make_shared<MalFunc>(lt)},
-    {"<=", std::make_shared<MalFunc>(le)},
-    {">", std::make_shared<MalFunc>(gt)},
-    {">=", std::make_shared<MalFunc>(ge)},
-};
-
-std::map<std::string, std::shared_ptr<MalType>> &ns() { return ns_; }
+std::map<std::string, std::shared_ptr<MalType>> ns()
+{
+    return {
+        {"true", std::make_shared<MalSymbol>(true_)},
+        {"false", std::make_shared<MalSymbol>(false_)},
+        {"nil", std::make_shared<MalSymbol>(nil_)},
+        {"+", std::make_shared<MalFunc>(add)},
+        {"-", std::make_shared<MalFunc>(sub)},
+        {"*", std::make_shared<MalFunc>(mul)},
+        {"/", std::make_shared<MalFunc>(divide)},
+        {"pr-str", std::make_shared<MalFunc>(prstr)},
+        {"str", std::make_shared<MalFunc>(str)},
+        {"prn", std::make_shared<MalFunc>(prn)},
+        {"println", std::make_shared<MalFunc>(println)},
+        {"list", std::make_shared<MalFunc>(list)},
+        {"list?", std::make_shared<MalFunc>(is_list)},
+        {"empty?", std::make_shared<MalFunc>(empty)},
+        {"count", std::make_shared<MalFunc>(count)},
+        {"=", std::make_shared<MalFunc>(eq)},
+        {"<", std::make_shared<MalFunc>(lt)},
+        {"<=", std::make_shared<MalFunc>(le)},
+        {">", std::make_shared<MalFunc>(gt)},
+        {">=", std::make_shared<MalFunc>(ge)},
+    };
+}

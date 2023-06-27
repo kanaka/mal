@@ -6,14 +6,14 @@
 #include <map>
 #include <string>
 
-std::shared_ptr<MalType> eval(std::shared_ptr<MalType> input, Env *env);
+std::shared_ptr<MalType> eval(std::shared_ptr<MalType> input, std::shared_ptr<Env> env);
 
 std::shared_ptr<MalType> read(const std::string &input)
 {
     return read_str(input);
 }
 
-std::shared_ptr<MalType> eval_ast(std::shared_ptr<MalType> ast, Env *env)
+std::shared_ptr<MalType> eval_ast(std::shared_ptr<MalType> ast, std::shared_ptr<Env> env)
 {
     switch (ast->type())
     {
@@ -43,7 +43,7 @@ std::shared_ptr<MalType> eval_ast(std::shared_ptr<MalType> ast, Env *env)
     }
 }
 
-std::shared_ptr<MalType> eval(std::shared_ptr<MalType> input, Env *env)
+std::shared_ptr<MalType> eval(std::shared_ptr<MalType> input, std::shared_ptr<Env> env)
 {
     if (!input)
         return nullptr;
@@ -58,7 +58,7 @@ std::shared_ptr<MalType> eval(std::shared_ptr<MalType> input, Env *env)
     if (!list.is_list())
         return eval_ast(input, env);
 
-    if (list[0] && list[0]->type() == MalType::Type::Symbol)
+    if (list[0]->type() == MalType::Type::Symbol)
     {
         std::string symbol = static_cast<const MalSymbol &>(*list[0]);
         if (symbol == "def!")
@@ -73,17 +73,17 @@ std::shared_ptr<MalType> eval(std::shared_ptr<MalType> input, Env *env)
 
         if (symbol == "let*")
         {
-            Env new_env(env);
+            auto new_env = std::make_shared<Env>(env);
             auto &bindings = static_cast<const MalList &>(*list[1]);
             for (unsigned i = 0; i < bindings.size(); i += 2)
             {
                 std::string key = static_cast<const MalSymbol &>(*bindings[i]);
-                auto val = eval(bindings[i + 1], &new_env);
+                auto val = eval(bindings[i + 1], new_env);
                 if (!val)
                     return nullptr;
-                new_env.set(key, val);
+                new_env->set(key, val);
             }
-            return eval(list[2], &new_env);
+            return eval(list[2], new_env);
         }
 
         if (symbol == "do")
@@ -109,8 +109,7 @@ std::shared_ptr<MalType> eval(std::shared_ptr<MalType> input, Env *env)
         {
             auto closure = [list, env](std::vector<std::shared_ptr<MalType>> params)
             {
-                // TODO: fix memory leak
-                auto new_env = new Env(static_cast<const MalList &>(*list[1]), params, env);
+                auto new_env = std::make_shared<Env>(static_cast<const MalList &>(*list[1]), params, env);
                 return eval(list[2], new_env);
             };
             return std::make_shared<MalFunc>(closure);
@@ -136,7 +135,7 @@ std::string print(std::shared_ptr<MalType> input)
     return pr_str(input);
 }
 
-std::string rep(const std::string &input, Env *env)
+std::string rep(const std::string &input, std::shared_ptr<Env> env)
 {
     auto read_result = read(input);
     auto eval_result = eval(read_result, env);
@@ -146,19 +145,19 @@ std::string rep(const std::string &input, Env *env)
 
 int main(int argc, char *argv[])
 {
-    Env repl_env(nullptr);
+    auto repl_env = std::make_shared<Env>(nullptr);
 
     for (auto &[key, value] : ns())
-        repl_env.set(key, value);
+        repl_env->set(key, value);
 
-    rep("(def! not (fn* (a) (if a false true)))", &repl_env);
+    rep("(def! not (fn* (a) (if a false true)))", repl_env);
 
     while (!std::cin.eof())
     {
         std::string input;
         std::cout << "user> ";
         std::getline(std::cin, input);
-        auto rep_result = rep(input, &repl_env);
+        auto rep_result = rep(input, repl_env);
         std::cout << rep_result << std::endl;
     }
 
