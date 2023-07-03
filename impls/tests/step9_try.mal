@@ -11,11 +11,11 @@
 ;=>123
 
 (try* abc (catch* exc (prn "exc is:" exc)))
-;/"exc is:" "'abc' not found"
+;/"exc is:" "'?abc'? not found"
 ;=>nil
 
 (try* (abc 1 2) (catch* exc (prn "exc is:" exc)))
-;/"exc is:" "'abc' not found"
+;/"exc is:" "'?abc'? not found"
 ;=>nil
 
 ;; Make sure error from core can be caught
@@ -345,7 +345,7 @@
 ;;
 ;; Testing try* without catch*
 (try* xyz)
-;/.*\'?xyz\'? not found.*
+;/.*'?xyz'? not found.*
 
 ;;
 ;; Testing throwing non-strings
