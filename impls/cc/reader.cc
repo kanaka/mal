@@ -157,6 +157,9 @@ std::shared_ptr<MalType> read_form(Reader &reader)
     case '^':
         reader.next();
         return read_meta(reader);
+    case ';':
+        reader.next();
+        return read_form(reader);
     default:
         return read_atom(reader);
     }

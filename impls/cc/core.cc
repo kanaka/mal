@@ -1,5 +1,7 @@
 #include "core.hh"
 #include "printer.hh"
+#include "reader.hh"
+#include <fstream>
 #include <iostream>
 #include <numeric>
 #include <sstream>
@@ -155,6 +157,54 @@ std::shared_ptr<MalType> le(std::vector<std::shared_ptr<MalType>> args)
     return result ? std::make_shared<MalSymbol>(true_) : std::make_shared<MalSymbol>(false_);
 }
 
+std::shared_ptr<MalType> read_string(std::vector<std::shared_ptr<MalType>> args)
+{
+    auto &input = static_cast<MalSymbol &>(*args[0]);
+    return read_str(input);
+}
+
+std::shared_ptr<MalType> slurp(std::vector<std::shared_ptr<MalType>> args)
+{
+    std::string input = static_cast<MalSymbol &>(*args[0]);
+    std::ifstream ifs(input);
+    std::string content((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
+    return std::make_shared<MalSymbol>('"' + content + '"');
+}
+
+std::shared_ptr<MalType> atom(std::vector<std::shared_ptr<MalType>> args)
+{
+    return std::make_shared<MalAtom>(args[0]);
+}
+
+std::shared_ptr<MalType> is_atom(std::vector<std::shared_ptr<MalType>> args)
+{
+    return args[0]->type() == MalType::Type::Atom ? std::make_shared<MalSymbol>(true_) : std::make_shared<MalSymbol>(false_);
+}
+
+std::shared_ptr<MalType> deref(std::vector<std::shared_ptr<MalType>> args)
+{
+    auto &atom = static_cast<MalAtom &>(*args[0]);
+    return atom.deref();
+}
+
+std::shared_ptr<MalType> reset(std::vector<std::shared_ptr<MalType>> args)
+{
+    auto &atom = static_cast<MalAtom &>(*args[0]);
+    return atom.reset(args[1]);
+}
+
+std::shared_ptr<MalType> swap(std::vector<std::shared_ptr<MalType>> args)
+{
+    auto &atom = static_cast<MalAtom &>(*args[0]);
+    auto &func = static_cast<MalFunc &>(*args[1]);
+
+    std::vector<std::shared_ptr<MalType>> args_{atom.deref()};
+    for (unsigned i = 2; i < args.size(); ++i)
+        args_.push_back(args[i]);
+
+    return atom.reset(func(args_));
+}
+
 std::map<std::string, std::shared_ptr<MalType>> ns()
 {
     return {
@@ -178,5 +228,12 @@ std::map<std::string, std::shared_ptr<MalType>> ns()
         {"<=", std::make_shared<MalFunc>(le)},
         {">", std::make_shared<MalFunc>(gt)},
         {">=", std::make_shared<MalFunc>(ge)},
+        {"read-string", std::make_shared<MalFunc>(read_string)},
+        {"slurp", std::make_shared<MalFunc>(slurp)},
+        {"atom", std::make_shared<MalFunc>(atom)},
+        {"atom?", std::make_shared<MalFunc>(is_atom)},
+        {"deref", std::make_shared<MalFunc>(deref)},
+        {"reset!", std::make_shared<MalFunc>(reset)},
+        {"swap!", std::make_shared<MalFunc>(swap)},
     };
 }
