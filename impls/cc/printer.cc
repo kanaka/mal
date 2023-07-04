@@ -63,6 +63,11 @@ std::string pr_str(std::shared_ptr<MalType> input, bool print_readably)
     }
     case MalType::Type::Func:
         return "#<function>";
+    case MalType::Type::Atom:
+    {
+        auto &atom = static_cast<MalAtom &>(*input);
+        return "(atom " + pr_str(atom.deref(), print_readably) + ")";
+    }
     default:
         return "";
     }

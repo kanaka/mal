@@ -15,7 +15,8 @@ public:
         Int,
         Symbol,
         List,
-        Func
+        Func,
+        Atom
     };
 
     MalType(Type t) : type_(t) {}
@@ -140,4 +141,19 @@ private:
     std::shared_ptr<MalType> ast_;
     std::shared_ptr<MalType> params_;
     std::shared_ptr<Env> env_;
+};
+
+class MalAtom : public MalType
+{
+public:
+    MalAtom(std::shared_ptr<MalType> a)
+        : MalType(Type::Atom), a_(a) {}
+
+    virtual bool operator==(const MalType &rhs) const noexcept override { return *a_ == rhs; }
+
+    std::shared_ptr<MalType> deref() const { return a_; }
+    std::shared_ptr<MalType> reset(std::shared_ptr<MalType> a) { return a_ = a; }
+
+private:
+    std::shared_ptr<MalType> a_;
 };
