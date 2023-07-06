@@ -1,0 +1,222 @@
+\documentclass{article}
+\usepackage
+% Uncomment this and \debug_on below when debugging.
+% [enable-debug]
+  {expl3}
+\usepackage{types}
+\usepackage{printer}
+\usepackage{reader}
+\usepackage{env}
+\ExplSyntaxOn
+
+% Slow but quite useful.
+% \debug_on:n { all }
+
+% Step 2
+
+\cs_new:Nn \mal_eval_map:nN
+  {
+    % \iow_term:n {eval_map~ast=#1~env=#2}
+    \mal_map_new:
+    \prop_map_inline:cn { #1 }
+      {
+        \str_if_eq:nnF { ##1 } { __meta__ }
+          {
+            \seq_push:NV \l_mal_stack_seq \l_tmpa_tl
+            \mal_eval:nN { ##2 } #2
+            \seq_pop:NN \l_mal_stack_seq \l_tmpb_tl
+            \tl_if_head_eq_charcode:VNTF \l_tmpa_tl e
+              { \prop_map_break: }
+              {
+                \prop_put:cnV \l_tmpb_tl { ##1 } \l_tmpa_tl
+                \tl_set_eq:NN \l_tmpa_tl \l_tmpb_tl
+              }
+          }
+      }
+  }
+
+\cs_new:Nn \mal_eval_iterate_tl:nN
+  {
+    % The evaluated elements are appended to \l_tmpa_tl.
+    % \iow_term:n {eval_tl:~forms=#1~env=#2}
+    \tl_map_inline:nn { #1 }
+      {
+        \seq_push:NV \l_mal_stack_seq \l_tmpa_tl
+        \mal_eval:nN { ##1 } #2
+        \seq_pop:NN \l_mal_stack_seq \l_tmpb_tl
+        \tl_if_head_eq_charcode:VNTF \l_tmpa_tl e
+          { \tl_map_break: }
+          {
+            \tl_set:Nx \l_tmpa_tl
+              { \exp_not:V \l_tmpb_tl { \exp_not:V \l_tmpa_tl } }
+          }
+      }
+  }
+\cs_generate_variant:Nn \mal_eval_iterate_tl:nN { oN }
+
+% Step 3
+
+\tl_const:Nx \c_def_symbol { y \tl_to_str:n { def! } }
+\tl_const:Nx \c_let_symbol { y \tl_to_str:n { let* } }
+\tl_const:Nx \c_debug_eval_symbol { y \tl_to_str:n { DEBUG-EVAL  } }
+
+\cs_new:Nn \mal_eval_let_loop:nNn
+  {
+    % \iow_term:n {mal_eval_let_loop~binds=#1~env=#2~form=#3}
+    \tl_if_empty:nTF { #1 }
+      { \mal_eval:nN { #3 } #2 }
+      {
+        \mal_eval:xN { \tl_item:nn { #1 } 2 } #2
+        \tl_if_head_eq_charcode:VNF \l_tmpa_tl e
+          {
+            \prop_put:NxV #2 { \tl_head:n { #1 } } \l_tmpa_tl
+            \mal_eval_let_loop:oNn { \use_none:nn #1 } #2 { #3 }
+          }
+      }
+  }
+\cs_generate_variant:Nn \mal_eval_let_loop:nNn { ocn, oNn }
+
+\cs_new:Nn \mal_eval_let:nnnN
+  {
+    % \iow_term:n {mal_eval_let~let*=#1~binds=#2~form=#3~env=#4}
+    \mal_env_new:N #4
+    \mal_eval_let_loop:ocn { \use_none:nn #2 } \l_mal_tmp_env_prop { #3 }
+  }
+
+% EVAL
+
+\cs_new:Nn \mal_fn_apply:nn
+  {
+    % \iow_term:n {fn_apply:~func=#1~args=#2}
+    \tl_if_head_eq_charcode:nNTF { #1 } b
+      { \use_none:nn #1 { #2 } }
+      {
+        \tl_set:Nx \l_tmpa_tl
+          { e s \tl_to_str:n { can~only~apply~functions } }
+      }
+    % \iow_term:V \l_tmpa_tl
+  }
+\cs_generate_variant:Nn \mal_fn_apply:nn { nx, Vo, VV, xx }
+
+\cs_new:Nn \mal_eval_list:nN
+  {
+    % \iow_term:n {eval_mal_list~tl=#1~env=#2}
+    \tl_set:Nx \l_tmpa_tl { \tl_head:n {#1} }
+    \bool_case_true:nF
+      {
+        { \tl_if_eq_p:NN \l_tmpa_tl \c_empty_tl }
+        { \tl_set:Nn \l_tmpa_tl { l n } }
+
+        { \tl_if_eq_p:NN \l_tmpa_tl \c_def_symbol }
+        {
+          \mal_eval:oN { \use_iii:nnn #1 } #2
+          \tl_if_head_eq_charcode:VNF \l_tmpa_tl e
+            {
+              \tl_set:No \l_tmpb_tl { \use_ii:nnn #1 }
+              \prop_put:NVV #2 \l_tmpb_tl \l_tmpa_tl
+            }
+        }
+
+        { \tl_if_eq_p:NN \l_tmpa_tl \c_let_symbol }
+        { \mal_eval_let:nnnN #1 #2 }
+      }
+      {
+        % \iow_term:n {eval_mal_list~apply_phase~tl=#1~env=#2}
+        \mal_eval:xN { \tl_head:n { #1 } } #2
+        \tl_if_head_eq_charcode:VNF \l_tmpa_tl e
+          {
+            \seq_push:NV \l_mal_stack_seq \l_tmpa_tl
+            \tl_clear:N \l_tmpa_tl
+            \mal_eval_iterate_tl:oN { \use_none:n #1 } #2
+            \seq_pop:NN \l_mal_stack_seq \l_tmpb_tl
+            \tl_if_head_eq_charcode:VNF \l_tmpa_tl e
+              { \mal_fn_apply:VV \l_tmpb_tl \l_tmpa_tl }
+          }
+      }
+  }
+\cs_generate_variant:Nn \mal_eval_list:nN { oN }
+
+\cs_new:Nn \mal_eval:nN
+  {
+    % \iow_term:n {EVAL:~ast=#1~env=#2}
+    \mal_env_get:NVT #2 \c_debug_eval_symbol
+      {
+        \bool_lazy_or:nnF
+          { \tl_if_head_eq_charcode_p:VN \l_tmpa_tl n }
+          { \tl_if_head_eq_charcode_p:VN \l_tmpa_tl f }
+          { \iow_term:x { EVAL: ~ \mal_printer_pr_str:nN { #1 } \c_true_bool } }
+      }
+    \exp_args:Nx \token_case_charcode:NnF { \tl_head:n {#1} }
+      {
+        l
+        { \mal_eval_list:oN { \use_none:nn #1 } #2 }
+        y
+        {
+          \mal_env_get:NnF #2 { #1 }
+            {
+              \tl_set:Nx \l_tmpa_tl
+                { e s \use_none:n #1 \tl_to_str:n { ~not~found } }
+            }
+        }
+        v
+        {
+          \tl_set:Nn \l_tmpa_tl { v n }
+          \mal_eval_iterate_tl:oN { \use_none:nn #1 } #2
+        }
+        m
+        { \mal_eval_map:nN { #1 } #2 }
+      }
+      { \tl_set:Nn \l_tmpa_tl {#1} }
+    % \iow_term:n {EVAL:~ast=#1~returns}
+    % \iow_term:V \l_tmpa_tl
+  }
+\cs_generate_variant:Nn \mal_eval:nN { nc, oN, VN, xc, xN }
+
+% REPL
+
+\cs_new:Nn \mal_int_op:nnN
+  {
+    \tl_set:Nx \l_tmpa_tl
+      { i \int_eval:n { \use_none:n #1 #3 \use_none:n #2 } }
+  }
+\cs_new:Nn \mal_add:n { \mal_int_op:nnN #1 + }
+\cs_new:Nn \mal_sub:n { \mal_int_op:nnN #1 - }
+\cs_new:Nn \mal_mul:n { \mal_int_op:nnN #1 * }
+\cs_new:Nn \mal_div:n { \mal_int_op:nnN #1 / }
+\prop_put:Nnn \l_mal_repl_env_prop { y + } { b n \mal_add:n }
+\prop_put:Nnn \l_mal_repl_env_prop { y - } { b n \mal_sub:n }
+\prop_put:Nnn \l_mal_repl_env_prop { y * } { b n \mal_mul:n }
+\prop_put:Nnn \l_mal_repl_env_prop { y / } { b n \mal_div:n }
+
+
+\cs_new:Nn \repl_loop:
+  {
+    % \ior_str_get_term is able to display a prompt on the same line,
+    % but this would make ./run far more complex for little benefit.
+    \iow_term:n {user>~}
+    \ior_str_get_term:nN {} \l_tmpa_str
+    \str_if_eq:VnF \l_tmpa_str {MAL_LATEX3_END_OF_INPUT} % from ./run
+      {
+        % Ignore empty lines, the MAL self-hosting relies on this
+        % *not* triggering an error.
+        \str_if_eq:VnF \l_tmpa_str {}
+          {
+            \mal_read_str:
+            \tl_if_head_eq_charcode:VNF \l_tmpa_tl e
+              { \mal_eval:VN \l_tmpa_tl \l_mal_repl_env_prop }
+            \iow_term:x { \mal_printer_pr_str:VN \l_tmpa_tl \c_true_bool }
+          }
+        \repl_loop:
+      }
+  }
+
+% ./run removes the normal LaTeX output.
+\iow_term:n {MAL_LATEX3_START_OF_OUTPUT}
+
+\repl_loop:
+
+\iow_term:n {MAL_LATEX3_END_OF_OUTPUT} % for ./run
+
+\ExplSyntaxOff
+\begin{document}
+\end{document}
