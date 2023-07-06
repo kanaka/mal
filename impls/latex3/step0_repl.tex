@@ -1,0 +1,41 @@
+\documentclass{article}
+\usepackage
+% Uncomment this and \debug_on below when debugging.
+% [enable-debug]
+  {expl3}
+\usepackage{types}
+\ExplSyntaxOn
+
+% Slow but quite useful.
+% \debug_on:n { all }
+
+% REPL
+
+\cs_new:Nn \repl_loop:
+  {
+    % \ior_str_get_term is able to display a prompt on the same line,
+    % but this would make ./run far more complex for little benefit.
+    \iow_term:n {user>~}
+    \ior_str_get_term:nN {} \l_tmpa_str
+    \str_if_eq:VnF \l_tmpa_str {MAL_LATEX3_END_OF_INPUT} % from ./run
+      {
+        % Ignore empty lines, the MAL self-hosting relies on this
+        % *not* triggering an error.
+        \str_if_eq:VnF \l_tmpa_str {}
+          {
+            \iow_term:V \l_tmpa_str
+          }
+        \repl_loop:
+      }
+  }
+
+% ./run removes the normal LaTeX output.
+\iow_term:n {MAL_LATEX3_START_OF_OUTPUT}
+
+\repl_loop:
+
+\iow_term:n {MAL_LATEX3_END_OF_OUTPUT} % for ./run
+
+\ExplSyntaxOff
+\begin{document}
+\end{document}

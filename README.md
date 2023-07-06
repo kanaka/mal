@@ -87,6 +87,7 @@ FAQ](docs/FAQ.md) where I attempt to answer some common questions.
 | [jq](#jq) | [Ali MohammadPur](https://github.com/alimpfard) |
 | [Julia](#julia) | [Joel Martin](https://github.com/kanaka)  |
 | [Kotlin](#kotlin) | [Javier Fernandez-Ivern](https://github.com/ivern) |
+| [LaTeX3](#latex3) | [Nicolas Boulenguez](https://github.com/asarhaddon) |
 | [LiveScript](#livescript) | [Jos van Bakel](https://github.com/c0deaddict) |
 | [Logo](#logo) | [Dov Murik](https://github.com/dubek) |
 | [Lua](#lua) | [Joel Martin](https://github.com/kanaka)  |
@@ -683,6 +684,18 @@ cd impls/kotlin
 make
 java -jar stepX_YYY.jar
 ```
+
+### LaTeX3
+
+The LaTeX3 implementation of mal has been tested with pdfTeX
+3.141592653-2.6-1.40.24.
+
+Self hosting is too slow for any sensible timeout, and crashes in
+step4, apparently because of hard-coded limitations.
+
+Anybody working on this should uncomment the two lines of (slow)
+debugging options in the step file, and export DEBUG=1 (for more
+output than tests accept).
 
 ### LiveScript
 
