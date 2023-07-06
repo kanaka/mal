@@ -205,6 +205,37 @@ std::shared_ptr<MalType> swap(std::vector<std::shared_ptr<MalType>> args)
     return atom.reset(func(args_));
 }
 
+std::shared_ptr<MalType> cons(std::vector<std::shared_ptr<MalType>> args)
+{
+    auto list = std::make_shared<MalList>('(', ')');
+    list->push_back(args[0]);
+
+    for (auto arg : static_cast<MalList &>(*args[1]))
+        list->push_back(arg);
+
+    return list;
+}
+
+std::shared_ptr<MalType> concat(std::vector<std::shared_ptr<MalType>> args)
+{
+    auto list = std::make_shared<MalList>('(', ')');
+
+    for (auto arg : args)
+        for (auto item : static_cast<MalList &>(*arg))
+            list->push_back(item);
+
+    return list;
+}
+
+std::shared_ptr<MalType> vec(std::vector<std::shared_ptr<MalType>> args)
+{
+    auto &list = static_cast<MalList &>(*args[0]);
+    if (list.is_vector())
+        return args[0];
+
+    return list.to_vector();
+}
+
 std::map<std::string, std::shared_ptr<MalType>> ns()
 {
     return {
@@ -235,5 +266,8 @@ std::map<std::string, std::shared_ptr<MalType>> ns()
         {"deref", std::make_shared<MalFunc>(deref)},
         {"reset!", std::make_shared<MalFunc>(reset)},
         {"swap!", std::make_shared<MalFunc>(swap)},
+        {"cons", std::make_shared<MalFunc>(cons)},
+        {"concat", std::make_shared<MalFunc>(concat)},
+        {"vec", std::make_shared<MalFunc>(vec)},
     };
 }

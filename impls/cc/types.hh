@@ -93,9 +93,25 @@ public:
     char lparen() const { return lparen_; }
     char rparen() const { return rparen_; }
 
-    bool is_list() const { return lparen_ == '('; }
-    bool is_vector() const { return lparen_ == '['; }
-    bool is_map() const { return lparen_ == '{'; }
+    bool is_list() const { return lparen_ == '(' && rparen_ == ')'; }
+    bool is_vector() const { return lparen_ == '[' && rparen_ == ']'; }
+    bool is_map() const { return lparen_ == '{' && rparen_ == '}'; }
+
+    std::shared_ptr<MalList> to_list() const
+    {
+        auto ret = *this;
+        ret.lparen_ = '(';
+        ret.rparen_ = ')';
+        return std::make_shared<MalList>(ret);
+    }
+
+    std::shared_ptr<MalList> to_vector() const
+    {
+        auto ret = *this;
+        ret.lparen_ = '[';
+        ret.rparen_ = ']';
+        return std::make_shared<MalList>(ret);
+    }
 
     virtual bool operator==(const MalType &rhs) const noexcept override
     {
