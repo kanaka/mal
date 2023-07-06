@@ -80,7 +80,7 @@ public:
     MalList(char lparen, char rparen)
         : MalType(Type::List), lparen_(lparen), rparen_(rparen) {}
 
-    const std::shared_ptr<MalType> &operator[](std::size_t pos) const { return list_[pos]; }
+    const std::shared_ptr<MalType> &operator[](std::size_t pos) const { return list_.at(pos); }
     [[nodiscard]] bool empty() const noexcept { return list_.empty(); }
     std::size_t size() const noexcept { return list_.size(); }
     void push_back(std::shared_ptr<MalType> value) { return list_.push_back(value); }
@@ -99,18 +99,18 @@ public:
 
     std::shared_ptr<MalList> to_list() const
     {
-        auto ret = *this;
-        ret.lparen_ = '(';
-        ret.rparen_ = ')';
-        return std::make_shared<MalList>(ret);
+        auto ret = std::make_shared<MalList>(*this);
+        ret->lparen_ = '(';
+        ret->rparen_ = ')';
+        return ret;
     }
 
     std::shared_ptr<MalList> to_vector() const
     {
-        auto ret = *this;
-        ret.lparen_ = '[';
-        ret.rparen_ = ']';
-        return std::make_shared<MalList>(ret);
+        auto ret = std::make_shared<MalList>(*this);
+        ret->lparen_ = '[';
+        ret->rparen_ = ']';
+        return ret;
     }
 
     virtual bool operator==(const MalType &rhs) const noexcept override
@@ -151,6 +151,8 @@ public:
     std::shared_ptr<MalType> ast() const { return ast_; }
     std::shared_ptr<MalType> params() const { return params_; }
     std::shared_ptr<Env> env() const { return env_; }
+
+    bool is_macro = false;
 
 private:
     std::function<std::shared_ptr<MalType>(std::vector<std::shared_ptr<MalType>>)> func_;

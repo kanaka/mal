@@ -236,6 +236,46 @@ std::shared_ptr<MalType> vec(std::vector<std::shared_ptr<MalType>> args)
     return list.to_vector();
 }
 
+std::shared_ptr<MalType> nth(std::vector<std::shared_ptr<MalType>> args)
+{
+    if (args[0]->type() != MalType::Type::List)
+        return std::make_shared<MalSymbol>(nil_);
+
+    auto &list = static_cast<MalList &>(*args[0]);
+    auto &index = static_cast<MalInt &>(*args[1]);
+
+    return list[index];
+}
+
+std::shared_ptr<MalType> first(std::vector<std::shared_ptr<MalType>> args)
+{
+    if (args[0]->type() != MalType::Type::List)
+        return std::make_shared<MalSymbol>(nil_);
+
+    auto &list = static_cast<MalList &>(*args[0]);
+    if (list.empty())
+        return std::make_shared<MalSymbol>(nil_);
+
+    return list[0];
+}
+
+std::shared_ptr<MalType> rest(std::vector<std::shared_ptr<MalType>> args)
+{
+    auto new_list = std::make_shared<MalList>('(', ')');
+
+    if (args[0]->type() != MalType::Type::List)
+        return new_list;
+
+    auto &list = static_cast<MalList &>(*args[0]);
+    if (list.empty())
+        return new_list;
+
+    for (unsigned i = 1; i < list.size(); ++i)
+        new_list->push_back(list[i]);
+
+    return new_list;
+}
+
 std::map<std::string, std::shared_ptr<MalType>> ns()
 {
     return {
@@ -269,5 +309,8 @@ std::map<std::string, std::shared_ptr<MalType>> ns()
         {"cons", std::make_shared<MalFunc>(cons)},
         {"concat", std::make_shared<MalFunc>(concat)},
         {"vec", std::make_shared<MalFunc>(vec)},
+        {"nth", std::make_shared<MalFunc>(nth)},
+        {"first", std::make_shared<MalFunc>(first)},
+        {"rest", std::make_shared<MalFunc>(rest)},
     };
 }
