@@ -178,7 +178,7 @@ class Runner():
             if os.name == 'posix':
                 [outs,_,_] = select([self.stdout], [], [], 1)
                 if self.stdout not in outs:
-                    break
+                    continue
                 new_data = self.stdout.read(1)
             else:
                 try:
