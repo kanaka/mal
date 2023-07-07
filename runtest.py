@@ -1,15 +1,21 @@
 #!/usr/bin/env python
-
 from __future__ import print_function
 import os, sys, re
 import argparse, time
 import signal, atexit
-import threading, queue
-
-from subprocess import Popen, STDOUT, PIPE, TimeoutExpired
-from select import select
+from subprocess import Popen, STDOUT, PIPE
 
 IS_PY_3 = sys.version_info[0] == 3
+
+if os.name == 'posix':
+    from select import select
+else:
+    if IS_PY_3:
+        import threading, queue
+        from subprocess import TimeoutExpired
+    else:
+        import threading
+        import Queue as queue
 
 debug_file = None
 log_file = None
@@ -216,10 +222,11 @@ class Runner():
                     self.p.send_signal(signal.CTRL_BREAK_EVENT)
                 else:
                     self.p.terminate()
-                try:
-                    self.p.communicate(timeout=1.0)
-                except TimeoutExpired:
-                    self.p.kill()
+                if IS_PY_3:
+                    try:
+                        self.p.communicate(timeout=1.0)
+                    except TimeoutExpired:
+                        self.p.kill()
             except OSError:
                 pass
             self.p = None
