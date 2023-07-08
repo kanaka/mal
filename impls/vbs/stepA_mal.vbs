@@ -403,9 +403,6 @@ Sub REPL()
 		Dim strRes
 		On Error Resume Next
 			strRes = REP(strCode)
-			If strRes <> "" Then
-				WScript.Echo strRes
-			End If
 			If Err.Number <> 0 Then
 				If Err.Source = "MThrow" Then
 					'WScript.StdErr.WriteLine Err.Source + ": " + _
@@ -415,6 +412,10 @@ Sub REPL()
 				Else
 					'WScript.StdErr.WriteLine Err.Source + ": " + Err.Description
 					WScript.StdErr.WriteLine "Exception: " + Err.Description
+				End If
+			Else
+				If strRes <> "" Then
+					WScript.Echo strRes
 				End If
 			End If
 		On Error Goto 0
