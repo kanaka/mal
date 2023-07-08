@@ -121,6 +121,17 @@ std::shared_ptr<MalType> eval(std::shared_ptr<MalType> input, std::shared_ptr<En
 
             if (symbol == "fn*")
             {
+                if (env->is_root())
+                {
+                    std::weak_ptr<Env> weak_env = env;
+                    auto closure = [list, weak_env](std::vector<std::shared_ptr<MalType>> params)
+                    {
+                        auto new_env = std::make_shared<Env>(static_cast<const MalList &>(*list[1]), params, weak_env.lock());
+                        return eval(list[2], new_env);
+                    };
+                    return std::make_shared<MalFunc>(closure, list[2], list[1], env);
+                }
+
                 auto closure = [list, env](std::vector<std::shared_ptr<MalType>> params)
                 {
                     auto new_env = std::make_shared<Env>(static_cast<const MalList &>(*list[1]), params, env);
@@ -167,7 +178,7 @@ std::string rep(const std::string &input, std::shared_ptr<Env> env)
 
 int main(int argc, char *argv[])
 {
-    auto repl_env = std::make_shared<Env>(nullptr);
+    auto repl_env = std::make_shared<Env>();
 
     for (auto &[key, value] : ns())
         repl_env->set(key, value);

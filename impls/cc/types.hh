@@ -140,17 +140,20 @@ private:
 class MalFunc : public MalType
 {
 public:
-    MalFunc(const std::function<std::shared_ptr<MalType>(std::vector<std::shared_ptr<MalType>>)> &func, std::shared_ptr<MalType> ast = nullptr, std::shared_ptr<MalType> params = nullptr, std::shared_ptr<Env> env = nullptr)
-        : MalType(Type::Func), func_(func), ast_(ast), params_(params), env_(env) {}
+    MalFunc(const std::function<std::shared_ptr<MalType>(std::vector<std::shared_ptr<MalType>>)> &func)
+        : MalType(Type::Func), func_(func) {}
+
+    MalFunc(const std::function<std::shared_ptr<MalType>(std::vector<std::shared_ptr<MalType>>)> &func, std::shared_ptr<MalType> ast, std::shared_ptr<MalType> params, std::shared_ptr<Env> env)
+        : MalType(Type::Func), func_(func), ast_(ast), params_(params), env_(env), is_fn_(true) {}
 
     std::shared_ptr<MalType> operator()(std::vector<std::shared_ptr<MalType>> args) const { return func_(args); }
 
     virtual bool operator==(const MalType &rhs) const noexcept override { return false; }
 
-    bool is_fn() const { return ast_ && params_ && env_; }
+    bool is_fn() const { return is_fn_; }
     std::shared_ptr<MalType> ast() const { return ast_; }
     std::shared_ptr<MalType> params() const { return params_; }
-    std::shared_ptr<Env> env() const { return env_; }
+    std::shared_ptr<Env> env() const { return env_.lock(); }
 
     bool is_macro = false;
 
@@ -158,7 +161,8 @@ private:
     std::function<std::shared_ptr<MalType>(std::vector<std::shared_ptr<MalType>>)> func_;
     std::shared_ptr<MalType> ast_;
     std::shared_ptr<MalType> params_;
-    std::shared_ptr<Env> env_;
+    std::weak_ptr<Env> env_;
+    bool is_fn_ = false;
 };
 
 class MalAtom : public MalType

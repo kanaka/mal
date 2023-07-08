@@ -6,14 +6,14 @@
 #include <numeric>
 #include <string>
 
-std::shared_ptr<MalType> eval(std::shared_ptr<MalType> input, Env *env);
+std::shared_ptr<MalType> eval(std::shared_ptr<MalType> input, std::shared_ptr<Env> env);
 
 std::shared_ptr<MalType> read(const std::string &input)
 {
     return read_str(input);
 }
 
-std::shared_ptr<MalType> eval_ast(std::shared_ptr<MalType> ast, Env *env)
+std::shared_ptr<MalType> eval_ast(std::shared_ptr<MalType> ast, std::shared_ptr<Env> env)
 {
     switch (ast->type())
     {
@@ -43,7 +43,7 @@ std::shared_ptr<MalType> eval_ast(std::shared_ptr<MalType> ast, Env *env)
     }
 }
 
-std::shared_ptr<MalType> eval(std::shared_ptr<MalType> input, Env *env)
+std::shared_ptr<MalType> eval(std::shared_ptr<MalType> input, std::shared_ptr<Env> env)
 {
     if (!input)
         return nullptr;
@@ -71,17 +71,17 @@ std::shared_ptr<MalType> eval(std::shared_ptr<MalType> input, Env *env)
 
     if (symbol == "let*")
     {
-        Env new_env(env);
+        auto new_env = std::make_shared<Env>(env);
         auto &bindings = static_cast<const MalList &>(*list[1]);
         for (unsigned i = 0; i < bindings.size(); i += 2)
         {
             std::string key = static_cast<const MalSymbol &>(*bindings[i]);
-            auto val = eval(bindings[i + 1], &new_env);
+            auto val = eval(bindings[i + 1], new_env);
             if (!val)
                 return nullptr;
-            new_env.set(key, val);
+            new_env->set(key, val);
         }
-        return eval(list[2], &new_env);
+        return eval(list[2], new_env);
     }
 
     auto plist = eval_ast(std::move(input), env);
@@ -91,12 +91,11 @@ std::shared_ptr<MalType> eval(std::shared_ptr<MalType> input, Env *env)
     auto &new_list = static_cast<MalList &>(*plist);
     auto &func = static_cast<const MalFunc &>(*new_list[0]);
 
-    std::vector<int> args;
+    std::vector<std::shared_ptr<MalType>> args;
     for (unsigned i = 1; i < new_list.size(); ++i)
-        args.push_back(static_cast<const MalInt &>(*new_list[i]));
+        args.push_back(new_list[i]);
 
-    auto result = func(args);
-    return std::make_shared<MalInt>(result);
+    return func(args);
 }
 
 std::string print(std::shared_ptr<MalType> input)
@@ -104,7 +103,7 @@ std::string print(std::shared_ptr<MalType> input)
     return pr_str(std::move(input));
 }
 
-std::string rep(const std::string &input, Env *env)
+std::string rep(const std::string &input, std::shared_ptr<Env> env)
 {
     auto read_result = read(input);
     auto eval_result = eval(std::move(read_result), env);
@@ -114,27 +113,29 @@ std::string rep(const std::string &input, Env *env)
 
 int main(int argc, char *argv[])
 {
-    auto add = std::make_shared<MalFunc>([](std::vector<int> args)
-                                         { return std::accumulate(args.begin(), args.end(), 0, std::plus<int>()); });
-    auto sub = std::make_shared<MalFunc>([](std::vector<int> args)
-                                         { return args[0] - args[1]; });
-    auto mul = std::make_shared<MalFunc>([](std::vector<int> args)
-                                         { return std::accumulate(args.begin(), args.end(), 1, std::multiplies<int>()); });
-    auto div = std::make_shared<MalFunc>([](std::vector<int> args)
-                                         { return args[0] / args[1]; });
+    auto add = std::make_shared<MalFunc>([](std::vector<std::shared_ptr<MalType>> args)
+                                         { return std::make_shared<MalInt>(std::accumulate(args.begin(), args.end(), 0, [](int acc, std::shared_ptr<MalType> i)
+                                                                                           { return acc + static_cast<MalInt &>(*i); })); });
+    auto sub = std::make_shared<MalFunc>([](std::vector<std::shared_ptr<MalType>> args)
+                                         { return std::make_shared<MalInt>(static_cast<MalInt &>(*args[0]) - static_cast<MalInt &>(*args[1])); });
+    auto mul = std::make_shared<MalFunc>([](std::vector<std::shared_ptr<MalType>> args)
+                                         { return std::make_shared<MalInt>(std::accumulate(args.begin(), args.end(), 1, [](int acc, std::shared_ptr<MalType> i)
+                                                                                           { return acc * static_cast<MalInt &>(*i); })); });
+    auto div = std::make_shared<MalFunc>([](std::vector<std::shared_ptr<MalType>> args)
+                                         { return std::make_shared<MalInt>(static_cast<MalInt &>(*args[0]) / static_cast<MalInt &>(*args[1])); });
 
-    Env repl_env(nullptr);
-    repl_env.set("+", add);
-    repl_env.set("-", sub);
-    repl_env.set("*", mul);
-    repl_env.set("/", div);
+    auto repl_env = std::make_shared<Env>();
+    repl_env->set("+", add);
+    repl_env->set("-", sub);
+    repl_env->set("*", mul);
+    repl_env->set("/", div);
 
     while (!std::cin.eof())
     {
         std::string input;
         std::cout << "user> ";
         std::getline(std::cin, input);
-        auto rep_result = rep(input, &repl_env);
+        auto rep_result = rep(input, repl_env);
         std::cout << rep_result << std::endl;
     }
 

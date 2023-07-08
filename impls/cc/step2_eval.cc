@@ -5,17 +5,19 @@
 #include <numeric>
 #include <string>
 
-std::shared_ptr<MalType> eval(std::shared_ptr<MalType> input, const std::map<std::string, std::function<int(std::vector<int>)>> &env);
+std::shared_ptr<MalType> eval(std::shared_ptr<MalType> input, const std::map<std::string, std::function<std::shared_ptr<MalType>(std::vector<std::shared_ptr<MalType>>)>> &env);
 
-std::map<std::string, std::function<int(std::vector<int>)>> repl_env = {
-    {"+", [](std::vector<int> args)
-     { return std::accumulate(args.begin(), args.end(), 0, std::plus<int>()); }},
-    {"-", [](std::vector<int> args)
-     { return args[0] - args[1]; }},
-    {"*", [](std::vector<int> args)
-     { return std::accumulate(args.begin(), args.end(), 1, std::multiplies<int>()); }},
-    {"/", [](std::vector<int> args)
-     { return args[0] / args[1]; }},
+std::map<std::string, std::function<std::shared_ptr<MalType>(std::vector<std::shared_ptr<MalType>>)>> repl_env = {
+    {"+", [](std::vector<std::shared_ptr<MalType>> args)
+     { return std::make_shared<MalInt>(std::accumulate(args.begin(), args.end(), 0, [](int acc, std::shared_ptr<MalType> i)
+                                                       { return acc + static_cast<MalInt &>(*i); })); }},
+    {"-", [](std::vector<std::shared_ptr<MalType>> args)
+     { return std::make_shared<MalInt>(static_cast<MalInt &>(*args[0]) - static_cast<MalInt &>(*args[1])); }},
+    {"*", [](std::vector<std::shared_ptr<MalType>> args)
+     { return std::make_shared<MalInt>(std::accumulate(args.begin(), args.end(), 1, [](int acc, std::shared_ptr<MalType> i)
+                                                       { return acc * static_cast<MalInt &>(*i); })); }},
+    {"/", [](std::vector<std::shared_ptr<MalType>> args)
+     { return std::make_shared<MalInt>(static_cast<MalInt &>(*args[0]) / static_cast<MalInt &>(*args[1])); }},
 };
 
 std::shared_ptr<MalType> read(const std::string &input)
@@ -23,7 +25,7 @@ std::shared_ptr<MalType> read(const std::string &input)
     return read_str(input);
 }
 
-std::shared_ptr<MalType> eval_ast(std::shared_ptr<MalType> ast, const std::map<std::string, std::function<int(std::vector<int>)>> &env)
+std::shared_ptr<MalType> eval_ast(std::shared_ptr<MalType> ast, const std::map<std::string, std::function<std::shared_ptr<MalType>(std::vector<std::shared_ptr<MalType>>)>> &env)
 {
     switch (ast->type())
     {
@@ -59,7 +61,7 @@ std::shared_ptr<MalType> eval_ast(std::shared_ptr<MalType> ast, const std::map<s
     }
 }
 
-std::shared_ptr<MalType> eval(std::shared_ptr<MalType> input, const std::map<std::string, std::function<int(std::vector<int>)>> &env)
+std::shared_ptr<MalType> eval(std::shared_ptr<MalType> input, const std::map<std::string, std::function<std::shared_ptr<MalType>(std::vector<std::shared_ptr<MalType>>)>> &env)
 {
     if (!input)
         return nullptr;
@@ -81,11 +83,11 @@ std::shared_ptr<MalType> eval(std::shared_ptr<MalType> input, const std::map<std
     auto &new_list = static_cast<MalList &>(*plist);
     auto &func = static_cast<const MalFunc &>(*new_list[0]);
 
-    std::vector<int> args;
+    std::vector<std::shared_ptr<MalType>> args;
     for (unsigned i = 1; i < new_list.size(); ++i)
-        args.push_back(static_cast<const MalInt &>(*new_list[i]));
+        args.push_back(new_list[i]);
 
-    return std::make_shared<MalInt>(func(args));
+    return func(args);
 }
 
 std::string print(std::shared_ptr<MalType> input)
