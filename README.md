@@ -135,6 +135,7 @@ FAQ](docs/FAQ.md) where I attempt to answer some common questions.
 | [VHDL](#vhdl) | [Dov Murik](https://github.com/dubek) |
 | [Vimscript](#vimscript) | [Dov Murik](https://github.com/dubek) |
 | [Visual Basic.NET](#visual-basicnet) | [Joel Martin](https://github.com/kanaka)  |
+| [Visual Basic Script](#visual-basic-script) | [Baichao Liu](https://github.com/OldLiu001)  |
 | [WebAssembly](#webassembly-wasm) (wasm) | [Joel Martin](https://github.com/kanaka) |
 | [Wren](#wren) | [Dov Murik](https://github.com/dubek) |
 | [XSLT](#xslt) | [Ali MohammadPur](https://github.com/alimpfard) |
@@ -1229,6 +1230,19 @@ required to build and run the VB.NET implementation.
 cd impls/vb
 make
 mono ./stepX_YYY.exe
+```
+
+### Visual Basic Script ###
+
+The VBScript implementation of mal has been tested on Windows 10 1909.
+`install.vbs` can help you install the requirements (.NET 2.0 3.0 3.5).
+If you havn't install `.NET 2.0 3.0 3.5`, it will popup a window for installation.
+If you already installed that, it will do nothing.
+
+```
+cd impls\vbs
+install.vbs
+cscript -nologo stepX_YYY.vbs
 ```
 
 ### WebAssembly (wasm) ###
