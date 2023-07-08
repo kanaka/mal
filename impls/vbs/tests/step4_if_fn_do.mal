@@ -1,0 +1,6 @@
+((fn* [x] [x]) (list 1 2 3))
+((fn* [x] [x]) [1 2 3])
+((fn* [x] (list x)) (list 1 2 3))
+((fn* [x] (list x)) [1 2 3])
+((fn* [x] x) (list 1 2 3))
+((fn* [x] x) [1 2 3])
