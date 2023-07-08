@@ -9,7 +9,7 @@
 class Env
 {
 public:
-    explicit Env(std::shared_ptr<Env> outer)
+    explicit Env(std::shared_ptr<Env> outer = nullptr)
         : outer_(outer) {}
 
     Env(const MalList &binds, std::vector<std::shared_ptr<MalType>> exprs, std::shared_ptr<Env> outer)
@@ -49,6 +49,8 @@ public:
         }
         return env->data_.at(key);
     }
+
+    bool is_root() const { return !outer_; }
 
 private:
     std::shared_ptr<Env> outer_;

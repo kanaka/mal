@@ -3,8 +3,6 @@ DEBUG=-ggdb
 CXXFLAGS=-O0 -Wall $(DEBUG) $(INCPATHS) -std=c++17 -fsanitize=address -fsanitize=leak
 LDFLAGS=-O0 $(DEBUG) $(LIBPATHS) -L. -lreadline -lhistory -fsanitize=address -fsanitize=leak
 
-#LIBSOURCES=Core.cpp Environment.cpp Reader.cpp ReadLine.cpp String.cpp \
-			Types.cpp Validation.cpp
 LIBSOURCES=reader.cc printer.cc core.cc
 LIBOBJS=$(LIBSOURCES:%.cc=%.o)
 
