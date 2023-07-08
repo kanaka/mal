@@ -19,12 +19,13 @@ Sub REPL()
 		Dim strRes
 		On Error Resume Next
 			strRes = REP(strCode)
-			If strRes <> "" Then
-				WScript.Echo strRes
-			End If
 			If Err.Number <> 0 Then
 				'WScript.StdErr.WriteLine Err.Source + ": " + Err.Description 
 				WScript.StdErr.WriteLine "Exception: " + Err.Description 
+			Else
+				If strRes <> "" Then
+					WScript.Echo strRes
+				End If
 			End If
 		On Error Goto 0
 	Wend
