@@ -43,10 +43,7 @@ public:
     {
         auto env = find(key);
         if (!env)
-        {
-            std::cerr << "key " << key << " not found";
-            return nullptr;
-        }
+            throw std::runtime_error('\'' + key + "' not found");
         return env->data_.at(key);
     }
 

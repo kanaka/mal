@@ -103,6 +103,36 @@ std::shared_ptr<MalList> read_list(Reader &reader, char lparen, char rparen)
     return list;
 }
 
+std::shared_ptr<MalMap> read_map(Reader &reader)
+{
+    if (reader.empty())
+    {
+        std::cerr << "unbalanced";
+        return nullptr;
+    }
+
+    auto map = std::make_shared<MalMap>();
+    auto token = read_form(reader);
+
+    while (token && token->type() == MalType::Type::Symbol)
+    {
+        auto &key = static_cast<MalSymbol &>(*token);
+        if (key == std::string(1, '}'))
+            break;
+
+        (*map)[key] = read_form(reader);
+        token = read_form(reader);
+    }
+
+    if (!token)
+    {
+        std::cerr << "unbalanced";
+        return nullptr;
+    }
+
+    return map;
+}
+
 std::shared_ptr<MalList> read_macro(Reader &reader, const std::string &name)
 {
     auto macro = read_form(reader);
@@ -141,7 +171,7 @@ std::shared_ptr<MalType> read_form(Reader &reader)
         return read_list(reader, '[', ']');
     case '{':
         reader.next();
-        return read_list(reader, '{', '}');
+        return read_map(reader);
     case '\'':
         reader.next();
         return read_macro(reader, "quote");

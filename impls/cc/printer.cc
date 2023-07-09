@@ -53,12 +53,24 @@ std::string pr_str(std::shared_ptr<MalType> input, bool print_readably)
         if (!list.empty())
         {
             for (auto &l : list)
-            {
                 oss << pr_str(l, print_readably) << ' ';
-            }
             oss.seekp(-1, oss.end);
         }
         oss << list.rparen();
+        return oss.str();
+    }
+    case MalType::Type::Map:
+    {
+        std::ostringstream oss;
+        auto &map = static_cast<MalMap &>(*input);
+        oss << '{';
+        if (!map.empty())
+        {
+            for (auto &[key, value] : map)
+                oss << ((print_readably && key.is_string()) ? escape(key) : static_cast<std::string>(key)) << ' ' << pr_str(value, print_readably) << ' ';
+            oss.seekp(-1, oss.end);
+        }
+        oss << '}';
         return oss.str();
     }
     case MalType::Type::Func:
