@@ -64,11 +64,12 @@ std::shared_ptr<MalType> quasiquote(std::shared_ptr<MalType> ast, bool handle_ve
         auto &symbol = static_cast<MalSymbol &>(*ast);
         if ((symbol == "nil") || (symbol == "true") || (symbol == "false"))
             return ast;
-
+        [[fallthrough]];
+    }
+    case MalType::Type::Map:
         new_list->push_back(std::make_shared<MalSymbol>("quote"));
         new_list->push_back(ast);
         return new_list;
-    }
     default:
         return ast;
     }
@@ -139,6 +140,19 @@ std::shared_ptr<MalType> eval_ast(std::shared_ptr<MalType> ast, std::shared_ptr<
             new_list->push_back(l);
         }
         return new_list;
+    }
+    case MalType::Type::Map:
+    {
+        auto &map = static_cast<MalMap &>(*ast);
+        auto new_map = std::make_shared<MalMap>();
+        for (auto &[key, value] : map)
+        {
+            auto v = eval(value, env);
+            if (!v)
+                return nullptr;
+            (*new_map)[key] = v;
+        }
+        return new_map;
     }
     default:
         return ast;
