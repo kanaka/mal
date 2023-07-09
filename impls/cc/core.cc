@@ -276,6 +276,211 @@ std::shared_ptr<MalType> rest(std::vector<std::shared_ptr<MalType>> args)
     return new_list;
 }
 
+[[noreturn]] std::shared_ptr<MalType> mal_throw(std::vector<std::shared_ptr<MalType>> args)
+{
+    throw args[0];
+}
+
+std::shared_ptr<MalType> apply(std::vector<std::shared_ptr<MalType>> args)
+{
+    std::vector<std::shared_ptr<MalType>> list;
+
+    for (unsigned i = 1; i < args.size(); ++i)
+    {
+        if (args[i]->type() == MalType::Type::List)
+            for (auto item : static_cast<MalList &>(*args[i]))
+                list.push_back(item);
+        else
+            list.push_back(args[i]);
+    }
+
+    auto &func = static_cast<MalFunc &>(*args[0]);
+    return func(list);
+}
+
+std::shared_ptr<MalType> map(std::vector<std::shared_ptr<MalType>> args)
+{
+    auto result = std::make_shared<MalList>('(', ')');
+    auto &func = static_cast<MalFunc &>(*args[0]);
+    std::vector<std::shared_ptr<MalType>> args_(1);
+    for (auto item : static_cast<MalList &>(*args[1]))
+    {
+        args_[0] = item;
+        result->push_back(func(args_));
+    }
+    return result;
+}
+
+std::shared_ptr<MalType> is_nil(std::vector<std::shared_ptr<MalType>> args)
+{
+    if (args[0]->type() != MalType::Type::Symbol)
+        return std::make_shared<MalSymbol>(false_);
+
+    return *args[0] == nil_ ? std::make_shared<MalSymbol>(true_) : std::make_shared<MalSymbol>(false_);
+}
+
+std::shared_ptr<MalType> is_true(std::vector<std::shared_ptr<MalType>> args)
+{
+    if (args[0]->type() != MalType::Type::Symbol)
+        return std::make_shared<MalSymbol>(false_);
+
+    return *args[0] == true_ ? std::make_shared<MalSymbol>(true_) : std::make_shared<MalSymbol>(false_);
+}
+
+std::shared_ptr<MalType> is_false(std::vector<std::shared_ptr<MalType>> args)
+{
+    if (args[0]->type() != MalType::Type::Symbol)
+        return std::make_shared<MalSymbol>(false_);
+
+    return *args[0] == false_ ? std::make_shared<MalSymbol>(true_) : std::make_shared<MalSymbol>(false_);
+}
+
+std::shared_ptr<MalType> is_symbol(std::vector<std::shared_ptr<MalType>> args)
+{
+    if (args[0]->type() != MalType::Type::Symbol)
+        return std::make_shared<MalSymbol>(false_);
+
+    auto &symbol = static_cast<MalSymbol &>(*args[0]);
+
+    return !symbol.is_keyword() && !symbol.is_string() ? std::make_shared<MalSymbol>(true_) : std::make_shared<MalSymbol>(false_);
+}
+
+std::shared_ptr<MalType> symbol(std::vector<std::shared_ptr<MalType>> args)
+{
+    std::string symbol = static_cast<MalSymbol &>(*args[0]);
+    return std::make_shared<MalSymbol>(symbol);
+}
+
+std::shared_ptr<MalType> keyword(std::vector<std::shared_ptr<MalType>> args)
+{
+    auto &symbol = static_cast<MalSymbol &>(*args[0]);
+    return symbol.is_keyword() ? args[0] : std::make_shared<MalSymbol>(':' + static_cast<std::string>(symbol));
+}
+
+std::shared_ptr<MalType> is_keyword(std::vector<std::shared_ptr<MalType>> args)
+{
+    if (args[0]->type() != MalType::Type::Symbol)
+        return std::make_shared<MalSymbol>(false_);
+
+    auto &symbol = static_cast<MalSymbol &>(*args[0]);
+
+    return symbol.is_keyword() ? std::make_shared<MalSymbol>(true_) : std::make_shared<MalSymbol>(false_);
+}
+
+std::shared_ptr<MalType> vector(std::vector<std::shared_ptr<MalType>> args)
+{
+    auto result = std::make_shared<MalList>('[', ']');
+
+    for (auto arg : args)
+        result->push_back(arg);
+
+    return result;
+}
+
+std::shared_ptr<MalType> is_vector(std::vector<std::shared_ptr<MalType>> args)
+{
+    bool result = false;
+
+    if (args[0]->type() == MalType::Type::List)
+    {
+        auto list = static_cast<MalList &>(*args[0]);
+        result = list.is_vector();
+    }
+
+    return result ? std::make_shared<MalSymbol>(true_) : std::make_shared<MalSymbol>(false_);
+}
+
+std::shared_ptr<MalType> sequential(std::vector<std::shared_ptr<MalType>> args)
+{
+    return args[0]->type() == MalType::Type::List ? std::make_shared<MalSymbol>(true_) : std::make_shared<MalSymbol>(false_);
+}
+
+std::shared_ptr<MalType> hash_map(std::vector<std::shared_ptr<MalType>> args)
+{
+    auto result = std::make_shared<MalMap>();
+
+    for (unsigned i = 0; i < args.size(); i += 2)
+    {
+        auto key = static_cast<MalSymbol &>(*args[i]);
+        (*result)[key] = args[i + 1];
+    }
+
+    return result;
+}
+
+std::shared_ptr<MalType> is_map(std::vector<std::shared_ptr<MalType>> args)
+{
+    return args[0]->type() == MalType::Type::Map ? std::make_shared<MalSymbol>(true_) : std::make_shared<MalSymbol>(false_);
+}
+
+std::shared_ptr<MalType> assoc(std::vector<std::shared_ptr<MalType>> args)
+{
+    auto result = std::make_shared<MalMap>();
+
+    for (auto [key, value] : static_cast<MalMap &>(*args[0]))
+        (*result)[key] = value;
+
+    for (unsigned i = 1; i < args.size(); i += 2)
+    {
+        auto key = static_cast<MalSymbol &>(*args[i]);
+        (*result)[key] = args[i + 1];
+    }
+
+    return result;
+}
+
+std::shared_ptr<MalType> dissoc(std::vector<std::shared_ptr<MalType>> args)
+{
+    auto &map = static_cast<MalMap &>(*args[0]);
+    auto result = std::make_shared<MalMap>(map);
+
+    for (unsigned i = 1; i < args.size(); ++i)
+    {
+        auto key = static_cast<MalSymbol &>(*args[i]);
+        result->erase(key);
+    }
+
+    return result;
+}
+
+std::shared_ptr<MalType> get(std::vector<std::shared_ptr<MalType>> args)
+{
+    auto &map = static_cast<MalMap &>(*args[0]);
+    auto key = static_cast<MalSymbol &>(*args[1]);
+
+    if (args[0]->type() != MalType::Type::Map || map.find(key) == map.end())
+        return std::make_shared<MalSymbol>(nil_);
+
+    return map[key];
+}
+
+std::shared_ptr<MalType> contains(std::vector<std::shared_ptr<MalType>> args)
+{
+    auto &map = static_cast<MalMap &>(*args[0]);
+    auto key = static_cast<MalSymbol &>(*args[1]);
+    return map.find(key) != map.end() ? std::make_shared<MalSymbol>(true_) : std::make_shared<MalSymbol>(false_);
+}
+
+std::shared_ptr<MalType> keys(std::vector<std::shared_ptr<MalType>> args)
+{
+    auto result = std::make_shared<MalList>('(', ')');
+
+    for (auto [key, _] : static_cast<MalMap &>(*args[0]))
+        result->push_back(std::make_shared<MalSymbol>(key));
+
+    return result;
+}
+
+std::shared_ptr<MalType> vals(std::vector<std::shared_ptr<MalType>> args)
+{
+    auto result = std::make_shared<MalList>('(', ')');
+
+    for (auto [_, val] : static_cast<MalMap &>(*args[0]))
+        result->push_back(val);
+
+    return result;
+}
+
 std::map<std::string, std::shared_ptr<MalType>> ns()
 {
     return {
@@ -312,5 +517,26 @@ std::map<std::string, std::shared_ptr<MalType>> ns()
         {"nth", std::make_shared<MalFunc>(nth)},
         {"first", std::make_shared<MalFunc>(first)},
         {"rest", std::make_shared<MalFunc>(rest)},
+        {"throw", std::make_shared<MalFunc>(mal_throw)},
+        {"apply", std::make_shared<MalFunc>(apply)},
+        {"map", std::make_shared<MalFunc>(map)},
+        {"nil?", std::make_shared<MalFunc>(is_nil)},
+        {"true?", std::make_shared<MalFunc>(is_true)},
+        {"false?", std::make_shared<MalFunc>(is_false)},
+        {"symbol?", std::make_shared<MalFunc>(is_symbol)},
+        {"symbol", std::make_shared<MalFunc>(symbol)},
+        {"keyword", std::make_shared<MalFunc>(keyword)},
+        {"keyword?", std::make_shared<MalFunc>(is_keyword)},
+        {"vector", std::make_shared<MalFunc>(vector)},
+        {"vector?", std::make_shared<MalFunc>(is_vector)},
+        {"sequential?", std::make_shared<MalFunc>(sequential)},
+        {"hash-map", std::make_shared<MalFunc>(hash_map)},
+        {"map?", std::make_shared<MalFunc>(is_map)},
+        {"assoc", std::make_shared<MalFunc>(assoc)},
+        {"dissoc", std::make_shared<MalFunc>(dissoc)},
+        {"get", std::make_shared<MalFunc>(get)},
+        {"contains?", std::make_shared<MalFunc>(contains)},
+        {"keys", std::make_shared<MalFunc>(keys)},
+        {"vals", std::make_shared<MalFunc>(vals)},
     };
 }
