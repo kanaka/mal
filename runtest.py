@@ -169,7 +169,7 @@ class Runner():
         except:
             pass
 
-    def read_to_prompt(self, prompts, timeout):
+    def read_to_prompt(self, prompts, timeout, search_prefix=''):
         end_time = time.time() + timeout
         while True:
             current_timeout = max(end_time - time.time(), 0.)
@@ -196,10 +196,11 @@ class Runner():
             self.buf += new_data.replace("\r", "")
             for prompt in prompts:
                 regexp = re.compile(prompt)
-                match = regexp.search(self.buf)
+                match = regexp.search(search_prefix + self.buf)
                 if match:
-                    end = match.end()
-                    buf = self.buf[0:match.start()]
+                    start = match.start() - len(search_prefix)
+                    end = match.end() - len(search_prefix)
+                    buf = self.buf[0:start]
                     self.buf = self.buf[end:]
                     self.last_prompt = prompt
                     return buf
@@ -378,21 +379,16 @@ while t.next():
     # The repeated form is to get around an occasional OS X issue
     # where the form is repeated.
     # https://github.com/kanaka/mal/issues/30
-    if os.name == 'posix':
-        expects = [".*%s%s%s" % (sep, t.out, re.escape(t.ret)),
-                ".*%s.*%s%s%s" % (sep, sep, t.out, re.escape(t.ret))]
-    elif os.name == 'nt':
-        expects = ["%s%s" % (t.out, re.escape(t.ret))]
-    else:
-        expects = ["%s%s" % (t.out, re.escape(t.ret)),
-                ".*%s%s%s" % (sep, t.out, re.escape(t.ret)),
-                ".*%s.*%s%s%s" % (sep, sep, t.out, re.escape(t.ret))]
+    expects = ["%s%s" % (t.out, re.escape(t.ret)), # for Windows, WSL
+            ".*%s%s%s" % (sep, t.out, re.escape(t.ret)), # for Linux, OS X
+            ".*%s.*%s%s%s" % (sep, sep, t.out, re.escape(t.ret))] # for OS X
 
     r.writeline(t.form)
     try:
         test_cnt += 1
+        # Search with prepending prefix '\n' for avoiding hangs on Windows
         res = r.read_to_prompt(['\r\n[^\s()<>]+> ', '\n[^\s()<>]+> '],
-                                timeout=args.test_timeout)
+                                timeout=args.test_timeout, search_prefix='\n')
         #print "%s,%s,%s" % (idx, repr(p.before), repr(p.after))
         if (res == None):
             log(" -> TIMEOUT (line %d)" % t.line_num)
