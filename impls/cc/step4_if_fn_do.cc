@@ -38,6 +38,19 @@ std::shared_ptr<MalType> eval_ast(std::shared_ptr<MalType> ast, std::shared_ptr<
         }
         return new_list;
     }
+    case MalType::Type::Map:
+    {
+        auto &map = static_cast<MalMap &>(*ast);
+        auto new_map = std::make_shared<MalMap>();
+        for (auto &[key, value] : map)
+        {
+            auto v = eval(value, env);
+            if (!v)
+                return nullptr;
+            (*new_map)[key] = v;
+        }
+        return new_map;
+    }
     default:
         return ast;
     }
@@ -168,8 +181,15 @@ int main(int argc, char *argv[])
         std::string input;
         std::cout << "user> ";
         std::getline(std::cin, input);
-        auto rep_result = rep(input, repl_env);
-        std::cout << rep_result << std::endl;
+        try
+        {
+            auto rep_result = rep(input, repl_env);
+            std::cout << rep_result << std::endl;
+        }
+        catch (std::exception &e)
+        {
+            std::cerr << e.what() << std::endl;
+        }
     }
 
     return 0;

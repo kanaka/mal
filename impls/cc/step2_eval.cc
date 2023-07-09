@@ -56,6 +56,19 @@ std::shared_ptr<MalType> eval_ast(std::shared_ptr<MalType> ast, const std::map<s
         }
         return new_list;
     }
+    case MalType::Type::Map:
+    {
+        auto &map = static_cast<MalMap &>(*ast);
+        auto new_map = std::make_shared<MalMap>();
+        for (auto &[key, value] : map)
+        {
+            auto v = eval(value, env);
+            if (!v)
+                return nullptr;
+            (*new_map)[key] = v;
+        }
+        return new_map;
+    }
     default:
         return ast;
     }
