@@ -240,7 +240,7 @@ class Runner():
 class TestReader:
     def __init__(self, test_file):
         self.line_num = 0
-        f = open(test_file, newline='') if IS_PY_3 else open(test_file)
+        f = open(test_file)
         self.data = f.read().split('\n')
         self.soft = False
         self.deferrable = False
