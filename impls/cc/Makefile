@@ -1,7 +1,7 @@
 LD=$(CXX)
-DEBUG=-ggdb
-CXXFLAGS=-O0 -Wall $(DEBUG) $(INCPATHS) -std=c++17 -fsanitize=address -fsanitize=leak
-LDFLAGS=-O0 $(DEBUG) $(LIBPATHS) -L. -lreadline -lhistory -fsanitize=address -fsanitize=leak
+DEBUG=-g
+CXXFLAGS=-O2 -Wall $(DEBUG) $(INCPATHS) -std=c++17 #-fsanitize=address -fsanitize=leak
+LDFLAGS=-O2 $(DEBUG) $(LIBPATHS) -L. -lreadline -lhistory #-fsanitize=address -fsanitize=leak
 
 LIBSOURCES=reader.cc printer.cc core.cc
 LIBOBJS=$(LIBSOURCES:%.cc=%.o)

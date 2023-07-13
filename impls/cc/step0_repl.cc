@@ -32,8 +32,15 @@ int main(int argc, char *argv[])
     {
         std::cout << "user> ";
         std::getline(std::cin, input);
-        auto rep_result = rep(input);
-        std::cout << rep_result << std::endl;
+        try
+        {
+            auto rep_result = rep(input);
+            std::cout << rep_result << std::endl;
+        }
+        catch (std::exception &e)
+        {
+            std::cerr << e.what() << std::endl;
+        }
     }
 
     return 0;
