@@ -75,6 +75,47 @@ std::shared_ptr<MalType> quasiquote(std::shared_ptr<MalType> ast, bool handle_ve
     }
 }
 
+bool is_macro_call(std::shared_ptr<MalType> ast, std::shared_ptr<Env> env)
+{
+    if (!ast || ast->type() != MalType::Type::List)
+        return false;
+
+    auto &list = static_cast<MalList &>(*ast);
+    if (!list.is_list() || list.empty() || list[0]->type() != MalType::Type::Symbol)
+        return false;
+
+    auto &symbol_ = static_cast<MalSymbol &>(*list[0]);
+    if (!env->find(symbol_))
+        return false;
+
+    auto symbol = env->get(symbol_);
+    if (symbol->type() != MalType::Type::Func)
+        return false;
+
+    auto &func = static_cast<MalFunc &>(*symbol);
+    return func.is_macro;
+}
+
+std::shared_ptr<MalType> macroexpand(std::shared_ptr<MalType> ast, std::shared_ptr<Env> env)
+{
+    auto ast_ = ast;
+
+    while (is_macro_call(ast_, env))
+    {
+        auto &list = static_cast<MalList &>(*ast);
+        auto symbol = env->get(static_cast<MalSymbol &>(*list[0]));
+        auto &func = static_cast<MalFunc &>(*symbol);
+
+        std::vector<std::shared_ptr<MalType>> rest;
+        for (unsigned i = 1; i < list.size(); ++i)
+            rest.push_back(list[i]);
+
+        ast_ = func(rest);
+    }
+
+    return ast_;
+}
+
 std::shared_ptr<MalType> eval_ast(std::shared_ptr<MalType> ast, std::shared_ptr<Env> env)
 {
     switch (ast->type())
@@ -122,6 +163,8 @@ std::shared_ptr<MalType> eval(std::shared_ptr<MalType> input, std::shared_ptr<En
 {
     while (true)
     {
+        input = macroexpand(input, env);
+
         if (!input)
             return nullptr;
 
@@ -146,6 +189,21 @@ std::shared_ptr<MalType> eval(std::shared_ptr<MalType> input, std::shared_ptr<En
                     return nullptr;
                 env->set(key, val);
                 return val;
+            }
+
+            if (symbol == "defmacro!")
+            {
+                std::string key = static_cast<const MalSymbol &>(*list[1]);
+                auto val = eval(list[2], env);
+                if (!val)
+                    return nullptr;
+
+                auto func = static_cast<MalFunc &>(*val);
+                func.is_macro = true;
+
+                auto new_val = std::make_shared<MalFunc>(func);
+                env->set(key, new_val);
+                return new_val;
             }
 
             if (symbol == "let*")
@@ -226,6 +284,39 @@ std::shared_ptr<MalType> eval(std::shared_ptr<MalType> input, std::shared_ptr<En
                 input = quasiquote(list[1]);
                 continue;
             }
+
+            if (symbol == "macroexpand")
+                return macroexpand(list[1], env);
+
+            if (symbol == "try*")
+            {
+                try
+                {
+                    return eval(list[1], env);
+                }
+                catch (std::shared_ptr<MalType> &e)
+                {
+                    if (list.size() < 3)
+                        throw;
+
+                    auto new_env = std::make_shared<Env>(env);
+                    auto &catch_clause = static_cast<MalList &>(*list[2]);
+                    std::string key = static_cast<const MalSymbol &>(*catch_clause[1]);
+                    new_env->set(key, e);
+                    return eval(catch_clause[2], new_env);
+                }
+                catch (std::exception &e)
+                {
+                    if (list.size() < 3)
+                        throw;
+
+                    auto new_env = std::make_shared<Env>(env);
+                    auto &catch_clause = static_cast<MalList &>(*list[2]);
+                    std::string key = static_cast<const MalSymbol &>(*catch_clause[1]);
+                    new_env->set(key, std::make_shared<MalSymbol>('"' + std::string(e.what()) + '"'));
+                    return eval(catch_clause[2], new_env);
+                }
+            }
         }
 
         auto plist = eval_ast(input, env);
@@ -279,6 +370,8 @@ int main(int argc, char *argv[])
 
     rep("(def! not (fn* (a) (if a false true)))", repl_env);
     rep("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \"\nnil)\")))))", repl_env);
+    rep("(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))", repl_env);
+    rep("(def! *host-language* \"cc\")", repl_env);
 
     auto args = std::make_shared<MalList>('(', ')');
     for (int i = 2; i < argc; ++i)
@@ -290,6 +383,8 @@ int main(int argc, char *argv[])
         rep("(load-file \"" + std::string(argv[1]) + "\")", repl_env);
         return 0;
     }
+
+    rep("(println (str \"Mal [\" *host-language* \"]\"))", repl_env);
 
     while (!std::cin.eof())
     {
@@ -304,6 +399,10 @@ int main(int argc, char *argv[])
         catch (std::exception &e)
         {
             std::cerr << e.what() << std::endl;
+        }
+        catch (std::shared_ptr<MalType> &e)
+        {
+            std::cerr << "exception " << pr_str(e) << std::endl;
         }
     }
 

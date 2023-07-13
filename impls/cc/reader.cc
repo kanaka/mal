@@ -58,10 +58,7 @@ std::shared_ptr<MalType> read_atom(Reader &reader)
     {
         auto unescaped_token = unescape(token);
         if (*unescaped_token.rbegin() != '"' || unescaped_token.size() < 2)
-        {
-            std::cerr << "unbalanced";
-            return nullptr;
-        }
+            throw std::runtime_error("unbalanced");
 
         return std::make_shared<MalSymbol>(unescaped_token);
     }
@@ -79,10 +76,7 @@ std::shared_ptr<MalType> read_atom(Reader &reader)
 std::shared_ptr<MalList> read_list(Reader &reader, char lparen, char rparen)
 {
     if (reader.empty())
-    {
-        std::cerr << "unbalanced";
-        return nullptr;
-    }
+        throw std::runtime_error("unbalanced");
 
     auto list = std::make_shared<MalList>(lparen, rparen);
     auto token = read_form(reader);
@@ -95,10 +89,7 @@ std::shared_ptr<MalList> read_list(Reader &reader, char lparen, char rparen)
     }
 
     if (!token)
-    {
-        std::cerr << "unbalanced";
-        return nullptr;
-    }
+        throw std::runtime_error("unbalanced");
 
     return list;
 }
@@ -106,10 +97,7 @@ std::shared_ptr<MalList> read_list(Reader &reader, char lparen, char rparen)
 std::shared_ptr<MalMap> read_map(Reader &reader)
 {
     if (reader.empty())
-    {
-        std::cerr << "unbalanced";
-        return nullptr;
-    }
+        throw std::runtime_error("unbalanced");
 
     auto map = std::make_shared<MalMap>();
     auto token = read_form(reader);
@@ -125,10 +113,7 @@ std::shared_ptr<MalMap> read_map(Reader &reader)
     }
 
     if (!token)
-    {
-        std::cerr << "unbalanced";
-        return nullptr;
-    }
+        throw std::runtime_error("unbalanced");
 
     return map;
 }
@@ -144,12 +129,12 @@ std::shared_ptr<MalList> read_macro(Reader &reader, const std::string &name)
 
 std::shared_ptr<MalList> read_meta(Reader &reader)
 {
-    auto map = read_form(reader);
-    auto vector = read_form(reader);
+    auto meta = read_form(reader);
+    auto item = read_form(reader);
     auto result = std::make_shared<MalList>('(', ')');
     result->push_back(std::make_shared<MalSymbol>("with-meta"));
-    result->push_back(vector);
-    result->push_back(map);
+    result->push_back(item);
+    result->push_back(meta);
     return result;
 }
 

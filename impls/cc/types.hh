@@ -69,6 +69,7 @@ public:
 
     bool is_string() const { return symbol_[0] == '"'; }
     bool is_keyword() const { return symbol_[0] == ':'; }
+    bool is_reserved() const { return symbol_ == "true" || symbol_ == "false" || symbol_ == "nil"; }
 
     operator bool() const { return symbol_ != "nil" && symbol_ != "false"; }
 
@@ -105,6 +106,9 @@ public:
 
     bool is_list() const { return lparen_ == '(' && rparen_ == ')'; }
     bool is_vector() const { return lparen_ == '[' && rparen_ == ']'; }
+
+    void set_meta(std::shared_ptr<MalType> meta) { meta_ = meta; }
+    std::shared_ptr<MalType> get_meta() const { return meta_; }
 
     std::shared_ptr<MalList> to_list() const
     {
@@ -144,6 +148,7 @@ private:
     char lparen_;
     char rparen_;
     std::vector<std::shared_ptr<MalType>> list_;
+    std::shared_ptr<MalType> meta_ = std::make_shared<MalSymbol>("nil");
 };
 
 class MalMap : public MalType
@@ -163,6 +168,9 @@ public:
     std::unordered_map<MalSymbol, std::shared_ptr<MalType>, MalSymbol::Hash>::const_iterator end() const noexcept { return map_.end(); }
 
     std::unordered_map<MalSymbol, std::shared_ptr<MalType>, MalSymbol::Hash>::const_iterator find(const MalSymbol &key) const { return map_.find(key); }
+
+    void set_meta(std::shared_ptr<MalType> meta) { meta_ = meta; }
+    std::shared_ptr<MalType> get_meta() const { return meta_; }
 
     virtual bool operator==(const MalType &rhs) const noexcept override
     {
@@ -187,6 +195,7 @@ public:
 
 private:
     std::unordered_map<MalSymbol, std::shared_ptr<MalType>, MalSymbol::Hash> map_;
+    std::shared_ptr<MalType> meta_ = std::make_shared<MalSymbol>("nil");
 };
 
 class MalFunc : public MalType
@@ -207,10 +216,14 @@ public:
     std::shared_ptr<MalType> params() const { return params_; }
     std::shared_ptr<Env> env() const { return env_.lock(); }
 
+    void set_meta(std::shared_ptr<MalType> meta) { meta_ = meta; }
+    std::shared_ptr<MalType> get_meta() const { return meta_; }
+
     bool is_macro = false;
 
 private:
     std::function<std::shared_ptr<MalType>(std::vector<std::shared_ptr<MalType>>)> func_;
+    std::shared_ptr<MalType> meta_ = std::make_shared<MalSymbol>("nil");
     std::shared_ptr<MalType> ast_;
     std::shared_ptr<MalType> params_;
     std::weak_ptr<Env> env_;

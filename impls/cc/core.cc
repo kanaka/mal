@@ -1,6 +1,7 @@
 #include "core.hh"
 #include "printer.hh"
 #include "reader.hh"
+#include <chrono>
 #include <fstream>
 #include <iostream>
 #include <numeric>
@@ -342,7 +343,7 @@ std::shared_ptr<MalType> is_symbol(std::vector<std::shared_ptr<MalType>> args)
 
     auto &symbol = static_cast<MalSymbol &>(*args[0]);
 
-    return !symbol.is_keyword() && !symbol.is_string() ? std::make_shared<MalSymbol>(true_) : std::make_shared<MalSymbol>(false_);
+    return !symbol.is_keyword() && !symbol.is_string() && !symbol.is_reserved() ? std::make_shared<MalSymbol>(true_) : std::make_shared<MalSymbol>(false_);
 }
 
 std::shared_ptr<MalType> symbol(std::vector<std::shared_ptr<MalType>> args)
@@ -481,6 +482,146 @@ std::shared_ptr<MalType> vals(std::vector<std::shared_ptr<MalType>> args)
     return result;
 }
 
+std::shared_ptr<MalType> readline(std::vector<std::shared_ptr<MalType>> args)
+{
+    std::string prompt = static_cast<MalSymbol &>(*args[0]);
+    std::cout << prompt;
+
+    if (std::cin.eof())
+        return std::make_shared<MalSymbol>(nil_);
+
+    std::string input;
+    std::getline(std::cin, input);
+
+    return std::make_shared<MalSymbol>('"' + input + '"');
+}
+
+std::shared_ptr<MalType> time_ms(std::vector<std::shared_ptr<MalType>> args)
+{
+    auto now = std::chrono::steady_clock::now().time_since_epoch();
+    auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(now);
+    return std::make_shared<MalInt>(ms.count());
+}
+
+std::shared_ptr<MalType> meta(std::vector<std::shared_ptr<MalType>> args)
+{
+    if (args[0]->type() == MalType::Type::List)
+        return static_cast<MalList &>(*args[0]).get_meta();
+    if (args[0]->type() == MalType::Type::Map)
+        return static_cast<MalMap &>(*args[0]).get_meta();
+    if (args[0]->type() == MalType::Type::Func)
+        return static_cast<MalFunc &>(*args[0]).get_meta();
+    throw std::invalid_argument("meta called with invalid argument");
+}
+
+std::shared_ptr<MalType> with_meta(std::vector<std::shared_ptr<MalType>> args)
+{
+    if (args[0]->type() == MalType::Type::List)
+    {
+        auto list = static_cast<MalList &>(*args[0]);
+        list.set_meta(args[1]);
+        return std::make_shared<MalList>(list);
+    }
+    if (args[0]->type() == MalType::Type::Map)
+    {
+        auto map = static_cast<MalMap &>(*args[0]);
+        map.set_meta(args[1]);
+        return std::make_shared<MalMap>(map);
+    }
+    if (args[0]->type() == MalType::Type::Func)
+    {
+        auto func = static_cast<MalFunc &>(*args[0]);
+        func.set_meta(args[1]);
+        return std::make_shared<MalFunc>(func);
+    }
+    throw std::invalid_argument("with-meta called with invalid argument");
+}
+
+std::shared_ptr<MalType> is_fn(std::vector<std::shared_ptr<MalType>> args)
+{
+    if (args[0]->type() != MalType::Type::Func)
+        return std::make_shared<MalSymbol>(false_);
+
+    auto &func = static_cast<MalFunc &>(*args[0]);
+
+    return !func.is_macro ? std::make_shared<MalSymbol>(true_) : std::make_shared<MalSymbol>(false_);
+}
+
+std::shared_ptr<MalType> is_macro(std::vector<std::shared_ptr<MalType>> args)
+{
+    if (args[0]->type() != MalType::Type::Func)
+        return std::make_shared<MalSymbol>(false_);
+
+    auto &func = static_cast<MalFunc &>(*args[0]);
+
+    return func.is_macro ? std::make_shared<MalSymbol>(true_) : std::make_shared<MalSymbol>(false_);
+}
+
+std::shared_ptr<MalType> is_string(std::vector<std::shared_ptr<MalType>> args)
+{
+    if (args[0]->type() != MalType::Type::Symbol)
+        return std::make_shared<MalSymbol>(false_);
+
+    auto &symbol = static_cast<MalSymbol &>(*args[0]);
+
+    return symbol.is_string() ? std::make_shared<MalSymbol>(true_) : std::make_shared<MalSymbol>(false_);
+}
+
+std::shared_ptr<MalType> is_number(std::vector<std::shared_ptr<MalType>> args)
+{
+    return args[0]->type() == MalType::Type::Int ? std::make_shared<MalSymbol>(true_) : std::make_shared<MalSymbol>(false_);
+}
+
+std::shared_ptr<MalType> seq(std::vector<std::shared_ptr<MalType>> args)
+{
+    if (args[0]->type() == MalType::Type::List)
+    {
+        auto &list = static_cast<MalList &>(*args[0]);
+
+        if (list.empty())
+            return std::make_shared<MalSymbol>(nil_);
+
+        return list.is_list() ? args[0] : list.to_list();
+    }
+
+    if (args[0]->type() == MalType::Type::Symbol)
+    {
+        auto &symbol = static_cast<MalSymbol &>(*args[0]);
+        if (symbol == "\"\"" || symbol == "nil")
+            return std::make_shared<MalSymbol>(nil_);
+
+        if (symbol.is_string())
+        {
+            auto list = std::make_shared<MalList>('(', ')');
+            for (auto c : static_cast<std::string>(symbol))
+                list->push_back(std::make_shared<MalSymbol>('"' + std::string(1, c) + '"'));
+            return list;
+        }
+    }
+
+    return std::make_shared<MalSymbol>(nil_);
+}
+
+std::shared_ptr<MalType> conj(std::vector<std::shared_ptr<MalType>> args)
+{
+    auto &list = static_cast<MalList &>(*args[0]);
+
+    if (list.is_vector())
+    {
+        auto vector = list;
+        for (unsigned i = 1; i < args.size(); ++i)
+            vector.push_back(args[i]);
+        return std::make_shared<MalList>(vector);
+    }
+
+    auto new_list = std::make_shared<MalList>('(', ')');
+    for (unsigned i = args.size() - 1; i >= 1; --i)
+        new_list->push_back(args[i]);
+    for (auto arg : list)
+        new_list->push_back(arg);
+    return new_list;
+}
+
 std::map<std::string, std::shared_ptr<MalType>> ns()
 {
     return {
@@ -538,5 +679,15 @@ std::map<std::string, std::shared_ptr<MalType>> ns()
         {"contains?", std::make_shared<MalFunc>(contains)},
         {"keys", std::make_shared<MalFunc>(keys)},
         {"vals", std::make_shared<MalFunc>(vals)},
+        {"readline", std::make_shared<MalFunc>(readline)},
+        {"time-ms", std::make_shared<MalFunc>(time_ms)},
+        {"meta", std::make_shared<MalFunc>(meta)},
+        {"with-meta", std::make_shared<MalFunc>(with_meta)},
+        {"fn?", std::make_shared<MalFunc>(is_fn)},
+        {"macro?", std::make_shared<MalFunc>(is_macro)},
+        {"string?", std::make_shared<MalFunc>(is_string)},
+        {"number?", std::make_shared<MalFunc>(is_number)},
+        {"seq", std::make_shared<MalFunc>(seq)},
+        {"conj", std::make_shared<MalFunc>(conj)},
     };
 }
