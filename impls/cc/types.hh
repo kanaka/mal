@@ -1,6 +1,7 @@
 #pragma once
 
 #include <functional>
+#include <map>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -60,6 +61,8 @@ public:
 
     operator std::string() const { return symbol_[0] == '"' ? symbol_.substr(1, symbol_.length() - 2) : symbol_; }
 
+    bool operator<(const MalSymbol &str) const noexcept { return symbol_ < str.symbol_; }
+
     bool operator==(const std::string &str) const noexcept { return symbol_ == str; }
     bool operator==(const char *str) const noexcept { return symbol_ == str; }
     bool operator!=(const std::string &str) const noexcept { return symbol_ != str; }
@@ -73,17 +76,23 @@ public:
 
     operator bool() const { return symbol_ != "nil" && symbol_ != "false"; }
 
-    struct Hash
-    {
-        std::size_t operator()(const MalSymbol &k) const
-        {
-            return std::hash<std::string>()(k.symbol_);
-        }
-    };
-
 private:
     std::string symbol_;
 };
+
+namespace std
+{
+    template <>
+    struct hash<MalSymbol>
+    {
+        typedef MalSymbol argument_type;
+        typedef std::size_t result_type;
+        result_type operator()(argument_type const &s) const
+        {
+            return std::hash<std::string>()(s);
+        }
+    };
+}
 
 class MalList : public MalType
 {
@@ -154,6 +163,9 @@ private:
 class MalMap : public MalType
 {
 public:
+    // using map_t = std::unordered_map<MalSymbol, std::shared_ptr<MalType>>;
+    using map_t = std::map<MalSymbol, std::shared_ptr<MalType>>;
+
     MalMap()
         : MalType(Type::Map) {}
 
@@ -162,12 +174,12 @@ public:
     std::size_t size() const noexcept { return map_.size(); }
     void erase(const MalSymbol &key) { map_.erase(key); }
 
-    std::unordered_map<MalSymbol, std::shared_ptr<MalType>, MalSymbol::Hash>::iterator begin() noexcept { return map_.begin(); }
-    std::unordered_map<MalSymbol, std::shared_ptr<MalType>, MalSymbol::Hash>::const_iterator begin() const noexcept { return map_.begin(); }
-    std::unordered_map<MalSymbol, std::shared_ptr<MalType>, MalSymbol::Hash>::iterator end() noexcept { return map_.end(); }
-    std::unordered_map<MalSymbol, std::shared_ptr<MalType>, MalSymbol::Hash>::const_iterator end() const noexcept { return map_.end(); }
+    map_t::iterator begin() noexcept { return map_.begin(); }
+    map_t::const_iterator begin() const noexcept { return map_.begin(); }
+    map_t::iterator end() noexcept { return map_.end(); }
+    map_t::const_iterator end() const noexcept { return map_.end(); }
 
-    std::unordered_map<MalSymbol, std::shared_ptr<MalType>, MalSymbol::Hash>::const_iterator find(const MalSymbol &key) const { return map_.find(key); }
+    map_t::const_iterator find(const MalSymbol &key) const { return map_.find(key); }
 
     void set_meta(std::shared_ptr<MalType> meta) { meta_ = meta; }
     std::shared_ptr<MalType> get_meta() const { return meta_; }
@@ -194,7 +206,7 @@ public:
     }
 
 private:
-    std::unordered_map<MalSymbol, std::shared_ptr<MalType>, MalSymbol::Hash> map_;
+    map_t map_;
     std::shared_ptr<MalType> meta_ = std::make_shared<MalSymbol>("nil");
 };
 
