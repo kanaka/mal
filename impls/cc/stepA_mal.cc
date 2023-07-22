@@ -102,7 +102,7 @@ std::shared_ptr<MalType> macroexpand(std::shared_ptr<MalType> ast, std::shared_p
 
     while (is_macro_call(ast_, env))
     {
-        auto &list = static_cast<MalList &>(*ast);
+        auto &list = static_cast<MalList &>(*ast_);
         auto symbol = env->get(static_cast<MalSymbol &>(*list[0]));
         auto &func = static_cast<MalFunc &>(*symbol);
 
