@@ -286,14 +286,11 @@ std::shared_ptr<MalType> apply(std::vector<std::shared_ptr<MalType>> args)
 {
     std::vector<std::shared_ptr<MalType>> list;
 
-    for (unsigned i = 1; i < args.size(); ++i)
-    {
-        if (args[i]->type() == MalType::Type::List)
-            for (auto item : static_cast<MalList &>(*args[i]))
-                list.push_back(item);
-        else
-            list.push_back(args[i]);
-    }
+    for (unsigned i = 1; i < args.size() - 1; ++i)
+        list.push_back(args[i]);
+
+    for (auto item : static_cast<MalList &>(*args[args.size() - 1]))
+        list.push_back(item);
 
     auto &func = static_cast<MalFunc &>(*args[0]);
     return func(list);
