@@ -12,6 +12,7 @@
 .sbt
 .npm
 .node-gyp
+.vscode
 package-lock.json
 */experiments
 node_modules
