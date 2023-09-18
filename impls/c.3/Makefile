@@ -19,7 +19,7 @@ LIBS_H = $(LIB_LIST_H) $(LIB_MAP_H)
 LIBS_SRC = $(LIB_LIST_SRC) $(LIB_MAP_SRC)
 
 S0_SRC = step0_repl.c readline.c
-S1_SRC = step1_read_print.c reader.c types.c printer.c $(LIB_LIST_SRC)
+S1_SRC = step1_read_print.c reader.c types.c printer.c token.c $(LIB_LIST_SRC)
 S2_SRC = step2_eval.c reader.c types.c printer.c $(LIBS_SRC)
 S3_SRC = step3_env.c reader.c types.c printer.c env.c $(LIBS_SRC)
 S4_SRC = step4_if_fn_do.c $(SRC) $(LIBS_SRC)
@@ -31,7 +31,7 @@ S9_SRC = step9_try.c $(SRC) $(LIBS_SRC)
 SA_SRC = stepA_mal.c $(SRC) $(LIBS_SRC)
 
 S0_HEADERS =
-S1_HEADERS = reader.h types.h printer.h $(LIB_LIST_H)
+S1_HEADERS = reader.h types.h printer.h token.h $(LIB_LIST_H)
 S2_HEADERS = reader.h types.h printer.h $(LIBS_H)
 S3_HEADERS = reader.h types.h printer.h env.h $(LIBS_H)
 S4_HEADERS = $(HEADERS) $(LIBS_H)

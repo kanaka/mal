@@ -1,0 +1,8 @@
+{
+    "files.associations": {
+        "readline.h": "c",
+        "stdbool.h": "c",
+        "token.h": "c",
+        "stdio.h": "c"
+    }
+}
