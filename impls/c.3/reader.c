@@ -275,7 +275,7 @@ MalValue *read_atom(Token *token)
         value = &MAL_EOF;
         break;
     case TOKEN_STRING:
-        value = make_value(MAL_STRING, token->value);
+        value = make_string(token->value);
         break;
     case TOKEN_SEMI_COLON:
         value = make_value(MAL_COMMENT, token->value);
@@ -311,13 +311,13 @@ MalValue *read_quoted_form(Reader *reader, enum MalValueType malValueType)
     return quote;
 }
 
-MalValue *read_hash_map(reader)
+MalValue *read_hash_map(Reader *reader)
 {
     MalValue *map = new_value(MAL_HASHMAP);
     MalValue *key = NULL;
     MalValue *value = NULL;
 
-    while ((key = read_atom(reader)) != NULL)
+    while ((key = read_form(reader, true)) != NULL)
     {
         value = read_form(reader, true);
 

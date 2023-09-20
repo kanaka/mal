@@ -31,9 +31,51 @@ MalValue *make_vector()
     return new_value(MAL_VECTOR);
 }
 
+MalValue *make_string(char *value)
+{
+    MalValue *_value = new_value(MAL_STRING);
+    size_t len = strlen(value);
+    char *result = calloc(len, sizeof(char));
+
+    for (int i = 0, j = 0; i < len; i++, j++)
+    {
+        if (value[i] == '\\')
+        {
+            switch (value[i + 1])
+            {
+            case '\\':
+                result[j] = '\\';
+                i++;
+                break;
+
+            case 'n':
+                result[j] = '\n';
+                i++;
+                break;
+
+            case '"':
+                result[j] = '"';
+                i++;
+                break;
+
+            default:
+                result[j] = value[i + 1];
+                break;
+            }
+        }
+        else
+        {
+            result[j] = value[i];
+        }
+    }
+
+    _value->value = result;
+    return _value;
+}
+
 void push(MalValue *list, MalValue *value)
 {
-    assert(list->valueType == MAL_LIST||list->valueType == MAL_VECTOR);
+    assert(list->valueType == MAL_LIST || list->valueType == MAL_VECTOR);
 
     if (list->list == NULL)
     {

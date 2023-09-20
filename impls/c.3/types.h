@@ -40,6 +40,7 @@ typedef struct MalValue
 
 MalValue *new_value(enum MalValueType valueType);
 MalValue *make_value(enum MalValueType valueType, char *value);
+MalValue *make_string(char *value);
 MalValue *make_list();
 MalValue *make_vector();
 

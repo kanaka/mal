@@ -3,6 +3,9 @@
         "readline.h": "c",
         "stdbool.h": "c",
         "token.h": "c",
-        "stdio.h": "c"
+        "stdio.h": "c",
+        "string.h": "c",
+        "stdlib.h": "c",
+        "printer.h": "c"
     }
 }

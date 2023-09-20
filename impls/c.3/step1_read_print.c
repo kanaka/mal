@@ -20,7 +20,7 @@ MalValue *EVAL(MalValue *value)
 
 void PRINT(MalValue *value)
 {
-    print(stdout, value);
+    print(stdout, value, true);
     fprintf(stdout, "\n");
 }
 
