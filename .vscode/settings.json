@@ -6,6 +6,8 @@
         "stdio.h": "c",
         "string.h": "c",
         "stdlib.h": "c",
-        "printer.h": "c"
+        "printer.h": "c",
+        "assert.h": "c",
+        "types.h": "c"
     }
 }

@@ -21,13 +21,6 @@ void print_list_like(FILE *stream, MalValue *value, char *startToken, char *endT
     fprintf(stream, endToken);
 }
 
-void print_quoted_form(FILE *stream, char *op, MalValue *value, bool readably)
-{
-    fprintf(stream, "(%s ", op);
-    print(stream, value, readably);
-    fprintf(stream, ")");
-}
-
 void print_hash_map(FILE *stream, MalValue *value, bool readably)
 {
     fprintf(stream, "{");
@@ -85,22 +78,6 @@ void print(FILE *stream, MalValue *value, bool readably)
 
     case MAL_STRING:
         print_string(stream, value, readably);
-        break;
-
-    case MAL_QUOTED_FORM:
-        print_quoted_form(stream, "quote", value->malValue, readably);
-        break;
-
-    case MAL_QUASI_QUOTED_FORM:
-        print_quoted_form(stream, "quasiquote", value->malValue, readably);
-        break;
-
-    case MAL_UNQUOTE_FORM:
-        print_quoted_form(stream, "unquote", value->malValue, readably);
-        break;
-
-    case MAL_SPLICE_UNQUOTE_FORM:
-        print_quoted_form(stream, "splice-unquote", value->malValue, readably);
         break;
 
     case MAL_HASHMAP:

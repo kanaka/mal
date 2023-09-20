@@ -112,7 +112,7 @@ enum TokenType next_token(Reader *reader)
         reader->input++;
         break;
     case '@':
-        fill_token(reader->token, TOKEN_AT, start, 1);
+        fill_token(reader->token, TOKEN_AT, NULL, 1);
         reader->input++;
         break;
     case '"':
@@ -301,12 +301,12 @@ MalValue *read_atom(Token *token)
     return value;
 }
 
-MalValue *read_quoted_form(Reader *reader, enum MalValueType malValueType)
+MalValue *read_reader_macro(Reader *reader, char *symbol)
 {
-    assert(MAL_QUOTED_FORM == malValueType || MAL_QUASI_QUOTED_FORM == malValueType || MAL_UNQUOTE_FORM == malValueType || MAL_SPLICE_UNQUOTE_FORM == malValueType);
-    MalValue *quote = new_value(malValueType);
+    MalValue *quote = make_list();
 
-    quote->malValue = read_form(reader, true);
+    push(quote, make_value(MAL_SYMBOL, symbol));
+    push(quote, read_form(reader, true));
 
     return quote;
 }
@@ -321,7 +321,8 @@ MalValue *read_hash_map(Reader *reader)
     {
         value = read_form(reader, true);
 
-        if (value == NULL) {
+        if (value == NULL)
+        {
             return &MAL_EOF;
         }
     }
@@ -347,16 +348,19 @@ MalValue *read_form(Reader *reader, bool readNextToken)
         value = read_vector(reader);
         break;
     case TOKEN_BACK_TICK:
-        value = read_quoted_form(reader, MAL_QUASI_QUOTED_FORM);
+        value = read_reader_macro(reader, "quasiquote");
         break;
     case TOKEN_SINGLE_QUOTE:
-        value = read_quoted_form(reader, MAL_QUOTED_FORM);
+        value = read_reader_macro(reader, "quote");
         break;
     case TOKEN_TILDE:
-        value = read_quoted_form(reader, MAL_UNQUOTE_FORM);
+        value = read_reader_macro(reader, "unquote");
         break;
     case TOKEN_TILDE_AT:
-        value = read_quoted_form(reader, MAL_SPLICE_UNQUOTE_FORM);
+        value = read_reader_macro(reader, "splice-unquote");
+        break;
+    case TOKEN_AT:
+        value = read_reader_macro(reader, "deref");
         break;
     case TOKEN_LEFT_BRACE:
         value = read_hash_map(reader);
@@ -367,7 +371,6 @@ MalValue *read_form(Reader *reader, bool readNextToken)
     case TOKEN_KOMMA:
     case TOKEN_SEMI_COLON:
     case TOKEN_CARET:
-    case TOKEN_AT:
         break;
     default:
         value = read_atom(reader->token);
