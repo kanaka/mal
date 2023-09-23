@@ -8,6 +8,10 @@
         "stdlib.h": "c",
         "printer.h": "c",
         "assert.h": "c",
-        "types.h": "c"
+        "types.h": "c",
+        "compare": "c",
+        "cstdint": "c",
+        "format": "c",
+        "vector": "c"
     }
 }
