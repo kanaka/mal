@@ -6,7 +6,7 @@
 #include <string.h>
 #include "token.h"
 #include "types.h"
-
+#include "libs/hashmap/hashmap.h"
 typedef struct Reader
 {
     char *input;
@@ -141,6 +141,7 @@ enum TokenType next_token(Reader *reader)
         {
             // do not include leading and trailing '"'
             fill_token(reader->token, TOKEN_STRING, start + 1, (reader->input - 1) - start);
+            reader->input++;
         }
         else
         {
@@ -314,17 +315,27 @@ MalValue *read_reader_macro(Reader *reader, char *symbol)
 MalValue *read_hash_map(Reader *reader)
 {
     MalValue *map = new_value(MAL_HASHMAP);
+    map->hashMap = make_hashmap();
     MalValue *key = NULL;
     MalValue *value = NULL;
+    enum TokenType tokenType;
 
-    while ((key = read_form(reader, true)) != NULL)
+    while ((tokenType = next_token(reader)) != TOKEN_RIGHT_BRACE)
     {
-        value = read_form(reader, true);
-
-        if (value == NULL)
+        if (tokenType == TOKEN_EOF)
         {
+            free_hashmap(map->hashMap);
+            free(map);
+
             return &MAL_EOF;
         }
+
+        key = read_form(reader, false);
+        assert(key->valueType == MAL_STRING || key->valueType == MAL_SYMBOL || key->valueType == MAL_KEYWORD);
+
+        value = read_form(reader, true);
+
+        put(map, key->value, value);
     }
 
     return map;

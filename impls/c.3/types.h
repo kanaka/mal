@@ -1,6 +1,8 @@
 #ifndef _MAL_TYPES_H
 #define _MAL_TYPES_H
 
+#include "libs/hashmap/hashmap.h"
+
 enum MalValueType
 {
     MAL_COMMENT,
@@ -31,6 +33,7 @@ typedef struct MalValue
         char *value;
         MalCell *list;
         MalValue *malValue;
+        HashMap *hashMap;
     };
 } MalValue;
 
@@ -41,4 +44,5 @@ MalValue *make_list();
 MalValue *make_vector();
 
 void push(MalValue *list, MalValue *value);
+char *put(MalValue *map, char *key, MalValue *value);
 #endif

@@ -21,18 +21,11 @@ void print_list_like(FILE *stream, MalValue *value, char *startToken, char *endT
     fprintf(stream, endToken);
 }
 
-void print_hash_map(FILE *stream, MalValue *value, bool readably)
-{
-    fprintf(stream, "{");
-    //    print(stream, value, readably);
-    fprintf(stream, "}");
-}
-
-void print_string(FILE *stream, MalValue *value, bool readably)
+void print_string(FILE *stream, const char *value, bool readably)
 {
     if (readably)
     {
-        char *start = value->value;
+        char *start = value;
         fprintf(stream, "\"");
 
         while (*start != '\0')
@@ -60,8 +53,39 @@ void print_string(FILE *stream, MalValue *value, bool readably)
     }
     else
     {
-        fprintf(stream, "\"%s\"", value->value);
+        fprintf(stream, "\"%s\"", value);
     }
+}
+
+void print_hash_map(FILE *stream, MalValue *value, bool readably)
+{
+    fprintf(stream, "{");
+    HashMapIterator it = hashmap_iterator(value->hashMap);
+    bool first = true;
+
+    while (hashmap_next(&it))
+    {
+        if (!first)
+        {
+            fprintf(stream, " ");
+        }
+        
+        // keys are strings, so one cannot differentiate between keywords and standard strings
+        if (*it.key == ':')
+        {
+            fprintf(stream, "%s", it.key);
+        }
+        else
+        {
+            print_string(stream, it.key, false);
+        }
+
+        fprintf(stream, " ");
+        print(stream, (MalValue *)it.value, readably);
+        first = false;
+    }
+
+    fprintf(stream, "}");
 }
 
 void print(FILE *stream, MalValue *value, bool readably)
@@ -77,7 +101,7 @@ void print(FILE *stream, MalValue *value, bool readably)
         break;
 
     case MAL_STRING:
-        print_string(stream, value, readably);
+        print_string(stream, value->value, readably);
         break;
 
     case MAL_HASHMAP:

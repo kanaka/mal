@@ -1,7 +1,7 @@
+#include <assert.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <assert.h>
 #include "types.h"
 
 MalValue *new_value(enum MalValueType valueType)
@@ -95,4 +95,10 @@ void push(MalValue *list, MalValue *value)
     cell->cdr = malloc(sizeof(MalCell));
     cell->cdr->cdr = NULL;
     cell->cdr->value = value;
+}
+
+char * put(MalValue *map, char *key, MalValue *value) {
+    assert(map->valueType == MAL_HASHMAP);
+
+    return hashmap_put(map->hashMap, key, value);
 }
