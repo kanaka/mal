@@ -341,6 +341,19 @@ MalValue *read_hash_map(Reader *reader)
     return map;
 }
 
+MalValue *read_with_metadata(Reader *reader)
+{
+    MalValue *metadata = read_form(reader, true);
+    assert(metadata->valueType == MAL_HASHMAP);
+    MalValue *value = read_form(reader, true);
+    setMetadata(value, metadata->hashMap);
+    free(metadata);
+    MalValue *list = make_list();
+    push(list, make_value(MAL_SYMBOL, "with-meta"));
+
+    return value;
+}
+
 MalValue *read_form(Reader *reader, bool readNextToken)
 {
     if (readNextToken)
@@ -381,7 +394,9 @@ MalValue *read_form(Reader *reader, bool readNextToken)
     case TOKEN_RIGHT_BRACE:
     case TOKEN_KOMMA:
     case TOKEN_SEMI_COLON:
+        break;
     case TOKEN_CARET:
+        value = read_with_metadata(reader);
         break;
     default:
         value = read_atom(reader->token);

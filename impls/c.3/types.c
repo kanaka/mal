@@ -97,8 +97,14 @@ void push(MalValue *list, MalValue *value)
     cell->cdr->value = value;
 }
 
-char * put(MalValue *map, char *key, MalValue *value) {
+char *put(MalValue *map, char *key, MalValue *value)
+{
     assert(map->valueType == MAL_HASHMAP);
 
     return hashmap_put(map->hashMap, key, value);
+}
+
+void setMetadata(MalValue *value, HashMap *metadata)
+{
+    value->metadata = metadata;
 }

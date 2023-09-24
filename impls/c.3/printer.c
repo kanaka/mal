@@ -57,10 +57,10 @@ void print_string(FILE *stream, const char *value, bool readably)
     }
 }
 
-void print_hash_map(FILE *stream, MalValue *value, bool readably)
+void print_hash_map(FILE *stream, HashMap *hashMap, bool readably)
 {
     fprintf(stream, "{");
-    HashMapIterator it = hashmap_iterator(value->hashMap);
+    HashMapIterator it = hashmap_iterator(hashMap);
     bool first = true;
 
     while (hashmap_next(&it))
@@ -69,7 +69,7 @@ void print_hash_map(FILE *stream, MalValue *value, bool readably)
         {
             fprintf(stream, " ");
         }
-        
+
         // keys are strings, so one cannot differentiate between keywords and standard strings
         if (*it.key == ':')
         {
@@ -90,6 +90,11 @@ void print_hash_map(FILE *stream, MalValue *value, bool readably)
 
 void print(FILE *stream, MalValue *value, bool readably)
 {
+    if (value->metadata != NULL)
+    {
+        fprintf(stream, "(with-meta ");
+    }
+
     switch (value->valueType)
     {
     case MAL_LIST:
@@ -105,11 +110,18 @@ void print(FILE *stream, MalValue *value, bool readably)
         break;
 
     case MAL_HASHMAP:
-        print_hash_map(stream, value, readably);
+        print_hash_map(stream, value->hashMap, readably);
         break;
 
     default:
         fprintf(stream, "%s", value->value);
         break;
+    }
+
+    if (value->metadata != NULL)
+    {
+        fprintf(stream, " ");
+        print_hash_map(stream, value->metadata, false);
+        fprintf(stream, ")");
     }
 }

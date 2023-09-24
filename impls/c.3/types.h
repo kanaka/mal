@@ -28,6 +28,7 @@ typedef struct MalCell
 typedef struct MalValue
 {
     enum MalValueType valueType;
+    HashMap *metadata;
     union
     {
         char *value;
@@ -45,4 +46,5 @@ MalValue *make_vector();
 
 void push(MalValue *list, MalValue *value);
 char *put(MalValue *map, char *key, MalValue *value);
+void setMetadata(MalValue *value, HashMap *metadata);
 #endif
