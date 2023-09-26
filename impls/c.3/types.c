@@ -9,9 +9,15 @@ MalValue *new_value(enum MalValueType valueType)
     MalValue *value = malloc(sizeof(MalValue));
     value->valueType = valueType;
     value->value = NULL;
-
+    value->fixnum = 0;
+    
     return value;
 }
+
+// FIXME: determine function signature for registering functions as MalValue-objects
+// MalValue *new_function(MalValue*()()) {
+
+//}
 
 MalValue *make_value(enum MalValueType valueType, char *value)
 {
@@ -19,6 +25,14 @@ MalValue *make_value(enum MalValueType valueType, char *value)
     mal_value->value = value;
 
     return mal_value;
+}
+
+MalValue *make_fixnum(int64_t number)
+{
+    MalValue *value = new_value(MAL_FIXNUM);
+    value->fixnum = number;
+
+    return value;
 }
 
 MalValue *make_list()

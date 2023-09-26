@@ -1,6 +1,7 @@
 #include <assert.h>
 #include <ctype.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -30,6 +31,19 @@ MalValue *read_form(Reader *reader, bool readNextToken);
 char peek(char *input)
 {
     return *(input + 1);
+}
+
+int64_t parse_fixnum(char *value, bool negative)
+{
+    int64_t result = 0;
+    unsigned int len = strlen(value);
+
+    for (int i = 0; i < len; i++)
+    {
+        result = 10 * result + (value[i] - '0');
+    }
+
+    return negative ? -result : result;
 }
 
 void fill_token(Token *token, enum TokenType tokenType, char *value, unsigned int len)
@@ -153,6 +167,7 @@ enum TokenType next_token(Reader *reader)
     {
         if (isdigit(peek(reader->input)))
         {
+            bool negative = *start == '-';
             reader->input++;
 
             while (isdigit(*reader->input))
@@ -160,7 +175,8 @@ enum TokenType next_token(Reader *reader)
                 reader->input++;
             }
 
-            fill_token(reader->token, TOKEN_NUMBER, start, reader->input - start);
+            fill_token(reader->token, TOKEN_NUMBER, start + 1, reader->input - (start + 1));
+            reader->token->fixnum = parse_fixnum(reader->token->value, negative);
         }
         else
         {
@@ -189,6 +205,8 @@ enum TokenType next_token(Reader *reader)
         }
 
         fill_token(reader->token, TOKEN_NUMBER, start, reader->input - start);
+        reader->token->fixnum = parse_fixnum(reader->token->value, false);
+
         break;
     case ';':
         while ((ch = *++reader->input) && ch != '\0' && ch != '\n')
@@ -282,7 +300,7 @@ MalValue *read_atom(Token *token)
         value = make_value(MAL_COMMENT, token->value);
         break;
     case TOKEN_NUMBER:
-        value = make_value(MAL_NUMBER, token->value);
+        value = make_fixnum(token->fixnum);
         break;
     case TOKEN_EOF:
         break;

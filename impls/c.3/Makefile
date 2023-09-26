@@ -23,7 +23,7 @@ LIBS_SRC = $(LIB_LIST_SRC) $(LIB_MAP_SRC) $(LIB_READLINE_SRC)
 
 S0_SRC = step0_repl.c readline.c
 S1_SRC = step1_read_print.c reader.c types.c printer.c token.c $(LIBS_SRC)
-S2_SRC = step2_eval.c reader.c types.c printer.c $(LIBS_SRC)
+S2_SRC = step2_eval.c reader.c types.c printer.c token.c env.c $(LIBS_SRC)
 S3_SRC = step3_env.c reader.c types.c printer.c env.c $(LIBS_SRC)
 S4_SRC = step4_if_fn_do.c $(SRC) $(LIBS_SRC)
 S5_SRC = step5_tco.c $(SRC) $(LIBS_SRC)

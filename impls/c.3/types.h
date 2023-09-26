@@ -1,13 +1,14 @@
 #ifndef _MAL_TYPES_H
 #define _MAL_TYPES_H
 
+#include <stdint.h>
 #include "libs/hashmap/hashmap.h"
 
 enum MalValueType
 {
     MAL_COMMENT,
     MAL_HASHMAP,
-    MAL_INTEGER,
+    MAL_FIXNUM,
     MAL_KEYWORD,
     MAL_LIST,
     MAL_NUMBER,
@@ -32,6 +33,7 @@ typedef struct MalValue
     union
     {
         char *value;
+        int64_t fixnum;
         MalCell *list;
         MalValue *malValue;
         HashMap *hashMap;
@@ -41,6 +43,7 @@ typedef struct MalValue
 MalValue *new_value(enum MalValueType valueType);
 MalValue *make_value(enum MalValueType valueType, char *value);
 MalValue *make_string(char *value);
+MalValue *make_fixnum(int64_t value);
 MalValue *make_list();
 MalValue *make_vector();
 

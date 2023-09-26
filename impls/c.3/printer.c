@@ -113,6 +113,10 @@ void print(FILE *stream, MalValue *value, bool readably)
         print_hash_map(stream, value->hashMap, readably);
         break;
 
+    case MAL_FIXNUM:
+        fprintf(stream, "%ld", value->fixnum);
+        break;
+
     default:
         fprintf(stream, "%s", value->value);
         break;

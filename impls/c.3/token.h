@@ -1,3 +1,8 @@
+#ifndef _MAL_TOKEN_H
+#define _MAL_TOKEN_H
+
+#include <stdint.h>
+
 enum TokenType
 {
     TOKEN_EOF,
@@ -27,4 +32,7 @@ typedef struct Token
 {
     enum TokenType tokenType;
     char *value;
+    int64_t fixnum;
 } Token;
+
+#endif
