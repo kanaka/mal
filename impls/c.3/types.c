@@ -4,20 +4,42 @@
 #include <stdlib.h>
 #include "types.h"
 
+const MalValue MAL_NIL = {
+    .valueType = MAL_SYMBOL,
+    .value = "nil"};
+
+const MalValue MAL_TRUE = {
+    .valueType = MAL_SYMBOL,
+    .value = "true"};
+
+const MalValue MAL_EOF = {
+    .valueType = MAL_SYMBOL,
+    .value = "EOF"};
+
 MalValue *new_value(enum MalValueType valueType)
 {
-    MalValue *value = malloc(sizeof(MalValue));
+    MalValue *value = calloc(1, sizeof(MalValue));
     value->valueType = valueType;
+    /*
     value->value = NULL;
     value->fixnum = 0;
-    
+    value->function = NULL;
+    value->metadata = NULL;
+    value->list = NULL;
+    value->hashMap = NULL;
+    */
+
     return value;
 }
 
 // FIXME: determine function signature for registering functions as MalValue-objects
-// MalValue *new_function(MalValue*()()) {
+MalValue *new_function(MalValue *(*function)(MalCell *))
+{
+    MalValue *fn = new_value(MAL_FUNCTION);
+    fn->function = function;
 
-//}
+    return fn;
+}
 
 MalValue *make_value(enum MalValueType valueType, char *value)
 {
@@ -33,16 +55,6 @@ MalValue *make_fixnum(int64_t number)
     value->fixnum = number;
 
     return value;
-}
-
-MalValue *make_list()
-{
-    return new_value(MAL_LIST);
-}
-
-MalValue *make_vector()
-{
-    return new_value(MAL_VECTOR);
 }
 
 MalValue *make_string(char *value)

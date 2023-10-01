@@ -12,6 +12,8 @@
         "compare": "c",
         "cstdint": "c",
         "format": "c",
-        "vector": "c"
+        "vector": "c",
+        "error.h": "c",
+        "reader.h": "c"
     }
 }

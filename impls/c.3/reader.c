@@ -5,26 +5,11 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include "error.h"
+#include "reader.h"
 #include "token.h"
 #include "types.h"
 #include "libs/hashmap/hashmap.h"
-typedef struct Reader
-{
-    char *input;
-    Token *token;
-} Reader;
-
-MalValue MAL_NIL = {
-    .valueType = MAL_SYMBOL,
-    .value = "nil"};
-
-MalValue MAL_TRUE = {
-    .valueType = MAL_SYMBOL,
-    .value = "true"};
-
-MalValue MAL_EOF = {
-    .valueType = MAL_SYMBOL,
-    .value = "EOF"};
 
 MalValue *read_form(Reader *reader, bool readNextToken);
 
@@ -256,7 +241,24 @@ MalValue *read_list_like(Reader *reader, MalValue *list_like, enum TokenType end
     {
         if (tokenType == TOKEN_EOF)
         {
-            return &MAL_EOF;
+            switch (endToken)
+            {
+            case TOKEN_RIGHT_BRACKET:
+                reader->errno = MISSING_CLOSING_BRACKET;
+                break;
+            case TOKEN_RIGHT_PAREN:
+                reader->errno = MISSING_CLOSING_PAREN;
+                break;
+            case TOKEN_RIGHT_BRACE:
+                reader->errno = MISSING_CLOSING_BRACE;
+                break;
+
+            default:
+                reader->errno = UNEXPECTED_EOF;
+                break;
+            }
+
+            return NULL;
         }
 
         value = read_form(reader, false);
@@ -272,12 +274,12 @@ MalValue *read_list_like(Reader *reader, MalValue *list_like, enum TokenType end
 
 MalValue *read_list(Reader *reader)
 {
-    return read_list_like(reader, make_list(), TOKEN_RIGHT_PAREN);
+    return read_list_like(reader, new_value(MAL_LIST), TOKEN_RIGHT_PAREN);
 }
 
 MalValue *read_vector(Reader *reader)
 {
-    return read_list_like(reader, make_vector(), TOKEN_RIGHT_BRACKET);
+    return read_list_like(reader, new_value(MAL_VECTOR), TOKEN_RIGHT_BRACKET);
 }
 
 MalValue *read_atom(Token *token)
@@ -322,7 +324,7 @@ MalValue *read_atom(Token *token)
 
 MalValue *read_reader_macro(Reader *reader, char *symbol)
 {
-    MalValue *quote = make_list();
+    MalValue *quote = new_value(MAL_LIST);
 
     push(quote, make_value(MAL_SYMBOL, symbol));
     push(quote, read_form(reader, true));
@@ -345,7 +347,9 @@ MalValue *read_hash_map(Reader *reader)
             free_hashmap(map->hashMap);
             free(map);
 
-            return &MAL_EOF;
+            reader->errno = MISSING_CLOSING_BRACE;
+
+            return NULL;
         }
 
         key = read_form(reader, false);
@@ -366,7 +370,7 @@ MalValue *read_with_metadata(Reader *reader)
     MalValue *value = read_form(reader, true);
     setMetadata(value, metadata->hashMap);
     free(metadata);
-    MalValue *list = make_list();
+    MalValue *list = new_value(MAL_LIST);
     push(list, make_value(MAL_SYMBOL, "with-meta"));
 
     return value;
@@ -423,14 +427,7 @@ MalValue *read_form(Reader *reader, bool readNextToken)
     return value;
 }
 
-MalValue *read_str(char *input)
+MalValue *read_str(Reader *reader)
 {
-    Reader *reader = malloc(sizeof(Reader));
-    reader->input = input;
-    reader->token = malloc(sizeof(Token));
-    MalValue *value = read_form(reader, true);
-    reader->input = NULL;
-    free(reader);
-
-    return value;
+    return read_form(reader, true);
 }

@@ -24,7 +24,7 @@ MalEnvironment *make_environment(MalEnvironment *parent)
     return environment;
 }
 
-MalEnvironment *free_environment(MalEnvironment *environment)
+void free_environment(MalEnvironment *environment)
 {
     free_hashmap(environment->map);
     environment->parent = NULL;

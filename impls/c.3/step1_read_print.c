@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "error.h"
 #include "printer.h"
 #include "libs/readline/readline.h"
 #include "reader.h"
@@ -8,9 +9,9 @@
 
 static const char *HISTORY_FILENAME = ".mal_history";
 
-MalValue *READ(char *input)
+MalValue *READ(Reader *reader)
 {
-    return read_str(input);
+    return read_str(reader);
 }
 
 MalValue *EVAL(MalValue *value)
@@ -26,7 +27,21 @@ void PRINT(MalValue *value)
 
 void rep(char *input)
 {
-    return PRINT(EVAL(READ(input)));
+    Reader reader = {.input = input};
+    Token token = {};
+    reader.token = &token;
+
+    MalValue *value = READ(&reader);
+
+    if (reader.errno == SUCCESS)
+    {
+        MalValue *result = EVAL(value);
+        PRINT(result);
+    }
+    else
+    {
+        fprintf(stdout, "%s\n", get_error_message(reader.errno));
+    }
 }
 
 char *get_history_filename()

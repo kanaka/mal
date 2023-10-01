@@ -1,9 +1,11 @@
 #ifndef _MAL_ENV_H
 #define _MAL_ENV_H
 
+#include <stdlib.h>
 #include "libs/hashmap/hashmap.h"
 #include "types.h"
 
+typedef struct MalEnvironment MalEnvironment;
 typedef struct MalEnvironment
 {
     MalEnvironment *parent;
@@ -11,6 +13,6 @@ typedef struct MalEnvironment
 } MalEnvironment;
 
 MalEnvironment *make_environment(MalEnvironment *parent);
-MalEnvironment *free_environment(MalEnvironment *parent);
-MalValue *lookup_in_environment(MalEnvironment *environment, char* key);
+MalValue *lookup_in_environment(MalEnvironment *environment, char *key);
+void free_environment(MalEnvironment *parent);
 #endif
