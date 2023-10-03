@@ -13,6 +13,8 @@ typedef struct MalEnvironment
 } MalEnvironment;
 
 MalEnvironment *make_environment(MalEnvironment *parent);
-MalValue *lookup_in_environment(MalEnvironment *environment, char *key);
+MalEnvironment *find_environment(MalEnvironment *start, MalValue *symbol);
+MalValue *lookup_in_environment(MalEnvironment *environment, MalValue *symbol);
+bool set_in_environment(MalEnvironment *environment, MalValue *symbol, MalValue *value);
 void free_environment(MalEnvironment *parent);
 #endif

@@ -8,7 +8,8 @@ enum MalErrorCode
     MISSING_CLOSING_BRACE,
     MISSING_CLOSING_BRACKET,
     SYMBOL_NOT_FOUND,
-    UNEXPECTED_EOF
+    UNEXPECTED_EOF,
+    VALUE_REDEFINED
 };
 
 typedef struct MalError

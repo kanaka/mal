@@ -122,6 +122,31 @@ MalValue *EVAL(MalValue *value, MalEnvironment *environment, MalError *error)
         }
         else
         {
+            if (value->valueType == MAL_LIST)
+            {
+                if (head->value->valueType == MAL_SYMBOL)
+                {
+                    if (strcmp("def!", head->value->value) == 0)
+                    {
+                        MalValue *t = EVAL(head->cdr->cdr->value, environment, error);
+
+                        if (set_in_environment(environment, head->cdr->value, t))
+                        {
+                            // FIXME: Unterscheidung zwischen Fehler und Warnung
+                            error->errno = VALUE_REDEFINED;
+                            error->args = malloc(sizeof(char **[1]));
+                            error->args[0] = head->cdr->value->value;
+                        }
+                        result = t;
+                        break;
+                    }
+                    else if (strcmp("let*", head->value->value) == 0)
+                    {
+                        break;
+                    }
+                }
+            }
+
             // ast is a list: call eval_ast to get a new evaluated list.
             // Take the first item of the evaluated list and call it as
             // function using the rest of the evaluated list as its arguments.

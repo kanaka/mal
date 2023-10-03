@@ -81,10 +81,10 @@ MalEnvironment *make_initial_environment()
 {
     MalEnvironment *environment = make_environment(NULL);
 
-    hashmap_put(environment->map, "+", new_function(add));
-    hashmap_put(environment->map, "-", new_function(subtract));
-    hashmap_put(environment->map, "*", new_function(multiply));
-    hashmap_put(environment->map, "/", new_function(divide));
+    set_in_environment(environment, make_value(MAL_SYMBOL, "+"), new_function(add));
+    set_in_environment(environment, make_value(MAL_SYMBOL, "-"), new_function(subtract));
+    set_in_environment(environment, make_value(MAL_SYMBOL, "*"), new_function(multiply));
+    set_in_environment(environment, make_value(MAL_SYMBOL, "/"), new_function(divide));
 
     return environment;
 }
