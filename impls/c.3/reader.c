@@ -144,7 +144,10 @@ enum TokenType next_token(Reader *reader)
         }
         else
         {
-            fill_token(reader->token, TOKEN_UNBALANCED_STRING, start + 1, (reader->input) - start);
+            fill_token(reader->token, TOKEN_STRING, start + 1, (reader->input) - start);
+            reader->error->errno = UNBALANCED_STRING;
+            reader->error->args = malloc(sizeof(char **[1]));
+            reader->error->args[0] = reader->token->value;
         }
         break;
     case '-':
@@ -244,17 +247,17 @@ MalValue *read_list_like(Reader *reader, MalValue *list_like, enum TokenType end
             switch (endToken)
             {
             case TOKEN_RIGHT_BRACKET:
-                reader->errno = MISSING_CLOSING_BRACKET;
+                reader->error->errno = MISSING_CLOSING_BRACKET;
                 break;
             case TOKEN_RIGHT_PAREN:
-                reader->errno = MISSING_CLOSING_PAREN;
+                reader->error->errno = MISSING_CLOSING_PAREN;
                 break;
             case TOKEN_RIGHT_BRACE:
-                reader->errno = MISSING_CLOSING_BRACE;
+                reader->error->errno = MISSING_CLOSING_BRACE;
                 break;
 
             default:
-                reader->errno = UNEXPECTED_EOF;
+                reader->error->errno = UNEXPECTED_EOF;
                 break;
             }
 
@@ -290,10 +293,6 @@ MalValue *read_atom(Token *token)
     {
     case TOKEN_TILDE:
         value = make_value(MAL_SYMBOL, token->value);
-        break;
-    case TOKEN_UNBALANCED_STRING:
-        // FIXME: choose better error handling strategy
-        value = &MAL_EOF;
         break;
     case TOKEN_STRING:
         value = make_string(token->value);
@@ -347,7 +346,7 @@ MalValue *read_hash_map(Reader *reader)
             free_hashmap(map->hashMap);
             free(map);
 
-            reader->errno = MISSING_CLOSING_BRACE;
+            reader->error->errno = MISSING_CLOSING_BRACE;
 
             return NULL;
         }

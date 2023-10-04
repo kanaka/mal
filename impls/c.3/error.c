@@ -1,26 +1,31 @@
-#include "error.h"
+#include <stdarg.h>
+#include <stdio.h>
 #include <stdlib.h>
+#include "error.h"
 
-char *get_error_message(enum MalErrorCode errno)
+void print_error(FILE *stream, MalError *error)
 {
-    char *message = NULL;
-
-    switch (errno)
+    switch (error->errno)
     {
     case MISSING_CLOSING_BRACE:
-        message = "unbalanced}";
+        fprintf(stream, "unbalanced}");
         break;
     case MISSING_CLOSING_BRACKET:
-        message = "unbalanced]";
+        fprintf(stream, "unbalanced]");
         break;
     case MISSING_CLOSING_PAREN:
-        message = "unbalanced)";
+        fprintf(stream, "unbalanced)");
         break;
     case UNEXPECTED_EOF:
-        message = "EOF";
+        fprintf(stream, "EOF");
+        break;
+    case SYMBOL_NOT_FOUND:
+        fprintf(stream, "'%s' not found", error->args[0]);
+        break;
+    case UNBALANCED_STRING:
+        fprintf(stream, "missing closing quote: \"%s\"", error->args[0]);
+        break;
     default:
         break;
     }
-
-    return message;
 }

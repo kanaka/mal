@@ -130,7 +130,8 @@ MalValue *EVAL(MalValue *value, MalEnvironment *environment, MalError *error)
                     {
                         MalValue *t = EVAL(head->cdr->cdr->value, environment, error);
 
-                        if (set_in_environment(environment, head->cdr->value, t))
+                        // !t means symbol not found and should already be recorded in struct error
+                        if (t && set_in_environment(environment, head->cdr->value, t))
                         {
                             // FIXME: Unterscheidung zwischen Fehler und Warnung
                             error->errno = VALUE_REDEFINED;
@@ -179,28 +180,37 @@ void PRINT(MalValue *value)
 void rep(char *input, MalEnvironment *environment)
 {
     Reader reader = {.input = input};
+    MalError error = {.errno = SUCCESS};
     Token token = {};
     reader.token = &token;
+    reader.error = &error;
 
     MalValue *value = READ(&reader);
 
-    if (reader.errno == SUCCESS)
+    if (error.errno <= SUCCESS)
     {
-        MalError error = {.errno = SUCCESS};
         MalValue *result = EVAL(value, environment, &error);
 
-        if (result == NULL || error.errno != SUCCESS)
+        if (result == NULL || error.errno > SUCCESS)
         {
-            fprintf(stdout, "%s\n", get_error_message(error.errno));
+            print_error(stdout, &error);
+            fprintf(stdout, "\n");
         }
         else
         {
             PRINT(result);
+
+            if (error.errno < SUCCESS)
+            {
+                print_error(stdout, &error);
+                fprintf(stdout, "\n");
+            }
         }
     }
     else
     {
-        fprintf(stdout, "%s\n", get_error_message(reader.errno));
+        print_error(stdout, &error);
+        fprintf(stdout, "\n");
     }
 }
 

@@ -3,13 +3,14 @@
 
 enum MalErrorCode
 {
+    VALUE_REDEFINED,
     SUCCESS,
     MISSING_CLOSING_PAREN,
     MISSING_CLOSING_BRACE,
     MISSING_CLOSING_BRACKET,
     SYMBOL_NOT_FOUND,
-    UNEXPECTED_EOF,
-    VALUE_REDEFINED
+    UNBALANCED_STRING,
+    UNEXPECTED_EOF
 };
 
 typedef struct MalError
@@ -18,5 +19,5 @@ typedef struct MalError
     char **args;
 } MalError;
 
-char *get_error_message(enum MalErrorCode errno);
+void print_error(FILE *stream, MalError *error);
 #endif
