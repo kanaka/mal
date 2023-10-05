@@ -7,6 +7,9 @@ void print_error(FILE *stream, MalError *error)
 {
     switch (error->errno)
     {
+    case INVALID_ARGUMENT:
+        fprintf(stream, "invalid argument: %s", error->args[0]);
+        break;
     case MISSING_CLOSING_BRACE:
         fprintf(stream, "unbalanced}");
         break;

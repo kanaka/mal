@@ -133,7 +133,6 @@ MalValue *EVAL(MalValue *value, MalEnvironment *environment, MalError *error)
                         // !t means symbol not found and should already be recorded in struct error
                         if (t && set_in_environment(environment, head->cdr->value, t))
                         {
-                            // FIXME: Unterscheidung zwischen Fehler und Warnung
                             error->errno = VALUE_REDEFINED;
                             error->args = malloc(sizeof(char **[1]));
                             error->args[0] = head->cdr->value->value;
@@ -143,6 +142,37 @@ MalValue *EVAL(MalValue *value, MalEnvironment *environment, MalError *error)
                     }
                     else if (strcmp("let*", head->value->value) == 0)
                     {
+                        if (!head->cdr || !head->cdr->value || (head->cdr->value->valueType != MAL_LIST && head->cdr->value->valueType != MAL_VECTOR))
+                        {
+                            error->errno = INVALID_ARGUMENT;
+                            error->args = malloc(sizeof(char **[1]));
+                            error->args[0] = "expected a list of bindings";
+                            break;
+                        }
+
+                        MalEnvironment *nested_environment = make_environment(environment);
+
+                        MalCell *current = head->cdr->value->list;
+                        MalValue *value = NULL;
+                        MalValue *symbol = NULL;
+
+                        while (current && current->cdr)
+                        {
+                            symbol = current->value;
+                            value = EVAL(current->cdr->value, nested_environment, error);
+
+                            if (!value)
+                            {
+                                free_environment(nested_environment);
+                                return NULL;
+                            }
+                            set_in_environment(nested_environment, symbol, value);
+                            current = current->cdr->cdr;
+                        }
+
+                        result = EVAL(head->cdr->cdr->value, nested_environment, error);
+                        free_environment(nested_environment);
+
                         break;
                     }
                 }
