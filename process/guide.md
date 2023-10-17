@@ -752,7 +752,7 @@ diff -urp ../process/step3_env.txt ../process/step4_if_fn_do.txt
 
 * Update the constructor/initializer for environments to take two new
   parameters: `binds` and `exprs`. Bind (`set`) each element (symbol)
-  of the binds list to the respective element of the `exprs` list.
+  of the `binds` list to the respective element of the `exprs` list.
 
 * Add support to `printer.qx` to print function values. A string
   literal like "#\<function>" is sufficient.
