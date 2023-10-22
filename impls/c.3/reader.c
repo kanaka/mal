@@ -10,6 +10,7 @@
 #include "token.h"
 #include "types.h"
 #include "libs/hashmap/hashmap.h"
+#include "gc.h"
 
 MalValue *read_form(Reader *reader, bool readNextToken);
 
@@ -37,7 +38,7 @@ void fill_token(Token *token, enum TokenType tokenType, char *value, unsigned in
 
     if (value != NULL)
     {
-        token->value = malloc(len + 1);
+        token->value = mal_malloc(len + 1);
         token->value[len] = '\0';
         strncpy(token->value, value, len);
     }
@@ -145,9 +146,7 @@ enum TokenType next_token(Reader *reader)
         else
         {
             fill_token(reader->token, TOKEN_STRING, start + 1, (reader->input) - start);
-            reader->error->errno = UNBALANCED_STRING;
-            reader->error->args = malloc(sizeof(char **[1]));
-            reader->error->args[0] = reader->token->value;
+            register_error(UNBALANCED_STRING, reader->token->value);
         }
         break;
     case '-':
@@ -247,17 +246,17 @@ MalValue *read_list_like(Reader *reader, MalValue *list_like, enum TokenType end
             switch (endToken)
             {
             case TOKEN_RIGHT_BRACKET:
-                reader->error->errno = MISSING_CLOSING_BRACKET;
+                register_error(MISSING_CLOSING_BRACKET, NULL);
                 break;
             case TOKEN_RIGHT_PAREN:
-                reader->error->errno = MISSING_CLOSING_PAREN;
+                register_error(MISSING_CLOSING_PAREN, NULL);
                 break;
             case TOKEN_RIGHT_BRACE:
-                reader->error->errno = MISSING_CLOSING_BRACE;
+                register_error(MISSING_CLOSING_BRACE, NULL);
                 break;
 
             default:
-                reader->error->errno = UNEXPECTED_EOF;
+                register_error(UNEXPECTED_EOF, NULL);
                 break;
             }
 
@@ -295,7 +294,7 @@ MalValue *read_atom(Token *token)
         value = make_value(MAL_SYMBOL, token->value);
         break;
     case TOKEN_STRING:
-        value = make_string(token->value);
+        value = make_string(token->value, true);
         break;
     case TOKEN_SEMI_COLON:
         value = make_value(MAL_COMMENT, token->value);
@@ -346,7 +345,7 @@ MalValue *read_hash_map(Reader *reader)
             free_hashmap(map->hashMap);
             free(map);
 
-            reader->error->errno = MISSING_CLOSING_BRACE;
+            register_error(MISSING_CLOSING_BRACE, NULL);
 
             return NULL;
         }

@@ -30,8 +30,8 @@ typedef struct
 
 HashMap *make_hashmap();
 void free_hashmap(HashMap *);
-char *hashmap_put(HashMap *hashMap, char *key, void *value);
-void *hashmap_get(HashMap *hashMap, char *key);
+const char *hashmap_put(HashMap *hashMap, const char *key, void *value);
+void *hashmap_get(HashMap *hashMap, const char *key);
 
 // Return new hash table iterator (for use with ht_next).
 HashMapIterator hashmap_iterator(HashMap *table);

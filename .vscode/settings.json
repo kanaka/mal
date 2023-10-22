@@ -15,6 +15,21 @@
         "vector": "c",
         "error.h": "c",
         "reader.h": "c",
-        "env.h": "c"
+        "env.h": "c",
+        "*.tcc": "c",
+        "optional": "c",
+        "ratio": "c",
+        "system_error": "c",
+        "array": "c",
+        "functional": "c",
+        "regex": "c",
+        "tuple": "c",
+        "type_traits": "c",
+        "utility": "c",
+        "variant": "c",
+        "charconv": "c",
+        "chrono": "c",
+        "core.h": "c",
+        "hashmap.h": "c"
     }
 }

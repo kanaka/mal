@@ -5,8 +5,8 @@ CFLAGS = -std=c99 -g -Wall
 LIBS = -lreadline
 FFI_LIBS = -ldl -lffi
 
-SRC = reader.c printer.c types.c token.c env.c core.c
-HEADERS = reader.h printer.h types.h token.h env.h core.h
+SRC = reader.c types.c printer.c token.c env.c core.c error.c gc.c
+HEADERS = reader.h types.h printer.h token.h env.h core.h error.h gc.h
 
 LIB_DIR = ./libs
 LIB_LIST_H = $(LIB_DIR)/linked_list/linked_list.h
@@ -22,9 +22,9 @@ LIBS_H = $(LIB_LIST_H) $(LIB_MAP_H) $(LIB_READLINE_H)
 LIBS_SRC = $(LIB_LIST_SRC) $(LIB_MAP_SRC) $(LIB_READLINE_SRC)
 
 S0_SRC = step0_repl.c readline.c
-S1_SRC = step1_read_print.c reader.c types.c printer.c token.c error.c $(LIBS_SRC)
-S2_SRC = step2_eval.c reader.c types.c printer.c token.c env.c core.c error.c $(LIBS_SRC)
-S3_SRC = step3_env.c reader.c types.c printer.c token.c env.c core.c error.c $(LIBS_SRC)
+S1_SRC = step1_read_print.c reader.c types.c printer.c token.c error.c gc.c $(LIBS_SRC)
+S2_SRC = step2_eval.c $(SRC) $(LIBS_SRC)
+S3_SRC = step3_env.c $(SRC) $(LIBS_SRC)
 S4_SRC = step4_if_fn_do.c $(SRC) $(LIBS_SRC)
 S5_SRC = step5_tco.c $(SRC) $(LIBS_SRC)
 S6_SRC = step6_file.c $(SRC) $(LIBS_SRC)
@@ -34,9 +34,9 @@ S9_SRC = step9_try.c $(SRC) $(LIBS_SRC)
 SA_SRC = stepA_mal.c $(SRC) $(LIBS_SRC)
 
 S0_HEADERS =
-S1_HEADERS = reader.h types.h printer.h token.h error.h $(LIB_LIST_H)
-S2_HEADERS = reader.h types.h printer.h token.h env.h core.h error.h $(LIBS_H)
-S3_HEADERS = reader.h types.h printer.h token.h env.h core.h error.h $(LIBS_H)
+S1_HEADERS = reader.h types.h printer.h token.h error.h gc.h $(LIB_LIST_H)
+S2_HEADERS = $(HEADERS) $(LIBS_H)
+S3_HEADERS = $(HEADERS) $(LIBS_H)
 S4_HEADERS = $(HEADERS) $(LIBS_H)
 S5_HEADERS = $(HEADERS) $(LIBS_H)
 S6_HEADERS = $(HEADERS) $(LIBS_H)

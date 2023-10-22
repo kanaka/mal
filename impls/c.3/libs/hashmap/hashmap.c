@@ -134,7 +134,7 @@ static bool expand_hashmap(HashMap *map)
     return true;
 }
 
-char *hashmap_put(HashMap *map, char *key, void *value)
+const char *hashmap_put(HashMap *map, const char *key, void *value)
 {
     assert(value != NULL);
 
@@ -157,7 +157,7 @@ char *hashmap_put(HashMap *map, char *key, void *value)
                              &map->length);
 }
 
-void *hashmap_get(HashMap *map, char *key)
+void *hashmap_get(HashMap *map, const char *key)
 {
     // AND hash with capacity-1 to ensure it's within entries array.
     uint64_t hash = hash_key(key);

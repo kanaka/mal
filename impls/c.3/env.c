@@ -1,33 +1,14 @@
 #include <assert.h>
 #include "env.h"
-
-MalEnvironment *make_environment(MalEnvironment *parent)
-{
-    MalEnvironment *environment = malloc(sizeof(MalEnvironment));
-
-    if (environment == NULL)
-    {
-        return NULL;
-    }
-
-    HashMap *map = make_hashmap();
-
-    if (map == NULL)
-    {
-        free(environment);
-
-        return NULL;
-    }
-
-    environment->map = map;
-    environment->parent = parent;
-
-    return environment;
-}
+#include "gc.h"
 
 void free_environment(MalEnvironment *environment)
 {
-    free_hashmap(environment->map);
+    if (environment->map)
+    {
+        free_hashmap(environment->map);
+    }
+
     environment->parent = NULL;
     environment->map = NULL;
 
@@ -79,4 +60,44 @@ bool set_in_environment(MalEnvironment *environment, MalValue *symbol, MalValue 
     hashmap_put(environment->map, symbol->value, value);
 
     return oldValue != NULL;
+}
+
+MalEnvironment *make_environment(MalEnvironment *parent, MalCell *binds, MalCell *exprs, MalValue *rest_symbol)
+{
+    MalEnvironment *environment = mal_malloc(sizeof(MalEnvironment));
+
+    if (environment == NULL)
+    {
+        return NULL;
+    }
+
+    HashMap *map = make_hashmap();
+
+    if (map == NULL)
+    {
+        free_environment(environment);
+
+        return NULL;
+    }
+
+    environment->map = map;
+    environment->parent = parent;
+
+    MalCell *_binds = binds;
+    MalCell *_exprs = exprs;
+
+    while (_binds && _exprs && _binds->value && _exprs && _exprs->value)
+    {
+        assert(_binds->value->valueType == MAL_SYMBOL);
+        set_in_environment(environment, _binds->value, _exprs->value);
+        _binds = _binds->cdr;
+        _exprs = _exprs->cdr;
+    }
+
+    if (rest_symbol)
+    {
+        set_in_environment(environment, rest_symbol, make_list(_exprs));
+    }
+
+    return environment;
 }
