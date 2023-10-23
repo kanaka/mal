@@ -7,7 +7,6 @@ typedef struct Reader
 {
     char *input;
     Token *token;
-    MalError *error;
 } Reader;
 
 MalValue *read_str(Reader *reader);
