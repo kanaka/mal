@@ -193,7 +193,6 @@ MalValue *less_than(MalCell *values, MalEnvironment *environment)
 }
 
 MalValue *less_than_or_equal_to(MalCell *values, MalEnvironment *environment)
-MalValue *less_than_or_equal_to(MalCell *values, MalEnvironment *environment)
 {
     if (_count(values, environment) != 2)
     {
@@ -211,7 +210,6 @@ MalValue *less_than_or_equal_to(MalCell *values, MalEnvironment *environment)
     return first->fixnum <= second->fixnum ? &MAL_TRUE : &MAL_FALSE;
 }
 
-MalValue *greater_than_or_equal_to(MalCell *values, MalEnvironment *environment)
 MalValue *greater_than_or_equal_to(MalCell *values, MalEnvironment *environment)
 {
     if (_count(values, environment) != 2)
