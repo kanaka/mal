@@ -5,7 +5,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include "error.h"
 #include "reader.h"
 #include "token.h"
 #include "types.h"
@@ -13,6 +12,18 @@
 #include "gc.h"
 
 MalValue *read_form(Reader *reader, bool readNextToken);
+
+/**
+ * Create MAL_ERROR using the given error message and input.
+ */
+MalValue *make_input_error(char *fmt, char *input, size_t len)
+{
+    char tmp[len + 1];
+    strncpy(tmp, input, len);
+    tmp[len + 1] = '\0';
+
+    return make_error(fmt, tmp);
+}
 
 char peek(char *input)
 {
@@ -145,8 +156,7 @@ enum TokenType next_token(Reader *reader)
         }
         else
         {
-            fill_token(reader->token, TOKEN_STRING, start + 1, (reader->input) - start);
-            register_error(UNBALANCED_STRING, reader->token->value);
+            fill_token(reader->token, TOKEN_UNBALANCED_STRING, start, (reader->input) - start);
         }
         break;
     case '-':
@@ -238,6 +248,7 @@ MalValue *read_list_like(Reader *reader, MalValue *list_like, enum TokenType end
 {
     MalValue *value = NULL;
     enum TokenType tokenType;
+    char *start = reader->input;
 
     while ((tokenType = next_token(reader)) != endToken)
     {
@@ -246,21 +257,16 @@ MalValue *read_list_like(Reader *reader, MalValue *list_like, enum TokenType end
             switch (endToken)
             {
             case TOKEN_RIGHT_BRACKET:
-                register_error(MISSING_CLOSING_BRACKET, NULL);
+                return make_input_error("unbalanced ']' in '[%s'", start, reader->input - start);
                 break;
             case TOKEN_RIGHT_PAREN:
-                register_error(MISSING_CLOSING_PAREN, NULL);
-                break;
-            case TOKEN_RIGHT_BRACE:
-                register_error(MISSING_CLOSING_BRACE, NULL);
+                return make_input_error("unbalanced ')' in '(%s'", start, reader->input - start);
                 break;
 
             default:
-                register_error(UNEXPECTED_EOF, NULL);
+                return make_input_error("unexpected EOF in '%s'", start, reader->input - start);
                 break;
             }
-
-            return NULL;
         }
 
         value = read_form(reader, false);
@@ -302,6 +308,9 @@ MalValue *read_atom(Token *token)
     case TOKEN_NUMBER:
         value = make_fixnum(token->fixnum);
         break;
+    case TOKEN_UNBALANCED_STRING:
+        value = make_error("missing closing quote: '%s'", token->value);
+        break;
     case TOKEN_EOF:
         break;
     case TOKEN_SYMBOL:
@@ -337,6 +346,7 @@ MalValue *read_hash_map(Reader *reader)
     MalValue *key = NULL;
     MalValue *value = NULL;
     enum TokenType tokenType;
+    char *start = reader->input;
 
     while ((tokenType = next_token(reader)) != TOKEN_RIGHT_BRACE)
     {
@@ -345,12 +355,12 @@ MalValue *read_hash_map(Reader *reader)
             free_hashmap(map->hashMap);
             free(map);
 
-            register_error(MISSING_CLOSING_BRACE, NULL);
-
-            return NULL;
+            return make_input_error("unbalanced '}' in '{%s'", start, reader->input - start);
         }
 
         key = read_form(reader, false);
+
+        // FIXME: return a meaningful error message, don't die.
         assert(key->valueType == MAL_STRING || key->valueType == MAL_SYMBOL || key->valueType == MAL_KEYWORD);
 
         value = read_form(reader, true);

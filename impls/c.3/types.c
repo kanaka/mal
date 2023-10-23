@@ -1,11 +1,12 @@
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdarg.h>
 #include <stdlib.h>
 #include "gc.h"
 #include "env.h"
-#include "error.h"
 #include "types.h"
+#include "printer.h"
 
 MalValue MAL_NIL = {
     .valueType = MAL_SYMBOL,
@@ -48,6 +49,35 @@ MalValue *make_value(enum MalValueType valueType, const char *value)
     return mal_value;
 }
 
+MalValue *make_error(char *fmt, ...)
+{
+    va_list arg_ptr;
+    int result = -1;
+    size_t buf_len = 64;
+    char *message = "";
+
+    while (result < 0)
+    {
+        char buffer[buf_len];
+        va_start(arg_ptr, fmt);
+        result = vsprintf(buffer, fmt, arg_ptr);
+
+        if (result > 0)
+        {
+            message = (char *)mal_malloc(result + 1);
+            strcpy(message, buffer);
+        }
+        else
+        {
+            buf_len *= 2;
+        }
+
+        va_end(arg_ptr);
+    }
+
+    return make_value(MAL_ERROR, message);
+}
+
 MalValue *make_fixnum(int64_t number)
 {
     MalValue *value = new_value(MAL_FIXNUM);
@@ -58,9 +88,15 @@ MalValue *make_fixnum(int64_t number)
 
 MalValue *make_closure(MalEnvironment *outer, MalCell *context)
 {
+    if (!context->cdr)
+    {
+        return make_error("missing closure body: '%s'", print_values_readably(context, outer)->value);
+    }
+
     MalValue *value = new_value(MAL_CLOSURE);
     MalClosure *closure = mal_calloc(1, sizeof(MalClosure));
     closure->environment = make_environment(outer, NULL, NULL, NULL);
+
     closure->ast = context->cdr->value;
     closure->bindings = context->value;
 
@@ -75,16 +111,16 @@ MalValue *make_closure(MalEnvironment *outer, MalCell *context)
 
             if (args->cdr)
             {
+                if (args->cdr->cdr)
+                {
+                    return make_error("only one symbol to receive the rest of the argument list is allowed: '(%s)'", print_values_readably(args, outer)->value);
+                }
+
                 closure->rest_symbol = args->cdr->value;
-            }
-            else
-            {
-                register_error(INVALID_ARGUMENT_COUNT, "expected a symbol to receive rest of argument list");
-
-                return NULL;
+                break;
             }
 
-            break;
+            return make_error("expected a symbol to receive the rest of the argument list: '(%s)'", print_values_readably(args, outer)->value);
         }
 
         args = args->cdr;
@@ -102,6 +138,7 @@ MalValue *make_closure(MalEnvironment *outer, MalCell *context)
             args = args->cdr;
         }
     }
+
     value->closure = closure;
 
     return value;
@@ -116,7 +153,7 @@ MalValue *make_string(char *value, bool unescape)
         _value->value = value;
         return _value;
     }
-    
+
     size_t len = strlen(value);
     char *result = mal_calloc(len, sizeof(char));
 

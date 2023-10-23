@@ -2,7 +2,6 @@
 #include <string.h>
 #include "core.h"
 #include "env.h"
-#include "error.h"
 #include "printer.h"
 #include "types.h"
 
@@ -148,11 +147,11 @@ MalValue *count(MalCell *value, MalEnvironment *environment)
     return make_fixnum(count);
 }
 
-MalValue *greater_than(MalCell *values, MalEnvironment *MalEnvironment)
+MalValue *greater_than(MalCell *values, MalEnvironment *environment)
 {
     if (!values || (!values->value && !values->cdr->value))
     {
-        register_error(INVALID_ARGUMENT_COUNT, "> expects two arguments");
+        return make_error("Invalid count of arguments. Two arguments expected: '%s'!", print_values_readably(values, environment));
     }
 
     MalValue *first = values->value;
@@ -160,17 +159,17 @@ MalValue *greater_than(MalCell *values, MalEnvironment *MalEnvironment)
 
     if (MAL_FIXNUM != first->valueType || MAL_FIXNUM != second->valueType)
     {
-        register_error(INVALID_ARGUMENT, "can only compare FIXNUM");
+        return make_error("Invalid argument. Can only compare fixnums: '%s'!", print_values_readably(values, environment));
     }
 
     return first->fixnum > second->fixnum ? &MAL_TRUE : &MAL_FALSE;
 }
 
-MalValue *less_than(MalCell *values, MalEnvironment *MalEnvironment)
+MalValue *less_than(MalCell *values, MalEnvironment *environment)
 {
     if (!values || (!values->value && !values->cdr->value))
     {
-        register_error(INVALID_ARGUMENT_COUNT, "< expects two arguments");
+        return make_error("Invalid count of arguments. Two arguments expected: '%s'!", print_values_readably(values, environment));
     }
 
     MalValue *first = values->value;
@@ -178,17 +177,17 @@ MalValue *less_than(MalCell *values, MalEnvironment *MalEnvironment)
 
     if (MAL_FIXNUM != first->valueType || MAL_FIXNUM != second->valueType)
     {
-        register_error(INVALID_ARGUMENT, "can only compare FIXNUM");
+        return make_error("Invalid argument. Can only compare fixnums: '%s'!", print_values_readably(values, environment));
     }
 
     return first->fixnum < second->fixnum ? &MAL_TRUE : &MAL_FALSE;
 }
 
-MalValue *less_than_or_equal_to(MalCell *values, MalEnvironment *MalEnvironment)
+MalValue *less_than_or_equal_to(MalCell *values, MalEnvironment *environment)
 {
     if (!values || (!values->value && !values->cdr->value))
     {
-        register_error(INVALID_ARGUMENT_COUNT, "<= expects two arguments");
+        return make_error("Invalid count of arguments. Two arguments expected: '%s'!", print_values_readably(values, environment));
     }
 
     MalValue *first = values->value;
@@ -196,17 +195,17 @@ MalValue *less_than_or_equal_to(MalCell *values, MalEnvironment *MalEnvironment)
 
     if (MAL_FIXNUM != first->valueType || MAL_FIXNUM != second->valueType)
     {
-        register_error(INVALID_ARGUMENT, "can only compare FIXNUM");
+        return make_error("Invalid argument. Can only compare fixnums: '%s'!", print_values_readably(values, environment));
     }
 
     return first->fixnum <= second->fixnum ? &MAL_TRUE : &MAL_FALSE;
 }
 
-MalValue *greater_than_or_equal_to(MalCell *values, MalEnvironment *MalEnvironment)
+MalValue *greater_than_or_equal_to(MalCell *values, MalEnvironment *environment)
 {
     if (!values || (!values->value && !values->cdr->value))
     {
-        register_error(INVALID_ARGUMENT_COUNT, "> expects two arguments");
+        return make_error("Invalid count of arguments. Two arguments expected: '%s'!", print_values_readably(values, environment));
     }
 
     MalValue *first = values->value;
@@ -214,7 +213,7 @@ MalValue *greater_than_or_equal_to(MalCell *values, MalEnvironment *MalEnvironme
 
     if (MAL_FIXNUM != first->valueType || MAL_FIXNUM != second->valueType)
     {
-        register_error(INVALID_ARGUMENT, "can only compare FIXNUM");
+        return make_error("Invalid argument. Can only compare fixnums: '%s'!", print_values_readably(values, environment));
     }
 
     return first->fixnum >= second->fixnum ? &MAL_TRUE : &MAL_FALSE;
@@ -292,7 +291,7 @@ MalValue *equals(MalCell *values, MalEnvironment *environment)
 {
     if (!values || (!values->value && !values->cdr->value))
     {
-        register_error(INVALID_ARGUMENT_COUNT, "= expects two arguments");
+        return make_error("Invalid count of arguments. Two arguments expected: '%s'!", print_values_readably(values, environment));
     }
 
     MalCell *left = values;

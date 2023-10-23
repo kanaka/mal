@@ -9,6 +9,7 @@ enum MalValueType
 {
     MAL_CLOSURE,
     MAL_COMMENT,
+    MAL_ERROR,
     MAL_HASHMAP,
     MAL_FIXNUM,
     MAL_KEYWORD,
@@ -67,12 +68,13 @@ extern MalValue MAL_EOF;
 
 MalValue *new_value(enum MalValueType valueType);
 MalValue *new_function(MalValue *(*function)(MalCell *args, MalEnvironment *environment));
+MalValue *make_error(char *fmt, ...);
 MalValue *make_value(enum MalValueType valueType, const char *value);
 MalValue *make_closure(MalEnvironment *outer, MalCell *context);
 
 /**
  * Create a new string value.
- * 
+ *
  * @param value the string to put into the returned MalValue object.
  * @param unescape indicates whether '\\' should be replaced with a single '\' or the given string shall be placed unchanged in the return value.
  */

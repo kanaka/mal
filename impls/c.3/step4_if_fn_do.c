@@ -3,7 +3,6 @@
 #include <string.h>
 #include "core.h"
 #include "env.h"
-#include "error.h"
 #include "libs/readline/readline.h"
 #include "printer.h"
 #include "reader.h"
@@ -12,7 +11,6 @@
 
 static const char *HISTORY_FILENAME = ".mal_history";
 FILE *output_stream;
-extern MalError *errors;
 
 MalValue *READ(Reader *reader)
 {
@@ -37,7 +35,7 @@ MalValue *eval_ast(MalValue *value, MalEnvironment *environment)
         }
         else
         {
-            register_error(SYMBOL_NOT_FOUND, value->value);
+            result = make_error("'%s' not found", value->value);
         }
     }
     break;
@@ -114,18 +112,30 @@ MalValue *def_exclamation_mark(MalCell *head, MalEnvironment *environment)
     // !t means symbol not found and should already be recorded in struct error
     if (t && set_in_environment(environment, head->cdr->value, t))
     {
-        register_error(VALUE_REDEFINED, head->cdr->value->value);
+        // FIXME: Report to repl that a value has been redefined.
+        //        register_error(VALUE_REDEFINED, head->cdr->value->value);
     }
 
     return t;
 }
 
+/**
+ *  create a new environment using the current environment as the outer value
+ *  and then use the first parameter as a list of new bindings in the "let*" environment.
+ *  Take the second element of the binding list, call EVAL using the new "let*" environment
+ *  as the evaluation environment, then call set on the "let*" environment using the first
+ *  binding list element as the key and the evaluated second element as the value. This is
+ *  repeated for each odd/even pair in the binding list. Note in particular, the bindings
+ * earlier in the list can be referred to by later bindings. Finally, the second parameter
+ * (third element) of the original let* form is evaluated using the new "let*" environment
+ *  and the result is returned as the result of the let* (the new let environment is discarded
+ *  upon completion).
+ */
 MalValue *let_star(MalCell *head, MalEnvironment *environment)
 {
     if (!head->cdr || !head->cdr->value || (head->cdr->value->valueType != MAL_LIST && head->cdr->value->valueType != MAL_VECTOR))
     {
-        register_error(INVALID_ARGUMENT, "expected a list of bindings");
-        return NULL;
+        return make_error("expected a list of bindings for '(%s)', got: '%s'", head->value->value, print_values_readably(head->cdr, environment)->value);
     }
 
     MalEnvironment *nested_environment = make_environment(environment, NULL, NULL, NULL);
@@ -139,6 +149,7 @@ MalValue *let_star(MalCell *head, MalEnvironment *environment)
         symbol = current->value;
         value = EVAL(current->cdr->value, nested_environment);
 
+        // FIXME: EVAL should'nt return NULL but MAL_ERROR so we can handle and bubble up the error
         if (!value)
         {
             free_environment(nested_environment);
@@ -307,41 +318,15 @@ void rep(char *input, MalEnvironment *environment)
 
     MalValue *value = READ(&reader);
 
-    if (!errors || errors->errno <= SUCCESS)
+    if (value->valueType != MAL_ERROR)
     {
         MalValue *result = EVAL(value, environment);
 
-        if (result == NULL || (errors && errors->errno > SUCCESS))
-        {
-            print_error(output_stream);
-            fprintf(output_stream, "\n");
-        }
-        else
-        {
-            PRINT(result);
-
-            if (errors && errors->errno < SUCCESS)
-            {
-                print_error(output_stream);
-                fprintf(output_stream, "\n");
-            }
-        }
+        PRINT(result);
     }
     else
     {
-        print_error(output_stream);
-        fprintf(output_stream, "\n");
-    }
-
-    if (errors)
-    {
-        if (errors->args)
-        {
-            free(errors->args);
-        }
-
-        free(errors);
-        errors = NULL;
+        PRINT(value);
     }
 }
 

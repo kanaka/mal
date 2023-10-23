@@ -30,6 +30,8 @@
         "charconv": "c",
         "chrono": "c",
         "core.h": "c",
-        "hashmap.h": "c"
+        "hashmap.h": "c",
+        "gc.h": "c",
+        "ctype.h": "c"
     }
 }
