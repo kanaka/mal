@@ -1,12 +1,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "core.h"
 #include "env.h"
 #include "libs/readline/readline.h"
 #include "printer.h"
 #include "reader.h"
-#include "token.h"
+#include "core.h"
 #include "types.h"
 
 static const char *HISTORY_FILENAME = ".mal_history";
@@ -135,7 +134,7 @@ MalValue *let_star(MalCell *head, MalEnvironment *environment)
 {
     if (!head->cdr || !head->cdr->value || (head->cdr->value->valueType != MAL_LIST && head->cdr->value->valueType != MAL_VECTOR))
     {
-        return make_error("expected a list of bindings for '(%s)', got: '%s'", head->value->value, print_values_readably(head->cdr, environment)->value);
+        return make_error("expected a list of bindings for '(%s)', got: '%s'", head->value->value, print_values_readably(head->cdr)->value);
     }
 
     MalEnvironment *nested_environment = make_environment(environment, NULL, NULL, NULL);
@@ -270,7 +269,7 @@ MalValue *EVAL(MalValue *value, MalEnvironment *environment)
             switch (head->value->valueType)
             {
             case MAL_FUNCTION:
-                result = head->value->function(head->cdr, environment);
+                result = head->value->function(head->cdr);
                 break;
 
             case MAL_CLOSURE:

@@ -11,7 +11,7 @@ bool is_equal_by_type(MalValue *left, MalValue *right);
 bool is_equal(MalValue *left, MalValue *right);
 bool are_lists_equal(MalCell *left, MalCell *right);
 
-MalValue *add(MalCell *values, MalEnvironment *environment)
+MalValue *add(MalCell *values)
 {
     MalCell *current = values;
     int64_t result = 0;
@@ -35,7 +35,7 @@ MalValue *add(MalCell *values, MalEnvironment *environment)
     return make_fixnum(result);
 }
 
-MalValue *subtract(MalCell *values, MalEnvironment *environment)
+MalValue *subtract(MalCell *values)
 {
     MalCell *current = values;
 
@@ -61,7 +61,7 @@ MalValue *subtract(MalCell *values, MalEnvironment *environment)
     return make_fixnum(result);
 }
 
-MalValue *multiply(MalCell *values, MalEnvironment *environment)
+MalValue *multiply(MalCell *values)
 {
     MalCell *current = values;
     int64_t result = 1;
@@ -75,7 +75,7 @@ MalValue *multiply(MalCell *values, MalEnvironment *environment)
     return make_fixnum(result);
 }
 
-MalValue *divide(MalCell *values, MalEnvironment *environment)
+MalValue *divide(MalCell *values)
 {
     MalCell *current = values;
     int64_t result = 1;
@@ -89,14 +89,14 @@ MalValue *divide(MalCell *values, MalEnvironment *environment)
     return make_fixnum(result);
 }
 
-MalValue *prn(MalCell *values, MalEnvironment *environment)
+MalValue *prn(MalCell *values)
 {
-    print(output_stream, print_values_readably(values, environment), false);
+    print(output_stream, print_values_readably(values), false);
     fprintf(output_stream, "\n");
     return &MAL_NIL;
 }
 
-MalValue *list(MalCell *values, MalEnvironment *environment)
+MalValue *list(MalCell *values)
 {
     MalValue *result = new_value(MAL_LIST);
 
@@ -108,12 +108,12 @@ MalValue *list(MalCell *values, MalEnvironment *environment)
     return result;
 }
 
-MalValue *list_p(MalCell *value, MalEnvironment *environment)
+MalValue *list_p(MalCell *value)
 {
     return (value->value->valueType == MAL_LIST) ? &MAL_TRUE : &MAL_FALSE;
 }
 
-MalValue *empty_p(MalCell *value, MalEnvironment *environment)
+MalValue *empty_p(MalCell *value)
 {
     if (value->value->valueType == MAL_LIST || value->value->valueType == MAL_VECTOR)
     {
@@ -128,7 +128,7 @@ MalValue *empty_p(MalCell *value, MalEnvironment *environment)
     return &MAL_FALSE;
 }
 
-int64_t _count(MalCell *value, MalEnvironment *environment)
+int64_t _count(MalCell *value)
 {
     int64_t count = 0;
     MalCell *current = value;
@@ -154,16 +154,16 @@ int64_t _count(MalCell *value, MalEnvironment *environment)
 /**
  * count: treat the first parameter as a list and return the number of elements that it contains.
  */
-MalValue *count(MalCell *value, MalEnvironment *environment)
+MalValue *count(MalCell *value)
 {
-    return make_fixnum(_count(value, environment));
+    return make_fixnum(_count(value));
 }
 
-MalValue *greater_than(MalCell *values, MalEnvironment *environment)
+MalValue *greater_than(MalCell *values)
 {
-    if (_count(values, environment) != 2)
+    if (_count(values) != 2)
     {
-        return make_error("Invalid count of arguments. Two arguments expected: '%s'!", print_values_readably(values, environment)->value);
+        return make_error("Invalid count of arguments. Two arguments expected: '%s'!", print_values_readably(values)->value);
     }
 
     MalValue *first = values->value;
@@ -171,17 +171,17 @@ MalValue *greater_than(MalCell *values, MalEnvironment *environment)
 
     if (MAL_FIXNUM != first->valueType || MAL_FIXNUM != second->valueType)
     {
-        return make_error("Invalid argument. Can only compare fixnums: '%s'!", print_values_readably(values, environment)->value);
+        return make_error("Invalid argument. Can only compare fixnums: '%s'!", print_values_readably(values)->value);
     }
 
     return first->fixnum > second->fixnum ? &MAL_TRUE : &MAL_FALSE;
 }
 
-MalValue *less_than(MalCell *values, MalEnvironment *environment)
+MalValue *less_than(MalCell *values)
 {
-    if (_count(values, environment) != 2)
+    if (_count(values) != 2)
     {
-        return make_error("Invalid count of arguments. Two arguments expected: '%s'!", print_values_readably(values, environment)->value);
+        return make_error("Invalid count of arguments. Two arguments expected: '%s'!", print_values_readably(values)->value);
     }
 
     MalValue *first = values->value;
@@ -189,17 +189,17 @@ MalValue *less_than(MalCell *values, MalEnvironment *environment)
 
     if (MAL_FIXNUM != first->valueType || MAL_FIXNUM != second->valueType)
     {
-        return make_error("Invalid argument. Can only compare fixnums: '%s'!", print_values_readably(values, environment)->value);
+        return make_error("Invalid argument. Can only compare fixnums: '%s'!", print_values_readably(values)->value);
     }
 
     return first->fixnum < second->fixnum ? &MAL_TRUE : &MAL_FALSE;
 }
 
-MalValue *less_than_or_equal_to(MalCell *values, MalEnvironment *environment)
+MalValue *less_than_or_equal_to(MalCell *values)
 {
-    if (_count(values, environment) != 2)
+    if (_count(values) != 2)
     {
-        return make_error("Invalid count of arguments. Two arguments expected: '%s'!", print_values_readably(values, environment)->value);
+        return make_error("Invalid count of arguments. Two arguments expected: '%s'!", print_values_readably(values)->value);
     }
 
     MalValue *first = values->value;
@@ -207,17 +207,17 @@ MalValue *less_than_or_equal_to(MalCell *values, MalEnvironment *environment)
 
     if (MAL_FIXNUM != first->valueType || MAL_FIXNUM != second->valueType)
     {
-        return make_error("Invalid argument. Can only compare fixnums: '%s'!", print_values_readably(values, environment)->value);
+        return make_error("Invalid argument. Can only compare fixnums: '%s'!", print_values_readably(values)->value);
     }
 
     return first->fixnum <= second->fixnum ? &MAL_TRUE : &MAL_FALSE;
 }
 
-MalValue *greater_than_or_equal_to(MalCell *values, MalEnvironment *environment)
+MalValue *greater_than_or_equal_to(MalCell *values)
 {
-    if (_count(values, environment) != 2)
+    if (_count(values) != 2)
     {
-        return make_error("Invalid count of arguments. Two arguments expected: '%s'!", print_values_readably(values, environment)->value);
+        return make_error("Invalid count of arguments. Two arguments expected: '%s'!", print_values_readably(values)->value);
     }
 
     MalValue *first = values->value;
@@ -225,7 +225,7 @@ MalValue *greater_than_or_equal_to(MalCell *values, MalEnvironment *environment)
 
     if (MAL_FIXNUM != first->valueType || MAL_FIXNUM != second->valueType)
     {
-        return make_error("Invalid argument. Can only compare fixnums: '%s'!", print_values_readably(values, environment)->value);
+        return make_error("Invalid argument. Can only compare fixnums: '%s'!", print_values_readably(values)->value);
     }
 
     return first->fixnum >= second->fixnum ? &MAL_TRUE : &MAL_FALSE;
@@ -304,11 +304,11 @@ bool are_lists_equal(MalCell *left, MalCell *right)
  *  In the case of equal length lists, each element of the list should be compared for equality and if they
  * are the same return true, otherwise false.
  */
-MalValue *equals(MalCell *values, MalEnvironment *environment)
+MalValue *equals(MalCell *values)
 {
     if (!values || !values->value || !values->cdr || !values->cdr->value)
     {
-        return make_error("Invalid count of arguments. At least two arguments expected: '%s'!", print_values_readably(values, environment)->value);
+        return make_error("Invalid count of arguments. At least two arguments expected: '%s'!", print_values_readably(values)->value);
     }
 
     MalCell *left = values;
@@ -324,7 +324,7 @@ MalValue *equals(MalCell *values, MalEnvironment *environment)
         return &MAL_TRUE;
     }
 
-    if ((empty_p(left, environment) == &MAL_TRUE && &MAL_NIL == right->value) || (empty_p(right, environment) == &MAL_TRUE && &MAL_NIL == left->value))
+    if ((empty_p(left) == &MAL_TRUE && &MAL_NIL == right->value) || (empty_p(right) == &MAL_TRUE && &MAL_NIL == left->value))
     {
         return &MAL_FALSE;
     }

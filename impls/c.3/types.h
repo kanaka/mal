@@ -56,7 +56,7 @@ typedef struct MalValue
         MalCell *list;
         MalValue *malValue;
         HashMap *hashMap;
-        MalValue *(*function)(MalCell *, MalEnvironment *environment);
+        MalValue *(*function)(MalCell *);
         MalClosure *closure;
     };
 } MalValue;
@@ -67,7 +67,7 @@ extern MalValue MAL_TRUE;
 extern MalValue MAL_EOF;
 
 MalValue *new_value(enum MalValueType valueType);
-MalValue *new_function(MalValue *(*function)(MalCell *args, MalEnvironment *environment));
+MalValue *new_function(MalValue *(*function)(MalCell *args));
 MalValue *make_error(char *fmt, ...);
 MalValue *make_value(enum MalValueType valueType, const char *value);
 MalValue *make_closure(MalEnvironment *outer, MalCell *context);

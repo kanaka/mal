@@ -7,7 +7,7 @@
 
 void print(FILE *stream, MalValue *value, bool readably);
 char *pr_str(MalValue *value, bool readably);
-MalValue *print_values_readably(MalCell *values, MalEnvironment *environment);
-MalValue *print_values(MalCell *values, MalEnvironment *environment);
-MalValue *println(MalCell *values, MalEnvironment *environment);
+MalValue *print_values_readably(MalCell *values);
+MalValue *print_values(MalCell *values);
+MalValue *println(MalCell *values);
 #endif

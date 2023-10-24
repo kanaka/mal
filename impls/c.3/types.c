@@ -33,7 +33,7 @@ MalValue *new_value(enum MalValueType valueType)
 }
 
 // FIXME: determine function signature for registering functions as MalValue-objects
-MalValue *new_function(MalValue *(*function)(MalCell *, MalEnvironment *))
+MalValue *new_function(MalValue *(*function)(MalCell *))
 {
     MalValue *fn = new_value(MAL_FUNCTION);
     fn->function = function;
@@ -90,7 +90,7 @@ MalValue *make_closure(MalEnvironment *outer, MalCell *context)
 {
     if (!context->cdr)
     {
-        return make_error("missing closure body: '%s'", print_values_readably(context, outer)->value);
+        return make_error("missing closure body: '%s'", print_values_readably(context)->value);
     }
 
     MalValue *value = new_value(MAL_CLOSURE);
@@ -113,14 +113,14 @@ MalValue *make_closure(MalEnvironment *outer, MalCell *context)
             {
                 if (args->cdr->cdr)
                 {
-                    return make_error("only one symbol to receive the rest of the argument list is allowed: '(%s)'", print_values_readably(args, outer)->value);
+                    return make_error("only one symbol to receive the rest of the argument list is allowed: '(%s)'", print_values_readably(args)->value);
                 }
 
                 closure->rest_symbol = args->cdr->value;
                 break;
             }
 
-            return make_error("expected a symbol to receive the rest of the argument list: '(%s)'", print_values_readably(args, outer)->value);
+            return make_error("expected a symbol to receive the rest of the argument list: '(%s)'", print_values_readably(args)->value);
         }
 
         args = args->cdr;

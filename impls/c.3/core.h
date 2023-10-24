@@ -4,5 +4,5 @@
 #include "env.h"
 
 MalEnvironment *make_initial_environment();
-MalValue *list(MalCell *values, MalEnvironment *environment);
+MalValue *list(MalCell *values);
 #endif
