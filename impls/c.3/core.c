@@ -151,6 +151,9 @@ int64_t _count(MalCell *value, MalEnvironment *environment)
     return count;
 }
 
+/**
+ * count: treat the first parameter as a list and return the number of elements that it contains.
+ */
 MalValue *count(MalCell *value, MalEnvironment *environment)
 {
     return make_fixnum(_count(value, environment));
@@ -296,11 +299,16 @@ bool are_lists_equal(MalCell *left, MalCell *right)
     return result;
 }
 
+/**
+ * =: compare the first two parameters and return true if they are the same type and contain the same value.
+ *  In the case of equal length lists, each element of the list should be compared for equality and if they
+ * are the same return true, otherwise false.
+ */
 MalValue *equals(MalCell *values, MalEnvironment *environment)
 {
-    if (!values || (!values->value && !values->cdr->value))
+    if (!values || !values->value || !values->cdr || !values->cdr->value)
     {
-        return make_error("Invalid count of arguments. Two arguments expected: '%s'!", print_values_readably(values, environment)->value);
+        return make_error("Invalid count of arguments. At least two arguments expected: '%s'!", print_values_readably(values, environment)->value);
     }
 
     MalCell *left = values;
