@@ -771,7 +771,7 @@ make
 
 The Objective C implementation of mal has been built and tested on
 Linux using clang/LLVM 3.6. It has also been built and tested on OS
-X using XCode 7.
+X using Xcode 7.
 
 ```
 cd impls/objc
@@ -1111,7 +1111,7 @@ make sml_MODE=mosml
 
 ### Swift
 
-The Swift implementation of mal requires the Swift 2.0 compiler (XCode
+The Swift implementation of mal requires the Swift 2.0 compiler (Xcode
 7.0) to build. Older versions will not work due to changes in the
 language and standard library.
 
