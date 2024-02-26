@@ -169,7 +169,7 @@ RUN cd /usr/lib/x86_64-linux-gnu/ \
     && rm factor-linux-x86-64-0.97.tar.gz
 
 # MATLAB is proprietary/licensed. Maybe someday with Octave.
-# Swift is XCode/OS X only
+# Swift is Xcode/macOS only
 ENV SKIP_IMPLS matlab swift
 
 ENV DEBIAN_FRONTEND newt
