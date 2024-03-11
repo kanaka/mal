@@ -139,28 +139,20 @@ def {prefix} (ast, env):
 def COMPILE (ast, env, prefix="blk"):
     logger.debug(f"ast: {ast}")
     if types._symbol_Q(ast):
-        compiled_strings = compile_symbol(ast, env, prefix)
+        return compile_symbol(ast, env, prefix)
     elif types._list_Q(ast):
-        if len(ast) == 0:
-            compiled_strings = compile_scalar(None, env, prefix)
-        elif ast[0] == "def!":
-            compiled_strings = compile_def(ast, env, prefix)
-        elif ast[0] == "let*":
-            compiled_strings = compile_let(ast, env, prefix)
-        elif ast[0] == "do":
-            compiled_strings = compile_do(ast, env, prefix)
-        elif ast[0] == "if":
-            compiled_strings = compile_if(ast, env, prefix)
-        else:
-            compiled_strings = compile_regular(ast, env, prefix)
+        if   len(ast) == 0:    return compile_scalar(None, env, prefix)
+        elif ast[0] == "def!": return compile_def(ast, env, prefix)
+        elif ast[0] == "let*": return compile_let(ast, env, prefix)
+        elif ast[0] == "do":   return compile_do(ast, env, prefix)
+        elif ast[0] == "if":   return compile_if(ast, env, prefix)
+        else:                  return compile_regular(ast, env, prefix)
+    # TODO To support scalars (current version only works for integers) and keywords.
+    elif types._scalar_Q(ast): return compile_scalar(ast, env, prefix)
     elif types._vector_Q(ast) or types._hash_map_Q(ast):
         raise Exception("Unsupported Type") # TODO
-    elif types._scalar_Q(ast):
-        # TODO To support scalars (current version only works for integers) and keywords.
-        compiled_strings = compile_scalar(ast, env, prefix)
     else:
         raise Exception(f"Unknown AST Type: {type(ast)}")
-    return compiled_strings
 
 def EXEC (compiled_strings, ast, env):
     compiled_strings += ["\nRET = blk(ast, env)\n"]
