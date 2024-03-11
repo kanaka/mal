@@ -106,7 +106,6 @@ def {prefix} (ast, env):
 """]
 
     elif types._list_Q(ast):
-        # Primary Operator: 'def!
         if ast[0] == "def!":
             compiled_strings = \
 [f"""
@@ -114,6 +113,26 @@ def {prefix} (ast, env):
     return env.set(ast[1], {prefix}_{2}(ast, env))
 """]
             compiled_strings = COMPILE(ast[2], env, prefix=f"{prefix}_{2}") + compiled_strings
+
+        elif ast[0] == "let*":
+            compiled_strings = []
+            for i in range(1, len(ast[1]), 2):
+                compiled_strings += COMPILE(ast[1][i], env, prefix=f"{prefix}_{(i-1)//2}")
+            compiled_strings += COMPILE(ast[2], env, prefix=f"{prefix}_{(i+1)//2}")
+            # FIXME The following i//2 and i+1//2 is wrong.
+            compiled_string = \
+f"""
+def {prefix} (ast, env):
+    let_env = Env(env)"""
+            for i in range(0, len(ast[1]), 2):
+                compiled_string += \
+f"""
+    let_env.set(ast[1][{i}], {prefix}_{i//2}(ast[1][{i+1}], let_env))"""
+            compiled_string += \
+f"""
+    return {prefix}_{(i+2)//2}(ast[2], let_env)
+"""
+            compiled_strings += [compiled_string]
 
         # Non-Special Forms
         else:
@@ -123,13 +142,12 @@ def {prefix} (ast, env):
     return {prefix}_{0}(ast[0], env) \\
 """
             compiled_string += "   (\n"
-            for counter in range(1,len(ast)):
+            for counter in range(1, len(ast)):
                 compiled_string += f"        {prefix}_{counter}(ast[{counter}], env),\n"
             compiled_string += "   )\n"
             compiled_strings = [compiled_string]
-            for counter in range(0,len(ast)):
-                add_strings = COMPILE(ast[counter],env,prefix=f"{prefix}_{counter}")
-                compiled_strings = add_strings + compiled_strings
+            for counter in range(0, len(ast)):
+                compiled_strings = COMPILE(ast[counter], env, prefix=f"{prefix}_{counter}") + compiled_strings
 
     else:
         compiled_strings = \
@@ -142,8 +160,8 @@ def {prefix} (ast, env):
 
 def EXEC (compiled_strings, ast, env):
     compiled_strings += ["\nRET = blk(ast, env)\n"]
-    # for s in compiled_strings:
-    #     logger.debug(s)
+    for s in compiled_strings:
+        logger.debug(s)
     bindings = globals().copy()
     bindings.update(locals())
     for code in compiled_strings:
@@ -183,8 +201,9 @@ def REP(str):
 logger.info("Running tests..")
 assert(EVAL(READ("(+ 1 1))"), repl_env) == 2)
 assert(EVAL(READ("(+ (* 2 (+ 3 4)) 1))"), repl_env) == 15)
-# assert(EVAL(READ("(let* (a 3 b 4) (+ a b))"), repl_env) == 7)
-# assert(EVAL(READ("(let* (a 3 b 4) (+ a (let* (b 0) b)))"), repl_env) == 3)
+assert(EVAL(READ("(let* (a 3 b 4) (+ a b))"), repl_env) == 7)
+assert(EVAL(READ("(let* (a 3 b 4) (+ a (let* (b 0) b)))"), repl_env) == 3)
+assert(EVAL(READ("(let* (a 3 b a) b)"), repl_env) == 3)
 # assert(EVAL(READ("(do (def! x 1) (def! y 2) (+ x y))"), repl_env) == 3)
 # assert(EVAL(READ("(if 0     1  )"), repl_env) == 1)
 # assert(EVAL(READ("(if 0     1 2)"), repl_env) == 1)
