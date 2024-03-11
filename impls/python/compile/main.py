@@ -125,7 +125,7 @@ f"""
         compiled_strings = COMPILE(ast[i], env, prefix=f"{prefix}_{i}") + compiled_strings
     return compiled_strings
 
-def compile_other (ast, env, prefix):
+def compile_number (ast, env, prefix):
     compiled_strings = \
 [f"""
 def {prefix} (ast, env):
@@ -153,8 +153,9 @@ def COMPILE (ast, env, prefix="blk"):
             compiled_strings = compile_regular(ast, env, prefix)
     elif types._vector_Q(ast) or types._hash_map_Q(ast):
         raise Exception("Unsupported Type") # TODO
-    else:
-        compiled_strings = compile_other(ast, env, prefix)
+    elif types._number_Q(ast)
+        compiled_strings = compile_number(ast, env, prefix)
+    else: raise Exception("Unknown AST Type")
     return compiled_strings
 
 def EXEC (compiled_strings, ast, env):
