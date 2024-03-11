@@ -141,6 +141,28 @@ f"""
     return result
 """
             compiled_strings += [compiled_string]
+        elif ast[0] == "do":
+            compiled_string = \
+f"""
+def {prefix} (ast, env):
+    logger.debug(f"ast: {{ast}}")
+"""
+            for i in range(1, len(ast)-1):
+                compiled_string += \
+f"""
+    {prefix}_{i-1}(ast[{i}], env)
+"""
+            i += 1
+            compiled_string += \
+f"""
+    result = {prefix}_{i-1}(ast[{i}], env)
+    logger.debug(f"result: {{result}}")
+    return result
+"""
+            compiled_strings = []
+            for i in range(1, len(ast)):
+                compiled_strings += COMPILE(ast[i], env, prefix=f"{prefix}_{i-1}")
+            compiled_strings += [compiled_string]
 
         # Non-Special Forms
         else:
@@ -153,12 +175,12 @@ def {prefix} (ast, env):
     return result \\
 """
             compiled_string += "   (\n"
-            for counter in range(1, len(ast)):
-                compiled_string += f"        {prefix}_{counter}(ast[{counter}], env),\n"
+            for i in range(1, len(ast)):
+                compiled_string += f"        {prefix}_{i}(ast[{i}], env),\n"
             compiled_string += "   )\n"
             compiled_strings = [compiled_string]
-            for counter in range(0, len(ast)):
-                compiled_strings = COMPILE(ast[counter], env, prefix=f"{prefix}_{counter}") + compiled_strings
+            for i in range(0, len(ast)):
+                compiled_strings = COMPILE(ast[i], env, prefix=f"{prefix}_{i}") + compiled_strings
 
     else:
         compiled_strings = \
@@ -218,7 +240,9 @@ assert(EVAL(READ("(+ (* 2 (+ 3 4)) 1))"), repl_env) == 15)
 assert(EVAL(READ("(let* (a 3 b 4) (+ a b))"), repl_env) == 7)
 assert(EVAL(READ("(let* (a 3 b 4) (+ a (let* (b 0) b)))"), repl_env) == 3)
 assert(EVAL(READ("(let* (a 3 b a) b)"), repl_env) == 3)
-# assert(EVAL(READ("(do (def! x 1) (def! y 2) (+ x y))"), repl_env) == 3)
+assert(EVAL(READ("(let* (a 3 b a) (let* (a b a a) 3))"), repl_env) == 3)
+assert(EVAL(READ("(do (def! x 1) (def! y 2) (+ x y))"), repl_env) == 3)
+assert(EVAL(READ("(do (def! x 8) x (def! y 9) (let* (y x x y) x))"), repl_env) == 8)
 # assert(EVAL(READ("(if 0     1  )"), repl_env) == 1)
 # assert(EVAL(READ("(if 0     1 2)"), repl_env) == 1)
 # assert(EVAL(READ("(if nil   1 2)"), repl_env) == 2)
