@@ -102,7 +102,10 @@ def COMPILE (ast, env, prefix="blk"):
         compiled_strings = \
 [f"""
 def {prefix} (ast, env):
-    return env.get(ast)
+    logger.debug(f"ast: {{ast}}")
+    result = env.get(ast)
+    logger.debug(f"result: {{result}}")
+    return result
 """]
 
     elif types._list_Q(ast):
@@ -110,7 +113,10 @@ def {prefix} (ast, env):
             compiled_strings = \
 [f"""
 def {prefix} (ast, env):
-    return env.set(ast[1], {prefix}_{2}(ast, env))
+    logger.debug(f"ast: {{ast}}")
+    result = env.set(ast[1], {prefix}_{2}(ast, env))
+    logger.debug(f"result: {{result}}")
+    return result
 """]
             compiled_strings = COMPILE(ast[2], env, prefix=f"{prefix}_{2}") + compiled_strings
 
@@ -119,10 +125,10 @@ def {prefix} (ast, env):
             for i in range(1, len(ast[1]), 2):
                 compiled_strings += COMPILE(ast[1][i], env, prefix=f"{prefix}_{(i-1)//2}")
             compiled_strings += COMPILE(ast[2], env, prefix=f"{prefix}_{(i+1)//2}")
-            # FIXME The following i//2 and i+1//2 is wrong.
             compiled_string = \
 f"""
 def {prefix} (ast, env):
+    logger.debug(f"ast: {{ast}}")
     let_env = Env(env)"""
             for i in range(0, len(ast[1]), 2):
                 compiled_string += \
@@ -130,7 +136,9 @@ f"""
     let_env.set(ast[1][{i}], {prefix}_{i//2}(ast[1][{i+1}], let_env))"""
             compiled_string += \
 f"""
-    return {prefix}_{(i+2)//2}(ast[2], let_env)
+    result = {prefix}_{(i+2)//2}(ast[2], let_env)
+    logger.debug(f"result: {{result}}")
+    return result
 """
             compiled_strings += [compiled_string]
 
@@ -139,7 +147,10 @@ f"""
             compiled_string = \
 f"""
 def {prefix} (ast, env):
-    return {prefix}_{0}(ast[0], env) \\
+    logger.debug(f"ast: {{ast}}")
+    result = {prefix}_{0}(ast[0], env)
+    logger.debug(f"result: {{result}}")
+    return result \\
 """
             compiled_string += "   (\n"
             for counter in range(1, len(ast)):
@@ -153,7 +164,10 @@ def {prefix} (ast, env):
         compiled_strings = \
 [f"""
 def {prefix} (ast, env):
-    return {ast}
+    logger.debug(f"ast: {{ast}}")
+    result = {ast}
+    logger.debug(f"result: {{result}}")
+    return result
 """]
 
     return compiled_strings
@@ -161,7 +175,7 @@ def {prefix} (ast, env):
 def EXEC (compiled_strings, ast, env):
     compiled_strings += ["\nRET = blk(ast, env)\n"]
     for s in compiled_strings:
-        logger.debug(s)
+        logger.debug(f"Compiled Code:\n{s}")
     bindings = globals().copy()
     bindings.update(locals())
     for code in compiled_strings:
