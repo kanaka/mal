@@ -142,9 +142,9 @@ def {prefix} (ast, env):
 
 def EXEC (compiled_strings, ast, env):
     compiled_strings += ["\nRET = blk(ast, env)\n"]
-    for s in compiled_strings:
-        logger.debug(s)
-    bindings = globals()
+    # for s in compiled_strings:
+    #     logger.debug(s)
+    bindings = globals().copy()
     bindings.update(locals())
     for code in compiled_strings:
         exec(code, bindings, bindings)
