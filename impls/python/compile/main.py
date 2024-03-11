@@ -6,7 +6,7 @@ from env import Env
 
 # debug
 from loguru import logger
-logger.info("LOGURU as debugger.")
+logger.info("Debugger Activated: loguru")
 _line_history, _ast_history = [], []
 sys.ps1, sys.ps2 = "PY> ", "  > "
 _wake_up_command = ";()"
@@ -26,6 +26,7 @@ _RETURNED_OBJECT = exec_env.get(exec_ast)
         elif types._list_Q(ast):
             # Primary Operator: 'def!
             if ast[0] == "def!":
+                # FIXME I think the string cannot have EXEC_COMPILE; otherwise it's cheating.
                 compiled_string="""
 _A1, _A2 = exec_ast[1], exec_ast[2]
 _RETURNED_OBJECT = EXEC_COMPILE(_A2, exec_env)
@@ -74,6 +75,7 @@ else:
             # ((fn* (a b) (+ a b)) 2 3) ; => 5
             # ((fn* (a) (* (a) (a))) (fn* (a) 3)) ; => 9
             elif ast[0] == "fn*":
+                # FIXME I think the string cannot have _function. Otherwise the function is compiled at runtime, defeating the purpose of a compiler.
                 compiled_string="""
 _A1, _A2 = exec_ast[1], exec_ast[2]
 _RETURNED_OBJECT = types._function(EXEC_COMPILE, Env, _A2, exec_env, _A1)
@@ -137,6 +139,20 @@ repl_env.set(types._symbol('/'), lambda a,b: int(a/b))
 # repl
 def REP(str):
     return PRINT(EVAL(READ(str), repl_env))
+
+# automatic tests
+assert(EVAL(READ("(let* (a 3 b 4) (+ a b))"), repl_env) == 7)
+assert(EVAL(READ("(let* (a 3 b 4) (+ a (let* (b 0) b)))"), repl_env) == 3)
+assert(EVAL(READ("(do (def! x 1) (def! y 2) (+ x y))"), repl_env) == 3)
+assert(EVAL(READ("(if 0     1  )"), repl_env) == 1)
+assert(EVAL(READ("(if 0     1 2)"), repl_env) == 1)
+assert(EVAL(READ("(if nil   1 2)"), repl_env) == 2)
+assert(EVAL(READ("(if nil   1  )"), repl_env) == None)
+assert(EVAL(READ("(if false 1 2)"), repl_env) == 2)
+assert(EVAL(READ("(if (if false 0 nil) 1 2)"), repl_env) == 2)
+assert(EVAL(READ("((fn* (a) a) 7)"), repl_env) == 7)
+assert(EVAL(READ("((fn* (a) (* (a) (a))) (fn* (a) 3))"), repl_env) == 9)
+logger.info("All tests passed.")
 
 # lisp repl loop
 def REPL():
