@@ -24,13 +24,23 @@ def EXEC_COMPILE (ast, env):
 _RETURNED_OBJECT = exec_env.get(exec_ast)
             """
         elif types._list_Q(ast):
-            # Special Forms
+            # Primary Operator: 'def!
             if ast[0] == "def!":
                 compiled_string="""
-_A1 = exec_ast[1]
-_A2 = exec_ast[2]
+_A1, _A2 = exec_ast[1], exec_ast[2]
 _RETURNED_OBJECT = EXEC_COMPILE(_A2, exec_env)
 _RETURNED_OBJECT = exec_env.set(_A1, _RETURNED_OBJECT)
+                """
+            # Primary Operator: 'let*
+            #   e.g. (let* (a 3 b 4) (+ a b)) ; => 7
+            #   e.g. (let* (a 3 b 4) (+ a (let* (b 0) b))) ; => 3
+            elif ast[0] == "let*":
+                compiled_string="""
+_A1, _A2 = exec_ast[1], exec_ast[2]
+_let_env = Env(exec_env)
+for i in range(0, len(_A1), 2):
+  _let_env.set(_A1[i], EXEC_COMPILE(_A1[i+1], exec_env))
+_RETURNED_OBJECT = EXEC_COMPILE(_A2, _let_env)
                 """
             # Non-Special Forms
             else:
