@@ -23,12 +23,32 @@ def EXEC_COMPILE (ast, env):
         if types._symbol_Q(ast):
             compiled_string="_RETURNED_OBJECT = exec_env.get(exec_ast)"
         elif types._list_Q(ast):
+            # Special Forms
             if ast[0] == "def!":
-                compiled_string="_RETURNED_OBJECT = exec_env.set(exec_ast[1], EXEC_COMPILE(exec_ast[2], exec_env))"
+                compiled_string="""
+_A1 = exec_ast[1]
+_A2 = exec_ast[2]
+_RETURNED_OBJECT = EXEC_COMPILE(_A2, exec_env)
+_RETURNED_OBJECT = exec_env.set(_A1, _RETURNED_OBJECT)
+                """
+            # Non-Special Forms
             else:
-                compiled_string="_RETURNED_OBJECT = exec_ast"
+                compiled_string="""
+_OPERATOR = EVAL(exec_ast[0], exec_env)
+
+_ARGUMENTS = []
+for _exec_sub_ast in exec_ast[1:]:
+    _ARGUMENTS.append(EVAL(_exec_sub_ast, exec_env))
+
+_RETURNED_OBJECT = _OPERATOR(*_ARGUMENTS)
+                """
+        elif types._vector_Q(ast): # TODO
+            logger.debug(f"Unsupported Type: {type(ast)}")
+            compiled_string="_RETURNED_OBJECT = exec_ast"
+        elif types._hash_map_Q(ast): # TODO
+            logger.debug(f"Unsupported Type: {type(ast)}")
+            compiled_string="_RETURNED_OBJECT = exec_ast"
         else:
-            logger.debug(f"TODO Unsupported Area")
             compiled_string="_RETURNED_OBJECT = exec_ast"
         logger.debug(f"compiled_string: {compiled_string}")
         return compiled_string
@@ -53,8 +73,23 @@ def EVAL(ast, env):
 def PRINT(exp):
     return printer._pr_str(exp)
 
-# repl
+# environment
 repl_env = Env()
+
+# arithmetic
+def multiply (args):
+    if args == []:
+        return 1
+    if len(args) == 1:
+        return args[0]
+    else:
+        return args[0] * multiply(args[1:])
+repl_env.set(types._symbol('+'), lambda *args: sum(args))
+repl_env.set(types._symbol('-'), lambda *args: args[0] - sum(args[1:]))
+repl_env.set(types._symbol('*'), lambda *args: multiply(args))
+repl_env.set(types._symbol('/'), lambda a,b: int(a/b))
+
+# repl
 def REP(str):
     return PRINT(EVAL(READ(str), repl_env))
 
