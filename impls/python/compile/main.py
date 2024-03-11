@@ -141,7 +141,9 @@ def COMPILE (ast, env, prefix="blk"):
     if types._symbol_Q(ast):
         compiled_strings = compile_symbol(ast, env, prefix)
     elif types._list_Q(ast):
-        if   ast[0] == "def!":
+        if len(ast) == 0:
+            compiled_strings = compile_scalar(None, env, prefix)
+        elif ast[0] == "def!":
             compiled_strings = compile_def(ast, env, prefix)
         elif ast[0] == "let*":
             compiled_strings = compile_let(ast, env, prefix)
@@ -154,6 +156,7 @@ def COMPILE (ast, env, prefix="blk"):
     elif types._vector_Q(ast) or types._hash_map_Q(ast):
         raise Exception("Unsupported Type") # TODO
     elif types._scalar_Q(ast):
+        # TODO To support scalars (current version only works for integers) and keywords.
         compiled_strings = compile_scalar(ast, env, prefix)
     else:
         raise Exception(f"Unknown AST Type: {type(ast)}")
@@ -207,7 +210,9 @@ def REP(str):
 
 # automatic tests
 logger.info("Running tests..")
-assert(EVAL(READ("(+ 1 1))"), repl_env) == 2)
+assert(EVAL(READ("nil"), repl_env) == None)
+assert(EVAL(READ("()"), repl_env) == None)
+assert(EVAL(READ("(+ 1 1)"), repl_env) == 2)
 assert(EVAL(READ("(+ (* 2 (+ 3 4)) 1))"), repl_env) == 15)
 assert(EVAL(READ("(+)"), repl_env) == 0)
 assert(EVAL(READ("(-)"), repl_env) == 0)
