@@ -7,21 +7,22 @@ from env import Env
 # debug
 from loguru import logger
 logger.info("LOGURU as debugger.")
-_line_history = []
-_ast_history = []
+_line_history, _ast_history = [], []
+sys.ps1, sys.ps2 = "PY> ", "  > "
 _wake_up_command = ";()"
-sys.ps1 = "PY> "
-sys.ps2 = "  > "
 
 # read
 def READ(str):
     return reader.read_str(str)
 
+# compile and execute
 def EXEC_COMPILE (ast, env):
     def COMPILE (ast, env):
         logger.debug(f"ast: {ast}")
         if types._symbol_Q(ast):
-            compiled_string="_RETURNED_OBJECT = exec_env.get(exec_ast)"
+            compiled_string="""
+_RETURNED_OBJECT = exec_env.get(exec_ast)
+            """
         elif types._list_Q(ast):
             # Special Forms
             if ast[0] == "def!":
@@ -34,12 +35,10 @@ _RETURNED_OBJECT = exec_env.set(_A1, _RETURNED_OBJECT)
             # Non-Special Forms
             else:
                 compiled_string="""
-_OPERATOR = EVAL(exec_ast[0], exec_env)
-
 _ARGUMENTS = []
 for _exec_sub_ast in exec_ast[1:]:
     _ARGUMENTS.append(EVAL(_exec_sub_ast, exec_env))
-
+_OPERATOR = EVAL(exec_ast[0], exec_env)
 _RETURNED_OBJECT = _OPERATOR(*_ARGUMENTS)
                 """
         elif types._vector_Q(ast): # TODO
