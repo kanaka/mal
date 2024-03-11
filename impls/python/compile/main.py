@@ -33,8 +33,6 @@ _RETURNED_OBJECT = EXEC_COMPILE(_A2, exec_env)
 _RETURNED_OBJECT = exec_env.set(_A1, _RETURNED_OBJECT)
                 """
             # Primary Operator: 'let*
-            #   e.g. (let* (a 3 b 4) (+ a b)) ; => 7
-            #   e.g. (let* (a 3 b 4) (+ a (let* (b 0) b))) ; => 3
             elif ast[0] == "let*":
                 compiled_string="""
 _A1, _A2 = exec_ast[1], exec_ast[2]
@@ -44,7 +42,6 @@ for i in range(0, len(_A1), 2):
 _RETURNED_OBJECT = EXEC_COMPILE(_A2, _let_env)
                 """
             # Primary Operator: 'do
-            #   (do (def! x 1) (def! y 2) (+ x y)) ; => 3
             elif ast[0] == "do":
                 compiled_string="""
 for _exec_sub_ast in exec_ast[1:-1]:
@@ -52,12 +49,6 @@ for _exec_sub_ast in exec_ast[1:-1]:
 _RETURNED_OBJECT = EXEC_COMPILE(exec_ast[-1], exec_env)
                 """
             # Primary Operator: 'if
-            #   (if 0     1  ) ; => 1
-            #   (if 0     1 2) ; => 1
-            #   (if nil   1 2) ; => 2
-            #   (if nil   1  ) ; => nil
-            #   (if false 1 2) ; => 2
-            #   (if (if false 0 nil) 1 2) ; => 2
             elif ast[0] == "if":
                 compiled_string="""
 _A1 = exec_ast[1]
@@ -69,11 +60,6 @@ else:
     _RETURNED_OBJECT = EXEC_COMPILE(exec_ast[2], exec_env)
                 """
             # Primary Operator: 'fn*
-            # (fn* (a) a) ; => #<function>
-            # ((fn* (a) a) 7) ; => 7
-            # ((fn* (a) (+ a 1)) 10) ; => 11
-            # ((fn* (a b) (+ a b)) 2 3) ; => 5
-            # ((fn* (a) (* (a) (a))) (fn* (a) 3)) ; => 9
             elif ast[0] == "fn*":
                 # FIXME I think the string cannot have _function. Otherwise the function is compiled at runtime, defeating the purpose of a compiler.
                 compiled_string="""
