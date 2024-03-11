@@ -74,6 +74,7 @@ def _string_Q(exp):
     else:
         return False
 def _number_Q(exp): return type(exp) == int
+def _scalar_Q(exp): return _nil_Q(exp) or _true_Q(exp) or _false_Q(exp) or _string_Q(exp) or _number_Q(exp)
 
 # Symbols
 class Symbol(str): pass
