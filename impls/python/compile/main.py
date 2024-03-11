@@ -170,14 +170,17 @@ f"""
 f"""
 def {prefix} (ast, env):
     logger.debug(f"ast: {{ast}}")
-    result = {prefix}_{0}(ast[0], env)
-    logger.debug(f"result: {{result}}")
-    return result \\
+    result = {prefix}_{0}(ast[0], env) \\
 """
             compiled_string += "   (\n"
             for i in range(1, len(ast)):
                 compiled_string += f"        {prefix}_{i}(ast[{i}], env),\n"
-            compiled_string += "   )\n"
+            compiled_string += "   )"
+            compiled_string += \
+f"""
+    logger.debug(f"result: {{result}}")
+    return result
+"""
             compiled_strings = [compiled_string]
             for i in range(0, len(ast)):
                 compiled_strings = COMPILE(ast[i], env, prefix=f"{prefix}_{i}") + compiled_strings
@@ -217,15 +220,22 @@ def PRINT(exp):
 repl_env = Env()
 
 # arithmetic
+def subtract (args):
+    if len(args) == 0:
+        return 0
+    elif len(args) == 1:
+        return -args[0]
+    else:
+        return args[0] - sum(args[1:])
 def multiply (args):
-    if args == []:
+    if len(args) == 0:
         return 1
-    if len(args) == 1:
+    elif len(args) == 1:
         return args[0]
     else:
         return args[0] * multiply(args[1:])
 repl_env.set(types._symbol('+'), lambda *args: sum(args))
-repl_env.set(types._symbol('-'), lambda *args: args[0] - sum(args[1:]))
+repl_env.set(types._symbol('-'), lambda *args: subtract(args))
 repl_env.set(types._symbol('*'), lambda *args: multiply(args))
 repl_env.set(types._symbol('/'), lambda a,b: int(a/b))
 
@@ -237,6 +247,11 @@ def REP(str):
 logger.info("Running tests..")
 assert(EVAL(READ("(+ 1 1))"), repl_env) == 2)
 assert(EVAL(READ("(+ (* 2 (+ 3 4)) 1))"), repl_env) == 15)
+assert(EVAL(READ("(+)"), repl_env) == 0)
+assert(EVAL(READ("(-)"), repl_env) == 0)
+assert(EVAL(READ("(- 9)"), repl_env) == -9)
+assert(EVAL(READ("(- 9 2)"), repl_env) == 7)
+assert(EVAL(READ("(*)"), repl_env) == 1)
 assert(EVAL(READ("(let* (a 3 b 4) (+ a b))"), repl_env) == 7)
 assert(EVAL(READ("(let* (a 3 b 4) (+ a (let* (b 0) b)))"), repl_env) == 3)
 assert(EVAL(READ("(let* (a 3 b a) b)"), repl_env) == 3)
