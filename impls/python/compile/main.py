@@ -42,6 +42,41 @@ for i in range(0, len(_A1), 2):
   _let_env.set(_A1[i], EXEC_COMPILE(_A1[i+1], exec_env))
 _RETURNED_OBJECT = EXEC_COMPILE(_A2, _let_env)
                 """
+            # Primary Operator: 'do
+            #   (do (def! x 1) (def! y 2) (+ x y)) ; => 3
+            elif ast[0] == "do":
+                compiled_string="""
+for _exec_sub_ast in exec_ast[1:-1]:
+  EXEC_COMPILE(_exec_sub_ast, exec_env)
+_RETURNED_OBJECT = EXEC_COMPILE(exec_ast[-1], exec_env)
+                """
+            # Primary Operator: 'if
+            #   (if 0     1  ) ; => 1
+            #   (if 0     1 2) ; => 1
+            #   (if nil   1 2) ; => 2
+            #   (if nil   1  ) ; => nil
+            #   (if false 1 2) ; => 2
+            #   (if (if false 0 nil) 1 2) ; => 2
+            elif ast[0] == "if":
+                compiled_string="""
+_A1 = exec_ast[1]
+_COND = EXEC_COMPILE(_A1, exec_env)
+if _COND is None or _COND is False:
+  if len(exec_ast) > 3: _RETURNED_OBJECT = EXEC_COMPILE(exec_ast[3], exec_env)
+  else:                 _RETURNED_OBJECT = None
+else:
+  _RETURNED_OBJECT = EXEC_COMPILE(exec_ast[2], exec_env)
+                """
+            # Primary Operator: 'fn*
+            # (fn* (a) a) ; => #<function>
+            # ((fn* (a) a) 7) ; => 7
+            # ((fn* (a) (+ a 1)) 10) ; => 11
+            # ((fn* (a b) (+ a b)) 2 3) ; => 5
+            elif ast[0] == "fn*":
+                compiled_string="""
+_A1, _A2 = exec_ast[1], exec_ast[2]
+_RETURNED_OBJECT = types._function(EXEC_COMPILE, Env, _A2, exec_env, _A1)
+                """
             # Non-Special Forms
             else:
                 compiled_string="""
