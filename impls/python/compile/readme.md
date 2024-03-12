@@ -9,24 +9,20 @@ in `./impls/python/`.
 
 ## TODO
 
-1. **Rethink Compilation of Lambda Functions:** Consider the
-   implications of compiling lambda functions ahead of time.
-   Reimplement `compile_fn` if needed.
++ **Implement Quasiquote, Unquote, and Splice-unquote:** Develop
+  functionality for quasiquote, unquote, and splice-unquote.
 
-2. **Implement Quasiquote, Unquote, and Splice-unquote:** Develop
-   functionality for quasiquote, unquote, and splice-unquote.
++ **Implement Macros (Section 8):** Proceed with implementing
+  macros only after careful consideration and potential
+  reimplementation of `compile_fn`.
 
-3. **Implement Macros (Section 8):** Proceed with implementing
-   macros only after careful consideration and potential
-   reimplementation of `compile_fn`.
++ **Implement Try and Catch (Section 9):** Add support for try
+  and catch constructs.
 
-4. **Implement Try and Catch (Section 9):** Add support for try
-   and catch constructs.
++ **Test MAL Against Official Test Cases:** Verify the
+  functionality of this MAL implementation against the official
+  test cases.
 
-5. **Test MAL Against Official Test Cases:** Verify the
-   functionality of this MAL implementation against the official
-   test cases.
-
-6. **Clean Up Code and Submit Pull Request:** Review the codebase
-   for any cleanup or optimization opportunities. Once ready,
-   submit a pull request for review and integration.
++ **Clean Up Code and Submit Pull Request:** Review the codebase
+  for any cleanup or optimization opportunities. Once ready,
+  submit a pull request for review and integration.

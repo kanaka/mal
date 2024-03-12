@@ -150,8 +150,8 @@ def {prefix} (ast, env):
     return compiled_strings
 
 def compile_fn (ast, env, prefix):
-    compiled_strings = \
-[f"""
+    compiled_string = \
+f"""
 def {prefix} (ast, env):
     logger.debug(f"ast: {{ast}}")
     def {prefix}_lambda (*args):
@@ -159,11 +159,13 @@ def {prefix} (ast, env):
         params = ast[1]
         logger.debug(f"ast: {{ast}}")
         logger.debug(f"params: {{params}}")
-        return EVAL(ast[2], Env(env, params, types.List(args))) # TODO Is this step cheating?
+        local_env = Env(env, params, types.List(args))
+        return {prefix}_0(ast[2], local_env)
     result = {prefix}_lambda
     logger.debug(f"result: {{result}}")
     return result
-"""]
+"""
+    compiled_strings = COMPILE(ast[2], env, prefix=f"{prefix}_0") + [compiled_string]
     return compiled_strings
 
 def compile_quote (ast, env, prefix):
