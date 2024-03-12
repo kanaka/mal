@@ -3,6 +3,7 @@ import mal_readline
 import mal_types as types
 import reader, printer
 from env import Env
+import core
 
 # debug
 from loguru import logger
@@ -126,6 +127,7 @@ f"""
     return compiled_strings
 
 def compile_scalar (ast, env, prefix):
+    if types._string_Q(ast): ast = f"\"{ast}\""
     compiled_strings = \
 [f"""
 def {prefix} (ast, env):
@@ -165,7 +167,6 @@ def COMPILE (ast, env, prefix="blk"):
         elif ast[0] == "if":   return compile_if(ast, env, prefix)
         elif ast[0] == "fn*":  return compile_fn(ast, env, prefix)
         else:                  return compile_regular(ast, env, prefix)
-    # TODO To support scalars (current version only works for integers) and keywords.
     elif types._scalar_Q(ast): return compile_scalar(ast, env, prefix)
     elif types._vector_Q(ast) or types._hash_map_Q(ast):
         raise Exception("Unsupported Type") # TODO
@@ -197,25 +198,8 @@ def PRINT(exp):
 # environment
 repl_env = Env()
 
-# arithmetic
-def subtract (args):
-    if len(args) == 0:
-        return 0
-    elif len(args) == 1:
-        return -args[0]
-    else:
-        return args[0] - sum(args[1:])
-def multiply (args):
-    if len(args) == 0:
-        return 1
-    elif len(args) == 1:
-        return args[0]
-    else:
-        return args[0] * multiply(args[1:])
-repl_env.set(types._symbol('+'), lambda *args: sum(args))
-repl_env.set(types._symbol('-'), lambda *args: subtract(args))
-repl_env.set(types._symbol('*'), lambda *args: multiply(args))
-repl_env.set(types._symbol('/'), lambda a,b: int(a/b))
+# load from core
+for k, v in core.ns.items(): repl_env.set(types._symbol(k), v)
 
 # repl
 def REP(str):
@@ -225,6 +209,10 @@ def REP(str):
 logger.info("Running tests..")
 logger.remove()
 assert(EVAL(READ("nil"), repl_env) == None)
+assert(EVAL(READ("true"), repl_env) == True)
+assert(EVAL(READ("false"), repl_env) == False)
+assert(EVAL(READ("123"), repl_env) == 123)
+assert(EVAL(READ("\"This is a string.\""), repl_env) == "This is a string.")
 assert(EVAL(READ("()"), repl_env) == None)
 assert(EVAL(READ("(+ 1 1)"), repl_env) == 2)
 assert(EVAL(READ("(+ (* 2 (+ 3 4)) 1))"), repl_env) == 15)
