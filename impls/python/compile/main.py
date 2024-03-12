@@ -31,11 +31,11 @@ def compile_def (ast, env, prefix):
 [f"""
 def {prefix} (ast, env):
     logger.debug(f"ast: {{ast}}")
-    result = env.set(ast[1], {prefix}_{2}(ast, env))
+    result = env.set(ast[1], {prefix}_0(ast[2], env))
     logger.debug(f"result: {{result}}")
     return result
 """]
-    compiled_strings = COMPILE(ast[2], env, prefix=f"{prefix}_{2}") + compiled_strings
+    compiled_strings = COMPILE(ast[2], env, prefix=f"{prefix}_0") + compiled_strings
     return compiled_strings
 
 def compile_let (ast, env, prefix):
@@ -137,14 +137,6 @@ def {prefix} (ast, env):
     return compiled_strings
 
 def compile_fn (ast, env, prefix):
-# TODO Remove
-#
-# types._function(EVAL, Env, a2, env, a1)
-#
-# def _function(Eval, Env, ast, env, params):
-#     def fn(*args):
-#         return Eval(ast, Env(env, params, List(args)))
-#     return fn
     compiled_strings = \
 [f"""
 def {prefix} (ast, env):
@@ -152,6 +144,7 @@ def {prefix} (ast, env):
     def {prefix}_lambda (*args):
         logger.debug(f"args: {{args}}")
         params = ast[1]
+        logger.debug(f"ast: {{ast}}")
         logger.debug(f"params: {{params}}")
         return EVAL(ast[2], Env(env, params, types.List(args)))
     result = {prefix}_lambda
@@ -181,8 +174,10 @@ def COMPILE (ast, env, prefix="blk"):
 
 def EXEC (compiled_strings, ast, env):
     compiled_strings += ["\nRET = blk(ast, env)\n"]
+    logger.debug(f"<<< Compiled Code |\n")
     for s in compiled_strings:
-        logger.debug(f"Compiled Code:\n{s}")
+        logger.debug(f"<<< C....... C... |\n{s}")
+    logger.debug(f"  | Compiled Code | AST : {ast} >>>\n")
     bindings = globals().copy()
     bindings.update(locals())
     for code in compiled_strings:
@@ -191,6 +186,7 @@ def EXEC (compiled_strings, ast, env):
 
 # eval
 def EVAL(ast, env):
+    logger.debug(f"EVAL AST: {ast}\n")
     _ast_history.append(ast)
     return EXEC(COMPILE(ast, env), ast, env)
 
@@ -227,6 +223,7 @@ def REP(str):
 
 # automatic tests
 logger.info("Running tests..")
+logger.remove()
 assert(EVAL(READ("nil"), repl_env) == None)
 assert(EVAL(READ("()"), repl_env) == None)
 assert(EVAL(READ("(+ 1 1)"), repl_env) == 2)
@@ -254,21 +251,18 @@ assert(EVAL(READ("((fn* (a) a) 7)"), repl_env) == 7)
 assert(EVAL(READ("((fn* (a) (* (a) (a))) (fn* (a) 3))"), repl_env) == 9)
 assert(EVAL(READ("((fn* (a b) (* (a b) b)) (fn* (a) (+ 2 a)) 7)"), repl_env) == 63)
 assert(EVAL(READ("((let* (a 10000 b -2) (fn* (a c) (+ a b c))) 1 1)"), repl_env) == 0)
-# ;; Infinite Loop
-# ((fn* (a) (a a)) (fn* (a) (a a)))
-# ;; Infinite Loop
-# (let* (f (fn* (a) (a a))) (f f))
-# ;; Safe; but why? FIXME It's a bug!
-# (do (def! f (fn* (a) (a a))) (f f))
-# FIXME Can't do:
-# (do (def! f (fn* (a) (a a))) (def! g f))
-# But we can do this.. good
-# (let* (f (fn* (a) (a a)) g f) g)
-# ;; This loops infinitely many times. Good:
-# (let* (f (fn* (a) (a a)) g f) g)
-# FIXME But this fails:
-# (def! h (let* (f (fn* (a) (a a)) g f) g))
-# FIXME Seems that in general fn* doesn't play well with def! but not let*. Find bug and fix them!
+def expect_infinite_loop (lisp_code):
+    try:
+        EVAL(READ(lisp_code), repl_env)
+    except RecursionError:
+        pass
+    else:
+        raise Exception("Should have given an infinite loop.")
+expect_infinite_loop("((fn* (a) (a a)) (fn* (a) (a a)))")
+expect_infinite_loop("(let* (f (fn* (a) (a a))) (f f))")
+expect_infinite_loop("(do (def! f (fn* (a) (a a))) (def! g f) (g g))")
+expect_infinite_loop("(let* (f (fn* (a) (a a)) g f) (g g))")
+logger.add(sys.stderr, level="DEBUG")
 logger.info("All tests passed!")
 
 # lisp repl loop
