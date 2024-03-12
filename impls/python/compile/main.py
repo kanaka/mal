@@ -146,7 +146,7 @@ def {prefix} (ast, env):
         params = ast[1]
         logger.debug(f"ast: {{ast}}")
         logger.debug(f"params: {{params}}")
-        return EVAL(ast[2], Env(env, params, types.List(args)))
+        return EVAL(ast[2], Env(env, params, types.List(args))) # TODO Is this steap cheating?
     result = {prefix}_lambda
     logger.debug(f"result: {{result}}")
     return result
