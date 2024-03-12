@@ -126,6 +126,17 @@ f"""
         compiled_strings = COMPILE(ast[i], env, prefix=f"{prefix}_{i}") + compiled_strings
     return compiled_strings
 
+def compile_identity (ast, env, prefix):
+    compiled_strings = \
+[f"""
+def {prefix} (ast, env):
+    logger.debug(f"ast: {{ast}}")
+    result = ast
+    logger.debug(f"result: {{result}}")
+    return result
+"""]
+    return compiled_strings
+
 def compile_scalar (ast, env, prefix):
     if types._string_Q(ast): ast = f"\"{ast}\""
     compiled_strings = \
@@ -148,7 +159,7 @@ def {prefix} (ast, env):
         params = ast[1]
         logger.debug(f"ast: {{ast}}")
         logger.debug(f"params: {{params}}")
-        return EVAL(ast[2], Env(env, params, types.List(args))) # TODO Is this steap cheating?
+        return EVAL(ast[2], Env(env, params, types.List(args))) # TODO Is this step cheating?
     result = {prefix}_lambda
     logger.debug(f"result: {{result}}")
     return result
@@ -168,8 +179,10 @@ def COMPILE (ast, env, prefix="blk"):
         elif ast[0] == "fn*":  return compile_fn(ast, env, prefix)
         else:                  return compile_regular(ast, env, prefix)
     elif types._scalar_Q(ast): return compile_scalar(ast, env, prefix)
+    elif types._function_Q(ast): return compile_identity(ast, env, prefix)
+        # raise Exception("Unsupported Type: Function.") # TODO
     elif types._vector_Q(ast) or types._hash_map_Q(ast):
-        raise Exception("Unsupported Type") # TODO
+        raise Exception("Unsupported Type: Vector or Hash Map.") # TODO
     else:
         raise Exception(f"Unknown AST Type: {type(ast)}")
 
@@ -200,6 +213,9 @@ repl_env = Env()
 
 # load from core
 for k, v in core.ns.items(): repl_env.set(types._symbol(k), v)
+repl_env.set(types._symbol('eval'), lambda ast: EVAL(ast, repl_env))
+repl_env.set(types._symbol('*ARGV*'), types._list(*sys.argv[2:]))
+repl_env.set(types._symbol('debugger'), lambda x: logger.remove() if x == 0 else logger.add(sys.stderr, level="DEBUG"))
 
 # repl
 def REP(str):
@@ -250,6 +266,8 @@ expect_infinite_loop("((fn* (a) (a a)) (fn* (a) (a a)))")
 expect_infinite_loop("(let* (f (fn* (a) (a a))) (f f))")
 expect_infinite_loop("(do (def! f (fn* (a) (a a))) (def! g f) (g g))")
 expect_infinite_loop("(let* (f (fn* (a) (a a)) g f) (g g))")
+assert(types._function_Q(EVAL(READ("(eval +)"), repl_env)))
+assert(EVAL(READ("(eval (list + 1))"), repl_env) == 1)
 logger.add(sys.stderr, level="DEBUG")
 logger.info("All tests passed!")
 
