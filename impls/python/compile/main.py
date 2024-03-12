@@ -5,6 +5,20 @@ import reader, printer
 from env import Env
 import core
 
+# TODO
+#
+# 1. Think it through - what does it mean to compile a lambda
+#    function ahead of time? Reimplement compile_fn if necessary.
+#
+# 2. Implement quasiquote, unquote, splice-unquote.
+#
+# 3. Implement macros (section 8); do this only after thinking
+#    through and reimplementing (if necessary) compile_fn.
+#
+# 4. Implement try and catch.
+#
+# 5. Test this MAL against the official test cases.
+
 # debug
 from loguru import logger
 logger.info("Debugger Activated: loguru")
@@ -193,9 +207,8 @@ def COMPILE (ast, env, prefix="blk"):
         else:                    return compile_regular(ast, env, prefix)
     elif types._scalar_Q(ast):   return compile_scalar(ast, env, prefix)
     elif types._function_Q(ast): return compile_identity(ast, env, prefix)
-        # raise Exception("Unsupported Type: Function.") # TODO
     elif types._vector_Q(ast) or types._hash_map_Q(ast):
-        raise Exception("Unsupported Type: Vector or Hash Map.") # TODO
+        raise Exception("Unsupported Type: Vector or Hash Map.") # TODO?
     else:
         raise Exception(f"Unknown AST Type: {type(ast)}")
 
