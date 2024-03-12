@@ -105,7 +105,7 @@ def {prefix} (ast, env):
     compiled_strings = cond_compiled_strings + if_compiled_strings + else_compiled_strings + [compiled_string]
     return compiled_strings
 
-def compile_regular (ast, env, prefix):
+def compile_funcall (ast, env, prefix):
     compiled_string = \
 f"""
 def {prefix} (ast, env):
@@ -179,9 +179,29 @@ def {prefix} (ast, env):
 """]
     return compiled_strings
 
+# def compile_defmacro (ast, env, prefix):
+#     # FIXME Find out how to make an AST from a python list, from the types package.
+#     new_ast = ["let*", ["X", ast[2]], ["do", ["set-ismacro", "X"], ["def!", ast[1], "X"]]]
+#     compiled_strings = compile_let (new_ast, env, prefix)
+#     return compiled_strings
+
+def is_macro_call (ast, env):
+    return (types._list_Q(ast) and
+            types._symbol_Q(ast[0]) and
+            env.find(ast[0]) and
+            hasattr(env.get(ast[0]), '_ismacro_'))
+
+def macroexpand (ast, env):
+    while is_macro_call(ast, env):
+        logger.debug(f"Macroexpanding AST: {ast}..")
+        macro_fn = env.get(ast[0])
+        ast = macro_fn(*ast[1:])
+        logger.debug(f"Macroexpanded  AST: {ast}..")
+    return ast
 
 def COMPILE (ast, env, prefix="blk"):
     logger.debug(f"ast: {ast}")
+    ast = macroexpand(ast, env)
     if types._symbol_Q(ast):
         return compile_symbol(ast, env, prefix)
     elif types._list_Q(ast):
@@ -192,7 +212,9 @@ def COMPILE (ast, env, prefix="blk"):
         elif ast[0] == "if":     return compile_if(ast, env, prefix)
         elif ast[0] == "fn*":    return compile_fn(ast, env, prefix)
         elif ast[0] == "quote":  return compile_quote(ast, env, prefix)
-        else:                    return compile_regular(ast, env, prefix)
+        # Implement defmacro! as a macro.
+        # elif ast[0] == "defmacro!":  return compile_defmacro(ast, env, prefix)
+        else:                    return compile_funcall(ast, env, prefix)
     elif types._scalar_Q(ast):   return compile_scalar(ast, env, prefix)
     elif types._function_Q(ast): return compile_identity(ast, env, prefix)
     elif types._vector_Q(ast) or types._hash_map_Q(ast):
@@ -225,15 +247,37 @@ def PRINT(exp):
 # environment
 repl_env = Env()
 
+# repl
+def REP(str):
+    return PRINT(EVAL(READ(str), repl_env))
+
 # load from core
 for k, v in core.ns.items(): repl_env.set(types._symbol(k), v)
 repl_env.set(types._symbol('eval'), lambda ast: EVAL(ast, repl_env))
 repl_env.set(types._symbol('*ARGV*'), types._list(*sys.argv[2:]))
 repl_env.set(types._symbol('debugger'), lambda x: logger.remove() if x == 0 else logger.add(sys.stderr, level="DEBUG"))
+repl_env.set(types._symbol('set-ismacro'), lambda fn: setattr(fn, '_ismacro_', True))
+repl_env.set(types._symbol('unset-ismacro'), lambda fn: setattr(fn, '_ismacro_', False))
+repl_env.set(types._symbol('ismacro'), lambda fn: getattr(fn, '_ismacro_', False))
 
-# repl
-def REP(str):
-    return PRINT(EVAL(READ(str), repl_env))
+# FIXME (DEFMACRO!) The python interpretor implementation
+# implements defmacro! as a special op, but I want to make it as
+# a macro.
+#
+# However, the code is currently not working. In the following
+# definition of defmacro!, the `eval` is causing trouble, as it
+# always refers to the global environment (src code:
+# `repl_env.set(types._symbol('eval'), lambda ast: EVAL(ast,
+# repl_env))`). As a consequence, we can't even do `(defmacro!
+# quote2 (fn* (ast) (list (fn* () ast)))) => Exception: 'fn*' not
+# found`
+#
+# Relevant: https://github.com/kanaka/mal/issues/652
+REP("(def! defmacro! (fn* (name function-ast) (list 'do (list 'def! 'name (eval function-ast)) '(set-ismacro name))))") # FIXME # TODO Rewrite after having quasiquote.
+REP("(set-ismacro defmacro!)") # This defines the macro `defmacro!`
+# REP("(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))")
+# REP("(defmacro! quote2 (fn* (ast) (list (fn* () ast))))")
+# REP("(defmacro! quote666 (fn* (ast) (list (ast))))")
 
 # automatic tests
 logger.info("Running tests..")
