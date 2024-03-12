@@ -166,19 +166,32 @@ def {prefix} (ast, env):
 """]
     return compiled_strings
 
+def compile_quote (ast, env, prefix):
+    compiled_strings = \
+[f"""
+def {prefix} (ast, env):
+    logger.debug(f"ast: {{ast}}")
+    result = ast[1]
+    logger.debug(f"result: {{result}}")
+    return result
+"""]
+    return compiled_strings
+
+
 def COMPILE (ast, env, prefix="blk"):
     logger.debug(f"ast: {ast}")
     if types._symbol_Q(ast):
         return compile_symbol(ast, env, prefix)
     elif types._list_Q(ast):
-        if   len(ast) == 0:    return compile_scalar(None, env, prefix)
-        elif ast[0] == "def!": return compile_def(ast, env, prefix)
-        elif ast[0] == "let*": return compile_let(ast, env, prefix)
-        elif ast[0] == "do":   return compile_do(ast, env, prefix)
-        elif ast[0] == "if":   return compile_if(ast, env, prefix)
-        elif ast[0] == "fn*":  return compile_fn(ast, env, prefix)
-        else:                  return compile_regular(ast, env, prefix)
-    elif types._scalar_Q(ast): return compile_scalar(ast, env, prefix)
+        if   len(ast) == 0:      return compile_scalar(None, env, prefix)
+        elif ast[0] == "def!":   return compile_def(ast, env, prefix)
+        elif ast[0] == "let*":   return compile_let(ast, env, prefix)
+        elif ast[0] == "do":     return compile_do(ast, env, prefix)
+        elif ast[0] == "if":     return compile_if(ast, env, prefix)
+        elif ast[0] == "fn*":    return compile_fn(ast, env, prefix)
+        elif ast[0] == "quote":  return compile_quote(ast, env, prefix)
+        else:                    return compile_regular(ast, env, prefix)
+    elif types._scalar_Q(ast):   return compile_scalar(ast, env, prefix)
     elif types._function_Q(ast): return compile_identity(ast, env, prefix)
         # raise Exception("Unsupported Type: Function.") # TODO
     elif types._vector_Q(ast) or types._hash_map_Q(ast):
@@ -251,6 +264,7 @@ assert(EVAL(READ("(if nil   1 2)"), repl_env) == 2)
 assert(EVAL(READ("(if nil   1  )"), repl_env) == None)
 assert(EVAL(READ("(if false 1 2)"), repl_env) == 2)
 assert(EVAL(READ("(if (if false 0 nil) 1 2)"), repl_env) == 2)
+assert(EVAL(READ("(do (def! f (fn* () a)) (def! a 9) (let* (a 0) (f)))"), repl_env) == 9) # NOTE Is this desirable?
 assert(EVAL(READ("((fn* (a) a) 7)"), repl_env) == 7)
 assert(EVAL(READ("((fn* (a) (* (a) (a))) (fn* (a) 3))"), repl_env) == 9)
 assert(EVAL(READ("((fn* (a b) (* (a b) b)) (fn* (a) (+ 2 a)) 7)"), repl_env) == 63)
@@ -273,6 +287,11 @@ assert(EVAL(READ("(let* (x (atom 3)) (deref x))"), repl_env) == 3)
 assert(EVAL(READ("(let* (x (atom 3)) @x)"), repl_env) == 3)
 assert(EVAL(READ("(let* (x (atom 3)) (do (swap! x (fn* (n) (+ 1 n))) (deref x)))"), repl_env) == 4)
 assert(EVAL(READ("(let* (x (atom 3)) (do (reset! x 9) (deref x)))"), repl_env) == 9)
+assert(EVAL(READ("(quote (1 2 3))"), repl_env) == [1, 2, 3])
+assert(EVAL(READ("'(1 2 3)"), repl_env) == [1, 2, 3])
+assert(EVAL(READ("'+"), repl_env) == "+")
+assert(EVAL(READ("\"+\""), repl_env) == "+")
+assert(EVAL(READ("(= '+ \"+\")"), repl_env) == False)
 logger.add(sys.stderr, level="DEBUG")
 logger.info("All tests passed!")
 
