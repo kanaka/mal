@@ -283,8 +283,9 @@ def COMPILE (ast, env, prefix="blk"):
         elif ast[0] == "do":     compiled_strings = compile_do(ast, env, prefix)
         elif ast[0] == "fn*":    compiled_strings = compile_fn(ast, env, prefix)
         else:                    compiled_strings = compile_funcall(ast, env, prefix)
+    elif types._vector_Q(ast)  : compiled_strings = COMPILE(types.List([types.Symbol("vector")]+list(ast)), env, prefix)
     elif types._scalar_Q(ast)    or \
-         types._vector_Q(ast)    or \
+         types._keyword_Q(ast)   or \
          types._hash_map_Q(ast)  or \
          types._function_Q(ast): compiled_strings = compile_literal(ast, env, prefix)
     else:
@@ -414,6 +415,7 @@ def TEST ():
     # load from core
 for k, v in core.ns.items(): repl_env.set(types._symbol(k), v)
 repl_env.set(types._symbol('eval'), lambda ast: EVAL(ast, repl_env))
+repl_env.set(types._symbol('vector'), lambda *vector_elements: types.Vector(vector_elements))
 repl_env.set(types._symbol('*ARGV*'), types._list(*sys.argv[2:]))
 repl_env.set(types._symbol('debug'), DEBUG)
 repl_env.set(types._symbol('test'), TEST)
@@ -421,17 +423,17 @@ repl_env.set(types._symbol('set-ismacro'), lambda fn: setattr(fn, '_ismacro_', T
 repl_env.set(types._symbol('unset-ismacro'), lambda fn: setattr(fn, '_ismacro_', False))
 repl_env.set(types._symbol('ismacro'), lambda fn: getattr(fn, '_ismacro_', False))
 
+REP("(def! not (fn* (a) (if a false true)))")
+REP("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \"\nnil)\")))))")
 REP("(def! defmacro! (fn* (name function-body-ast) (list 'do (list 'def! name function-body-ast) (list 'set-ismacro name))))") # TODO Rewrite after having quasiquote.
 REP("(set-ismacro defmacro!)")
 REP("(defmacro! iden (fn* (ast) ast))")
 REP("(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))")
-REP("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \"\nnil)\")))))")
 
 
 def main ():
     LISP = REPL
     LISP()
-    # python repl loop
-    code.interact(local=locals())
 
 main()
+code.interact(local=locals()) # python repl loop
