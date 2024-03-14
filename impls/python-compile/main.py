@@ -131,14 +131,14 @@ f"""
 f"""
     ]
     def {prefix} (env):"""
+    i = 0
     for i in range(1, len(ast)-1):
         compiled_string += \
 f"""
         consts[{i-1}](env)"""
-    i += 1
     compiled_string += \
 f"""
-        result = consts[{i-1}](env)
+        result = consts[{i}](env)
         logger.debug(f"result: {{result}}")
         return result
     return {prefix}
@@ -276,17 +276,17 @@ def COMPILE (ast, env, prefix="blk"):
         compiled_strings = compile_symbol(ast, env, prefix)
     elif types._list_Q(ast):
         if len(ast) == 0:        compiled_strings = compile_literal(ast, env, prefix)
+        elif ast[0] == "quote":  compiled_strings = compile_literal(ast[1], env, prefix)
+        elif ast[0] == "if":     compiled_strings = compile_if(ast, env, prefix)
         elif ast[0] == "def!":   compiled_strings = compile_def(ast, env, prefix)
         elif ast[0] == "let*":   compiled_strings = compile_let(ast, env, prefix)
         elif ast[0] == "do":     compiled_strings = compile_do(ast, env, prefix)
-        elif ast[0] == "if":     compiled_strings = compile_if(ast, env, prefix)
         elif ast[0] == "fn*":    compiled_strings = compile_fn(ast, env, prefix)
-        elif ast[0] == "quote":  compiled_strings = compile_literal(ast[1], env, prefix)
         else:                    compiled_strings = compile_funcall(ast, env, prefix)
-    elif types._scalar_Q(ast):   compiled_strings = compile_literal(ast, env, prefix)
-    elif types._function_Q(ast): compiled_strings = compile_literal(ast, env, prefix)
-    elif types._vector_Q(ast) or types._hash_map_Q(ast):
-        raise Exception("Unsupported Type: Vector or Hash Map.") # TODO
+    elif types._scalar_Q(ast)    or \
+         types._vector_Q(ast)    or \
+         types._hash_map_Q(ast)  or \
+         types._function_Q(ast): compiled_strings = compile_literal(ast, env, prefix)
     else:
         raise Exception(f"Unknown AST Type: {type(ast)}")
     return compiled_strings
