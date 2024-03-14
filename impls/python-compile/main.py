@@ -425,6 +425,7 @@ REP("(def! defmacro! (fn* (name function-body-ast) (list 'do (list 'def! name fu
 REP("(set-ismacro defmacro!)")
 REP("(defmacro! iden (fn* (ast) ast))")
 REP("(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))")
+REP("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \"\nnil)\")))))")
 
 
 def main ():
