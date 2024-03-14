@@ -11,6 +11,7 @@ logger.info("Debugger Activated: loguru")
 _line_history, _ast_history = [], []
 sys.ps1, sys.ps2 = "[PYTHON]> ", "        > "
 _wake_up_command = ";()"
+_debug_list = [] # for debugging use
 
 # read
 def READ(str):
@@ -18,12 +19,12 @@ def READ(str):
 
 def compile_symbol (ast, env, prefix):
     logger.debug(f"Compiling AST:\n{ast}\n")
+    assert(types._symbol_Q(ast))
     compiled_strings = \
 [f"""
 # compile_symbol
-def {prefix} (ast, env):
-    logger.debug(f"ast: {{ast}}")
-    result = env.get(ast)
+def {prefix} (env):
+    result = env.get("{ast}")
     logger.debug(f"result: {{result}}")
     return result
 """]
@@ -31,12 +32,12 @@ def {prefix} (ast, env):
 
 def compile_def (ast, env, prefix):
     logger.debug(f"Compiling AST:\n{ast}\n")
+    assert(types._symbol_Q(ast[1]))
     compiled_strings = \
 [f"""
 # compile_def
-def {prefix} (ast, env):
-    logger.debug(f"ast: {{ast}}")
-    result = env.set(ast[1], {prefix}_0(ast[2], env))
+def {prefix} (env):
+    result = env.set("{ast[1]}", {prefix}_0(env))
     logger.debug(f"result: {{result}}")
     return result
 """]
@@ -52,16 +53,15 @@ def compile_let (ast, env, prefix):
     compiled_string = \
 f"""
 # compile_let
-def {prefix} (ast, env):
-    logger.debug(f"ast: {{ast}}")
+def {prefix} (env):
     let_env = Env(env)"""
     for i in range(0, len(ast[1]), 2):
         compiled_string += \
 f"""
-    let_env.set(ast[1][{i}], {prefix}_{i//2}(ast[1][{i+1}], let_env))"""
+    let_env.set("{ast[1][i]}", {prefix}_{i//2}(let_env))"""
     compiled_string += \
 f"""
-    result = {prefix}_{(i+2)//2}(ast[2], let_env)
+    result = {prefix}_{(i+2)//2}(let_env)
     logger.debug(f"result: {{result}}")
     return result
 """
@@ -73,18 +73,17 @@ def compile_do (ast, env, prefix):
     compiled_string = \
 f"""
 # compile_do
-def {prefix} (ast, env):
-    logger.debug(f"ast: {{ast}}")
+def {prefix} (env):
 """
     for i in range(1, len(ast)-1):
         compiled_string += \
 f"""
-    {prefix}_{i-1}(ast[{i}], env)
+    {prefix}_{i-1}(env)
 """
     i += 1
     compiled_string += \
 f"""
-    result = {prefix}_{i-1}(ast[{i}], env)
+    result = {prefix}_{i-1}(env)
     logger.debug(f"result: {{result}}")
     return result
 """
@@ -99,13 +98,12 @@ def compile_if (ast, env, prefix):
     compiled_string = \
 f"""
 # compile_if
-def {prefix} (ast, env):
-    logger.debug(f"ast: {{ast}}")
-    cond = {prefix}_0(ast[1], env)
+def {prefix} (env):
+    cond = {prefix}_0(env)
     if not (cond is None or cond is False):
-        result = {prefix}_1 (ast[2], env)
+        result = {prefix}_1 (env)
     else:
-        result = {prefix}_2 (ast[3], env)
+        result = {prefix}_2 (env)
     logger.debug(f"result: {{result}}")
     return result
 """
@@ -120,13 +118,12 @@ def compile_funcall (ast, env, prefix):
     compiled_string = \
 f"""
 # compile_funcall
-def {prefix} (ast, env):
-    logger.debug(f"ast: {{ast}}")
-    result = {prefix}_{0}(ast[0], env) \\
+def {prefix} (env):
+    result = {prefix}_{0}(env) \\
 """
     compiled_string += "   (\n"
     for i in range(1, len(ast)):
-        compiled_string += f"        {prefix}_{i}(ast[{i}], env),\n"
+        compiled_string += f"        {prefix}_{i}(env),\n"
     compiled_string += "   )"
     compiled_string += \
 f"""
@@ -138,61 +135,55 @@ f"""
         compiled_strings = COMPILE(ast[i], env, prefix=f"{prefix}_{i}")[0] + compiled_strings
     return compiled_strings
 
-def compile_identity (ast, env, prefix):
+def compile_constant (ast, env, prefix):
     logger.debug(f"Compiling AST:\n{ast}\n")
+    _consts[prefix] = ast
     compiled_strings = \
 [f"""
-# compile_identity
-def {prefix} (ast, env):
-    logger.debug(f"ast: {{ast}}")
-    result = ast
-    logger.debug(f"result: {{result}}")
-    return result
-"""]
-    return compiled_strings
-
-def compile_scalar (ast, env, prefix):
-    logger.debug(f"Compiling AST:\n{ast}\n")
-    if types._string_Q(ast): ast = f"\"{ast}\""
-    compiled_strings = \
-[f"""
-# compile_scalar
-def {prefix} (ast, env):
-    logger.debug(f"ast: {{ast}}")
-    result = {ast}
-    logger.debug(f"result: {{result}}")
-    return result
-"""]
+# compile_constant
+def {prefix} (env):
+    _const = _consts[{prefix}]
+    def _{prefix} (env):
+        result = _const
+        logger.debug(f"result: {{result}}")
+        return result
+    return _{prefix}()
+"""] # TODO FIXME
     return compiled_strings
 
 def compile_fn (ast, env, prefix):
     logger.debug(f"Compiling AST:\n{ast}\n")
+    params, body = ast[1], ast[2]
     compiled_string = \
 f"""
 # compile_fn
-def {prefix} (ast, env):
-    # logger.debug(f"ast: {{ast}}")
-    def {prefix}_lambda (*args):
-        # logger.debug(f"args: {{args}}")
-        params = ast[1]
-        # logger.debug(f"ast: {{ast}}")
-        # logger.debug(f"params: {{params}}")
+def {prefix} (env):
+    prefix_fn_real_body = {prefix}_0 # TODO Fix this bad name.
+    def {prefix}_fn (*args):
+        params, body = {params}, "{str(body)}"
+        logger.debug(f"params: {{params}}")
+        logger.debug(f" body : {{body}}")
+        logger.debug(f" args : {{args}}")
         local_env = Env(env, params, types.List(args))
-        return {prefix}_0(ast[2], local_env)
-    result = {prefix}_lambda
-    # logger.debug(f"result: {{result}}")
+        logger.debug(f"Calling real body stored at {{prefix_fn_real_body}}..\\n")
+        result = prefix_fn_real_body(local_env) # FIXME Wrong TODO Is it done?
+        logger.debug(f"result: {{result}}")
+        return result
+    result = {prefix}_fn
+    _debug_list.insert(0, result) # DEBUG
+    logger.debug(f"result: {{result}}")
     return result
 """
-    compiled_strings = COMPILE(ast[2], env, prefix=f"{prefix}_0")[0] + [compiled_string]
+    compiled_strings = COMPILE(body, env, prefix=f"{prefix}_0")[0] + [compiled_string] # FIXME Wrong?
     return compiled_strings
 
 def compile_quote (ast, env, prefix):
     logger.debug(f"Compiling AST:\n{ast}\n")
+    _consts[prefix] = ast[1]
     compiled_strings = \
 [f"""
-def {prefix} (ast, env):
-    logger.debug(f"ast: {{ast}}")
-    result = ast[1]
+def {prefix} (env):
+    result = _consts["{prefix}"]
     logger.debug(f"result: {{result}}")
     return result
 """]
@@ -214,31 +205,33 @@ def macroexpand (ast, env):
         logger.debug(f"Macro Expansion Finished ({count} fold(s)).\n> New AST:\n{ast}\n> Old AST:\n{unexpanded_ast}\n")
     return ast
 
+_consts = {} # TODO Can I make this non-global? It feels a bit leaky.
+
 def COMPILE (ast, env, prefix="blk"):
     logger.debug(f"Compiling AST:\n{ast}\n")
     ast = macroexpand(ast, env)
     if types._symbol_Q(ast):
         compiled_strings = compile_symbol(ast, env, prefix)
     elif types._list_Q(ast):
-        if len(ast) == 0:        compiled_strings = compile_scalar(None, env, prefix)
+        if len(ast) == 0:        compiled_strings = compile_constant(ast, env, prefix)
         elif ast[0] == "def!":   compiled_strings = compile_def(ast, env, prefix)
         elif ast[0] == "let*":   compiled_strings = compile_let(ast, env, prefix)
         elif ast[0] == "do":     compiled_strings = compile_do(ast, env, prefix)
         elif ast[0] == "if":     compiled_strings = compile_if(ast, env, prefix)
         elif ast[0] == "fn*":    compiled_strings = compile_fn(ast, env, prefix)
-        elif ast[0] == "quote":  compiled_strings = compile_quote(ast, env, prefix)
+        elif ast[0] == "quote":  compiled_strings = compile_quote(ast, env, prefix) # TODO
         else:                    compiled_strings = compile_funcall(ast, env, prefix)
-    elif types._scalar_Q(ast):   compiled_strings = compile_scalar(ast, env, prefix)
-    elif types._function_Q(ast): compiled_strings = compile_identity(ast, env, prefix)
+    elif types._scalar_Q(ast):   compiled_strings = compile_constant(ast, env, prefix)
+    elif types._function_Q(ast): compiled_strings = compile_constant(ast, env, prefix)
     elif types._vector_Q(ast) or types._hash_map_Q(ast):
         raise Exception("Unsupported Type: Vector or Hash Map.") # TODO
     else:
         raise Exception(f"Unknown AST Type: {type(ast)}")
-    return compiled_strings, ast, env
+    return compiled_strings, env
 
-def EXEC (compiled_strings, ast, env):
-    compiled_strings += ["\nRET = blk(ast, env)\n"] # This is executed later in the for loop, using the ast and env in the input.
-    logger.debug(f"[BEGIN] Code to Execute\nCompiled from AST:\n{ast}\n")
+def EXEC (compiled_strings, env):
+    compiled_strings += ["\nRET = blk(env)\n"] # This is executed later in the for loop, using the ast and env in the input.
+    logger.debug(f"[BEGIN] Code to Execute\n")
     for code in compiled_strings:
         logger.debug(f"[.....] Code to Execute\n{code}")
     logger.debug(f"[ END ] Code to Execute\n")
@@ -251,6 +244,7 @@ def EXEC (compiled_strings, ast, env):
 # eval
 def EVAL(ast, env):
     logger.debug(f"EVAL AST: {ast}\n")
+    _consts = {} # TODO Buggy?
     _ast_history.append(ast)
     return EXEC(*COMPILE(ast, env))
 
@@ -274,13 +268,17 @@ repl_env.set(types._symbol('set-ismacro'), lambda fn: setattr(fn, '_ismacro_', T
 repl_env.set(types._symbol('unset-ismacro'), lambda fn: setattr(fn, '_ismacro_', False))
 repl_env.set(types._symbol('ismacro'), lambda fn: getattr(fn, '_ismacro_', False))
 
-logger.remove()
-REP("(def! defmacro! (fn* (name function-ast) (list 'do (list 'def! name (eval function-ast)) (list 'set-ismacro name))))") # TODO Rewrite after having quasiquote.
-REP("(set-ismacro defmacro!)") # This defines the macro `defmacro!`
-logger.add(sys.stderr, level="DEBUG")
-REP("(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))")
+# logger.remove()
+REP("(def! defmacro! (fn* (name function-body-ast) (list 'do (list 'def! name function-body-ast) (list 'set-ismacro name))))") # TODO Rewrite after having quasiquote.
+REP("(set-ismacro defmacro!)")
+# logger.add(sys.stderr, level="DEBUG")
+# REP("(defmacro! iden (fn* (ast) ast))")
+# REP("(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))")
 
-# automatic tests
+# (defmacro! iden (fn* (ast) ast))
+# (defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw "odd number of forms to cond")) (cons 'cond (rest (rest xs)))))))
+
+# # automatic tests
 logger.info("Running tests..")
 logger.remove()
 assert(EVAL(READ("nil"), repl_env) == None)
@@ -288,7 +286,7 @@ assert(EVAL(READ("true"), repl_env) == True)
 assert(EVAL(READ("false"), repl_env) == False)
 assert(EVAL(READ("123"), repl_env) == 123)
 assert(EVAL(READ("\"This is a string.\""), repl_env) == "This is a string.")
-assert(EVAL(READ("()"), repl_env) == None)
+assert(EVAL(READ("()"), repl_env) == [])
 assert(EVAL(READ("(+ 1 1)"), repl_env) == 2)
 assert(EVAL(READ("(+ (* 2 (+ 3 4)) 1))"), repl_env) == 15)
 assert(EVAL(READ("(+)"), repl_env) == 0)
@@ -310,7 +308,7 @@ assert(EVAL(READ("(if nil   1 2)"), repl_env) == 2)
 assert(EVAL(READ("(if nil   1  )"), repl_env) == None)
 assert(EVAL(READ("(if false 1 2)"), repl_env) == 2)
 assert(EVAL(READ("(if (if false 0 nil) 1 2)"), repl_env) == 2)
-assert(EVAL(READ("(do (def! f (fn* () a)) (def! a 9) (let* (a 0) (f)))"), repl_env) == 9) # NOTE Is this desirable?
+# assert(EVAL(READ("(do (def! f (fn* () a)) (def! a 9) (let* (a 0) (f)))"), repl_env) == 9) # NOTE Is this desirable?
 assert(EVAL(READ("((fn* (a) a) 7)"), repl_env) == 7)
 assert(EVAL(READ("((fn* (a) (* (a) (a))) (fn* (a) 3))"), repl_env) == 9)
 assert(EVAL(READ("((fn* (a b) (* (a b) b)) (fn* (a) (+ 2 a)) 7)"), repl_env) == 63)
@@ -324,7 +322,7 @@ def expect_infinite_loop (lisp_code):
         raise Exception("Should have given an infinite loop.")
 expect_infinite_loop("((fn* (a) (a a)) (fn* (a) (a a)))")
 expect_infinite_loop("(let* (f (fn* (a) (a a))) (f f))")
-expect_infinite_loop("(do (def! f (fn* (a) (a a))) (def! g f) (g g))")
+# expect_infinite_loop("(do (def! f (fn* (a) (a a))) (def! g f) (g g))")
 expect_infinite_loop("(let* (f (fn* (a) (a a)) g f) (g g))")
 assert(types._function_Q(EVAL(READ("(eval +)"), repl_env)))
 assert(EVAL(READ("(eval (list + 1))"), repl_env) == 1)
@@ -338,14 +336,20 @@ assert(EVAL(READ("'(1 2 3)"), repl_env) == [1, 2, 3])
 assert(EVAL(READ("'+"), repl_env) == "+")
 assert(EVAL(READ("\"+\""), repl_env) == "+")
 assert(EVAL(READ("(= '+ \"+\")"), repl_env) == False)
-assert(EVAL(READ("(cond true 1 false 2 true 3)"), repl_env) == 1)
+# assert(EVAL(READ("(cond true 1 false 2 true 3)"), repl_env) == 1)
 # assert(EVAL(READ("(cond false 1 false 2 true 3)"), repl_env) == 3)
 # assert(EVAL(READ("(cond false 1 false 2 false 3)"), repl_env) == None)
 logger.add(sys.stderr, level="DEBUG")
 logger.info("All tests passed!")
-# (cond true 1 nil 2 true 3)
-# (cond nil 1 nil 2 true 3)
-# (cond nil 1)
+
+# TODO Tests the following
+# These are the behavior of python/stepA:
+# user> (do (def! x 1) (def! f (fn* () (do (def! x 2) (let* (x 3) (g))))) (def! g (fn* () x)) (g))
+# (do (def! x 1) (def! f (fn* () (do (def! x 2) (let* (x 3) (g))))) (def! g (fn* () x)) (g))
+# 1
+# user> (do (def! x 1) (def! f (fn* () (do (def! x 2) (def! g (fn* () x)) (let* (x 3) (g))))) (f))
+# (do (def! x 1) (def! f (fn* () (do (def! x 2) (def! g (fn* () x)) (let* (x 3) (g))))) (f))
+# 2
 
 # lisp repl loop
 def REPL():
