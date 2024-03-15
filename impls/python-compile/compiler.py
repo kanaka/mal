@@ -281,7 +281,7 @@ def compile_try (ast, env, prefix):
         assert types._symbol_Q(ast[2][1])
         compiled_string = \
 f"""
-# compile_fn
+# compile_try
 def _{prefix} ():
     consts = [
       _{prefix}_0(), # AST[1]
@@ -346,6 +346,7 @@ def macroexpand (ast, env):
     return ast
 
 def COMPILE (ast, env, prefix="blk"):
+    # env is for macroexpansion
     logger.debug(f"Compiling AST:\n{ast}\n")
     ast = macroexpand(ast, env)
     if types._symbol_Q(ast):
@@ -379,7 +380,6 @@ def COMPILE (ast, env, prefix="blk"):
         compiled_strings = COMPILE(types.List([types.Symbol("vector")]+list(ast)), env, prefix)
     elif types._hash_map_Q(ast):
         compiled_strings = compile_hashmap(ast, env, prefix)
-        # COMPILE(types.Hash_Map([types.Symbol("hashmap")]+list(ast.items())), env, prefix)
     elif types._scalar_Q(ast)    or \
          types._keyword_Q(ast)   or \
          types._function_Q(ast):

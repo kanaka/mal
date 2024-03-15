@@ -23,6 +23,9 @@ done
 + **Compile Files and Compare Performance:** Analyze and compare
   the performance metrics between the compiled MAL code and the
   Python interpreter-based implementation.
+  
++ Document how the design of the compiler.
+
 + **Clean Up Code and Submit Pull Request:** Review the codebase
   for any cleanup or optimization opportunities. Once ready,
   submit a pull request for review and integration.

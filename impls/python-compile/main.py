@@ -44,6 +44,19 @@ def PRINT(exp):
 def REP(str):
     return PRINT(EVAL(READ(str), repl_env))
 
+# File Compiler
+def compile_file (source_path, target_path="./impls/python-compile/out.tmp.py"):
+    with open(source_path, 'r') as file:
+        file_content = file.read()
+    ast = READ("(do " + file_content + ")".replace('\n', ' '))
+    with open(target_path, 'w') as file:
+        file.write(f"from main import logger, repl_env")
+        codes = COMPILE(ast, Env(), "blk")
+        file.write(f"_consts = {_consts}" + "\n") # COMPILE mutates this.. FIXME This is too ugly.
+        for code in codes:
+            file.write(code + "\n")
+        file.write("print(_blk()(repl_env))")
+
 # lisp repl loop
 def REPL():
     global _line_history
@@ -64,7 +77,6 @@ def REPL():
         except Exception as e:
             print("".join(traceback.format_exception(*sys.exc_info())))
 
-# load from core
 for k, v in core.ns.items(): repl_env.set(types._symbol(k), v)
 repl_env.set(types._symbol('eval'), lambda ast: EVAL(ast, repl_env))
 repl_env.set(types._symbol('vector'), lambda *vector_elements: types.Vector(vector_elements))
@@ -76,10 +88,10 @@ repl_env.set(types._symbol('set-ismacro'), lambda fn: setattr(fn, '_ismacro_', T
 repl_env.set(types._symbol('unset-ismacro'), lambda fn: setattr(fn, '_ismacro_', False))
 repl_env.set(types._symbol('ismacro'), lambda fn: getattr(fn, '_ismacro_', False))
 repl_env.set(types._symbol('clone'), types._clone)
-
 REP("(def! *host-language* \"python-compiled\")")
 REP("(def! not (fn* (a) (if a false true)))")
-REP("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \"\nnil)\")))))")
+REP("(def! read-file (fn* (f) (read-string (str \"(do \" (slurp f) \"\nnil)\"))))")
+REP("(def! load-file (fn* (f) (eval (read-file f))))")
 REP("(def! defmacro! (fn* (name function-body-ast) (list 'do (list 'def! name (list 'clone function-body-ast)) (list 'set-ismacro name))))") # TODO Rewrite after having quasiquote.
 REP("(set-ismacro defmacro!)")
 REP("(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))")
@@ -93,5 +105,6 @@ LISP = REPL
 def main ():
     LISP()
 
-main()
-code.interact(local=locals()) # python repl loop
+if __name__ == "__main__":
+    main()
+    code.interact(local=locals()) # python repl loop
