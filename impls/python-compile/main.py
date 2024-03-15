@@ -499,10 +499,12 @@ repl_env.set(types._symbol('test'), TEST)
 repl_env.set(types._symbol('set-ismacro'), lambda fn: setattr(fn, '_ismacro_', True))
 repl_env.set(types._symbol('unset-ismacro'), lambda fn: setattr(fn, '_ismacro_', False))
 repl_env.set(types._symbol('ismacro'), lambda fn: getattr(fn, '_ismacro_', False))
+repl_env.set(types._symbol('clone'), types._clone)
 
+REP("(def! *host-language* \"python [compiled]\")")
 REP("(def! not (fn* (a) (if a false true)))")
 REP("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \"\nnil)\")))))")
-REP("(def! defmacro! (fn* (name function-body-ast) (list 'do (list 'def! name function-body-ast) (list 'set-ismacro name))))") # TODO Rewrite after having quasiquote.
+REP("(def! defmacro! (fn* (name function-body-ast) (list 'do (list 'def! name (list 'clone function-body-ast)) (list 'set-ismacro name))))") # TODO Rewrite after having quasiquote.
 REP("(set-ismacro defmacro!)")
 REP("(defmacro! iden (fn* (ast) ast))")
 REP("(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))")
