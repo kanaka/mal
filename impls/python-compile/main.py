@@ -253,6 +253,40 @@ def _{prefix} ():
     compiled_strings = COMPILE(body, env, prefix=f"{prefix}_0") + [compiled_string]
     return compiled_strings
 
+def compile_hashmap (ast, env, prefix):
+    logger.debug(f"Compiling AST:\n{ast}\n")
+    assert(types._hash_map_Q(ast))
+    compiled_string = \
+f"""
+# compile_hashmap
+def _{prefix} ():
+    consts = ["""
+    i, hashmap_literal_string = 0, ""
+    for key_ast, val_ast in ast.items():
+      assert(types._symbol_Q(key_ast) or \
+             types._keyword_Q(key_ast) or \
+             types._string_Q(key_ast))
+      compiled_string += \
+f"""
+      _{prefix}_{i}(),"""
+      hashmap_literal_string += f""""{key_ast}",consts[{i}](env),"""
+      i += 1
+    compiled_string += \
+f"""
+    ]
+    def {prefix} (env):
+        result = types._hash_map({hashmap_literal_string})
+        logger.debug(f"result: {{result}}")
+        return result
+    return {prefix}
+"""
+    i, compiled_strings = 0, []
+    for key_ast, val_ast in ast.items():
+        compiled_strings += COMPILE(val_ast, env, prefix=f"{prefix}_{i}")
+        i += 1
+    compiled_strings += [compiled_string]
+    return compiled_strings
+
 def qq_loop(acc, elt):
     if types._list_Q(elt) and len(elt) == 2 and elt[0] == u'splice-unquote':
         return types._list(types._symbol(u'concat'), elt[1], acc)
@@ -299,22 +333,37 @@ def COMPILE (ast, env, prefix="blk"):
     if types._symbol_Q(ast):
         compiled_strings = compile_symbol(ast, env, prefix)
     elif types._list_Q(ast):
-        if len(ast) == 0:        compiled_strings = compile_literal(ast, env, prefix)
-        elif ast[0] == "quote":  compiled_strings = compile_literal(ast[1], env, prefix)
-        elif ast[0] == "quasiquote":  compiled_strings = COMPILE(quasiquote(ast[1]), env, prefix) # TODO Maybe do it with defmacro!
-        elif ast[0] == "quasiquoteexpand":  compiled_strings = compile_literal(quasiquote(ast[1]), env, prefix) # TODO Maybe do it with defmacro!
-        elif ast[0] == "macroexpand":  compiled_strings = compile_literal(macroexpand(ast[1], env), env, prefix) # TODO Maybe do it with defmacro!
-        elif ast[0] == "if":     compiled_strings = compile_if(ast, env, prefix)
-        elif ast[0] == "def!":   compiled_strings = compile_def(ast, env, prefix)
-        elif ast[0] == "let*":   compiled_strings = compile_let(ast, env, prefix)
-        elif ast[0] == "do":     compiled_strings = compile_do(ast, env, prefix)
-        elif ast[0] == "fn*":    compiled_strings = compile_fn(ast, env, prefix)
-        else:                    compiled_strings = compile_funcall(ast, env, prefix)
-    elif types._vector_Q(ast):   compiled_strings = COMPILE(types.List([types.Symbol("vector")]+list(ast)), env, prefix)
-    elif types._hash_map_Q(ast): compiled_strings = COMPILE(types.Hash_Map([types.Symbol("hashmap")]+list(ast.items())), env, prefix)
+        if len(ast) == 0:
+            compiled_strings = compile_literal(ast, env, prefix)
+        elif ast[0] == "quote":
+            compiled_strings = compile_literal(ast[1], env, prefix)
+        elif ast[0] == "quasiquote": # TODO Maybe do it with defmacro!
+            compiled_strings = COMPILE(quasiquote(ast[1]), env, prefix)
+        elif ast[0] == "quasiquoteexpand": # TODO Maybe do it with defmacro!
+            compiled_strings = compile_literal(quasiquote(ast[1]), env, prefix)
+        elif ast[0] == "macroexpand": # TODO Maybe do it with defmacro!
+            compiled_strings = compile_literal(macroexpand(ast[1], env), env, prefix)
+        elif ast[0] == "if":
+            compiled_strings = compile_if(ast, env, prefix)
+        elif ast[0] == "def!":
+            compiled_strings = compile_def(ast, env, prefix)
+        elif ast[0] == "let*":
+            compiled_strings = compile_let(ast, env, prefix)
+        elif ast[0] == "do":
+            compiled_strings = compile_do(ast, env, prefix)
+        elif ast[0] == "fn*":
+            compiled_strings = compile_fn(ast, env, prefix)
+        else:
+            compiled_strings = compile_funcall(ast, env, prefix)
+    elif types._vector_Q(ast):
+        compiled_strings = COMPILE(types.List([types.Symbol("vector")]+list(ast)), env, prefix)
+    elif types._hash_map_Q(ast):
+        compiled_strings = compile_hashmap(ast, env, prefix)
+        # COMPILE(types.Hash_Map([types.Symbol("hashmap")]+list(ast.items())), env, prefix)
     elif types._scalar_Q(ast)    or \
          types._keyword_Q(ast)   or \
-         types._function_Q(ast): compiled_strings = compile_literal(ast, env, prefix)
+         types._function_Q(ast):
+        compiled_strings = compile_literal(ast, env, prefix)
     else:
         raise Exception(f"Unknown AST Type: {type(ast)}")
     return compiled_strings
@@ -458,9 +507,13 @@ REP("(set-ismacro defmacro!)")
 REP("(defmacro! iden (fn* (ast) ast))")
 REP("(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))")
 
+if len(sys.argv) >= 2:
+    REP('(load-file "' + sys.argv[1] + '")')
+    sys.exit(0)
+
+LISP = REPL
 
 def main ():
-    LISP = REPL
     LISP()
 
 main()
