@@ -1,3 +1,4 @@
+import functools
 import sys, traceback, code
 from loguru import logger
 import mal_readline
@@ -8,6 +9,7 @@ import core
 logger.remove()
 
 # debug
+sys.setrecursionlimit(100000)
 _line_history, _ast_history = [], []
 sys.ps1, sys.ps2, _wake_up_command = "[PYTHON]> ", "        > ", ";()"
 _lisp_prompt = "user> "
@@ -251,6 +253,28 @@ def _{prefix} ():
     compiled_strings = COMPILE(body, env, prefix=f"{prefix}_0") + [compiled_string]
     return compiled_strings
 
+def qq_loop(acc, elt):
+    if types._list_Q(elt) and len(elt) == 2 and elt[0] == u'splice-unquote':
+        return types._list(types._symbol(u'concat'), elt[1], acc)
+    else:
+        return types._list(types._symbol(u'cons'), quasiquote(elt), acc)
+
+def qq_foldr(seq):
+    return functools.reduce(qq_loop, reversed(seq), types._list())
+
+def quasiquote(ast):
+    if types._list_Q(ast):
+        if len(ast) == 2 and ast[0] == u'unquote':
+            return ast[1]
+        else:
+            return qq_foldr(ast)
+    elif types._hash_map_Q(ast) or types._symbol_Q(ast):
+        return types._list(types._symbol(u'quote'), ast)
+    elif types._vector_Q (ast):
+        return types._list(types._symbol(u'vec'), qq_foldr(ast))
+    else:
+        return ast
+
 def is_macro_call (ast, env):
     return (types._list_Q(ast) and
             types._symbol_Q(ast[0]) and
@@ -277,16 +301,18 @@ def COMPILE (ast, env, prefix="blk"):
     elif types._list_Q(ast):
         if len(ast) == 0:        compiled_strings = compile_literal(ast, env, prefix)
         elif ast[0] == "quote":  compiled_strings = compile_literal(ast[1], env, prefix)
+        elif ast[0] == "quasiquote":  compiled_strings = COMPILE(quasiquote(ast[1]), env, prefix) # TODO Maybe do it with defmacro!
+        elif ast[0] == "quasiquoteexpand":  compiled_strings = compile_literal(quasiquote(ast[1]), env, prefix) # TODO Maybe do it with defmacro!
         elif ast[0] == "if":     compiled_strings = compile_if(ast, env, prefix)
         elif ast[0] == "def!":   compiled_strings = compile_def(ast, env, prefix)
         elif ast[0] == "let*":   compiled_strings = compile_let(ast, env, prefix)
         elif ast[0] == "do":     compiled_strings = compile_do(ast, env, prefix)
         elif ast[0] == "fn*":    compiled_strings = compile_fn(ast, env, prefix)
         else:                    compiled_strings = compile_funcall(ast, env, prefix)
-    elif types._vector_Q(ast)  : compiled_strings = COMPILE(types.List([types.Symbol("vector")]+list(ast)), env, prefix)
+    elif types._vector_Q(ast):   compiled_strings = COMPILE(types.List([types.Symbol("vector")]+list(ast)), env, prefix)
+    elif types._hash_map_Q(ast): compiled_strings = COMPILE(types.Hash_Map([types.Symbol("hashmap")]+list(ast.items())), env, prefix)
     elif types._scalar_Q(ast)    or \
          types._keyword_Q(ast)   or \
-         types._hash_map_Q(ast)  or \
          types._function_Q(ast): compiled_strings = compile_literal(ast, env, prefix)
     else:
         raise Exception(f"Unknown AST Type: {type(ast)}")
@@ -416,6 +442,7 @@ def TEST ():
 for k, v in core.ns.items(): repl_env.set(types._symbol(k), v)
 repl_env.set(types._symbol('eval'), lambda ast: EVAL(ast, repl_env))
 repl_env.set(types._symbol('vector'), lambda *vector_elements: types.Vector(vector_elements))
+repl_env.set(types._symbol('hashmap'), lambda *dict_pairs: types.Hash_map()) # TODO FIXME
 repl_env.set(types._symbol('*ARGV*'), types._list(*sys.argv[2:]))
 repl_env.set(types._symbol('debug'), DEBUG)
 repl_env.set(types._symbol('test'), TEST)
