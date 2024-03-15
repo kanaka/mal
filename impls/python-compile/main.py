@@ -303,6 +303,7 @@ def COMPILE (ast, env, prefix="blk"):
         elif ast[0] == "quote":  compiled_strings = compile_literal(ast[1], env, prefix)
         elif ast[0] == "quasiquote":  compiled_strings = COMPILE(quasiquote(ast[1]), env, prefix) # TODO Maybe do it with defmacro!
         elif ast[0] == "quasiquoteexpand":  compiled_strings = compile_literal(quasiquote(ast[1]), env, prefix) # TODO Maybe do it with defmacro!
+        elif ast[0] == "macroexpand":  compiled_strings = compile_literal(macroexpand(ast[1], env), env, prefix) # TODO Maybe do it with defmacro!
         elif ast[0] == "if":     compiled_strings = compile_if(ast, env, prefix)
         elif ast[0] == "def!":   compiled_strings = compile_def(ast, env, prefix)
         elif ast[0] == "let*":   compiled_strings = compile_let(ast, env, prefix)
