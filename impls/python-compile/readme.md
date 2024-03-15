@@ -7,21 +7,18 @@ the reader and some primary functions were adopted from the MAL
 implementation in Python by Joel Martin, whose code still resides
 in `./impls/python/`.
 
+## Passed All Official Tests (2,3,4,5,6,7,8,9,A)
+
+Quickly test them by running:
+
+``` shell
+for ((i=2; i<=10; i++)); do
+    [ $i -eq 10 ] && make "test^python-compile^stepA" || make "test^python-compile^step${i}"
+    [ $? -ne 0 ] && { echo "Error occurred. Breaking loop."; break; }
+done
+```
+
 ## TODO
-
-+ **Implement Quasiquote, Unquote, and Splice-unquote:** Develop
-  functionality for quasiquote, unquote, and splice-unquote.
-
-+ **Implement Macros (Section 8):** Proceed with implementing
-  macros only after careful consideration and potential
-  reimplementation of `compile_fn`.
-
-+ **Implement Try and Catch (Section 9):** Add support for try
-  and catch constructs.
-
-+ **Test MAL Against Official Test Cases:** Verify the
-  functionality of this MAL implementation against the official
-  test cases.
 
 + **Clean Up Code and Submit Pull Request:** Review the codebase
   for any cleanup or optimization opportunities. Once ready,
