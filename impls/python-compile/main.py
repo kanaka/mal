@@ -1,22 +1,47 @@
 import sys, traceback, code, functools
-import mal_readline
 import mal_types as types
-import reader, printer
-import core
+import mal_readline, reader, printer, core
 from env import Env
 from compiler import COMPILE, _consts
 from debugger import logger, DEBUG, TEST
 
 sys.setrecursionlimit(10000000)
-_line_history, _ast_history = [], []
 sys.ps1, sys.ps2, _wake_up_command = "[PYTHON]> ", "        > ", ";()"
 _lisp_prompt = "user> "
 # _lisp_prompt = " (LISP) > "
 repl_env = Env()
 
-# read
 def READ(str):
     return reader.read_str(str)
+
+def EVAL(ast, env):
+    logger.debug(f"EVAL AST: {ast}\n")
+    return EXEC(COMPILE(ast, env), env)
+
+def PRINT(exp):
+    return printer._pr_str(exp)
+
+def REP(str):
+    return PRINT(EVAL(READ(str), repl_env))
+
+def REPL():
+    logger.info(f"Hint: Use `{_wake_up_command}` to get into PYTHON.")
+    while True:
+        try:
+            line = mal_readline.readline(_lisp_prompt)
+            if line == None: break
+            if line == "": continue
+            if line == _wake_up_command:
+                logger.info(f"Hint: Use `LISP()` to get into LISP.")
+                break
+            print(REP(line))
+        except reader.Blank: continue
+        except types.MalException as e:
+            print("Error:", printer._pr_str(e.object))
+        except Exception as e:
+            print("".join(traceback.format_exception(*sys.exc_info())))
+
+LISP = REPL
 
 def EXEC (compiled_strings, env):
     compiled_strings += ["\nTOP_LEVEL_RETURNED_OBJECT = _blk()(env)\n"] # This is executed later in the for loop, using the ast and env in the input.
@@ -30,21 +55,6 @@ def EXEC (compiled_strings, env):
         exec(code, bindings, bindings)
     return bindings["TOP_LEVEL_RETURNED_OBJECT"]
 
-# eval
-def EVAL(ast, env):
-    logger.debug(f"EVAL AST: {ast}\n")
-    _ast_history.append(ast)
-    return EXEC(COMPILE(ast, env), env)
-
-# print
-def PRINT(exp):
-    return printer._pr_str(exp)
-
-# repl
-def REP(str):
-    return PRINT(EVAL(READ(str), repl_env))
-
-# File Compiler
 def compile_file (source_path, target_path="./impls/python-compile/out.tmp.py"):
     with open(source_path, 'r') as file:
         file_content = file.read()
@@ -57,37 +67,17 @@ def compile_file (source_path, target_path="./impls/python-compile/out.tmp.py"):
             file.write(code + "\n")
         file.write("print(_blk()(repl_env))")
 
-# lisp repl loop
-def REPL():
-    global _line_history
-    logger.info(f"Hint: Use `{_wake_up_command}` to get into PYTHON.")
-    while True:
-        try:
-            line = mal_readline.readline(_lisp_prompt)
-            if line == None: break
-            if line == "": continue
-            if line == _wake_up_command:
-                logger.info(f"Hint: Use `LISP()` to get into LISP.")
-                break # debug
-            _line_history.append(line) # debug
-            print(REP(line))
-        except reader.Blank: continue
-        except types.MalException as e:
-            print("Error:", printer._pr_str(e.object))
-        except Exception as e:
-            print("".join(traceback.format_exception(*sys.exc_info())))
-
 for k, v in core.ns.items(): repl_env.set(types._symbol(k), v)
 repl_env.set(types._symbol('eval'), lambda ast: EVAL(ast, repl_env))
 repl_env.set(types._symbol('vector'), lambda *vector_elements: types.Vector(vector_elements))
 repl_env.set(types._symbol('hashmap'), lambda *dict_pairs: types.Hash_map()) # TODO FIXME
 repl_env.set(types._symbol('*ARGV*'), types._list(*sys.argv[2:]))
-repl_env.set(types._symbol('debug'), DEBUG)
-repl_env.set(types._symbol('test'), TEST)
 repl_env.set(types._symbol('set-ismacro'), lambda fn: setattr(fn, '_ismacro_', True))
 repl_env.set(types._symbol('unset-ismacro'), lambda fn: setattr(fn, '_ismacro_', False))
 repl_env.set(types._symbol('ismacro'), lambda fn: getattr(fn, '_ismacro_', False))
 repl_env.set(types._symbol('clone'), types._clone)
+repl_env.set(types._symbol('debug'), DEBUG)
+repl_env.set(types._symbol('test'), TEST)
 REP("(def! *host-language* \"python-compiled\")")
 REP("(def! not (fn* (a) (if a false true)))")
 REP("(def! read-file (fn* (f) (read-string (str \"(do \" (slurp f) \"\nnil)\"))))")
@@ -100,11 +90,6 @@ if len(sys.argv) >= 2:
     REP('(load-file "' + sys.argv[1] + '")')
     sys.exit(0)
 
-LISP = REPL
-
-def main ():
-    LISP()
-
 if __name__ == "__main__":
-    main()
-    code.interact(local=locals()) # python repl loop
+    LISP()                        #  Lisp  REPL
+    code.interact(local=locals()) # Python REPL
