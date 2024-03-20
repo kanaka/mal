@@ -56,20 +56,36 @@ def EXEC (compiled_strings, env):
     return bindings["TOP_LEVEL_RETURNED_OBJECT"]
 
 # TODO
-# 1. Pipeline for creating a standalone pyc from a mal file.
-# 2. Test performance for the generated pyc file.
-# 3. Optimize by removing logger related lines.
-def compile_file (source_path, target_path="./impls/python-compile/out.tmp.py"):
+# 1. Optimize by removing logger related lines.
+# 2. Test performance for the generated pyc file against the official test.
+def compile_file (source_path, target_dir="/tmp/pymal/"):
+    import shutil, os, datetime, compileall
+    timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+    target_dir += f"{timestamp}/"
+    os.makedirs(target_dir)
+    for file_to_copy in ["./mal_types.py",
+                         "./mal_readline.py",
+                         "./reader.py",
+                         "./printer.py",
+                         "./core.py",
+                         "./env.py",
+                         "./compiler.py",
+                         "./debugger.py",
+                         "./main.py",
+                         ]:
+        shutil.copy(os.path.dirname(__file__)+"/"+file_to_copy, target_dir)
     with open(source_path, 'r') as file:
         file_content = file.read()
     ast = READ("(do " + file_content + ")".replace('\n', ' '))
+    target_path = target_dir + f"out.py"
     with open(target_path, 'w') as file:
-        file.write(f"from main import logger, repl_env")
+        file.write(f"from main import logger, repl_env, Env, types\n\n")
         codes = COMPILE(ast, Env(), "blk")
         file.write(f"_consts = {_consts}" + "\n") # COMPILE mutates this.. FIXME This is too ugly.
         for code in codes:
             file.write(code + "\n")
         file.write("print(_blk()(repl_env))")
+    compileall.compile_dir(f"{target_dir}", force=True, legacy=True)
 
 for k, v in core.ns.items(): repl_env.set(types._symbol(k), v)
 repl_env.set(types._symbol('eval'), lambda ast: EVAL(ast, repl_env))
