@@ -55,6 +55,10 @@ def EXEC (compiled_strings, env):
         exec(code, bindings, bindings)
     return bindings["TOP_LEVEL_RETURNED_OBJECT"]
 
+# TODO
+# 1. Pipeline for creating a standalone pyc from a mal file.
+# 2. Test performance for the generated pyc file.
+# 3. Optimize by removing logger related lines.
 def compile_file (source_path, target_path="./impls/python-compile/out.tmp.py"):
     with open(source_path, 'r') as file:
         file_content = file.read()
