@@ -7,7 +7,7 @@ from env import Env
 from compiler import COMPILE, _consts
 from debugger import logger, DEBUG, TEST
 
-sys.setrecursionlimit(100000)
+sys.setrecursionlimit(10000000)
 _line_history, _ast_history = [], []
 sys.ps1, sys.ps2, _wake_up_command = "[PYTHON]> ", "        > ", ";()"
 _lisp_prompt = "user> "
