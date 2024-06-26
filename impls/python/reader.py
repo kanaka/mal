@@ -31,7 +31,7 @@ def read_atom(reader):
     string_re = re.compile(r'"(?:[\\].|[^\\"])*"')
     token = reader.next()
     if re.match(int_re, token):     return int(token)
-    elif re.match(float_re, token): return int(token)
+    elif re.match(float_re, token): return float(token)
     elif re.match(string_re, token):return _s2u(_unescape(token[1:-1]))
     elif token[0] == '"':           raise Exception("expected '\"', got EOF")
     elif token[0] == ':':           return _keyword(token[1:])
