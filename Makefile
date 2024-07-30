@@ -143,7 +143,7 @@ get_build_command = $(strip $(foreach mode,$(1)_MODE, \
       $(if $(strip $($(mode))),-e $(mode)=$($(mode)),) \
       $(if $(filter factor,$(1)),-e FACTOR_ROOTS=$(FACTOR_ROOTS),) \
       $(call impl_to_image,$(1)) \
-      $(MAKE) $(if $(strip $($(mode))),$(mode)=$($(mode)),) \
+      make $(if $(strip $($(mode))),$(mode)=$($(mode)),) \
       ,\
       $(MAKE) $(if $(strip $($(mode))),$(mode)=$($(mode)),) -C impls/$(impl))))
 
