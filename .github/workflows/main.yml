@@ -77,7 +77,7 @@ jobs:
   macos:
     needs: get-matrix
     if: ${{ needs.get-matrix.outputs.do-macos == 'true' }}
-    runs-on: macos-10.15
+    runs-on: macos-12
     strategy:
       fail-fast: false
       matrix: ${{ fromJson(needs.get-matrix.outputs.matrix-macos) }}
