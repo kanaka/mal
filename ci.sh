@@ -52,9 +52,10 @@ echo "TEST_OPTS: ${TEST_OPTS}"
 # the Travis/Github Actions image/tools directly.
 if [ -z "${NO_DOCKER}" ]; then
     img_impl=$(echo "${MAL_IMPL:-${IMPL}}" | tr '[:upper:]' '[:lower:]')
+    img_ver=$(./voom-like-version.sh impls/${img_impl}/Dockerfile)
     # We could just use make DOCKERIZE=1 instead but that does add
     # non-trivial startup overhead for each step.
-    MAKE="docker run -i -u $(id -u) -v `pwd`:/mal kanaka/mal-test-${img_impl%%-mal} ${MAKE}"
+    MAKE="docker run -i -u $(id -u) -v `pwd`:/mal kanaka/mal-test-${img_impl%%-mal}:${img_ver} ${MAKE}"
 fi
 
 case "${ACTION}" in

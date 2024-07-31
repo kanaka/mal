@@ -38,6 +38,8 @@ jobs:
       matrix: ${{ fromJson(needs.get-matrix.outputs.matrix-linux) }}
     steps:
       - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0  # Need full history for voom like versions
       - name: Build
         run: |
           export ${{ matrix.IMPL }}
