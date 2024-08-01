@@ -1,5 +1,7 @@
 FROM ubuntu:xenial
 MAINTAINER Joel Martin <github@martintribe.org>
+LABEL org.opencontainers.image.source=https://github.com/kanaka/mal
+LABEL org.opencontainers.image.description="mal test container: ada"
 
 ##########################################################
 # General requirements for testing or common across many
