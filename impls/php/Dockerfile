@@ -1,4 +1,4 @@
-FROM ubuntu:vivid
+FROM ubuntu:xenial
 MAINTAINER Joel Martin <github@martintribe.org>
 
 ##########################################################
@@ -21,4 +21,4 @@ WORKDIR /mal
 # Specific implementation requirements
 ##########################################################
 
-RUN apt-get -y install php5-cli
+RUN apt-get -y install php7.0-cli
