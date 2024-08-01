@@ -27,6 +27,13 @@ mode_val=${!mode_var}
 log_prefix="${ACTION}${REGRESS:+-regress}-${IMPL}${mode_val:+-${mode_val}}${MAL_IMPL:+-${MAL_IMPL}}"
 TEST_OPTS="${TEST_OPTS} --debug-file ../../${log_prefix}.debug"
 
+step_summary() {
+    echo "${*}"
+    if [ "${GITHUB_STEP_SUMMARY}" ]; then
+        echo "${*}" >> "${GITHUB_STEP_SUMMARY}"
+    fi
+}
+
 img_base="${MAL_IMPL:-${IMPL}}"
 img_impl="${img_base%%-mal}"
 img_name="mal-test-${img_impl,,}"
@@ -64,10 +71,14 @@ echo "MAKE: ${MAKE}"
 
 case "${ACTION}" in
 docker-build-push)
-    if ! docker pull ${IMAGE}; then
+    if docker pull ${IMAGE}; then
+        step_summary "${MAL_IMPL:-${IMPL}} - pulled ${IMAGE}"
+    else
         make "docker-build^${MAL_IMPL:-${IMPL}}"
+        step_summary "${MAL_IMPL:-${IMPL}} - built ${IMAGE}"
         if [ "${GITHUB_REF}" = "refs/heads/main" ]; then
             docker push ${IMAGE}
+            step_summary "${MAL_IMPL:-${IMPL}} - pushed ${IMAGE}"
         fi
     fi
     ;;
