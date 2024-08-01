@@ -23,7 +23,7 @@ jobs:
       do-macos: ${{ steps.get-matrix-step.outputs.do-macos }}
       matrix-macos: ${{ steps.get-matrix-step.outputs.macos }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - id: files
         if: ${{ github.event_name != 'workflow_dispatch' }}
         uses: kanaka/get-changed-files@v2
@@ -41,11 +41,11 @@ jobs:
       fail-fast: false
       matrix: ${{ fromJson(needs.get-matrix.outputs.matrix-linux) }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0  # Need full history for voom like versions
       - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -71,9 +71,9 @@ jobs:
           export ${{ matrix.IMPL }}
           ./ci.sh perf ${IMPL}
       - name: Archive logs and debug output
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
-          name: logs
+          name: logs.${{ matrix.IMPL }}
           path: |
             *.log
             *.debug
@@ -86,7 +86,7 @@ jobs:
       fail-fast: false
       matrix: ${{ fromJson(needs.get-matrix.outputs.matrix-macos) }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Build
         run: |
           export ${{ matrix.IMPL }}
@@ -104,9 +104,9 @@ jobs:
           export ${{ matrix.IMPL }}
           ./ci.sh perf ${IMPL}
       - name: Archive logs and debug output
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
-          name: logs
+          name: logs.${{ matrix.IMPL }}
           path: |
             *.log
             *.debug
