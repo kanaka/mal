@@ -18,9 +18,9 @@ jobs:
   get-matrix:
     runs-on: ubuntu-24.04
     outputs:
-      do-linux: ${{ steps.get-matrix-step.outputs.do-linux }}
+      do-linux: ${{ steps.get-matrix-step.outputs.do_linux }}
       matrix-linux: ${{ steps.get-matrix-step.outputs.linux }}
-      do-macos: ${{ steps.get-matrix-step.outputs.do-macos }}
+      do-macos: ${{ steps.get-matrix-step.outputs.do_macos }}
       matrix-macos: ${{ steps.get-matrix-step.outputs.macos }}
     steps:
       - uses: actions/checkout@v4
@@ -31,7 +31,7 @@ jobs:
         run: |
           export OVERRIDE_IMPLS="${{ github.event.inputs.impls }}" # "
           echo "OVERRIDE_IMPLS: ${OVERRIDE_IMPLS}"
-          ./get-ci-matrix.py ${{ steps.files.outputs.all }}
+          ./get-ci-matrix.py ${{ steps.files.outputs.all }} > "${GITHUB_OUTPUT}"
 
   linux:
     needs: get-matrix

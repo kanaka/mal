@@ -12,6 +12,9 @@ RE_IMPL = re.compile(r'^impls/(?!lib|tests)([^/]*)/')
 
 OVERRIDE_IMPLS = os.environ.get('OVERRIDE_IMPLS', '').split()
 
+def eprint(*args, **kwargs):
+    print(*args, file=sys.stderr, **kwargs)
+
 def impl_text(impl):
     s = "IMPL=%s" % impl['IMPL']
     for k, v in impl.items():
@@ -37,11 +40,11 @@ if OVERRIDE_IMPLS:
         do_full = True
 
 
-print("OVERRIDE_IMPLS: %s" % OVERRIDE_IMPLS)
-print("code_changes: %s (%d)" % (code_changes, len(code_changes)))
-print("impl_changes: %s (%d)" % (impl_changes, len(impl_changes)))
-print("run_impls: %s (%d)" % (run_impls, len(run_impls)))
-print("do_full: %s" % do_full)
+eprint("OVERRIDE_IMPLS: %s" % OVERRIDE_IMPLS)
+eprint("code_changes: %s (%d)" % (code_changes, len(code_changes)))
+eprint("impl_changes: %s (%d)" % (impl_changes, len(impl_changes)))
+eprint("run_impls: %s (%d)" % (run_impls, len(run_impls)))
+eprint("do_full: %s" % do_full)
 
 # Load the full implementation description file
 all_impls = yaml.safe_load(open(IMPLS_FILE))
@@ -60,7 +63,7 @@ for impl in all_impls['IMPL']:
     elif do_full:
         targ.append(impl_text(impl))
 
-print("::set-output name=do-linux::%s" % json.dumps(len(linux_impls)>0))
-print("::set-output name=do-macos::%s" % json.dumps(len(macos_impls)>0))
-print("::set-output name=linux::{\"IMPL\":%s}" % json.dumps(linux_impls))
-print("::set-output name=macos::{\"IMPL\":%s}" % json.dumps(macos_impls))
+print("do_linux=%s" % json.dumps(len(linux_impls)>0))
+print("do_macos=%s" % json.dumps(len(macos_impls)>0))
+print("linux={\"IMPL\":%s}" % json.dumps(linux_impls))
+print("macos={\"IMPL\":%s}" % json.dumps(macos_impls))
