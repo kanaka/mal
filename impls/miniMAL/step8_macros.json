@@ -154,15 +154,15 @@
 ["env-set", "repl-env", ["symbol", ["`", "eval"]],
                         ["fn", ["ast"], ["EVAL", "ast", "repl-env"]]],
 ["env-set", "repl-env", ["symbol", ["`", "*ARGV*"]],
-                        ["slice", "ARGS", 1]],
+                        ["slice", "argv", 1]],
 
 ["`", "core.mal: defined using mal itself"],
 ["rep", ["`", "(def! not (fn* (a) (if a false true)))"]],
 ["rep", ["`", "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \"\nnil)\")))))"]],
 ["rep", ["`", "(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))"]],
 
-["if", ["not", ["empty?", "ARGS"]],
-  ["rep", ["str", ["`", "(load-file \""], ["get", "ARGS", 0], ["`", "\")"]]],
+["if", ["not", ["empty?", "argv"]],
+  ["rep", ["str", ["`", "(load-file \""], ["get", "argv", 0], ["`", "\")"]]],
   ["repl", ["`", "user> "], "rep"]],
 
 null
