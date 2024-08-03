@@ -71,9 +71,8 @@ echo "MAKE: ${MAKE}"
 
 case "${ACTION}" in
 docker-build-push)
-    if docker pull ${IMAGE}; then
-        step_summary "${MAL_IMPL:-${IMPL}} - pulled ${IMAGE}"
-    else
+    if ! docker pull ${IMAGE}; then
+        step_summary "${MAL_IMPL:-${IMPL}} - building ${IMAGE}"
         make "docker-build^${MAL_IMPL:-${IMPL}}"
         step_summary "${MAL_IMPL:-${IMPL}} - built ${IMAGE}"
         if [ "${GITHUB_REF}" = "refs/heads/main" ]; then
