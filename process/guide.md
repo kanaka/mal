@@ -1716,9 +1716,7 @@ implementation.
 
 ### Next Steps
 
-* Join the #mal IRC channel. It's fairly quiet but there are bursts of
-  interesting conversation related to mal, Lisps, esoteric programming
-  languages, etc.
+* Join our [Discord](https://discord.gg/CKgnNbJBpF) channel.
 * If you have created an implementation for a new target language (or
   a unique and interesting variant of an existing implementation),
   consider sending a pull request to add it into the main mal

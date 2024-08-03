@@ -154,11 +154,57 @@ into the main repository:
   `time-ms` function which is needed to run the micro-benchmark tests).
 
 * Create a `Dockerfile` in your directory that installs all the
-  packages necessary to build and run your implementation. Refer to other
-  implementations for examples of what the Dockerfile should contain.
-  Build your docker image and tag it `kanaka/mal-test-[IMPL_NAME]`.
-  The top-level Makefile has support for building/testing within
-  docker with the `DOCKERIZE` flag:
+  packages necessary to build and run your implementation. In order to
+  integrate fully with the Github Actions CI workflow, the
+  `Dockerfile` needs to include the following boilerplate (with your
+  name, email, and implementation filled in):
+  ```
+  MAINTAINER Your Name <your@email.com>
+  LABEL org.opencontainers.image.source=https://github.com/kanaka/mal
+  LABEL org.opencontainers.image.description="mal test container: Your_Implementation"
+  ```
+
+  In addition, the docker image should provide python3 (with a python
+  symlink to it) to enable running tests using the image. Here is the
+  typical `Dockerfile` template you should use if your
+  implementation does not require a special base distro:
+
+  ```
+  FROM ubuntu:24.04
+  MAINTAINER Your Name <your@email.com>
+  LABEL org.opencontainers.image.source=https://github.com/kanaka/mal
+  LABEL org.opencontainers.image.description="mal test container: Your_Implementation"
+  ##########################################################
+  # General requirements for testing or common across many
+  # implementations
+  ##########################################################
+
+  RUN apt-get -y update
+
+  # Required for running tests
+  RUN apt-get -y install make python3
+  RUN ln -sf /usr/bin/python3 /usr/bin/python
+
+  # Some typical implementation and test requirements
+  RUN apt-get -y install curl libreadline-dev libedit-dev
+
+  RUN mkdir -p /mal
+  WORKDIR /mal
+
+  ##########################################################
+  # Specific implementation requirements
+  ##########################################################
+
+  ... Your packages ...
+  ```
+
+* Build and tag your docker image. The image tag will have the
+  form `ghcr.io/kanaka/mal-test-[IMPL_NAME]:[VOOM_VERSION]`.
+  ```
+  make "docker-build^[IMPL_NAME]"
+
+* The top-level Makefile has support for building/testing using
+  the docker image with the `DOCKERIZE` flag:
   ```bash
   make DOCKERIZE=1 "test^[IMPL_NAME]"
   make DOCKERIZE=1 MAL_IMPL=[IMPL_NAME] "test^mal"
@@ -169,6 +215,9 @@ into the main repository:
   ./ci.sh build [IMPL_NAME]
   ./ci.sh test [IMPL_NAME]
   ```
+
+* Push your code to a branch and make sure that the automated Github
+  Actions CI passes for your implementation.
 
 * If you are creating a new implementation for an existing
   implementation (or somebody beats you to the punch while you are
