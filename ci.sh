@@ -36,7 +36,7 @@ step_summary() {
 
 img_base="${MAL_IMPL:-${IMPL}}"
 img_impl="${img_base%%-mal}"
-img_name="mal-test-${img_impl,,}"
+img_name="mal-test-$(echo "${img_impl}" | tr '[:upper:]' '[:lower:]')"
 img_ver=$(./voom-like-version.sh impls/${img_impl}/Dockerfile)
 IMAGE="ghcr.io/kanaka/${img_name}:${img_ver}"
 
