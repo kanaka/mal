@@ -27,6 +27,8 @@ jobs:
       - id: files
         if: ${{ github.event_name != 'workflow_dispatch' }}
         uses: kanaka/get-changed-files@v2
+        with:
+          default_base: master
       - id: get-matrix-step
         run: |
           export OVERRIDE_IMPLS="${{ github.event.inputs.impls }}" # "
