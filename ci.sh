@@ -73,11 +73,11 @@ case "${ACTION}" in
 docker-build-push)
     if ! docker pull ${IMAGE}; then
         step_summary "${MAL_IMPL:-${IMPL}} - building ${IMAGE}"
-        make "docker-build^${MAL_IMPL:-${IMPL}}"
-        step_summary "${MAL_IMPL:-${IMPL}} - built ${IMAGE}"
+        make "docker-build^${BUILD_IMPL}"
+        step_summary "${BUILD_IMPL}} - built ${IMAGE}"
         if [ "${GITHUB_REF}" = "refs/heads/main" ]; then
             docker push ${IMAGE}
-            step_summary "${MAL_IMPL:-${IMPL}} - pushed ${IMAGE}"
+            step_summary "${BUILD_IMPL} - pushed ${IMAGE}"
         fi
     fi
     ;;
