@@ -47,46 +47,19 @@ func quasiquote(ast)
   }
 }
 
-func is_macro_call(ast, env)
+func EVAL(ast, env)
 {
-  if (structof(ast) != MalList) return 0
-  if (count(ast) == 0) return 0
-  a1 = *((*ast.val)(1))
-  if (structof(a1) != MalSymbol) return 0
-  var_name = a1.val
-  found_env = env_find(env, var_name)
-  if (is_void(found_env)) return 0
-  obj = env_get(env, var_name)
-  return is_macro(obj)
-}
-
-func macroexpand(ast, env)
-{
-  while (is_macro_call(ast, env)) {
-    macro_name = (*ast.val)(1)->val
-    macro_obj = env_get(env, macro_name)
-    macro_args = *rest(ast).val
-    fn_env = env_new(macro_obj.env, binds=*macro_obj.binds, exprs=macro_args)
-    ast = EVAL(*macro_obj.ast, fn_env)
-  }
-  return ast
-}
-
-func eval_ast(ast, env)
-{
+  while (1) {
+    dbgeval = structof(env_get(env, "DEBUG-EVAL"))
+    if ((dbgeval != MalError) && (dbgeval != MalNil) && (dbgeval != MalFalse)) {
+       write, format="EVAL: %s\n", pr_str(ast, 1)
+    }
+    // Process non-list types (todo: indent right)
   type = structof(ast)
   if (type == MalSymbol) {
     return env_get(env, ast.val)
   } else if (type == MalList) {
-    seq = *(ast.val)
-    if (numberof(seq) == 0) return ast
-    res = array(pointer, numberof(seq))
-    for (i = 1; i <= numberof(seq); ++i) {
-      e = EVAL(*seq(i), env)
-      if (structof(e) == MalError) return e
-      res(i) = &e
-    }
-    return MalList(val=&res)
+    // Proceed after this switch.
   } else if (type == MalVector) {
     seq = *(ast.val)
     if (numberof(seq) == 0) return ast
@@ -108,15 +81,7 @@ func eval_ast(ast, env)
     }
     return MalHashmap(val=&res)
   } else return ast
-}
-
-func EVAL(ast, env)
-{
-  while (1) {
-    if (structof(ast) == MalError) return ast
-    if (structof(ast) != MalList) return eval_ast(ast, env)
-    ast = macroexpand(ast, env)
-    if (structof(ast) != MalList) return eval_ast(ast, env)
+    // The else branch includes MalError. Now ast is a list.
     lst = *ast.val
     if (numberof(lst) == 0) return ast
     a1 = lst(1)->val
@@ -138,8 +103,6 @@ func EVAL(ast, env)
       // TCO
     } else if (a1 == "quote") {
       return *lst(2)
-    } else if (a1 == "quasiquoteexpand") {
-      return quasiquote(*lst(2))
     } else if (a1 == "quasiquote") {
       ast = quasiquote(*lst(2)) // TCO
     } else if (a1 == "defmacro!") {
@@ -147,8 +110,6 @@ func EVAL(ast, env)
       if (structof(new_value) == MalError) return new_value
       new_value.macro = 1
       return env_set(env, lst(2)->val, new_value)
-    } else if (a1 == "macroexpand") {
-      return macroexpand(*lst(2), env)
     } else if (a1 == "try*") {
       ret = EVAL(*lst(2), env)
       if (structof(ret) == MalError && numberof(lst) > 2) {
@@ -186,16 +147,34 @@ func EVAL(ast, env)
     } else if (a1 == "fn*") {
       return MalFunction(env=&env, binds=lst(2)->val, ast=lst(3), macro=0)
     } else {
-      el = eval_ast(ast, env)
-      if (structof(el) == MalError) return el
-      seq = *el.val
-      if (structof(*seq(1)) == MalNativeFunction) {
-        args = (numberof(seq) > 1) ? seq(2:) : []
-        return call_core_fn(seq(1)->val, args)
-      } else if (structof(*seq(1)) == MalFunction) {
-        fn = *seq(1)
-        exprs = numberof(seq) > 1 ? seq(2:) : []
-        fn_env = env_new(fn.env, binds=*fn.binds, exprs=exprs)
+      fn = EVAL(*lst(1), env)
+      if (structof(fn) == MalError) return fn
+      if (is_macro(fn)) {
+        if (numberof(lst) == 1) {
+          args = []
+        } else {
+          args = lst(2:)
+        }
+        fn_env = env_new(fn.env, binds=*fn.binds, exprs=args)
+        ast = EVAL(*fn.ast, fn_env)
+        continue // TCO
+      }
+      // Evaluate arguments
+      if (numberof(lst) == 1) {
+        args = []
+      } else {
+        args = array(pointer, numberof(lst) - 1)
+        for (i = 1; i <= numberof(args); ++i) {
+          e = EVAL(*lst(1+i), env)
+          if (structof(e) == MalError) return e
+          args(i) = &e
+        }
+      }
+      // Apply
+      if (structof(fn) == MalNativeFunction) {
+        return call_core_fn(fn.val, args)
+      } else if (structof(fn) == MalFunction) {
+        fn_env = env_new(fn.env, binds=*fn.binds, exprs=args)
         ast = *fn.ast
         env = fn_env
         // TCO

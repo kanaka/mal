@@ -19,8 +19,31 @@ module Mal
   end
 
   def EVAL(ast, environment)
-    if Types::List === ast && ast.size > 0
-      evaluated = eval_ast(ast, environment)
+    # puts "EVAL: #{pr_str(ast, true)}"
+
+
+    case ast
+    when Types::Symbol
+      if @repl_env.key?(ast.value)
+        @repl_env[ast.value]
+      else
+        raise SymbolNotFoundError, "Error! Symbol #{ast.value} not found."
+      end
+    when Types::Vector
+      vec = Types::Vector.new
+      ast.each { |i| vec << EVAL(i, environment) }
+      return vec
+    when Types::Hashmap
+      hashmap = Types::Hashmap.new
+      ast.each { |k, v| hashmap[k] = EVAL(v, environment) }
+      return hashmap
+    when Types::List
+      if ast.size == 0
+        return ast
+      end
+
+      evaluated = Types::List.new
+      ast.each { |i| evaluated << EVAL(i, environment) }
       maybe_callable = evaluated.first
 
       if maybe_callable.respond_to?(:call)
@@ -28,10 +51,8 @@ module Mal
       else
         raise NotCallableError, "Error! #{PRINT(maybe_callable)} is not callable."
       end
-    elsif Types::List === ast && ast.size == 0
-      ast
     else
-      eval_ast(ast, environment)
+      return ast
     end
   end
 
@@ -59,30 +80,6 @@ module Mal
     "Error! Detected unbalanced list. Check for matching ']'."
   end
 
-  def eval_ast(mal, environment)
-    case mal
-    when Types::Symbol
-      if @repl_env.key?(mal.value)
-        @repl_env[mal.value]
-      else
-        raise SymbolNotFoundError, "Error! Symbol #{mal.value} not found."
-      end
-    when Types::List
-      list = Types::List.new
-      mal.each { |i| list << EVAL(i, environment) }
-      list
-    when Types::Vector
-      vec = Types::Vector.new
-      mal.each { |i| vec << EVAL(i, environment) }
-      vec
-    when Types::Hashmap
-      hashmap = Types::Hashmap.new
-      mal.each { |k, v| hashmap[k] = EVAL(v, environment) }
-      hashmap
-    else
-      mal
-    end
-  end
 end
 
 while input = Readline.readline("user> ")

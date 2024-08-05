@@ -14,45 +14,61 @@
 
 
 % eval
-/eval_ast { 2 dict begin
+/EVAL { 7 dict begin
     /env exch def
     /ast exch def
-    %(eval_ast: ) print ast ==
+
+    env (DEBUG-EVAL) env_get {
+        dup null ne    exch false ne    and {
+            (EVAL: ) print
+            ast true _pr_str print
+            (\n) print
+        } if
+    } if
+
     ast _symbol? { %if symbol
         env ast env_get
-    }{ ast _sequential? { %elseif list or vector
+        not {
+            (') ast
+            dup length string cvs
+            (' not found)
+            concatenate concatenate
+            _throw
+        } if
+    }{
+
+    ast _vector? {
         [
             ast /data get { %forall items
                 env EVAL
             } forall
-        ] ast _list? { _list_from_array }{ _vector_from_array } ifelse
-    }{ ast _hash_map? { %elseif list or vector
+        ] _vector_from_array
+    }{
+
+    ast _hash_map? {
         <<
             ast /data get { %forall entries
                 env EVAL
             } forall
         >> _hash_map_from_dict
-    }{ % else
+    }{
+
+    ast _list? not {
         ast
-    } ifelse } ifelse } ifelse
-end } def
+    }{
 
-/EVAL { 8 dict begin
-    /env exch def
-    /ast exch def
+    ast _count 0 eq {
+        ast
+    }{
 
-    %(EVAL: ) print ast true _pr_str print (\n) print
-    ast _list? not { %if not a list
-        ast env eval_ast
-    }{ %else apply the list
         /a0 ast 0 _nth def
-        a0 _nil? { %if ()
-            ast
-        }{ /def! a0 eq { %if def!
-            /a1 ast 1 _nth def
-            /a2 ast 2 _nth def
-            env a1  a2 env EVAL  env_set
-        }{ /let* a0 eq { %if let*
+
+        /def! a0 eq { %if def!
+            ast 2 _nth    env EVAL
+            env    ast 1 _nth    2 index    env_set
+        }{
+
+        /let* a0 eq { %if let*
             /a1 ast 1 _nth def
             /a2 ast 2 _nth def
             /let_env env null null env_new def
@@ -62,15 +78,16 @@ end } def
                     a1 idx _nth
                     a1 idx 1 add _nth let_env EVAL
                     env_set
-                    pop % discard the return value
             } for
             a2 let_env EVAL
         }{
-            /el ast env eval_ast def
-            el _rest el _first % stack: ast function
+
+            a0 env EVAL
+
+            [ ast _rest /data get { env EVAL } forall ] _list_from_array exch
             exec % apply function to args
-        } ifelse } ifelse } ifelse
-    } ifelse
+
+        } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse
 end } def
 
 
@@ -85,11 +102,10 @@ end } def
 
 /REP { READ repl_env EVAL PRINT } def
 
-/_ref { repl_env 3 1 roll env_set pop } def
-(+) { dup 0 _nth exch 1 _nth add } _ref
-(-) { dup 0 _nth exch 1 _nth sub } _ref
-(*) { dup 0 _nth exch 1 _nth mul } _ref
-(/) { dup 0 _nth exch 1 _nth idiv } _ref
+repl_env (+) { dup 0 _nth exch 1 _nth add } env_set
+repl_env (-) { dup 0 _nth exch 1 _nth sub } env_set
+repl_env (*) { dup 0 _nth exch 1 _nth mul } env_set
+repl_env (/) { dup 0 _nth exch 1 _nth idiv } env_set
 
 % repl loop
 { %loop

@@ -37,25 +37,12 @@
         val-ast)
   env)
 
-(fn env-find
-  [env sym-ast]
-  (let [inner-env (. env :data)
-        val-ast (. inner-env (t.get-value sym-ast))]
-    (if val-ast
-        env
-        (let [outer (. env :outer)]
-          (when outer
-            (env-find outer sym-ast))))))
-
 (fn env-get
-  [env sym-ast]
-  (let [target-env (env-find env sym-ast)]
-    (if target-env
-        (. (. target-env :data)
-           (t.get-value sym-ast))
-        (u.throw*
-         (t.make-string (.. "'" (t.get-value sym-ast) "'"
-                            " not found"))))))
+  [env key]
+  (or (. env :data key)
+      (let [outer (. env :outer)]
+        (when outer
+              (env-get outer key)))))
 
 (comment
 
@@ -65,8 +52,6 @@
           (t.make-symbol "fun")
           (t.make-number 1))
 
- (env-find test-env (t.make-symbol "fun"))
-
  (env-get test-env (t.make-symbol "fun"))
 
  (local test-env-2 (make-env nil))
@@ -74,8 +59,6 @@
  (env-set test-env-2
           (t.make-symbol "smile")
           (t.make-keyword ":yay"))
-
- (env-find test-env-2 (t.make-symbol "smile"))
 
  (env-get test-env-2 (t.make-symbol "smile"))
 
@@ -87,13 +70,10 @@
             (t.make-number (+ (t.get-value ast-1)
                               (t.get-value ast-2)))))
 
- (env-find test-env-3 (t.make-symbol "+"))
-
  (env-get test-env-3 (t.make-symbol "+"))
 
  )
 
 {:make-env make-env
  :env-set env-set
- :env-find env-find
  :env-get env-get}

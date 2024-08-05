@@ -36,26 +36,20 @@ function quasiquote(ast) {
     }
 }
 
-function is_macro_call(ast, env) {
-    return types._list_Q(ast) &&
-           types._symbol_Q(ast[0]) &&
-           env.find(ast[0]) &&
-           env.get(ast[0])._ismacro_;
-}
-
-function macroexpand(ast, env) {
-    while (is_macro_call(ast, env)) {
-        var mac = env.get(ast[0]);
-        ast = mac.apply(mac, ast.slice(1));
+function _EVAL(ast, env) {
+    while (true) {
+    // Show a trace if DEBUG-EVAL is enabled.
+    var dbgevalenv = env.find("DEBUG-EVAL");
+    if (dbgevalenv !== null) {
+        var dbgeval = env.get("DEBUG-EVAL");
+        if (dbgeval !== null && dbgeval !== false)
+            printer.println("EVAL:", printer._pr_str(ast, true));
     }
-    return ast;
-}
-
-function eval_ast(ast, env) {
+    // Non-list types.
     if (types._symbol_Q(ast)) {
-        return env.get(ast);
+        return env.get(ast.value);
     } else if (types._list_Q(ast)) {
-        return ast.map(function(a) { return EVAL(a, env); });
+        // Exit this switch.
     } else if (types._vector_Q(ast)) {
         var v = ast.map(function(a) { return EVAL(a, env); });
         v.__isvector__ = true;
@@ -69,21 +63,7 @@ function eval_ast(ast, env) {
     } else {
         return ast;
     }
-}
-
-function _EVAL(ast, env) {
-    while (true) {
-
-    //printer.println("EVAL:", printer._pr_str(ast, true));
-    if (!types._list_Q(ast)) {
-        return eval_ast(ast, env);
-    }
-
     // apply list
-    ast = macroexpand(ast, env);
-    if (!types._list_Q(ast)) {
-        return eval_ast(ast, env);
-    }
     if (ast.length === 0) {
         return ast;
     }
@@ -92,28 +72,33 @@ function _EVAL(ast, env) {
     switch (a0.value) {
     case "def!":
         var res = EVAL(a2, env);
-        return env.set(a1, res);
+        if (!a1.constructor || a1.constructor.name !== 'Symbol') {
+            throw new Error("env.get key must be a symbol")
+        }
+        return env.set(a1.value, res);
     case "let*":
         var let_env = new Env(env);
         for (var i=0; i < a1.length; i+=2) {
-            let_env.set(a1[i], EVAL(a1[i+1], let_env));
+            if (!a1[i].constructor || a1[i].constructor.name !== 'Symbol') {
+                throw new Error("env.get key must be a symbol")
+            }
+            let_env.set(a1[i].value, EVAL(a1[i+1], let_env));
         }
         ast = a2;
         env = let_env;
         break;
     case "quote":
         return a1;
-    case "quasiquoteexpand":
-        return quasiquote(a1);
     case "quasiquote":
         ast = quasiquote(a1);
         break;
     case 'defmacro!':
         var func = types._clone(EVAL(a2, env));
         func._ismacro_ = true;
-        return env.set(a1, func);
-    case 'macroexpand':
-        return macroexpand(a1, env);
+        if (!a1.constructor || a1.constructor.name !== 'Symbol') {
+            throw new Error("env.get key must be a symbol")
+        }
+        return env.set(a1.value, func);
     case "try*":
         try {
             return EVAL(a1, env);
@@ -126,7 +111,9 @@ function _EVAL(ast, env) {
             }
         }
     case "do":
-        eval_ast(ast.slice(1, -1), env);
+        for (var i=1; i < ast.length - 1; i++) {
+            EVAL(ast[i], env);
+        }
         ast = ast[ast.length-1];
         break;
     case "if":
@@ -140,12 +127,17 @@ function _EVAL(ast, env) {
     case "fn*":
         return types._function(EVAL, Env, a2, env, a1);
     default:
-        var el = eval_ast(ast, env), f = el[0];
+        var f = EVAL(a0, env);
+        if (f._ismacro_) {
+            ast = f.apply(f, ast.slice(1));
+            break;
+        }
+        var args = ast.slice(1).map(function(a) { return EVAL(a, env); });
         if (f.__ast__) {
             ast = f.__ast__;
-            env = f.__gen_env__(el.slice(1));
+            env = f.__gen_env__(args);
         } else {
-            return f.apply(f, el.slice(1));
+            return f.apply(f, args);
         }
     }
 
@@ -167,10 +159,10 @@ var repl_env = new Env();
 var rep = function(str) { return PRINT(EVAL(READ(str), repl_env)); };
 
 // core.js: defined using javascript
-for (var n in core.ns) { repl_env.set(types._symbol(n), core.ns[n]); }
-repl_env.set(types._symbol('eval'), function(ast) {
+for (var n in core.ns) { repl_env.set(n, core.ns[n]); }
+repl_env.set('eval', function(ast) {
     return EVAL(ast, repl_env); });
-repl_env.set(types._symbol('*ARGV*'), []);
+repl_env.set('*ARGV*', []);
 
 // core.mal: defined using the language itself
 rep("(def! *host-language* \"javascript\")")
@@ -179,7 +171,7 @@ rep("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \"\nnil
 rep("(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))");
 
 if (typeof process !== 'undefined' && process.argv.length > 2) {
-    repl_env.set(types._symbol('*ARGV*'), process.argv.slice(3));
+    repl_env.set('*ARGV*', process.argv.slice(3));
     rep('(load-file "' + process.argv[2] + '")');
     process.exit(0);
 }

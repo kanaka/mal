@@ -6,7 +6,7 @@ module rec Types
     | Vector of t list with_meta
     | Map of t MalMap.t with_meta
     | Int of int
-    | Symbol of string with_meta
+    | Symbol of string
     | Keyword of string
     | Nil
     | Bool of bool
@@ -40,7 +40,6 @@ type mal_type = MalValue.t
 let list   x = Types.List   { Types.value = x; meta = Types.Nil }
 let map    x = Types.Map    { Types.value = x; meta = Types.Nil }
 let vector x = Types.Vector { Types.value = x; meta = Types.Nil }
-let symbol x = Types.Symbol { Types.value = x; meta = Types.Nil }
 let fn     f = Types.Fn     { Types.value = f; meta = Types.Nil }
 
 let rec list_into_map target source =

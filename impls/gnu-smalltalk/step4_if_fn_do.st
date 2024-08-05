@@ -20,35 +20,37 @@ Object subclass: MAL [
         ^Reader readStr: input
     ]
 
-    MAL class >> evalAst: sexp env: env [
-        sexp type = #symbol ifTrue: [
-            ^env get: sexp value
-        ].
-
-        sexp type = #list ifTrue: [
-            ^self evalList: sexp env: env class: MALList
-        ].
-        sexp type = #vector ifTrue: [
-            ^self evalList: sexp env: env class: MALVector
-        ].
-        sexp type = #map ifTrue: [
-            ^self evalList: sexp env: env class: MALMap
-        ].
-
-        ^sexp
-    ]
-
-    MAL class >> evalList: sexp env: env class: aClass [
-        | items |
-        items := sexp value collect:
+    MAL class >> evalList: list env: env [
+        ^list collect:
             [ :item | self EVAL: item env: env ].
-        ^aClass new: items
     ]
 
     MAL class >> EVAL: sexp env: env [
-        | ast a0_ a1 a1_ a1_n a2 a3 forms function args |
+        | ast a0_ a1 a1_ a2 a3 forms function args |
+        a1 := env get: #'DEBUG-EVAL'.
+        (a1 isNil or: [ a1 type = #false or: [ a1 type = #nil ] ] )
+        ifFalse: [
+            ('EVAL: ' , (Printer prStr: sexp printReadably: true))
+            displayNl.
+        ].
+
+        sexp type = #symbol ifTrue: [
+            | key value |
+            key := sexp value.
+            value := env get: key.
+            value isNil ifTrue: [
+                ^MALUnknownSymbol new signal: key
+            ].
+            ^value
+        ].
+        sexp type = #vector ifTrue: [
+            ^MALVector new: (self evalList: sexp value env: env)
+        ].
+        sexp type = #map ifTrue: [
+            ^MALMap new: (self evalList: sexp value env: env)
+        ].
         sexp type ~= #list ifTrue: [
-            ^self evalAst: sexp env: env
+            ^sexp
         ].
         sexp value isEmpty ifTrue: [
             ^sexp
@@ -77,8 +79,7 @@ Object subclass: MAL [
         ].
 
         a0_ = #do ifTrue: [
-            a1_n := ast allButFirst.
-            ^(a1_n collect: [ :item | self EVAL: item env: env]) last
+            ^(self evalList: ast allButFirst env: env) last
         ].
 
         a0_ = #if ifTrue: [
@@ -104,7 +105,7 @@ Object subclass: MAL [
                            (Env new: env binds: binds exprs: args) ]
         ].
 
-        forms := (self evalAst: sexp env: env) value.
+        forms := self evalList: sexp value env: env.
         function := forms first fn.
         args := forms allButFirst asArray.
         ^function value: args

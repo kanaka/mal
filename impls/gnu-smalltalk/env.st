@@ -30,24 +30,11 @@ Object subclass: Env [
         data at: key put: value.
     ]
 
-    find: key [
-        ^data at: key ifAbsent: [
-            outer notNil ifTrue: [
-                outer find: key
-            ] ifFalse: [
-                nil
-            ]
-        ]
-    ]
-
     get: key [
-        | value |
-        value := self find: key.
-
-        value notNil ifTrue: [
-            ^value
-        ] ifFalse: [
-            ^MALUnknownSymbol new signal: key
+        ^data at: key ifAbsent: [
+            outer isNil ifFalse: [
+                outer get: key
+            ]
         ]
     ]
 ]

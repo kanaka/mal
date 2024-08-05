@@ -20,8 +20,7 @@ type TEnv = class(TObject)
                            Exprs  : TMalArray);
 
         function Add(Key : TMalSymbol; Val : TMal) : TMal;
-        function Find(Key : TMalSymbol) : TEnv;
-        function Get(Key : TMalSymbol) : TMal;
+        function Get(Key : String) : TMal;
 end;
 
 ////////////////////////////////////////////////////////////
@@ -72,30 +71,14 @@ begin
     Add := Val;
 end;
 
-function TEnv.Find(Key : TMalSymbol) : TEnv;
-var
-    Sym : string;
+function TEnv.Get(Key : String) : TMal;
 begin
-    Sym := (Key as TMalSymbol).Val;
-    if Data.IndexOf(Sym) >= 0 then
-        Find := Self
+    if Data.IndexOf(Key) >= 0 then
+        Get := Data[Key]
     else if Outer <> nil then
-        Find := Outer.Find(Key)
+        Get := Outer.Get(Key)
     else
-        Find := nil;
-end;
-
-function TEnv.Get(Key : TMalSymbol) : TMal;
-var
-    Sym : string;
-    Env : TEnv;
-begin
-    Sym := (Key as TMalSymbol).Val;
-    Env := Self.Find(Key);
-    if Env <> nil then
-        Get := Env.Data[Sym]
-    else
-        raise Exception.Create('''' + Sym + ''' not found');
+        Get := nil;
 end;
 
 end.

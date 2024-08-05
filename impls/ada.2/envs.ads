@@ -27,6 +27,9 @@ package Envs is
    function Get (Env : in Instance;
                  Key : in Types.String_Ptr) return Types.T;
 
+   function Get_Or_Nil (Env : Instance;
+                        Key : Types.String_Ptr) return Types.T;
+
    procedure Set (Env      : in out Instance;
                   Key      : in     Types.T;
                   New_Item : in     Types.T) with Inline;

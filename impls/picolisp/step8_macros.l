@@ -41,29 +41,15 @@
       ((map symbol) (MAL-list (list (MAL-symbol 'quote) Ast)))
       (T            Ast)))
 
-(de is-macro-call (Ast Env)
-   (when (= (MAL-type Ast) 'list)
-      (let A0 (car (MAL-value Ast))
-         (when (= (MAL-type A0) 'symbol)
-            (let Value (find> Env (MAL-value A0))
-               (and (isa '+Func Value) (get Value 'is-macro) T) ) ) ) ) )
-
-(de macroexpand (Ast Env)
-   (while (is-macro-call Ast Env)
-      (let (Ast* (MAL-value Ast)
-            Macro (get (find> Env (MAL-value (car Ast*))) 'fn)
-            Args (cdr Ast*) )
-         (setq Ast (apply (MAL-value Macro) Args)) ) )
-   Ast )
-
 (de EVAL (Ast Env)
    (catch 'done
       (while t
-         (when (not (= (MAL-type Ast) 'list))
-            (throw 'done (eval-ast Ast Env)) )
-         (setq Ast (macroexpand Ast Env))
-         (when (or (not (= (MAL-type Ast) 'list)) (not (MAL-value Ast)))
-            (throw 'done (eval-ast Ast Env)) )
+       (when (and (get> Env 'DEBUG-EVAL)
+                  (not (memq (MAL-type @) '(nil false))))
+          (prinl "EVAL: " (pr-str Ast T)))
+
+       (case (MAL-type Ast)
+        (list
          (let (Ast* (MAL-value Ast)
                A0* (MAL-value (car Ast*))
                A1 (cadr Ast*)
@@ -71,18 +57,16 @@
                A2 (caddr Ast*)
                A3 (cadddr Ast*) )
             (cond
+               ((not Ast*)
+                (throw 'done Ast))
                ((= A0* 'def!)
                 (throw 'done (set> Env A1* (EVAL A2 Env))) )
                ((= A0* 'quote)
                 (throw 'done A1) )
-               ((= A0* 'quasiquoteexpand)
-                (throw 'done (quasiquote A1)))
                ((= A0* 'quasiquote)
                 (setq Ast (quasiquote A1)) ) # TCO
                ((= A0* 'defmacro!)
                 (throw 'done (set> Env A1* (MAL-macro (EVAL A2 Env)))))
-               ((= A0* 'macroexpand)
-                (throw 'done (macroexpand A1 Env)) )
                ((= A0* 'let*)
                 (let Env* (MAL-env Env)
                    (for (Bindings A1* Bindings)
@@ -108,22 +92,25 @@
                                   (EVAL Body Env*) ) ) ) )
                    (throw 'done (MAL-func Env Body Binds Fn)) ) )
                (T
-                  (let (Ast* (MAL-value (eval-ast Ast Env))
-                        Fn (car Ast*)
-                        Args (cdr Ast*) )
+                (let (Fn (EVAL (car Ast*) Env))
+                  (if (get Fn 'is-macro)
+                    (setq Ast (apply (MAL-value (get Fn 'fn)) (cdr Ast*))) # TCO
+                    (let Args (mapcar '((Form) (EVAL Form Env)) (cdr Ast*))
                      (if (isa '+MALFn Fn)
                         (throw 'done (apply (MAL-value Fn) Args))
                         (let Env* (MAL-env (get Fn 'env) (get Fn 'params) Args)
                            (setq Ast (get Fn 'ast) Env Env*) ) ) ) ) ) ) ) ) )
-
-(de eval-ast (Ast Env)
-   (let Value (MAL-value Ast)
-      (case (MAL-type Ast)
-         (symbol (get> Env Value))
-         (list (MAL-list (mapcar '((Form) (EVAL Form Env)) Value)))
-         (vector (MAL-vector (mapcar '((Form) (EVAL Form Env)) Value)))
-         (map (MAL-map (mapcar '((Form) (EVAL Form Env)) Value)))
-         (T Ast) ) ) )
+        (symbol
+         (let (Key   (MAL-value Ast)
+               Value (get> Env Key))
+            (if Value
+               (throw 'done Value)
+               (throw 'err (MAL-error (MAL-string (pack "'" Key "' not found")))))))
+        (vector (throw 'done
+          (MAL-vector (mapcar '((Form) (EVAL Form Env)) (MAL-value Ast)))))
+        (map (throw 'done
+          (MAL-map (mapcar '((Form) (EVAL Form Env)) (MAL-value Ast)))))
+        (T (throw 'done Ast))))))
 
 (set> *ReplEnv 'eval (MAL-fn (curry (*ReplEnv) (Form) (EVAL Form *ReplEnv))))
 (set> *ReplEnv '*ARGV* (MAL-list (mapcar MAL-string (cdr (argv)))))

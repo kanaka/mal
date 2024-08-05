@@ -1,11 +1,19 @@
 fun read s =
     readStr s
 
-fun eval e (LIST (a::args,_)) = (case specialEval a of SOME special => special e args | _ => evalApply e (eval e a) args)
-  | eval e (SYMBOL s)         = evalSymbol e s
-  | eval e (VECTOR (v,_))     = VECTOR (map (eval e) v, NO_META)
-  | eval e (MAP (m,_))        = MAP (List.map (fn (k, v) => (k, eval e v)) m, NO_META)
-  | eval e ast                = ast
+fun eval e ast = (
+  case lookup e "DEBUG-EVAL" of
+    SOME(x) => if truthy x
+               then TextIO.print ("EVAL: " ^ prReadableStr ast ^ "\n")
+               else ()
+    | NONE => ();
+  eval' e ast)
+
+and eval' e (LIST (a::args,_)) = (case specialEval a of SOME special => special e args | _ => evalApply e (eval e a) args)
+  | eval' e (SYMBOL s)         = evalSymbol e s
+  | eval' e (VECTOR (v,_))     = VECTOR (map (eval e) v, NO_META)
+  | eval' e (MAP (m,_))        = MAP (List.map (fn (k, v) => (k, eval e v)) m, NO_META)
+  | eval' e ast                = ast
 
 and specialEval (SYMBOL "def!")             = SOME evalDef
   | specialEval (SYMBOL "let*")             = SOME evalLet
@@ -14,7 +22,6 @@ and specialEval (SYMBOL "def!")             = SOME evalDef
   | specialEval (SYMBOL "fn*")              = SOME evalFn
   | specialEval (SYMBOL "quote")            = SOME evalQuote
   | specialEval (SYMBOL "quasiquote")       = SOME evalQuasiquote
-  | specialEval (SYMBOL "quasiquoteexpand") = SOME (fn _ => expandQuasiquote)
   | specialEval _                           = NONE
 
 and evalDef e [SYMBOL s, ast] = let val v = eval e ast in (def s v e; v) end

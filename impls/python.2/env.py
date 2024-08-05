@@ -27,22 +27,12 @@ class Env(object):
         self._data[key] = value
         return value
 
-    def find(self, key: MalExpression) -> Optional["Env"]:
-        if str(key) in self._data:
-            return self
+    def get(self, key: str) -> Optional["Env"]:
+        if key in self._data:
+            return self._data[key]
         if self._outer is not None:
-            return self._outer.find(key)
+            return self._outer.get(key)
         return None
-
-    def get(self, key: MalExpression) -> MalExpression:
-        strkey = str(key)
-        if strkey in self._data:
-            return self._data[strkey]
-
-        location = self.find(key)
-        if location is None:
-            raise MalUnknownSymbolException(strkey)
-        return location.get(key)
 
     def __repr__(self) -> str:
         env_str = "{"

@@ -19,14 +19,13 @@ def READ(x: str) -> MalExpression:
     return reader.read(x)
 
 
-def eval_ast(ast: MalExpression, env: Dict[str, MalFunctionCompiled]) -> MalExpression:
+def EVAL(ast: MalExpression, env: Dict[str, MalFunctionCompiled]) -> MalExpression:
+    # print("EVAL: " + str(ast))
     if isinstance(ast, MalSymbol):
         try:
             return env[str(ast)]
         except KeyError:
             raise MalUnknownSymbolException(str(ast))
-    if isinstance(ast, MalList):
-        return MalList([EVAL(x, env) for x in ast.native()])
     if isinstance(ast, MalVector):
         return MalVector([EVAL(x, env) for x in ast.native()])
     if isinstance(ast, MalHash_map):
@@ -34,17 +33,11 @@ def eval_ast(ast: MalExpression, env: Dict[str, MalFunctionCompiled]) -> MalExpr
         for key in ast.native():
             new_dict[key] = EVAL(ast.native()[key], env)
         return MalHash_map(new_dict)
-    return ast
-
-
-def EVAL(ast: MalExpression, env: Dict[str, MalFunctionCompiled]) -> MalExpression:
     if not isinstance(ast, MalList):
-        return eval_ast(ast, env)
+        return ast
     if len(ast.native()) == 0:
         return ast
-    eval_result = eval_ast(ast, env)
-    f = eval_result.native()[0]
-    args = eval_result.native()[1:]
+    f, *args = (EVAL(form, env) for form in ast.native())
     return f.call(args)
 
 

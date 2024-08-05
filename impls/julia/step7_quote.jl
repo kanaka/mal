@@ -43,22 +43,27 @@ function quasiquote(ast)
     end
 end
 
-function eval_ast(ast, env)
-    if typeof(ast) == Symbol
-        env_get(env,ast)
-    elseif isa(ast, Array) || isa(ast, Tuple)
-        map((x) -> EVAL(x,env), ast)
-    elseif isa(ast, Dict)
-        [x[1] => EVAL(x[2], env) for x=ast]
-    else
-        ast
-    end
-end
-
 function EVAL(ast, env)
   while true
-    #println("EVAL: $(printer.pr_str(ast,true))")
-    if !isa(ast, Array) return eval_ast(ast, env) end
+
+    dbgenv = env_find(env, Symbol("DEBUG-EVAL"))
+    if dbgenv != nothing
+        dbgeval = env_get(dbgenv, Symbol("DEBUG-EVAL"))
+        if dbgeval !== nothing && dbgeval !== false
+            println("EVAL: $(printer.pr_str(ast,true))")
+        end
+    end
+
+    if typeof(ast) == Symbol
+        return env_get(env,ast)
+    elseif isa(ast, Tuple)
+        return map((x) -> EVAL(x,env), ast)
+    elseif isa(ast, Dict)
+        return [x[1] => EVAL(x[2], env) for x=ast]
+    elseif !isa(ast, Array)
+        return ast
+    end
+
     if isempty(ast) return ast end
 
     # apply
@@ -74,13 +79,11 @@ function EVAL(ast, env)
         # TCO loop
     elseif :quote == ast[1]
         return ast[2]
-    elseif :quasiquoteexpand == ast[1]
-        return quasiquote(ast[2])
     elseif :quasiquote == ast[1]
         ast = quasiquote(ast[2])
         # TCO loop
     elseif :do == ast[1]
-        eval_ast(ast[2:end-1], env)
+        map((x) -> EVAL(x,env), ast[2:end-1])
         ast = ast[end]
         # TCO loop
     elseif :if == ast[1]
@@ -101,7 +104,7 @@ function EVAL(ast, env)
             (args...) -> EVAL(ast[3], Env(env, ast[2], Any[args...])),
             ast[3], env, ast[2])
     else
-        el = eval_ast(ast, env)
+        el = map((x) -> EVAL(x,env), ast)
         f, args = el[1], el[2:end]
         if isa(f, MalFunc)
             ast = f.ast

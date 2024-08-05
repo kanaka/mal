@@ -35,9 +35,8 @@ Here is the final diagram for [step A](process/guide.md#stepA):
 ![stepA_mal architecture](process/stepA_mal.png)
 
 If you are interested in creating a mal implementation (or just
-interested in using mal for something), you are welcome to to join our
-[Discord](https://discord.gg/CKgnNbJBpF) or join #mal on
-[libera.chat](https://libera.chat/). In addition to the [make-a-lisp
+interested in using mal for something) you are welcome to to join our
+[Discord](https://discord.gg/CKgnNbJBpF). In addition to the [make-a-lisp
 process guide](process/guide.md) there is also a [mal/make-a-lisp
 FAQ](docs/FAQ.md) where I attempt to answer some common questions.
 
@@ -1452,7 +1451,7 @@ make "docker-build^IMPL"
 
 
 **Notes**:
-* Docker images are named *"kanaka/mal-test-IMPL"*
+* Docker images are named *"ghcr.io/kanaka/mal-test-IMPL"*
 * JVM-based language implementations (Groovy, Java, Clojure, Scala):
   you will probably need to run this command once manually
   first `make DOCKERIZE=1 "repl^IMPL"` before you can run tests because

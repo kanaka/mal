@@ -17,11 +17,18 @@
   (read-str input))
 
 (defun EVAL (ast env)
-  (if (and (mal-list-p ast) (mal-value ast))
+  (let ((dbgeval (mal-env-get env 'DEBUG-EVAL)))
+    (if (and dbgeval
+             (not (member (mal-type dbgeval) '(false nil))))
+      (println "EVAL: %s\n" (PRINT ast))))
+
+  (cl-case (mal-type ast)
+    (list
       (let* ((a (mal-value ast))
              (a1 (cadr a))
              (a2 (nth 2 a))
              (a3 (nth 3 a)))
+       (if a
         (cl-case (mal-value (car a))
          (def!
           (let ((identifier (mal-value a1))
@@ -37,7 +44,11 @@
                 (mal-env-set env* key value)))
             (EVAL form env*)))
          (do
-          (car (last (mal-value (eval-ast (mal-list (cdr a)) env)))))
+           (let* ((a0... (cdr a))
+                  (butlast (butlast a0...))
+                  (last (car (last a0...))))
+             (mapcar (lambda (item) (EVAL item env)) butlast)
+             (EVAL last env)))
          (if
           (let* ((condition (EVAL a1 env))
                  (condition-type (mal-type condition))
@@ -58,31 +69,26 @@
                  (EVAL body env*))))))
          (t
           ;; not a special form
-          (let* ((ast* (mal-value (eval-ast ast env)))
-                 (fn* (mal-value (car ast*)))
-                 (args (cdr ast*)))
-            (apply fn* args)))))
-    (eval-ast ast env)))
-
-(defun eval-ast (ast env)
-  (let ((value (mal-value ast)))
-    (cl-case (mal-type ast)
+          (let ((fn* (mal-value (EVAL (car a) env)))
+                (args (mapcar (lambda (x) (EVAL x env)) (cdr a))))
+            (apply fn* args))))
+        ast)))
      (symbol
-      (let ((definition (mal-env-get env value)))
-        (or definition (error "Definition not found"))))
-     (list
-      (mal-list (mapcar (lambda (item) (EVAL item env)) value)))
+      (let ((key (mal-value ast)))
+        (or (mal-env-get env key)
+            (error "'%s' not found" key))))
      (vector
-      (mal-vector (vconcat (mapcar (lambda (item) (EVAL item env)) value))))
+      (mal-vector (vconcat (mapcar (lambda (item) (EVAL item env))
+                                   (mal-value ast)))))
      (map
-      (let ((map (copy-hash-table value)))
+      (let ((map (copy-hash-table (mal-value ast))))
         (maphash (lambda (key val)
                    (puthash key (EVAL val env) map))
                  map)
         (mal-map map)))
      (t
       ;; return as is
-      ast))))
+      ast)))
 
 (defun PRINT (input)
   (pr-str input t))

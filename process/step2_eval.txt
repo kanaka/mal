@@ -3,18 +3,16 @@ import types, reader, printer
 
 READ(str): return reader.read_str(str)
 
-eval_ast(ast,env):
-  switch type(ast):
-    symbol:      return lookup(env, ast) OR raise "'" + ast + "' not found"
-    list,vector: return ast.map((x) -> EVAL(x,env))
-    hash:        return ast.map((k,v) -> list(k, EVAL(v,env)))
-    _default_:   return ast
-
-EVAL(ast,env):
-    if not list?(ast): return eval_ast(ast, env)
-    if empty?(ast): return ast
-    f, args = eval_ast(ast, env)
-    return apply(f, args)
+EVAL(ast, env):
+  // prn('EVAL ast)
+  match ast:
+    'key:                     return env[key] or raise "'{key}' not found"
+    [form1 ..]:               return [EVAL(form1, env) ..]
+    {key1 value1 ..}:         return {key1 EVAL(value1, env) ..}
+    (callable arg1 ..):       f = EVAL(callable, env)
+                              args = [EVAL(arg1, env) ..]
+                              return f(args)
+    otherwise:                return ast
 
 PRINT(exp): return printer.pr_str(exp)
 
