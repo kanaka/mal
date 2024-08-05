@@ -1,4 +1,4 @@
-FROM ubuntu:20.04
+FROM ubuntu:24.04
 MAINTAINER Joel Martin <github@martintribe.org>
 
 ##########################################################
@@ -19,6 +19,7 @@ WORKDIR /mal
 # Specific implementation requirements
 ##########################################################
 
-RUN DEBIAN_FRONTEND=noninteractive apt-get -y install coffeescript g++ libreadline-dev npm
+RUN DEBIAN_FRONTEND=noninteractive apt-get -y install g++ libreadline-dev nodejs npm
+RUN DEBIAN_FRONTEND=noninteractive apt-get -y install coffeescript
 ENV NPM_CONFIG_CACHE /mal/.npm
 RUN touch /.coffee_history && chmod go+w /.coffee_history
