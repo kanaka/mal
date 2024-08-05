@@ -9,10 +9,10 @@ PROCtypes_init
 
 REM  These correspond with the CASE statement in FNcore_call
 repl_env% = FNalloc_environment(FNnil)
-PROCenv_set(repl_env%, FNalloc_symbol("+"), FNalloc_corefn(0))
-PROCenv_set(repl_env%, FNalloc_symbol("-"), FNalloc_corefn(1))
-PROCenv_set(repl_env%, FNalloc_symbol("*"), FNalloc_corefn(2))
-PROCenv_set(repl_env%, FNalloc_symbol("/"), FNalloc_corefn(3))
+PROCenv_set(repl_env%, "+", FNalloc_corefn(0))
+PROCenv_set(repl_env%, "-", FNalloc_corefn(1))
+PROCenv_set(repl_env%, "*", FNalloc_corefn(2))
+PROCenv_set(repl_env%, "/", FNalloc_corefn(3))
 
 sav% = FNgc_save
 REPEAT
@@ -31,31 +31,53 @@ DEF FNREAD(a$)
 =FNread_str(FNalloc_string(a$))
 
 DEF FNEVAL(ast%, env%)
-  LOCAL car%
-  IF NOT FNis_list(ast%) THEN =FNeval_ast(ast%, env%)
+  LOCAL car%, val%, bindings%, key$
+  val% = FNenv_find(env%, "DEBUG-EVAL")
+  IF NOT FNis_nil(val%) THEN
+    IF FNis_truish(FNenv_get(val%, "DEBUG-EVAL")) THEN
+      PRINT "EVAL: " + FNunbox_string(FNpr_str(ast%, TRUE))
+    ENDIF
+  ENDIF
+  IF FNis_symbol(ast%) THEN =FNenv_get(env%, FNunbox_symbol(ast%))
+  IF FNis_hashmap(ast%) THEN
+    val% = FNempty_hashmap
+    bindings% = FNhashmap_keys(ast%)
+    WHILE NOT FNis_empty(bindings%)
+      key$ = FNunbox_string(FNfirst(bindings%))
+      val% = FNhashmap_set(val%, key$, FNEVAL(FNhashmap_get(ast%, key$), env%))
+      bindings% = FNrest(bindings%)
+    ENDWHILE
+    =val%
+  ENDIF
+  IF NOT FNis_seq(ast%) THEN =ast%
   IF FNis_empty(ast%) THEN =ast%
   car% = FNfirst(ast%)
+  IF FNis_vector(ast%) THEN =FNalloc_vector_pair(FNEVAL(car%, env%), FNeval_ast(FNrest(ast%), env%))
   IF FNis_symbol(car%) THEN
-    CASE FNunbox_symbol(car%) OF
+    key$ = FNunbox_symbol(car%)
+    CASE key$ OF
       REM  Special forms
       WHEN "def!"
-        LOCAL val%
-	val% = FNEVAL(FNnth(ast%, 2), env%)
-        PROCenv_set(env%, FNnth(ast%, 1), val%)
-	=val%
+        val% = FNEVAL(FNnth(ast%, 2), env%)
+        PROCenv_set(env%, FNunbox_symbol(FNnth(ast%, 1)), val%)
+        =val%
       WHEN "let*"
-        LOCAL bindings%
-	env% = FNalloc_environment(env%)
-	bindings% = FNnth(ast%, 1)
-	WHILE NOT FNis_empty(bindings%)
-	  PROCenv_set(env%, FNfirst(bindings%), FNEVAL(FNnth(bindings%, 1), env%))
-	  bindings% = FNrest(FNrest(bindings%))
-	ENDWHILE
-	=FNEVAL(FNnth(ast%, 2), env%)
+        env% = FNalloc_environment(env%)
+        bindings% = FNnth(ast%, 1)
+        WHILE NOT FNis_empty(bindings%)
+          PROCenv_set(env%, FNunbox_symbol(FNfirst(bindings%)), FNEVAL(FNnth(bindings%, 1), env%))
+          bindings% = FNrest(FNrest(bindings%))
+        ENDWHILE
+        =FNEVAL(FNnth(ast%, 2), env%)
+      OTHERWISE
+        car% = FNenv_get(env%, key$)
     ENDCASE
+  ELSE
+    car% = FNEVAL(car%, env%)
   ENDIF
-  ast% = FNeval_ast(ast%, env%)
-=FNcore_call(FNunbox_corefn(FNfirst(ast%)), FNrest(ast%))
+  REM  This is the "apply" part.
+  ast% = FNeval_ast(FNrest(ast%), env%)
+  =FNcore_call(FNunbox_corefn(car%), ast%)
 
 DEF FNPRINT(a%)
 =FNunbox_string(FNpr_str(a%, TRUE))
@@ -64,26 +86,8 @@ DEF FNrep(a$)
 =FNPRINT(FNEVAL(FNREAD(a$), repl_env%))
 
 DEF FNeval_ast(ast%, env%)
-  LOCAL val%, car%, cdr%, map%, keys%, key$
-  IF FNis_symbol(ast%) THEN =FNenv_get(env%, ast%)
-  IF FNis_seq(ast%) THEN
     IF FNis_empty(ast%) THEN =ast%
-    car% = FNEVAL(FNfirst(ast%), env%)
-    cdr% = FNeval_ast(FNrest(ast%), env%)
-    IF FNis_vector(ast%) THEN =FNalloc_vector_pair(car%, cdr%)
-    =FNalloc_pair(car%, cdr%)
-  ENDIF
-  IF FNis_hashmap(ast%) THEN
-    map% = FNempty_hashmap
-    keys% = FNhashmap_keys(ast%)
-    WHILE NOT FNis_empty(keys%)
-      key$ = FNunbox_string(FNfirst(keys%))
-      map% = FNhashmap_set(map%, key$, FNEVAL(FNhashmap_get(ast%, key$), env%))
-      keys% = FNrest(keys%)
-    ENDWHILE
-    =map%
-  ENDIF
-=ast%
+    =FNalloc_pair(FNEVAL(FNfirst(ast%), env%), FNeval_ast(FNrest(ast%), env%))
 
 REM  Call a core function, taking the function number and a mal list of
 REM  objects to pass as arguments.

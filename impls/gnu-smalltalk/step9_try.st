@@ -21,29 +21,9 @@ Object subclass: MAL [
         ^Reader readStr: input
     ]
 
-    MAL class >> evalAst: sexp env: env [
-        sexp type = #symbol ifTrue: [
-            ^env get: sexp value
-        ].
-
-        sexp type = #list ifTrue: [
-            ^self evalList: sexp env: env class: MALList
-        ].
-        sexp type = #vector ifTrue: [
-            ^self evalList: sexp env: env class: MALVector
-        ].
-        sexp type = #map ifTrue: [
-            ^self evalList: sexp env: env class: MALMap
-        ].
-
-        ^sexp
-    ]
-
-    MAL class >> evalList: sexp env: env class: aClass [
-        | items |
-        items := sexp value collect:
+    MAL class >> evalList: list env: env [
+        ^list collect:
             [ :item | self EVAL: item env: env ].
-        ^aClass new: items
     ]
 
     MAL class >> starts_with: ast sym: sym  [
@@ -86,41 +66,8 @@ Object subclass: MAL [
         ^acc
     ]
 
-    MAL class >> isMacroCall: ast env: env [
-        | a0 a0_ f |
-        ast type = #list ifTrue: [
-            a0 := ast value first.
-            a0_ := a0 value.
-            a0 type = #symbol ifTrue: [
-                f := env find: a0_.
-                (f notNil and: [ f type = #func ]) ifTrue: [
-                    ^f isMacro
-                ]
-            ]
-        ].
-        ^false
-    ]
-
-    MAL class >> macroexpand: aSexp env: env [
-        | sexp |
-
-        "NOTE: redefinition of method arguments is not allowed"
-        sexp := aSexp.
-
-        [ self isMacroCall: sexp env: env ] whileTrue: [
-            | ast a0_ macro rest |
-            ast := sexp value.
-            a0_ := ast first value.
-            macro := env find: a0_.
-            rest := ast allButFirst.
-            sexp := macro fn value: rest.
-        ].
-
-        ^sexp
-    ]
-
     MAL class >> EVAL: aSexp env: anEnv [
-        | sexp env ast a0 a0_ a1 a1_ a2 a2_ a3 forms function args |
+        | sexp env ast a0 a0_ a1 a1_ a2 a2_ a3 function args |
 
         "NOTE: redefinition of method arguments is not allowed"
         sexp := aSexp.
@@ -128,16 +75,34 @@ Object subclass: MAL [
 
         [
             [ :continue |
+
+                a0 := env get: #'DEBUG-EVAL'.
+                (a0 isNil or: [ a0 type = #false or: [ a0 type = #nil ] ] )
+                ifFalse: [
+                    ('EVAL: ' , (Printer prStr: sexp printReadably: true))
+                    displayNl.
+                ].
+
+                sexp type = #symbol ifTrue: [
+                    | key value |
+                    key := sexp value.
+                    value := env get: key.
+                    value isNil ifTrue: [
+                        ^MALUnknownSymbol new signal: key
+                    ].
+                    ^value
+                ].
+                sexp type = #vector ifTrue: [
+                    ^MALVector new: (self evalList: sexp value env: env)
+                ].
+                sexp type = #map ifTrue: [
+                    ^MALMap new: (self evalList: sexp value env: env)
+                ].
                 sexp type ~= #list ifTrue: [
-                    ^self evalAst: sexp env: env
+                    ^sexp
                 ].
                 sexp value isEmpty ifTrue: [
                     ^sexp
-                ].
-
-                sexp := self macroexpand: sexp env: env.
-                sexp type ~= #list ifTrue: [
-                    ^self evalAst: sexp env: env
                 ].
 
                 ast := sexp value.
@@ -161,11 +126,6 @@ Object subclass: MAL [
                     result isMacro: true.
                     env set: a1_ value: result.
                     ^result
-                ].
-
-                a0_ = #'macroexpand' ifTrue: [
-                    a1 := ast second.
-                    ^self macroexpand: a1 env: env
                 ].
 
                 a0_ = #'let*' ifTrue: [
@@ -218,11 +178,6 @@ Object subclass: MAL [
                     ^a1
                 ].
 
-                a0_ = #quasiquoteexpand ifTrue: [
-                    a1 := ast second.
-                    ^self quasiquote: a1.
-                ].
-
                 a0_ = #quasiquote ifTrue: [
                     | result |
                     a1 := ast second.
@@ -262,10 +217,13 @@ Object subclass: MAL [
                     ^Func new: a2 params: binds env: env fn: fn
                 ].
 
-                forms := (self evalAst: sexp env: env) value.
-                function := forms first.
-                args := forms allButFirst asArray.
-
+                function := self EVAL: a0 env: env.
+                args := ast allButFirst asArray.
+                (function type = #func and: [ function isMacro ]) ifTrue: [
+                    sexp := function fn value: args.
+                    continue value TCO
+                ].
+                args := self evalList: args env: env.
                 function type = #fn ifTrue: [ ^function fn value: args ].
                 function type = #func ifTrue: [
                     | env_ |

@@ -26,23 +26,13 @@ Namespace Mal
                 Next
             End Sub
             
-            Public Function find(key As MalSymbol) As Env
-                If data.ContainsKey(key.getName()) Then
-                    return Me
+            Public Function do_get(key As String) As MalVal
+                If data.ContainsKey(key) Then
+                    return data(key)
                 Else If outer IsNot Nothing Then
-                    return outer.find(key)
+                    return outer.do_get(key)
                 Else
                     return Nothing
-                End If
-            End Function
-
-            Public Function do_get(key As MalSymbol) As MalVal
-                Dim e As Env = find(key)
-                If e Is Nothing Then
-                    throw New Mal.types.MalException(
-                            "'" & key.getName() & "' not found")
-                Else
-                    return e.data(key.getName())
                 End If
             End Function
 

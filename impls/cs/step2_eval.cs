@@ -19,49 +19,44 @@ namespace Mal {
         }
 
         // eval
-        static MalVal eval_ast(MalVal ast, Dictionary<string, MalVal> env) {
-            if (ast is MalSymbol) {
-                MalSymbol sym = (MalSymbol)ast;
+        static MalVal EVAL(MalVal orig_ast, Dictionary<string, MalVal> env) {
+            MalVal a0;
+            // Console.WriteLine("EVAL: " + printer._pr_str(orig_ast, true));
+            if (orig_ast is MalSymbol) {
+                MalSymbol sym = (MalSymbol)orig_ast;
                 return (MalVal)env[sym.getName()];
-            } else if (ast is MalList) {
-                MalList old_lst = (MalList)ast;
-                MalList new_lst = ast.list_Q() ? new MalList()
-                                            : (MalList)new MalVector();
+            } else if (orig_ast is MalVector) {
+                MalVector old_lst = (MalVector)orig_ast;
+                MalVector new_lst = new MalVector();
                 foreach (MalVal mv in old_lst.getValue()) {
                     new_lst.conj_BANG(EVAL(mv, env));
                 }
                 return new_lst;
-            } else if (ast is MalHashMap) {
+            } else if (orig_ast is MalHashMap) {
                 var new_dict = new Dictionary<string, MalVal>();
-                foreach (var entry in ((MalHashMap)ast).getValue()) {
+                foreach (var entry in ((MalHashMap)orig_ast).getValue()) {
                     new_dict.Add(entry.Key, EVAL((MalVal)entry.Value, env));
                 }
                 return new MalHashMap(new_dict);
-            } else {
-                return ast;
-            }
-        }
-
-
-        static MalVal EVAL(MalVal orig_ast, Dictionary<string, MalVal> env) {
-            MalVal a0;
-            //Console.WriteLine("EVAL: " + printer._pr_str(orig_ast, true));
-            if (!orig_ast.list_Q()) {
-                return eval_ast(orig_ast, env);
+            } else if (!(orig_ast is MalList)) {
+                return orig_ast;
             }
 
             // apply list
-            MalList ast = (MalList)orig_ast;
+            MalList ast = (MalList) orig_ast;
+
             if (ast.size() == 0) { return ast; }
             a0 = ast[0];
             if (!(a0 is MalSymbol)) {
                 throw new Mal.types.MalError("attempt to apply on non-symbol '"
                         + Mal.printer._pr_str(a0,true) + "'");
             }
-            var el = (MalList)eval_ast(ast, env);
-            var f = (MalFunc)el[0];
-            return f.apply(el.rest());
-
+            MalFunc f = (MalFunc)EVAL(ast[0], env);
+            MalList arguments = new MalList();
+            foreach (MalVal mv in ast.rest().getValue()) {
+                arguments.conj_BANG(EVAL(mv, env));
+            }
+            return f.apply(arguments);
         }
 
         // print

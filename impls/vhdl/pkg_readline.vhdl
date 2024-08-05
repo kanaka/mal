@@ -2,6 +2,7 @@ library STD;
 use STD.textio.all;
 
 package pkg_readline is
+  procedure mal_printstr(l: string);
   procedure mal_printline(l: string);
   procedure mal_readline(prompt: string; eof_detected: out boolean; l: inout line);
 end package pkg_readline;

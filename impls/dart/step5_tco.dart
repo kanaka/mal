@@ -16,19 +16,27 @@ void setupEnv() {
 
 MalType READ(String x) => reader.read_str(x);
 
-MalType eval_ast(MalType ast, Env env) {
+MalType EVAL(MalType ast, Env env) {
+  while (true) {
+
+  var dbgeval = env.get("DEBUG-EVAL");
+  if (dbgeval != null && !(dbgeval is MalNil)
+      && !(dbgeval is MalBool && dbgeval.value == false)) {
+      stdout.writeln("EVAL: ${printer.pr_str(ast)}");
+  }
+
   if (ast is MalSymbol) {
-    var result = env.get(ast);
+    var result = env.get(ast.value);
     if (result == null) {
       throw new NotFoundException(ast.value);
     }
     return result;
   } else if (ast is MalList) {
-    return new MalList(ast.elements.map((x) => EVAL(x, env)).toList());
+    // Exit this switch.
   } else if (ast is MalVector) {
     return new MalVector(ast.elements.map((x) => EVAL(x, env)).toList());
   } else if (ast is MalHashMap) {
-    var newMap = new Map<MalSymbol, MalType>.from(ast.value);
+    var newMap = new Map<MalType, MalType>.from(ast.value);
     for (var key in newMap.keys) {
       newMap[key] = EVAL(newMap[key], env);
     }
@@ -36,13 +44,7 @@ MalType eval_ast(MalType ast, Env env) {
   } else {
     return ast;
   }
-}
-
-MalType EVAL(MalType ast, Env env) {
-  while (true) {
-    if (ast is! MalList) {
-      return eval_ast(ast, env);
-    } else {
+      // ast is a list. todo: indent left.
       if ((ast as MalList).elements.isEmpty) {
         return ast;
       } else {
@@ -53,7 +55,7 @@ MalType EVAL(MalType ast, Env env) {
           if (symbol.value == "def!") {
             MalSymbol key = args.first;
             MalType value = EVAL(args[1], env);
-            env.set(key, value);
+            env.set(key.value, value);
             return value;
           } else if (symbol.value == "let*") {
             // TODO(het): If elements.length is not even, give helpful error
@@ -68,14 +70,14 @@ MalType EVAL(MalType ast, Env env) {
             for (var pair in pairs(bindings.elements)) {
               MalSymbol key = pair[0];
               MalType value = EVAL(pair[1], newEnv);
-              newEnv.set(key, value);
+              newEnv.set(key.value, value);
             }
             ast = args[1];
             env = newEnv;
             continue;
           } else if (symbol.value == "do") {
-            for (var element in args.sublist(0, args.length - 1)) {
-              eval_ast(element, env);
+            for (var elt in args.sublist(0, args.length - 1)) {
+              EVAL(elt, env);
             }
             ast = args.last;
             continue;
@@ -107,9 +109,8 @@ MalType EVAL(MalType ast, Env env) {
                     EVAL(args[1], new Env(env, params, funcArgs)));
           }
         }
-        var newAst = eval_ast(ast, env) as MalList;
-        var f = newAst.elements.first;
-        var args = newAst.elements.sublist(1);
+        var f = EVAL(list.elements.first, env);
+        var args = list.elements.sublist(1).map((x) => EVAL(x, env)).toList();
         if (f is MalBuiltin) {
           return f.call(args);
         } else if (f is MalClosure) {
@@ -120,7 +121,6 @@ MalType EVAL(MalType ast, Env env) {
           throw 'bad!';
         }
       }
-    }
   }
 }
 

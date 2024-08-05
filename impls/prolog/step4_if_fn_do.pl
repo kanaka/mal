@@ -75,10 +75,14 @@ eval_list(Env, First, Rest, Res) :-
 
 % The eval function itself.
 
-% Uncomment this to get a trace with environments.
-%% eval(Env, Ast, _) :-
-%%     format("EVAL: ~F    in ~V\n", [Ast, Env]),
-%%     fail.                       % Proceed with normal alternatives.
+debug_eval(_, _, nil).
+debug_eval(_, _, false).
+debug_eval(Env, Ast, _) :- format("EVAL: ~F    in ~V\n", [Ast, Env]).
+
+eval(Env, Ast, _) :-
+    env_get(Env, 'DEBUG-EVAL', Flag),
+    debug_eval(Env, Ast, Flag),
+    fail.                       % Proceed with normal alternatives.
 
 eval(Env, List, Res) :-
     list([First | Args], List), !,

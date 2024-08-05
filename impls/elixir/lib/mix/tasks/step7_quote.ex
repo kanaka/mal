@@ -54,7 +54,7 @@ defmodule Mix.Tasks.Step7Quote do
   end
 
   defp eval_ast({:list, ast, meta}, env) when is_list(ast) do
-    {:list, Enum.map(ast, fn elem -> eval(elem, env) end), meta}
+    eval_list(ast, env, meta)
   end
 
   defp eval_ast({:map, ast, meta}, env) do
@@ -105,9 +105,15 @@ defmodule Mix.Tasks.Step7Quote do
   defp qq_loop({:list, [{:symbol, "splice-unquote"}|   _], _},   _), do: throw({:error, "splice-unquote: arg count"})
   defp qq_loop(elt, acc), do: list([{:symbol, "cons"}, quasiquote(elt), acc])
 
-  defp eval({:list, [], _} = empty_ast, _env), do: empty_ast
-  defp eval({:list, ast, meta}, env), do: eval_list(ast, env, meta)
-  defp eval(ast, env), do: eval_ast(ast, env)
+  defp eval(ast, env) do
+    case Mal.Env.get(env, "DEBUG-EVAL") do
+      :not_found   -> :ok
+      {:ok, nil}   -> :ok
+      {:ok, false} -> :ok
+      _            -> IO.puts("EVAL: #{Mal.Printer.print_str(ast)}")
+    end
+    eval_ast(ast, env)
+  end
 
   defp eval_list([{:symbol, "if"}, condition, if_true | if_false], env, _) do
     result = eval(condition, env)
@@ -124,8 +130,7 @@ defmodule Mix.Tasks.Step7Quote do
   defp eval_list([{:symbol, "do"} | ast], env, _) do
     ast
       |> List.delete_at(-1)
-      |> list
-      |> eval_ast(env)
+      |> Enum.map(fn elem -> eval(elem, env) end)
     eval(List.last(ast), env)
   end
 
@@ -156,19 +161,18 @@ defmodule Mix.Tasks.Step7Quote do
 
   defp eval_list([{:symbol, "quote"}, arg], _env, _), do: arg
 
-  defp eval_list([{:symbol, "quasiquoteexpand"}, ast], _, _) do
-    quasiquote(ast)
-  end
-
   defp eval_list([{:symbol, "quasiquote"}, ast], env, _) do
     ast |> quasiquote
       |> eval(env)
   end
 
-  defp eval_list(ast, env, meta) do
-    {:list, [func | args], _} = eval_ast({:list, ast, meta}, env)
+  defp eval_list([a0 | args], env, _meta) do
+    func = eval(a0, env)
+    args = Enum.map(args, fn elem -> eval(elem, env) end)
     func.value.(args)
   end
+
+  defp eval_list([], _env, meta), do: {:list, [], meta}
 
   defp print(value) do
     Mal.Printer.print_str(value)

@@ -15,9 +15,7 @@ struct Env_s {
 };
 
 Env* env_make(Env* outer, list binds, list exprs, MalType* variadic_symbol);
-Env* env_set(Env* current, MalType* symbol, MalType* value);
-Env* env_set_C_fn(Env* current, char* symbol_name, MalType*(*fn)(list));
-MalType* env_get(Env* current, MalType* symbol);
-Env* env_find(Env* current, MalType* symbol);
+void env_set(Env* current, char* symbol, MalType* value);
+MalType* env_get(Env* current, char* symbol);
 
 #endif

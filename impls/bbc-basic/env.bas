@@ -1,39 +1,36 @@
 REM > env library for mal in BBC BASIC
 
 DEF FNnew_env(outer%, binds%, exprs%)
-  LOCAL env%
+  LOCAL env%, key$
   env% = FNalloc_environment(outer%)
   WHILE NOT FNis_empty(binds%)
-    IF FNunbox_symbol(FNfirst(binds%)) = "&" THEN
-      PROCenv_set(env%, FNnth(binds%, 1), FNas_list(exprs%))
+    key$ = FNunbox_symbol(FNfirst(binds%))
+    IF key$ = "&" THEN
+      PROCenv_set(env%, FNunbox_symbol(FNnth(binds%, 1)), FNas_list(exprs%))
       binds% = FNempty
     ELSE
-      PROCenv_set(env%, FNfirst(binds%), FNfirst(exprs%))
+      PROCenv_set(env%, key$, FNfirst(exprs%))
       binds% = FNrest(binds%) : exprs% = FNrest(exprs%)
     ENDIF
   ENDWHILE
 =env%
 
-DEF PROCenv_set(env%, keysym%, val%)
+DEF PROCenv_set(env%, key$, val%)
   LOCAL data%
   data% = FNenvironment_data(env%)
-  data% = FNhashmap_set(data%, FNunbox_symbol(keysym%), val%)
+  data% = FNhashmap_set(data%, key$, val%)
   PROCenvironment_set_data(env%, data%)
 ENDPROC
 
-DEF FNenv_find(env%, keysym%)
-  LOCAL val%, outer%, key$
-  key$ = FNunbox_symbol(keysym%)
+DEF FNenv_find(env%, key$)
   WHILE NOT FNis_nil(env%)
     IF FNhashmap_contains(FNenvironment_data(env%), key$) THEN =env%
     env% = FNenvironment_outer(env%)
   ENDWHILE
 =FNnil
 
-DEF FNenv_get(env%, keysym%)
-  LOCAL key$
-  env% = FNenv_find(env%, keysym%)
-  key$ = FNunbox_symbol(keysym%)
+DEF FNenv_get(env%, key$)
+  env% = FNenv_find(env%, key$)
   IF FNis_nil(env%) THEN ERROR &40E80922, "'"+key$+"' not found"
 =FNhashmap_get(FNenvironment_data(env%), key$)
 

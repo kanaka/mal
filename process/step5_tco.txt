@@ -3,26 +3,35 @@ import types, reader, printer, env, core
 
 READ(str): return reader.read_str(str)
 
-eval_ast(ast,env):
-  switch type(ast):
-    symbol:      return env.get(ast)
-    list,vector: return ast.map((x) -> EVAL(x,env))
-    hash:        return ast.map((k,v) -> list(k, EVAL(v,env)))
-    _default_:   return ast
-
-EVAL(ast,env):
-  while true:
-    if not list?(ast): return eval_ast(ast, env)
-    if empty?(ast): return ast
-    switch ast[0]:
-      'def!:        return env.set(ast[1], EVAL(ast[2], env))
-      'let*:        env = ...; ast = ast[2] // TCO
-      'do:          ast = eval_ast(ast[1..-1], env)[-1] // TCO
-      'if:          EVAL(ast[1], env) ? ast = ast[2] : ast = ast[3] // TCO
-      'fn*:         return new MalFunc(...)
-      _default_:    f, args = eval_ast(ast, env)
-                    if malfunc?(f): ast = f.fn; env = ... // TCO
-                    else:           return apply(f, args)
+EVAL(ast, env):
+ loop:
+  if env.get('DEBUG-EVAL) exists and not in nil, false then prn('EVAL ast)
+  match ast:
+    'key:                     return env.get(key) or raise "'{key}' not found"
+    [form1 ..]:               return [EVAL(form1, env) ..]
+    {key1 value1 ..}:         return {key1 EVAL(value1, env) ..}
+    ('def! 'key value):       return env.set(key, EVAL(value, env))
+    ('let* (k1 v1 ..) form):  env = new Env(env)
+                              env.set(k1, EVAL(v1, env))
+                              ..
+                              ast = form; continue
+    ('let* [k1 v1 ..] form):  // idem
+    ('do form1 .. last):      EVAL(form1, env)
+                              ..
+                              ast = last; continue
+    ('if cond yes no):        if EVAL(cond, env) in nil, false
+                                then ast = yes; continue
+                                else ast = no;  continue
+    ('if cond yes):           // idem with return nil in the else branch
+    ('fn* ('key1 ..) impl):   return new MalFn(env, impl, parm=[key1 ..])
+    ('fn* ['key1 ..] impl):   // idem
+    (callable arg1 ..):       f = EVAL(callable, env)
+                              args = [EVAL(arg1, env) ..]
+                              if malfn?(f) then:
+                                env = new Env(f.env, f.parm, args)
+                                ast = f.impl; continue
+                              return f(args)
+    otherwise:                return ast
 
 PRINT(exp): return printer.pr_str(exp)
 
@@ -46,8 +55,7 @@ class Env (outer=null,binds=[],exprs=[])
       if binds[i] == '&: data[binds[i+1]] = exprs.drop(i); break
       else: data[binds[i]] = exprs[i]
   set(k,v): return data.set(k,v)
-  find(k): return data.has(k) ? this : (if outer ? find(outer) : null)
-  get(k): return data.find(k).get(k) OR raise "'" + k + "' not found"
+  get(k): return data.has(k) ? data.get(k) : (outer ? outer.get(k) : null)
 
 --- core module ---------------------------------
 ns = {'=:        equal?,

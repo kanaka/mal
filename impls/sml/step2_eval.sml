@@ -4,6 +4,7 @@ exception NotApplicable of string
 fun read s =
     readStr s
 
+(* TextIO.print ("EVAL: " ^ prReadableStr ast ^ "\n") *)
 fun eval e ast = case ast of
     LIST (_::_,_) => evalApply e ast
     | _           => evalAst e ast

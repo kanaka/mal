@@ -19,31 +19,27 @@ sub READ {
 }
 
 # eval
-sub eval_ast {
-    my($ast, $env) = @_;
-    if ($ast->isa('Mal::Symbol')) {
-	return $env->{$$ast} // die "'$$ast' not found\n";
-    } elsif ($ast->isa('Mal::Sequence')) {
-	return ref($ast)->new([ map { EVAL($_, $env) } @$ast ]);
-    } elsif ($ast->isa('Mal::HashMap')) {
-	return Mal::HashMap->new({ pairmap { $a => EVAL($b, $env) } %$ast });
-    } else {
-	return $ast;
-    }
-}
-
 sub EVAL {
     my($ast, $env) = @_;
     #print "EVAL: " . printer::_pr_str($ast) . "\n";
-    if (! $ast->isa('Mal::List')) {
-        return eval_ast($ast, $env);
+
+    if ($ast->isa('Mal::Symbol')) {
+	return $env->{$$ast} // die "'$$ast' not found\n";
+    } elsif ($ast->isa('Mal::Vector')) {
+	return ref($ast)->new([ map { EVAL($_, $env) } @$ast ]);
+    } elsif ($ast->isa('Mal::HashMap')) {
+	return Mal::HashMap->new({ pairmap { $a => EVAL($b, $env) } %$ast });
+    } elsif (! $ast->isa('Mal::List')) {
+	return $ast;
     }
 
     # apply list
+
     unless (@$ast) { return $ast; }
-    my @el = @{eval_ast($ast, $env)};
-    my $f = shift @el;
-    return &$f(@el);
+    my ($a0) = @$ast;
+    my $f = EVAL($a0, $env);
+    my (undef, @args) = @$ast;
+    return &$f(map { EVAL($_, $env) } @args);
 }
 
 # print

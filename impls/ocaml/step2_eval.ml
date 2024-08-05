@@ -20,14 +20,13 @@ let repl_env = ref (List.fold_left (fun a b -> b a) Env.empty
     Env.add "*" (num_fun ( * ));
     Env.add "/" (num_fun ( / )) ])
 
-let rec eval_ast ast env =
+let rec eval ast env =
+  (* output_string stderr ("EVAL: " ^ (Printer.pr_str ast true) ^ "\n"); *)
+  (* flush stderr; *)
   match ast with
-    | T.Symbol { T.value = s } ->
+    | T.Symbol s ->
        (try Env.find s !env
         with Not_found -> raise (Invalid_argument ("Symbol '" ^ s ^ "' not found")))
-    | T.List { T.value = xs; T.meta = meta }
-      -> T.List { T.value = (List.map (fun x -> eval x env) xs);
-                  T.meta = meta }
     | T.Vector { T.value = xs; T.meta = meta }
       -> T.Vector { T.value = (List.map (fun x -> eval x env) xs);
                     T.meta = meta }
@@ -38,12 +37,11 @@ let rec eval_ast ast env =
                               -> Types.MalMap.add k (eval v env) m)
                              xs
                              Types.MalMap.empty)}
+    | T.List { T.value = (a0 :: args) } ->
+      (match eval a0 env with
+         | T.Fn { T.value = f } -> f (List.map (fun x -> eval x env) args)
+         | _ -> raise (Invalid_argument "Cannot invoke non-function"))
     | _ -> ast
-and eval ast env =
-  let result = eval_ast ast env in
-    match result with
-      | T.List { T.value = ((T.Fn { T.value = f }) :: args) } -> (f args)
-      | _ -> result
 
 let read str = Reader.read_str str
 let print exp = Printer.pr_str exp true
