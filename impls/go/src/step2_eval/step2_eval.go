@@ -7,10 +7,10 @@ import (
 )
 
 import (
-	"printer"
-	"reader"
-	"readline"
-	. "types"
+	"mal/src/printer"
+	"mal/src/reader"
+	"mal/src/readline"
+	. "mal/src/types"
 )
 
 // read

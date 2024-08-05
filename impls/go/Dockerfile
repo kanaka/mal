@@ -1,4 +1,4 @@
-FROM ubuntu:20.04
+FROM ubuntu:24.04
 MAINTAINER Joel Martin <github@martintribe.org>
 
 ##########################################################
@@ -19,4 +19,6 @@ WORKDIR /mal
 # Specific implementation requirements
 ##########################################################
 
-RUN DEBIAN_FRONTEND=noninteractive apt-get -y install g++ golang libedit-dev pkg-config
+RUN DEBIAN_FRONTEND=noninteractive apt-get -y install g++ golang libreadline-dev libedit-dev pkg-config
+
+ENV HOME /mal
