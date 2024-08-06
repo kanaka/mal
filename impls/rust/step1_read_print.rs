@@ -20,7 +20,7 @@ mod env;
 
 fn main() {
     // `()` can be used when no completer is required
-    let mut rl = Editor::<()>::new();
+    let mut rl = Editor::<(), rustyline::history::DefaultHistory>::new().unwrap();
     if rl.load_history(".mal-history").is_err() {
         eprintln!("No previous history.");
     }
@@ -29,10 +29,10 @@ fn main() {
         let readline = rl.readline("user> ");
         match readline {
             Ok(line) => {
-                rl.add_history_entry(&line);
+                let _ = rl.add_history_entry(&line);
                 rl.save_history(".mal-history").unwrap();
-                if line.len() > 0 {
-                    match reader::read_str(line) {
+                if !line.is_empty() {
+                    match reader::read_str(&line) {
                         Ok(mv) => {
                             println!("{}", mv.pr_str(true));
                         }

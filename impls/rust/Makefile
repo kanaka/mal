@@ -1,31 +1,33 @@
 
-UPPER_STEPS = step4_if_fn_do step5_tco step6_file step7_quote step8_macros step9_try stepA_mal
-STEPS = step0_repl step1_read_print step2_eval step3_env $(UPPER_STEPS)
+EXEC_DIR := target/release
+
+UPPER_STEPS := $(EXEC_DIR)/step4_if_fn_do \
+               $(EXEC_DIR)/step5_tco \
+               $(EXEC_DIR)/step6_file \
+               $(EXEC_DIR)/step7_quote \
+               $(EXEC_DIR)/step8_macros \
+               $(EXEC_DIR)/step9_try \
+               $(EXEC_DIR)/stepA_mal
+STEP0       := $(EXEC_DIR)/step0_repl
+STEP1-2     := $(EXEC_DIR)/step1_read_print \
+               $(EXEC_DIR)/step2_eval
+STEP3       := $(EXEC_DIR)/step3_env
+STEPS := $(STEP0) $(STEP1-2) $(STEP3) $(UPPER_STEPS)
 
 all: $(STEPS)
 
-dist: mal
-
-mal: stepA_mal
-	cp $< $@
-
-%: %.rs
+$(STEPS): $(EXEC_DIR)/%: %.rs
 	cargo build --release --bin $*
-	cp target/release/$* $@
 
-STEP0_DEPS = Cargo.toml
-STEP1_DEPS = $(STEP0_DEPS) types.rs reader.rs printer.rs
-STEP3_DEPS = $(STEP1_DEPS) env.rs
-STEP4_DEPS = $(STEP3_DEPS) core.rs
+$(STEP1-2) $(STEP3) $(UPPER_STEPS): types.rs reader.rs printer.rs
+$(STEP3) $(UPPER_STEPS): env.rs
+$(UPPER_STEPS): core.rs
 
-step0_repl: $(STEP0_DEPS)
-step1_read_print step2_eval: $(STEP1_DEPS)
-step3_env: $(STEP3_DEPS)
-$(UPPER_STEPS): $(STEP4_DEPS)
+lint:
+	rustfmt *.rs
+	cargo clippy
 
 .PHONY: clean
 
 clean:
 	cargo clean
-	rm -f $(STEPS)
-	rm -f mal

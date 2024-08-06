@@ -23,13 +23,13 @@ use crate::types::{error, format_error, MalArgs, MalErr, MalRet, MalVal};
 mod env;
 mod printer;
 mod reader;
-use crate::env::{env_bind, env_get, env_new, env_set, env_sets, Env};
+use crate::env::{env_bind, env_find_repl, env_get, env_new, env_set, env_sets, Env};
 #[macro_use]
 mod core;
 
 // read
 fn read(str: &str) -> MalRet {
-    reader::read_str(str.to_string())
+    reader::read_str(str)
 }
 
 // eval
@@ -47,9 +47,9 @@ fn qq_iter(elts: &MalArgs) -> MalVal {
                 }
             }
         }
-        acc = list![Sym("cons".to_string()), quasiquote(&elt), acc];
+        acc = list![Sym("cons".to_string()), quasiquote(elt), acc];
     }
-    return acc;
+    acc
 }
 
 fn quasiquote(ast: &MalVal) -> MalVal {
@@ -62,93 +62,83 @@ fn quasiquote(ast: &MalVal) -> MalVal {
                     }
                 }
             }
-            return qq_iter(&v);
+            qq_iter(v)
         },
-        Vector(v, _) => return list![Sym("vec".to_string()), qq_iter(&v)],
-        Hash(_, _) | Sym(_)=> return list![Sym("quote".to_string()), ast.clone()],
+        Vector(v, _) => list![Sym("vec".to_string()), qq_iter(v)],
+        Hash(_, _) | Sym(_)=> list![Sym("quote".to_string()), ast.clone()],
         _ => ast.clone(),
     }
 }
 
-fn eval_ast(v: &MalArgs, env: &Env) -> Result<MalArgs, MalErr> {
-            let mut lst: MalArgs = vec![];
-            for a in v.iter() {
-                match eval(a.clone(), env.clone()) {
-                    Ok(elt) => lst.push(elt),
-                    Err(e) => return Err(e),
-                }
-            }
-            return Ok(lst);
-}
-
-fn eval(mut ast: MalVal, mut env: Env) -> MalRet {
-    let ret: MalRet;
+fn eval(orig_ast: &MalVal, orig_env: &Env) -> MalRet {
+    let mut ast = orig_ast;
+    let mut env = orig_env;
+    // These variables ensure a sufficient lifetime for the data
+    // referenced by ast and env.
+    let mut live_ast;
+    let mut live_env;
 
     'tco: loop {
-        match env_get(&env, "DEBUG-EVAL") {
+        match env_get(env, "DEBUG-EVAL") {
             None | Some(Bool(false)) | Some(Nil) => (),
-            _ => println!("EVAL: {}", print(&ast)),
+            _ => println!("EVAL: {}", print(ast)),
         }
-        ret = match ast {
-        Sym(ref s) => match env_get(&env, s) {
-            Some(r) => Ok(r),
-            None => error (&format!("'{}' not found", s)),
+        match ast {
+        Sym(s) => match env_get(env, s) {
+            Some(r) => return Ok(r),
+            None => return error(&format!("'{}' not found", s)),
         }
-        Vector(ref v, _) => match eval_ast(&v, &env) {
-            Ok(lst) => Ok(vector!(lst)),
-            Err(e) => Err(e),
+        Vector(v, _) => {
+            let mut lst: MalArgs = vec![];
+            for a in v.iter() {
+                lst.push(eval(a, env)?);
+            }
+            return Ok(vector!(lst));
         }
         Hash(hm, _) => {
             let mut new_hm: FnvHashMap<String, MalVal> = FnvHashMap::default();
             for (k, v) in hm.iter() {
-                new_hm.insert(k.to_string(), eval(v.clone(), env.clone())?);
+                new_hm.insert(k.to_string(), eval(v, env)?);
             }
-            Ok(Hash(Rc::new(new_hm), Rc::new(Nil)))
+            return Ok(Hash(Rc::new(new_hm), Rc::new(Nil)));
         }
-        List(ref l, _) => {
-                if l.len() == 0 {
-                    return Ok(ast);
+        List(l, _) => {
+                if l.is_empty() {
+                    return Ok(ast.clone());
                 }
                 let a0 = &l[0];
                 match a0 {
-                    Sym(ref a0sym) if a0sym == "def!" => {
-                        env_set(&env, l[1].clone(), eval(l[2].clone(), env.clone())?)
+                    Sym(a0sym) if a0sym == "def!" => {
+                        return env_set(env, &l[1], eval(&l[2], env)?);
                     }
-                    Sym(ref a0sym) if a0sym == "let*" => {
-                        env = env_new(Some(env.clone()));
-                        let (a1, a2) = (l[1].clone(), l[2].clone());
+                    Sym(a0sym) if a0sym == "let*" => {
+                        live_env = env_new(Some(env.clone()));
+                        env = &live_env;
+                        let (a1, a2) = (&l[1], &l[2]);
                         match a1 {
-                            List(ref binds, _) | Vector(ref binds, _) => {
+                            List(binds, _) | Vector(binds, _) => {
                                 for (b, e) in binds.iter().tuples() {
-                                    match b {
-                                        Sym(_) => {
-                                            let _ = env_set(
-                                                &env,
-                                                b.clone(),
-                                                eval(e.clone(), env.clone())?,
-                                            );
-                                        }
-                                        _ => {
-                                            return error("let* with non-Sym binding");
-                                        }
-                                    }
+                                    let val = eval(e, env)?;
+                                    env_set(env, b, val)?;
                                 }
                             }
                             _ => {
                                 return error("let* with non-List bindings");
                             }
                         };
-                        ast = a2;
+                        live_ast = a2.clone();
+                        ast = &live_ast;
                         continue 'tco;
                     }
-                    Sym(ref a0sym) if a0sym == "quote" => Ok(l[1].clone()),
-                    Sym(ref a0sym) if a0sym == "quasiquote" => {
-                        ast = quasiquote(&l[1]);
+                    Sym(a0sym) if a0sym == "quote" => return Ok(l[1].clone()),
+                    Sym(a0sym) if a0sym == "quasiquote" => {
+                        live_ast = quasiquote(&l[1]);
+                        ast = &live_ast;
                         continue 'tco;
                     }
-                    Sym(ref a0sym) if a0sym == "defmacro!" => {
-                        let (a1, a2) = (l[1].clone(), l[2].clone());
-                        let r = eval(a2, env.clone())?;
+                    Sym(a0sym) if a0sym == "defmacro!" => {
+                        let (a1, a2) = (&l[1], &l[2]);
+                        let r = eval(a2, env)?;
                         match r {
                             MalFunc {
                                 eval,
@@ -156,122 +146,133 @@ fn eval(mut ast: MalVal, mut env: Env) -> MalRet {
                                 env,
                                 params,
                                 ..
-                            } => Ok(env_set(
+                            } => return env_set(
                                 &env,
-                                a1.clone(),
+                                a1,
                                 MalFunc {
-                                    eval: eval,
-                                    ast: ast.clone(),
+                                    eval,
+                                    ast,
                                     env: env.clone(),
-                                    params: params.clone(),
+                                    params,
                                     is_macro: true,
                                     meta: Rc::new(Nil),
                                 },
-                            )?),
-                            _ => error("set_macro on non-function"),
+                            ),
+                            _ => return error("set_macro on non-function"),
                         }
                     }
-                    Sym(ref a0sym) if a0sym == "try*" => match eval(l[1].clone(), env.clone()) {
-                        Err(ref e) if l.len() >= 3 => {
+                    Sym(a0sym) if a0sym == "try*" => {
+                        if l.len() < 3 {
+                            live_ast = l[1].clone();
+                            ast = &live_ast;
+                            continue 'tco;
+                        }
+                        match eval(&l[1], env) {
+                        Err(e) => {
                             let exc = match e {
                                 ErrMalVal(mv) => mv.clone(),
                                 ErrString(s) => Str(s.to_string()),
                             };
-                            match l[2].clone() {
+                            match &l[2] {
                                 List(c, _) => {
-                                    let catch_env = env_bind(
-                                        Some(env.clone()),
-                                        list!(vec![c[1].clone()]),
-                                        vec![exc],
-                                    )?;
-                                    eval(c[2].clone(), catch_env)
+                                    live_env = env_new(Some(env.clone()));
+                                    env = &live_env;
+                                    env_set(env, &c[1], exc)?;
+                                    live_ast = c[2].clone();
+                                    ast = &live_ast;
+                                    continue 'tco;
                                 }
-                                _ => error("invalid catch block"),
+                                _ => return error("invalid catch block"),
                             }
                         }
-                        res => res,
+                        res => return res,
+                        }
                     },
-                    Sym(ref a0sym) if a0sym == "do" => {
-                        match eval_ast(&l[1..l.len() - 1].to_vec(), &env) {
-                            Ok(_) => {
-                                ast = l.last().unwrap_or(&Nil).clone();
-                                continue 'tco;
-                            }
-                            Err(e) => return Err(e),
+                    Sym(a0sym) if a0sym == "do" => {
+                        for i in 1..l.len() - 1 {
+                            let _ = eval(&l[i], env)?;
                         }
+                        live_ast = l.last().unwrap_or(&Nil).clone();
+                        ast = &live_ast;
+                        continue 'tco;
                     }
-                    Sym(ref a0sym) if a0sym == "if" => {
-                        let cond = eval(l[1].clone(), env.clone())?;
+                    Sym(a0sym) if a0sym == "if" => {
+                        let cond = eval(&l[1], env)?;
                         match cond {
                             Bool(false) | Nil if l.len() >= 4 => {
-                                ast = l[3].clone();
+                                live_ast = l[3].clone();
+                                ast = &live_ast;
                                 continue 'tco;
                             }
-                            Bool(false) | Nil => Ok(Nil),
+                            Bool(false) | Nil => return Ok(Nil),
                             _ if l.len() >= 3 => {
-                                ast = l[2].clone();
+                                live_ast = l[2].clone();
+                                ast = &live_ast;
                                 continue 'tco;
                             }
-                            _ => Ok(Nil),
+                            _ => return Ok(Nil),
                         }
                     }
-                    Sym(ref a0sym) if a0sym == "fn*" => {
+                    Sym(a0sym) if a0sym == "fn*" => {
                         let (a1, a2) = (l[1].clone(), l[2].clone());
-                        Ok(MalFunc {
-                            eval: eval,
+                        return Ok(MalFunc {
+                            eval,
                             ast: Rc::new(a2),
-                            env: env,
+                            env: env.clone(),
                             params: Rc::new(a1),
                             is_macro: false,
                             meta: Rc::new(Nil),
                         })
                     }
-                    Sym(ref a0sym) if a0sym == "eval" => {
-                        ast = eval(l[1].clone(), env.clone())?;
-                        while let Some(ref e) = env.clone().outer {
-                            env = e.clone();
-                        }
+                    Sym(a0sym) if a0sym == "eval" => {
+                        //  Hard to implement without global variables.
+                        //  Normal argument evaluation.
+                        live_ast = eval(&l[1], env)?;
+                        ast = &live_ast;
+                        live_env = env_find_repl(env);
+                        env = &live_env;
                         continue 'tco;
                     }
-                    _ => match eval(a0.clone(), env.clone()) {
-                                Ok(f @ MalFunc { is_macro: true, .. }) => match f.apply(l[1..].to_vec()) {
-                                    Ok(new_ast) => {
-                                        ast = new_ast;
-                                        continue 'tco;
-                                    }
-                                    Err(e) => return Err(e),
+                    _ => match eval(a0, env) {
+                                Ok(f @ MalFunc { is_macro: true, .. }) => {
+                                    let new_ast = f.apply(l[1..].to_vec())?;
+                                    live_ast = new_ast;
+                                    ast = &live_ast;
+                                    continue 'tco;
                                 }
-                                Ok(f @ Func(_, _)) => match eval_ast(&l[1..].to_vec(), &env) {
-                                    Ok(args) => f.apply(args),
-                                    Err(e) => return Err(e),
+                                Ok(f @ Func(_, _)) => {
+                                    let mut args: MalArgs = vec![];
+                                    for i in 1..l.len() {
+                                        args.push(eval(&l[i], env)?);
+                                    }
+                                    return f.apply(args);
                                 }
                                 Ok(MalFunc {
-                                    ast: ref mast,
-                                    env: ref menv,
-                                    params : ref mparams,
+                                    ast: mast,
+                                    env: menv,
+                                    params: mparams,
                                     ..
-                                }) => match eval_ast(&l[1..].to_vec(), &env) {
-                                  Ok(args) => {
-                                    let a = &**mast;
-                                    let p = &**mparams;
-                                    env = env_bind(Some(menv.clone()), p.clone(), args.to_vec())?;
-                                    ast = a.clone();
+                                }) => {
+                                    let mut args: MalArgs = vec![];
+                                    for i in 1..l.len() {
+                                        args.push(eval(&l[i], env)?);
+                                    }
+                                    live_env = env_bind(Some(menv.clone()), &mparams, args.to_vec())?;
+                                    env = &live_env;
+                                    live_ast = (*mast).clone();
+                                    ast = &live_ast;
                                     continue 'tco;
-                                  }
-                                  Err(e) => return Err(e),
                                 }
-                                Ok(_) => error("attempt to call non-function"),
-                                Err(e) => return Err(e),
+                                Ok(_) => return error("attempt to call non-function"),
+                                e @ Err(_) => return e,
                     },
                 }
         }
-        _ => Ok(ast.clone()),
+        _ => return Ok(ast.clone()),
         };
 
-        break;
     } // end 'tco loop
 
-    ret
 }
 
 // print
@@ -281,8 +282,17 @@ fn print(ast: &MalVal) -> String {
 
 fn rep(str: &str, env: &Env) -> Result<String, MalErr> {
     let ast = read(str)?;
-    let exp = eval(ast, env.clone())?;
+    let exp = eval(&ast, env)?;
     Ok(print(&exp))
+}
+
+fn re(str: &str, env: &Env) {
+    if let Ok(ast) = read(str) {
+        if eval(&ast, env).is_ok() {
+            return;
+        }
+    }
+    panic!("error during startup");
 }
 
 fn main() {
@@ -290,7 +300,7 @@ fn main() {
     let arg1 = args.nth(1);
 
     // `()` can be used when no completer is required
-    let mut rl = Editor::<()>::new();
+    let mut rl = Editor::<(), rustyline::history::DefaultHistory>::new().unwrap();
     if rl.load_history(".mal-history").is_err() {
         eprintln!("No previous history.");
     }
@@ -303,34 +313,30 @@ fn main() {
     env_sets(&repl_env, "*ARGV*", list!(args.map(Str).collect()));
 
     // core.mal: defined using the language itself
-    let _ = rep("(def! *host-language* \"rust\")", &repl_env);
-    let _ = rep("(def! not (fn* (a) (if a false true)))", &repl_env);
-    let _ = rep(
+    re("(def! *host-language* \"rust\")", &repl_env);
+    re("(def! not (fn* (a) (if a false true)))", &repl_env);
+    re(
         "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \"\nnil)\")))))",
         &repl_env,
     );
-    let _ = rep("(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))", &repl_env);
+    re("(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))",
+        &repl_env);
 
-    // Invoked with arguments
     if let Some(f) = arg1 {
-        match rep(&format!("(load-file \"{}\")", f), &repl_env) {
-            Ok(_) => std::process::exit(0),
-            Err(e) => {
-                println!("Error: {}", format_error(e));
-                std::process::exit(1);
-            }
-        }
+        // Invoked with arguments
+        re(&format!("(load-file \"{}\")", f), &repl_env);
+        std::process::exit(0);
     }
 
     // main repl loop
-    let _ = rep("(println (str \"Mal [\" *host-language* \"]\"))", &repl_env);
+    re("(println (str \"Mal [\" *host-language* \"]\"))", &repl_env);
     loop {
         let readline = rl.readline("user> ");
         match readline {
             Ok(line) => {
-                rl.add_history_entry(&line);
+                let _ = rl.add_history_entry(&line);
                 rl.save_history(".mal-history").unwrap();
-                if line.len() > 0 {
+                if !line.is_empty() {
                     match rep(&line, &repl_env) {
                         Ok(out) => println!("{}", out),
                         Err(e) => println!("Error: {}", format_error(e)),
