@@ -1,0 +1,5 @@
+.deps
+*.o
+*.a
+bin
+bin/*
