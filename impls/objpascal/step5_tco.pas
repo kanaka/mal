@@ -3,7 +3,6 @@ program Mal;
 {$H+} // Use AnsiString
 
 Uses sysutils,
-     CMem,
      fgl,
      mal_readline,
      mal_types,
