@@ -1,5 +1,7 @@
-FROM ubuntu:20.04
+FROM ubuntu:24.04
 MAINTAINER Joel Martin <github@martintribe.org>
+LABEL org.opencontainers.image.source=https://github.com/kanaka/mal
+LABEL org.opencontainers.image.description="mal test container: ruby"
 
 ##########################################################
 # General requirements for testing or common across many
