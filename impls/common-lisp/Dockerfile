@@ -25,7 +25,7 @@ RUN apt-get -y install curl git libreadline-dev libedit-dev
 RUN apt-get -y install sbcl
 
 # Install cl-asdf (CLISP does not seem to come with it)
-RUN apt-get -y install cl-launch cl-asdf
+RUN apt-get -y install cl-launch cl-asdf cl-ppcre
 
 RUN cd /tmp && \
     git clone https://gitlab.common-lisp.net/xcvb/cl-launch.git && \
