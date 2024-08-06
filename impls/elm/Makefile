@@ -1,6 +1,6 @@
-SOURCES = src/Step0_repl.elm src/Step1_read_print.elm src/Step2_eval.elm src/\
-	Step3_env.elm src/Step4_if_fn_do.elm src/Step5_tco.elm src/Step6_file.elm src/\
-	Step7_quote.elm src/Step8_macros.elm src/Step9_try.elm src/StepA_mal.elm
+SOURCES = src/Step0_repl.elm src/Step1_read_print.elm src/Step2_eval.elm \
+	  src/Step3_env.elm src/Step4_if_fn_do.elm src/Step5_tco.elm src/Step6_file.elm \
+	  src/Step7_quote.elm src/Step8_macros.elm src/Step9_try.elm src/StepA_mal.elm
 
 BINS = $(SOURCES:src/Step%.elm=step%.js)
 
