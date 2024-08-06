@@ -16,7 +16,7 @@ use crate::types::{MalArgs, MalRet, MalVal, _assoc, _dissoc, atom, error, func, 
 
 macro_rules! fn_t_int_int {
     ($ret:ident, $fn:expr) => {{
-        |a: MalArgs| match (a[0].clone(), a[1].clone()) {
+        |a: MalArgs| match (&a[0], &a[1]) {
             (Int(a0), Int(a1)) => Ok($ret($fn(a0, a1))),
             _ => error("expecting (int,int) args"),
         }
@@ -37,8 +37,8 @@ macro_rules! fn_is_type {
 
 macro_rules! fn_str {
     ($fn:expr) => {{
-        |a: MalArgs| match a[0].clone() {
-            Str(a0) => $fn(a0),
+        |a: MalArgs| match &a[0] {
+            Str(a0) => $fn(&a0),
             _ => error("expecting (str) arg"),
         }
     }};
@@ -53,7 +53,8 @@ fn symbol(a: MalArgs) -> MalRet {
 
 fn readline(a: MalArgs) -> MalRet {
     lazy_static! {
-        static ref RL: Mutex<Editor<()>> = Mutex::new(Editor::<()>::new());
+        static ref RL: Mutex<Editor<(), rustyline::history::DefaultHistory>>
+          = Mutex::new(Editor::<(), rustyline::history::DefaultHistory>::new().unwrap());
     }
     //let mut rl = Editor::<()>::new();
 
@@ -79,7 +80,7 @@ fn readline(a: MalArgs) -> MalRet {
     }
 }
 
-fn slurp(f: String) -> MalRet {
+fn slurp(f: &str) -> MalRet {
     let mut s = String::new();
     match File::open(f).and_then(|mut f| f.read_to_string(&mut s)) {
         Ok(_) => Ok(Str(s)),
@@ -138,7 +139,7 @@ fn keys(a: MalArgs) -> MalRet {
 
 fn vals(a: MalArgs) -> MalRet {
     match a[0] {
-        Hash(ref hm, _) => Ok(list!(hm.values().map(|v| { v.clone() }).collect())),
+        Hash(ref hm, _) => Ok(list!(hm.values().cloned().collect())),
         _ => error("keys requires Hash Map"),
     }
 }
@@ -212,7 +213,7 @@ fn apply(a: MalArgs) -> MalRet {
         List(ref v, _) | Vector(ref v, _) => {
             let f = &a[0];
             let mut fargs = a[1..a.len() - 1].to_vec();
-            fargs.extend_from_slice(&v);
+            fargs.extend_from_slice(v);
             f.apply(fargs)
         }
         _ => error("apply called with non-seq"),
@@ -238,7 +239,7 @@ fn conj(a: MalArgs) -> MalRet {
             let sl = a[1..]
                 .iter()
                 .rev()
-                .map(|a| a.clone())
+                .cloned()
                 .collect::<Vec<MalVal>>();
             Ok(list!([&sl[..], v].concat()))
         }
@@ -251,7 +252,7 @@ fn seq(a: MalArgs) -> MalRet {
     match a[0] {
         List(ref v, _) | Vector(ref v, _) if v.len() == 0 => Ok(Nil),
         List(ref v, _) | Vector(ref v, _) => Ok(list!(v.to_vec())),
-        Str(ref s) if s.len() == 0 => Ok(Nil),
+        Str(ref s) if s.is_empty() => Ok(Nil),
         Str(ref s) if !a[0].keyword_q() => {
             Ok(list!(s.chars().map(|c| { Str(c.to_string()) }).collect()))
         }
@@ -271,12 +272,12 @@ pub fn ns() -> Vec<(&'static str, MalVal)> {
         ("symbol?", func(fn_is_type!(Sym(_)))),
         (
             "string?",
-            func(fn_is_type!(Str(ref s) if !s.starts_with("\u{29e}"))),
+            func(fn_is_type!(Str(ref s) if !s.starts_with('\u{29e}'))),
         ),
         ("keyword", func(|a| a[0].keyword())),
         (
             "keyword?",
-            func(fn_is_type!(Str(ref s) if s.starts_with("\u{29e}"))),
+            func(fn_is_type!(Str(ref s) if s.starts_with('\u{29e}'))),
         ),
         ("number?", func(fn_is_type!(Int(_)))),
         (
@@ -303,9 +304,9 @@ pub fn ns() -> Vec<(&'static str, MalVal)> {
                 Ok(Nil)
             }),
         ),
-        ("read-string", func(fn_str!(|s| { read_str(s) }))),
+        ("read-string", func(fn_str!(read_str))),
         ("readline", func(readline)),
-        ("slurp", func(fn_str!(|f| { slurp(f) }))),
+        ("slurp", func(fn_str!(slurp))),
         ("<", func(fn_t_int_int!(Bool, |i, j| { i < j }))),
         ("<=", func(fn_t_int_int!(Bool, |i, j| { i <= j }))),
         (">", func(fn_t_int_int!(Bool, |i, j| { i > j }))),
@@ -316,11 +317,11 @@ pub fn ns() -> Vec<(&'static str, MalVal)> {
         ("/", func(fn_t_int_int!(Int, |i, j| { i / j }))),
         ("time-ms", func(time_ms)),
         ("sequential?", func(fn_is_type!(List(_, _), Vector(_, _)))),
-        ("list", func(|a| Ok(list!(a)))),
+        ("list", func(|a| Ok(list!(a.to_vec())))),
         ("list?", func(fn_is_type!(List(_, _)))),
-        ("vector", func(|a| Ok(vector!(a)))),
+        ("vector", func(|a| Ok(vector!(a.to_vec())))),
         ("vector?", func(fn_is_type!(Vector(_, _)))),
-        ("hash-map", func(|a| hash_map(a))),
+        ("hash-map", func(hash_map)),
         ("map?", func(fn_is_type!(Hash(_, _)))),
         ("assoc", func(assoc)),
         ("dissoc", func(dissoc)),
