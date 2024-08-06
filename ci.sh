@@ -72,10 +72,10 @@ echo "MAKE: ${MAKE}"
 case "${ACTION}" in
 docker-build-push)
     if ! docker pull ${IMAGE}; then
-        step_summary "${MAL_IMPL:-${IMPL}} - building ${IMAGE}"
+        step_summary "${BUILD_IMPL} - building ${IMAGE}"
         make "docker-build^${BUILD_IMPL}"
-        step_summary "${BUILD_IMPL}} - built ${IMAGE}"
-        if [ "${GITHUB_REF}" = "refs/heads/main" ]; then
+        step_summary "${BUILD_IMPL} - built ${IMAGE}"
+        if [ "${GITHUB_REPOSITORY}" = "kanaka/mal" ] && [ "${GITHUB_REF}" = "refs/heads/master" ]; then
             docker push ${IMAGE}
             step_summary "${BUILD_IMPL} - pushed ${IMAGE}"
         fi
