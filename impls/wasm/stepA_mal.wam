@@ -230,10 +230,6 @@
     (block $EVAL_return
     (loop $TCO_loop
 
-    (local.set $f_args 0)
-    (local.set $f 0)
-    (local.set $args 0)
-
     (if (global.get $error_type)
       (then
         (local.set $res 0)
@@ -275,7 +271,8 @@
         ;; set a1 in env to a2
         (local.set $res ($ENV_SET $env $a1 $res))
         (br $EVAL_return))
-    (else (if (i32.eqz ($strcmp "let*" $a0sym))
+    )
+    (if (i32.eqz ($strcmp "let*" $a0sym))
       (then
         (local.set $a1 ($MAL_GET_A1 $ast))
         (local.set $a2 ($MAL_GET_A2 $ast))
@@ -311,7 +308,8 @@
 
         (local.set $ast $a2)
         (br $TCO_loop))
-    (else (if (i32.eqz ($strcmp "do" $a0sym))
+    )
+    (if (i32.eqz ($strcmp "do" $a0sym))
       (then
         ;; EVAL the rest through second to last
         (local.set $el ($EVAL_AST ($MEM_VAL0_ptr $ast) $env 1))
@@ -319,15 +317,18 @@
         ($RELEASE $ast) ;; we already own it via ast
         ($RELEASE $el)
         (br $TCO_loop))
-    (else (if (i32.eqz ($strcmp "quote" $a0sym))
+    )
+    (if (i32.eqz ($strcmp "quote" $a0sym))
       (then
         (local.set $res ($INC_REF ($MEM_VAL1_ptr ($MEM_VAL0_ptr $ast))))
         (br $EVAL_return))
-    (else (if (i32.eqz ($strcmp "quasiquoteexpand" $a0sym))
+    )
+    (if (i32.eqz ($strcmp "quasiquoteexpand" $a0sym))
       (then
         (local.set $res ($QUASIQUOTE ($MEM_VAL1_ptr ($MEM_VAL0_ptr $ast))))
         (br $EVAL_return))
-    (else (if (i32.eqz ($strcmp "quasiquote" $a0sym))
+    )
+    (if (i32.eqz ($strcmp "quasiquote" $a0sym))
       (then
         (local.set $ast ($QUASIQUOTE ($MEM_VAL1_ptr ($MEM_VAL0_ptr $ast))))
 
@@ -335,7 +336,8 @@
         (if $prev_ast ($RELEASE $prev_ast))
         (local.set $prev_ast $ast)
         (br $TCO_loop))
-    (else (if (i32.eqz ($strcmp "defmacro!" $a0sym))
+    )
+    (if (i32.eqz ($strcmp "defmacro!" $a0sym))
       (then
         (local.set $a1 ($MAL_GET_A1 $ast))
         (local.set $a2 ($MAL_GET_A2 $ast))
@@ -346,13 +348,15 @@
         ;; set a1 in env to a2
         (local.set $res ($ENV_SET $env $a1 $res))
         (br $EVAL_return))
-    (else (if (i32.eqz ($strcmp "macroexpand" $a0sym))
+    )
+    (if (i32.eqz ($strcmp "macroexpand" $a0sym))
       (then
         ;; since we are returning it unevaluated, inc the ref cnt
         (local.set $res ($INC_REF ($MACROEXPAND
                                     ($MEM_VAL1_ptr ($MEM_VAL0_ptr $ast))
                                     $env))))
-    (else (if (i32.eqz ($strcmp "try*" $a0sym))
+    )
+    (if (i32.eqz ($strcmp "try*" $a0sym))
       (then
         (local.set $a1 ($MAL_GET_A1 $ast))
         (local.set $res ($EVAL $a1 $env))
@@ -398,7 +402,8 @@
 
         (local.set $ast $a2)
         (br $TCO_loop))
-    (else (if (i32.eqz ($strcmp "if" $a0sym))
+    )
+    (if (i32.eqz ($strcmp "if" $a0sym))
       (then
         (local.set $a1 ($MAL_GET_A1 $ast))
         (local.set $res ($EVAL $a1 $env))
@@ -420,13 +425,14 @@
           ($RELEASE $res)
           (local.set $ast ($MAL_GET_A2 $ast))))))
         (br $TCO_loop))
-    (else (if (i32.eqz ($strcmp "fn*" $a0sym))
+    )
+    (if (i32.eqz ($strcmp "fn*" $a0sym))
       (then
         (local.set $a1 ($MAL_GET_A1 $ast))
         (local.set $a2 ($MAL_GET_A2 $ast))
         (local.set $res ($MALFUNC $a2 $a1 $env))
         (br $EVAL_return))
-    (else
+    )
       ;; EVAL_INVOKE
       (local.set $res ($EVAL_AST $ast $env 0))
       (local.set $f_args $res)
@@ -452,7 +458,8 @@
           ;; release f/args
           ($RELEASE $f_args)
           (br $EVAL_return))
-      (else (if (i32.eq $ftype (global.get $MALFUNC_T))
+      )
+      (if (i32.eq $ftype (global.get $MALFUNC_T))
         (then
           ;; save the current environment for release
           (local.set $prev_env $env)
@@ -482,11 +489,11 @@
           ($RELEASE $f_args)
 
           (br $TCO_loop))
-      (else
+      )
         ($THROW_STR_1 "apply of non-function type: %d\n" $ftype)
         (local.set $res 0)
         ($RELEASE $f_args)
-        (br $EVAL_return)))))))))))))))))))))))))))
+        (br $EVAL_return)
 
     ) ;; end of TCO_loop
     ) ;; end of EVAL_return
