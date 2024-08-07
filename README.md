@@ -41,7 +41,7 @@ process guide](process/guide.md) there is also a [mal/make-a-lisp
 FAQ](docs/FAQ.md) where I attempt to answer some common questions.
 
 
-**3. Mal is implemented in 87 languages (93 different implementations and 115 runtime modes)**
+**3. Mal is implemented in 87 languages (93 different implementations and 114 runtime modes)**
 
 | Language | Creator |
 | -------- | ------- |
@@ -1225,7 +1225,6 @@ runs under several different non-web embeddings (runtimes):
 [node](https://nodejs.org),
 [wasmtime](https://github.com/CraneStation/wasmtime),
 [wasmer](https://wasmer.io),
-[lucet](https://github.com/fastly/lucet),
 [wax](https://github.com/kanaka/wac),
 [wace](https://github.com/kanaka/wac),
 [warpy](https://github.com/kanaka/warpy).
@@ -1241,9 +1240,6 @@ wasmtime --dir=./ --dir=../ --dir=/ ./stepX_YYY.wasm
 # wasmer
 make wasm_MODE=wasmer
 wasmer run --dir=./ --dir=../ --dir=/ ./stepX_YYY.wasm
-# lucet
-make wasm_MODE=lucet
-lucet-wasi --dir=./:./ --dir=../:../ --dir=/:/ ./stepX_YYY.so
 # wax
 make wasm_MODE=wax
 wax ./stepX_YYY.wasm

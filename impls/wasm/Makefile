@@ -5,11 +5,10 @@ MODE ?= $(strip \
 	      direct,\
 	      wasi)))
 
-EXT = $(if $(filter lucet,$(wasm_MODE)),.so,.wasm)
+EXT = .wasm
 
 WASM_AS ?= wasm-as
 WAMP ?= node_modules/.bin/wamp
-LUCETC ?= lucetc-wasi
 
 STEP0_DEPS = $(WAMP) platform_$(MODE).wam string.wam printf.wam
 STEP1_DEPS = $(STEP0_DEPS) types.wam mem.wam debug.wam reader.wam printer.wam
@@ -31,10 +30,6 @@ node_modules/.bin/wamp:
 %.wasm: %.wat
 	$(WASM_AS) $< -o $@
 
-# lucet object binaries
-%.so: %.wasm
-	$(LUCETC) $< -o $@
-
 step0_repl.wat: $(STEP0_DEPS)
 step1_read_print.wat step2_eval.wat: $(STEP1_DEPS)
 step3_env.wat: $(STEP3_DEPS)
@@ -44,4 +39,4 @@ step7_quote.wat step8_macros.wat step9_try.wat stepA_mal.wat: $(STEP4_DEPS)
 .PHONY: clean
 
 clean:
-	rm -f *.wat *.wasm *.so
+	rm -f *.wat *.wasm

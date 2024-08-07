@@ -154,14 +154,6 @@ RUN curl https://get.wasmer.io -sSfL | sh && \
 #    cp target/release/wasmer /usr/bin/
 
 #
-# lucet
-#
-
-RUN git clone --recursive https://github.com/fastly/lucet && \
-    cd lucet && \
-    make install
-
-#
 # wasmtime
 #
 
@@ -187,11 +179,6 @@ COPY --from=runtimes /usr/bin/wace /usr/bin/wace
 COPY --from=runtimes /usr/bin/warpy /usr/bin/warpy
 COPY --from=runtimes /usr/bin/wasmtime /usr/bin/wasmtime
 COPY --from=runtimes /usr/bin/wasm2obj /usr/bin/wasm2obj
-
-RUN mkdir -p /opt/lucet/bin
-COPY --from=runtimes /opt/lucet/ /opt/lucet
-RUN ln -sf /opt/lucet/bin/lucetc-wasi /usr/bin/lucetc-wasi
-RUN ln -sf /opt/lucet/bin/lucet-wasi /usr/bin/lucet-wasi
 
 COPY --from=runtimes /usr/bin/wasmer /usr/bin/wasmer
 COPY --from=runtimes /usr/bin/wapm /usr/bin/wapm
