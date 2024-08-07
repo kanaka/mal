@@ -26,7 +26,7 @@ python_MODE = python
 scheme_MODE = chibi
 # sml (polyml, mlton, mosml)
 sml_MODE = polyml
-# wasmtime wasmer wax  node warpy  wace_libc
+# wasmtime wasmer wax node warpy wace_libc direct js wace_fooboot
 wasm_MODE = wasmtime
 
 
