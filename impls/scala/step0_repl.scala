@@ -1,3 +1,5 @@
+import scala.io.StdIn
+
 object step0_repl {
   def READ(str: String): String = {
     str
@@ -17,7 +19,7 @@ object step0_repl {
 
   def main(args: Array[String]) {
     var line:String = null
-    while ({line = readLine("user> "); line != null}) {
+    while ({line = StdIn.readLine("user> "); line != null}) {
       try {
         println(REP(line))
       } catch {
