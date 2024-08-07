@@ -403,17 +403,20 @@
     \tl_set:Nx \l_tmpa_tl { s \l_tmpa_str }
   }
 
-\str_const:Nx \c_mal_date_str { date ~ + \c_percent_str s }
-\sys_get_shell:VnN \c_mal_date_str {} \l_tmpa_str
-\int_const:NV \c_mal_start_time_int \l_tmpa_str
-
 \mal_def_builtin:nnn { time-ms } { time_ms }
   {
+    % Seconds are not accurate enough for MAL tests, so use %s%N.
+    % The raw nanosecond count overflows LaTeX integers.
+    % Extract the seconds, subtract the date of publication,
+    % then add the three millisecond digits.
     \iow_term:n {MAL_LATEX3_STRIP_ON}
-    \sys_get_shell:VnN \c_mal_date_str {} \l_tmpa_str
+    \sys_get_shell:xnN { date ~ + \c_percent_str s \c_percent_str N} {}
+      \l_tmpa_str
     \iow_term:n {MAL_LATEX3_STRIP_OFF}
-    \int_set:Nn \l_tmpa_int { \l_tmpa_str - \c_mal_start_time_int }
-    \tl_set:Nx \l_tmpa_tl { i \int_to_arabic:V \l_tmpa_int 000 }
+    \int_set:Nx \l_tmpa_int { \tl_range:Vnn \l_tmpa_str 1 { -10 } }
+    \int_set:Nn \l_tmpa_int { \l_tmpa_int - 1723068439 }
+    \tl_set:Nx \l_tmpa_tl { i \int_to_arabic:V \l_tmpa_int
+      \tl_range:Vnn \l_tmpa_str { -9 } { -7 } }
   }
 
 \mal_def_builtin:nnn { meta } { meta }
