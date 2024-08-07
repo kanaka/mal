@@ -1,6 +1,7 @@
 (module $stepA_mal
 
   (global $repl_env (mut i32) (i32.const 0))
+  (global $DEBUG_EVAL_S (mut i32) (i32.const 0)) ;; never $RELEASED
 
   ;; READ
   (func $READ (param $str i32) (result i32)
@@ -213,6 +214,17 @@
   (func $MAL_GET_A3 (param $ast i32) (result i32)
     ($MEM_VAL1_ptr ($MEM_VAL0_ptr ($MEM_VAL0_ptr ($MEM_VAL0_ptr $ast)))))
 
+  (func $ECHO_IF_DEBUG_EVAL (param $ast i32 $env i32)
+    (local $res_env i64 $value i32)
+    (local.set $res_env ($ENV_FIND $env (global.get $DEBUG_EVAL_S)))
+    (if (i32.wrap_i64 $res_env)
+      (then
+        (local.set $value (i32.wrap_i64 (i64.shr_u $res_env (i64.const 32))))
+        (if (AND (i32.ne $value (global.get $NIL))
+                 (i32.ne $value (global.get $FALSE)))
+          (then
+            ($PR_VALUE "EVAL: %s\n" $ast))))))
+
   (func $EVAL (param $orig_ast i32 $orig_env i32) (result i32)
     (LET $ast $orig_ast
          $env $orig_env
@@ -230,7 +242,7 @@
         (local.set $res 0)
         (br $EVAL_return)))
 
-    ;;($PR_VALUE ">>> EVAL ast: '%s'\n" $ast)
+    ($ECHO_IF_DEBUG_EVAL $ast $env)
 
     (if (i32.ne ($TYPE $ast) (global.get $LIST_T))
       (then
@@ -563,6 +575,7 @@
 ;;    ($printf_1 "mem: 0x%x\n" (global.get $mem))
 ;;    ($printf_1 "string_mem: %d\n" (global.get $string_mem))
 
+    (global.set $DEBUG_EVAL_S ($STRING (global.get $SYMBOL_T) "DEBUG-EVAL"))
     (global.set $repl_env ($ENV_NEW (global.get $NIL)))
     (local.set $repl_env (global.get $repl_env))
 
