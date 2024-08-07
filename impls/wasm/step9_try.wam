@@ -293,12 +293,15 @@
       (then
         (local.set $a1 ($MAL_GET_A1 $ast))
         (local.set $a2 ($MAL_GET_A2 $ast))
-        (local.set $res ($EVAL $a2 $env))
+        (local.set $f ($EVAL $a2 $env))
+        (local.set $res ($MALFUNC ($MEM_VAL0_ptr $f)
+          ($MEM_VAL1_ptr $f) ($MEM_VAL2_ptr $f)))
         ($SET_TYPE $res (global.get $MACRO_T))
         (br_if $EVAL_return (global.get $error_type))
+        ($RELEASE $f)
 
         ;; set a1 in env to a2
-        (local.set $res ($ENV_SET $env $a1 $res))
+        (drop ($ENV_SET $env $a1 $res))
         (br $EVAL_return))
     )
     (if (i32.eqz ($strcmp "try*" $a0sym))
