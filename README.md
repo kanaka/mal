@@ -90,6 +90,7 @@ FAQ](docs/FAQ.md) where I attempt to answer some common questions.
 | [LiveScript](#livescript) | [Jos van Bakel](https://github.com/c0deaddict) |
 | [Logo](#logo) | [Dov Murik](https://github.com/dubek) |
 | [Lua](#lua) | [Joel Martin](https://github.com/kanaka)  |
+| [Lua #2](#lua-2) | [Hüseyin Er](https://github.com/chemindefer)  |
 | [GNU Make](#gnu-make-381) | [Joel Martin](https://github.com/kanaka)  |
 | [mal itself](#mal) | [Joel Martin](https://github.com/kanaka)  |
 | [MATLAB](#matlab-gnu-octave-and-matlab) (GNU Octave &amp; MATLAB) | [Joel Martin](https://github.com/kanaka) |
@@ -712,6 +713,22 @@ implementation requires luarocks to be installed.
 cd impls/lua
 make  # to build and link linenoise.so and rex_pcre.so
 ./stepX_YYY.lua
+```
+
+### Lua.2
+
+The second Lua implementation of mal has been tested with Lua 5.3 and
+5.4 this implementation does not include readline functionality. In
+order to have it one can use `rlwrap`. This implementation uses manual
+tokenizer instead of using regular expressions.
+
+```
+cd impls/lua.2
+./stepX_YYY.lua
+# with readline functionality
+rlwrap ./stepX_YYY.lua
+# with readline functionality
+rlwrap ./stepX_YYY.lua
 ```
 
 ### Mal

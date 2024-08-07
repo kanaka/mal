@@ -36,7 +36,7 @@ wasm_MODE = wasmtime
 
 IMPLS = ada ada.2 awk bash basic bbc-basic c c.2 chuck clojure coffee common-lisp cpp crystal cs d dart \
 	elisp elixir elm erlang es6 factor fantom fennel forth fsharp go groovy gnu-smalltalk \
-	guile haskell haxe hy io janet java java-truffle js jq julia kotlin livescript logo lua make mal \
+	guile haskell haxe hy io janet java java-truffle js jq julia kotlin livescript logo lua lua.2 make mal \
 	matlab miniMAL nasm nim objc objpascal ocaml perl perl6 php picolisp pike plpgsql \
 	plsql powershell prolog ps purs python python.2 r racket rexx rpython ruby ruby.2 rust scala scheme skew sml \
 	swift swift3 swift4 swift5 tcl ts vala vb vhdl vimscript wasm wren yorick xslt zig
@@ -148,6 +148,7 @@ kotlin_STEP_TO_PROG =        impls/kotlin/$($(1)).jar
 livescript_STEP_TO_PROG =    impls/livescript/$($(1)).js
 logo_STEP_TO_PROG =          impls/logo/$($(1)).lg
 lua_STEP_TO_PROG =           impls/lua/$($(1)).lua
+lua.2_STEP_TO_PROG =         impls/lua.2/$($(1)).lua
 make_STEP_TO_PROG =          impls/make/$($(1)).mk
 mal_STEP_TO_PROG =           impls/mal/$($(1)).mal
 matlab_STEP_TO_PROG =        impls/matlab/$($(1)).m
