@@ -152,25 +152,34 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Build
+        shell: bash
         run: |
           export ${{ matrix.IMPL }}
           ./ci.sh build ${IMPL}
-        shell: bash
       - name: Step Tests
+        shell: bash
         run: |
+          echo shell: bash, hello world from Step Tests
+          echo export ${{ matrix.IMPL }}
+          echo ./ci.sh test ${IMPL}
           export ${{ matrix.IMPL }}
           ./ci.sh test ${IMPL}
-        shell: bash
       - name: Regression Tests
+        shell: bash
         run: |
+          echo shell: bash, hello world from Regression Tests
+          echo export ${{ matrix.IMPL }}
+          echo STEP=stepA REGRESS=1 HARD=1 OPTIONAL=0 ./ci.sh test ${IMPL}
           export ${{ matrix.IMPL }}
           STEP=stepA REGRESS=1 HARD=1 OPTIONAL=0 ./ci.sh test ${IMPL}
-        shell: bash
       - name: Performance Tests
+        shell: bash
         run: |
+          echo shell: bash, hello world from Performance Tests
+          echo export ${{ matrix.IMPL }}
+          echo ./ci.sh perf ${IMPL}
           export ${{ matrix.IMPL }}
           ./ci.sh perf ${IMPL}
-        shell: bash
       - name: Archive logs and debug output
         uses: actions/upload-artifact@v4
         with:
