@@ -9,7 +9,7 @@ OTHER_SRCS = src/Readline.js src/Readline.purs src/Types.purs src/Reader.purs \
 all: $(BINS)
 
 $(BINS): %.js: src/%.purs $(OTHER_SRCS) node_modules/readline-sync
-	spago bundle-app --main $($(<:src/%=%)) --to $@
+	spago bundle-app --platform=node --main $($(<:src/%=%)) --to $@
 
 
 node_modules/readline-sync:
