@@ -49,13 +49,16 @@ eprint("do_full: %s" % do_full)
 # Load the full implementation description file
 all_impls = yaml.safe_load(open(IMPLS_FILE))
 
-# Accumulate and output linux and macos implementations separately
+# Accumulate and output linux, macos & windows implementations separately
 linux_impls = []
 macos_impls = []
+windows_impls = []
 for impl in all_impls['IMPL']:
     targ = linux_impls
     if 'OS' in impl and impl['OS'] == 'macos':
         targ = macos_impls
+	if 'OS' in impl and impl['OS'] == 'windows':
+		targ = windows_impls
     # Run implementations with actual changes first before running
     # other impls triggered by non-impl code changes
     if impl['IMPL'] in run_impls:
@@ -65,5 +68,7 @@ for impl in all_impls['IMPL']:
 
 print("do_linux=%s" % json.dumps(len(linux_impls)>0))
 print("do_macos=%s" % json.dumps(len(macos_impls)>0))
+print("do_windows=%s" % json.dumps(len(windows_impls)>0))
 print("linux={\"IMPL\":%s}" % json.dumps(linux_impls))
 print("macos={\"IMPL\":%s}" % json.dumps(macos_impls))
+print("windows={\"IMPL\":%s}" % json.dumps(windows_impls))
