@@ -53,6 +53,7 @@ step5_EXCLUDES += prolog      # no iteration (but interpreter does TCO implicitl
 step5_EXCLUDES += sml         # not implemented :(
 step5_EXCLUDES += $(if $(filter cpp,$(haxe_MODE)),haxe,) # cpp finishes 10,000, segfaults at 100,000
 step5_EXCLUDES += xslt		  # iteration cannot be expressed
+step5_EXCLUDES += vbs         # to0 slow for 10,000
 
 dist_EXCLUDES += mal
 # TODO: still need to implement dist
