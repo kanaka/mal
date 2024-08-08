@@ -13,6 +13,11 @@ on:
         description: 'Space separated list of impls to test (or all)'
         required: true
         default: 'all'
+      self-hosted:
+        description: 'Include self-hosted tests'
+        required: true
+        default: 'no'
+        options: ['yes', 'no']
 
 jobs:
   get-matrix:
@@ -72,6 +77,11 @@ jobs:
         run: |
           export ${{ matrix.IMPL }}
           ./ci.sh perf ${IMPL}
+      - name: Self-hosted Tests
+        if: ${{ github.event.inputs.self-hosted == 'yes' }}
+        run: |
+          export ${{ matrix.IMPL }}
+          DO_SELF_HOST=1 ./ci.sh test ${IMPL}
       - name: Archive logs and debug output
         uses: actions/upload-artifact@v4
         with:
@@ -105,6 +115,11 @@ jobs:
         run: |
           export ${{ matrix.IMPL }}
           ./ci.sh perf ${IMPL}
+      - name: Self-hosted Tests
+        if: ${{ github.event.inputs.self-hosted == 'yes' }}
+        run: |
+          export ${{ matrix.IMPL }}
+          DO_SELF_HOST=1 ./ci.sh test ${IMPL}
       - name: Archive logs and debug output
         uses: actions/upload-artifact@v4
         with:
