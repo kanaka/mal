@@ -1,4 +1,5 @@
 IMPL:
+  - {IMPL: vbs, NO_DOCKER: 1, OS: windows} # place it first for quick feedback
   - {IMPL: ada}
   - {IMPL: ada.2}
   - {IMPL: awk}
