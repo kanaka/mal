@@ -9,7 +9,7 @@ pub const MalLinkedList = ArrayList(*MalType);
 
 pub fn deepcopy(allocator: *Allocator, ll: MalLinkedList) MalError!MalLinkedList {
     var new_ll = MalLinkedList.init(allocator);
-    const ll_slice = ll.toSlice();
+    const ll_slice = ll.items;
     var i: usize = 0;
     while(i < ll_slice.len) {
         const new_mal = try ll_slice[i].copy(allocator);
@@ -22,7 +22,7 @@ pub fn deepcopy(allocator: *Allocator, ll: MalLinkedList) MalError!MalLinkedList
 
 pub fn destroy(allocator: *Allocator, ll: *MalLinkedList, shallow: bool) void {
     if(!shallow) {
-        const ll_slice = ll.toSlice();
+        const ll_slice = ll.items;
         var i: usize = 0;
         while(i < ll_slice.len) {
             ll_slice[i].delete(allocator);
@@ -43,16 +43,16 @@ pub fn prepend_mal(allocator: *Allocator, ll: *MalLinkedList, mal: *MalType) Mal
 }
 
 pub fn pop_first(allocator: *Allocator, ll: *MalLinkedList) MalError!*MalType {
-    if(ll.count() == 0) {
+    if(ll.items.len == 0) {
         return MalError.OutOfBounds;
     }
     return ll.orderedRemove(0);
 }
 
 pub fn first(ll: *const MalLinkedList) ?*MalType {
-    if(ll.count() == 0) {
+    if(ll.items.len == 0) {
         return null;
     }
-    return ll.at(0);
+    return ll.items[0];
 }
 

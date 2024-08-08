@@ -31,9 +31,15 @@ fn READ(a: []const u8) MalError!?*MalType {
 }
 
 fn EVAL(mal: *MalType, env: *Env) MalError!*MalType {
+
+    // const stdout = std.io.getStdOut();
+    // stdout.writeAll("EVAL: ")       catch return MalError.ThrownError;
+    // stdout.writeAll(try PRINT(mal)) catch return MalError.ThrownError;
+    // stdout.writeAll("\n")           catch return MalError.ThrownError;
+
     switch(mal.data) {
         .List => |ll| {
-            if(ll.len == 0) {
+            if(ll.items.len == 0) {
                 return mal;
             }
             var first_mal = linked_list.first(&ll) orelse return MalError.ArgError;
@@ -89,15 +95,16 @@ fn EVAL_let(mal: *MalType, env: *Env) MalError!*MalType {
         .Vector => |v| v,
         else => return MalError.TypeError,
     };
-    var iterator = binding_ll.iterator();
-    var optional_node = iterator.next();
-    while(optional_node) |node| {
-        const key_mal = node;
+    if(binding_ll.items.len % 2 != 0) return MalError.ArgError;
+    var i: usize = 0;
+    while(i < binding_ll.items.len) {
+        const key_mal = binding_ll.items[i];
+        i += 1;
         const key = try key_mal.as_symbol();
-        const val_mal = iterator.next() orelse return MalError.ArgError;
+        const val_mal = binding_ll.items[i];
+        i += 1;
         const evaled_mal = try EVAL(val_mal, new_env);
         try new_env.set(key, evaled_mal);
-        optional_node = iterator.next();
         key_mal.delete(Allocator);
     }
     
@@ -157,11 +164,11 @@ fn EVAL_fn(mal: *MalType, env: *Env) MalError!*MalType {
     return new_func;
 }
 
-fn PRINT(optional_mal: ?*MalType) MalError![] u8 {
+fn PRINT(optional_mal: ?*MalType) MalError![]const u8 {
     return printer.print_str(optional_mal);
 }
 
-fn rep(environment: *Env, input: [] const u8) MalError!?[] u8 {
+fn rep(environment: *Env, input: []const u8) MalError!?[]const u8 {
     var read_input = (try READ(input)) orelse return null;
     var eval_input = try EVAL(read_input, try environment.copy(Allocator));
     var print_input = try PRINT(eval_input);
@@ -172,11 +179,7 @@ fn rep(environment: *Env, input: [] const u8) MalError!?[] u8 {
 fn lookup(environment: *Env, symbol: []const u8, do_warn: bool) MalError!*MalType {
      var mal = environment.get(symbol) catch |err| {
         if(do_warn) {
-            const s1 = string_concat(Allocator, "'", symbol) catch return MalError.SystemError;
-            const s2 = string_concat(Allocator, s1, "' not found") catch return MalError.SystemError;
-            defer Allocator.free(s1);
-            defer Allocator.free(s2);
-            warn("'{}' not found.\n", symbol);
+            warn("'{s}' not found.\n", .{symbol});
         }
         return MalError.KeyError;
     };
@@ -192,8 +195,7 @@ fn eval_ast(mal: *MalType, env: *Env) MalError!*MalType {
         },
         .List => |*ll| {
             var new_ll = MalLinkedList.init(Allocator);
-            var iterator = ll.iterator();
-            while(iterator.next()) |next_mal| {
+            for (ll.items) |next_mal| {
                 const new_mal = try EVAL(next_mal, try env.copy(Allocator));
                 try linked_list.append_mal(Allocator, &new_ll, new_mal);
             }
@@ -204,8 +206,7 @@ fn eval_ast(mal: *MalType, env: *Env) MalError!*MalType {
         },
         .Vector => |*ll| {
             var new_ll = MalLinkedList.init(Allocator);
-            var iterator = ll.iterator();
-            while(iterator.next()) |next_mal| {
+            for (ll.items) |next_mal| {
                 const new_mal = try EVAL(next_mal, try env.copy(Allocator));
                 try linked_list.append_mal(Allocator, &new_ll, new_mal);
             }
@@ -214,14 +215,14 @@ fn eval_ast(mal: *MalType, env: *Env) MalError!*MalType {
             const ret_mal = MalType.new_vector(Allocator, new_ll);
             return ret_mal;
         },
-        .HashMap => |hmap| {
+        .HashMap => |*hmap| {
             var new_hashmap = try MalType.new_hashmap(Allocator);
             var iterator = hmap.iterator();
             var optional_pair = iterator.next();
             while(true) {
                 const pair = optional_pair orelse break;
-                const key = pair.key;
-                const value = pair.value;
+                const key = pair.key_ptr.*;
+                const value = pair.value_ptr.*;
                 const evaled_value = try EVAL(value, try env.copy(Allocator));
                 try new_hashmap.hashmap_insert(key, evaled_value);
                 optional_pair = iterator.next();
@@ -265,7 +266,7 @@ fn make_environment() MalError!*Env {
 }
 
 pub fn main() !void {
-    const stdout_file = try std.io.getStdOut();
+    const stdout_file = std.io.getStdOut();
     core.set_allocator(Allocator);
     var environment = try make_environment();
     while(true) {
@@ -278,10 +279,10 @@ pub fn main() !void {
             }
         };
         if(optional_output) |output| {
-            try stdout_file.write(output);
+            try stdout_file.writeAll(output);
             Allocator.free(output);
             Allocator.free(line);
-            try stdout_file.write("\n");
+            try stdout_file.writeAll("\n");
         }
     }
 }

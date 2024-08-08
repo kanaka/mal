@@ -80,16 +80,13 @@ fn int_geq(a1: *MalType, a2: *MalType) MalError!*MalType {
 }
 
 fn _linked_list_equality(l1: MalLinkedList, l2: MalLinkedList) MalError!bool {
-    if(l1.count() != l2.count()) {
+    if(l1.items.len != l2.items.len) {
         return false;
     }
-    var it1 = l1.iterator();
-    var it2 = l2.iterator();
-    while(true) {
-        const m1 = it1.next() orelse return (it2.next() == null);
-        const m2 = it2.next() orelse return false;
+    for (l1.items) |m1, idx| {
+        const m2 = l2.items[idx];
         const el_cmp = try equality(m1, m2);
-        if(MalTypeValue(el_cmp.data) == MalTypeValue.False) {
+        if(@as(MalTypeValue, el_cmp.data) == MalTypeValue.False) {
             el_cmp.delete(Allocator);
             return false;
         }
@@ -106,10 +103,10 @@ fn _hashmap_equality(h1: MalHashMap, h2: MalHashMap) MalError!bool {
     var iterator = h1.iterator();
     var optional_pair = iterator.next();
     while(optional_pair) |pair| {
-        const optional_val = h2.getValue(pair.key);
+        const optional_val = h2.get(pair.key_ptr.*);
         if(optional_val) |val| {
-            const el_cmp = try equality(pair.value, val);
-            if(MalTypeValue(el_cmp.data) == MalTypeValue.False) {
+            const el_cmp = try equality(pair.value_ptr.*, val);
+            if(@as(MalTypeValue, el_cmp.data) == MalTypeValue.False) {
                 el_cmp.delete(Allocator);
                 return false;
             }
@@ -125,10 +122,10 @@ fn _hashmap_equality(h1: MalHashMap, h2: MalHashMap) MalError!bool {
 
 // TODO: make _equality -> bool
 fn equality(a1: *MalType, a2: *MalType) MalError!*MalType {
-    const a1_is_sequential = (MalTypeValue(a1.data) == MalTypeValue.List) or
-        (MalTypeValue(a1.data) == MalTypeValue.Vector);
-    const a2_is_sequential = (MalTypeValue(a2.data) == MalTypeValue.List) or
-        (MalTypeValue(a2.data) == MalTypeValue.Vector);
+    const a1_is_sequential = (@as(MalTypeValue, a1.data) == MalTypeValue.List) or
+        (@as(MalTypeValue, a1.data) == MalTypeValue.Vector);
+    const a2_is_sequential = (@as(MalTypeValue, a2.data) == MalTypeValue.List) or
+        (@as(MalTypeValue, a2.data) == MalTypeValue.Vector);
 
     if(a1_is_sequential and a2_is_sequential) {
         const l1 = (try a1.sequence_linked_list()).*;
@@ -136,7 +133,7 @@ fn equality(a1: *MalType, a2: *MalType) MalError!*MalType {
         return MalType.new_bool(Allocator, try _linked_list_equality(l1, l2));
     }
     
-    if(MalTypeValue(a1.data) != MalTypeValue(a2.data)) {
+    if(@as(MalTypeValue, a1.data) != @as(MalTypeValue, a2.data)) {
         return MalType.new_bool(Allocator, false);
     }
     
@@ -189,14 +186,13 @@ fn vector(args: MalLinkedList) MalError!*MalType {
 }
 
 fn map(args: MalLinkedList) MalError!*MalType {
-    if(args.count() < 2) return MalError.ArgError;
-    const func_mal = args.at(0);
-    var args_mal = args.at(1);
+    if(args.items.len < 2) return MalError.ArgError;
+    const func_mal = args.items[0];
+    var args_mal = args.items[1];
     var new_ll = MalLinkedList.init(Allocator);
     var to_map_ll = try args_mal.sequence_linked_list();
  
-    var iterator = to_map_ll.iterator();
-    while(iterator.next()) |mal| {
+    for (to_map_ll.items) |mal| {
         var args_ll = MalLinkedList.init(Allocator);
         // TODO: can be more efficient than this
         try linked_list.append_mal(Allocator, &args_ll, try func_mal.copy(Allocator));
@@ -211,19 +207,19 @@ fn map(args: MalLinkedList) MalError!*MalType {
 }
 
 fn is_list(a1: *MalType) MalError!*MalType {
-    return MalType.new_bool(Allocator, MalTypeValue(a1.data) == MalTypeValue.List);
+    return MalType.new_bool(Allocator, @as(MalTypeValue, a1.data) == MalTypeValue.List);
 }
 
 fn is_vector(a1: *MalType) MalError!*MalType {
-    return MalType.new_bool(Allocator, MalTypeValue(a1.data) == MalTypeValue.Vector);
+    return MalType.new_bool(Allocator, @as(MalTypeValue, a1.data) == MalTypeValue.Vector);
 }
 
 pub fn is_string(a1: *MalType) MalError!*MalType {
-    return MalType.new_bool(Allocator, MalTypeValue(a1.data) == MalTypeValue.String);
+    return MalType.new_bool(Allocator, @as(MalTypeValue, a1.data) == MalTypeValue.String);
 }
 
 pub fn is_number(a1: *MalType) MalError!*MalType {
-    return MalType.new_bool(Allocator, MalTypeValue(a1.data) == MalTypeValue.Int);
+    return MalType.new_bool(Allocator, @as(MalTypeValue, a1.data) == MalTypeValue.Int);
 }
 
 pub fn is_fn(a1: *MalType) MalError!*MalType {
@@ -250,17 +246,17 @@ pub fn is_macro(a1: *MalType) MalError!*MalType {
 
 fn empty(a1: *MalType) MalError!*MalType {
     return switch(a1.data) {
-        .List => |l| MalType.new_bool(Allocator, l.len == 0),
-        .Vector => |v| MalType.new_bool(Allocator, v.len == 0),
+        .List => |l| MalType.new_bool(Allocator, l.items.len == 0),
+        .Vector => |v| MalType.new_bool(Allocator, v.items.len == 0),
         else => MalType.new_bool(Allocator, false),
     };
 }
 
 fn prn(args: MalLinkedList) MalError!*MalType {
     const s = try printer.print_mal_to_string(args, true, true);
-    const stdout_file = std.io.getStdOut() catch return MalError.SystemError;
-    stdout_file.write(s) catch return MalError.SystemError;
-    stdout_file.write("\n") catch return MalError.SystemError;
+    const stdout_file = std.io.getStdOut();
+    stdout_file.writeAll(s) catch return MalError.SystemError;
+    stdout_file.writeAll("\n") catch return MalError.SystemError;
     Allocator.free(s);
     const mal = try MalType.new_nil(Allocator);
     return mal;
@@ -268,16 +264,16 @@ fn prn(args: MalLinkedList) MalError!*MalType {
 
 fn println(args: MalLinkedList) MalError!*MalType {
     const s = try printer.print_mal_to_string(args, false, true);
-    const stdout_file = std.io.getStdOut() catch return MalError.SystemError;
-    stdout_file.write(s) catch return MalError.SystemError;
-    stdout_file.write("\n") catch return MalError.SystemError;
+    const stdout_file = std.io.getStdOut();
+    stdout_file.writeAll(s) catch return MalError.SystemError;
+    stdout_file.writeAll("\n") catch return MalError.SystemError;
     Allocator.free(s);
     const mal = try MalType.new_nil(Allocator);
     return mal;
 }
 
 fn str(args: MalLinkedList) MalError!*MalType {
-    if(args.count() == 0) {
+    if(args.items.len == 0) {
         const s: []u8 = "";
         return MalType.new_string(Allocator, s);
     }
@@ -286,7 +282,7 @@ fn str(args: MalLinkedList) MalError!*MalType {
 }
 
 fn pr_str(args: MalLinkedList) MalError!*MalType {
-    if(args.count() == 0) {
+    if(args.items.len == 0) {
         const s: []u8 = "";
         return MalType.new_string(Allocator, s);
     }
@@ -297,7 +293,8 @@ fn pr_str(args: MalLinkedList) MalError!*MalType {
 fn slurp(a1: *MalType) MalError!*MalType {
     switch(a1.data) {
         .String => |path| {
-            const file_contents = std.io.readFileAlloc(Allocator, path)
+            const dir = std.fs.cwd();
+            const file_contents = dir.readFileAlloc(Allocator, path, 10000)
                 catch |err| return MalError.SystemError; // TODO: change this error
             defer Allocator.free(file_contents);
             return MalType.new_string(Allocator, file_contents);
@@ -314,7 +311,7 @@ fn atom(a1: *MalType) MalError!*MalType {
 }
 
 fn is_atom(a1: *MalType) MalError!*MalType {
-    return MalType.new_bool(Allocator, MalTypeValue(a1.data) == MalTypeValue.Atom);
+    return MalType.new_bool(Allocator, @as(MalTypeValue, a1.data) == MalTypeValue.Atom);
 }
 
 fn deref(a1: *MalType) MalError!*MalType {
@@ -337,8 +334,8 @@ fn atom_reset(a1: *MalType, a2: *MalType) MalError!*MalType {
 }
 
 fn atom_swap(args: MalLinkedList) MalError!*MalType {
-    const args_arr = args.toSlice();
-    const n = args.len;
+    const args_arr = args.items;
+    const n = args_arr.len;
     if(n < 2) return MalError.ArgError;
     var new_args = MalLinkedList.init(Allocator);
     defer linked_list.destroy(Allocator, &new_args, false);
@@ -382,14 +379,13 @@ pub fn concat(args: MalLinkedList) MalError!*MalType {
     // First we make a new array with shallow copies
     var new_ll = MalLinkedList.init(Allocator);
     errdefer linked_list.destroy(Allocator, &new_ll, false);
-    var iterator = args.iterator();
-    while(iterator.next()) |mal| {
+    for (args.items) |mal| {
         const mal_seq = try mal.sequence_linked_list();
-        new_ll.appendSlice(mal_seq.toSlice()) catch return MalError.SystemError;
+        new_ll.appendSlice(mal_seq.items) catch return MalError.SystemError;
     }
 
     // Now we turn the shallow copies into deep copies
-    const new_arr = new_ll.toSlice();
+    const new_arr = new_ll.items;
     var i: usize = 0;
     while(i < new_arr.len) {
         new_arr[i] = try new_arr[i].copy(Allocator);
@@ -412,7 +408,7 @@ pub fn rest(a1: *const MalType) MalError!*MalType {
     var new_list = try linked_list.deepcopy(Allocator, old_list);
     errdefer linked_list.destroy(Allocator, &new_list, false);
 
-    if(new_list.count() > 0) {
+    if(new_list.items.len > 0) {
         const mal = try linked_list.pop_first(Allocator, &new_list);
         mal.delete(Allocator);
     }
@@ -424,10 +420,10 @@ pub fn rest(a1: *const MalType) MalError!*MalType {
 pub fn _nth(mal_list: *const MalType, pos: i64) MalError!*MalType {
     // TODO: vectors?
     const l = try mal_list.const_sequence_linked_list();
-    if(pos < 0 or pos >= @intCast(i64,l.count())) {
+    if(pos < 0 or pos >= @intCast(i64,l.items.len)) {
         return MalError.OutOfBounds;
     }
-    return l.at(@intCast(usize,pos));
+    return l.items[@intCast(usize,pos)];
 }
 
 pub fn nth(a1: *const MalType, a2: *const MalType) MalError!*MalType {
@@ -444,14 +440,14 @@ pub fn first(a1: *const MalType) MalError!*MalType {
         .Nil => return MalType.new_nil(Allocator),
         else => return MalError.TypeError,
     };
-    if(l.count() == 0) return MalType.new_nil(Allocator);
-    return l.at(0).copy(Allocator);
+    if(l.items.len == 0) return MalType.new_nil(Allocator);
+    return l.items[0].copy(Allocator);
 }
 
 fn check_type(mal: *const MalType, value_type: MalTypeValue) MalError!*MalType {
     // TODO: use this everywhere
     // TODO: do this more generically
-    return MalType.new_bool(Allocator, MalTypeValue(mal.data) == value_type);
+    return MalType.new_bool(Allocator, @as(MalTypeValue, mal.data) == value_type);
 }
 
 pub fn is_nil(a1: *const MalType) MalError!*MalType {
@@ -479,8 +475,8 @@ pub fn is_map(a1: *const MalType) MalError!*MalType {
 }
 
 pub fn is_sequential(a1: *const MalType) MalError!*MalType {
-    const res = (MalTypeValue(a1.data) == MalTypeValue.Vector) or
-        (MalTypeValue(a1.data) == MalTypeValue.List);
+    const res = (@as(MalTypeValue, a1.data) == MalTypeValue.Vector) or
+        (@as(MalTypeValue, a1.data) == MalTypeValue.List);
     return MalType.new_bool(Allocator, res);
 }
 
@@ -494,7 +490,7 @@ pub fn symbol(a1: *const MalType) MalError!*MalType {
 
 pub fn hash_map(args: MalLinkedList) MalError!*MalType {
     const new_mal = try MalType.new_hashmap(Allocator);
-    const args_arr = args.toSlice();
+    const args_arr = args.items;
     const n = args_arr.len;
     if((n%2) != 0) return MalError.ArgError;
     var i: usize = 0;
@@ -514,7 +510,7 @@ pub fn hash_map(args: MalLinkedList) MalError!*MalType {
 }
 
 pub fn hash_map_assoc(args: MalLinkedList) MalError!*MalType {
-    const args_arr = args.toSlice();
+    const args_arr = args.items;
     if(args_arr.len < 1) return MalError.ArgError;
     const new_mal = try MalType.new_nil(Allocator);
     errdefer new_mal.delete(Allocator);
@@ -543,7 +539,7 @@ pub fn hash_map_assoc(args: MalLinkedList) MalError!*MalType {
 }
 
 pub fn hash_map_dissoc(args: MalLinkedList) MalError!*MalType {
-    const args_arr = args.toSlice();
+    const args_arr = args.items;
     if(args_arr.len < 1) return MalError.ArgError;
     const new_mal = try MalType.new_nil(Allocator);
     errdefer new_mal.delete(Allocator);
@@ -602,7 +598,7 @@ pub fn hash_map_keys(a1: *MalType) MalError!*MalType {
 
     while(true) {
         const pair = optional_pair orelse break;
-        const key = string_copy(Allocator, pair.key) catch return MalError.SystemError;
+        const key = string_copy(Allocator, pair.key_ptr.*) catch return MalError.SystemError;
         
         var key_mal: *MalType = undefined;
         if(key.len > 1 and key[0] == 255) {
@@ -630,7 +626,7 @@ pub fn hash_map_vals(a1: *MalType) MalError!*MalType {
 
     while(true) {
         const pair = optional_pair orelse break;
-        const val = try pair.value.copy(Allocator);
+        const val = try pair.value_ptr.*.copy(Allocator);
         try linked_list.append_mal(Allocator, &new_ll, val);
         optional_pair = iterator.next();
     }
@@ -641,8 +637,8 @@ pub fn hash_map_vals(a1: *MalType) MalError!*MalType {
 
 pub fn sequence_length(a1: *MalType) MalError!*MalType {
     const len = switch(a1.data) {
-        .List => |l| l.count(),
-        .Vector => |v| v.count(),
+        .List => |l| l.items.len,
+        .Vector => |v| v.items.len,
         .String => |s| s.len,
         .Nil => 0,
         else => return MalError.TypeError,
@@ -694,11 +690,11 @@ pub fn with_meta(a1: *MalType, a2: *MalType) MalError!*MalType {
 pub fn seq(a1: *MalType) MalError!*MalType {
     switch(a1.data) {
         .List => |l| {
-            if(l.count() == 0) return MalType.new_nil(Allocator);
+            if(l.items.len == 0) return MalType.new_nil(Allocator);
             return a1.copy(Allocator);
         },
         .Vector => |v| {
-            if(v.count() == 0) return MalType.new_nil(Allocator);
+            if(v.items.len == 0) return MalType.new_nil(Allocator);
             const mal_copy = try a1.copy(Allocator);
             const ll = mal_copy.data.Vector;
             mal_copy.data = MalData{.List = ll};
@@ -708,7 +704,8 @@ pub fn seq(a1: *MalType) MalError!*MalType {
             if(s.len == 0) return MalType.new_nil(Allocator);
             const new_list = try MalType.new_list_empty(Allocator);
             for(s) |letter| {
-                const new_char = try MalType.new_string(Allocator, [_]u8 {letter});
+                const s0 = [_]u8{letter, 0};
+                const new_char = try MalType.new_string(Allocator, &s0);
                 try new_list.sequence_append(Allocator, new_char);
             }
             return new_list;
@@ -724,8 +721,8 @@ pub fn seq(a1: *MalType) MalError!*MalType {
 }
 
 pub fn conj(args: MalLinkedList) MalError!*MalType {
-    var iterator = args.iterator();
-    const container = iterator.next() orelse return MalError.ArgError;
+    if(args.items.len == 0) return MalError.ArgError;
+    const container = args.items[0];
     const append = switch(container.data) {
         .List => false,
         .Vector => true,
@@ -733,7 +730,10 @@ pub fn conj(args: MalLinkedList) MalError!*MalType {
     };
 
     var return_mal = try container.copy(Allocator);    
-    while(iterator.next()) |mal| {
+    var i: usize = 1;
+    while(i<args.items.len) {
+        const mal = args.items[i];
+        i += 1;
         const mal_copy = try mal.copy(Allocator);
         if(append) {
             try return_mal.sequence_append(Allocator, mal_copy);
@@ -752,7 +752,7 @@ fn read_string(a1: *MalType) MalError!*MalType {
 
 pub fn do_apply(args: MalLinkedList) MalError!*MalType {
     // TODO: not always safe to delete new_ll here
-    if(args.count() == 0) return MalError.ArgError;
+    if(args.items.len == 0) return MalError.ArgError;
     var args_copy = args;
     const list_node = args_copy.pop();
     const list_ll = try list_node.sequence_linked_list();

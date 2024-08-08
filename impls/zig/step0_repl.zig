@@ -25,12 +25,12 @@ fn rep(input: [] u8) [] u8 {
 }
 
 pub fn main() !void {
-    const stdout_file = try std.io.getStdOut();
+    const stdout_file = std.io.getStdOut();
     while(true) {
         var line = (try getline(Allocator)) orelse break;
         var output = rep(line);
-        try stdout_file.write(output);
+        try stdout_file.writeAll(output);
         Allocator.free(output);
-        try stdout_file.write("\n");
+        try stdout_file.writeAll("\n");
     }
 }
