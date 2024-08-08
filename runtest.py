@@ -121,10 +121,8 @@ class Runner():
             if no_pty:
                 from subprocess import CREATE_NEW_PROCESS_GROUP
                 
-                # replace args's forward slashes with backslashes for Windows
-                args = [arg.replace('/', '\\') for arg in args]
-                args = ['cmd', '/c'] + args
-                print(args)
+                # replace args's forward slashes & append ext name
+                args[0] = args[0].replace('/', '\\') + '.cmd'
                 
                 self.p = Popen(args, bufsize=0,
                             stdin=PIPE, stdout=PIPE, stderr=STDOUT,
