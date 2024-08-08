@@ -159,25 +159,16 @@ jobs:
       - name: Step Tests
         shell: bash
         run: |
-          echo shell: bash, hello world from Step Tests
-          echo export ${{ matrix.IMPL }}
-          echo ./ci.sh test ${IMPL}
           export ${{ matrix.IMPL }}
           ./ci.sh test ${IMPL}
       - name: Regression Tests
         shell: bash
         run: |
-          echo shell: bash, hello world from Regression Tests
-          echo export ${{ matrix.IMPL }}
-          echo STEP=stepA REGRESS=1 HARD=1 OPTIONAL=0 ./ci.sh test ${IMPL}
           export ${{ matrix.IMPL }}
           STEP=stepA REGRESS=1 HARD=1 OPTIONAL=0 ./ci.sh test ${IMPL}
       - name: Performance Tests
         shell: bash
         run: |
-          echo shell: bash, hello world from Performance Tests
-          echo export ${{ matrix.IMPL }}
-          echo ./ci.sh perf ${IMPL}
           export ${{ matrix.IMPL }}
           ./ci.sh perf ${IMPL}
       - name: Archive logs and debug output
