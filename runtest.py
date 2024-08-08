@@ -120,8 +120,12 @@ class Runner():
         elif os.name == 'nt':
             if no_pty:
                 from subprocess import CREATE_NEW_PROCESS_GROUP
-                # print(args)
-                args = ['bash'] + args
+                
+                # replace args's forward slashes with backslashes for Windows
+                args = [arg.replace('/', '\\') for arg in args]
+                args = ['cmd', '/c'] + args
+                print(args)
+                
                 self.p = Popen(args, bufsize=0,
                             stdin=PIPE, stdout=PIPE, stderr=STDOUT,
                             creationflags=CREATE_NEW_PROCESS_GROUP,
