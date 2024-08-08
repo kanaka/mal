@@ -27,6 +27,8 @@ jobs:
       matrix-linux: ${{ steps.get-matrix-step.outputs.linux }}
       do-macos: ${{ steps.get-matrix-step.outputs.do_macos }}
       matrix-macos: ${{ steps.get-matrix-step.outputs.macos }}
+      do-windows: ${{ steps.get-matrix-step.outputs.do_windows }}
+      matrix-windows: ${{ steps.get-matrix-step.outputs.windows }}
     steps:
       - uses: actions/checkout@v4
       - id: files
