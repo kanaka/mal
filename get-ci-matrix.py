@@ -57,8 +57,8 @@ for impl in all_impls['IMPL']:
     targ = linux_impls
     if 'OS' in impl and impl['OS'] == 'macos':
         targ = macos_impls
-	if 'OS' in impl and impl['OS'] == 'windows':
-		targ = windows_impls
+    if 'OS' in impl and impl['OS'] == 'windows':
+        targ = windows_impls
     # Run implementations with actual changes first before running
     # other impls triggered by non-impl code changes
     if impl['IMPL'] in run_impls:
