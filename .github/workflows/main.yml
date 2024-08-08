@@ -139,3 +139,36 @@ jobs:
           path: |
             *.log
             *.debug
+
+  windows:
+    needs: get-matrix
+    if: ${{ needs.get-matrix.outputs.do-windows == 'true' }}
+    runs-on: windows-2022
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.get-matrix.outputs.matrix-windows) }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build
+        run: |
+          export ${{ matrix.IMPL }}
+          ./ci.sh build ${IMPL}
+      - name: Step Tests
+        run: |
+          export ${{ matrix.IMPL }}
+          ./ci.sh test ${IMPL}
+      - name: Regression Tests
+        run: |
+          export ${{ matrix.IMPL }}
+          STEP=stepA REGRESS=1 HARD=1 OPTIONAL=0 ./ci.sh test ${IMPL}
+      - name: Performance Tests
+        run: |
+          export ${{ matrix.IMPL }}
+          ./ci.sh perf ${IMPL}
+      - name: Archive logs and debug output
+        uses: actions/upload-artifact@v4
+        with:
+          name: logs.${{ matrix.IMPL }}
+          path: |
+            *.log
+            *.debug
