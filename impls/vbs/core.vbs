@@ -487,10 +487,10 @@ Function MApply(objArgs, objEnv)
 	Dim objFn
 	Set objFn = objArgs.Item(1)
 	CheckType objFn, TYPES.PROCEDURE
-	If objFn.IsSpecial Or objFn.IsMacro Then
-		Err.Raise vbObjectError, _
-			"MApply", "Need a function."
-	End If
+	' If objFn.IsSpecial Or objFn.IsMacro Then
+	' 	Err.Raise vbObjectError, _
+	' 		"MApply", "Need a function."
+	' End If
 
 	Dim objAST
 	Set objAST = NewMalList(Array(objFn))
