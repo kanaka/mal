@@ -28,9 +28,9 @@ WORKDIR /mal
 # For building node modules
 RUN apt-get -y install g++
 
-# Add nodesource apt repo config for 18.x stable
+# Add nodesource apt repo config for 16.x stable
 RUN apt-get -y install gnupg
-RUN curl -sL https://deb.nodesource.com/setup_18.x | bash -
+RUN curl -sL https://deb.nodesource.com/setup_16.x | bash -
 
 # Install nodejs
 RUN apt-get -y install nodejs
