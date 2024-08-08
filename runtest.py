@@ -120,6 +120,8 @@ class Runner():
         elif os.name == 'nt':
             if no_pty:
                 from subprocess import CREATE_NEW_PROCESS_GROUP
+                # print(args)
+                args = ['bash'] + args
                 self.p = Popen(args, bufsize=0,
                             stdin=PIPE, stdout=PIPE, stderr=STDOUT,
                             creationflags=CREATE_NEW_PROCESS_GROUP,
