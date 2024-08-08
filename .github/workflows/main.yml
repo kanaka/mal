@@ -155,18 +155,22 @@ jobs:
         run: |
           export ${{ matrix.IMPL }}
           ./ci.sh build ${IMPL}
+        shell: bash
       - name: Step Tests
         run: |
           export ${{ matrix.IMPL }}
           ./ci.sh test ${IMPL}
+        shell: bash
       - name: Regression Tests
         run: |
           export ${{ matrix.IMPL }}
           STEP=stepA REGRESS=1 HARD=1 OPTIONAL=0 ./ci.sh test ${IMPL}
+        shell: bash
       - name: Performance Tests
         run: |
           export ${{ matrix.IMPL }}
           ./ci.sh perf ${IMPL}
+        shell: bash
       - name: Archive logs and debug output
         uses: actions/upload-artifact@v4
         with:
