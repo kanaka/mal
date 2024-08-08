@@ -34,6 +34,7 @@ do_full = (len(code_changes) != len(impl_changes))
 
 # If we have non-implementation code changes then we will add all
 # implementations to the test matrix
+do_full = True
 if OVERRIDE_IMPLS:
     run_impls = OVERRIDE_IMPLS
     if 'all' in OVERRIDE_IMPLS:
