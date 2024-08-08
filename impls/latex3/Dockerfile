@@ -19,4 +19,4 @@ WORKDIR /mal
 # Specific implementation requirements
 ##########################################################
 
-RUN apt-get -y install texlive-latex-base
+RUN DEBIAN_FRONTEND=noninteractive apt-get -y install texlive-latex-base
