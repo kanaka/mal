@@ -4,8 +4,7 @@ import mal_types as types
 import reader, printer
 
 # read
-def READ(str):
-    return reader.read_str(str)
+READ = reader.read_str
 
 # eval
 def EVAL(ast, env):
@@ -17,7 +16,7 @@ def EVAL(ast, env):
         except:
             raise Exception("'" + ast + "' not found")
     elif types._vector_Q(ast):
-        return types._vector(*map(lambda a: EVAL(a, env), ast))
+        return types.Vector(EVAL(a, env) for a in ast)
     elif types._hash_map_Q(ast):
         return types.Hash_Map((k, EVAL(v, env)) for k, v in ast.items())
     elif not types._list_Q(ast):
@@ -31,8 +30,7 @@ def EVAL(ast, env):
         return f(*(EVAL(a, env) for a in args))
 
 # print
-def PRINT(exp):
-    return printer._pr_str(exp)
+PRINT = printer._pr_str
 
 # repl
 repl_env = {}
@@ -42,15 +40,16 @@ def REP(str):
 repl_env['+'] = lambda a,b: a+b
 repl_env['-'] = lambda a,b: a-b
 repl_env['*'] = lambda a,b: a*b
-repl_env['/'] = lambda a,b: int(a/b)
+repl_env['/'] = lambda a,b: a//b
 
 # repl loop
 while True:
     try:
         line = mal_readline.readline("user> ")
-        if line == None: break
-        if line == "": continue
         print(REP(line))
+    except EOFError:
+        print()
+        break
     except reader.Blank: continue
-    except Exception as e:
+    except Exception:
         print("".join(traceback.format_exception(*sys.exc_info())))
