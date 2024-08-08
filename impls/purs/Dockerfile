@@ -18,8 +18,7 @@ WORKDIR /mal
 # Specific implementation requirements
 ##########################################################
 
-RUN DEBIAN_FRONTEND=noninteractive apt-get -y install g++ libreadline-dev nodej
-s npm
+RUN DEBIAN_FRONTEND=noninteractive apt-get -y install g++ libreadline-dev nodejs npm
 
 # Install purescript and deps
 RUN apt-get install -y git libtinfo6
