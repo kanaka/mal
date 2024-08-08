@@ -1,6 +1,6 @@
 IMPL:
   - {IMPL: vbs, NO_DOCKER: 1, OS: windows} # place it first for quick feedback
-#   - {IMPL: ada}
+  - {IMPL: ada}
 #   - {IMPL: ada.2}
 #   - {IMPL: awk}
 #   - {IMPL: bash, NO_SELF_HOST: 1}  # step8 timeout
@@ -121,4 +121,4 @@ IMPL:
 # # - {IMPL: swift,  NO_DOCKER: 1, OS: xcode7.3}}
 # # - {IMPL: swift3, NO_DOCKER: 1, OS: xcode8}}
 # # - {IMPL: swift4, NO_DOCKER: 1, OS: xcode10}}
-#   - {IMPL: swift5, NO_DOCKER: 1, OS: macos}
+  - {IMPL: swift5, NO_DOCKER: 1, OS: macos}
