@@ -7,7 +7,7 @@ import sys
 import yaml
 
 IMPLS_FILE = "IMPLS.yml"
-RE_IGNORE = re.compile(r'(^LICENSE$|^README.md$|^docs/|^process/)')
+RE_IGNORE = re.compile(r'(^LICENSE$|^README.md$|^docs/|^process/|^IMPLS.yml$|^Makefile.impls$)')
 RE_IMPL = re.compile(r'^impls/(?!lib|tests)([^/]*)/')
 
 OVERRIDE_IMPLS = os.environ.get('OVERRIDE_IMPLS', '').split()
@@ -23,7 +23,7 @@ def impl_text(impl):
     return s
 
 all_changes = sys.argv[1:]
-# code changes that are not just to docs
+# code changes that are not just to docs or implementation lists
 code_changes = set([c for c in all_changes if not RE_IGNORE.search(c)])
 # actual changes to implementations
 impl_changes = set([c for c in all_changes if RE_IMPL.search(c)])
