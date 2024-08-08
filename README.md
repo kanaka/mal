@@ -135,7 +135,7 @@ FAQ](docs/FAQ.md) where I attempt to answer some common questions.
 | [VHDL](#vhdl) | [Dov Murik](https://github.com/dubek) |
 | [Vimscript](#vimscript) | [Dov Murik](https://github.com/dubek) |
 | [Visual Basic.NET](#visual-basicnet) | [Joel Martin](https://github.com/kanaka)  |
-| [Visual Basic Script](#visual-basic-script) | [Baichao Liu](https://github.com/OldLiu001)  |
+| [Visual Basic Script](#visual-basic-script) | [刘百超](https://github.com/OldLiu001)  |
 | [WebAssembly](#webassembly-wasm) (wasm) | [Joel Martin](https://github.com/kanaka) |
 | [Wren](#wren) | [Dov Murik](https://github.com/dubek) |
 | [XSLT](#xslt) | [Ali MohammadPur](https://github.com/alimpfard) |
