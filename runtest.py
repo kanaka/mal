@@ -84,7 +84,6 @@ class Runner():
         env['INPUTRC'] = '/dev/null'
         env['PERL_RL'] = 'false'
         if no_pty:
-            print(args)
             self.p = Popen(args, bufsize=0,
                            stdin=PIPE, stdout=PIPE, stderr=STDOUT,
                            preexec_fn=os.setsid,
