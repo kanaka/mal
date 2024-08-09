@@ -1,6 +1,7 @@
-FROM ubuntu:focal
+FROM ubuntu:24.04
 MAINTAINER Le Yang <qtxzh0125@gmail.com>
-
+LABEL org.opencontainers.image.source=https://github.com/kanaka/mal
+LABEL org.opencontainers.image.description="mal test container: cpp.2"
 ##########################################################
 # General requirements for testing or common across many
 # implementations
@@ -9,7 +10,8 @@ MAINTAINER Le Yang <qtxzh0125@gmail.com>
 RUN apt-get -y update
 
 # Required for running tests
-RUN apt-get -y install make python
+RUN apt-get -y install make python3
+RUN ln -sf /usr/bin/python3 /usr/bin/python
 
 # Some typical implementation and test requirements
 RUN apt-get -y install curl libreadline-dev libedit-dev
