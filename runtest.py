@@ -289,8 +289,9 @@ while t.next():
     # The repeated form is to get around an occasional OS X issue
     # where the form is repeated.
     # https://github.com/kanaka/mal/issues/30
-    expects = [".*%s%s%s" % (sep, t.out, re.escape(t.ret)),
-               ".*%s.*%s%s%s" % (sep, sep, t.out, re.escape(t.ret))]
+    expects = ["%s%s" % (t.out, re.escape(t.ret)), # for Windows, WSL
+            ".*%s%s%s" % (sep, t.out, re.escape(t.ret)), # for Linux, OS X
+            ".*%s.*%s%s%s" % (sep, sep, t.out, re.escape(t.ret))] # for OS X
 
     r.writeline(t.form)
     try:
