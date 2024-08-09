@@ -68,10 +68,6 @@ do_loop(Env, Elt, _Old_Acc, New_Acc) :- eval(Env, Elt, New_Acc).
 eval_list(_, quote, Args, Res) :- !,
     check(Args = [Res], "quote: expects 1 argument, got ~L", [Args]).
 
-eval_list(_, quasiquoteexpand, Args, Res) :- !,
-    check(Args = [X], "quasiquoteexpand: expects 1 argument, got: ~L", [Args]),
-    quasiquote(X, Res).
-
 eval_list(Env, quasiquote, Args, Res) :- !,
     check(Args = [X], "quasiquote: expects 1 argument, got: ~L", [Args]),
     quasiquote(X, Y),
@@ -113,19 +109,6 @@ eval_list(Env,  'defmacro!', Args, Res) :- !,
     mal_macro(Fn, Res),
     env_set(Env, Key, Res).
 
-eval_list(Env, macroexpand, Args, Res) :- !,
-    check(Args = [X], "macroexpand: expects 1 argument, got: ~L", [Args]),
-    macroexpand(Env, X, Res).
-
-macroexpand(Env, Ast, Res) :-
-    list([Key | Args], Ast),
-    env_get(Env, Key, Macro),
-    mal_macro(Fn, Macro), !,
-    mal_fn(Goal, Fn),
-    call(Goal, Args, New_Ast),
-    macroexpand(Env, New_Ast, Res).
-macroexpand(_, Ast, Ast).
-
 % apply phase
 
 eval_list(Env, First, Rest, Res) :-
@@ -142,10 +125,14 @@ eval_list(Env, First, Rest, Res) :-
 
 % The eval function itself.
 
-% Uncomment this to get a trace with environments.
-%% eval(Env, Ast, _) :-
-%%     format("EVAL: ~F    in ~V\n", [Ast, Env]),
-%%     fail.                       % Proceed with normal alternatives.
+debug_eval(_, _, nil).
+debug_eval(_, _, false).
+debug_eval(Env, Ast, _) :- format("EVAL: ~F    in ~V\n", [Ast, Env]).
+
+eval(Env, Ast, _) :-
+    env_get(Env, 'DEBUG-EVAL', Flag),
+    debug_eval(Env, Ast, Flag),
+    fail.                       % Proceed with normal alternatives.
 
 eval(Env, List, Res) :-
     list([First | Args], List), !,
@@ -163,8 +150,7 @@ eval(Env, Vector, Res) :-
     maplist(eval(Env), Xs, Ys),
     vector(Ys, Res).
 
-eval(Env, Map, Res) :-
-    map_map(eval(Env), Map, Res).
+eval(Env, Map, Res) :- map_map(eval(Env), Map, Res).
 
 eval(_, Anything_Else, Anything_Else).
 

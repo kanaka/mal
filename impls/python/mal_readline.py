@@ -1,32 +1,23 @@
-import os, sys, readline as pyreadline
+# Importing this module is sufficient for the 'input' builtin command
+# to support readline.
 
-history_loaded = False
-histfile = os.path.expanduser("~/.mal-history")
-if sys.version_info[0] >= 3:
-    rl = input
+import atexit
+import os.path
+from readline import read_history_file, set_history_length, write_history_file
+import sys
+
+if sys.version_info[0] < 3:
+    _exc = Exception
+    readline = raw_input
 else:
-    rl = raw_input
+    _exc = FileNotFoundError
+    readline = input
 
-def readline(prompt="user> "):
-    global history_loaded
-    if not history_loaded:
-        history_loaded = True
-        try:
-            with open(histfile, "r") as hf:
-                for line in hf.readlines():
-                    pyreadline.add_history(line.rstrip("\r\n"))
-                    pass
-        except IOError:
-            #print("Could not open %s" % histfile)
-            pass
+histfile = os.path.join(os.path.expanduser("~"), ".mal-history")
+try:
+    read_history_file(histfile)
+except _exc:
+    pass
+set_history_length(1000)
 
-    try:
-        line = rl(prompt)
-        pyreadline.add_history(line)
-        with open(histfile, "a") as hf:
-            hf.write(line + "\n")
-    except IOError:
-        pass
-    except EOFError:
-        return None
-    return line
+atexit.register(write_history_file, histfile)

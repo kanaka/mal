@@ -113,10 +113,10 @@ package body Core is
                return F.Builtin.all (A);
             when Kind_Builtin_With_Meta =>
                return F.Builtin_With_Meta.all.Builtin.all (A);
-            when Kind_Fn =>
+            when Kind_Fn | Kind_Macro =>
                return F.Fn.all.Apply (A);
             when others =>
-               Err.Raise_With ("parameter 1 must be a function");
+               Err.Raise_With ("parameter 1 must be a function or macro");
          end case;
       end;
    end Apply;
@@ -179,10 +179,8 @@ package body Core is
                return A1.Builtin_With_Meta.all.Meta;
             when Kind_Builtin =>
                return Types.Nil;
-            when Kind_Atom =>
-               return A1.Atom.all.Meta;
             when others =>
-               Err.Raise_With ("expected an atom, function, map or sequence");
+               Err.Raise_With ("expected a function, map or sequence");
          end case;
       end;
    end Meta;
@@ -451,8 +449,6 @@ package body Core is
             when Kind_Fn =>
                return (Kind_Fn, Types.Fns.New_Function
                          (A1.Fn.all.Params, A1.Fn.all.Ast, A1.Fn.all.Env, A2));
-            when Kind_Atom =>
-               return A1.Atom.all.With_Meta (A2);
             when others =>
                Err.Raise_With
                  ("parameter 1 must be a function, map or sequence");

@@ -6,7 +6,7 @@ import (
 )
 
 import (
-	. "types"
+	. "mal/src/types"
 )
 
 type Env struct {

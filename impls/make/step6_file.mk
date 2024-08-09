@@ -2,6 +2,8 @@
 # mal (Make Lisp)
 #
 _TOP_DIR := $(dir $(lastword $(MAKEFILE_LIST)))
+include $(_TOP_DIR)readline.mk
+include $(_TOP_DIR)util.mk
 include $(_TOP_DIR)types.mk
 include $(_TOP_DIR)reader.mk
 include $(_TOP_DIR)printer.mk
@@ -9,123 +11,132 @@ include $(_TOP_DIR)env.mk
 include $(_TOP_DIR)core.mk
 
 SHELL := /bin/bash
-INTERACTIVE ?= yes
-EVAL_DEBUG ?=
 
 # READ: read and parse input
 define READ
-$(if $(READLINE_EOF)$(__ERROR),,$(call READ_STR,$(if $(1),$(1),$(call READLINE,"user> "))))
+$(READ_STR)
 endef
 
 # EVAL: evaluate the parameter
-define LET
-$(strip \
-  $(word 1,$(2) \
-    $(foreach var,$(call _nth,$(1),0),\
-      $(foreach val,$(call _nth,$(1),1),\
-        $(call ENV_SET,$(2),$($(var)_value),$(call EVAL,$(val),$(2)))\
-        $(foreach left,$(call srest,$(call srest,$(1))),
-          $(if $(call _EQ,0,$(call _count,$(left))),\
-            ,\
-            $(call LET,$(left),$(2))))))))
+
+EVAL_nil     = $1
+EVAL_true    = $1
+EVAL_false   = $1
+EVAL_string  = $1
+EVAL_number  = $1
+EVAL_keyword = $1
+
+EVAL_symbol = $(or $(call ENV_GET,$2,$1),$(call _error,'$(_symbol_val)' not found))
+
+EVAL_vector = $(call vector,$(foreach e,$(_seq_vals),$(call EVAL,$e,$2)))
+
+# First foreach defines a constant, second one loops on keys.
+define EVAL_map
+$(foreach obj,$(call _map_new)\
+,$(obj)$(rem $(foreach k,$(_keys)\
+  ,$(call _assoc!,$(obj),$k,$(call EVAL,$(call _get,$1,$k),$2)))))
 endef
 
-define EVAL_AST
-$(strip \
-  $(and $(EVAL_DEBUG),$(info EVAL_AST: $(call _pr_str,$(1))))\
-  $(if $(call _symbol?,$(1)),\
-    $(foreach key,$($(1)_value),\
-      $(call ENV_GET,$(2),$(key))),\
-  $(if $(call _list?,$(1)),\
-    $(call _smap,EVAL,$(1),$(2)),\
-  $(if $(call _vector?,$(1)),\
-    $(call _smap_vec,EVAL,$(1),$(2)),\
-  $(if $(call _hash_map?,$(1)),\
-    $(foreach new_hmap,$(call __new_obj,hmap),\
-      $(foreach v,$(call __get_obj_values,$(1)),\
-        $(eval $(v:$(1)_%=$(new_hmap)_%) := $(call EVAL,$($(v)),$(2))))\
-      $(eval $(new_hmap)_size := $($(1)_size))\
-      $(new_hmap)),\
-  $(1))))))
+define EVAL_list
+$(if $(_seq_vals)\
+  ,$(foreach a0,$(firstword $(_seq_vals))\
+    ,$(if $(call _symbol?,$(a0))\
+      ,$(foreach dispatch,EVAL_special_$(call _symbol_val,$(a0))\
+        ,$(if $(filter undefined,$(flavor $(dispatch)))\
+          ,$(call EVAL_apply,$(_seq_vals),$2)$(rem \
+          ),$(call $(dispatch),$(call _rest,$(_seq_vals)),$2)))$(rem \
+      ),$(call EVAL_apply,$(_seq_vals),$2)))$(rem \
+  ),$1)
 endef
 
-define EVAL_INVOKE
-$(if $(__ERROR),,\
-  $(and $(EVAL_DEBUG),$(info EVAL_INVOKE: $(call _pr_str,$(1))))
-  $(foreach a0,$(call _nth,$(1),0),\
-    $(if $(call _EQ,def!,$($(a0)_value)),\
-      $(foreach a1,$(call _nth,$(1),1),\
-        $(foreach a2,$(call _nth,$(1),2),\
-          $(foreach res,$(call EVAL,$(a2),$(2)),\
-            $(if $(__ERROR),,\
-              $(if $(call ENV_SET,$(2),$($(a1)_value),$(res)),$(res),))))),\
-    $(if $(call _EQ,let*,$($(a0)_value)),\
-      $(foreach a1,$(call _nth,$(1),1),\
-        $(foreach a2,$(call _nth,$(1),2),\
-          $(call EVAL,$(a2),$(call LET,$(a1),$(call ENV,$(2)))))),\
-    $(if $(call _EQ,do,$($(a0)_value)),\
-      $(call slast,$(call EVAL_AST,$(call srest,$(1)),$(2))),\
-    $(if $(call _EQ,if,$($(a0)_value)),\
-      $(foreach a1,$(call _nth,$(1),1),\
-        $(foreach a2,$(call _nth,$(1),2),\
-          $(foreach cond,$(call EVAL,$(a1),$(2)),\
-            $(if $(or $(call _EQ,$(__nil),$(cond)),$(call _EQ,$(__false),$(cond))),\
-              $(foreach a3,$(call _nth,$(1),3),$(call EVAL,$(a3),$(2))),\
-              $(call EVAL,$(a2),$(2)))))),\
-    $(if $(call _EQ,fn*,$($(a0)_value)),\
-      $(foreach a1,$(call _nth,$(1),1),\
-        $(foreach a2,$(call _nth,$(1),2),\
-          $(call _function,$$(call EVAL,$(a2),$$(call ENV,$(2),$(a1),$$1))))),\
-      $(foreach el,$(call EVAL_AST,$(1),$(2)),\
-        $(and $(EVAL_DEBUG),$(info invoke: $(call _pr_str,$(el))))\
-        $(foreach f,$(call sfirst,$(el)),\
-          $(foreach args,$(call srest,$(el)),\
-            $(call apply,$(f),$(args))))))))))))
+define EVAL_apply
+$(foreach f,$(call EVAL,$(firstword $1),$2)\
+,$(if $(__ERROR)\
+  ,,$(call _apply,$f,$(foreach a,$(_rest),$(call EVAL,$a,$2)))))
 endef
+
+define EVAL_special_def!
+$(foreach res,$(call EVAL,$(lastword $1),$2)\
+  ,$(if $(__ERROR)\
+    ,,$(res)$(call ENV_SET,$2,$(firstword $1),$(res))))
+endef
+
+define EVAL_special_let*
+$(foreach let_env,$(call ENV,$2)\
+,$(call _foreach2,$(call _seq_vals,$(firstword $1))\
+  ,$$(call ENV_SET,$(let_env),$$k,$$(call EVAL,$$v,$(let_env))))$(rem \
+)$(call EVAL,$(lastword $1),$(let_env)))
+endef
+
+EVAL_special_do = $(lastword $(foreach x,$1,$(call EVAL,$x,$2)))
+
+define EVAL_special_if
+$(if $(call truthy?,$(call EVAL,$(firstword $1),$2))\
+  ,$(call EVAL,$(word 2,$1),$2)$(rem \
+),$(if $(word 3,$1)\
+  ,$(call EVAL,$(lastword $1),$2)$(rem \
+),$(__nil)))
+endef
+
+EVAL_special_fn* = $(call _function,$(call _seq_vals,$(firstword $1)),$(lastword $1),$2)
 
 define EVAL
-$(strip $(if $(__ERROR),,\
-  $(and $(EVAL_DEBUG),$(info EVAL: $(call _pr_str,$(1))))\
-  $(if $(call _list?,$(1)),\
-    $(if $(call _EQ,0,$(call _count,$(1))),\
-      $(1),\
-      $(word 1,$(strip $(call EVAL_INVOKE,$(1),$(2)) $(__nil)))),\
-    $(call EVAL_AST,$(1),$(2)))))
+$(if $(__ERROR)\
+,,$(if $(call truthy?,$(call ENV_GET,$(2),$(call _symbol,DEBUG-EVAL)))\
+  ,$(call print,EVAL: $(call _pr_str,$1,yes)    env: $(call env_keys,$2)))$(rem \
+)$(call EVAL_$(_obj_type),$1,$2))
 endef
 
 
 # PRINT:
 define PRINT
-$(if $(__ERROR),Error: $(call _pr_str,$(__ERROR),yes),$(if $(1),$(call _pr_str,$(1),yes)))$(if $(__ERROR),$(eval __ERROR :=),)
+$(if $(__ERROR)\
+  ,Error$(encoded_colon)$(_SP)$(call _pr_str,$(__ERROR),yes)$(rem \
+  ),$(call _pr_str,$1,yes))
 endef
 
 # REPL:
 REPL_ENV := $(call ENV)
-REP = $(call PRINT,$(strip $(call EVAL,$(strip $(call READ,$(1))),$(REPL_ENV))))
-REPL = $(info $(call REP,$(call READLINE,"user> ")))$(if $(READLINE_EOF),,$(call REPL))
+REP = $(call PRINT,$(call EVAL,$(READ),$(REPL_ENV)))
+
+# The foreach does nothing when line is empty (EOF).
+define REPL
+$(foreach line,$(call READLINE,user>$(_SP))\
+,$(eval __ERROR :=)$(rem \
+)$(call print,$(call REP,$(line:ok=)))$(rem \
+)$(call REPL))
+endef
+
+# Read and evaluate for side effects but ignore the result.
+define RE
+$(rem $(call EVAL,$(call READ,$(str_encode_nospace)),$(REPL_ENV)) \
+)$(if $(__ERROR)\
+  ,$(error during startup: $(call str_decode_nospace,$(call _pr_str,$(__ERROR),yes))))
+endef
 
 # core.mk: defined using Make
-_fref = $(eval REPL_ENV := $(call ENV_SET,$(REPL_ENV),$(1),$(call _function,$$(call $(2),$$1))))
-_import_core = $(if $(strip $(1)),$(call _fref,$(word 1,$(1)),$(word 2,$(1)))$(call _import_core,$(wordlist 3,$(words $(1)),$(1))),)
-$(call _import_core,$(core_ns))
-REPL_ENV := $(call ENV_SET,$(REPL_ENV),eval,$(call _function,$$(call EVAL,$$(1),$$(REPL_ENV))))
-_argv := $(call _list)
-REPL_ENV := $(call ENV_SET,$(REPL_ENV),*ARGV*,$(_argv))
+$(foreach f,$(core_ns)\
+  ,$(call ENV_SET,$(REPL_ENV),$(call _symbol,$f),$(call _corefn,$f)))
+
+core_eval = $(call EVAL,$1,$(REPL_ENV))
+$(call ENV_SET,$(REPL_ENV),$(call _symbol,eval),$(call _corefn,core_eval))
+
+$(call ENV_SET,$(REPL_ENV),$(call _symbol,*ARGV*),$(call list,$(foreach arg,\
+  $(call _rest,$(MAKECMDGOALS)),$(call _string,$(call str_encode_nospace,$(arg))))))
 
 # core.mal: defined in terms of the language itself
-$(call do,$(call REP, (def! not (fn* (a) (if a false true))) ))
-$(call do,$(call REP, (def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) "\nnil)"))))) ))
+$(call RE, (def! not (fn* (a) (if a false true))) )
+$(call RE, (def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) "\nnil)"))))) )
 
+ifneq (,$(MAKECMDGOALS))
 # Load and eval any files specified on the command line
-$(if $(MAKECMDGOALS),\
-  $(foreach arg,$(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS)),\
-    $(call do,$(call _conj!,$(_argv),$(call _string,$(arg)))))\
-  $(call do,$(call REP, (load-file "$(word 1,$(MAKECMDGOALS))") )) \
-  $(eval INTERACTIVE :=),)
-
+$(call RE, (load-file "$(firstword $(MAKECMDGOALS))") )
+else
 # repl loop
-$(if $(strip $(INTERACTIVE)),$(call REPL))
+$(REPL)
+endif
 
+# Do not complain that there is no target.
 .PHONY: none $(MAKECMDGOALS)
 none $(MAKECMDGOALS):
 	@true

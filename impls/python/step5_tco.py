@@ -6,36 +6,31 @@ from env import Env
 import core
 
 # read
-def READ(str):
-    return reader.read_str(str)
+READ = reader.read_str
 
 # eval
-def eval_ast(ast, env):
+def EVAL(ast, env):
+  while True:
+
+    dbgeval = env.get(types._symbol('DEBUG-EVAL'), return_nil=True)
+    if dbgeval is not None and dbgeval is not False:
+        print('EVAL: ' + printer._pr_str(ast))
+
     if types._symbol_Q(ast):
         return env.get(ast)
-    elif types._list_Q(ast):
-        return types._list(*map(lambda a: EVAL(a, env), ast))
     elif types._vector_Q(ast):
-        return types._vector(*map(lambda a: EVAL(a, env), ast))
+        return types.Vector(EVAL(a, env) for a in ast)
     elif types._hash_map_Q(ast):
-        keyvals = []
-        for k in ast.keys():
-            keyvals.append(EVAL(k, env))
-            keyvals.append(EVAL(ast[k], env))
-        return types._hash_map(*keyvals)
-    else:
+        return types.Hash_Map((k, EVAL(v, env)) for k, v in ast.items())
+    elif not types._list_Q(ast):
         return ast  # primitive value, return unchanged
-
-def EVAL(ast, env):
-    while True:
-        #print("EVAL %s" % printer._pr_str(ast))
-        if not types._list_Q(ast):
-            return eval_ast(ast, env)
+    else:
 
         # apply list
         if len(ast) == 0: return ast
         a0 = ast[0]
 
+    if types._symbol_Q(a0):
         if "def!" == a0:
             a1, a2 = ast[1], ast[2]
             res = EVAL(a2, env)
@@ -43,39 +38,50 @@ def EVAL(ast, env):
         elif "let*" == a0:
             a1, a2 = ast[1], ast[2]
             let_env = Env(env)
-            for i in range(0, len(a1), 2):
-                let_env.set(a1[i], EVAL(a1[i+1], let_env))
+            for k, v in types.asPairs(a1):
+                let_env.set(k, EVAL(v, let_env))
             ast = a2
             env = let_env
-            # Continue loop (TCO)
+            continue # TCO
         elif "do" == a0:
-            eval_ast(ast[1:-1], env)
+            for i in range(1, len(ast)-1):
+                EVAL(ast[i], env)
             ast = ast[-1]
-            # Continue loop (TCO)
+            continue # TCO
         elif "if" == a0:
             a1, a2 = ast[1], ast[2]
             cond = EVAL(a1, env)
             if cond is None or cond is False:
-                if len(ast) > 3: ast = ast[3]
-                else:            ast = None
+                if len(ast) > 3:
+                    ast = ast[3]
+                    continue # TCO
+                else:
+                    return None
             else:
                 ast = a2
-            # Continue loop (TCO)
+                continue # TCO
         elif "fn*" == a0:
             a1, a2 = ast[1], ast[2]
-            return types._function(EVAL, Env, a2, env, a1)
-        else:
-            el = eval_ast(ast, env)
-            f = el[0]
+            def fn(*args):
+                return EVAL(a2, Env(env, a1, args))
+            fn.__ast__ = a2
+            fn.__gen_env__ = lambda args: Env(env, a1, args)
+            return fn
+
+    f = EVAL(a0, env)
+    if types._function_Q(f):
+            args = ast[1:]
             if hasattr(f, '__ast__'):
                 ast = f.__ast__
-                env = f.__gen_env__(el[1:])
+                env = f.__gen_env__(EVAL(a, env) for a in args)
+                continue # TCO
             else:
-                return f(*el[1:])
+                return f(*(EVAL(a, env) for a in args))
+    else:
+        raise Exception('Can only apply functions')
 
 # print
-def PRINT(exp):
-    return printer._pr_str(exp)
+PRINT = printer._pr_str
 
 # repl
 repl_env = Env()
@@ -92,9 +98,11 @@ REP("(def! not (fn* (a) (if a false true)))")
 while True:
     try:
         line = mal_readline.readline("user> ")
-        if line == None: break
-        if line == "": continue
         print(REP(line))
+    except EOFError:
+        print()
+        break
     except reader.Blank: continue
-    except Exception as e:
+    except Exception:
+        # See tests/step5_tco.mal in this directory.
         print("".join(traceback.format_exception(*sys.exc_info())[0:100]))

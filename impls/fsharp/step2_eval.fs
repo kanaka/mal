@@ -3,21 +3,19 @@ module REPL
     open Node
     open Types
 
-    let rec eval_ast env = function
-        | Symbol(sym) -> Env.get env sym
-        | List(_, lst) -> lst |> List.map (eval env) |> makeList
+    let rec eval env ast =
+        (* Printer.pr_str [ast] |> printfn "EVAL: %s" *)
+        match ast with
+        | Symbol(sym) -> match Env.get env sym with
+                         | Some(value) -> value
+                         | None -> Error.symbolNotFound sym |> raise
         | Vector(_, seg) -> seg |> Seq.map (eval env) |> Array.ofSeq |> Node.ofArray
         | Map(_, map) -> map |> Map.map (fun k v -> eval env v) |> makeMap
-        | node -> node
-
-    and eval env = function
-        | List(_, []) as emptyList -> emptyList
-        | List(_, _) as node ->
-            let resolved = node |> eval_ast env
-            match resolved with
-            | List(_, BuiltInFunc(_, _, f)::rest) -> f rest
+        | List(_, (a0 :: rest)) ->
+            match eval env a0 with
+            | BuiltInFunc(_, _, f) -> List.map (eval env) rest |> f
             | _ -> raise <| Error.errExpectedX "func"
-        | node -> node |> eval_ast env
+        | _ -> ast
 
     let READ input =
         Reader.read_str input

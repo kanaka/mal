@@ -23,22 +23,16 @@ use Exporter 'import';
         }
         bless $data => $class
     }
-    sub find {
+    sub get {
         my ($self, $key) = @_;
-        if (exists $self->{$$key}) { return $self; }
-        elsif ($self->{__outer__}) { return $self->{__outer__}->find($key); }
+        if (exists $self->{$key}) { return $self->{$key}; }
+        elsif ($self->{__outer__}) { return $self->{__outer__}->get($key); }
         else { return undef; }
     }
     sub set {
         my ($self, $key, $value) = @_;
-        $self->{$$key} = $value;
-        return $value
-    }
-    sub get {
-        my ($self, $key) = @_;
-        my $env = $self->find($key);
-        die "'$$key' not found\n" unless $env;
-        return $env->{$$key};
+        $self->{$key} = $value;
+        return $value;
     }
 }
 
@@ -55,9 +49,7 @@ use Exporter 'import';
 #$e3->set('ghi', 1024);
 #print Dumper($e3);
 #
-#print Dumper($e3->find('abc'));
 #print Dumper($e3->get('abc'));
-#print Dumper($e3->find('def'));
 #print Dumper($e3->get('def'));
 
 1;

@@ -15,6 +15,9 @@ LISP ?= sbcl
 ABCL ?= abcl
 MKCL ?= mkcl
 
+BINS = step0_repl step1_read_print step2_eval step3_env step4_if_fn_do \
+       step5_tco step6_file step7_quote step8_macros step9_try stepA_mal
+
 # TODO: In theory cl-launch should be able to build standalone executable using
 # MKCL unfortunately the executable crashes on startup
 STANDALONE_EXE = sbcl clisp ccl ecl cmucl
@@ -28,7 +31,7 @@ $(foreach step, $(call steps), $(call record_lisp,$(patsubst step%,%,$(step)),$(
 
 .PRECIOUS: hist/%_impl
 
-all : stepA_mal
+all : $(BINS)
 
 hist/%_impl: ;
 
@@ -47,7 +50,7 @@ ifeq ($(LISP),clisp)
 endif
 
 ifneq ($(filter $(LISP),$(STANDALONE_EXE)),)
-	cl-launch --wrap 'if [ -z "$$CL_LAUNCH_VERSION" ] ; then cd "$$(dirname $$CL_LAUNCH_FILE)" ; fi' --verbose --lisp $(LISP) --source-registry $(ROOT_DIR) --system $@ --dump '!' -o $@ --entry 'mal:main'
+	sbcl --eval '(load "~/quicklisp/setup.lisp")' --eval '(asdf:initialize-source-registry `(:source-registry (:tree "$(ROOT_DIR)") :inherit-configuration))' --eval '(ql:quickload :uiop)' --eval '(ql:quickload :cl-readline)' --eval '(ql:quickload :genhash)' --eval '(asdf:load-system "$@")' --eval '(asdf:operate :build-op "$@")' --eval "(save-lisp-and-die \"$@\" :executable t :toplevel #'(lambda () (mal:main)))" --quit
 else ifeq ($(LISP),abcl)
 	echo -n '#!/bin/sh\ncd `dirname $$0` ; $(ABCL) --noinform --noinit --nosystem --load run-abcl.lisp -- $@ $$@' > $@
 	chmod +x $@

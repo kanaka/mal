@@ -12,16 +12,6 @@
 (define (READ input)
   (read-str input))
 
-(define (eval-ast ast env)
-  (let ((type (and (mal-object? ast) (mal-type ast)))
-        (value (and (mal-object? ast) (mal-value ast))))
-    (case type
-      ((symbol) (env-get env value))
-      ((list) (mal-list (map (lambda (item) (EVAL item env)) value)))
-      ((vector) (mal-vector (vector-map (lambda (item) (EVAL item env)) value)))
-      ((map) (mal-map (alist-map (lambda (key value) (cons key (EVAL value env))) value)))
-      (else ast))))
-
 (define (starts-with? ast sym)
   (let ((items (mal-value ast)))
     (and (not (null? items))
@@ -48,9 +38,21 @@
     (else         ast)))
 
 (define (EVAL ast env)
-  (let ((type (and (mal-object? ast) (mal-type ast))))
-    (if (not (eq? type 'list))
-        (eval-ast ast env)
+    (let ((dbgeval (env-get env 'DEBUG-EVAL)))
+      (when (and (mal-object? dbgeval)
+                 (not (memq (mal-type dbgeval) '(false nil))))
+        (display (str "EVAL: " (pr-str ast #t) "\n"))))
+    (case (and (mal-object? ast) (mal-type ast))
+      ((symbol)
+       (let ((key (mal-value ast)))
+         (or (env-get env key) (error (str "'" key "' not found")))))
+      ((vector)
+       (mal-vector (vector-map (lambda (item) (EVAL item env))
+                               (mal-value ast))))
+      ((map)
+       (mal-map (alist-map (lambda (key value) (cons key (EVAL value env)))
+                           (mal-value ast))))
+      ((list)
         (let ((items (mal-value ast)))
           (if (null? items)
               ast
@@ -97,7 +99,6 @@
                              (EVAL (list-ref items 3) env)) ; TCO
                          (EVAL (list-ref items 2) env)))) ; TCO
                   ((quote) (cadr items))
-                  ((quasiquoteexpand) (QUASIQUOTE (cadr items)))
                   ((quasiquote) (EVAL (QUASIQUOTE (cadr items)) env)) ; TCO
                   ((fn*)
                    (let* ((binds (->list (mal-value (cadr items))))
@@ -108,15 +109,15 @@
                                   (EVAL body env*)))))
                      (make-func body binds env fn)))
                   (else
-                   (let* ((items (mal-value (eval-ast ast env)))
-                          (op (car items))
-                          (ops (cdr items)))
+                   (let ((op (EVAL a0 env))
+                         (ops (map (lambda (item) (EVAL item env)) (cdr items))))
                      (if (func? op)
                          (let* ((outer (func-env op))
                                 (binds (func-params op))
                                 (env* (make-env outer binds ops)))
                            (EVAL (func-ast op) env*)) ; TCO
-                         (apply op ops)))))))))))
+                         (apply op ops)))))))))
+      (else ast)))
 
 (define (PRINT ast)
   (pr-str ast #t))

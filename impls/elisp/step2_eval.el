@@ -12,32 +12,30 @@
   (read-str input))
 
 (defun EVAL (ast env)
-  (if (and (mal-list-p ast) (mal-value ast))
-      (let* ((ast* (mal-value (eval-ast ast env)))
-             (fn (car ast*))
-             (args (cdr ast*)))
-        (apply fn args))
-    (eval-ast ast env)))
-
-(defun eval-ast (ast env)
-  (let ((value (mal-value ast)))
-    (cl-case (mal-type ast)
-     (symbol
-      (let ((definition (gethash value env)))
-        (or definition (error "Definition not found"))))
+  ;; (println "EVAL: %s\n" (PRINT ast))
+  (cl-case (mal-type ast)
      (list
-      (mal-list (mapcar (lambda (item) (EVAL item env)) value)))
+      (let ((a (mal-value ast)))
+      (if a
+       (let* ((fn (EVAL (car a) env))
+               (args (mapcar (lambda (x) (EVAL x env)) (cdr a))))
+        (apply fn args))
+       ast)))
+     (symbol
+      (let ((definition (gethash (mal-value ast) env)))
+        (or definition (error "Definition not found"))))
      (vector
-      (mal-vector (vconcat (mapcar (lambda (item) (EVAL item env)) value))))
+      (mal-vector (vconcat (mapcar (lambda (item) (EVAL item env))
+                                   (mal-value ast)))))
      (map
-      (let ((map (copy-hash-table value)))
+      (let ((map (copy-hash-table (mal-value ast))))
         (maphash (lambda (key val)
                    (puthash key (EVAL val env) map))
                  map)
         (mal-map map)))
      (t
       ;; return as is
-      ast))))
+      ast)))
 
 (defun PRINT (input)
   (pr-str input t))

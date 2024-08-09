@@ -4,8 +4,6 @@ import java.io.IOException;
 
 import java.util.List;
 import java.util.Map;
-import java.util.HashMap;
-import java.util.Iterator;
 import mal.types.*;
 import mal.readline;
 import mal.reader;
@@ -19,39 +17,37 @@ public class step3_env {
     }
 
     // eval
-    public static MalVal eval_ast(MalVal ast, Env env) throws MalThrowable {
-        if (ast instanceof MalSymbol) {
-            return env.get((MalSymbol)ast);
-        } else if (ast instanceof MalList) {
-            MalList old_lst = (MalList)ast;
-            MalList new_lst = ast.list_Q() ? new MalList()
-                                           : (MalList)new MalVector();
+    public static MalVal EVAL(MalVal orig_ast, Env env) throws MalThrowable {
+        final MalVal dbgeval = env.get("DEBUG-EVAL");
+        if (dbgeval != null && dbgeval != types.Nil && dbgeval != types.False)
+            System.out.println("EVAL: " + printer._pr_str(orig_ast, true));
+
+        if (orig_ast instanceof MalSymbol) {
+            final String key = ((MalSymbol)orig_ast).getName();
+            final MalVal val = env.get(key);
+            if (val == null)
+                throw new MalException("'" + key + "' not found");
+            return val;
+        } else if (orig_ast instanceof MalVector) {
+            final MalList old_lst = (MalList)orig_ast;
+            final MalVector new_lst = new MalVector();
             for (MalVal mv : (List<MalVal>)old_lst.value) {
                 new_lst.conj_BANG(EVAL(mv, env));
             }
             return new_lst;
-        } else if (ast instanceof MalHashMap) {
+        } else if (orig_ast instanceof MalHashMap) {
+            final Map<String, MalVal> old_hm = ((MalHashMap)orig_ast).value;
             MalHashMap new_hm = new MalHashMap();
-            Iterator it = ((MalHashMap)ast).value.entrySet().iterator();
-            while (it.hasNext()) {
-                Map.Entry entry = (Map.Entry)it.next();
+            for (Map.Entry<String, MalVal> entry : old_hm.entrySet()) {
                 new_hm.value.put(entry.getKey(), EVAL((MalVal)entry.getValue(), env));
             }
             return new_hm;
-        } else {
-            return ast;
+        } else if (!orig_ast.list_Q()) {
+            return orig_ast;
         }
-    }
-
-    public static MalVal EVAL(MalVal orig_ast, Env env) throws MalThrowable {
+        final MalList ast = (MalList)orig_ast;
         MalVal a0, a1,a2, res;
-        //System.out.println("EVAL: " + printer._pr_str(orig_ast, true));
-        if (!orig_ast.list_Q()) {
-            return eval_ast(orig_ast, env);
-        }
-
         // apply list
-        MalList ast = (MalList)orig_ast;
         if (ast.size() == 0) { return ast; }
         a0 = ast.nth(0);
         if (!(a0 instanceof MalSymbol)) {
@@ -79,9 +75,11 @@ public class step3_env {
             }
             return EVAL(a2, let_env);
         default:
-            MalVal args = eval_ast(ast.rest(), env);
-            ILambda f = (ILambda)env.get((MalSymbol)a0);
-            return f.apply((MalList)args);
+            final ILambda f = (ILambda)EVAL(a0, env);
+            final MalList args = new MalList();
+            for (int i=1; i<ast.size(); i++)
+                args.conj_BANG(EVAL(ast.nth(i), env));
+            return f.apply(args);
         }
     }
 
@@ -143,15 +141,12 @@ public class step3_env {
             try {
                 System.out.println(PRINT(RE(repl_env, line)));
             } catch (MalContinue e) {
-                continue;
             } catch (MalException e) {
                 System.out.println("Error: " + printer._pr_str(e.getValue(), false));
             } catch (MalThrowable t) {
                 System.out.println("Error: " + t.getMessage());
-                continue;
             } catch (Throwable t) {
                 System.out.println("Uncaught " + t + ": " + t.getMessage());
-                continue;
             }
         }
     }

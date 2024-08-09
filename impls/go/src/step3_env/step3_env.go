@@ -7,11 +7,11 @@ import (
 )
 
 import (
-	. "env"
-	"printer"
-	"reader"
-	"readline"
-	. "types"
+	. "mal/src/env"
+	"mal/src/printer"
+	"mal/src/reader"
+	"mal/src/readline"
+	. "mal/src/types"
 )
 
 // read
@@ -48,18 +48,11 @@ func eval_ast(ast MalType, env EnvType) (MalType, error) {
 		m := ast.(HashMap)
 		new_hm := HashMap{map[string]MalType{}, nil}
 		for k, v := range m.Val {
-			ke, e1 := EVAL(k, env)
-			if e1 != nil {
-				return nil, e1
-			}
-			if _, ok := ke.(string); !ok {
-				return nil, errors.New("non string hash-map key")
-			}
 			kv, e2 := EVAL(v, env)
 			if e2 != nil {
 				return nil, e2
 			}
-			new_hm.Val[ke.(string)] = kv
+			new_hm.Val[k] = kv
 		}
 		return new_hm, nil
 	} else {

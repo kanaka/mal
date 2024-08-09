@@ -9,18 +9,18 @@ sub read ($str) {
   return read_str($str);
 }
 
-sub eval_ast ($ast, $env) {
-  given $ast {
-    when MalSymbol  { $env.get($ast.val) || die X::MalNotFound.new(name => $ast.val) }
-    when MalList    { MalList([$ast.map({ eval($_, $env) })]) }
-    when MalVector  { MalVector([$ast.map({ eval($_, $env) })]) }
-    when MalHashMap { MalHashMap($ast.kv.map({ $^a => eval($^b, $env) }).Hash) }
-    default         { $ast // $NIL }
-  }
-}
-
 sub eval ($ast, $env) {
-  return eval_ast($ast, $env) if $ast !~~ MalList;
+
+  say "EVAL: " ~ print($ast) unless $env.get('DEBUG-EVAL') ~~ 0|MalNil|MalFalse;
+
+  given $ast {
+    when MalSymbol  { return $env.get($ast.val) || die X::MalNotFound.new(name => $ast.val) }
+    when MalList    { }
+    when MalVector  { return MalVector([$ast.map({ eval($_, $env) })]) }
+    when MalHashMap { return MalHashMap($ast.kv.map({ $^a => eval($^b, $env) }).Hash) }
+    default         { return $ast // $NIL }
+  }
+
   return $ast if !$ast.elems;
 
   my ($a0, $a1, $a2, $a3) = $ast.val;
@@ -36,8 +36,8 @@ sub eval ($ast, $env) {
       return eval($a2, $new_env);
     }
     default {
-      my ($func, @args) = eval_ast($ast, $env).val;
-      return $func.apply(|@args);
+      my ($func, @args) = $ast.map({ eval($_, $env) });
+      return $func.apply(@args);
     }
   }
 }

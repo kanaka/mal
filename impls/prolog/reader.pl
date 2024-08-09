@@ -63,3 +63,4 @@ symcode(0'>).
 symcode(0'?).
 symcode(0'_).
 symcode(0'|).
+symcode(0':).

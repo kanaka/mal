@@ -3,7 +3,6 @@ program Mal;
 {$H+} // Use AnsiString
 
 Uses sysutils,
-     CMem,
      fgl,
      math,
      mal_readline,
@@ -28,48 +27,6 @@ begin
 end;
 
 // eval
-// Forward declation since eval_ast call it
-function EVAL(Ast: TMal; Env: TEnv) : TMal; forward;
-
-function eval_ast(Ast: TMal; Env: TEnv) : TMal;
-var
-    OldArr, NewArr   : TMalArray;
-    OldDict, NewDict : TMalDict;
-    I                : longint;
-begin
-    if Ast is TMalSymbol then
-    begin
-        eval_ast := Env.Get((Ast as TMalSymbol));
-    end
-    else if Ast is TMalList then
-    begin
-        OldArr := (Ast as TMalList).Val;
-        SetLength(NewArr, Length(OldArr));
-        for I := 0 to Length(OldArr)-1 do
-        begin
-            NewArr[I] := EVAL(OldArr[I], Env);
-        end;
-        if Ast is TMalVector then
-            eval_ast := TMalVector.Create(NewArr)
-        else
-            eval_ast := TMalList.Create(NewArr);
-    end
-    else if Ast is TMalHashMap then
-    begin
-        OldDict := (Ast as TMalHashMap).Val;
-        NewDict := TMalDict.Create;
-        I := 0;
-        while I < OldDict.Count do
-        begin
-            NewDict[OldDict.Keys[I]] := EVAL(OldDict[OldDict.Keys[I]], Env);
-            I := I + 1;
-        end;
-        eval_ast := TMalHashMap.Create(NewDict);
-    end
-    else
-        eval_ast := Ast;
-end;
-
 function EVAL(Ast: TMal; Env: TEnv) : TMal;
 var
     Lst    : TMalList;
@@ -81,11 +38,41 @@ var
     I      : longint;
     Fn     : TMalFunc;
     Args   : TMalArray;
+    OldDict, NewDict :  TMalDict;
 begin
   while true do
   begin
-    if Ast.ClassType <> TMalList then
-        Exit(eval_ast(Ast, Env));
+
+    Cond := Env.Get('DEBUG-EVAL');
+    if (Cond <> nil) and not (Cond is TMalNil) and not (Cond is TMalFalse) then
+       WriteLn('EVAL: ' + pr_str(Ast, True));
+
+    if Ast is TMalSymbol then
+    begin
+        A0Sym := (Ast as TMalSymbol).Val;
+        Cond := Env.Get(A0Sym);
+        if Cond = nil then
+            raise Exception.Create('''' + A0Sym+ ''' not found');
+        Exit(Cond);
+    end
+    else if Ast is TMalVector then
+    begin
+        Arr := (Ast as TMalVector).Val;
+        SetLength(Arr1, Length(Arr));
+        for I := 0 to Length(Arr)-1 do
+            Arr1[I]:= EVAL(Arr[I], Env);
+        Exit(TMalVector.Create(Arr1));
+    end
+    else if Ast is TMalHashMap then
+    begin
+        OldDict := (Ast as TMalHashMap).Val;
+        NewDict := TMalDict.Create;
+        for I := 0 to OldDict.Count-1 do
+            NewDict[OldDict.Keys[I]]:= EVAL(OldDict[OldDict.Keys[I]], Env);
+        Exit(TMalHashMap.Create(NewDict));
+    end
+    else if not (Ast is TMalList) then
+        Exit(Ast);
 
     // Apply list
     Lst := (Ast as TMalList);
@@ -115,7 +102,8 @@ begin
         end;
     'do':
         begin
-            eval_ast(TMalList.Create(copy(Arr,1, Length(Arr)-2)), Env);
+            for I := 1 to Length(Arr) - 2 do
+                 Cond := EVAL(Arr[I], Env);
             Ast := Arr[Length(Arr)-1]; // TCO
         end;
     'if':
@@ -135,14 +123,13 @@ begin
         end;
     else
         begin
-            Arr := (eval_ast(Ast, Env) as TMalList).Val;
-            if Arr[0] is TMalFunc then
+            Cond := EVAL(Arr[0], Env);
+            Args := copy(Arr, 1, Length(Arr) - 1);
+            if Cond is TMalFunc then
             begin
-                Fn := Arr[0] as TMalFunc;
-                if Length(Arr) < 2 then
-                    SetLength(Args, 0)
-                else
-                    Args := copy(Arr, 1, Length(Arr)-1);
+                Fn := Cond as TMalFunc;
+                for I := 0 to Length(Args) - 1 do
+                    Args[I]:= EVAL(Args[I], Env);
                 if Fn.Ast = nil then
                     Exit(Fn.Val(Args))
                 else

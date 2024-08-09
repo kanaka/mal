@@ -1,4 +1,3 @@
-with Ada.Environment_Variables;
 with Ada.Text_IO.Unbounded_IO;
 
 with Envs;
@@ -13,7 +12,7 @@ with Types.Strings;
 
 procedure Step3_Env is
 
-   Dbgeval : constant Boolean := Ada.Environment_Variables.Exists ("dbgeval");
+   Dbgeval : constant Types.String_Ptr := Types.Strings.Alloc ("DEBUG-EVAL");
 
    use type Types.T;
    use all type Types.Kind_Type;
@@ -45,8 +44,7 @@ procedure Step3_Env is
    is
       First          : Types.T;
    begin
-      if Dbgeval then
-         Ada.Text_IO.New_Line;
+      if Types.To_Boolean (Env.all.Get_Or_Nil (Dbgeval)) then
          Ada.Text_IO.Put ("EVAL: ");
          Print (Ast);
          Envs.Dump_Stack (Env.all);
@@ -209,6 +207,7 @@ begin
       --  Collect garbage.
       Err.Data := Types.Nil;
       Repl.all.Keep;
+      Dbgeval.Keep;
       Garbage_Collected.Clean;
    end loop;
    Ada.Text_IO.New_Line;

@@ -26,23 +26,13 @@ namespace Mal {
                 }
             }
             
-            public Env find(MalSymbol key) {
-                if (data.ContainsKey(key.getName())) {
-                    return this;
+            public MalVal get(string key) {
+                if (data.ContainsKey(key)) {
+                    return data[key];
                 } else if (outer != null) {
-                    return outer.find(key);
+                    return outer.get(key);
                 } else {
                     return null;
-                }
-            }
-
-            public MalVal get(MalSymbol key) {
-                Env e = find(key);
-                if (e == null) {
-                    throw new Mal.types.MalException(
-                            "'" + key.getName() + "' not found");
-                } else {
-                    return e.data[key.getName()];
                 }
             }
 

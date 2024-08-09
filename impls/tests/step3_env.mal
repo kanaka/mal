@@ -31,7 +31,7 @@ MYNUM
 
 ;; Check env lookup non-fatal error
 (abc 1 2 3)
-;/.*\'?abc\'? not found.*
+;/.*'?abc'? not found.*
 ;; Check that error aborts def!
 (def! w 123)
 (def! w (abc))
@@ -85,3 +85,23 @@ y
 ;; Check that last assignment takes priority
 (let* (x 2 x 3) x)
 ;=>3
+
+;; Check DEBUG-EVAL
+(let* (DEBUG-EVAL false) (- 3 1))
+;=>2
+(let* (DEBUG-EVAL nil) (- 3 1))
+;=>2
+;;; Some implementations avoid a recursive EVAL when the first element
+;;; is a symbol or when map(EVAL, list) encounters a number.
+(let* (a 3 b 2 DEBUG-EVAL true) (- a b))
+;/EVAL: \(- a b\).*\n1
+;; Check the readably pretty-printing option
+(let* (DEBUG-EVAL 1) "a")
+;/EVAL: "a".*\n"a"
+;; Usually false values
+(let* (a 3 DEBUG-EVAL ()) a)
+;/EVAL: a.*\n3
+(let* (a 3 DEBUG-EVAL 0) a)
+;/EVAL: a.*\n3
+(let* (a 3 DEBUG-EVAL "") a)
+;/EVAL: a.*\n3

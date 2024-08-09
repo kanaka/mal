@@ -10,36 +10,32 @@
   (reader/read-string strng))
 
 ;; eval
-(declare EVAL)
-(defn eval-ast [ast env]
+(defn EVAL [ast env]
+
+  ;; (println "EVAL:" (printer/pr-str ast) (keys @env))
+  ;; (flush)
+
   (cond
     (symbol? ast) (or (get env ast)
                       (throw (#?(:clj Error.
                                  :cljs js/Error.) (str ast " not found"))))
 
-    (seq? ast)    (doall (map #(EVAL % env) ast))
+    (vector? ast) (vec (map #(EVAL % env) ast))
 
-    (vector? ast) (vec (doall (map #(EVAL % env) ast)))
+    (map? ast) (apply hash-map (map #(EVAL % env) (mapcat identity ast)))
 
-    (map? ast)    (apply hash-map (doall (map #(EVAL % env)
-                                              (mapcat identity ast))))
-
-    :else         ast))
-
-(defn EVAL [ast env]
-    ;; indented to match later steps
-    ;;(prn "EVAL" ast (keys @env)) (flush)
-    (if (not (seq? ast))
-      (eval-ast ast env)
-
+    (seq? ast)
       ;; apply list
             ;; indented to match later steps
             (if (empty? ast)
               ast
-              (let [el (eval-ast ast env)
+              (let [el (map #(EVAL % env) ast)
                     f (first el)
                     args (rest el)]
-                (apply f args)))))
+                (apply f args)))
+
+    :else ;; not a list, map, symbol or vector
+    ast))
 
 ;; print
 (defn PRINT [exp] (printer/pr-str exp))

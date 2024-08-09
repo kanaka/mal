@@ -1,4 +1,4 @@
-FROM ubuntu:vivid
+FROM ubuntu:xenial
 MAINTAINER Joel Martin <github@martintribe.org>
 
 ##########################################################
@@ -22,7 +22,7 @@ WORKDIR /mal
 ##########################################################
 
 # Java and Zip
-RUN apt-get -y install openjdk-7-jdk
+RUN apt-get -y install openjdk-8-jdk
 RUN apt-get -y install unzip
 
 RUN curl -O -J -L https://github.com/JetBrains/kotlin/releases/download/v1.0.6/kotlin-compiler-1.0.6.zip

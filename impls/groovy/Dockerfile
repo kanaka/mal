@@ -1,4 +1,4 @@
-FROM ubuntu:vivid
+FROM ubuntu:20.04
 MAINTAINER Joel Martin <github@martintribe.org>
 
 ##########################################################
@@ -9,10 +9,8 @@ MAINTAINER Joel Martin <github@martintribe.org>
 RUN apt-get -y update
 
 # Required for running tests
-RUN apt-get -y install make python
-
-# Some typical implementation and test requirements
-RUN apt-get -y install curl libreadline-dev libedit-dev
+RUN apt-get -y install make python3
+RUN ln -fs /usr/bin/python3 /usr/local/bin/python
 
 RUN mkdir -p /mal
 WORKDIR /mal
@@ -20,11 +18,5 @@ WORKDIR /mal
 ##########################################################
 # Specific implementation requirements
 ##########################################################
-
-# Java and Groovy
-RUN apt-get -y install openjdk-7-jdk
-#RUN apt-get -y install maven2
-#ENV MAVEN_OPTS -Duser.home=/mal
-RUN apt-get -y install ant
 
 RUN apt-get -y install groovy

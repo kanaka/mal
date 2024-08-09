@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "dependencies": {
-    "ffi-napi": "2.4.x",
+    "ffi-napi": "4.0.3",
     "prelude-ls": "^1.1.2"
   },
   "devDependencies": {

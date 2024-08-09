@@ -24,21 +24,6 @@ def READ(x: str) -> MalExpression:
     return reader.read(x)
 
 
-def eval_ast(ast: MalExpression, env: Env) -> MalExpression:
-    if isinstance(ast, MalSymbol):
-        return env.get(ast)
-    if isinstance(ast, MalList):
-        return MalList([EVAL(x, env) for x in ast.native()])
-    if isinstance(ast, MalVector):
-        return MalVector([EVAL(x, env) for x in ast.native()])
-    if isinstance(ast, MalHash_map):
-        new_dict = {}  # type: Dict[str, MalExpression]
-        for key in ast.native():
-            new_dict[key] = EVAL(ast.native()[key], env)
-        return MalHash_map(new_dict)
-    return ast
-
-
 def qq_loop(acc: MalList, elt: MalExpression) -> MalList:
     if isinstance(elt, MalList):
         lst = elt.native()
@@ -69,17 +54,31 @@ def quasiquote(ast: MalExpression) -> MalExpression:
 
 def EVAL(ast: MalExpression, env: Env) -> MalExpression:
     while True:
-        ast = macroexpand(ast, env)
+        dbgeval = env.get("DEBUG-EVAL")
+        if (dbgeval is not None
+            and not isinstance(dbgeval, MalNil)
+            and (not isinstance(dbgeval, MalBoolean) or dbgeval.native())):
+            print("EVAL: " + str(ast))
         ast_native = ast.native()
+        if isinstance(ast, MalSymbol):
+            key = str(ast)
+            val = env.get(key)
+            if val is None: raise MalUnknownSymbolException(key)
+            return val
+        if isinstance(ast, MalVector):
+            return MalVector([EVAL(x, env) for x in ast_native])
+        if isinstance(ast, MalHash_map):
+            new_dict = {}  # type: Dict[str, MalExpression]
+            for key in ast_native:
+                new_dict[key] = EVAL(ast_native[key], env)
+            return MalHash_map(new_dict)
         if not isinstance(ast, MalList):
-            return eval_ast(ast, env)
+            return ast
         elif len(ast_native) == 0:
             return ast
 
         first_str = str(ast_native[0])
-        if first_str == "macroexpand":
-            return macroexpand(ast.native()[1], env)
-        elif first_str == "def!":
+        if first_str == "def!":
             name: str = str(ast_native[1])
             value: MalExpression = EVAL(ast_native[2], env)
             return env.set(name, value)
@@ -140,8 +139,6 @@ def EVAL(ast: MalExpression, env: Env) -> MalExpression:
                 if isinstance(ast_native[1], MalVector)
                 else ast_native[1]
             )
-        elif first_str == "quasiquoteexpand":
-            return quasiquote(ast_native[1])
         elif first_str == "quasiquote":
             ast = quasiquote(ast_native[1])
             continue
@@ -165,16 +162,18 @@ def EVAL(ast: MalExpression, env: Env) -> MalExpression:
                 ast = catch_block.native()[2]
                 continue
         else:
-            evaled_ast = eval_ast(ast, env)
-            f = evaled_ast.native()[0]
-            args = evaled_ast.native()[1:]
+            f = EVAL(ast_native[0], env)
+            if isinstance(f, (MalFunctionCompiled, MalFunctionRaw)) and f.is_macro():
+                ast = f.call(ast_native[1:])
+                continue
+            args = [EVAL(ast_native[i], env) for i in range(1, len(ast_native))]
             if isinstance(f, MalFunctionRaw):
                 ast = f.ast()
 
                 env = Env(
                     outer=f.env(),
                     binds=f.params().native(),
-                    exprs=evaled_ast.native()[1:],
+                    exprs=args,
                 )
                 continue
             elif isinstance(f, MalFunctionCompiled):
@@ -226,31 +225,6 @@ def init_repl_env() -> Env:
     return repl_env
 
 
-def is_macro_call(ast: MalExpression, env: Env) -> bool:
-    try:
-        x = env.get(ast.native()[0].native())
-        try:
-            assert isinstance(x, MalFunctionRaw) or isinstance(x, MalFunctionCompiled)
-        except AssertionError:
-            return False
-        return x.is_macro()  # type: ignore
-    except (TypeError, MalUnknownSymbolException, AttributeError, IndexError, KeyError):
-        return False
-
-
-def macroexpand(ast: MalExpression, env: Env) -> MalExpression:
-    while True:
-        if not is_macro_call(ast, env):
-            return ast
-        assert isinstance(ast, MalList)
-        macro_func = env.get(ast.native()[0].native())
-        assert isinstance(macro_func, MalFunctionRaw) or isinstance(
-            macro_func, MalFunctionCompiled
-        )
-        ast = macro_func.call(ast.native()[1:])
-        continue
-
-
 def rep_handling_exceptions(line: str, repl_env: Env) -> str:
     try:
         return rep(line, repl_env)
@@ -267,7 +241,7 @@ if __name__ == "__main__":
 
     if len(sys.argv) >= 2:
         file_str = sys.argv[1]
-        print(rep_handling_exceptions('(load-file "' + file_str + '")', repl_env))
+        rep_handling_exceptions('(load-file "' + file_str + '")', repl_env)
         exit(0)
 
     while not eof:

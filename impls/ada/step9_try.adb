@@ -50,57 +50,13 @@ procedure Step9_Try is
       Fn_Body := Car (Deref_List (Cdr (Args)).all);
       Res := Eval (Fn_Body, Env);
       Lambda_P := Deref_Lambda (Res);
-      Lambda_P.Set_Is_Macro (True);
+      Res := New_Lambda_Mal_Type (Params => Lambda_P.all.Get_Params,
+                                  Expr   => Lambda_P.all.Get_Expr,
+                                  Env    => Lambda_P.all.Get_Env);
+      Deref_Lambda (Res).Set_Is_Macro (True);
       Envs.Set (Env, Deref_Sym (Name).Get_Sym, Res);
       return Res;
    end Def_Macro;
-
-
-   function Macro_Expand (Ast : Mal_Handle; Env : Envs.Env_Handle)
-   return Mal_Handle is
-      Res : Mal_Handle;
-      E : Envs.Env_Handle;
-      LMT : List_Mal_Type;
-      LP : Lambda_Ptr;
-   begin
-
-      Res := Ast;
-      E := Env;
-
-      loop
-
-         if Deref (Res).Sym_Type /= List then
-            exit;
-         end if;
-
-         LMT := Deref_List (Res).all;
-
-         -- Get the macro in the list from the env
-         -- or return null if not applicable.
-         LP := Get_Macro (Res, E);
-
-      exit when LP = null or else not LP.Get_Is_Macro;
-
-	  declare
-	     Fn_List : Mal_Handle := Cdr (LMT);
-	     Params : List_Mal_Type;
-	  begin
-	     E := Envs.New_Env (E);
-
-	     Params := Deref_List (LP.Get_Params).all;
-	     if Envs.Bind (E, Params, Deref_List (Fn_List).all) then
-
-	        Res := Eval (LP.Get_Expr, E);
-
-             end if;
-
-	  end;
-
-      end loop;
-
-      return Res;
-
-   end Macro_Expand;
 
 
    function Eval_As_Boolean (MH : Mal_Handle) return Boolean is
@@ -135,33 +91,8 @@ procedure Step9_Try is
       end Call_Eval;
 
    begin
-
-      case Deref (Ast).Sym_Type is
-
-         when Sym =>
-
-            declare
-               Sym : Mal_String := Deref_Sym (Ast).Get_Sym;
-            begin
-               -- if keyword, return it. Otherwise look it up in the environment.
-               if Sym(1) = ':' then
-                  return Ast;
-               else
-                  return Envs.Get (Env, Sym);
-               end if;
-            exception
-               when Envs.Not_Found =>
-                  raise Envs.Not_Found with ("'" &  Sym & "' not found");
-            end;
-
-         when List =>
-
-            return Map (Call_Eval'Unrestricted_Access, Deref_List_Class (Ast).all);
-
-         when others => return Ast;
-
-      end case;
-
+      pragma Assert (Deref (Ast).Sym_Type = List); -- list, map or vector
+      return Map (Call_Eval'Unrestricted_Access, Deref_List_Class (Ast).all);
    end Eval_Ast;
 
    function Starts_With (Ast : Mal_Handle; Symbol : String) return Boolean is
@@ -280,18 +211,34 @@ procedure Step9_Try is
 
       <<Tail_Call_Opt>>
 
-      if Debug then
-         Ada.Text_IO.Put_Line ("Evaling " & Deref (Param).To_String);
-      end if;
+      begin
+         if Eval_As_Boolean (Envs.Get (Env, "DEBUG-EVAL")) then
+            Ada.Text_IO.Put_Line ("EVAL: " & Deref (Param).To_String);
+         end if;
+      exception
+         when Envs.Not_Found => null;
+      end;
 
-      Param := Macro_Expand (Param, Env);
-
-      if Debug then
-         Ada.Text_IO.Put_Line ("After expansion " & Deref (Param).To_String);
-      end if;
-
-      if Deref (Param).Sym_Type = List and then
-	Deref_List (Param).Get_List_Type = List_List then
+      case Deref (Param).Sym_Type is
+         when Sym =>
+            declare
+               Sym : Mal_String := Deref_Sym (Param).Get_Sym;
+            begin
+               -- if keyword, return it. Otherwise look it up in the environment.
+               if Sym(1) = ':' then
+                  return Param;
+               else
+                  return Envs.Get (Env, Sym);
+               end if;
+            exception
+               when Envs.Not_Found =>
+                  raise Envs.Not_Found with ("'" &  Sym & "' not found");
+            end;
+         when List =>
+         case Deref_List (Param).Get_List_Type is
+         when Hashed_List | Vector_List =>
+            return Eval_Ast (Param, Env);
+         when List_List =>
 
          Param_List := Deref_List (Param).all;
 
@@ -310,9 +257,6 @@ procedure Step9_Try is
          elsif Deref (First_Param).Sym_Type = Sym and then
                Deref_Sym (First_Param).Get_Sym = "defmacro!" then
             return Def_Macro (Rest_List, Env);
-         elsif Deref (First_Param).Sym_Type = Sym and then
-               Deref_Sym (First_Param).Get_Sym = "macroexpand" then
-            return Macro_Expand (Car (Rest_List), Env);
          elsif Deref (First_Param).Sym_Type = Sym and then
                Deref_Sym (First_Param).Get_Sym = "let*" then
             declare
@@ -408,11 +352,6 @@ procedure Step9_Try is
             return Car (Rest_List);
 
          elsif Deref (First_Param).Sym_Type = Sym and then
-               Deref_Sym (First_Param).Get_Sym = "quasiquoteexpand" then
-
-            return Quasi_Quote_Processing (Car (Rest_List));
-
-         elsif Deref (First_Param).Sym_Type = Sym and then
                Deref_Sym (First_Param).Get_Sym = "quasiquote" then
 
             Param := Quasi_Quote_Processing (Car (Rest_List));
@@ -448,18 +387,10 @@ procedure Step9_Try is
          else
 
             -- The APPLY section.
-            declare
-               Evaled_H : Mal_Handle;
-            begin
-               Evaled_H := Eval_Ast (Param, Env);
-
-               Param_List := Deref_List (Evaled_H).all;
-
-               First_Param := Car (Param_List);
-               Rest_Params := Cdr (Param_List);
-               Rest_List := Deref_List (Rest_Params).all;
+               First_Param  := Eval (First_Param, Env);
 
                if Deref (First_Param).Sym_Type = Func then
+                  Rest_Params := Eval_Ast (Rest_Params, Env);
                   return Call_Func (Deref_Func (First_Param).all, Rest_Params);
                elsif Deref (First_Param).Sym_Type = Lambda then
                   declare
@@ -472,6 +403,16 @@ procedure Step9_Try is
                   begin
 
                      L := Deref_Lambda (First_Param).all;
+
+                     if L.Get_Is_Macro then
+                        --  Apply to *unevaluated* arguments
+                        Param := L.Apply (Rest_Params);
+                        --  then EVAL the result.
+                        goto Tail_Call_Opt;
+                     end if;
+
+                     Rest_Params := Eval_Ast (Rest_Params, Env);
+
                      E := Envs.New_Env (L.Get_Env);
 
                      Param_Names := Deref_List (L.Get_Params).all;
@@ -495,16 +436,12 @@ procedure Step9_Try is
                   raise Runtime_Exception with "Deref called on non-Func/Lambda";
                end if;
 
-            end;
-
          end if;
 
-      else -- not a List_List
-
-         return Eval_Ast (Param, Env);
-
-      end if;
-
+         end case;
+      when others => -- not a list, map, symbol or vector
+         return Param;
+      end case;
    end Eval;
 
 

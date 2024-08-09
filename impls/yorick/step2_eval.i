@@ -10,12 +10,6 @@ func READ(str)
 
 func eval_ast(ast, env)
 {
-  type = structof(ast)
-  if (type == MalSymbol) {
-    val = h_get(env, ast.val)
-    if (is_void(val)) return MalError(message=("'" + ast.val + "' not found"))
-    return val
-  } else if (type == MalList) {
     seq = *(ast.val)
     if (numberof(seq) == 0) return ast
     res = array(pointer, numberof(seq))
@@ -25,6 +19,19 @@ func eval_ast(ast, env)
       res(i) = &e
     }
     return MalList(val=&res)
+}
+
+func EVAL(ast, env)
+{
+  // write, format="EVAL: %s\n", pr_str(ast, 1)
+  // Process non-list types.
+  type = structof(ast)
+  if (type == MalSymbol) {
+    val = h_get(env, ast.val)
+    if (is_void(val)) return MalError(message=("'" + ast.val + "' not found"))
+    return val
+  } else if (type == MalList) {
+    // Proceed after this switch.
   } else if (type == MalVector) {
     seq = *(ast.val)
     if (numberof(seq) == 0) return ast
@@ -40,20 +47,13 @@ func eval_ast(ast, env)
     if (numberof(*h.keys) == 0) return ast
     res = hash_new()
     for (i = 1; i <= numberof(*h.keys); ++i) {
-      new_key = EVAL(hashmap_key_to_obj((*h.keys)(i)), env)
-      if (structof(new_key) == MalError) return new_key
       new_val = EVAL(*((*h.vals)(i)), env)
       if (structof(new_val) == MalError) return new_val
-      hash_set, res, hashmap_obj_to_key(new_key), new_val
+      hash_set, res, (*h.keys)(i), new_val
     }
     return MalHashmap(val=&res)
   } else return ast
-}
-
-func EVAL(ast, env)
-{
-  if (structof(ast) == MalError) return ast
-  if (structof(ast) != MalList) return eval_ast(ast, env)
+  // The else branch includes MalError. Now ast is a list.
   if (numberof(*ast.val) == 0) return ast
   el = eval_ast(ast, env)
   if (structof(el) == MalError) return el

@@ -13,292 +13,189 @@ include $(_TOP_DIR)reader.mk
 include $(_TOP_DIR)printer.mk
 
 
-# Errors/Exceptions
-throw = $(eval __ERROR := $(1))
-
-
 # General functions
 
-# Return the type of the object (or "make" if it's not a object
-obj_type = $(call _string,$(call _obj_type,$(1)))
-
-equal? = $(if $(call _equal?,$(word 1,$(1)),$(word 2,$(1))),$(__true),$(__false))
+$(encoded_equal) = $(if $(call _equal?,$(firstword $1),$(lastword $1)),$(__true),$(__false))
 
 
 # Scalar functions
-nil? = $(if $(call _nil?,$(1)),$(__true),$(__false))
-true? = $(if $(call _true?,$(1)),$(__true),$(__false))
-false? = $(if $(call _false?,$(1)),$(__true),$(__false))
+nil? = $(if $(_nil?),$(__true),$(__false))
+true? = $(if $(_true?),$(__true),$(__false))
+false? = $(if $(_false?),$(__true),$(__false))
 
 
 # Symbol functions
-symbol = $(call _symbol,$(call str_decode,$($(1)_value)))
-symbol? = $(if $(call _symbol?,$(1)),$(__true),$(__false))
+symbol = $(call _symbol,$(_string_val))
+symbol? = $(if $(_symbol?),$(__true),$(__false))
 
 # Keyword functions
-keyword = $(call _keyword,$(call str_decode,$($(1)_value)))
-keyword? = $(if $(call _keyword?,$(1)),$(__true),$(__false))
+keyword = $(if $(_keyword?),$1,$(call _keyword,$(_string_val)))
+keyword? = $(if $(_keyword?),$(__true),$(__false))
 
 
 # Number functions
-number? = $(if $(call _number?,$(1)),$(__true),$(__false))
+number? = $(if $(_number?),$(__true),$(__false))
 
-number_lt = $(if $(call int_lt_encoded,$($(word 1,$(1))_value),$($(word 2,$(1))_value)),$(__true),$(__false))
-number_lte = $(if $(call int_lte_encoded,$($(word 1,$(1))_value),$($(word 2,$(1))_value)),$(__true),$(__false))
-number_gt = $(if $(call int_gt_encoded,$($(word 1,$(1))_value),$($(word 2,$(1))_value)),$(__true),$(__false))
-number_gte = $(if $(call int_gte_encoded,$($(word 1,$(1))_value),$($(word 2,$(1))_value)),$(__true),$(__false))
+define <
+$(if $(call int_lt,$(call _number_val,$(firstword $1)),$(call _number_val,$(lastword $1)))\
+  ,$(__true),$(__false))
+endef
+define <$(encoded_equal)
+$(if $(call int_lte,$(call _number_val,$(firstword $1)),$(call _number_val,$(lastword $1)))\
+  ,$(__true),$(__false))
+endef
+define >
+$(if $(call int_gt,$(call _number_val,$(firstword $1)),$(call _number_val,$(lastword $1)))\
+  ,$(__true),$(__false))
+endef
+define >$(encoded_equal)
+$(if $(call int_gte,$(call _number_val,$(firstword $1)),$(call _number_val,$(lastword $1)))\
+  ,$(__true),$(__false))
+endef
 
-number_plus = $(call _pnumber,$(call int_add_encoded,$($(word 1,$(1))_value),$($(word 2,$(1))_value)))
-number_subtract = $(call _pnumber,$(call int_sub_encoded,$($(word 1,$(1))_value),$($(word 2,$(1))_value)))
-number_multiply = $(call _pnumber,$(call int_mult_encoded,$($(word 1,$(1))_value),$($(word 2,$(1))_value)))
-number_divide = $(call _pnumber,$(call int_div_encoded,$($(word 1,$(1))_value),$($(word 2,$(1))_value)))
++ = $(call _number,$(call int_add,$(call _number_val,$(firstword $1)),$(call _number_val,$(lastword $1))))
+- = $(call _number,$(call int_sub,$(call _number_val,$(firstword $1)),$(call _number_val,$(lastword $1))))
+* = $(call _number,$(call int_mult,$(call _number_val,$(firstword $1)),$(call _number_val,$(lastword $1))))
+/ = $(call _number,$(call int_div,$(call _number_val,$(firstword $1)),$(call _number_val,$(lastword $1))))
 
-time_ms = $(call _number,$(shell echo $$(date +%s%3N)))
+time-ms = $(call _number,$(shell date +%s%3N))
 
 # String functions
 
-string? = $(if $(call _string?,$(1)),$(if $(call _keyword?,$(1)),$(__false),$(__true)),$(__false))
+string? = $(if $(_string?),$(__true),$(__false))
 
-pr_str  = $(call _string,$(call _pr_str_mult,$(1),yes, ))
-str     = $(call _string,$(call _pr_str_mult,$(1),,))
-prn     = $(info $(call _pr_str_mult,$(1),yes, ))
-println = $(info $(subst \n,$(NEWLINE),$(call _pr_str_mult,$(1),, )))
+pr-str  = $(call _string,$(call _pr_str_mult,$1,yes,$(_SP)))
+str     = $(call _string,$(_pr_str_mult))
+prn     = $(__nil)$(call print,$(call _pr_str_mult,$1,yes,$(_SP)))
+println = $(__nil)$(call print,$(call _pr_str_mult,$1,,$(_SP)))
 
-readline= $(foreach res,$(call _string,$(call READLINE,"$(call str_decode,$($(1)_value))")),$(if $(READLINE_EOF),$(eval READLINE_EOF :=)$(__nil),$(res)))
-read_str= $(call READ_STR,$(1))
-slurp   = $(call _string,$(call _read_file,$(call str_decode,$($(1)_value))))
-
-subs = $(strip \
-         $(foreach start,$(call int_add,1,$(call int_decode,$($(word 2,$(1))_value))),\
-           $(foreach end,$(if $(3),$(call int_decode,$($(3)_value)),$(words $($(word 1,$(1))_value))),\
-             $(call _string,$(wordlist $(start),$(end),$($(word 1,$(1))_value))))))
+readline = $(or $(foreach res,$(call READLINE,$(_string_val))\
+                  ,$(call _string,$(res:ok=)))\
+                ,$(__nil))
+read-string = $(call READ_STR,$(_string_val))
+slurp = $(call _string,$(call _read_file,$(_string_val)))
 
 
 
 # Function functions
-fn? = $(if $(call _function?,$(1)),$(if $(_macro_$(1)),$(__false),$(__true)),$(__false))
-macro? = $(if $(_macro_$(1)),$(__true),$(__false))
+fn? = $(if $(_fn?),$(__true),$(__false))
+macro? = $(if $(_macro?),$(__true),$(__false))
 
 
 # List functions
-list? = $(if $(call _list?,$(1)),$(__true),$(__false))
+list? = $(if $(_list?),$(__true),$(__false))
 
 
 # Vector functions
-vector? = $(if $(call _vector?,$(1)),$(__true),$(__false))
+vector? = $(if $(_vector?),$(__true),$(__false))
 
-vec = $(if $(_list?),$(call _vector,$($1_value)),$(if $(_vector?),$1,$(call _error,vec: called on non-sequence)))
+vec = $(if $(_list?)\
+  ,$(call vector,$(_seq_vals))$(rem \
+),$(if $(_vector?)\
+  ,$1$(rem \
+),$(call _error,vec$(encoded_colon)$(_SP)called$(_SP)on$(_SP)non-sequence)))
 
 
 # Hash map (associative array) functions
-hash_map? = $(if $(call _hash_map?,$(1)),$(__true),$(__false))
+hash-map = $(call _map_new,,$1)
+map? = $(if $(_hash_map?),$(__true),$(__false))
 
 # set a key/value in a copy of the hash map
-assoc = $(word 1,\
-          $(foreach hm,$(call _clone_obj,$(word 1,$(1))),\
-            $(hm) \
-            $(call _assoc_seq!,$(hm),$(wordlist 2,$(words $(1)),$(1)))))
+assoc = $(call _map_new,$(firstword $1),$(_rest))
 
 # unset keys in a copy of the hash map
-# TODO: this could be made more efficient by copying only the
-#       keys that not being removed.
-dissoc = $(word 1,\
-           $(foreach hm,$(call _clone_obj,$(word 1,$(1))),\
-             $(hm) \
-             $(call _dissoc_seq!,$(hm),$(wordlist 2,$(words $(1)),$(1)))))
+dissoc = $(call _map_new,$(firstword $1),,$(_rest))
 
-keys = $(foreach new_list,$(call _list),$(new_list)$(eval $(new_list)_value := $(foreach v,$(call __get_obj_values,$(1)),$(foreach vval,$(word 4,$(subst _, ,$(v))),$(if $(filter $(__keyword)%,$(vval)),$(call _keyword,$(patsubst $(__keyword)%,%,$(vval))),$(call _string,$(vval)))))))
+keys = $(call list,$(_keys))
 
-vals = $(foreach new_list,$(call _list),$(new_list)$(eval $(new_list)_value := $(foreach v,$(call __get_obj_values,$(1)),$($(v)))))
-
-# Hash map and vector functions
+vals = $(call list,$(foreach k,$(_keys),$(call _get,$1,$k)))
 
 # retrieve the value of a string key object from the hash map, or
-# retrive a vector by number object index
-get = $(strip \
-        $(if $(call _nil?,$(word 1,$(1))),\
-          $(__nil),\
-          $(if $(call _hash_map?,$(word 1,$(1))),\
-            $(call _get,$(word 1,$(1)),$(call str_decode,$($(word 2,$(1))_value))),\
-            $(call _get,$(word 1,$(1)),$(call int_decode,$($(word 2,$(1))_value))))))
+# return nil if the key is not found.
+get = $(or $(call _get,$(firstword $1),$(lastword $1)),$(__nil))
 
-contains? = $(if $(call _contains?,$(word 1,$(1)),$(call str_decode,$($(word 2,$(1))_value))),$(__true),$(__false))
+contains? = $(if $(call _get,$(firstword $1),$(lastword $1)),$(__true),$(__false))
 
 
 # sequence operations
 
-sequential? = $(if $(call _sequential?,$(1)),$(__true),$(__false))
+sequential? = $(if $(_sequential?),$(__true),$(__false))
 
-cons = $(word 1,$(foreach new_list,$(call _list),$(new_list) $(eval $(new_list)_value := $(strip $(word 1,$(1)) $(call __get_obj_values,$(word 2,$(1)))))))
+# Strip in case seq_vals is empty.
+cons = $(call list,$(strip $(firstword $1) $(call _seq_vals,$(lastword $1))))
 
-concat = $(word 1,$(foreach new_list,$(call _list),$(new_list) $(eval $(new_list)_value := $(strip $(foreach lst,$1,$(call __get_obj_values,$(lst)))))))
+# Strip in case foreach introduces a space after an empty argument.
+concat = $(call list,$(strip $(foreach l,$1,$(call _seq_vals,$l))))
 
-nth = $(strip \
-        $(if $(call int_lt,$($(word 2,$(1))_value),$(call int_encode,$(call _count,$(word 1,$(1))))),\
-          $(word $(call int_add,1,$(call int_decode,$($(word 2,$(1))_value))),$($(word 1,$(1))_value)),\
-          $(call _error,nth: index out of range)))
+nth = $(or $(word $(call int_add,1,$(call _number_val,$(lastword $1))),\
+                  $(call _seq_vals,$(firstword $1)))\
+          ,$(call _error,nth: index out of range))
 
-sfirst = $(word 1,$($(1)_value))
+first = $(or $(if $(_sequential?),$(firstword $(_seq_vals))),$(__nil))
 
-slast = $(word $(words $($(1)_value)),$($(1)_value))
+empty? = $(if $(_seq_vals),$(__false),$(__true))
 
-empty? = $(if $(_empty?),$(__true),$(__false))
-
-count = $(call _number,$(call _count,$(1)))
+count = $(call _number,$(words $(if $(_sequential?),$(_seq_vals))))
 
 # Creates a new vector/list of the everything after but the first
 # element
-srest = $(word 1,$(foreach new_list,$(call _list),\
-                   $(new_list) \
-                   $(eval $(new_list)_value := $(wordlist 2,$(words $($(1)_value)),$($(1)_value)))))
+rest = $(call list,$(if $(_sequential?),$(call _rest,$(_seq_vals))))
 
 # Takes a space separated arguments and invokes the first argument
 # (function object) using the remaining arguments.
-sapply = $(call $(word 1,$(1))_value,$(strip \
-                                       $(wordlist 2,$(call int_sub,$(words $(1)),1),$(1)) \
-                                       $($(word $(words $(1)),$(1))_value)))
+# Strip in case wordlist or _seq_vals is empty.
+apply = $(call _apply,$(firstword $1),$(strip \
+  $(wordlist 2,$(call int_sub,$(words $1),1),$1) \
+  $(call _seq_vals,$(lastword $1))))
 
 # Map a function object over a list object
-smap = $(strip\
-         $(foreach func,$(word 1,$(1)),\
-           $(foreach lst,$(word 2,$(1)),\
-             $(foreach type,list,\
-               $(foreach new_hcode,$(call __new_obj_hash_code),\
-                 $(foreach sz,$(words $(call __get_obj_values,$(lst))),\
-                   $(eval $(__obj_magic)_$(type)_$(new_hcode)_value := $(strip \
-                     $(foreach val,$(call __get_obj_values,$(lst)),\
-                       $(call $(func)_value,$(val))))))\
-                 $(__obj_magic)_$(type)_$(new_hcode))))))
+map = $(call list,$(foreach e,$(call _seq_vals,$(lastword $1))\
+  ,$(call _apply,$(firstword $1),$e)))
 
-conj = $(word 1,$(foreach new_list,$(call __new_obj_like,$(word 1,$(1))),\
-                  $(new_list) \
-                  $(eval $(new_list)_value := $(strip $($(word 1,$(1))_value))) \
-                  $(if $(call _list?,$(new_list)),\
-                    $(foreach elem,$(wordlist 2,$(words $(1)),$(1)),\
-                      $(eval $(new_list)_value := $(strip $(elem) $($(new_list)_value)))),\
-                    $(eval $(new_list)_value := $(strip $($(new_list)_value) $(wordlist 2,$(words $(1)),$(1)))))))
+conj = $(foreach seq,$(firstword $1)\
+  ,$(call conj_$(call _obj_type,$(seq)),$(call _seq_vals,$(seq)),$(_rest)))
+# Strip in case $1 or $2 is empty.
+# Also, _reverse introduces blanks.
+conj_vector = $(call vector,$(strip $1 $2))
+conj_list   = $(call list,$(strip $(call _reverse,$2) $1))
 
-seq = $(strip\
-        $(if $(call _list?,$(1)),\
-          $(if $(call _EQ,0,$(call _count,$(1))),$(__nil),$(1)),\
-        $(if $(call _vector?,$(1)),\
-          $(if $(call _EQ,0,$(call _count,$(1))),\
-            $(__nil),\
-            $(word 1,$(foreach new_list,$(call _list),\
-                        $(new_list) \
-                        $(eval $(new_list)_value := $(strip $($(word 1,$(1))_value)))))),\
-        $(if $(call _EQ,string,$(call _obj_type,$(1))),\
-          $(if $(call _EQ,0,$(call _count,$(1))),\
-            $(__nil),\
-            $(word 1,$(foreach new_list,$(call _list),\
-                        $(new_list) \
-                        $(eval $(new_list)_value := $(strip \
-                                                      $(foreach c,$($(word 1,$(1))_value),\
-                                                        $(call _string,$(c)))))))),\
-        $(if $(call _nil?,$(1)),\
-          $(__nil),\
-        $(call _error,seq: called on non-sequence))))))
+seq = $(or $(seq_$(_obj_type))\
+          ,$(call _error,seq: called on non-sequence))
+seq_list = $(if $(_seq_vals),$1,$(__nil))
+seq_vector = $(if $(_seq_vals),$(call list,$(_seq_vals)),$(__nil))
+seq_nil = $1
+seq_string = $(if $(_string_val)\
+               ,$(call list,$(foreach c,$(call str_encode,$(_string_val))\
+                 ,$(call _string,$(call str_decode,$c))))$(rem \
+               ),$(__nil))
 
 # Metadata functions
 
-with_meta = $(strip \
-              $(foreach new_obj,$(call _clone_obj,$(word 1,$(1))),\
-                $(eval $(new_obj)_meta := $(strip $(word 2,$(1))))\
-                $(new_obj)))
-
-meta = $(strip $($(1)_meta))
+# are implemented in types.mk.
 
 
 # Atom functions
 
-atom = $(strip \
-         $(foreach hcode,$(call __new_obj_hash_code),\
-           $(foreach new_atom,$(__obj_magic)_atom_$(hcode),\
-             $(new_atom)\
-             $(eval $(new_atom)_value := $(1)))))
-atom? = $(if $(call _atom?,$(1)),$(__true),$(__false))
+atom? = $(if $(_atom?),$(__true),$(__false))
 
-deref = $($(1)_value)
+reset! = $(foreach v,$(lastword $1),$(call _reset,$(firstword $1),$v)$v)
 
-reset! = $(eval $(word 1,$(1))_value := $(word 2,$(1)))$(word 2,$(1))
-
-swap! = $(foreach resp,$(call $(word 2,$(1))_value,$($(word 1,$(1))_value) $(wordlist 3,$(words $(1)),$(1))),\
-          $(eval $(word 1,$(1))_value := $(resp))\
-          $(resp))
+swap! = $(foreach a,$(firstword $1)\
+  ,$(call reset!,$a $(call _apply,$(word 2,$1),$(call deref,$a) $(_rest2))))
 
 
 
 
 # Namespace of core functions
 
-core_ns = type obj_type \
-          = equal? \
-          throw throw \
-          nil? nil? \
-          true? true? \
-          false? false? \
-          string? string? \
-          symbol symbol \
-          symbol? symbol? \
-          keyword keyword \
-          keyword? keyword? \
-          number? number? \
-          fn? fn? \
-          macro? macro? \
-          \
-          pr-str pr_str \
-          str str \
-          prn prn \
-          println println \
-          readline readline \
-          read-string read_str \
-          slurp slurp \
-          subs subs \
-          < number_lt \
-          <= number_lte \
-          > number_gt \
-          >= number_gte \
-          + number_plus \
-          - number_subtract \
-          * number_multiply \
-          / number_divide \
-          time-ms time_ms \
-          \
-          list _list \
-          list? list? \
-          vector _vector \
-          vector? vector? \
-          hash-map _hash_map \
-          map? hash_map? \
-          assoc assoc \
-          dissoc dissoc \
-          get get \
-          contains? contains? \
-          keys keys \
-          vals vals \
-          \
-          sequential? sequential? \
-          cons cons \
-          concat concat \
-          vec vec \
-          nth nth \
-          first sfirst \
-          rest srest \
-          last slast \
-          empty? empty? \
-          count count \
-          apply sapply \
-          map smap \
-          \
-          conj conj \
-          seq seq \
-          \
-          with-meta with_meta \
-          meta meta \
-          atom atom \
-          atom? atom? \
-          deref deref \
-          reset! reset! \
-          swap! swap!
+core_ns := $(encoded_equal) throw nil?  true?  false?  string?  symbol \
+  symbol?  keyword keyword?  number?  fn?  macro? \
+  pr-str str prn println readline read-string slurp \ < \
+  <$(encoded_equal) > >$(encoded_equal) + - * / time-ms \
+  list list?  vector vector?  hash-map map?  assoc dissoc get \
+  contains? keys vals \
+  sequential? cons concat vec nth first rest empty? count apply map \
+  conj seq \
+  with-meta meta atom atom? deref reset! swap!
 
 endif
