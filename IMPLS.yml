@@ -48,6 +48,7 @@ IMPL:
   - {IMPL: js}
   - {IMPL: julia}
   - {IMPL: kotlin}
+  - {IMPL: latex3, NO_PERF: 1, NO_SELF_HOST: 1, SLOW: 1}
   - {IMPL: livescript}
   - {IMPL: logo}
   - {IMPL: lua}
@@ -105,7 +106,6 @@ IMPL:
   # no self-host perf for wasm due to mac stack overflow
   - {IMPL: wasm, wasm_MODE: wasmtime,  NO_SELF_HOST_PERF: 1, NO_PERF: 1}
   - {IMPL: wasm, wasm_MODE: wasmer,    NO_SELF_HOST_PERF: 1, NO_PERF: 1}
-  - {IMPL: wasm, wasm_MODE: lucet,     NO_SELF_HOST_PERF: 1, NO_PERF: 1}
   #- {IMPL: wasm, wasm_MODE: wax,       NO_SELF_HOST_PERF: 1}  # Hangs on GH Actions
   - {IMPL: wasm, wasm_MODE: node,      NO_SELF_HOST_PERF: 1, NO_PERF: 1}
   #- {IMPL: wasm, wasm_MODE: warpy,     NO_SELF_HOST_PERF: 1}  # Hangs on GH Actions
