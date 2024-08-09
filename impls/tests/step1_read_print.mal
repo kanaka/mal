@@ -247,7 +247,7 @@ a:
 ;=>(with-meta [1 2 3] {"a" 1})
 
 
-;; Non alphanumerice characters in strings
+;; Non alphanumeric characters in strings
 ;;; \t is not specified enough to be tested
 "\n"
 ;=>"\n"
