@@ -83,8 +83,6 @@ class Runner():
         env['TERM'] = 'dumb'
         env['INPUTRC'] = '/dev/null'
         env['PERL_RL'] = 'false'
-        print(args)
-        args = ['bash'] + args
         if no_pty:
             self.p = Popen(args, bufsize=0,
                            stdin=PIPE, stdout=PIPE, stderr=STDOUT,
