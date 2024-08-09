@@ -27,6 +27,8 @@ jobs:
       matrix-linux: ${{ steps.get-matrix-step.outputs.linux }}
       do-macos: ${{ steps.get-matrix-step.outputs.do_macos }}
       matrix-macos: ${{ steps.get-matrix-step.outputs.macos }}
+      do-windows: ${{ steps.get-matrix-step.outputs.do_windows }}
+      matrix-windows: ${{ steps.get-matrix-step.outputs.windows }}
     steps:
       - uses: actions/checkout@v4
       - id: files
@@ -120,6 +122,43 @@ jobs:
         run: |
           export ${{ matrix.IMPL }}
           DO_SELF_HOST=1 ./ci.sh test ${IMPL}
+      - name: Archive logs and debug output
+        uses: actions/upload-artifact@v4
+        with:
+          name: logs.${{ matrix.IMPL }}
+          path: |
+            *.log
+            *.debug
+
+  windows:
+    needs: get-matrix
+    if: ${{ needs.get-matrix.outputs.do-windows == 'true' }}
+    runs-on: windows-2022
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.get-matrix.outputs.matrix-windows) }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build
+        shell: bash
+        run: |
+          export ${{ matrix.IMPL }}
+          ./ci.sh build ${IMPL}
+      - name: Step Tests
+        shell: bash
+        run: |
+          export ${{ matrix.IMPL }}
+          ./ci.sh test ${IMPL}
+      - name: Regression Tests
+        shell: bash
+        run: |
+          export ${{ matrix.IMPL }}
+          STEP=stepA REGRESS=1 HARD=1 OPTIONAL=0 ./ci.sh test ${IMPL}
+      - name: Performance Tests
+        shell: bash
+        run: |
+          export ${{ matrix.IMPL }}
+          ./ci.sh perf ${IMPL}
       - name: Archive logs and debug output
         uses: actions/upload-artifact@v4
         with:
