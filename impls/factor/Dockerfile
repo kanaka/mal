@@ -1,4 +1,4 @@
-FROM ubuntu:vivid
+FROM ubuntu:20.04
 MAINTAINER Joel Martin <github@martintribe.org>
 
 ##########################################################
@@ -9,10 +9,8 @@ MAINTAINER Joel Martin <github@martintribe.org>
 RUN apt-get -y update
 
 # Required for running tests
-RUN apt-get -y install make python
-
-# Some typical implementation and test requirements
-RUN apt-get -y install curl libreadline-dev libedit-dev
+RUN apt-get -y install make python3
+RUN ln -fs /usr/bin/python3 /usr/local/bin/python
 
 RUN mkdir -p /mal
 WORKDIR /mal
@@ -21,11 +19,10 @@ WORKDIR /mal
 # Specific implementation requirements
 ##########################################################
 
-# Factor
-RUN apt-get -y install libgtkglext1
-RUN cd /usr/lib/x86_64-linux-gnu/ \
-    && curl -O http://downloads.factorcode.org/releases/0.97/factor-linux-x86-64-0.97.tar.gz \
-    && tar xvzf factor-linux-x86-64-0.97.tar.gz \
-    && ln -sf /usr/lib/x86_64-linux-gnu/factor/factor /usr/bin/factor \
-    && rm factor-linux-x86-64-0.97.tar.gz
+RUN DEBIAN_FRONTEND=noninteractive apt-get -y install ca-certificates curl libgtkglext1-dev libreadline-dev
 
+RUN curl https://downloads.factorcode.org/releases/0.98/factor-linux-x86-64-0.98.tar.gz | tar -xzC/opt
+ENV PATH /opt/factor:$PATH
+
+# Allow /mal/factor to create the $HOME/.cache directory.
+ENV HOME /mal

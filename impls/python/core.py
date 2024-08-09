@@ -1,4 +1,5 @@
-import copy, time
+import operator
+import time
 from itertools import chain
 
 import mal_types as types
@@ -13,28 +14,37 @@ def throw(obj): raise MalException(obj)
 
 # String functions
 def pr_str(*args):
-    return " ".join(map(lambda exp: printer._pr_str(exp, True), args))
+    return printer.pr_list(args, " ", True)
 
 def do_str(*args):
-    return "".join(map(lambda exp: printer._pr_str(exp, False), args))
+    return printer.pr_list(args, "", False)
 
 def prn(*args):
-    print(" ".join(map(lambda exp: printer._pr_str(exp, True), args)))
+    print(printer.pr_list(args, " ", True))
     return None
 
 def println(*args):
-    print(" ".join(map(lambda exp: printer._pr_str(exp, False), args)))
+    print(printer.pr_list(args, " ", False))
     return None
 
+def core_readline(prompt):
+    try:
+        return mal_readline.readline(prompt)
+    except EOFError:
+        return None
+
+def slurp(path):
+    with open(path) as f:
+        return f.read()
 
 # Hash map functions
 def assoc(src_hm, *key_vals):
-    hm = copy.copy(src_hm)
-    for i in range(0,len(key_vals),2): hm[key_vals[i]] = key_vals[i+1]
+    hm = types.Hash_Map(src_hm)
+    hm.update(types.asPairs(key_vals))
     return hm
 
 def dissoc(src_hm, *keys):
-    hm = copy.copy(src_hm)
+    hm = types.Hash_Map(src_hm)
     for key in keys:
         hm.pop(key, None)
     return hm
@@ -45,61 +55,57 @@ def get(hm, key):
     else:
         return None
 
-def contains_Q(hm, key): return key in hm
+contains_Q = types.Hash_Map.__contains__
 
-def keys(hm): return types._list(*hm.keys())
+keys = List
 
-def vals(hm): return types._list(*hm.values())
+def vals(hm): return List(hm.values())
 
 
 # Sequence functions
-def coll_Q(coll): return sequential_Q(coll) or hash_map_Q(coll)
-
-def cons(x, seq): return List([x]) + List(seq)
+def cons(x, seq): return concat((x,), seq)
 
 def concat(*lsts): return List(chain(*lsts))
 
-def nth(lst, idx):
-    if idx < len(lst): return lst[idx]
-    else: throw("nth: index out of range")
+nth = tuple.__getitem__
 
 def first(lst):
-    if types._nil_Q(lst): return None
-    else: return lst[0]
+    if lst:
+        return lst[0]
+    else:                       # lst is nil or empty
+        return None
 
 def rest(lst):
-    if types._nil_Q(lst): return List([])
-    else: return List(lst[1:])
+    if lst:
+        it = iter(lst)
+        next(it)
+        return List(it)
+    else:                       # lst is nil or empty
+        return List()
 
-def empty_Q(lst): return len(lst) == 0
+empty_Q = operator.not_
 
 def count(lst):
     if types._nil_Q(lst): return 0
     else: return len(lst)
 
-def apply(f, *args): return f(*(list(args[0:-1])+args[-1]))
+def apply(f, *args): return f(*chain(args[:-1], args[-1]))
 
 def mapf(f, lst): return List(map(f, lst))
 
-# retains metadata
 def conj(lst, *args):
-    if types._list_Q(lst): 
-        new_lst = List(list(reversed(list(args))) + lst)
+    if types._list_Q(lst):
+        return concat(reversed(args), lst)
     else:
-        new_lst = Vector(lst + list(args))
-    if hasattr(lst, "__meta__"):
-        new_lst.__meta__ = lst.__meta__
-    return new_lst
+        return Vector(chain(lst, args))
 
 def seq(obj):
+    if not obj:
+        return None             # obj is nil, (), [] or ""
     if types._list_Q(obj):
-        return obj if len(obj) > 0 else None
-    elif types._vector_Q(obj):
-        return List(obj) if len(obj) > 0 else None
-    elif types._string_Q(obj):
-        return List([c for c in obj]) if len(obj) > 0 else None
-    elif obj == None:
-        return None
+        return obj
+    elif types._vector_Q(obj) or types._string_Q(obj):
+        return List(obj)
     else: throw ("seq: called on non-sequence")
 
 # Metadata functions
@@ -122,7 +128,7 @@ def swap_BANG(atm,f,*args):
     return atm.val
 
 
-ns = { 
+ns = {
         '=': types._equal_Q,
         'throw': throw,
         'nil?': types._nil_Q,
@@ -136,24 +142,23 @@ ns = {
         'keyword?': types._keyword_Q,
         'fn?': lambda x: (types._function_Q(x) and not hasattr(x, '_ismacro_')),
         'macro?': lambda x: (types._function_Q(x) and
-                             hasattr(x, '_ismacro_') and
-                             x._ismacro_),
+                             hasattr(x, '_ismacro_')),
 
         'pr-str': pr_str,
         'str': do_str,
         'prn': prn,
         'println': println,
-        'readline': lambda prompt: mal_readline.readline(prompt),
+        'readline': core_readline,
         'read-string': reader.read_str,
-        'slurp': lambda file: open(file).read(),
-        '<':  lambda a,b: a<b,
-        '<=': lambda a,b: a<=b,
-        '>':  lambda a,b: a>b,
-        '>=': lambda a,b: a>=b,
-        '+':  lambda a,b: a+b,
-        '-':  lambda a,b: a-b,
-        '*':  lambda a,b: a*b,
-        '/':  lambda a,b: int(a/b),
+        'slurp': slurp,
+        '<':  operator.lt,
+        '<=': operator.le,
+        '>':  operator.gt,
+        '>=': operator.ge,
+        '+':  operator.add,
+        '-':  operator.sub,
+        '*':  operator.mul,
+        '/':  operator.floordiv,
         'time-ms': lambda : int(time.time() * 1000),
 
         'list': types._list,
@@ -190,5 +195,5 @@ ns = {
         'atom?': types._atom_Q,
         'deref': deref,
         'reset!': reset_BANG,
-        'swap!': swap_BANG}
-
+        'swap!': swap_BANG,
+}

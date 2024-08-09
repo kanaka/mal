@@ -1,4 +1,4 @@
-FROM ubuntu:wily
+FROM ubuntu:20.04
 MAINTAINER Joel Martin <github@martintribe.org>
 
 ##########################################################
@@ -9,10 +9,8 @@ MAINTAINER Joel Martin <github@martintribe.org>
 RUN apt-get -y update
 
 # Required for running tests
-RUN apt-get -y install make python
-
-# Some typical implementation and test requirements
-RUN apt-get -y install curl libreadline-dev libedit-dev
+RUN apt-get -y install make python3
+RUN ln -fs /usr/bin/python3 /usr/local/bin/python
 
 RUN mkdir -p /mal
 WORKDIR /mal
@@ -21,15 +19,5 @@ WORKDIR /mal
 # Specific implementation requirements
 ##########################################################
 
-# Haskell
-RUN apt-get install -y software-properties-common && \
-    add-apt-repository -y ppa:hvr/ghc && \
-    apt-get update && \
-    apt-get install -y cabal-install-1.22 ghc-7.10.3
-
-ENV PATH /opt/cabal/1.22/bin:/opt/ghc/7.10.3/bin:$PATH
-
-RUN cabal update && cabal install --global readline
-# TODO: editline when compile bug fixed
-RUN cabal install --global parsec
-
+RUN apt-get -y install make python
+RUN apt-get install -y ghc libghc-readline-dev

@@ -6,7 +6,7 @@ import (
 )
 
 import (
-	"readline"
+	"mal/src/readline"
 )
 
 // read

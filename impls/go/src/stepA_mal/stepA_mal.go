@@ -8,12 +8,12 @@ import (
 )
 
 import (
-	"core"
-	. "env"
-	"printer"
-	"reader"
-	"readline"
-	. "types"
+	"mal/src/core"
+	. "mal/src/env"
+	"mal/src/printer"
+	"mal/src/reader"
+	"mal/src/readline"
+	. "mal/src/types"
 )
 
 // read
@@ -67,67 +67,28 @@ func quasiquote(ast MalType) MalType {
 	}
 }
 
-func is_macro_call(ast MalType, env EnvType) bool {
-	if List_Q(ast) {
-		slc, _ := GetSlice(ast)
-		if len(slc) == 0 {
-			return false
-		}
-		a0 := slc[0]
-		if Symbol_Q(a0) && env.Find(a0.(Symbol)) != nil {
-			mac, e := env.Get(a0.(Symbol))
-			if e != nil {
-				return false
-			}
-			if MalFunc_Q(mac) {
-				return mac.(MalFunc).GetMacro()
-			}
-		}
-	}
-	return false
-}
-
-func macroexpand(ast MalType, env EnvType) (MalType, error) {
-	var mac MalType
-	var e error
-	for is_macro_call(ast, env) {
-		slc, _ := GetSlice(ast)
-		a0 := slc[0]
-		mac, e = env.Get(a0.(Symbol))
+func map_eval(xs []MalType, env EnvType) ([]MalType, error) {
+	lst := []MalType{}
+	for _, a := range xs {
+		exp, e := EVAL(a, env)
 		if e != nil {
 			return nil, e
 		}
-		fn := mac.(MalFunc)
-		ast, e = Apply(fn, slc[1:])
-		if e != nil {
-			return nil, e
-		}
+		lst = append(lst, exp)
 	}
-	return ast, nil
+	return lst, nil
 }
 
-func eval_ast(ast MalType, env EnvType) (MalType, error) {
-	//fmt.Printf("eval_ast: %#v\n", ast)
+func EVAL(ast MalType, env EnvType) (MalType, error) {
+	for {
+	//fmt.Printf("EVAL: %v\n", printer.Pr_str(ast, true))
+
 	if Symbol_Q(ast) {
 		return env.Get(ast.(Symbol))
-	} else if List_Q(ast) {
-		lst := []MalType{}
-		for _, a := range ast.(List).Val {
-			exp, e := EVAL(a, env)
-			if e != nil {
-				return nil, e
-			}
-			lst = append(lst, exp)
-		}
-		return List{lst, nil}, nil
 	} else if Vector_Q(ast) {
-		lst := []MalType{}
-		for _, a := range ast.(Vector).Val {
-			exp, e := EVAL(a, env)
-			if e != nil {
-				return nil, e
-			}
-			lst = append(lst, exp)
+		lst, e := map_eval(ast.(Vector).Val, env)
+		if e != nil {
+			return nil, e
 		}
 		return Vector{lst, nil}, nil
 	} else if HashMap_Q(ast) {
@@ -141,30 +102,10 @@ func eval_ast(ast MalType, env EnvType) (MalType, error) {
 			new_hm.Val[k] = kv
 		}
 		return new_hm, nil
-	} else {
+	} else if !List_Q(ast) {
 		return ast, nil
-	}
-}
-
-func EVAL(ast MalType, env EnvType) (MalType, error) {
-	var e error
-	for {
-
-		//fmt.Printf("EVAL: %v\n", printer.Pr_str(ast, true))
-		switch ast.(type) {
-		case List: // continue
-		default:
-			return eval_ast(ast, env)
-		}
-
+	} else {
 		// apply list
-		ast, e = macroexpand(ast, env)
-		if e != nil {
-			return nil, e
-		}
-		if !List_Q(ast) {
-			return eval_ast(ast, env)
-		}
 		if len(ast.(List).Val) == 0 {
 			return ast, nil
 		}
@@ -217,8 +158,6 @@ func EVAL(ast MalType, env EnvType) (MalType, error) {
 			env = let_env
 		case "quote":
 			return a1, nil
-		case "quasiquoteexpand":
-			return quasiquote(a1), nil
 		case "quasiquote":
 			ast = quasiquote(a1)
 		case "defmacro!":
@@ -228,8 +167,6 @@ func EVAL(ast MalType, env EnvType) (MalType, error) {
 				return nil, e
 			}
 			return env.Set(a1.(Symbol), fn), nil
-		case "macroexpand":
-			return macroexpand(a1, env)
 		case "try*":
 			var exc MalType
 			exp, e := EVAL(a1, env)
@@ -260,7 +197,7 @@ func EVAL(ast MalType, env EnvType) (MalType, error) {
 			}
 		case "do":
 			lst := ast.(List).Val
-			_, e := eval_ast(List{lst[1 : len(lst)-1], nil}, env)
+			_, e := map_eval(lst[1 : len(lst)-1], env)
 			if e != nil {
 				return nil, e
 			}
@@ -286,15 +223,27 @@ func EVAL(ast MalType, env EnvType) (MalType, error) {
 			fn := MalFunc{EVAL, a2, env, a1, false, NewEnv, nil}
 			return fn, nil
 		default:
-			el, e := eval_ast(ast, env)
+			f, e := EVAL(a0, env)
 			if e != nil {
 				return nil, e
 			}
-			f := el.(List).Val[0]
+			args := ast.(List).Val[1:]
+			if MalFunc_Q(f) && f.(MalFunc).GetMacro() {
+				new_ast, e := Apply(f.(MalFunc), args)
+				if e != nil {
+					return nil, e
+				}
+				ast = new_ast
+				continue
+			}
+			args, e = map_eval(args, env)
+			if e != nil {
+				return nil, e
+			}
 			if MalFunc_Q(f) {
 				fn := f.(MalFunc)
 				ast = fn.Exp
-				env, e = NewEnv(fn.Env, fn.Params, List{el.(List).Val[1:], nil})
+				env, e = NewEnv(fn.Env, fn.Params, List{args, nil})
 				if e != nil {
 					return nil, e
 				}
@@ -303,10 +252,10 @@ func EVAL(ast MalType, env EnvType) (MalType, error) {
 				if !ok {
 					return nil, errors.New("attempt to call non-function")
 				}
-				return fn.Fn(el.(List).Val[1:])
+				return fn.Fn(args)
 			}
 		}
-
+	}
 	} // TCO loop
 }
 

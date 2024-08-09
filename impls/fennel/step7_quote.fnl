@@ -17,31 +17,6 @@
   [code-str]
   (reader.read_str code-str))
 
-;; forward declaration
-(var EVAL 1)
-
-(fn eval_ast
-  [ast env]
-  (if (t.symbol?* ast)
-      (e.env-get env ast)
-      ;;
-      (t.list?* ast)
-      (t.make-list (u.map (fn [elt-ast]
-                            (EVAL elt-ast env))
-                          (t.get-value ast)))
-      ;;
-      (t.vector?* ast)
-      (t.make-vector (u.map (fn [elt-ast]
-                              (EVAL elt-ast env))
-                            (t.get-value ast)))
-      ;;
-      (t.hash-map?* ast)
-      (t.make-hash-map (u.map (fn [elt-ast]
-                                (EVAL elt-ast env))
-                              (t.get-value ast)))
-      ;;
-      ast))
-
 (fn starts-with
   [ast name]
   (when (and (t.list?* ast)
@@ -84,16 +59,32 @@
         ;;
         ast)))
 
-(set EVAL
-  (fn [ast-param env-param]
+(fn EVAL
+    [ast-param env-param]
     (var ast ast-param)
     (var env env-param)
     (var result nil)
     (while (not result)
-      (if (not (t.list?* ast))
-          (set result (eval_ast ast env))
+      (let [dbgeval (e.env-get env "DEBUG-EVAL")]
+        (when (and dbgeval
+                   (not (t.nil?* dbgeval))
+                   (not (t.false?* dbgeval)))
+          (print (.. "EVAL: " (printer.pr_str ast true)))))
+      (if (t.symbol?* ast)
+          (let [key (t.get-value ast)]
+            (set result (or (e.env-get env key)
+                        (u.throw* (t.make-string (.. "'" key
+                                                   "' not found"))))))
           ;;
-          (t.empty?* ast)
+          (t.vector?* ast)
+          (set result (t.make-vector (u.map (fn [x] (EVAL x env))
+                                            (t.get-value ast))))
+          ;;
+          (t.hash-map?* ast)
+          (set result (t.make-hash-map (u.map (fn [x] (EVAL x env))
+                                              (t.get-value ast))))
+          ;;
+          (or (not (t.list?* ast)) (t.empty?* ast))
           (set result ast)
           ;;
           (let [ast-elts (t.get-value ast)
@@ -123,10 +114,6 @@
                 ;; tco
                 (set result (. ast-elts 2))
                 ;;
-                (= "quasiquoteexpand" head-name)
-                ;; tco
-                (set result (quasiquote* (. ast-elts 2)))
-                ;;
                 (= "quasiquote" head-name)
                 ;; tco
                 (set ast (quasiquote* (. ast-elts 2)))
@@ -134,7 +121,7 @@
                 (= "do" head-name)
                 (let [most-forms (u.slice ast-elts 2 -2) ;; XXX
                       last-body-form (u.last ast-elts)
-                      res-ast (eval_ast (t.make-list most-forms) env)]
+                      res-ast (u.map (fn [x] (EVAL x env)) most-forms)]
                   ;; tco
                   (set ast last-body-form))
                 ;;
@@ -160,18 +147,17 @@
                                           (e.make-env env params args)))
                                   body params env)))
                 ;;
-                (let [eval-list (t.get-value (eval_ast ast env))
-                      f (. eval-list 1)
-                      args (u.slice eval-list 2 -1)]
-                  (let [body (t.get-ast f)] ;; tco
+                (let [f (EVAL (. ast-elts 1) env)
+                      args (u.map (fn [x] (EVAL x env)) (u.slice ast-elts 2 -1))
+                      body (t.get-ast f)] ;; tco
                     (if body
                         (do
                           (set ast body)
                           (set env (e.make-env (t.get-env f)
                                                (t.get-params f) args)))
                         (set result
-                             ((t.get-value f) args)))))))))
-    result))
+                             ((t.get-value f) args))))))))
+    result)
 
 (fn PRINT
   [ast]

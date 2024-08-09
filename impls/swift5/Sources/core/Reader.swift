@@ -84,7 +84,7 @@ private extension Parsers {
     // MARK: - Symbol
 
     static let symbolHead = char(excluding: "0123456789^`'\"#~@:%()[]{} \n\r\t,")
-    static let symbolRest = oneOf(symbolHead, char(from: "0123456789."))
+    static let symbolRest = oneOf(symbolHead, char(from: "0123456789.:"))
     static let name = (symbolHead <*> symbolRest.zeroOrMore).map { String($0) + String($1) }
     static let symbol = name.map(Expr.symbol)
 

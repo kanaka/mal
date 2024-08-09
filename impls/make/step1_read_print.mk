@@ -2,31 +2,48 @@
 # mal (Make Lisp)
 #
 _TOP_DIR := $(dir $(lastword $(MAKEFILE_LIST)))
-include $(_TOP_DIR)types.mk
+include $(_TOP_DIR)readline.mk
+include $(_TOP_DIR)util.mk
 include $(_TOP_DIR)reader.mk
 include $(_TOP_DIR)printer.mk
 
 SHELL := /bin/bash
-INTERACTIVE ?= yes
 
 # READ: read and parse input
 define READ
-$(if $(READLINE_EOF)$(__ERROR),,$(call READ_STR,$(if $(1),$(1),$(call READLINE,"user> "))))
+$(READ_STR)
 endef
 
 # EVAL: just return the input
 define EVAL
-$(if $(READLINE_EOF)$(__ERROR),,$(1))
+$(if $(__ERROR)\
+,,$1)
 endef
+
 
 # PRINT:
 define PRINT
-$(if $(__ERROR),Error: $(call _pr_str,$(__ERROR),yes),$(if $(1),$(call _pr_str,$(1),yes)))$(if $(__ERROR),$(eval __ERROR :=),)
+$(if $(__ERROR)\
+  ,Error$(encoded_colon)$(_SP)$(call _pr_str,$(__ERROR),yes)$(rem \
+  ),$(call _pr_str,$1,yes))
 endef
 
 # REPL: read, eval, print, loop
-REP = $(call PRINT,$(strip $(call EVAL,$(strip $(call READ,$(1))),$(REPL_ENV))))
-REPL = $(info $(call REP,$(call READLINE,"user> ")))$(if $(READLINE_EOF),,$(call REPL))
+
+REP = $(call PRINT,$(call EVAL,$(READ)))
+
+# The foreach does nothing when line is empty (EOF).
+define REPL
+$(foreach line,$(call READLINE,user>$(_SP))\
+,$(eval __ERROR :=)$(rem \
+)$(call print,$(call REP,$(line:ok=)))$(rem \
+)$(call REPL))
+endef
 
 # repl loop
-$(if $(strip $(INTERACTIVE)),$(call REPL))
+$(REPL)
+
+# Do not complain that there is no target.
+.PHONY: none
+none:
+	@true

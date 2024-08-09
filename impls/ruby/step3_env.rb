@@ -10,48 +10,38 @@ def READ(str)
 end
 
 # eval
-def eval_ast(ast, env)
-    return case ast
-        when Symbol
-            env.get(ast)
-        when List   
-            List.new ast.map{|a| EVAL(a, env)}
-        when Vector
-            Vector.new ast.map{|a| EVAL(a, env)}
-        when Hash
+def EVAL(ast, env)
+    if env.get_or_nil(:"DEBUG-EVAL")
+        puts "EVAL: #{_pr_str(ast, true)}"
+    end
+
+    case ast
+    in Symbol
+            return env.get(ast)
+    in Vector
+            return Vector.new ast.map{|a| EVAL(a, env)}
+    in Hash
             new_hm = {}
             ast.each{|k,v| new_hm[k] = EVAL(v, env)}
-            new_hm
-        else 
-            ast
-    end
-end
-
-def EVAL(ast, env)
-    #puts "EVAL: #{_pr_str(ast, true)}"
-
-    if not ast.is_a? List
-        return eval_ast(ast, env)
-    end
-    if ast.empty?
-        return ast
-    end
+            return new_hm
 
     # apply list
-    a0,a1,a2,a3 = ast
-    case a0
-    when :def!
+
+    in :def!, a1, a2
         return env.set(a1, EVAL(a2, env))
-    when :"let*"
+    in :"let*", a1, a2
         let_env = Env.new(env)
         a1.each_slice(2) do |a,e|
             let_env.set(a, EVAL(e, let_env))
         end
         return EVAL(a2, let_env)
-    else
-        el = eval_ast(ast, env)
-        f = el[0]
-        return f[*el.drop(1)]
+    in [a0, *]
+        f = EVAL(a0, env)
+        args = ast.drop(1)
+        return f[*args.map{|a| EVAL(a, env)}]
+
+    else                        # Empty list or scalar
+      return ast
     end
 end
 

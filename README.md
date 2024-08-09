@@ -16,17 +16,17 @@ guide](process/guide.md).
 
 The make-a-lisp steps are:
 
-* [step0_repl](process/guide.md#step0)
-* [step1_read_print](process/guide.md#step1)
-* [step2_eval](process/guide.md#step2)
-* [step3_env](process/guide.md#step3)
-* [step4_if_fn_do](process/guide.md#step4)
-* [step5_tco](process/guide.md#step5)
-* [step6_file](process/guide.md#step6)
-* [step7_quote](process/guide.md#step7)
-* [step8_macros](process/guide.md#step8)
-* [step9_try](process/guide.md#step9)
-* [stepA_mal](process/guide.md#stepA)
+* [step0_repl](process/guide.md#step-0-the-repl)
+* [step1_read_print](process/guide.md#step-1-read-and-print)
+* [step2_eval](process/guide.md#step-2-eval)
+* [step3_env](process/guide.md#step-3-environments)
+* [step4_if_fn_do](process/guide.md#step-4-if-fn-do)
+* [step5_tco](process/guide.md#step-5-tail-call-optimization)
+* [step6_file](process/guide.md#step-6-files-mutation-and-evil)
+* [step7_quote](process/guide.md#step-7-quoting)
+* [step8_macros](process/guide.md#step-8-macros)
+* [step9_try](process/guide.md#step-9-try)
+* [stepA_mal](process/guide.md#step-a-metadata-self-hosting-and-interop)
 
 Each make-a-lisp step has an associated architectural diagram. That elements
 that are new for that step are highlighted in red.
@@ -35,14 +35,13 @@ Here is the final diagram for [step A](process/guide.md#stepA):
 ![stepA_mal architecture](process/stepA_mal.png)
 
 If you are interested in creating a mal implementation (or just
-interested in using mal for something), you are welcome to to join our
-[Discord](https://discord.gg/CKgnNbJBpF) or join #mal on
-[libera.chat](https://libera.chat/). In addition to the [make-a-lisp
+interested in using mal for something) you are welcome to to join our
+[Discord](https://discord.gg/CKgnNbJBpF). In addition to the [make-a-lisp
 process guide](process/guide.md) there is also a [mal/make-a-lisp
 FAQ](docs/FAQ.md) where I attempt to answer some common questions.
 
 
-**3. Mal is implemented in 87 languages (93 different implementations and 115 runtime modes)**
+**3. Mal is implemented in 87 languages (93 different implementations and 114 runtime modes)**
 
 | Language | Creator |
 | -------- | ------- |
@@ -88,6 +87,7 @@ FAQ](docs/FAQ.md) where I attempt to answer some common questions.
 | [jq](#jq) | [Ali MohammadPur](https://github.com/alimpfard) |
 | [Julia](#julia) | [Joel Martin](https://github.com/kanaka)  |
 | [Kotlin](#kotlin) | [Javier Fernandez-Ivern](https://github.com/ivern) |
+| [LaTeX3](#latex3) | [Nicolas Boulenguez](https://github.com/asarhaddon) |
 | [LiveScript](#livescript) | [Jos van Bakel](https://github.com/c0deaddict) |
 | [Logo](#logo) | [Dov Murik](https://github.com/dubek) |
 | [Lua](#lua) | [Joel Martin](https://github.com/kanaka)  |
@@ -685,6 +685,18 @@ make
 java -jar stepX_YYY.jar
 ```
 
+### LaTeX3
+
+The LaTeX3 implementation of mal has been tested with pdfTeX
+3.141592653-2.6-1.40.24.
+
+Self hosting is too slow for any sensible timeout, and crashes in
+step4, apparently because of hard-coded limitations.
+
+Anybody working on this should uncomment the two lines of (slow)
+debugging options in the step file, and export DEBUG=1 (for more
+output than tests accept).
+
 ### LiveScript
 
 The LiveScript implementation of mal has been tested with LiveScript 1.5.
@@ -772,7 +784,7 @@ make
 
 The Objective C implementation of mal has been built and tested on
 Linux using clang/LLVM 3.6. It has also been built and tested on OS
-X using XCode 7.
+X using Xcode 7.
 
 ```
 cd impls/objc
@@ -1112,7 +1124,7 @@ make sml_MODE=mosml
 
 ### Swift
 
-The Swift implementation of mal requires the Swift 2.0 compiler (XCode
+The Swift implementation of mal requires the Swift 2.0 compiler (Xcode
 7.0) to build. Older versions will not work due to changes in the
 language and standard library.
 
@@ -1226,7 +1238,6 @@ runs under several different non-web embeddings (runtimes):
 [node](https://nodejs.org),
 [wasmtime](https://github.com/CraneStation/wasmtime),
 [wasmer](https://wasmer.io),
-[lucet](https://github.com/fastly/lucet),
 [wax](https://github.com/kanaka/wac),
 [wace](https://github.com/kanaka/wac),
 [warpy](https://github.com/kanaka/warpy).
@@ -1242,9 +1253,6 @@ wasmtime --dir=./ --dir=../ --dir=/ ./stepX_YYY.wasm
 # wasmer
 make wasm_MODE=wasmer
 wasmer run --dir=./ --dir=../ --dir=/ ./stepX_YYY.wasm
-# lucet
-make wasm_MODE=lucet
-lucet-wasi --dir=./:./ --dir=../:../ --dir=/:/ ./stepX_YYY.so
 # wax
 make wasm_MODE=wax
 wax ./stepX_YYY.wasm
@@ -1452,7 +1460,7 @@ make "docker-build^IMPL"
 
 
 **Notes**:
-* Docker images are named *"kanaka/mal-test-IMPL"*
+* Docker images are named *"ghcr.io/kanaka/mal-test-IMPL"*
 * JVM-based language implementations (Groovy, Java, Clojure, Scala):
   you will probably need to run this command once manually
   first `make DOCKERIZE=1 "repl^IMPL"` before you can run tests because

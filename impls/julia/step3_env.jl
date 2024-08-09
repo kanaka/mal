@@ -12,20 +12,25 @@ function READ(str)
 end
 
 # EVAL
-function eval_ast(ast, env)
-    if typeof(ast) == Symbol
-        env_get(env,ast)
-    elseif isa(ast, Array) || isa(ast, Tuple)
-        map((x) -> EVAL(x,env), ast)
-    elseif isa(ast, Dict)
-        [x[1] => EVAL(x[2], env) for x=ast]
-    else
-        ast
-    end
-end
-
 function EVAL(ast, env)
-    if !isa(ast, Array) return eval_ast(ast, env) end
+    dbgenv = env_find(env, Symbol("DEBUG-EVAL"))
+    if dbgenv != nothing
+        dbgeval = env_get(dbgenv, Symbol("DEBUG-EVAL"))
+        if dbgeval !== nothing && dbgeval !== false
+            println("EVAL: $(printer.pr_str(ast,true))")
+        end
+    end
+
+    if typeof(ast) == Symbol
+        return env_get(env,ast)
+    elseif isa(ast, Tuple)
+        return map((x) -> EVAL(x,env), ast)
+    elseif isa(ast, Dict)
+        return [x[1] => EVAL(x[2], env) for x=ast]
+    elseif !isa(ast, Array)
+        return ast
+    end
+
     if isempty(ast) return ast end
 
     # apply
@@ -38,7 +43,7 @@ function EVAL(ast, env)
         end
         EVAL(ast[3], let_env)
     else
-        el = eval_ast(ast, env)
+        el = map((x) -> EVAL(x,env), ast)
         f, args = el[1], el[2:end]
         f(args...)
     end

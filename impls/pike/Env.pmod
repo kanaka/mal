@@ -29,17 +29,11 @@ class Env
     return val;
   }
 
-  Env find(Val key)
+  Val get(string key)
   {
-    if(data[key.value]) return this_object();
-    if(outer) return outer.find(key);
+    Val res = data[key];
+    if(res) return res;
+    if(outer) return outer.get(key);
     return 0;
-  }
-
-  Val get(Val key)
-  {
-    Env found_env = find(key);
-    if(!found_env) throw("'" + key.value + "' not found");
-    return found_env.data[key.value];
   }
 }

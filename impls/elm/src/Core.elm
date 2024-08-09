@@ -1,23 +1,23 @@
 module Core exposing (..)
 
-import Types exposing (..)
-import Env
-import Eval
-import Printer exposing (printString)
 import Array
 import Dict
+import Env
+import Eval
 import IO exposing (IO(..))
+import Printer exposing (printString)
 import Reader
-import Utils exposing (zip)
-import Time
 import Task
+import Time
+import Types exposing (..)
+import Utils exposing (zip)
 
 
 ns : Env
 ns =
     let
         makeFn =
-            CoreFunc >> MalFunction
+            CoreFunc Nothing >> MalFunction
 
         binaryOp fn retType args =
             case args of
@@ -28,13 +28,13 @@ ns =
                     Eval.fail "unsupported arguments"
 
         {- list -}
-        list =
-            Eval.succeed << MalList
+        core_list =
+            Eval.succeed << MalList Nothing
 
         {- list? -}
         isList args =
             case args of
-                [ MalList _ ] ->
+                [ MalList _ _ ] ->
                     Eval.succeed (MalBool True)
 
                 _ ->
@@ -43,10 +43,10 @@ ns =
         {- empty? -}
         isEmpty args =
             case args of
-                [ MalList list ] ->
+                [ MalList _ list ] ->
                     Eval.succeed <| MalBool (List.isEmpty list)
 
-                [ MalVector vec ] ->
+                [ MalVector _ vec ] ->
                     Eval.succeed <| MalBool (Array.isEmpty vec)
 
                 _ ->
@@ -58,10 +58,10 @@ ns =
                 [ MalNil ] ->
                     Eval.succeed (MalInt 0)
 
-                [ MalList list ] ->
+                [ MalList _ list ] ->
                     Eval.succeed <| MalInt (List.length list)
 
-                [ MalVector vec ] ->
+                [ MalVector _ vec ] ->
                     Eval.succeed <| MalInt (Array.length vec)
 
                 _ ->
@@ -73,8 +73,9 @@ ns =
                     True
 
                 ( x :: xs, y :: ys ) ->
-                    if deepEquals x y then
+                    if deepEquals (x, y) then
                         equalLists xs ys
+
                     else
                         False
 
@@ -83,10 +84,10 @@ ns =
 
         compareListTo list other =
             case other of
-                MalList otherList ->
+                MalList _ otherList ->
                     equalLists list otherList
 
-                MalVector vec ->
+                MalVector _ vec ->
                     equalLists list (Array.toList vec)
 
                 _ ->
@@ -95,48 +96,49 @@ ns =
         equalMaps a b =
             if Dict.keys a /= Dict.keys b then
                 False
+
             else
                 zip (Dict.values a) (Dict.values b)
-                    |> List.map (uncurry deepEquals)
+                    |> List.map deepEquals
                     |> List.all identity
 
-        deepEquals a b =
-            case ( a, b ) of
-                ( MalList list, MalList otherList ) ->
+        deepEquals c =
+            case c of
+                ( MalList _ list, MalList _ otherList ) ->
                     equalLists list otherList
 
-                ( MalList list, MalVector vec ) ->
+                ( MalList _ list, MalVector _ vec ) ->
                     equalLists list (Array.toList vec)
 
-                ( MalList _, _ ) ->
+                ( MalList _ _, _ ) ->
                     False
 
-                ( MalVector vec, MalList list ) ->
+                ( MalVector _ vec, MalList _ list ) ->
                     equalLists (Array.toList vec) list
 
-                ( MalVector vec, MalVector otherVec ) ->
+                ( MalVector _ vec, MalVector _ otherVec ) ->
                     equalLists (Array.toList vec) (Array.toList otherVec)
 
-                ( MalVector _, _ ) ->
+                ( MalVector _ _, _ ) ->
                     False
 
-                ( MalMap map, MalMap otherMap ) ->
+                ( MalMap _ map, MalMap _ otherMap ) ->
                     equalMaps map otherMap
 
-                ( MalMap _, _ ) ->
+                ( MalMap _ _, _ ) ->
                     False
 
-                ( _, MalMap _ ) ->
+                ( _, MalMap _ _ ) ->
                     False
 
-                _ ->
+                (a, b) ->
                     a == b
 
         {- = -}
         equals args =
             case args of
                 [ a, b ] ->
-                    Eval.succeed <| MalBool (deepEquals a b)
+                    Eval.succeed <| MalBool (deepEquals (a, b))
 
                 _ ->
                     Eval.fail "unsupported arguments"
@@ -153,7 +155,7 @@ ns =
                 )
 
         {- str -}
-        str args =
+        core_str args =
             Eval.withEnv
                 (\env ->
                     args
@@ -205,10 +207,7 @@ ns =
             case args of
                 [ MalString str ] ->
                     case Reader.readString str of
-                        Ok Nothing ->
-                            Eval.succeed MalNil
-
-                        Ok (Just ast) ->
+                        Ok ast ->
                             Eval.succeed ast
 
                         Err msg ->
@@ -226,8 +225,8 @@ ns =
                                 FileRead contents ->
                                     Eval.succeed <| MalString contents
 
-                                Exception msg ->
-                                    Eval.fail msg
+                                Exception errMsg ->
+                                    Eval.fail errMsg
 
                                 _ ->
                                     Eval.fail "wrong IO, expected FileRead"
@@ -278,7 +277,7 @@ ns =
         {- helper function for calling a core or user function -}
         callFn func args =
             case func of
-                CoreFunc fn ->
+                CoreFunc _ fn ->
                     fn args
 
                 UserFunc { eagerFn } ->
@@ -286,14 +285,14 @@ ns =
 
         swap args =
             case args of
-                (MalAtom atomId) :: (MalFunction func) :: args ->
+                (MalAtom atomId) :: (MalFunction func) :: moreArgs ->
                     Eval.withEnv
                         (\env ->
                             let
                                 value =
                                     Env.getAtom atomId env
                             in
-                                callFn func (value :: args)
+                            callFn func (value :: moreArgs)
                         )
                         |> Eval.andThen
                             (\res ->
@@ -345,13 +344,13 @@ ns =
                 [ MalNil ] ->
                     Eval.succeed <| MalSymbol "nil"
 
-                [ MalList _ ] ->
+                [ MalList _ _ ] ->
                     Eval.succeed <| MalSymbol "vector"
 
-                [ MalVector _ ] ->
+                [ MalVector _ _ ] ->
                     Eval.succeed <| MalSymbol "vector"
 
-                [ MalMap _ ] ->
+                [ MalMap _ _ ] ->
                     Eval.succeed <| MalSymbol "vector"
 
                 [ MalFunction _ ] ->
@@ -365,11 +364,11 @@ ns =
 
         cons args =
             case args of
-                [ e, MalList list ] ->
-                    Eval.succeed <| MalList (e :: list)
+                [ e, MalList _ list ] ->
+                    Eval.succeed <| MalList Nothing (e :: list)
 
-                [ e, MalVector vec ] ->
-                    Eval.succeed <| MalList (e :: (Array.toList vec))
+                [ e, MalVector _ vec ] ->
+                    Eval.succeed <| MalList Nothing (e :: (Array.toList vec))
 
                 _ ->
                     Eval.fail "unsupported arguments"
@@ -378,22 +377,22 @@ ns =
             let
                 go arg acc =
                     case arg of
-                        MalList list ->
+                        MalList _ list ->
                             Eval.succeed (acc ++ list)
 
-                        MalVector vec ->
+                        MalVector _ vec ->
                             Eval.succeed (acc ++ Array.toList vec)
 
                         _ ->
                             Eval.fail "unsupported arguments"
             in
-                List.foldl (go >> Eval.andThen) (Eval.succeed []) args
-                    |> Eval.map MalList
+            List.foldl (go >> Eval.andThen) (Eval.succeed []) args
+                |> Eval.map (MalList Nothing)
 
-        vec args =
+        core_vec args =
             case args of
-                [MalVector xs] -> Eval.succeed <| MalVector xs
-                [MalList   xs] -> Eval.succeed <| MalVector <| Array.fromList xs
+                [MalVector _ xs] -> Eval.succeed <| MalVector Nothing xs
+                [MalList _   xs] -> Eval.succeed <| MalVector Nothing <| Array.fromList xs
                 [_]            -> Eval.fail "vec: arg type"
                 _              -> Eval.fail "vec: arg count"
 
@@ -402,8 +401,10 @@ ns =
                 get list index =
                     if index < 0 then
                         Nothing
+
                     else if index == 0 then
                         List.head list
+
                     else
                         case list of
                             [] ->
@@ -420,50 +421,50 @@ ns =
                         Nothing ->
                             Eval.fail "index out of bounds"
             in
-                case args of
-                    [ MalList list, MalInt index ] ->
-                        make <| get list index
+            case args of
+                [ MalList _ list, MalInt index ] ->
+                    make <| get list index
 
-                    [ MalVector vec, MalInt index ] ->
-                        make <| Array.get index vec
+                [ MalVector _ vec, MalInt index ] ->
+                    make <| Array.get index vec
 
-                    _ ->
-                        Eval.fail "unsupported arguments"
+                _ ->
+                    Eval.fail "unsupported arguments"
 
         first args =
             let
                 make =
                     Eval.succeed << Maybe.withDefault MalNil
             in
-                case args of
-                    [ MalNil ] ->
-                        Eval.succeed MalNil
-
-                    [ MalList list ] ->
-                        make <| List.head list
-
-                    [ MalVector vec ] ->
-                        make <| Array.get 0 vec
-
-                    _ ->
-                        Eval.fail "unsupported arguments"
-
-        rest args =
             case args of
                 [ MalNil ] ->
-                    Eval.succeed <| MalList []
+                    Eval.succeed MalNil
 
-                [ MalList [] ] ->
-                    Eval.succeed <| MalList []
+                [ MalList _ list ] ->
+                    make <| List.head list
 
-                [ MalList (head :: tail) ] ->
-                    Eval.succeed <| MalList tail
+                [ MalVector _ vec ] ->
+                    make <| Array.get 0 vec
 
-                [ MalVector vec ] ->
+                _ ->
+                    Eval.fail "unsupported arguments"
+
+        core_rest args =
+            case args of
+                [ MalNil ] ->
+                    Eval.succeed <| MalList Nothing []
+
+                [ MalList _ [] ] ->
+                    Eval.succeed <| MalList Nothing []
+
+                [ MalList _ (head :: tail) ] ->
+                    Eval.succeed <| MalList Nothing tail
+
+                [ MalVector _ vec ] ->
                     Array.toList vec
                         |> List.tail
                         |> Maybe.withDefault []
-                        |> MalList
+                        |> MalList Nothing
                         |> Eval.succeed
 
                 _ ->
@@ -481,10 +482,10 @@ ns =
             case args of
                 (MalFunction func) :: rest ->
                     case List.reverse rest of
-                        (MalList last) :: middle ->
+                        (MalList _ last) :: middle ->
                             callFn func ((List.reverse middle) ++ last)
 
-                        (MalVector last) :: middle ->
+                        (MalVector _ last) :: middle ->
                             callFn func
                                 ((List.reverse middle)
                                     ++ (Array.toList last)
@@ -496,12 +497,12 @@ ns =
                 _ ->
                     Eval.fail "unsupported arguments"
 
-        map args =
+        core_map args =
             let
                 go func list acc =
                     case list of
                         [] ->
-                            Eval.succeed <| MalList <| List.reverse acc
+                            Eval.succeed <| MalList Nothing <| List.reverse acc
 
                         inv :: rest ->
                             callFn func [ inv ]
@@ -510,15 +511,15 @@ ns =
                                         Eval.pushRef outv (go func rest (outv :: acc))
                                     )
             in
-                case args of
-                    [ MalFunction func, MalList list ] ->
-                        Eval.withStack (go func list [])
+            case args of
+                [ MalFunction func, MalList _ list ] ->
+                    Eval.withStack (go func list [])
 
-                    [ MalFunction func, MalVector vec ] ->
-                        go func (Array.toList vec) []
+                [ MalFunction func, MalVector _ vec ] ->
+                    go func (Array.toList vec) []
 
-                    _ ->
-                        Eval.fail "unsupported arguments"
+                _ ->
+                    Eval.fail "unsupported arguments"
 
         isNil args =
             Eval.succeed <|
@@ -584,7 +585,7 @@ ns =
             Eval.succeed <|
                 MalBool <|
                     case args of
-                        (MalVector _) :: _ ->
+                        (MalVector _ _) :: _ ->
                             True
 
                         _ ->
@@ -594,7 +595,7 @@ ns =
             Eval.succeed <|
                 MalBool <|
                     case args of
-                        (MalMap _) :: _ ->
+                        (MalMap _ _) :: _ ->
                             True
 
                         _ ->
@@ -614,10 +615,10 @@ ns =
             Eval.succeed <|
                 MalBool <|
                     case args of
-                        (MalList _) :: _ ->
+                        (MalList _ _) :: _ ->
                             True
 
-                        (MalVector _) :: _ ->
+                        (MalVector _ _) :: _ ->
                             True
 
                         _ ->
@@ -627,13 +628,10 @@ ns =
             Eval.succeed <|
                 MalBool <|
                     case args of
-                        (MalFunction (CoreFunc _)) :: _ ->
+                        (MalFunction (CoreFunc _ _)) :: _ ->
                             True
                         (MalFunction (UserFunc fn)) :: _ ->
-                            if fn.isMacro then
-                                False
-                            else
-                                True
+                            not fn.isMacro
 
                         _ ->
                             False
@@ -643,10 +641,7 @@ ns =
                 MalBool <|
                     case args of
                         (MalFunction (UserFunc fn)) :: _ ->
-                            if fn.isMacro then
-                                True
-                            else
-                                False
+                            fn.isMacro
 
                         _ ->
                             False
@@ -659,16 +654,19 @@ ns =
                 _ ->
                     Eval.fail "unsupported arguments"
 
-        keyword args =
+        core_keyword args =
             case args of
                 [ MalString str ] ->
-                    Eval.succeed <| MalKeyword (String.cons ':' str)
+                    Eval.succeed <| MalKeyword str
+
+                [ (MalKeyword _) as kw ] ->
+                    Eval.succeed kw
 
                 _ ->
                     Eval.fail "unsupported arguments"
 
         vector args =
-            Eval.succeed <| MalVector <| Array.fromList args
+            Eval.succeed <| MalVector Nothing <| Array.fromList args
 
         parseKey key =
             case key of
@@ -684,14 +682,14 @@ ns =
         buildMap list acc =
             case list of
                 [] ->
-                    Eval.succeed <| MalMap acc
+                    Eval.succeed <| MalMap Nothing acc
 
                 key :: value :: rest ->
                     parseKey key
                         |> Eval.fromResult
                         |> Eval.andThen
-                            (\key ->
-                                buildMap rest (Dict.insert key value acc)
+                            (\k ->
+                                buildMap rest (Dict.insert k value acc)
                             )
 
                 _ ->
@@ -702,7 +700,7 @@ ns =
 
         assoc args =
             case args of
-                (MalMap dict) :: rest ->
+                (MalMap _ dict) :: rest ->
                     buildMap rest dict
 
                 _ ->
@@ -713,34 +711,34 @@ ns =
                 go keys acc =
                     case keys of
                         [] ->
-                            Eval.succeed <| MalMap acc
+                            Eval.succeed <| MalMap Nothing acc
 
                         key :: rest ->
                             parseKey key
                                 |> Eval.fromResult
                                 |> Eval.andThen
-                                    (\key ->
-                                        go rest (Dict.remove key acc)
+                                    (\k ->
+                                        go rest (Dict.remove k acc)
                                     )
             in
-                case args of
-                    (MalMap dict) :: keys ->
-                        go keys dict
+            case args of
+                (MalMap _ dict) :: keys ->
+                    go keys dict
 
-                    _ ->
-                        Eval.fail "unsupported arguments"
+                _ ->
+                    Eval.fail "unsupported arguments"
 
-        get args =
+        core_get args =
             case args of
                 [ MalNil, key ] ->
                     Eval.succeed MalNil
 
-                [ MalMap dict, key ] ->
+                [ MalMap _ dict, key ] ->
                     parseKey key
                         |> Eval.fromResult
                         |> Eval.map
-                            (\key ->
-                                Dict.get key dict
+                            (\k ->
+                                Dict.get k dict
                                     |> Maybe.withDefault MalNil
                             )
 
@@ -749,10 +747,10 @@ ns =
 
         contains args =
             case args of
-                [ MalMap dict, key ] ->
+                [ MalMap _ dict, key ] ->
                     parseKey key
                         |> Eval.fromResult
-                        |> Eval.map (\key -> Dict.member key dict)
+                        |> Eval.map (\k -> Dict.member k dict)
                         |> Eval.map MalBool
 
                 _ ->
@@ -763,18 +761,19 @@ ns =
                 Just ( prefix, rest ) ->
                     if prefix == keywordPrefix then
                         MalKeyword rest
+
                     else
                         MalString key
 
                 _ ->
                     MalString key
 
-        keys args =
+        core_keys args =
             case args of
-                [ MalMap dict ] ->
+                [ MalMap _ dict ] ->
                     Dict.keys dict
                         |> List.map unparseKey
-                        |> MalList
+                        |> MalList Nothing
                         |> Eval.succeed
 
                 _ ->
@@ -782,9 +781,9 @@ ns =
 
         vals args =
             case args of
-                [ MalMap dict ] ->
+                [ MalMap _ dict ] ->
                     Dict.values dict
-                        |> MalList
+                        |> MalList Nothing
                         |> Eval.succeed
 
                 _ ->
@@ -814,12 +813,36 @@ ns =
                 [ MalFunction (UserFunc func), meta ] ->
                     Eval.succeed <| MalFunction <| UserFunc { func | meta = Just meta }
 
+                [ MalList _ xs, meta ] ->
+                    Eval.succeed <| MalList (Just meta) xs
+
+                [ MalVector _ xs, meta ] ->
+                    Eval.succeed <| MalVector (Just meta) xs
+
+                [ MalMap _ map, meta ] ->
+                    Eval.succeed <| MalMap (Just meta) map
+
+                [ MalFunction (CoreFunc _ f), meta ] ->
+                    Eval.succeed <| MalFunction (CoreFunc (Just meta) f)
+
                 _ ->
                     Eval.fail "with-meta expected a user function and a map"
 
-        meta args =
+        core_meta args =
             case args of
                 [ MalFunction (UserFunc { meta }) ] ->
+                    Eval.succeed (Maybe.withDefault MalNil meta)
+
+                [ MalFunction (CoreFunc meta f) ] ->
+                    Eval.succeed (Maybe.withDefault MalNil meta)
+
+                [ MalList meta _ ] ->
+                    Eval.succeed (Maybe.withDefault MalNil meta)
+
+                [ MalVector meta _ ] ->
+                    Eval.succeed (Maybe.withDefault MalNil meta)
+
+                [ MalMap meta _ ] ->
                     Eval.succeed (Maybe.withDefault MalNil meta)
 
                 _ ->
@@ -827,15 +850,15 @@ ns =
 
         conj args =
             case args of
-                (MalList list) :: rest ->
+                (MalList _ list) :: rest ->
                     Eval.succeed <|
-                        MalList <|
-                            (List.reverse rest)
+                        MalList Nothing <|
+                            List.reverse rest
                                 ++ list
 
-                (MalVector vec) :: rest ->
+                (MalVector _ vec) :: rest ->
                     Eval.succeed <|
-                        MalVector <|
+                        MalVector Nothing <|
                             Array.append
                                 vec
                                 (Array.fromList rest)
@@ -848,25 +871,26 @@ ns =
                 [ MalNil ] ->
                     Eval.succeed MalNil
 
-                [ MalList [] ] ->
+                [ MalList _ [] ] ->
                     Eval.succeed MalNil
 
                 [ MalString "" ] ->
                     Eval.succeed MalNil
 
-                [ (MalList _) as list ] ->
-                    Eval.succeed list
+                [ MalList _ xs ] ->
+                    Eval.succeed (MalList Nothing xs)
 
-                [ MalVector vec ] ->
+                [ MalVector _ vec ] ->
                     Eval.succeed <|
                         if Array.isEmpty vec then
                             MalNil
+
                         else
-                            MalList <| Array.toList vec
+                            MalList Nothing <| Array.toList vec
 
                 [ MalString str ] ->
                     Eval.succeed <|
-                        MalList <|
+                        MalList Nothing <|
                             (String.toList str
                                 |> List.map String.fromChar
                                 |> List.map MalString
@@ -885,8 +909,7 @@ ns =
                         (\msg ->
                             case msg of
                                 GotTime time ->
-                                    Time.inMilliseconds time
-                                        |> floor
+                                    Time.posixToMillis time
                                         |> MalInt
                                         |> Eval.succeed
 
@@ -897,69 +920,69 @@ ns =
                 _ ->
                     Eval.fail "time-ms takes no arguments"
     in
-        Env.global
-            |> Env.set "+" (makeFn <| binaryOp (+) MalInt)
-            |> Env.set "-" (makeFn <| binaryOp (-) MalInt)
-            |> Env.set "*" (makeFn <| binaryOp (*) MalInt)
-            |> Env.set "/" (makeFn <| binaryOp (//) MalInt)
-            |> Env.set "<" (makeFn <| binaryOp (<) MalBool)
-            |> Env.set ">" (makeFn <| binaryOp (>) MalBool)
-            |> Env.set "<=" (makeFn <| binaryOp (<=) MalBool)
-            |> Env.set ">=" (makeFn <| binaryOp (>=) MalBool)
-            |> Env.set "list" (makeFn list)
-            |> Env.set "list?" (makeFn isList)
-            |> Env.set "empty?" (makeFn isEmpty)
-            |> Env.set "count" (makeFn count)
-            |> Env.set "=" (makeFn equals)
-            |> Env.set "pr-str" (makeFn prStr)
-            |> Env.set "str" (makeFn str)
-            |> Env.set "prn" (makeFn prn)
-            |> Env.set "println" (makeFn println)
-            |> Env.set "pr-env" (makeFn printEnv)
-            |> Env.set "read-string" (makeFn readString)
-            |> Env.set "slurp" (makeFn slurp)
-            |> Env.set "atom" (makeFn atom)
-            |> Env.set "atom?" (makeFn isAtom)
-            |> Env.set "deref" (makeFn deref)
-            |> Env.set "reset!" (makeFn reset)
-            |> Env.set "swap!" (makeFn swap)
-            |> Env.set "gc" (makeFn gc)
-            |> Env.set "debug!" (makeFn debug)
-            |> Env.set "typeof" (makeFn typeof)
-            |> Env.set "cons" (makeFn cons)
-            |> Env.set "concat" (makeFn concat)
-            |> Env.set "vec" (makeFn vec)
-            |> Env.set "nth" (makeFn nth)
-            |> Env.set "first" (makeFn first)
-            |> Env.set "rest" (makeFn rest)
-            |> Env.set "throw" (makeFn throw)
-            |> Env.set "apply" (makeFn apply)
-            |> Env.set "map" (makeFn map)
-            |> Env.set "nil?" (makeFn isNil)
-            |> Env.set "true?" (makeFn isTrue)
-            |> Env.set "false?" (makeFn isFalse)
-            |> Env.set "number?" (makeFn isNumber)
-            |> Env.set "symbol?" (makeFn isSymbol)
-            |> Env.set "keyword?" (makeFn isKeyword)
-            |> Env.set "vector?" (makeFn isVector)
-            |> Env.set "map?" (makeFn isMap)
-            |> Env.set "string?" (makeFn isString)
-            |> Env.set "sequential?" (makeFn isSequential)
-            |> Env.set "fn?" (makeFn isFn)
-            |> Env.set "macro?" (makeFn isMacro)
-            |> Env.set "symbol" (makeFn symbol)
-            |> Env.set "keyword" (makeFn keyword)
-            |> Env.set "vector" (makeFn vector)
-            |> Env.set "hash-map" (makeFn hashMap)
-            |> Env.set "assoc" (makeFn assoc)
-            |> Env.set "dissoc" (makeFn dissoc)
-            |> Env.set "get" (makeFn get)
-            |> Env.set "contains?" (makeFn contains)
-            |> Env.set "keys" (makeFn keys)
-            |> Env.set "vals" (makeFn vals)
-            |> Env.set "readline" (makeFn readLine)
-            |> Env.set "with-meta" (makeFn withMeta)
-            |> Env.set "meta" (makeFn meta)
-            |> Env.set "conj" (makeFn conj)
-            |> Env.set "seq" (makeFn seq)
-            |> Env.set "time-ms" (makeFn timeMs)
+    Env.global
+        |> Env.set "+" (makeFn <| binaryOp (+) MalInt)
+        |> Env.set "-" (makeFn <| binaryOp (-) MalInt)
+        |> Env.set "*" (makeFn <| binaryOp (*) MalInt)
+        |> Env.set "/" (makeFn <| binaryOp (//) MalInt)
+        |> Env.set "<" (makeFn <| binaryOp (<) MalBool)
+        |> Env.set ">" (makeFn <| binaryOp (>) MalBool)
+        |> Env.set "<=" (makeFn <| binaryOp (<=) MalBool)
+        |> Env.set ">=" (makeFn <| binaryOp (>=) MalBool)
+        |> Env.set "list" (makeFn core_list)
+        |> Env.set "list?" (makeFn isList)
+        |> Env.set "empty?" (makeFn isEmpty)
+        |> Env.set "count" (makeFn count)
+        |> Env.set "=" (makeFn equals)
+        |> Env.set "pr-str" (makeFn prStr)
+        |> Env.set "str" (makeFn core_str)
+        |> Env.set "prn" (makeFn prn)
+        |> Env.set "println" (makeFn println)
+        |> Env.set "pr-env" (makeFn printEnv)
+        |> Env.set "read-string" (makeFn readString)
+        |> Env.set "slurp" (makeFn slurp)
+        |> Env.set "atom" (makeFn atom)
+        |> Env.set "atom?" (makeFn isAtom)
+        |> Env.set "deref" (makeFn deref)
+        |> Env.set "reset!" (makeFn reset)
+        |> Env.set "swap!" (makeFn swap)
+        |> Env.set "gc" (makeFn gc)
+        |> Env.set "debug!" (makeFn debug)
+        |> Env.set "typeof" (makeFn typeof)
+        |> Env.set "cons" (makeFn cons)
+        |> Env.set "concat" (makeFn concat)
+        |> Env.set "vec" (makeFn core_vec)
+        |> Env.set "nth" (makeFn nth)
+        |> Env.set "first" (makeFn first)
+        |> Env.set "rest" (makeFn core_rest)
+        |> Env.set "throw" (makeFn throw)
+        |> Env.set "apply" (makeFn apply)
+        |> Env.set "map" (makeFn core_map)
+        |> Env.set "nil?" (makeFn isNil)
+        |> Env.set "true?" (makeFn isTrue)
+        |> Env.set "false?" (makeFn isFalse)
+        |> Env.set "number?" (makeFn isNumber)
+        |> Env.set "symbol?" (makeFn isSymbol)
+        |> Env.set "keyword?" (makeFn isKeyword)
+        |> Env.set "vector?" (makeFn isVector)
+        |> Env.set "map?" (makeFn isMap)
+        |> Env.set "string?" (makeFn isString)
+        |> Env.set "sequential?" (makeFn isSequential)
+        |> Env.set "fn?" (makeFn isFn)
+        |> Env.set "macro?" (makeFn isMacro)
+        |> Env.set "symbol" (makeFn symbol)
+        |> Env.set "keyword" (makeFn core_keyword)
+        |> Env.set "vector" (makeFn vector)
+        |> Env.set "hash-map" (makeFn hashMap)
+        |> Env.set "assoc" (makeFn assoc)
+        |> Env.set "dissoc" (makeFn dissoc)
+        |> Env.set "get" (makeFn core_get)
+        |> Env.set "contains?" (makeFn contains)
+        |> Env.set "keys" (makeFn core_keys)
+        |> Env.set "vals" (makeFn vals)
+        |> Env.set "readline" (makeFn readLine)
+        |> Env.set "with-meta" (makeFn withMeta)
+        |> Env.set "meta" (makeFn core_meta)
+        |> Env.set "conj" (makeFn conj)
+        |> Env.set "seq" (makeFn seq)
+        |> Env.set "time-ms" (makeFn timeMs)

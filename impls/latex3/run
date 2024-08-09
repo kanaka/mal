@@ -1,0 +1,45 @@
+#!/bin/sh
+set -Cefu
+
+# LaTeX creates temporary files in the current directory.
+cd $(dirname $0)
+
+# There is no way to directly provide command line arguments to LaTeX,
+# use an intermediate file.
+for arg; do
+    echo "$arg"
+done >| argv
+
+# max_print_line: prevent TeX from wrapping lines written to the
+# terminal (the default is around 80 columns).
+
+# Shell escapes are necessary for time-ms in core.sty.
+# time-ms also requires to strip the output caused by accessing a subshell.
+
+# Halt on error... should be the default.
+
+# Remove the normal TeX initial and final output. The > characters
+# confuse the test runner, especially in the *ARGV* test.
+
+# There is no way in latex3 to check if the terminal receives an
+# END_OF_FILE character, handle Emergency stop as a normal ending.
+
+# When debugging, set DEBUG=1 to see the actual output.
+
+max_print_line=1000 \
+latex \
+    -shell-escape \
+    -halt-on-error \
+    ${STEP:-stepA_mal}.tex \
+    | {
+    if [ -n "${DEBUG:-}" ]; then
+        cat
+    else
+        sed '
+            1,/^MAL_LATEX3_START_OF_OUTPUT$/              d
+            /^MAL_LATEX3_END_OF_OUTPUT$/,$                d
+            /^MAL_LATEX3_STRIP_ON/,/MAL_LATEX3_STRIP_OFF/ d
+            /^! Emergency stop[.]$/,$                     d
+            '
+    fi
+}

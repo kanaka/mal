@@ -9,163 +9,153 @@ to _read :str
 output read_str :str
 end
 
-to starts_with :ast :sym
-if (obj_type :ast) <> "list [output "false]
-localmake "xs obj_val :ast
-if emptyp :xs [output "false]
-localmake "a0 first :xs
-output and ((obj_type :a0) = "symbol) ((obj_val :a0) = :sym)
+to quasiquote :ast
+case obj_type :ast [
+  [[list]       localmake "xs seq_val ast
+                if not emptyp :xs [if equal_q first :xs symbol_new "unquote [
+                  output item 2 :xs
+                ]]
+                output qq_seq :xs]
+  [[vector]     output list_new (list symbol_new "vec qq_seq seq_val :ast)]
+  [[map symbol] output list_new (list symbol_new "quote :ast)]
+  [else         output :ast]
+]
 end
 
-to quasiquote :ast
-if memberp obj_type :ast [hashmap symbol] [output (mal_list symbol_new "quote :ast)]
-if not sequentialp :ast [output :ast]
-if starts_with :ast "unquote [output nth :ast 1]
-localmake "result mal_list
-foreach reverse obj_val :ast [
-  ifelse starts_with ? "splice-unquote [
-    make "result (mal_list symbol_new "concat nth ? 1 :result)
-  ] [
-    make "result (mal_list symbol_new "cons quasiquote ? :result)
-  ] ]
-if (obj_type :ast) = "vector [make "result (mal_list symbol_new "vec :result)]
+to qq_seq :xs
+localmake "result list_new []
+foreach reverse :xs [make "result qq_folder ? :result]
 output :result
 end
 
-to macrocallp :ast :env
-if (obj_type :ast) = "list [
-  if (_count :ast) > 0 [
-    localmake "a0 nth :ast 0
-    if (obj_type :a0) = "symbol [
-      if not emptyp env_find :env :a0 [
-        localmake "f env_get :env :a0
-        if (obj_type :f) = "fn [
-          output fn_is_macro :f
+to qq_folder :elt :acc
+if "list = obj_type :elt [
+  localmake "ys seq_val :elt
+  if not emptyp :ys [if equal_q first :ys symbol_new "splice-unquote [
+    output list_new (list symbol_new "concat item 2 :ys :acc)
+  ]]
+]
+output list_new (list symbol_new "cons quasiquote :elt :acc)
+end
+
+to _eval :ast :env
+forever [
+if not memberp obj_type env_get :env symbol_new "DEBUG-EVAL [false nil notfound] [
+  (print "EVAL: _print :ast "/ map "_print env_keys :env)
+]
+
+case obj_type :ast [
+
+  [[symbol]
+    localmake "val env_get :env :ast
+    if "notfound = obj_type :val [
+      (throw "error sentence (word "' symbol_value :ast "') [not found])
+    ]
+    output :val
+  ]
+
+  [[vector] output vector_new map [_eval ? :env] seq_val :ast]
+
+  [[map] output map_map [_eval ? :env] :ast]
+
+  [[list]
+    make "ast seq_val :ast
+    if emptyp :ast [output list_new []]
+    localmake "a0 first :ast
+    make "ast butfirst :ast
+    case ifelse "symbol = obj_type :a0 [symbol_value :a0] "" [
+
+    [[def!]
+      localmake "a1 first :ast
+      localmake "a2 item 2 :ast
+      localmake "val _eval :a2 :env
+      env_set :env :a1 :val
+      output :val ]
+
+    [[let*]
+      localmake "a1 first :ast
+      localmake "letenv env_new :env [] []
+      foreach seq_val first :ast [
+        if 1 = modulo # 2 [
+          env_set :letenv ? _eval first ?rest :letenv
         ]
       ]
-    ]
-  ]
-]
-output "false
-end
-
-to _macroexpand :ast :env
-if not macrocallp :ast :env [output :ast]
-localmake "a0 nth :ast 0
-localmake "f env_get :env :a0
-output _macroexpand invoke_fn :f rest :ast :env
-end
-
-to eval_ast :ast :env
-output case (obj_type :ast) [
-  [[symbol]  env_get :env :ast]
-  [[list]    obj_new "list    map [_eval ? :env] obj_val :ast]
-  [[vector]  obj_new "vector  map [_eval ? :env] obj_val :ast]
-  [[hashmap] obj_new "hashmap map [_eval ? :env] obj_val :ast]
-  [else :ast]
-]
-end
-
-to _eval :a_ast :a_env
-localmake "ast :a_ast
-localmake "env :a_env
-forever [
-  if (obj_type :ast) <> "list [output eval_ast :ast :env]
-  make "ast _macroexpand :ast :env
-  if (obj_type :ast) <> "list [output eval_ast :ast :env]
-  if emptyp obj_val :ast [output :ast]
-  localmake "a0 nth :ast 0
-  case list obj_type :a0 obj_val :a0 [
-    [[[symbol def!]]
-      localmake "a1 nth :ast 1
-      localmake "a2 nth :ast 2
-      output env_set :env :a1 _eval :a2 :env ]
-
-    [[[symbol let*]]
-      localmake "a1 nth :ast 1
-      localmake "letenv env_new :env [] []
-      localmake "i 0
-      while [:i < _count :a1] [
-        ignore env_set :letenv nth :a1 :i _eval nth :a1 (:i + 1) :letenv
-        make "i (:i + 2)
-      ]
       make "env :letenv
-      make "ast nth :ast 2 ]        ; TCO
+      make "ast item 2 :ast ]   ; TCO
 
-    [[[symbol quote]]
-      output nth :ast 1  ]
+    [[quote]
+      output first :ast]
 
-    [[[symbol quasiquote]]
-      make "ast quasiquote nth :ast 1 ]     ; TCO
+    [[quasiquote]
+      make "ast quasiquote first :ast ] ; TCO
 
-    [[[symbol quasiquoteexpand]]
-      output quasiquote nth :ast 1]
+    [[defmacro!]
+      localmake "a1 first :ast
+      localmake "a2 item 2 :ast
+      localmake "macro_fn macro_new _eval :a2 :env
+      env_set :env :a1 :macro_fn
+      output :macro_fn ]
 
-    [[[symbol defmacro!]]
-      localmake "a1 nth :ast 1
-      localmake "a2 nth :ast 2
-      localmake "macro_fn _eval :a2 :env
-      fn_set_macro :macro_fn
-      output env_set :env :a1 :macro_fn ]
-
-    [[[symbol macroexpand]]
-      output _macroexpand nth :ast 1 :env ]
-
-    [[[symbol try*]]
-      localmake "a1 nth :ast 1
-      if (_count :ast) < 3 [
-        output _eval :a1 :env
-      ]
+    [[try*]
+     localmake "a1 first :ast
+     ifelse 1 = count :ast [
+      make "ast :a1         ; TCO
+     ] [
+      localmake "result nil_new
       localmake "result nil_new
       catch "error [make "result _eval :a1 :env]
       localmake "exception error
       ifelse emptyp :exception [
         output :result
       ] [
-        localmake "e first butfirst :exception
-	localmake "exception_obj ifelse :e = "_mal_exception_ [:global_exception] [obj_new "string :e]
-        localmake "a2 nth :ast 2
+        localmake "e item 2 :exception
+        localmake "exception_obj ifelse :e = "_mal_exception_ ":global_exception [string_new :e]
+        localmake "a2 seq_val item 2 :ast
         localmake "catchenv env_new :env [] []
-        ignore env_set :catchenv nth :a2 1 :exception_obj
-        output _eval nth :a2 2 :catchenv
+        env_set :catchenv item 2 :a2 :exception_obj
+        make "env :catchenv
+        make "ast item 3 :a2 ; TCO
       ] ]
+    ]
 
-    [[[symbol do]]
-      localmake "i 1
-      while [:i < ((_count :ast) - 1)] [
-        ignore _eval nth :ast :i :env
-        make "i (:i + 1)
+    [[do]
+      foreach :ast [ ; TCO for last item
+        ifelse emptyp ?rest [make "ast ?] [ignore _eval ? :env]
       ]
-      make "ast last obj_val :ast ] ; TCO
+    ]
 
-    [[[symbol if]]
-      localmake "a1 nth :ast 1
+    [[if]
+      localmake "a1 first :ast
       localmake "cond _eval :a1 :env
       case obj_type :cond [
-        [[nil false] ifelse (_count :ast) > 3 [
-                       make "ast nth :ast 3  ; TCO
+        [[nil false] ifelse 3 = count :ast [
+                       make "ast item 3 :ast ; TCO
                      ] [
                        output nil_new
                      ]]
-        [else        make "ast nth :ast 2]   ; TCO
+        [else        make "ast item 2 :ast] ; TCO
       ]]
 
-    [[[symbol fn*]]
-      output fn_new nth :ast 1 :env nth :ast 2 ]
+    [[fn*]
+      output fn_new seq_val first :ast :env item 2 :ast ]
 
     [else
-      localmake "el eval_ast :ast :env
-      localmake "f nth :el 0
+      localmake "f _eval :a0 :env
       case obj_type :f [
         [[nativefn]
-          output apply obj_val :f butfirst obj_val :el ]
+          output nativefn_apply :f map [_eval ? :env] :ast ]
         [[fn]
-          make "env env_new fn_env :f fn_args :f rest :el
+          make "env fn_gen_env :f map [_eval ? :env] :ast
           make "ast fn_body :f ]  ; TCO
+        [[macro]
+          make "ast macro_apply :f :ast ] ; TCO
         [else
           (throw "error [Wrong type for apply])]
       ] ]
+    ]
   ]
+  [else output :ast]
+]
 ]
 end
 
@@ -174,16 +164,16 @@ output pr_str :exp "true
 end
 
 to re :str
-output _eval _read :str :repl_env
+ignore _eval _read :str :repl_env
 end
 
 to rep :str
-output _print re :str
+output _print _eval _read :str :repl_env
 end
 
 to print_exception :exception
 if not emptyp :exception [
-  localmake "e first butfirst :exception
+  localmake "e item 2 :exception
   ifelse :e = "_mal_exception_ [
     (print "Error: pr_str :global_exception "false)
   ] [
@@ -193,19 +183,14 @@ if not emptyp :exception [
 end
 
 to repl
-localmake "running "true
-while [:running] [
-  localmake "line readline word "user> :space_char
-  ifelse :line=[] [
-    print "
-    make "running "false
-  ] [
+do.until [
+    localmake "line readline "|user> |
     if not emptyp :line [
       catch "error [print rep :line]
       print_exception error
     ]
-  ]
-]
+] [:line = []]
+(print)
 end
 
 to mal_eval :a
@@ -214,28 +199,28 @@ end
 
 to argv_list
 localmake "argv ifelse emptyp :command.line [[]] [butfirst :command.line]
-output obj_new "list map [obj_new "string ?] :argv
+output list_new map "string_new :argv
 end
 
 make "repl_env env_new [] [] []
 foreach :core_ns [
-  ignore env_set :repl_env first ? first butfirst ?
+  env_set :repl_env symbol_new ? nativefn_new word "mal_ ?
 ]
-ignore env_set :repl_env [symbol eval] [nativefn mal_eval]
-ignore env_set :repl_env [symbol *ARGV*] argv_list
+env_set :repl_env symbol_new "eval nativefn_new "mal_eval
+env_set :repl_env symbol_new "*ARGV* argv_list
 
 ; core.mal: defined using the language itself
-ignore re "|(def! *host-language* "logo")|
-ignore re "|(def! not (fn* (a) (if a false true)))|
-ignore re "|(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \"\\nnil)\")))))|
-ignore re "|(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw "odd number of forms to cond")) (cons 'cond (rest (rest xs)))))))|
+re "|(def! *host-language* "logo")|
+re "|(def! not (fn* (a) (if a false true)))|
+re "|(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \"\\nnil)\")))))|
+re "|(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw "odd number of forms to cond")) (cons 'cond (rest (rest xs)))))))|
 
-if not emptyp :command.line [
-  catch "error [ignore re (word "\(load-file :space_char "\" first :command.line "\"\) )]
+ifelse emptyp :command.line [
+  re "|(println (str "Mal [" *host-language* "]"))|
+  repl
+] [
+  catch "error [re (word "|(load-file "| first :command.line "|")| )]
   print_exception error
-  bye
 ]
 
-ignore re "|(println (str "Mal [" *host-language* "]"))|
-repl
 bye

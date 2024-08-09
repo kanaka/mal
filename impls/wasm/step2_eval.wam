@@ -9,8 +9,9 @@
 
   ;; EVAL
   (func $EVAL_AST (param $ast i32 $env i32) (result i32)
-    (local $res2 i64)
-    (LET $res 0 $val2 0 $val3 0 $type 0 $found 0
+    ;; Return a list/vector/map with evaluated elements
+    ;; of a list, vector or hashmap $ast
+    (LET $res 0 $val2 0 $val3 0 $type 0
          $ret 0 $empty 0 $current 0)
 
     (if (global.get $error_type) (return 0))
@@ -18,23 +19,6 @@
 
     ;;($PR_VALUE ">>> EVAL_AST ast: '%s'\n" $ast)
 
-    ;;; switch(type)
-    (block $done
-      (block $default (block (block
-      (br_table 2 2 2 2 2 0 1 1 1 2 2 2 2 2 2 2 $type))
-      ;; symbol
-      ;; found/res returned as hi 32/lo 32 of i64
-      (local.set $res2 ($HASHMAP_GET $env $ast))
-      (local.set $res (i32.wrap_i64 $res2))
-      (local.set $found (i32.wrap_i64 (i64.shr_u $res2
-                                                 (i64.const 32))))
-      (if (i32.eqz $found)
-          ($THROW_STR_1 "'%s' not found"
-                ($to_String $ast)))
-      (local.set $res ($INC_REF $res))
-
-      (br $done))
-      ;; list, vector, hashmap
       ;; MAP_LOOP_START
       (local.set $res ($MAP_LOOP_START $type))
       ;; push MAP_LOOP stack
@@ -43,10 +27,11 @@
       (local.set $current $res)
       (local.set $empty $res)
 
-      (block $done
         (loop $loop
           ;; check if we are done evaluating the source sequence
-          (br_if $done (i32.eq ($VAL0 $ast) 0))
+          (if (i32.eqz ($VAL0 $ast))
+            (then
+              (return $ret)))
 
           (if (i32.eq $type (global.get $HASHMAP_T))
             (then
@@ -59,8 +44,7 @@
           (if (global.get $error_type)
             (then
               ($RELEASE $res)
-              (local.set $res 0)
-              (br $done)))
+              (return 0)))
 
           ;; for hash-maps, copy the key (inc ref since we are going
           ;; to release it below)
@@ -82,16 +66,7 @@
 
           (br $loop)
         )
-      )
       ;; MAP_LOOP_DONE
-      (local.set $res $ret)
-      ;; EVAL_AST_RETURN: nothing to do
-      (br $done))
-      ;; default
-      (local.set $res ($INC_REF $ast))
-    )
-
-    $res
   )
 
   (type $fnT (func (param i32) (result i32)))
@@ -101,25 +76,41 @@
       $add $subtract $multiply $divide))
 
   (func $EVAL (param $ast i32 $env i32) (result i32)
+    (local $res2 i64)
     (LET $res 0
-         $ftype 0 $f_args 0 $f 0 $args 0)
-
-    (local.set $f_args 0)
-    (local.set $f 0)
-    (local.set $args 0)
+         $ftype 0 $f_args 0 $ast_type 0 $f 0 $args 0 $found 0)
 
     (if (global.get $error_type) (return 0))
 
-    ;;($PR_VALUE ">>> EVAL ast: '%s'\n" $ast)
+    ;;($PR_VALUE "EVAL: %s\n" $ast)
 
-    (if (i32.ne ($TYPE $ast) (global.get $LIST_T))
-      (return ($EVAL_AST $ast $env)))
+    (local.set $ast_type ($TYPE $ast))
+
+    (if (i32.eq $ast_type (global.get $SYMBOL_T))
+      (then
+       (local.set $res2 ($HASHMAP_GET $env $ast))
+       (local.set $res (i32.wrap_i64 $res2))
+       (local.set $found (i32.wrap_i64 (i64.shr_u $res2
+                                                  (i64.const 32))))
+       (if (i32.eqz $found)
+           ($THROW_STR_1 "'%s' not found"
+                 ($to_String $ast)))
+       (return ($INC_REF $res))))
+
+    (if (OR (i32.eq $ast_type (global.get $VECTOR_T))
+            (i32.eq $ast_type (global.get $HASHMAP_T)))
+      (then
+        (return ($EVAL_AST $ast $env))))
+
+    (if (OR (i32.ne $ast_type (global.get $LIST_T))
+            ($EMPTY_Q $ast))
+      (then
+        (return ($INC_REF $ast))))
 
     ;; APPLY_LIST
-    (if ($EMPTY_Q $ast)
-      (return ($INC_REF $ast)))
 
       ;; EVAL_INVOKE
+
       (local.set $res ($EVAL_AST $ast $env))
       (local.set $f_args $res)
 
@@ -133,14 +124,14 @@
       (local.set $ftype ($TYPE $f))
       (if (i32.eq $ftype (global.get $FUNCTION_T))
         (then
-          (local.set $res (call_indirect (type $fnT) $args ($VAL0 $f))))
-        (else
-          ($THROW_STR_1 "apply of non-function type: %d\n" $ftype)
-          (local.set $res 0)))
+          (local.set $res (call_indirect (type $fnT) $args ($VAL0 $f)))
+          ($RELEASE $f_args)
+          (return $res))
+      )
 
+      ($THROW_STR_1 "apply of non-function type: %d\n" $ftype)
       ($RELEASE $f_args)
-
-    $res
+      (return 0)
   )
 
   ;; PRINT

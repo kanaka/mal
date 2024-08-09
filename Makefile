@@ -126,7 +126,7 @@ STEP_TEST_FILES = $(strip $(wildcard \
 
 # DOCKERIZE utility functions
 lc = $(subst A,a,$(subst B,b,$(subst C,c,$(subst D,d,$(subst E,e,$(subst F,f,$(subst G,g,$(subst H,h,$(subst I,i,$(subst J,j,$(subst K,k,$(subst L,l,$(subst M,m,$(subst N,n,$(subst O,o,$(subst P,p,$(subst Q,q,$(subst R,r,$(subst S,s,$(subst T,t,$(subst U,u,$(subst V,v,$(subst W,w,$(subst X,x,$(subst Y,y,$(subst Z,z,$1))))))))))))))))))))))))))
-impl_to_image = kanaka/mal-test-$(call lc,$(1))
+impl_to_image = ghcr.io/kanaka/mal-test-$(call lc,$(1)):$(shell ./voom-like-version.sh impls/$(1)/Dockerfile)
 
 actual_impl = $(if $(filter mal,$(1)),$(patsubst %-mal,%,$(MAL_IMPL)),$(1))
 
@@ -143,7 +143,7 @@ get_build_command = $(strip $(foreach mode,$(1)_MODE, \
       $(if $(strip $($(mode))),-e $(mode)=$($(mode)),) \
       $(if $(filter factor,$(1)),-e FACTOR_ROOTS=$(FACTOR_ROOTS),) \
       $(call impl_to_image,$(1)) \
-      $(MAKE) $(if $(strip $($(mode))),$(mode)=$($(mode)),) \
+      make $(if $(strip $($(mode))),$(mode)=$($(mode)),) \
       ,\
       $(MAKE) $(if $(strip $($(mode))),$(mode)=$($(mode)),) -C impls/$(impl))))
 

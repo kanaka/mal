@@ -13,18 +13,18 @@ struct Reader {
 
 impl Reader {
     fn next(&mut self) -> Result<String, MalErr> {
-        self.pos = self.pos + 1;
+        self.pos += 1;
         Ok(self
             .tokens
             .get(self.pos - 1)
-            .ok_or(ErrString("underflow".to_string()))?
+            .ok_or_else(|| ErrString("underflow".to_string()))?
             .to_string())
     }
     fn peek(&self) -> Result<String, MalErr> {
         Ok(self
             .tokens
             .get(self.pos)
-            .ok_or(ErrString("underflow".to_string()))?
+            .ok_or_else(|| ErrString("underflow".to_string()))?
             .to_string())
     }
 }
@@ -39,7 +39,7 @@ fn tokenize(str: &str) -> Vec<String> {
 
     let mut res = vec![];
     for cap in RE.captures_iter(str) {
-        if cap[1].starts_with(";") {
+        if cap[1].starts_with(';') {
             continue;
         }
         res.push(String::from(&cap[1]));
@@ -51,8 +51,8 @@ fn unescape_str(s: &str) -> String {
     lazy_static! {
         static ref RE: Regex = Regex::new(r#"\\(.)"#).unwrap();
     }
-    RE.replace_all(&s, |caps: &Captures| {
-        format!("{}", if &caps[1] == "n" { "\n" } else { &caps[1] })
+    RE.replace_all(s, |caps: &Captures| {
+        if &caps[1] == "n" { "\n" } else { &caps[1] }.to_string()
     })
     .to_string()
 }
@@ -72,10 +72,10 @@ fn read_atom(rdr: &mut Reader) -> MalRet {
                 Ok(Int(token.parse().unwrap()))
             } else if STR_RE.is_match(&token) {
                 Ok(Str(unescape_str(&token[1..token.len() - 1])))
-            } else if token.starts_with("\"") {
+            } else if token.starts_with('\"') {
                 error("expected '\"', got EOF")
-            } else if token.starts_with(":") {
-                Ok(Str(format!("\u{29e}{}", &token[1..])))
+            } else if let Some(keyword) = token.strip_prefix(':') {
+                Ok(Str(format!("\u{29e}{}", keyword)))
             } else {
                 Ok(Sym(token.to_string()))
             }
@@ -143,14 +143,14 @@ fn read_form(rdr: &mut Reader) -> MalRet {
     }
 }
 
-pub fn read_str(str: String) -> MalRet {
-    let tokens = tokenize(&str);
+pub fn read_str(str: &str) -> MalRet {
+    let tokens = tokenize(str);
     //println!("tokens: {:?}", tokens);
-    if tokens.len() == 0 {
+    if tokens.is_empty() {
         return error("no input");
     }
     read_form(&mut Reader {
         pos: 0,
-        tokens: tokens,
+        tokens
     })
 }

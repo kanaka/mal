@@ -1,4 +1,4 @@
-FROM ubuntu:vivid
+FROM ubuntu:24.04
 MAINTAINER Joel Martin <github@martintribe.org>
 
 ##########################################################
@@ -9,10 +9,8 @@ MAINTAINER Joel Martin <github@martintribe.org>
 RUN apt-get -y update
 
 # Required for running tests
-RUN apt-get -y install make python
-
-# Some typical implementation and test requirements
-RUN apt-get -y install curl libreadline-dev libedit-dev
+RUN apt-get -y install make python3
+RUN ln -fs /usr/bin/python3 /usr/local/bin/python
 
 RUN mkdir -p /mal
 WORKDIR /mal
@@ -22,12 +20,4 @@ WORKDIR /mal
 ##########################################################
 
 # Guile
-RUN apt-get -y install libunistring-dev libgc-dev autoconf libtool flex gettext texinfo libgmp-dev
-RUN apt-get -y install git pkg-config libffi-dev
-# TODO: remove /tmp/guile in same command
-RUN git clone git://git.sv.gnu.org/guile.git /tmp/guile \
-    && cd /tmp/guile && ./autogen.sh && ./configure && make && make install
-RUN ldconfig
-# TODO: move this up with other deps
-RUN apt-get -y install libpcre3 libpcre3-dev
-
+RUN apt-get -y install guile-3.0 libpcre3-dev

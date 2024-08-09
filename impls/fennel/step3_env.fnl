@@ -27,18 +27,17 @@
   [arg]
   (reader.read_str arg))
 
-;; forward declaration
-(var EVAL 1)
-
-(fn eval_ast
+(fn EVAL
   [ast env]
+  (let [dbgeval (e.env-get env "DEBUG-EVAL")]
+    (when (and dbgeval
+               (not (t.nil?* dbgeval))
+               (not (t.false?* dbgeval)))
+      (print (.. "EVAL: " (printer.pr_str ast true)))))
   (if (t.symbol?* ast)
-      (e.env-get env ast)
-      ;;
-      (t.list?* ast)
-      (t.make-list (u.map (fn [elt-ast]
-                            (EVAL elt-ast env))
-                          (t.get-value ast)))
+      (let [key (t.get-value ast)]
+        (or (e.env-get env key)
+            (u.throw* (t.make-string (.. "'" key "' not found")))))
       ;;
       (t.vector?* ast)
       (t.make-vector (u.map (fn [elt-ast]
@@ -50,14 +49,7 @@
                                 (EVAL elt-ast env))
                               (t.get-value ast)))
       ;;
-      ast))
-
-(set EVAL
-  (fn [ast env]
-      (if (not (t.list?* ast))
-          (eval_ast ast env)
-          ;;
-          (t.empty?* ast)
+          (or (not (t.list?* ast)) (t.empty?* ast))
           ast
           ;;
           (let [ast-elts (t.get-value ast)
@@ -81,10 +73,10 @@
                                     b-name b-val)))
                   (EVAL (. ast-elts 3) new-env))
                 ;;
-                (let [eval-list (t.get-value (eval_ast ast env))
+                (let [eval-list (u.map (fn [x] (EVAL x env)) ast-elts)
                       f (. eval-list 1)
                       args (u.slice eval-list 2 -1)]
-                  (f (table.unpack args))))))))
+                  (f (table.unpack args)))))))
 
 (fn PRINT
   [ast]

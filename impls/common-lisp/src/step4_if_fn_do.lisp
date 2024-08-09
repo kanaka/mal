@@ -30,8 +30,8 @@
 (defvar mal-if (make-mal-symbol "if"))
 (defvar mal-fn* (make-mal-symbol "fn*"))
 
-(defun eval-sequence (sequence env)
-  (map 'list
+(defun eval-sequence (type sequence env)
+  (map type
        (lambda (ast) (mal-eval ast env))
        (mal-data-value sequence)))
 
@@ -44,11 +44,20 @@
                      hash-map-value)
     (make-mal-hash-map new-hash-table)))
 
-(defun eval-ast (ast env)
+(defun mal-eval (ast env)
+  (let ((debug-eval (env:get-env env "DEBUG-EVAL")))
+    (when (and debug-eval
+               (not (mal-data-value= debug-eval mal-false))
+               (not (mal-data-value= debug-eval mal-false)))
+      (write-line (format nil "EVAL: ~a" (pr-str ast)))
+      (force-output *standard-output*)))
   (switch-mal-type ast
-    (types:symbol (env:get-env env ast))
-    (types:list (eval-sequence ast env))
-    (types:vector (make-mal-vector (apply 'vector (eval-sequence ast env))))
+    (types:symbol
+     (let ((key (mal-data-value ast)))
+       (or (env:get-env env key)
+           (error 'undefined-symbol :symbol (format nil "~a" key)))))
+    (types:list (eval-list ast env))
+    (types:vector (make-mal-vector (eval-sequence 'vector ast env)))
     (types:hash-map (eval-hash-map ast env))
     (types:any ast)))
 
@@ -72,6 +81,7 @@
 (defun eval-list (ast env)
   (let ((forms (mal-data-value ast)))
     (cond
+      ((zerop (length forms)) ast)
       ((mal-data-value= mal-def! (first forms))
        (env:set-env env (second forms) (mal-eval (third forms) env)))
       ((mal-data-value= mal-let* (first forms))
@@ -83,7 +93,7 @@
        (let ((predicate (mal-eval (second forms) env)))
          (mal-eval (if (or (mal-data-value= predicate mal-nil)
                            (mal-data-value= predicate mal-false))
-                       (fourth forms)
+                       (or (fourth forms) mal-nil)
                        (third forms))
                    env)))
       ((mal-data-value= mal-fn* (first forms))
@@ -93,7 +103,7 @@
                               (mal-eval body (env:create-mal-env :parent env
                                                                  :binds (listify (mal-data-value arglist))
                                                                  :exprs args))))))
-      (t (let* ((evaluated-list (eval-ast ast env))
+      (t (let* ((evaluated-list (eval-sequence 'list ast env))
                (function (car evaluated-list)))
          ;; If first element is a mal function unwrap it
          (apply (mal-data-value function)
@@ -101,13 +111,6 @@
 
 (defun mal-read (string)
   (reader:read-str string))
-
-(defun mal-eval (ast env)
-  (cond
-    ((null ast) mal-nil)
-    ((not (mal-list-p ast)) (eval-ast ast env))
-    ((zerop (length (mal-data-value ast))) ast)
-    (t (eval-list ast env))))
 
 (defun mal-print (expression)
   (printer:pr-str expression))

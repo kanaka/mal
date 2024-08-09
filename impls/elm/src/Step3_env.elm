@@ -1,25 +1,29 @@
-port module Main exposing (..)
+module Step3_env exposing (..)
 
-import IO exposing (..)
-import Json.Decode exposing (decodeValue)
-import Platform exposing (programWithFlags)
-import Types exposing (..)
-import Reader exposing (readString)
-import Printer exposing (printString)
-import Utils exposing (maybeToList, zip)
-import Dict exposing (Dict)
-import Tuple exposing (mapFirst, mapSecond, second)
 import Array
+import Dict exposing (Dict)
 import Env
 import Eval
+import IO exposing (..)
+import Json.Decode exposing (decodeValue, errorToString)
+import Platform exposing (worker)
+import Printer exposing (printString)
+import Reader exposing (readString)
+import Tuple exposing (mapFirst, mapSecond, second)
+import Types exposing (..)
+import Utils exposing (maybeToList, zip)
 
 
 main : Program Flags Model Msg
 main =
-    programWithFlags
+    worker
         { init = init
         , update = update
-        , subscriptions = \model -> input (decodeValue decodeIO >> Input)
+        , subscriptions =
+            \model -> input (decodeValue decodeIO >> (\x -> case x of
+                Err e -> Err (errorToString e)
+                Ok a  -> Ok a
+            ) >>  Input)
         }
 
 
@@ -47,7 +51,7 @@ initReplEnv : Env
 initReplEnv =
     let
         makeFn =
-            CoreFunc >> MalFunction
+            CoreFunc Nothing >> MalFunction
 
         binaryOp fn args =
             case args of
@@ -57,23 +61,19 @@ initReplEnv =
                 _ ->
                     Eval.fail "unsupported arguments"
     in
-        Env.global
-            |> Env.set "+" (makeFn <| binaryOp (+))
-            |> Env.set "-" (makeFn <| binaryOp (-))
-            |> Env.set "*" (makeFn <| binaryOp (*))
-            |> Env.set "/" (makeFn <| binaryOp (//))
+    Env.global
+        |> Env.set "+" (makeFn <| binaryOp (+))
+        |> Env.set "-" (makeFn <| binaryOp (-))
+        |> Env.set "*" (makeFn <| binaryOp (*))
+        |> Env.set "/" (makeFn <| binaryOp (//))
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         Input (Ok (LineRead (Just line))) ->
-            case rep model.env line of
-                Nothing ->
-                    ( model, readLine prompt )
-
-                Just ( result, newEnv ) ->
-                    ( { model | env = newEnv }, writeLine (makeOutput result) )
+            let ( result, newEnv) = rep model.env line
+            in ( { model | env = newEnv }, writeLine (makeOutput result) )
 
         Input (Ok LineWritten) ->
             ( model, readLine prompt )
@@ -82,10 +82,10 @@ update msg model =
             ( model, Cmd.none )
 
         Input (Ok io) ->
-            Debug.crash "unexpected IO received: " io
+            Debug.todo "unexpected IO received: " io
 
-        Input (Err msg) ->
-            Debug.crash msg ( model, Cmd.none )
+        Input (Err msg2) ->
+            Debug.todo msg2 ( model, Cmd.none )
 
 
 makeOutput : Result String String -> String
@@ -103,38 +103,39 @@ prompt =
     "user> "
 
 
-{-| read can return three things:
-
-Ok (Just expr) -> parsed okay
-Ok Nothing -> empty string (only whitespace and/or comments)
-Err msg -> parse error
-
--}
-read : String -> Result String (Maybe MalExpr)
+read : String -> Result String MalExpr
 read =
     readString
 
 
 eval : Env -> MalExpr -> ( Result String MalExpr, Env )
 eval env ast =
-    case ast of
-        MalList [] ->
+  let
+    _ = case Env.get "DEBUG-EVAL" env of
+        Err _              -> ()
+        Ok MalNil          -> ()
+        Ok (MalBool False) -> ()
+        _ -> Debug.log ("EVAL: " ++ printString env True ast) ()
+        --  The output ends with an ugly ": ()", but that does not hurt.
+  in
+  case ast of
+        MalList _ [] ->
             ( Ok ast, env )
 
-        MalList ((MalSymbol "def!") :: args) ->
+        MalList _ ((MalSymbol "def!") :: args) ->
             evalDef env args
 
-        MalList ((MalSymbol "let*") :: args) ->
+        MalList _ ((MalSymbol "let*") :: args) ->
             evalLet env args
 
-        MalList list ->
+        MalList _ list ->
             case evalList env list [] of
                 ( Ok newList, newEnv ) ->
                     case newList of
                         [] ->
                             ( Err "can't happen", newEnv )
 
-                        (MalFunction (CoreFunc fn)) :: args ->
+                        (MalFunction (CoreFunc _ fn)) :: args ->
                             case Eval.runSimple (fn args) of
                                 Ok res ->
                                     ( Ok res, newEnv )
@@ -148,13 +149,6 @@ eval env ast =
                 ( Err msg, newEnv ) ->
                     ( Err msg, newEnv )
 
-        _ ->
-            evalAst env ast
-
-
-evalAst : Env -> MalExpr -> ( Result String MalExpr, Env )
-evalAst env ast =
-    case ast of
         MalSymbol sym ->
             -- Lookup symbol in env and return value or raise error if not found.
             case Env.get sym env of
@@ -164,22 +158,17 @@ evalAst env ast =
                 Err msg ->
                     ( Err msg, env )
 
-        MalList list ->
-            -- Return new list that is result of calling eval on each element of list.
-            evalList env list []
-                |> mapFirst (Result.map MalList)
-
-        MalVector vec ->
+        MalVector _ vec ->
             evalList env (Array.toList vec) []
-                |> mapFirst (Result.map (Array.fromList >> MalVector))
+                |> mapFirst (Result.map (Array.fromList >> MalVector Nothing))
 
-        MalMap map ->
+        MalMap _ map ->
             evalList env (Dict.values map) []
                 |> mapFirst
                     (Result.map
                         (zip (Dict.keys map)
                             >> Dict.fromList
-                            >> MalMap
+                            >> MalMap Nothing
                         )
                     )
 
@@ -220,19 +209,19 @@ evalDef env args =
 evalLet : Env -> List MalExpr -> ( Result String MalExpr, Env )
 evalLet env args =
     let
-        evalBinds env binds =
+        evalBinds env2 binds =
             case binds of
                 (MalSymbol name) :: expr :: rest ->
-                    case eval env expr of
+                    case eval env2 expr of
                         ( Ok value, newEnv ) ->
                             let
-                                newEnv =
-                                    Env.set name value env
+                                newEnv2 =
+                                    Env.set name value env2
                             in
-                                if List.isEmpty rest then
-                                    Ok newEnv
-                                else
-                                    evalBinds newEnv rest
+                            if List.isEmpty rest then
+                                Ok newEnv2
+                            else
+                                evalBinds newEnv2 rest
 
                         ( Err msg, _ ) ->
                             Err msg
@@ -249,15 +238,15 @@ evalLet env args =
                 Err msg ->
                     ( Err msg, env )
     in
-        case args of
-            [ MalList binds, body ] ->
-                go binds body
+    case args of
+        [ MalList _ binds, body ] ->
+            go binds body
 
-            [ MalVector bindsVec, body ] ->
-                go (Array.toList bindsVec) body
+        [ MalVector _ bindsVec, body ] ->
+            go (Array.toList bindsVec) body
 
-            _ ->
-                ( Err "let* expected two args: binds and a body", env )
+        _ ->
+            ( Err "let* expected two args: binds and a body", env )
 
 
 {-| Try to map a list with a fn that can return a Err.
@@ -281,8 +270,8 @@ tryMapList fn list =
                             Err msg
                 )
     in
-        List.foldl go (Ok []) list
-            |> Result.map List.reverse
+    List.foldl go (Ok []) list
+        |> Result.map List.reverse
 
 
 print : MalExpr -> String
@@ -290,25 +279,17 @@ print =
     printString Env.global True
 
 
-{-| Read-Eval-Print. rep returns:
-
-Nothing -> if an empty string is read (ws/comments)
-Just ((Ok out), newEnv) -> input has been evaluated.
-Just ((Err msg), env) -> error parsing or evaluating.
-
+{-| Read-Eval-Print
 -}
-rep : Env -> String -> Maybe ( Result String String, Env )
+rep : Env -> String -> ( Result String String, Env )
 rep env input =
     let
         evalPrint =
             eval env >> mapFirst (Result.map print)
     in
-        case readString input of
-            Ok Nothing ->
-                Nothing
+    case readString input of
+        Err msg ->
+            ( Err msg, env )
 
-            Err msg ->
-                Just ( Err msg, env )
-
-            Ok (Just ast) ->
-                Just (evalPrint ast)
+        Ok ast ->
+            evalPrint ast
