@@ -1,2 +1,2 @@
 #!/bin/bash
-exec cscript -nologo $(dirname $0)/${STEP:-stepA_mal}.vbs "${@}"
+exec cscript.exe -nologo $(dirname $0)/${STEP:-stepA_mal}.vbs "${@}"
