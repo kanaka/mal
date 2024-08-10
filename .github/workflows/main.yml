@@ -144,6 +144,7 @@ jobs:
       - name: Install requirements for WSL
         shell: wsl-bash {0}
         run: |
+          sudo apt update -y
           sudo apt install make -y
           sudo apt install python2 -y
           sudo ln -s /usr/bin/python2 /usr/bin/python
