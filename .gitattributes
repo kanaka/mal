@@ -1,0 +1,2 @@
+* text=auto eol=lf
+impls/vbs/*.vbs text eol=crlf
