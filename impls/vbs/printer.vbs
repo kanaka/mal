@@ -87,7 +87,9 @@ End Function
 Function EscapeString(strRaw)
 	EscapeString = strRaw
 	EscapeString = Replace(EscapeString, "\", "\\")
-	EscapeString = Replace(EscapeString, vbCrLf, "\n")
+	EscapeString = Replace(EscapeString, vbCrLf, vbLf)
+	EscapeString = Replace(EscapeString, vbCr, vbLf)
+	EscapeString = Replace(EscapeString, vbLf, "\n")
 	EscapeString = Replace(EscapeString, """", "\""")
 	EscapeString = """" & EscapeString & """"
 End Function
