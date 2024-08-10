@@ -310,7 +310,7 @@ expression support.
 
 * Add a `reader.qx` file to hold functions related to the reader.
 
-* If the target language has objects types (OOP), then the next step
+* If the target language has object types (OOP), then the next step
   is to create a simple stateful Reader object in `reader.qx`. This
   object will store the tokens and a position. The Reader object will
   have two methods: `next` and `peek`. `next` returns the token at
@@ -368,7 +368,7 @@ expression support.
 
 * Add the function `read_list` to `reader.qx`. This function will
   repeatedly call `read_form` with the Reader object until it
-  encounters a ')' token (if it reach EOF before reading a ')' then
+  encounters a ')' token (if it reaches EOF before reading a ')' then
   that is an error). It accumulates the results into a List type.  If
   your language does not have a sequential data type that can hold mal
   type values you may need to implement one (in `types.qx`).  Note
@@ -384,7 +384,7 @@ expression support.
   the other fundamental mal types: nil, true, false, and string. The
   remaining scalar mal type, keyword does not
   need to be implemented until step A (but can be implemented at any
-  point between this step and that). BTW, symbols types are just an
+  point between this step and that). BTW, symbol types are just an
   object that contains a single string name value (some languages have
   symbol types already).
 
@@ -522,7 +522,7 @@ functionality to the evaluator (`EVAL`).
 Compare the pseudocode for step 1 and step 2 to get a basic idea of
 the changes that will be made during this step:
 ```
-diff -urp ../process/step1_read_print.txt ../process/step2_eval.txt
+diff -u ../process/step1_read_print.txt ../process/step2_eval.txt
 ```
 
 * Copy `step1_read_print.qx` to `step2_eval.qx`.
@@ -568,7 +568,7 @@ Try some simple expressions:
   * `(+ 2 (* 3 4))` -> `14`
 
 The most likely challenge you will encounter is how to properly call
-a function references using an arguments list.
+a function reference using an arguments list.
 
 Now go to the top level, run the step 2 tests and fix the errors.
 ```
@@ -623,7 +623,7 @@ chain).
 Compare the pseudocode for step 2 and step 3 to get a basic idea of
 the changes that will be made during this step:
 ```
-diff -urp ../process/step2_eval.txt ../process/step3_env.txt
+diff -u ../process/step2_eval.txt ../process/step3_env.txt
 ```
 
 * Copy `step2_eval.qx` to `step3_env.qx`.
@@ -741,7 +741,7 @@ In some Lisps, this special form is named "lambda".
 Compare the pseudocode for step 3 and step 4 to get a basic idea of
 the changes that will be made during this step:
 ```
-diff -urp ../process/step3_env.txt ../process/step4_if_fn_do.txt
+diff -u ../process/step3_env.txt ../process/step4_if_fn_do.txt
 ```
 
 * Copy `step3_env.qx` to `step4_if_fn_do.qx`.
@@ -804,7 +804,7 @@ Try out the basic functionality you have implemented:
 
 * Add the following functions to `core.ns`:
   * `prn`: call `pr_str` on the first parameter with `print_readably`
-    set to true, prints the result to the screen and then return
+    set to true, print the result to the screen and then return
     `nil`. Note that the full version of `prn` is a deferrable below.
   * `list`: take the parameters and return them as a list.
   * `list?`: return true if the first parameter is a list, false
@@ -848,7 +848,7 @@ from a neat toy to a full featured language.
   call the `rep` function with this string:
   "(def! not (fn* (a) (if a false true)))".
 
-* Implement the strings functions in `core.qx`. To implement these
+* Implement the string functions in `core.qx`. To implement these
   functions, you will need to implement the string support in the
   reader and printer (deferrable section of step 1). Each of the string
   functions takes multiple mal values, prints them (`pr_str`) and
@@ -892,7 +892,7 @@ iteration.
 Compare the pseudocode for step 4 and step 5 to get a basic idea of
 the changes that will be made during this step:
 ```
-diff -urp ../process/step4_if_fn_do.txt ../process/step5_tco.txt
+diff -u ../process/step4_if_fn_do.txt ../process/step5_tco.txt
 ```
 
 * Copy `step4_if_fn_do.qx` to `step5_tco.qx`.
@@ -939,8 +939,8 @@ diff -urp ../process/step4_if_fn_do.txt ../process/step5_tco.txt
     before (in step 4).
   * a `fn*` value: set `ast` to the `ast` attribute of `f`. Generate
     a new environment using the `env` and `params` attributes of `f`
-    as the `outer` and `binds` arguments and `args` as the `exprs` 
-    argument. Set `env` to the new environment. Continue at the 
+    as the `outer` and `binds` arguments and `args` as the `exprs`
+    argument. Set `env` to the new environment. Continue at the
     beginning of the loop.
 
 Run some manual tests from previous steps to make sure you have not
@@ -982,7 +982,7 @@ holding off on that you will need to go back and do so.
 Compare the pseudocode for step 5 and step 6 to get a basic idea of
 the changes that will be made during this step:
 ```
-diff -urp ../process/step5_tco.txt ../process/step6_file.txt
+diff -u ../process/step5_tco.txt ../process/step6_file.txt
 ```
 
 * Copy `step5_tco.qx` to `step6_file.qx`.
@@ -1056,7 +1056,7 @@ You'll need to add 5 functions to the core namespace to support atoms:
 
 Optionally, you can add a reader macro `@` which will serve as a short form for
 `deref`, so that `@a` is equivalent to `(deref a)`.  In order to do that, modify
-the conditional in reader `read_form` function and add a case which deals with
+the conditional in reader function `read_form` and add a case which deals with
 the `@` token: if the token is `@` (at sign) then return a new list that
 contains the symbol `deref` and the result of reading the next form
 (`read_form`).
@@ -1121,7 +1121,7 @@ value that it evaluates to. Likewise with lists. For example, consider
 the following:
 
 * `(prn abc)`: this will lookup the symbol `abc` in the current
-  evaluation environment and print it. This will result in error if
+  evaluation environment and print it. This will result in an error if
   `abc` is not defined.
 * `(prn (quote abc))`: this will print "abc" (prints the symbol
   itself). This will work regardless of whether `abc` is defined in
@@ -1154,7 +1154,7 @@ manifest when it is used together with macros (in the next step).
 Compare the pseudocode for step 6 and step 7 to get a basic idea of
 the changes that will be made during this step:
 ```
-diff -urp ../process/step6_file.txt ../process/step7_quote.txt
+diff -u ../process/step6_file.txt ../process/step7_quote.txt
 ```
 
 * Copy `step6_file.qx` to `step7_quote.qx`.
@@ -1184,7 +1184,7 @@ Mal borrows most of its syntax and feature-set).
   following conditional.
   - If `ast` is a list starting with the "unquote" symbol, return its
     second element.
-  - If `ast` is a list failing previous test, the result will be a
+  - If `ast` is a list failing the previous test, the result will be a
     list populated by the following process.
 
     The result is initially an empty list.
@@ -1219,7 +1219,6 @@ Mal borrows most of its syntax and feature-set).
     as in the previous case if implementation is easier.
 
 * Add the `quasiquote` special form.
-
   This form calls the `quasiquote` function using the first `ast`
   argument (second list element),
   then evaluates the result in the current environment,
@@ -1250,8 +1249,8 @@ macros.
   short-hand syntaxes are known as reader macros because they allow us
   to manipulate mal code during the reader phase. Macros that run
   during the eval phase are just called "macros" and are described in
-  the next section. Expand the conditional with reader `read_form`
-  function to add the following four cases:
+  the next section. Expand the conditional in reader function
+  `read_form` to add the following four cases:
   * token is "'" (single quote): return a new list that contains the
     symbol "quote" and the result of reading the next form
     (`read_form`).
@@ -1299,7 +1298,7 @@ the mal language itself.
 Compare the pseudocode for step 7 and step 8 to get a basic idea of
 the changes that will be made during this step:
 ```
-diff -urp ../process/step7_quote.txt ../process/step8_macros.txt
+diff -u ../process/step7_quote.txt ../process/step8_macros.txt
 ```
 
 * Copy `step7_quote.qx` to `step8_macros.qx`.
@@ -1348,6 +1347,7 @@ There is a reasonably good chance that the macro tests will not pass
 the first time. Although the implementation of macros is fairly
 simple, debugging runtime bugs with macros can be fairly tricky. If
 you do run into subtle problems that are difficult to solve, let me
+
 recommend an approach:
 
 * Enable the debug print statement at the top of your main `eval`
@@ -1384,11 +1384,11 @@ implementation. Let us continue!
     as arguments, returns the element of the list at the given index.
     If the index is out of range, this function raises an exception.
   * `first`: this function takes a list (or vector) as its argument
-    and return the first element. If the list (or vector) is empty or
+    and returns the first element. If the list (or vector) is empty or
     is `nil` then `nil` is returned.
   * `rest`: this function takes a list (or vector) as its argument and
     returns a new list containing all the elements except the first. If
-    the list (or vector) is empty or is `nil` then `()` (empty list) 
+    the list (or vector) is empty or is `nil` then `()` (empty list)
     is returned.
 
 * In the main program, call the `rep` function with the following
@@ -1417,7 +1417,7 @@ functional programming pedigree of your implementation by adding the
 Compare the pseudocode for step 8 and step 9 to get a basic idea of
 the changes that will be made during this step:
 ```
-diff -urp ../process/step8_macros.txt ../process/step9_try.txt
+diff -u ../process/step8_macros.txt ../process/step9_try.txt
 ```
 
 * Copy `step8_macros.qx` to `step9_try.qx`.
@@ -1479,7 +1479,7 @@ diff -urp ../process/step8_macros.txt ../process/step9_try.txt
     function against every element of the list (or vector) one at
     a time and returns the results as a list.
 
-* Add some type predicates core functions. In Lisp, predicates are
+* Add some type predicate core functions. In Lisp, predicates are
   functions that return true/false (or true value/nil) and typically
   end in "?" or "p".
   * `nil?`: takes a single argument and returns true (mal true value)
@@ -1574,7 +1574,7 @@ implementation to self-host.
 Compare the pseudocode for step 9 and step A to get a basic idea of
 the changes that will be made during this step:
 ```
-diff -urp ../process/step9_try.txt ../process/stepA_mal.txt
+diff -u ../process/step9_try.txt ../process/stepA_mal.txt
 ```
 
 * Copy `step9_try.qx` to `stepA_mal.qx`.
@@ -1607,7 +1607,7 @@ make "test^quux^stepA"
 
 Once you have passed all the non-optional step A tests, it is time to
 try self-hosting. Run your step A implementation as normal, but use
-the file argument mode you added in step 6 to run a each of the step
+the file argument mode you added in step 6 to run each step
 from the mal implementation:
 ```
 ./stepA_mal.qx ../mal/step1_read_print.mal
@@ -1661,17 +1661,17 @@ implementation.
   * `meta`: this takes a single mal function/list/vector/hash-map argument
     and returns the value of the metadata attribute.
   * `with-meta`: this function takes two arguments. The first argument
-    is a mal function/list/vector/hash-map and the second argument is
-    another mal value/type to set as metadata. A copy of the mal function is
-    returned that has its `meta` attribute set to the second argument.
-    Note that it is important that the environment and macro attribute
-    of mal function are retained when it is copied.
+    is a mal value and the second argument is another mal value/type
+    to set as metadata. A copy of the mal value is returned that has
+    its `meta` attribute set to the second argument.  Note that when
+    copying a mal function, it is important that the environment and
+    macro attribute are retained.
   * Add a reader-macro that expands the token "^" to
     return a new list that contains the symbol "with-meta" and the
     result of reading the next next form (2nd argument) (`read_form`) and the
     next form (1st argument) in that order
     (metadata comes first with the ^ macro and the function second).
-  * If you implemented as `defmacro!` to mutate an existing function
+  * If you implemented `defmacro!` as mutating an existing function
     without copying it, you can now use the function copying mechanism
     used for metadata to make functions immutable even in the
     defmacro! case...
@@ -1698,7 +1698,7 @@ implementation.
   * `seq`: takes a list, vector, string, or nil. If an empty list,
     empty vector, or empty string ("") is passed in then nil is
     returned. Otherwise, a list is returned unchanged, a vector is
-    converted into a list, and a string is converted to a list that
+    converted into a list, and a string is converted to a list
     containing the original string split into single character
     strings.
 * For interop with the target language, add this core function:
