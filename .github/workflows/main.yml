@@ -143,22 +143,22 @@ jobs:
             distribution: Ubuntu-24.04
       - uses: actions/checkout@v4
       - name: Build
-        shell: wsl-bash
+        shell: wsl-bash {0}
         run: |
           export ${{ matrix.IMPL }}
           ./ci.sh build ${IMPL}
       - name: Step Tests
-        shell: wsl-bash
+        shell: wsl-bash {0}
         run: |
           export ${{ matrix.IMPL }}
           ./ci.sh test ${IMPL}
       - name: Regression Tests
-        shell: wsl-bash
+        shell: wsl-bash {0}
         run: |
           export ${{ matrix.IMPL }}
           STEP=stepA REGRESS=1 HARD=1 OPTIONAL=0 ./ci.sh test ${IMPL}
       - name: Performance Tests
-        shell: wsl-bash
+        shell: wsl-bash {0}
         run: |
           export ${{ matrix.IMPL }}
           ./ci.sh perf ${IMPL}
