@@ -140,7 +140,7 @@ jobs:
     steps:
       - uses: Vampire/setup-wsl@v3
         with:
-            distribution: ubuntu-24.04
+            distribution: Ubuntu-24.04
       - uses: actions/checkout@v4
       - name: Build
         shell: bash
