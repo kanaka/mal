@@ -145,6 +145,7 @@ jobs:
         shell: wsl-bash {0}
         run: |
           sudo ln -s /usr/bin/python2 /usr/bin/python
+          sudo apt install make -y
       - uses: actions/checkout@v4
       - name: Build
         shell: wsl-bash {0}
