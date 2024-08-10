@@ -157,7 +157,6 @@ jobs:
       - name: Step Tests
         shell: wsl-bash {0}
         run: |
-          make "test^vbs^step6"
           export ${{ matrix.IMPL }}
           ./ci.sh test ${IMPL}
       - name: Regression Tests
