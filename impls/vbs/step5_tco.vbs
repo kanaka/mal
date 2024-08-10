@@ -137,8 +137,8 @@ Sub REPL()
 		On Error Resume Next
 			strRes = REP(strCode)
 			If Err.Number <> 0 Then
-				'WScript.StdErr.WriteLine Err.Source + ": " + Err.Description 
-				WScript.StdErr.WriteLine "Exception: " + Err.Description 
+				'WScript.StdOut.WriteLine Err.Source + ": " + Err.Description 
+				WScript.StdOut.WriteLine "Exception: " + Err.Description 
 			Else
 				If strRes <> "" Then
 					WScript.Echo strRes

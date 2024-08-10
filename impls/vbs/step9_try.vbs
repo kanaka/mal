@@ -404,13 +404,13 @@ Sub REPL()
 			strRes = REP(strCode)
 			If Err.Number <> 0 Then
 				If Err.Source = "MThrow" Then
-					'WScript.StdErr.WriteLine Err.Source + ": " + _
-					WScript.StdErr.WriteLine "Exception: " + _
+					'WScript.StdOut.WriteLine Err.Source + ": " + _
+					WScript.StdOut.WriteLine "Exception: " + _
 						PrintMalType(objExceptions.Item(Err.Description), True)
 					objExceptions.Remove Err.Description
 				Else
-					'WScript.StdErr.WriteLine Err.Source + ": " + Err.Description
-					WScript.StdErr.WriteLine "Exception: " + Err.Description
+					'WScript.StdOut.WriteLine Err.Source + ": " + Err.Description
+					WScript.StdOut.WriteLine "Exception: " + Err.Description
 				End If
 			Else
 				If strRes <> "" Then
