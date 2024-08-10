@@ -157,13 +157,13 @@ jobs:
       - name: Step Tests
         shell: wsl-bash {0}
         run: |
+          make "test^vbs^step6"
           export ${{ matrix.IMPL }}
           ./ci.sh test ${IMPL}
       - name: Regression Tests
         shell: wsl-bash {0}
         run: |
           export ${{ matrix.IMPL }}
-          make "test^vbs^step6"
           STEP=stepA REGRESS=1 HARD=1 OPTIONAL=0 ./ci.sh test ${IMPL}
       - name: Performance Tests
         shell: wsl-bash {0}
