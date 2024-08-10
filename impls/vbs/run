@@ -1,2 +1,4 @@
 #!/bin/bash
-MAL_VBS_IMPL_NO_STDERR=1 cscript.exe -nologo $(dirname $0)/${STEP:-stepA_mal}.vbs "${@}"
+# MAL_VBS_IMPL_NO_STDERR=1 cscript.exe -nologo $(dirname $0)/${STEP:-stepA_mal}.vbs "${@}"
+# cmd.exe /c "set MAL_VBS_IMPL_NO_STDERR=1 & cscript -nologo $(dirname $0)/${STEP:-stepA_mal}.vbs "${@}""
+cmd.exe /c "cscript -nologo $(dirname $0)/${STEP:-stepA_mal}.vbs "${@}" 2>&1"
