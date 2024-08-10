@@ -1,2 +1,2 @@
 #!/bin/bash
-exec stdbuf -o0 -e0 cscript.exe -nologo $(dirname $0)/${STEP:-stepA_mal}.vbs "${@}"
+MAL_VBS_IMPL_NO_STDERR=1 cscript.exe -nologo $(dirname $0)/${STEP:-stepA_mal}.vbs "${@}"
