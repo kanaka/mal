@@ -33,7 +33,7 @@ that are new for that step are highlighted in red.
 Here is the final architecture once [step A](process/guide.md#stepA)
 is complete:
 
-![stepA_mal architecture](process/stepA_mal.png)
+![stepA_mal architecture](process/steps.png)
 
 If you are interested in creating a mal implementation (or just
 interested in using mal for something) you are welcome to to join our
