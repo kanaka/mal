@@ -43,7 +43,7 @@ function env_set(env, key, val)
 	if (key in env_heap[env]) {
 		types_release(env_heap[env][key])
 	}
-	if (val ~ /^\&/) {
+	if (val ~ /^&/) {
 		env_builtinnames[substr(val, 2)] = substr(key, 2)
 	}
 	env_heap[env][key] = val
