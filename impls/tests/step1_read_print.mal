@@ -166,6 +166,8 @@ false
 ;=>(quasiquote 1)
 `(1 2 3)
 ;=>(quasiquote (1 2 3))
+`(a (b) c)
+;=>(quasiquote (a (b) c))
 ~1
 ;=>(unquote 1)
 ~(1 2 3)
