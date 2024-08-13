@@ -306,7 +306,7 @@ function main(str, ret)
 BEGIN {
 	main()
 	env_check(0)
-	env_dump()
-	types_dump()
+	#env_dump()
+	#types_dump()
 	exit(0)
 }
