@@ -81,7 +81,13 @@ jobs:
         if: ${{ github.event.inputs.self-hosted == 'yes' }}
         run: |
           export ${{ matrix.IMPL }}
-          DO_SELF_HOST=1 ./ci.sh test ${IMPL}
+          if [ "${NO_SELF_HOST}" ]; then
+            echo "Skipping self-host for ${IMPL} due to NO_SELF_HOST variable"
+          else
+            DO_SELF_HOST=1 ./ci.sh test ${IMPL}
+            # Check that self-hosted mode really ran
+            [ "`grep -a "mal-user>" test-mal-*${IMPL}.debug | wc -l`" -gt 800 ]
+          fi
       - name: Archive logs and debug output
         uses: actions/upload-artifact@v4
         with:
@@ -119,7 +125,13 @@ jobs:
         if: ${{ github.event.inputs.self-hosted == 'yes' }}
         run: |
           export ${{ matrix.IMPL }}
-          DO_SELF_HOST=1 ./ci.sh test ${IMPL}
+          if [ "${NO_SELF_HOST}" ]; then
+            echo "Skipping self-host for ${IMPL} due to NO_SELF_HOST variable"
+          else
+            DO_SELF_HOST=1 ./ci.sh test ${IMPL}
+            # Check that self-hosted mode really ran
+            [ "`grep -a "mal-user>" test-mal-*${IMPL}.debug | wc -l`" -gt 800 ]
+          fi
       - name: Archive logs and debug output
         uses: actions/upload-artifact@v4
         with:
