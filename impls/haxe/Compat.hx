@@ -57,10 +57,10 @@ class Compat {
 
     public static function readline(prompt:String) {
         #if js
-            var line = RL.readline("user> ");
+            var line = RL.readline(prompt);
             if (line == null) { throw new haxe.io.Eof(); }
         #else
-            Sys.print("user> ");
+            Sys.print(prompt);
             var line = Sys.stdin().readLine();
         #end
         return line;
