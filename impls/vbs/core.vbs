@@ -711,6 +711,7 @@ Function MReadLine(objArgs, objEnv)
 	CheckType objArgs.Item(1), TYPES.STRING
 
 	Dim strInput
+	WScript.Echo ""
 	WScript.StdOut.Write objArgs.Item(1).Value
 	On Error Resume Next
 		strInput = WScript.StdIn.ReadLine()
