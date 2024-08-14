@@ -1,5 +1,6 @@
 Option Explicit
 
+Include "IO.vbs"
 Include "Types.vbs"
 Include "Reader.vbs"
 Include "Printer.vbs"
@@ -390,13 +391,13 @@ End Sub
 
 Call REPL()
 Sub REPL()
-	Dim strCode, strResult
+	Dim strCode
 	REP "(println (str ""Mal [""*host-language*""]""))"
 	While True
-		WScript.StdOut.Write "user> "
+		IO.Write "user> "
 
 		On Error Resume Next
-			strCode = WScript.StdIn.ReadLine()
+			strCode = IO.ReadLine
 			If Err.Number <> 0 Then WScript.Quit 0
 		On Error Goto 0
 		
@@ -405,18 +406,16 @@ Sub REPL()
 			strRes = REP(strCode)
 			If Err.Number <> 0 Then
 				If Err.Source = "MThrow" Then
-					'WScript.StdOut.WriteLine Err.Source + ": " + _
-					WScript.StdOut.WriteLine "Exception: " + _
+					IO.WriteErrLine "Exception: " + _
 						PrintMalType(objExceptions.Item(Err.Description), True)
 					objExceptions.Remove Err.Description
 				Else
-					'WScript.StdOut.WriteLine Err.Source + ": " + Err.Description
-					WScript.StdOut.WriteLine "Exception: " + Err.Description
+					IO.WriteErrLine "Exception: " + Err.Description
 				End If
 			Else
-				' If strRes <> "" Then
-					WScript.Echo strRes
-				' End If
+				If strRes <> "" Then
+					IO.WriteLine strRes
+				End If
 			End If
 		On Error Goto 0
 	Wend

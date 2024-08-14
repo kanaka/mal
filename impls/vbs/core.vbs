@@ -207,7 +207,7 @@ Function MPrn(objArgs, objEnv)
 	Dim varRet
 	Dim objStr
 	Set objStr = MPrStr(objArgs, objEnv)
-	WScript.StdOut.WriteLine objStr.Value
+	IO.WriteLine objStr.Value
 	Set varRet = NewMalNil()
 	Set MPrn = varRet
 End Function
@@ -225,7 +225,7 @@ Function MPrintln(objArgs, objEnv)
 		strRes = strRes + " " + _
 			PrintMalType(objArgs.Item(i), False)
 	Next
-	WScript.StdOut.WriteLine strRes
+	IO.WriteLine strRes
 	Set varRet = NewMalNil()
 	Set MPrintln = varRet
 End Function
@@ -711,10 +711,9 @@ Function MReadLine(objArgs, objEnv)
 	CheckType objArgs.Item(1), TYPES.STRING
 
 	Dim strInput
-	WScript.Echo ""
-	WScript.StdOut.Write objArgs.Item(1).Value
+	IO.Write objArgs.Item(1).Value
 	On Error Resume Next
-		strInput = WScript.StdIn.ReadLine()
+		strInput = IO.ReadLine
 		If Err.Number <> 0 Then
 			Set varRes = NewMalNil()
 		Else
