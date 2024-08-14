@@ -46,6 +46,34 @@
 (map symbol? '(nil false true))
 ;=>(false false false)
 
+(def! add1 (fn* (x) (+ x 1)))
+
+;; Testing fn? function
+(fn? +)
+;=>true
+(fn? add1)
+;=>true
+(fn? cond)
+;=>false
+(fn? "+")
+;=>false
+(fn? :+)
+;=>false
+
+;; Testing macro? function
+(macro? cond)
+;=>true
+(macro? +)
+;=>false
+(macro? add1)
+;=>false
+(macro? "+")
+;=>false
+(macro? :+)
+;=>false
+(macro? {})
+;=>false
+
 ;; ------------------------------------------------------------------
 
 ;>>> soft=True
@@ -137,36 +165,6 @@
 (number? false)
 ;=>false
 (number? "123")
-;=>false
-
-(def! add1 (fn* (x) (+ x 1)))
-
-;; Testing fn? function
-(fn? +)
-;=>true
-(fn? add1)
-;=>true
-(fn? cond)
-;=>false
-(fn? "+")
-;=>false
-(fn? :+)
-;=>false
-(fn? ^{"ismacro" true} (fn* () 0))
-;=>true
-
-;; Testing macro? function
-(macro? cond)
-;=>true
-(macro? +)
-;=>false
-(macro? add1)
-;=>false
-(macro? "+")
-;=>false
-(macro? :+)
-;=>false
-(macro? {})
 ;=>false
 
 
@@ -267,7 +265,9 @@
 ;=>{"b" 2}
 
 ;;
-;; Testing metadata on builtin functions
+;; Testing metadata on mal and builtin functions
+(fn? ^{"ismacro" true} (fn* () 0))
+;=>true
 (meta +)
 ;=>nil
 (def! f-wm3 ^{"def" 2} +)
