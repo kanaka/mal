@@ -6,7 +6,6 @@ Include "Reader.vbs"
 Include "Printer.vbs"
 
 Call REPL()
-
 Sub REPL()
 	Dim strCode
 	While True
