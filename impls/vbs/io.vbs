@@ -4,8 +4,8 @@ Class IOWrap
 
 	Private Sub Class_Initialize
 		With WScript.CreateObject("WScript.Shell")
-			NoStdErr = CBool(.ExpandEnvironmentStrings("%MAL_VBS_IMPL_NO_STDERR%"))
-			EchoStdIn = CBool(.ExpandEnvironmentStrings("%MAL_VBS_IMPL_ECHO_STDIN%"))
+			NoStdErr = .ExpandEnvironmentStrings("%MAL_VBS_IMPL_NO_STDERR%") <> "%MAL_VBS_IMPL_NO_STDERR%"
+			EchoStdIn = .ExpandEnvironmentStrings("%MAL_VBS_IMPL_ECHO_STDIN%") <> "%MAL_VBS_IMPL_ECHO_STDIN%"
 		End With
 	End Sub
 
