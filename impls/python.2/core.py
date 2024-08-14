@@ -161,10 +161,12 @@ def nth(list_: MalExpression, index: MalExpression) -> MalExpression:
         raise MalIndexError(index.native())
     return list_native[index.native()]
 
+def _callable(arg: MalExpression):
+    return isinstance(arg, (MalFunctionCompiled, MalFunctionRaw))
 
 def apply(args: List[MalExpression]) -> MalExpression:
     func = args[0]
-    assert isinstance(func, MalFunctionCompiled) or isinstance(func, MalFunctionRaw)
+    assert _callable(func)
     rest_args: List[MalExpression] = []
     for i in range(1, len(args) - 1):
         rest_args.append(args[i])
@@ -175,7 +177,7 @@ def apply(args: List[MalExpression]) -> MalExpression:
 
 
 def map_(func: MalExpression, map_list: MalExpression) -> MalExpression:
-    assert isinstance(func, MalFunctionCompiled) or isinstance(func, MalFunctionRaw)
+    assert _callable(func)
     assert isinstance(map_list, MalList) or isinstance(map_list, MalVector)
     result_list: List[MalExpression] = []
     for i in range(len(map_list.native())):
@@ -229,6 +231,17 @@ def readline(arg: MalExpression) -> Union[MalString, MalNil]:
         return MalNil()
     return MalString(line)
 
+def fn_q(arg: MalExpression) -> MalExpression:
+    return MalBoolean(_callable(arg) and not arg.is_macro())
+
+def macro_q(arg: MalExpression) -> MalExpression:
+    return MalBoolean(_callable(arg) and arg.is_macro())
+
+def string_q(arg: MalExpression) -> MalExpression:
+    return MalBoolean(isinstance(arg, MalString) and not arg.is_keyword())
+
+def number_q(arg: MalExpression) -> MalExpression:
+    return MalBoolean(isinstance(arg, MalInt))
 
 def not_implemented(func: str) -> MalExpression:
     raise MalNotImplementedException(func)
@@ -355,7 +368,7 @@ def swap(args: List[MalExpression]) -> MalExpression:
     atom = args[0]
     assert isinstance(atom, MalAtom)
     func = args[1]
-    assert isinstance(func, MalFunctionCompiled) or isinstance(func, MalFunctionRaw)
+    assert _callable(func)
     atom.reset(func.call([atom.native()] + args[2:]))
     return atom.native()
 
@@ -403,9 +416,10 @@ ns = {
     "time-ms": MalFunctionCompiled(lambda args: MalInt(int(time.time() * 1000))),
     "meta": MalFunctionCompiled(lambda args: not_implemented("meta")),
     "with-meta": MalFunctionCompiled(lambda args: not_implemented("with-meta")),
-    "fn?": MalFunctionCompiled(lambda args: not_implemented("fn?")),
-    "string?": MalFunctionCompiled(lambda args: not_implemented("string?")),
-    "number?": MalFunctionCompiled(lambda args: not_implemented("number?")),
+    "fn?": MalFunctionCompiled(lambda args: fn_q(args[0])),
+    "macro?": MalFunctionCompiled(lambda args: macro_q(args[0])),
+    "string?": MalFunctionCompiled(lambda args: string_q(args[0])),
+    "number?": MalFunctionCompiled(lambda args: number_q(args[0])),
     "seq": MalFunctionCompiled(lambda args: not_implemented("seq")),
     "conj": MalFunctionCompiled(lambda args: not_implemented("conj")),
     "get": MalFunctionCompiled(lambda args: get(args[0], args[1])),
