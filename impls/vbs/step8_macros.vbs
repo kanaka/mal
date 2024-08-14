@@ -1,5 +1,6 @@
 Option Explicit
 
+Include "IO.vbs"
 Include "Types.vbs"
 Include "Reader.vbs"
 Include "Printer.vbs"
@@ -330,12 +331,12 @@ End Sub
 
 Call REPL()
 Sub REPL()
-	Dim strCode, strResult
+	Dim strCode
 	While True
-		WScript.StdOut.Write "user> "
+		IO.Write "user> "
 
 		On Error Resume Next
-			strCode = WScript.StdIn.ReadLine()
+			strCode = IO.ReadLine
 			If Err.Number <> 0 Then WScript.Quit 0
 		On Error Goto 0
 
@@ -343,11 +344,10 @@ Sub REPL()
 		On Error Resume Next
 			strRes = REP(strCode)
 			If Err.Number <> 0 Then
-				'WScript.StdOut.WriteLine Err.Source + ": " + Err.Description
-				WScript.StdOut.WriteLine "Exception: " + Err.Description
+				IO.WriteErrLine "Exception: " + Err.Description
 			Else
 				If strRes <> "" Then
-					WScript.Echo strRes
+					IO.WriteLine strRes
 				End If
 			End If
 		On Error Goto 0

@@ -125,7 +125,7 @@ Call InitBuiltIn()
 
 Call REPL()
 Sub REPL()
-	Dim strCode, strResult
+	Dim strCode
 	While True
 		IO.Write "user> "
 
