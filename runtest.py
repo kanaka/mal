@@ -284,15 +284,11 @@ while t.next():
 
     log("TEST: %s -> [%s,%s]" % (repr(t.form), repr(t.out), t.ret), end='')
 
-    if args.no_pty:
-        # Do not assume the input forms (and newline) are echo'd to stdout
-        expects = ["%s%s" % (t.out, re.escape(t.ret))]
-    else:
-        # The repeated form is to get around an occasional OS X issue
-        # where the form is repeated.
-        # https://github.com/kanaka/mal/issues/30
-        expects = [".*%s%s%s" % (sep, t.out, re.escape(t.ret)),
-                ".*%s.*%s%s%s" % (sep, sep, t.out, re.escape(t.ret))]
+    # The repeated form is to get around an occasional OS X issue
+    # where the form is repeated.
+    # https://github.com/kanaka/mal/issues/30
+    expects = [".*%s%s%s" % (sep, t.out, re.escape(t.ret)),
+               ".*%s.*%s%s%s" % (sep, sep, t.out, re.escape(t.ret))]
 
     r.writeline(t.form)
     try:
@@ -306,7 +302,8 @@ while t.next():
         elif (t.ret == "" and t.out == ""):
             log(" -> SUCCESS (result ignored)")
             pass_cnt += 1
-        elif next((e for e in expects if re.search(e, res, re.S)), False):
+        elif (re.search(expects[0], res, re.S) or
+                re.search(expects[1], res, re.S)):
             log(" -> SUCCESS")
             pass_cnt += 1
         else:
