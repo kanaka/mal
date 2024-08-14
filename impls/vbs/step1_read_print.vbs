@@ -23,9 +23,9 @@ Sub REPL()
 				'WScript.StdOut.WriteLine Err.Source + ": " + Err.Description 
 				WScript.StdOut.WriteLine "Exception: " + Err.Description 
 			Else
-				If strRes <> "" Then
+				' If strRes <> "" Then
 					WScript.Echo strRes
-				End If
+				' End If
 			End If
 		On Error Goto 0
 	Wend
