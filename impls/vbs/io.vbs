@@ -1,3 +1,5 @@
+Option Explicit
+
 Class IOWrap
 	Public NoStdErr
 	Public EchoStdIn
@@ -41,4 +43,5 @@ Class IOWrap
 	End Sub
 End Class
 
+Dim IO
 Set IO = New IOWrap
