@@ -30,9 +30,10 @@ The make-a-lisp steps are:
 
 Each make-a-lisp step has an associated architectural diagram. That elements
 that are new for that step are highlighted in red.
-Here is the final diagram for [step A](process/guide.md#stepA):
+Here is the final architecture once [step A](process/guide.md#stepA)
+is complete:
 
-![stepA_mal architecture](process/stepA_mal.png)
+![stepA_mal architecture](process/steps.png)
 
 If you are interested in creating a mal implementation (or just
 interested in using mal for something) you are welcome to to join our
@@ -41,7 +42,7 @@ process guide](process/guide.md) there is also a [mal/make-a-lisp
 FAQ](docs/FAQ.md) where I attempt to answer some common questions.
 
 
-**3. Mal is implemented in 87 languages (93 different implementations and 114 runtime modes)**
+**3. Mal is implemented in 88 languages (94 different implementations and 115 runtime modes)**
 
 | Language | Creator |
 | -------- | ------- |
