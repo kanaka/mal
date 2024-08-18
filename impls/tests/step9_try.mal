@@ -23,6 +23,10 @@
 ;/"exc is:".*(length|range|[Bb]ounds|beyond).*
 ;=>nil
 
+;; Make sure no double eval (no TCO from try block)
+(try* (list 1) (catch* exc (prn "exc is:" exc)))
+;=>(1)
+
 (try* (throw "my exception") (catch* exc (do (prn "exc:" exc) 7)))
 ;/"exc:" "my exception"
 ;=>7

@@ -48,7 +48,7 @@ MalType* EVAL(MalType* ast, Env* env) {
   MalType* eval_quote(MalType* ast);
   MalType* eval_quasiquote(MalType* ast);
   MalType* eval_defmacrobang(MalType*, Env** env);
-  void eval_try(MalType** ast, Env** env);
+  int eval_try(MalType** ast, Env** env);
 
   /* Use goto to jump here rather than calling eval for tail-call elimination */
  TCE_entry_point:
@@ -143,9 +143,9 @@ MalType* EVAL(MalType* ast, Env* env) {
     else if (strcmp(symbol, SYMBOL_TRYSTAR) == 0) {
 
       /* TCE - modify ast and env directly and jump back to eval */
-      eval_try(&ast, &env);
+      int tce = eval_try(&ast, &env);
 
-      if (is_error(ast)) { return ast; }
+      if (!tce) { return ast; }
       goto TCE_entry_point;
     }
   }
@@ -674,18 +674,18 @@ MalType* eval_defmacrobang(MalType* ast, Env** env) {
   return result;
 }
 
-void eval_try(MalType** ast, Env** env) {
+int eval_try(MalType** ast, Env** env) {
 
   list lst = (*ast)->value.mal_list;
 
   if (!lst->next) {
     *ast = make_nil();
-    return;
+    return 0;
   }
 
   if (lst->next->next && lst->next->next->next) {
     *ast = make_error("'try*': expected maximum of two arguments");
-    return;
+    return 0;
   }
 
   MalType* try_clause = lst->next->data;
@@ -694,7 +694,7 @@ void eval_try(MalType** ast, Env** env) {
   /* no catch* clause */
   if (!is_error(try_result) || !lst->next->next) {
     *ast = try_result;
-    return;
+    return 0;
   }
 
   /* process catch* clause */
@@ -703,23 +703,23 @@ void eval_try(MalType** ast, Env** env) {
 
   if (!catch_list) {
     *ast = make_error("'try*': catch* clause is empty");
-    return;
+    return 0;
   }
 
   MalType* catch_symbol = catch_list->data;
   if (strcmp(catch_symbol->value.mal_symbol, SYMBOL_CATCHSTAR) != 0) {
     *ast = make_error("Error: catch clause is missing catch* symbol");
-    return;
+    return 0;
   }
 
   if (!catch_list->next || !catch_list->next->next) {
     *ast = make_error("Error: catch* clause expected two arguments");
-    return;
+    return 0;
   }
 
   if (!is_symbol(catch_list->next->data)) {
     *ast = make_error("Error: catch* clause expected a symbol");
-    return;
+    return 0;
   }
 
   /* bind the symbol to the exception */
@@ -730,7 +730,7 @@ void eval_try(MalType** ast, Env** env) {
   *ast = catch_list->next->next->data;
   *env = catch_env;
 
-  return;
+  return 1;
 }
 
 list evaluate_list(list lst, Env* env) {

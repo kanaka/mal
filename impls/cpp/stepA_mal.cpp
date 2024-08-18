@@ -181,7 +181,7 @@ malValuePtr EVAL(malValuePtr ast, malEnvPtr env)
                 malValuePtr tryBody = list->item(1);
 
                 if (argCount == 1) {
-                    ast = EVAL(tryBody, env);
+                    ast = tryBody;
                     continue; // TCO
                 }
                 checkArgsIs("try*", 2, argCount);
@@ -201,7 +201,7 @@ malValuePtr EVAL(malValuePtr ast, malEnvPtr env)
                 malValuePtr excVal;
 
                 try {
-                    ast = EVAL(tryBody, env);
+                    return EVAL(tryBody, env);
                 }
                 catch(String& s) {
                     excVal = mal::string(s);

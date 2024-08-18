@@ -173,7 +173,7 @@ MalType EVAL(MalType ast, Env env) {
             }
             var catchClause = args[1] as MalList;
             try {
-              ast = EVAL(body, env);
+              return EVAL(body, env);
             } catch (e) {
               assert((catchClause.first as MalSymbol).value == 'catch*');
               var exceptionSymbol = catchClause[1] as MalSymbol;

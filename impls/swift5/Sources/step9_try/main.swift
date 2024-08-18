@@ -151,7 +151,7 @@ func eval(_ expr: Expr, env: Env) throws -> Expr {
             guard case let .symbol(bind) = values[1] else { throw MalError.invalidArguments("catch*") }
 
             do {
-                expr = try eval(ast[1], env: env)
+                return try eval(ast[1], env: env)
             } catch {
                 let malErr = (error as? Expr) ?? .string(error.localizedDescription)
                 let newEnv = try Env(binds: [bind], exprs: [malErr], outer: env)
