@@ -6,6 +6,8 @@
 ;=>()
 (list? (list))
 ;=>true
+(list? nil)
+;=>false
 (empty? (list))
 ;=>true
 (empty? (list 1))

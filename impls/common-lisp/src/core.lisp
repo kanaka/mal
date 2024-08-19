@@ -87,7 +87,7 @@
   (make-mal-list values))
 
 (defmal list? (value)
-  (wrap-boolean (or (mal-nil-p value) (mal-list-p value))))
+  (wrap-boolean (mal-list-p value)))
 
 (defmal empty? (value)
   (wrap-boolean (zerop (length (mal-data-value value)))))
