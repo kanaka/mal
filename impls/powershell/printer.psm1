@@ -19,11 +19,11 @@ function pr_str {
             }
         }
         "Vector" {
-            $res = $obj.values | ForEach { (pr_str $_ $print_readably) }
+            $res = @($obj.values | ForEach-Object { (pr_str $_ $print_readably) })
             return "[" + ($res -join " ") + "]"
         }
         "List" {
-            $res = $obj.values | ForEach { (pr_str $_ $print_readably) }
+            $res = @($obj.values | ForEach-Object { (pr_str $_ $print_readably) })
             return "(" + ($res -join " ") + ")"
         }
         "HashMap" {

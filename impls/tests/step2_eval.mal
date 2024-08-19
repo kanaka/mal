@@ -32,6 +32,10 @@
 ;;
 ;; -------- Deferrable Functionality --------
 
+;; Testing nil inside vector
+[nil]
+;=>[nil]
+
 ;; Testing evaluation within collection literals
 [1 2 (+ 1 2)]
 ;=>[1 2 3]

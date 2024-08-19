@@ -39,7 +39,7 @@ function do_map($f, $l) {
     if (malfunc?($f)) {
         $f = $f.fn
     }
-    new-list ($l.values | foreach { &$f $_ })
+    new-list @($l.values | ForEach-Object { &$f $_ })
 }
 
 function do_apply($f) {

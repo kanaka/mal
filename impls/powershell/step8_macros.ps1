@@ -68,8 +68,8 @@ function eval_ast($ast, $env) {
     if ($ast -eq $null) { return $ast }
     switch ($ast.GetType().Name) {
         "Symbol"  { return $env.get($ast) }
-        "List"    { return new-list ($ast.values | ForEach { EVAL $_ $env }) }
-        "Vector"  { return new-vector ($ast.values | ForEach { EVAL $_ $env }) }
+        "List"    { return new-list @($ast.values | ForEach-Object { EVAL $_ $env }) }
+        "Vector"  { return new-vector @($ast.values | ForEach-Object { EVAL $_ $env }) }
         "HashMap" {
             $hm = new-hashmap @()
             foreach ($k in $ast.values.Keys) {
@@ -83,7 +83,8 @@ function eval_ast($ast, $env) {
 
 function EVAL($ast, $env) {
   while ($true) {
-    #Write-Host "EVAL $(pr_str $ast)"
+    # Write-Host "EVAL: $(pr_str $ast)"
+    if ($ast -eq $null) { return $ast }
     if (-not (list? $ast)) {
         return (eval_ast $ast $env)
     }

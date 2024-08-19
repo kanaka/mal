@@ -51,6 +51,8 @@
 ;; Testing fn? function
 (fn? +)
 ;=>true
+(fn? list?)
+;=>true
 (fn? add1)
 ;=>true
 (fn? cond)

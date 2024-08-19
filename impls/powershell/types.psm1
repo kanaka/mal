@@ -210,11 +210,11 @@ function hashmap?($obj) {
 }
 
 function keys($hm) {
-    return new-list ($hm.values.GetEnumerator() | ForEach { $_.Key })
+    return new-list @($hm.values.GetEnumerator() | ForEach-Object { $_.Key })
 }
 
 function vals($hm) {
-    return new-list ($hm.values.GetEnumerator() | ForEach { $_.Value })
+    return new-list @($hm.values.GetEnumerator() | ForEach-Object { $_.Value })
 }
 
 
@@ -273,7 +273,7 @@ function malfunc?($obj) {
 }
 
 function fn?($obj) {
-    $obj -is [System.Management.Automation.ScriptBlock]
+    $obj -is [System.Management.Automation.ScriptBlock] -or $obj -is [System.Management.Automation.CommandInfo]
 }
 #
 # General functions
