@@ -122,7 +122,7 @@ public class step8_macros {
             env.set((MalSymbol)a1, res);
             return res;
         case "do":
-            for (int i=1; i<ast.size(); i++)
+            for (int i=1; i<ast.size()-1; i++)
                 EVAL(ast.nth(i), env);
             orig_ast = ast.nth(ast.size()-1);
             break;

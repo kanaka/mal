@@ -61,7 +61,7 @@ private fun eval_fn_STAR(ast: ISeq, env: Env): MalType {
 }
 
 private fun eval_do(ast: ISeq, env: Env): MalType {
-    for (i in 1..ast.count() - 1) {
+    for (i in 1..ast.count() - 2) {
         eval(ast.nth(i), env)
     }
     return eval(ast.seq().last(), env)
@@ -78,7 +78,7 @@ private fun eval_if(ast: ISeq, env: Env): MalType {
 }
 
 private fun eval_function_call(ast: MalList, env: Env): MalType {
-    val evaluated = ast.elements.fold(MalList(), { a, b -> a.conj_BANG(eval(b, env)); a }) as ISeq
+    val evaluated = ast.elements.fold(MalList(), { a, b -> a.conj_BANG(eval(b, env)); a })
     val first = evaluated.first() as? MalFunction ?: throw MalException("cannot execute non-function")
     return first.apply(evaluated.rest())
 }

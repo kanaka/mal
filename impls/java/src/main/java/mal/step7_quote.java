@@ -114,7 +114,7 @@ public class step7_quote {
             orig_ast = quasiquote(ast.nth(1));
             break;
         case "do":
-            for (int i=1; i<ast.size(); i++)
+            for (int i=1; i<ast.size()-1; i++)
                 EVAL(ast.nth(i), env);
             orig_ast = ast.nth(ast.size()-1);
             break;

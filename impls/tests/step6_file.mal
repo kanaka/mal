@@ -87,6 +87,12 @@
 (swap! a + 3)
 ;=>123
 
+;; Test that do only evals each slot once
+(def! b (atom 0))
+(do (swap! b + 1) (swap! b + 10) (swap! b + 100))
+(deref b)
+;=>111
+
 ;; Testing swap!/closure interaction
 (def! inc-it (fn* (a) (+ 1 a)))
 (def! atm (atom 7))

@@ -73,7 +73,7 @@ public class step4_if_fn_do {
             }
             return EVAL(a2, let_env);
         case "do":
-            for (int i=1; i<ast.size(); i++)
+            for (int i=1; i<ast.size()-1; i++)
                 EVAL(ast.nth(i), env);
             return EVAL(ast.nth(ast.size() - 1), env);
         case "if":

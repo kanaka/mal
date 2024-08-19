@@ -36,7 +36,7 @@ fun eval(_ast: MalType, _env: Env): MalType {
                 }
                 "fn*" -> return fn_STAR(ast, env)
                 "do" -> {
-                    for (i in 1..ast.count() - 1) {
+                    for (i in 1..ast.count() - 2) {
                         eval(ast.nth(i), env)
                     }
                     ast = ast.seq().last()
