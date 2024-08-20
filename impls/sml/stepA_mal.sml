@@ -71,6 +71,7 @@ and evalTry e [a, LIST ([SYMBOL "catch*", b, c],_)] = (eval e a handle ex => eva
 and evalCatch e b ex body = eval (bind [b, exnVal ex] e) body
 
 and exnVal (MalException x)    = x
+  | exnVal (SyntaxError msg)   = STRING msg
   | exnVal (NotDefined msg)    = STRING msg
   | exnVal (NotApplicable msg) = STRING msg
   | exnVal (OutOfBounds msg)   = STRING msg

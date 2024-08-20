@@ -41,6 +41,7 @@
 (try* (map throw (list "my err")) (catch* exc exc))
 ;=>"my err"
 
+
 ;;
 ;; Testing builtin functions
 
