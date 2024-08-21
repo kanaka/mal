@@ -20,3 +20,13 @@ lean_lib LeanMal where
 lean_exe "step0_repl" {
   root := `LeanMal.step0_repl
 }
+
+@[default_target]
+lean_exe "step1_read_print" {
+  root := `LeanMal.step1_read_print
+}
+
+@[default_target]
+lean_exe "mal" {
+  root := `LeanMal.step1_read_print
+}

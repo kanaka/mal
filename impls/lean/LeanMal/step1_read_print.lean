@@ -1,13 +1,22 @@
+import LeanMal.reader
+import LeanMal.printer
+
 universe u
 
-def READ (input : String) := input
+def READ (input : String) :=
+  read_str.{u} input
 
-def EVAL (input : String) (_: String) := input
+def EVAL (ast : Types) (_: String) := ast
 
-def PRINT (input : String) := input
+def PRINT (ast : Types): String :=
+  pr_str true ast
 
 def rep (input : String): String :=
-  PRINT (EVAL (READ input) "")
+  match READ.{u} input with
+  | Except.ok result =>
+    PRINT (EVAL result "")
+  | Except.error err =>
+    s!"Parsing failed: {err}"
 
 def main : IO Unit := do
   IO.println "Welcome to Mal REPL!"
@@ -23,4 +32,4 @@ def main : IO Unit := do
     if value.isEmpty then
       donext := false
     else
-      IO.println (rep value)
+      IO.println (rep.{u} value)
