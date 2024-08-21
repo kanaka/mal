@@ -2,7 +2,11 @@ SOURCES_BASE = utils.lua types.lua reader.lua printer.lua
 SOURCES_LISP = env.lua core.lua stepA_mal.lua
 SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
 
-all: libs
+libraries := linenoise.so rex_pcre.so
+linenoise.so_package := linenoise
+rex_pcre.so_package := lrexlib-pcre
+
+all: $(libraries)
 
 dist: mal.lua mal
 
@@ -21,19 +25,10 @@ mal: mal.lua
 	cat $< >> $@
 	chmod +x $@
 
-
 clean:
-	rm -f linenoise.so rex_pcre.so mal.lua mal
+	rm -f $(libraries) mal.lua mal
 	rm -rf lib
 
-.PHONY: libs
-libs: linenoise.so rex_pcre.so
-
-linenoise.so:
-	luarocks install --tree=./ linenoise
-	ln -sf $$(find . -name linenoise.so) $@
-
-rex_pcre.so:
-	luarocks install --tree=./ lrexlib-pcre
-	ln -sf $$(find . -name rex_pcre.so) $@
-
+$(libraries):
+	luarocks install --tree=./ $($@_package)
+	find . -name $@ | xargs ln -s
