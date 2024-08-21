@@ -101,7 +101,7 @@ end
 
 -- Strings
 function M._string_Q(obj)
-    return type(obj) == "string"
+    return type(obj) == "string" and "\u{029e}" ~= string.sub(obj,1,2)
 end
 
 -- Symbols
@@ -117,8 +117,20 @@ function M._symbol_Q(obj)
 end
 
 -- Keywords
+-- 5.1 does not support unicode escapes.  Their length vary between 5.3 and 5.4.
+_keyword_mark = "\u{029e}"  -- Two bytes.
+_keyword_mark_len = string.len(_keyword_mark)
+
 function M._keyword_Q(obj)
-    return M._string_Q(obj) and "\u{029e}" == string.sub(obj,1,2)
+    return type(obj) == "string" and _keyword_mark == string.sub(obj,1,_keyword_mark_len)
+end
+
+function M._keyword_from_lua_string(value)
+    return _keyword_mark .. value
+end
+
+function M._lua_string_from_keyword(obj)
+    return string.sub(obj, _keyword_mark_len + 1)
 end
 
 
