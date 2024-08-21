@@ -17,7 +17,6 @@ function Env:new(outer, binds, exprs)
                 for j = i, #exprs do
                     table.insert(new_exprs, exprs[j])
                 end
-                table.remove(exprs, 1)
                 data[binds[i+1].val] = new_exprs
                 break
             end
