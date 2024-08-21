@@ -87,7 +87,7 @@ end
 
 function M.read_hash_map(rdr)
     local seq = M.read_sequence(rdr, '{', '}')
-    return types._assoc_BANG(types.HashMap:new(), table.unpack(seq))
+    return types.hash_map(table.unpack(seq))
 end
 
 function M.read_form(rdr)
