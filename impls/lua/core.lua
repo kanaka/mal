@@ -11,29 +11,21 @@ local M = {}
 -- string functions
 
 function pr_str(...)
-    return table.concat(
-        utils.map(function(e) return _pr_str(e, true) end,
-                  table.pack(...)), " ")
+    return printer._pr_seq(table.pack(...), true, " ")
 end
 
 function str(...)
-    return table.concat(
-        utils.map(function(e) return _pr_str(e, false) end,
-                  table.pack(...)), "")
+    return printer._pr_seq(table.pack(...), false, "")
 end
 
 function prn(...)
-    print(table.concat(
-        utils.map(function(e) return _pr_str(e, true) end,
-                  table.pack(...)), " "))
+    print(printer._pr_seq(table.pack(...), true, " "))
     io.flush()
     return Nil
 end
 
 function println(...)
-    print(table.concat(
-        utils.map(function(e) return _pr_str(e, false) end,
-                  table.pack(...)), " "))
+    print(printer._pr_seq(table.pack(...), false, " "))
     io.flush()
     return Nil
 end
