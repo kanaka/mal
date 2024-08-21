@@ -22,10 +22,9 @@ function M._pr_str(obj, print_readably)
             res[#res+1] = M._pr_str(v, _r)
         end
         return "{".. table.concat(res, " ").."}"
-    elseif type(obj) == 'string' then
-        if string.sub(obj,1,2) == "\u{029e}" then
-            return ':' .. string.sub(obj,3)
-        else
+    elseif types._keyword_Q(obj) then
+         return ':' .. types._lua_string_from_keyword(obj)
+    elseif types._string_Q(obj) then
             if _r then
                 local sval = obj:gsub('\\', '\\\\')
                 sval = sval:gsub('"', '\\"')
@@ -34,7 +33,6 @@ function M._pr_str(obj, print_readably)
             else
                 return obj
             end
-        end
     elseif obj == types.Nil then
         return "nil"
     elseif obj == true then

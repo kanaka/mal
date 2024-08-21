@@ -253,12 +253,12 @@ M.ns = {
     ['number?'] = function(a) return types._number_Q(a) end,
     symbol = function(a) return types.Symbol:new(a) end,
     ['symbol?'] = function(a) return types._symbol_Q(a) end,
-    ['string?'] = function(a) return types._string_Q(a) and "\u{029e}" ~= string.sub(a,1,2) end,
+    ['string?'] = function(a) return types._string_Q(a) end,
     keyword = function(a)
         if types._keyword_Q(a) then
             return a
         else
-            return "\u{029e}"..a
+            return types._keyword_from_lua_string(a)
         end
     end,
     ['keyword?'] = function(a) return types._keyword_Q(a) end,
