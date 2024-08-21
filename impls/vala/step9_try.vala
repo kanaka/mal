@@ -72,8 +72,7 @@ class Mal.Main : GLib.Object {
     }
 
     private static Mal.Val define_eval(Mal.Val key, Mal.Val value,
-                                       Mal.Env env,
-                                       bool is_macro = false)
+                                       Mal.Env env)
     throws Mal.Error {
         var rootk = new GC.Root(key); (void)rootk;
         var roote = new GC.Root(env); (void)roote;
@@ -82,8 +81,6 @@ class Mal.Main : GLib.Object {
             throw new Mal.Error.BAD_PARAMS(
                 "let*: expected a symbol to define");
         var val = EVAL(value, env);
-        if (val is Mal.Function)
-            (val as Mal.Function).is_macro = is_macro;
         env.set(symkey, val);
         return val;
     }
@@ -212,8 +209,11 @@ class Mal.Main : GLib.Object {
                         if (list.length() != 3)
                             throw new Mal.Error.BAD_PARAMS(
                                 "def!: expected two values");
-                        return define_eval(list.next.data, list.next.next.data,
-                                           env, sym.v == "defmacro!");
+                        var val = define_eval(list.next.data, list.next.next.data, env);
+                        if (sym.v == "defmacro!" && val is Mal.Function) {
+                            (val as Mal.Function).is_macro = true;
+                        }
+                        return val;
                     case "let*":
                         if (list.length() != 3)
                             throw new Mal.Error.BAD_PARAMS(

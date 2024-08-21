@@ -132,6 +132,10 @@ x
 (let* [x (cond false "no" true "yes")] x)
 ;=>"yes"
 
+;; Test return value of defmacro!
+(let* [m (defmacro! _ (fn* [] 1))] (macro? m))
+;=>true
+
 ;>>> soft=True
 ;>>> optional=True
 ;;

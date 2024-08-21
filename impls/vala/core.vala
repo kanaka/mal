@@ -826,7 +826,11 @@ class Mal.BuiltinFunctionKeyword : Mal.BuiltinFunction {
     }
     public override string name() { return "keyword"; }
     public override Mal.Val call(Mal.List args) throws Mal.Error {
-        if (args.vs.length() != 1 || !(args.vs.data is Mal.String))
+        if (args.vs.length() != 1)
+            throw new Mal.Error.BAD_PARAMS("%s: expected one string", name());
+        else if (args.vs.data is Mal.Keyword)
+            return args.vs.data;
+        else if (!(args.vs.data is Mal.String))
             throw new Mal.Error.BAD_PARAMS("%s: expected one string", name());
         return new Mal.Keyword((args.vs.data as Mal.String).v);
     }
