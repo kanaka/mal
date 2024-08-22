@@ -1,7 +1,6 @@
 #!/usr/bin/env lua
 
 local readline = require('readline')
-local utils = require('utils')
 local types = require('types')
 local reader = require('reader')
 local printer = require('printer')
