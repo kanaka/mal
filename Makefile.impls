@@ -77,6 +77,8 @@ ifeq ($(MAL_IMPL),vimscript)
 mal_TEST_OPTS = --start-timeout 60 --test-timeout 180
 else ifeq ($(MAL_IMPL),powershell)
 mal_TEST_OPTS = --start-timeout 60 --test-timeout 180
+else ifeq ($(MAL_IMPL),vbs)
+mal_TEST_OPTS = --start-timeout 60 --test-timeout 180 --no-pty
 endif
 xslt_TEST_OPTS = --test-timeout 120
 vbs_TEST_OPTS = --no-pty

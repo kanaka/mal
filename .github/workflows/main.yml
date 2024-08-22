@@ -83,7 +83,7 @@ jobs:
         if: ${{ github.event.inputs.self-hosted == 'yes' }}
         run: |
           export ${{ matrix.IMPL }}
-          if [ "${NO_SELF_HOST}" ]; then
+          if [ -n "${NO_SELF_HOST:-}" ]; then
             echo "Skipping self-host for ${IMPL} due to NO_SELF_HOST variable"
           else
             DO_SELF_HOST=1 ./ci.sh test ${IMPL}
@@ -130,7 +130,7 @@ jobs:
         if: ${{ github.event.inputs.self-hosted == 'yes' }}
         run: |
           export ${{ matrix.IMPL }}
-          if [ "${NO_SELF_HOST}" ]; then
+          if [ -n "${NO_SELF_HOST:-}" ]; then
             echo "Skipping self-host for ${IMPL} due to NO_SELF_HOST variable"
           else
             DO_SELF_HOST=1 ./ci.sh test ${IMPL}
@@ -187,6 +187,18 @@ jobs:
         run: |
           export ${{ matrix.IMPL }}
           ./ci.sh perf ${IMPL}
+      - name: Self-hosted Tests
+        if: ${{ github.event.inputs.self-hosted == 'yes' }}
+        shell: wsl-bash {0}
+        run: |
+          export ${{ matrix.IMPL }}
+          if [ -n "${NO_SELF_HOST:-}" ]; then
+            echo "Skipping self-host for ${IMPL} due to NO_SELF_HOST variable"
+          else
+            DO_SELF_HOST=1 ./ci.sh test ${IMPL}
+            # Check that self-hosted mode really ran
+            [ "`grep -a "mal-user>" test-mal-*${IMPL}.debug | wc -l`" -gt 800 ]
+          fi
       - name: Print debug log
         if: failure()
         run: cat *.debug
