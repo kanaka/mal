@@ -1,7 +1,4 @@
-local rex = require('rex_pcre')
-local string = require('string')
 local table = require('table')
-local utils = require('utils')
 local types = require('types')
 
 local Env = {}
