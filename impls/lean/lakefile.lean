@@ -42,6 +42,11 @@ lean_exe "step4_if_fn_do" {
 }
 
 @[default_target]
+lean_exe "step5_tco" {
+  root := `LeanMal.step5_tco
+}
+
+@[default_target]
 lean_exe "mal" {
   root := `LeanMal.step1_read_print
 }
