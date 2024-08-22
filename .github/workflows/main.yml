@@ -90,6 +90,9 @@ jobs:
             # Check that self-hosted mode really ran
             [ "`grep -a "mal-user>" test-mal-*${IMPL}.debug | wc -l`" -gt 800 ]
           fi
+      - name: Print debug log
+        if: failure()
+        run: cat *.debug
       - name: Archive logs and debug output
         uses: actions/upload-artifact@v4
         with:
@@ -134,6 +137,9 @@ jobs:
             # Check that self-hosted mode really ran
             [ "`grep -a "mal-user>" test-mal-*${IMPL}.debug | wc -l`" -gt 800 ]
           fi
+      - name: Print debug log
+        if: failure()
+        run: cat *.debug
       - name: Archive logs and debug output
         uses: actions/upload-artifact@v4
         with:
@@ -181,6 +187,9 @@ jobs:
         run: |
           export ${{ matrix.IMPL }}
           ./ci.sh perf ${IMPL}
+      - name: Print debug log
+        if: failure()
+        run: cat *.debug
       - name: Archive logs and debug output
         uses: actions/upload-artifact@v4
         with:

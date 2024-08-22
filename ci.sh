@@ -98,8 +98,8 @@ test|perf)
             ${DEFERRABLE:+DEFERRABLE=${DEFERRABLE}} \
             ${OPTIONAL:+OPTIONAL=${OPTIONAL}} \
             ${ACTION}^${IMPL}${STEP:+^${STEP}}; then
-        # print debug-file on error
-        cat ${log_prefix}.debug
+        # show debug-file path on error
+        echo "Full debug log is at: ${log_prefix}.debug"
         false
     fi
     ;;
