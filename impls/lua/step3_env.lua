@@ -19,17 +19,18 @@ end
 
 function EVAL(ast, env)
 
-    local dbgeval_key = types.Symbol:new("DEBUG-EVAL")
-    local dbgeval_env = env:find(dbgeval_key)
-    if dbgeval_env then
-        local dbgeval = dbgeval_env:get(dbgeval_key)
-        if dbgeval ~= types.Nil and dbgeval ~= false then
-            print("EVAL: " .. printer._pr_str(ast, true))
-        end
+    local dbgeval = env:get("DEBUG-EVAL")
+    if dbgeval ~= nil and dbgeval ~= types.Nil and dbgeval ~= false then
+        print("EVAL: " .. printer._pr_str(ast, true))
+        env:debug()
     end
 
     if types._symbol_Q(ast) then
-        return env:get(ast)
+        local result = env:get(ast.val)
+        if result == nil then
+            types.throw("'" .. ast.val .. "' not found")
+        end
+        return result
     elseif types._vector_Q(ast) then
         return Vector:new(utils.map(function(x) return EVAL(x,env) end,ast))
     elseif types._hash_map_Q(ast) then
@@ -45,11 +46,11 @@ function EVAL(ast, env)
     local a0,a1,a2 = ast[1], ast[2],ast[3]
     local a0sym = types._symbol_Q(a0) and a0.val or ""
     if 'def!' == a0sym then
-        return env:set(a1, EVAL(a2, env))
+        return env:set(a1.val, EVAL(a2, env))
     elseif 'let*' == a0sym then
         local let_env = Env:new(env)
         for i = 1,#a1,2 do
-            let_env:set(a1[i], EVAL(a1[i+1], let_env))
+            let_env:set(a1[i].val, EVAL(a1[i+1], let_env))
         end
         return EVAL(a2, let_env)
     else
@@ -71,10 +72,10 @@ function rep(str)
     return PRINT(EVAL(READ(str),repl_env))
 end
 
-repl_env:set(types.Symbol:new('+'), function(a,b) return a+b end)
-repl_env:set(types.Symbol:new('-'), function(a,b) return a-b end)
-repl_env:set(types.Symbol:new('*'), function(a,b) return a*b end)
-repl_env:set(types.Symbol:new('/'), function(a,b) return math.floor(a/b) end)
+repl_env:set('+', function(a,b) return a+b end)
+repl_env:set('-', function(a,b) return a-b end)
+repl_env:set('*', function(a,b) return a*b end)
+repl_env:set('/', function(a,b) return math.floor(a/b) end)
 
 if #arg > 0 and arg[1] == "--raw" then
     readline.raw = true
