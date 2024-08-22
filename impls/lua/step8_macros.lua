@@ -116,7 +116,7 @@ function EVAL(ast, env)
       local f = EVAL(a0, env)
       local args = types.slice(ast, 2)
       if types._macro_Q(f) then
-        ast = f.fn(table.unpack(args))
+        ast = f.fn(table.unpack(args)) -- TCO
       else
         args = utils.map(function(x) return EVAL(x,env) end, args)
         if types._malfunc_Q(f) then

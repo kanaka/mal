@@ -13,11 +13,7 @@ function Env:new(outer, binds, exprs)
     if binds then
         for i, b in ipairs(binds) do
             if binds[i].val == '&' then
-                local new_exprs = types.List:new()
-                for j = i, #exprs do
-                    table.insert(new_exprs, exprs[j])
-                end
-                data[binds[i+1].val] = new_exprs
+                data[binds[i+1].val] = types.List.slice(exprs, i)
                 break
             end
             data[binds[i].val] = exprs[i]

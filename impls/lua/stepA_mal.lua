@@ -100,23 +100,24 @@ function EVAL(ast, env)
         mac.ismacro = true
         return env:set(a1.val, mac)
     elseif 'try*' == a0sym then
+      if a2 == nil or a2[1].val ~= 'catch*' then
+        ast = a1 -- TCO
+      else
         local exc, result = nil, nil
         xpcall(function()
             result = EVAL(a1, env)
         end, function(err)
             exc = err
         end)
-        if exc ~= nil then
+        if exc == nil then
+            return result
+        else
             if types._malexception_Q(exc) then
                 exc = exc.val
             end
-            if a2 and a2[1].val == 'catch*' then
-                result = EVAL(a2[3], Env:new(env, {a2[2]}, {exc}))
-            else
-                types.throw(exc)
-            end
+            ast, env = a2[3], Env:new(env, {a2[2]}, {exc}) -- TCO
         end
-        return result
+      end
     elseif 'do' == a0sym then
         utils.map(function(x) return EVAL(x, env) end, types.slice(ast, 2, #ast - 1))
         ast = ast[#ast]  -- TCO
@@ -135,7 +136,7 @@ function EVAL(ast, env)
       local f = EVAL(a0, env)
       local args = types.slice(ast, 2)
       if types._macro_Q(f) then
-        ast = f.fn(table.unpack(args))
+        ast = f.fn(table.unpack(args)) -- TCO
       else
         args = utils.map(function(x) return EVAL(x,env) end, args)
         if types._malfunc_Q(f) then
