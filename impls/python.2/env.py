@@ -1,42 +1,20 @@
-from typing import Optional, Dict, List
+# Env is defined in mal_types.py in order to avoid a circular dependency.
+from collections.abc import Sequence
 
-from mal_types import MalExpression, MalSymbol, MalList, MalUnknownSymbolException
+from mal_types import Env, Error, Form, List, pr_seq
 
 
-class Env(object):
-    """MAL Environment"""
-
-    def __init__(
-        self,
-        outer: Optional["Env"],
-        binds: Optional[List[MalExpression]] = None,
-        exprs: Optional[List[MalExpression]] = None,
-    ) -> None:
-        self._outer = outer
-        self._data: Dict[str, MalExpression] = {}
-        if binds is not None and exprs is not None:
-            for x in range(0, len(binds)):
-                assert isinstance(binds[x], MalSymbol)
-                if binds[x].native() == "&":
-                    self.set(str(binds[x + 1]), MalList(exprs[x:]))
-                    break
-                else:
-                    self.set(str(binds[x]), exprs[x])
-
-    def set(self, key: str, value: MalExpression) -> MalExpression:
-        self._data[key] = value
-        return value
-
-    def get(self, key: str) -> Optional["Env"]:
-        if key in self._data:
-            return self._data[key]
-        if self._outer is not None:
-            return self._outer.get(key)
-        return None
-
-    def __repr__(self) -> str:
-        env_str = "{"
-        for d in self._data:
-            env_str += str(d) + ": " + str(self._data[d]) + ", "
-        env_str += "}"
-        return f"environment: (data: {env_str} outer: {repr(self._outer) if self._outer is not None else 'None'})"
+def call_env(env: Env, parms: Sequence[str], args: Sequence[Form]) -> Env:
+    match parms:
+        case [*required, '&', rest]:
+            if len(args) < len(required):
+                raise Error('not enough arguments for fn*['
+                            + ' '.join(parms) + ']: ' + pr_seq(args))
+            fn_env = env.new_child(dict(zip(required, args)))
+            fn_env[rest] = List(args[len(required):])
+            return fn_env
+        case _:
+            if len(args) != len(parms):
+                raise Error('bad argument count for fn*['
+                            + ' '.join(parms) + ']: ' + pr_seq(args))
+            return env.new_child(dict(zip(parms, args)))

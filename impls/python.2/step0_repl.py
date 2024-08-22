@@ -1,28 +1,29 @@
-import readline
+import mal_readline
 
 
-def READ(x: str) -> str:
-    return x
+def read(source: str) -> str:
+    return source
 
 
-def EVAL(x: str) -> str:
-    return x
+def eval_(ast: str) -> str:
+    return ast
 
 
-def PRINT(x: str) -> str:
-    return x
+def print_(form: str) -> str:
+    return form
 
 
-def rep(x: str) -> str:
-    return PRINT(EVAL(READ(x)))
+def rep(source: str) -> str:
+    return print_(eval_(read(source)))
 
 
-# repl loop
-eof: bool = False
-while not eof:
-    try:
-        line = input("user> ")
-        readline.add_history(line)
-        print(rep(line))
-    except EOFError:
-        eof = True
+def main() -> None:
+    while True:
+        try:
+            print(rep(mal_readline.input_('user> ')))
+        except EOFError:
+            break
+
+
+if __name__ == '__main__':
+    main()

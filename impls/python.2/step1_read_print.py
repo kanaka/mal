@@ -1,38 +1,31 @@
-import readline
+import traceback
+
+import mal_readline
+
+from mal_types import Form
 
 import reader
-from mal_types import MalExpression, MalSyntaxException
 
 
-def READ(x: str) -> MalExpression:
-    return reader.read(x)
+def eval_(ast: Form) -> Form:
+    # print(repr(ast))  # the result of read, as python
+    return ast
 
 
-def EVAL(x: MalExpression) -> MalExpression:
-    return x
+def rep(source: str) -> str:
+    return str(eval_(reader.read(source)))
 
 
-def PRINT(x: MalExpression) -> str:
-    return str(x)
-
-
-def rep(x: str) -> str:
-    try:
-        return PRINT(EVAL(READ(x)))
-    except BaseException:
-        return "Expression is invalid or unbalanced: " + x
-
-
-if __name__ == "__main__":
-    # repl loop
-    eof: bool = False
-    while not eof:
+def main() -> None:
+    while True:
         try:
-            line = input("user> ")
-            readline.add_history(line)
-            try:
-                print(rep(line))
-            except MalSyntaxException as e:
-                print("ERROR: invalid syntax: " + str(e))
+            print(rep(mal_readline.input_('user> ')))
         except EOFError:
-            eof = True
+            break
+        # pylint: disable-next=broad-exception-caught
+        except Exception as exc:
+            traceback.print_exception(exc, limit=10)
+
+
+if __name__ == '__main__':
+    main()

@@ -1,98 +1,124 @@
-import readline
-from typing import Dict
+import traceback
+from collections.abc import Sequence
+
+import mal_readline
+
+from mal_types import (Boolean, Env, Error, Fn, Form, List,
+                       Map, Nil, Number, Symbol,
+                       Vector, pr_seq)
 
 import reader
-from env import Env
-from mal_types import (
-    MalExpression,
-    MalBoolean, MalNil, MalSymbol,
-    MalInvalidArgumentException,
-    MalUnknownSymbolException,
-    MalSyntaxException,
-)
-from mal_types import MalInt, MalList, MalFunctionCompiled, MalVector, MalHash_map
-
-repl_env = Env(None)
-repl_env.set("+", MalFunctionCompiled(lambda a: MalInt(a[0].native() + a[1].native())))
-repl_env.set("-", MalFunctionCompiled(lambda a: MalInt(a[0].native() - a[1].native())))
-repl_env.set("*", MalFunctionCompiled(lambda a: MalInt(a[0].native() * a[1].native())))
-repl_env.set(
-    "/", MalFunctionCompiled(lambda a: MalInt(int(a[0].native() / a[1].native())))
-)
 
 
-def READ(x: str) -> MalExpression:
-    return reader.read(x)
+def eval_def(args: Sequence[Form], env: Env) -> Form:
+    match args:
+        case [Symbol() as key, form]:
+            value = eval_(form, env)
+            env[key] = value
+            return value
+        case _:
+            raise Error('def!: bad arguments: ' + pr_seq(args))
 
 
-def EVAL(ast: MalExpression, env: Env) -> MalExpression:
-    dbgeval = env.get("DEBUG-EVAL")
-    if (dbgeval is not None
-        and not isinstance(dbgeval, MalNil)
-        and (not isinstance(dbgeval, MalBoolean) or dbgeval.native())):
-        print("EVAL: " + str(ast))
-    if isinstance(ast, MalSymbol):
-        key = str(ast)
-        val = env.get(key)
-        if val is None: raise MalUnknownSymbolException(key)
-        return val
-    if isinstance(ast, MalVector):
-        return MalVector([EVAL(x, env) for x in ast.native()])
-    if isinstance(ast, MalHash_map):
-        new_dict = {}  # type: Dict[str, MalExpression]
-        for key in ast.native():
-            new_dict[key] = EVAL(ast.native()[key], env)
-        return MalHash_map(new_dict)
-    if not isinstance(ast, MalList):
-        return ast
-    if len(ast.native()) == 0:
-        return ast
-    first = str(ast.native()[0])
-    rest = ast.native()[1:]
-    if first == "def!":
-        key = str(ast.native()[1])
-        value = EVAL(ast.native()[2], env)
-        return env.set(key, value)
-    if first == "let*":
-        assert len(rest) == 2
-        let_env = Env(env)
-        bindings = rest[0]
-        assert isinstance(bindings, MalList) or isinstance(bindings, MalVector)
-        bindings_list = bindings.native()
-        assert len(bindings_list) % 2 == 0
-        for i in range(0, len(bindings_list), 2):
-            assert isinstance(bindings_list[i], MalSymbol)
-            assert isinstance(bindings_list[i + 1], MalExpression)
-            let_env.set(str(bindings_list[i]), EVAL(bindings_list[i + 1], let_env))
-        expr = rest[1]
-        return EVAL(expr, let_env)
-    f, *args = (EVAL(form, env) for form in ast.native())
-    try:
-        return f.call(args)
-    except AttributeError:
-        raise MalInvalidArgumentException(f, "attribute error")
+def eval_let(args: Sequence[Form], env: Env) -> Form:
+    match args:
+        case [List() | Vector() as binds, form]:
+            if len(binds) % 2:
+                raise Error('let*: odd bind count: ' + pr_seq(binds))
+            let_env = env.new_child()
+            for i in range(0, len(binds), 2):
+                key = binds[i]
+                if not isinstance(key, Symbol):
+                    raise Error(f'let*: {key} is not a symbol')
+                let_env[key] = eval_(binds[i + 1], let_env)
+            return eval_(form, let_env)
+        case _:
+            raise Error('let*: bad arguments: ' + pr_seq(args))
 
 
-def PRINT(x: MalExpression) -> str:
-    return str(x)
+specials = {
+    'def!': eval_def,
+    'let*': eval_let,
+}
 
 
-def rep(x: str) -> str:
-    return PRINT(EVAL(READ(x), repl_env))
+def eval_(ast: Form, env: Env) -> Form:
+    if env.get('DEBUG-EVAL') not in (None, Nil.NIL, Boolean.FALSE):
+        print(f'EVAL: {ast}')  # , repr(ast))
+        for outer in env.maps:
+            print('  ENV:', ' '.join(f'{k}: {v}'
+                  for k, v in reversed(outer.items()))[:75])
+    match ast:
+        case Symbol():
+            if (value := env.get(ast)) is not None:
+                return value
+            raise Error(f"'{ast}' not found")
+        case Map():
+            return Map((k, eval_(v, env)) for k, v in ast.items())
+        case Vector():
+            return Vector(eval_(x, env) for x in ast)
+        case List([first, *args]):
+            if isinstance(first, Symbol) and (spec := specials.get(first)):
+                return spec(args, env)
+            match eval_(first, env):
+                case Fn(call):
+                    return call(tuple(eval_(x, env) for x in args))
+                case not_fun:
+                    raise Error(f'cannot apply {not_fun}')
+        case _:
+            return ast
 
 
-if __name__ == "__main__":
-    # repl loop
-    eof: bool = False
-    while not eof:
+def add(args: Sequence[Form]) -> Form:
+    match args:
+        case [Number(left), Number(right)]:
+            return Number(left + right)
+        case _:
+            raise Error('+: bad arguments' + pr_seq(args))
+
+
+def sub(args: Sequence[Form]) -> Form:
+    match args:
+        case [Number(left), Number(right)]:
+            return Number(left - right)
+        case _:
+            raise Error('-: bad arguments' + pr_seq(args))
+
+
+def mul(args: Sequence[Form]) -> Form:
+    match args:
+        case [Number(left), Number(right)]:
+            return Number(left * right)
+        case _:
+            raise Error('*: bad arguments' + pr_seq(args))
+
+
+def floordiv(args: Sequence[Form]) -> Form:
+    match args:
+        case [Number(left), Number(right)]:
+            return Number(left // right)
+        case _:
+            raise Error('/: bad arguments' + pr_seq(args))
+
+
+def rep(source: str, env: Env) -> str:
+    return str(eval_(reader.read(source), env))
+
+
+def main() -> None:
+    repl_env = Env({
+        '+': Fn(add), '-': Fn(sub), '*': Fn(mul), '/': Fn(floordiv),
+    })
+
+    while True:
         try:
-            line = input("user> ")
-            readline.add_history(line)
-            try:
-                print(rep(line))
-            except MalUnknownSymbolException as e:
-                print("'" + e.func + "' not found")
-            except MalSyntaxException as e:
-                print("ERROR: invalid syntax: " + str(e))
+            print(rep(mal_readline.input_('user> '), repl_env))
         except EOFError:
-            eof = True
+            break
+        # pylint: disable-next=broad-exception-caught
+        except Exception as exc:
+            traceback.print_exception(exc, limit=10)
+
+
+if __name__ == '__main__':
+    main()
