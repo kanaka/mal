@@ -99,7 +99,7 @@ function concat(...)
 end
 
 function vec(a)
-    return types.Vector:new(a)
+    return types.Vector:new(types.copy(a))
 end
 
 function nth(seq, idx)
