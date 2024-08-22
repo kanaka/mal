@@ -971,13 +971,10 @@ python stepX_YYY.py
 
 ### Python.2 (3.X)
 
-The second Python implementation makes heavy use of type annotations and uses the Arpeggio parser library.
-
-```
-# Recommended: do these steps in a Python virtual environment.
-pip3 install Arpeggio==1.9.0
-python3 stepX_YYY.py
-```
+The second Python implementation is checked for style and types
+(flake8, pylint, mypy).  It reports all errors with details.
+It demonstrates iterators, decorators, functional tools, chain maps,
+dataclasses, introspection, match statements, assignement expressions.
 
 ### RPython
 

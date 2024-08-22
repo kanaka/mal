@@ -1,66 +1,88 @@
-import readline
-from typing import Dict
+import traceback
+from collections.abc import Mapping, Sequence
+
+import mal_readline
+
+from mal_types import (Error, Fn, Form, List,
+                       Map, Number, Symbol,
+                       Vector, pr_seq)
 
 import reader
-from mal_types import MalExpression, MalSymbol
-from mal_types import MalFunctionCompiled, MalInt
-from mal_types import MalList, MalVector, MalHash_map
-from mal_types import MalUnknownSymbolException, MalSyntaxException
 
-repl_env = {
-    "+": MalFunctionCompiled(lambda a: MalInt(a[0].native() + a[1].native())),
-    "-": MalFunctionCompiled(lambda a: MalInt(a[0].native() - a[1].native())),
-    "*": MalFunctionCompiled(lambda a: MalInt(a[0].native() * a[1].native())),
-    "/": MalFunctionCompiled(lambda a: MalInt(int(a[0].native() / a[1].native()))),
-}
+Env = Mapping[str, Fn]
 
 
-def READ(x: str) -> MalExpression:
-    return reader.read(x)
+def eval_(ast: Form, env: Env) -> Form:
+    # print(f'EVAL: {ast}', repr(ast)
+    match ast:
+        case Symbol():
+            if (value := env.get(ast)) is not None:
+                return value
+            raise Error(f"'{ast}' not found")
+        case Map():
+            return Map((k, eval_(v, env)) for k, v in ast.items())
+        case Vector():
+            return Vector(eval_(x, env) for x in ast)
+        case List([first, *args]):
+            match eval_(first, env):
+                case Fn(call):
+                    return call(tuple(eval_(x, env) for x in args))
+                case not_fun:
+                    raise Error(f'cannot apply {not_fun}')
+        case _:
+            return ast
 
 
-def EVAL(ast: MalExpression, env: Dict[str, MalFunctionCompiled]) -> MalExpression:
-    # print("EVAL: " + str(ast))
-    if isinstance(ast, MalSymbol):
+def add(args: Sequence[Form]) -> Form:
+    match args:
+        case [Number(left), Number(right)]:
+            return Number(left + right)
+        case _:
+            raise Error('+: bad arguments' + pr_seq(args))
+
+
+def sub(args: Sequence[Form]) -> Form:
+    match args:
+        case [Number(left), Number(right)]:
+            return Number(left - right)
+        case _:
+            raise Error('-: bad arguments' + pr_seq(args))
+
+
+def mul(args: Sequence[Form]) -> Form:
+    match args:
+        case [Number(left), Number(right)]:
+            return Number(left * right)
+        case _:
+            raise Error('*: bad arguments' + pr_seq(args))
+
+
+def floordiv(args: Sequence[Form]) -> Form:
+    match args:
+        case [Number(left), Number(right)]:
+            return Number(left // right)
+        case _:
+            raise Error('/: bad arguments' + pr_seq(args))
+
+
+def rep(source: str, env: Env) -> str:
+    return str(eval_(reader.read(source), env))
+
+
+def main() -> None:
+    repl_env: Env = {
+        '+': Fn(add), '-': Fn(sub), '*': Fn(mul), '/': Fn(floordiv),
+    }
+
+    while True:
         try:
-            return env[str(ast)]
-        except KeyError:
-            raise MalUnknownSymbolException(str(ast))
-    if isinstance(ast, MalVector):
-        return MalVector([EVAL(x, env) for x in ast.native()])
-    if isinstance(ast, MalHash_map):
-        new_dict = {}  # type: Dict[str, MalExpression]
-        for key in ast.native():
-            new_dict[key] = EVAL(ast.native()[key], env)
-        return MalHash_map(new_dict)
-    if not isinstance(ast, MalList):
-        return ast
-    if len(ast.native()) == 0:
-        return ast
-    f, *args = (EVAL(form, env) for form in ast.native())
-    return f.call(args)
-
-
-def PRINT(exp: MalExpression) -> str:
-    return str(exp)
-
-
-def rep(x: str) -> str:
-    return PRINT(EVAL(READ(x), repl_env))
-
-
-if __name__ == "__main__":
-    # repl loop
-    eof: bool = False
-    while not eof:
-        try:
-            line = input("user> ")
-            readline.add_history(line)
-            try:
-                print(rep(line))
-            except MalUnknownSymbolException as e:
-                print("'" + e.func + "' not found")
-            except MalSyntaxException as e:
-                print("ERROR: invalid syntax: " + str(e))
+            print(rep(mal_readline.input_('user> '), repl_env))
         except EOFError:
-            eof = True
+            break
+        # pylint: disable-next=broad-exception-caught
+        except Exception as exc:
+            traceback.print_exception(exc, limit=10)
+
+
+if __name__ == '__main__':
+    main()

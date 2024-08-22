@@ -1,209 +1,175 @@
-from typing import Dict
+import re
+from collections.abc import Callable, Iterator, Mapping
+from re import Match
 
-from arpeggio import (  # type: ignore
-    ParserPython,
-    PTNodeVisitor,
-    visit_parse_tree,
-    ZeroOrMore,
-)
-from arpeggio import RegExMatch as _, NoMatch  # type: ignore
+from mal_types import (Boolean, Error, Form, Keyword, List, Map, Nil,
+                       Number, String, Symbol, Vector)
 
-from mal_types import (
-    MalExpression,
-    MalInt,
-    MalList,
-    MalBoolean,
-    MalNil,
-    MalVector,
-    MalHash_map,
-)
-from mal_types import MalSymbol, MalString, MalSyntaxException
+# The `token` decorator adds regular expression groups all along this file.
+# The name of a group is the name of the decorated funtion, allowing
+# `read_form` to call it when it founds the token.
+# The global regular expression is compiled once when the module is loaded.
+token_groups: list[str] = []
 
 
-# Arpeggio grammar
-def mExpression():
-    return [
-        mWithMetaExpression,
-        mQuotedExpression,
-        mQuasiQuotedExpression,
-        mSpliceUnquotedExpression,
-        mUnquotedExpression,
-        mDerefExpression,
-        mList,
-        mVector,
-        mHash_map,
-        mInt,
-        mString,
-        mKeyword,
-        mNil,
-        mBoolean,
-        mSymbol,
-    ]
+class Lexer:
+    # Consume unnamed groups, but do not report them.
+    # Report None at the end of the input.
+
+    def __init__(self, source: str) -> None:
+        self._tokens = (t for t in pattern.finditer(source) if t.lastgroup)
+        self._peek: Match[str] | None = None
+        self.consume()
+
+    def consume(self) -> None:
+        try:
+            self._peek = next(self._tokens)
+        except StopIteration:
+            self._peek = None
+
+    def peek(self) -> re.Match[str] | None:
+        return self._peek
 
 
-def mWithMetaExpression():
-    return "^", mExpression, mExpression
+def token(regex: str):
+    """Bind a regular expression to a function in this module. Form constuctor.
+
+    The lexer does not report tokens with None as constructor.
+    """
+
+    def decorator(fun: Callable[[Lexer, Match[str]], Form] | None):
+        if fun:
+            group = f'(?P<{fun.__name__}>{regex})'
+        else:
+            group = f'(?:{regex})'
+        token_groups.append(group)
+        return fun
+
+    return decorator
 
 
-def mQuotedExpression():
-    return "'", mExpression
+def context(match: Match[str]) -> str:
+    """Format some information for error reporting."""
+    start_idx = match.start() - 10
+    if 0 < start_idx:
+        start = '...' + match.string[start_idx:match.start()]
+    else:
+        start = match.string[:match.start()]
+    end_idx = match.end() + 20
+    if end_idx < len(match.string):
+        end = match.string[match.end():end_idx] + '...'
+    else:
+        end = match.string[match.end():]
+    return f': {start}<BETWEEN THIS>{match.group()}<AND THIS>{end}'
 
 
-def mQuasiQuotedExpression():
-    return "`", mExpression
+token(r'(?:[\s,]|;[^\n\r]*)+')(None)
 
 
-def mSpliceUnquotedExpression():
-    return "~@", mExpression
+def unescape(match: Match[str]) -> str:
+    """Map a backslash sequence to a character for strings."""
+    char = match.string[match.end() - 1]
+    return '\n' if char == 'n' else char
 
 
-def mUnquotedExpression():
-    return "~", mExpression
+@token(r'"(?:(?:[^"\\]|\\.)*")?')
+def string(_: Lexer, tok: Match[str]) -> Form:
+    start, end = tok.span()
+    if end - start == 1:
+        raise Error('read: unbalanced string delimiter' + context(tok))
+    return String(re.sub(r'\\.', unescape, tok.string[start + 1:end - 1]))
 
 
-def mDerefExpression():
-    return "@", mExpression
+def read_list(lexer: Lexer, closing: str, pos: Match[str]) -> Iterator[Form]:
+    while not ((tok := lexer.peek()) and tok.group() == closing):
+        yield read_form(lexer, pos)
+    lexer.consume()
 
 
-def mList():
-    return "(", ZeroOrMore(mExpression), ")"
+@token(r'\(')
+def list_start(lexer: Lexer, tok: Match[str]) -> Form:
+    return List(read_list(lexer, ')', tok))
 
 
-def mVector():
-    return "[", ZeroOrMore(mExpression), "]"
+@token(r'\[')
+def vector_start(lexer: Lexer, tok: Match[str]) -> Form:
+    return Vector(read_list(lexer, ']', tok))
 
 
-def mHash_map():
-    return ("{", ZeroOrMore(mExpression), "}")
+@token(r'\{')
+def map_start(lexer: Lexer, tok: Match[str]) -> Form:
+    return Map(Map.cast_items(read_list(lexer, '}', tok)))
 
 
-def mInt():
-    return _(r"-?[0123456789]+")
+single_macros = {
+    "'": 'quote',
+    '`': 'quasiquote',
+    '@': 'deref',
+    '~': 'unquote',
+    '~@': 'splice-unquote',
+}
 
 
-def mString():
-    return _(r""""(?:\\.|[^\\"])*"?""")
+@token("['`@]|~@?")
+def macro(lexer: Lexer, tok: Match[str]) -> Form:
+    return List((Symbol(single_macros[tok.group()]), read_form(lexer, tok)))
 
 
-def mKeyword():
-    return _(r""":[^\s\[\]{}('"`,;)]*""")
+@token(r'\^')
+def with_meta(lexer: Lexer, tok: Match[str]) -> Form:
+    tmp = read_form(lexer, tok)
+    return List((Symbol('with-meta'), read_form(lexer, tok), tmp))
 
 
-def mSymbol():
-    return _(r"""[^\s\[\]{}('"`,;)]*""")
+@token('[])}]')
+def list_end(_: Lexer, tok: Match[str]) -> Form:
+    raise Error('read: unbalanced list/vector/map terminator' + context(tok))
 
 
-def mNil():
-    return _(r"""nil(?!\?)""")
+@token(r'-?\d+')
+def number(_: Lexer, tok: Match[str]) -> Form:
+    return Number(tok.group())
 
 
-def mBoolean():
-    return _(r"""(true|false)(?!\?)""")
+almost_symbols: Mapping[str, Form] = {
+    'nil': Nil.NIL,
+    'false': Boolean.FALSE,
+    'true': Boolean.TRUE,
+}
 
 
-class ReadASTVisitor(PTNodeVisitor):
-    def visit_mExpression(self, node, children) -> MalExpression:
-        return children[0]  # children should already be Mal types
-
-    def visit_mInt(self, node, children) -> MalInt:
-        return MalInt(int(node.value))
-
-    def visit_mString(self, node, children) -> MalString:
-        # node.value will have quotes, escape sequences
-        assert type(node.value) is str
-        if node.value[0] != '"':
-            raise Exception("internal error: parsed a string with no start quote")
-        val: str = node.value
-        if len(val) < 2 or val[-1] != '"':
-            raise MalSyntaxException("unbalanced string")
-        val = val[1:-1]  # remove outer quotes
-
-        # handle escaped characters
-        i = 0
-        result = ""
-        while i < len(val):
-            if val[i] == "\\":
-                if (i + 1) < len(val):
-                    if val[i + 1] == "n":
-                        result += "\n"
-                    elif val[i + 1] == "\\":
-                        result += "\\"
-                    elif val[i + 1] == '"':
-                        result += '"'
-                    i += 2
-                else:
-                    raise MalSyntaxException(
-                        "unbalanced string or invalid escape sequence"
-                    )
-            else:
-                result += val[i]
-                i += 1
-
-        return MalString(result)
-
-    def visit_mKeyword(self, node, children) -> MalString:
-        assert type(node.value) is str
-        assert len(node.value) > 1
-        return MalString(node.value[1:], keyword=True)
-
-    def visit_mList(self, node, children) -> MalList:
-        return MalList(children)
-
-    def visit_mVector(self, node, children) -> MalVector:
-        return MalVector(children)
-
-    def visit_mHash_map(self, node, children):
-        assert len(children) % 2 == 0
-        dict = {}  # type: Dict[MalExpression, MalExpression]
-        for i in range(0, len(children), 2):
-            assert isinstance(children[i], MalString)
-            dict[children[i].native()] = children[i + 1]
-        return MalHash_map(dict)
-
-    def visit_mSymbol(self, node, children) -> MalSymbol:
-        return MalSymbol(node.value)
-
-    def visit_mBoolean(self, node, children) -> MalBoolean:
-        if node.value == "true":
-            return MalBoolean(True)
-        if node.value == "false":
-            return MalBoolean(False)
-        raise Exception("Internal reader error")
-
-    def visit_mNil(self, node, children) -> MalNil:
-        return MalNil()
-
-    def visit_mWithMetaExpression(self, node, children) -> MalList:
-        return MalList([MalSymbol("with-meta"), children[1], children[0]])
-
-    def visit_mQuotedExpression(self, node, children) -> MalList:
-        return MalList([MalSymbol("quote"), children[0]])
-
-    def visit_mQuasiQuotedExpression(self, node, children) -> MalList:
-        return MalList([MalSymbol("quasiquote"), children[0]])
-
-    def visit_mSpliceUnquotedExpression(self, node, children) -> MalList:
-        return MalList([MalSymbol("splice-unquote"), children[0]])
-
-    def visit_mUnquotedExpression(self, node, children) -> MalList:
-        return MalList([MalSymbol("unquote"), children[0]])
-
-    def visit_mDerefExpression(self, node, children) -> MalList:
-        return MalList([MalSymbol("deref"), children[0]])
+@token(r"""[^]\s"'(),;@[^`{}~]+""")
+def symbol(_: Lexer, tok: Match[str]) -> Form:
+    start, end = tok.span()
+    if tok.string[start] == ':':
+        return Keyword(tok.string[start + 1:end])
+    value = tok.group()
+    return almost_symbols.get(value) or Symbol(value)
 
 
-def comment():
-    return _(";.*")
+@token('.')
+def should_never_match(lexer: Lexer, tok: Match[str]) -> Form:
+    assert False, f'{lexer} {tok}'
 
 
-def read(x: str) -> MalExpression:
-    """Parse a string into a MalExpression"""
-    reader = ParserPython(mExpression, comment_def=comment, ws="\t\n\r ,", debug=False)
+def read_form(lexer: Lexer, pos: Match[str] | None) -> Form:
+    """Parse a form from `lexer`, reporting errors as if started from `pos`."""
+    if (tok := lexer.peek()):
+        lexer.consume()
+        assert tok.lastgroup, f'{lexer} {tok}'
+        assert tok.lastgroup in globals(), f'{lexer} {tok}'
+        return globals()[tok.lastgroup](lexer, tok)
+    if pos:
+        raise Error('read: unbalanced form, started' + context(pos))
+    raise Error('read: the whole input was empty')
 
-    try:
-        parsed = visit_parse_tree(reader.parse(x), ReadASTVisitor())
-        assert issubclass(type(parsed), MalExpression)
-        return parsed
-    except NoMatch as e:
-        # print(str(e))
-        raise MalSyntaxException("invalid syntax or unexpected EOF")
+
+def read(source: str) -> Form:
+    lexer = Lexer(source)
+    result = read_form(lexer, None)
+    if tok := lexer.peek():
+        raise Error('read: trailing items after the form' + context(tok))
+    return result
+
+
+pattern = re.compile('|'.join(token_groups))

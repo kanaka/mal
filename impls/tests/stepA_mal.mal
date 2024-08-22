@@ -278,6 +278,19 @@
 (meta +)
 ;=>nil
 
+;; Metadata should not break equality.
+(= [1] ^2 [1])
+;=>true
+
+(= '(1) ^2 '(1))
+;=>true
+
+(= {"a" 1} ^2 {"a" 1})
+;=>true
+
+(= '(1) ^2 [1])
+;=>true
+
 ;; Loading sumdown from computations.mal
 (load-file "../tests/computations.mal")
 ;=>nil
