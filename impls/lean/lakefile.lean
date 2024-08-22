@@ -27,6 +27,11 @@ lean_exe "step1_read_print" {
 }
 
 @[default_target]
+lean_exe "step2_eval" {
+  root := `LeanMal.step2_eval
+}
+
+@[default_target]
 lean_exe "mal" {
   root := `LeanMal.step1_read_print
 }
