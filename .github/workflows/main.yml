@@ -16,7 +16,7 @@ on:
       self-hosted:
         description: 'Include self-hosted tests'
         required: true
-        default: 'no'
+        default: 'yes'
         options: ['yes', 'no']
 
 jobs:
@@ -80,7 +80,7 @@ jobs:
           export ${{ matrix.IMPL }}
           ./ci.sh perf ${IMPL}
       - name: Self-hosted Tests
-        if: ${{ github.event.inputs.self-hosted == 'yes' }}
+        if: ${{ github.event.inputs.self-hosted != 'no' }}
         run: |
           export ${{ matrix.IMPL }}
           if [ -n "${NO_SELF_HOST:-}" ]; then
@@ -127,7 +127,7 @@ jobs:
           export ${{ matrix.IMPL }}
           ./ci.sh perf ${IMPL}
       - name: Self-hosted Tests
-        if: ${{ github.event.inputs.self-hosted == 'yes' }}
+        if: ${{ github.event.inputs.self-hosted != 'no' }}
         run: |
           export ${{ matrix.IMPL }}
           if [ -n "${NO_SELF_HOST:-}" ]; then
@@ -188,7 +188,7 @@ jobs:
           export ${{ matrix.IMPL }}
           ./ci.sh perf ${IMPL}
       - name: Self-hosted Tests
-        if: ${{ github.event.inputs.self-hosted == 'yes' }}
+        if: ${{ github.event.inputs.self-hosted != 'no' }}
         shell: wsl-bash {0}
         run: |
           export ${{ matrix.IMPL }}

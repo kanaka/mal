@@ -23,7 +23,7 @@ IMPL:
   - {IMPL: elisp}
   - {IMPL: elixir}
   - {IMPL: elm}
-  - {IMPL: erlang, NO_SELF_HOST: 1}  # step8 OOM
+  - {IMPL: erlang, NO_SELF_HOST: 1}  # step4 silent exit on "(DO 3)"
   - {IMPL: es6}
   - {IMPL: factor}
   - {IMPL: fantom}
@@ -44,7 +44,7 @@ IMPL:
   - {IMPL: janet}
   - {IMPL: java}
   - {IMPL: java-truffle}
-  - {IMPL: jq}
+  - {IMPL: jq, NO_SELF_HOST: 1}  # start-up failure and other issues
   - {IMPL: js}
   - {IMPL: julia}
   - {IMPL: kotlin}
@@ -59,7 +59,7 @@ IMPL:
   - {IMPL: mal, MAL_IMPL: nim-mal, BUILD_IMPL: nim, NO_SELF_HOST: 1, NO_PERF: 1, SLOW: 1}
   - {IMPL: matlab, NO_SELF_HOST_PERF: 1}  # Octave, perf timeout
   - {IMPL: miniMAL, NO_SELF_HOST_PERF: 1, SLOW: 1}  # perf timeout
-  - {IMPL: nasm, NO_SELF_HOST_PERF: 1}  # perf OOM
+  - {IMPL: nasm, NO_SELF_HOST: 1}  # needs memory bump, then fails in step7/quasiquote
   - {IMPL: nim}
   - {IMPL: objpascal}
   - {IMPL: objc}
@@ -73,7 +73,7 @@ IMPL:
 # - {IMPL: plsql}
   - {IMPL: prolog}
   - {IMPL: ps}
-  - {IMPL: powershell, NO_SELF_HOST_PERF: 1}
+  - {IMPL: powershell, NO_SELF_HOST: 1}  # works, but too slow be default enabled
   - {IMPL: purs}
   - {IMPL: python, python_MODE: python2}
   - {IMPL: python, python_MODE: python3}
@@ -111,7 +111,7 @@ IMPL:
   #- {IMPL: wasm, wasm_MODE: warpy,     NO_SELF_HOST_PERF: 1}  # Hangs on GH Actions
   #- {IMPL: wasm, wasm_MODE: wace_libc, NO_SELF_HOST_PERF: 1}  # Hangs on GH Actions
   - {IMPL: wren}
-  - {IMPL: xslt}
+  - {IMPL: xslt, NO_SELF_HOST: 1}  # step1 fail: "Too many nested template ..."
   - {IMPL: yorick}
   - {IMPL: zig}
 
@@ -122,4 +122,4 @@ IMPL:
 # - {IMPL: swift4, NO_DOCKER: 1, OS: xcode10}}
   - {IMPL: swift5, NO_DOCKER: 1, OS: macos}
 
-  - {IMPL: vbs, NO_DOCKER: 1, OS: windows}
+  - {IMPL: vbs, NO_DOCKER: 1, OS: windows, NO_SELF_HOST: 1} # startup invoke failure
