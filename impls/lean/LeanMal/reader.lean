@@ -75,7 +75,7 @@ def read_nil_val : Parsec Types := do
 
 def read_symbol_val : Parsec Types := do
   ws
-    let sym ← many1Chars (satisfy (λ c => c.isAlphanum || c == '_' || c == '+' || c == '*' || c == '!' || c == '/' || c == '-' || c == '=' || c == '<' || c == '>' || c == ':'))
+    let sym ← many1Chars (satisfy (λ c => c.isAlphanum || c == '+' || c == '-' || c == '*' || c == '/' || c == '=' || c == '<' || c == '>' || c == ':' || c == '_' || c == '!' || c == '?'))
   ws
   return Types.symbolVal sym
 

@@ -37,6 +37,11 @@ lean_exe "step3_env" {
 }
 
 @[default_target]
+lean_exe "step4_if_fn_do" {
+  root := `LeanMal.step4_if_fn_do
+}
+
+@[default_target]
 lean_exe "mal" {
   root := `LeanMal.step1_read_print
 }
