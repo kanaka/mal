@@ -94,7 +94,7 @@ function EVAL(ast, env)
     elseif 'quasiquote' == a0sym then
         ast = quasiquote(a1) -- TCO
     elseif 'defmacro!' == a0sym then
-        local mac = EVAL(a2, env)
+        local mac = types.copy(EVAL(a2, env))
         mac.ismacro = true
         return env:set(a1, mac)
     elseif 'try*' == a0sym then
