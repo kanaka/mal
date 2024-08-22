@@ -24,7 +24,6 @@
 ;;; Differing output, but make sure no fatal error
 (read-string ";; comment")
 
-
 (eval (read-string "(+ 2 3)"))
 ;=>5
 
@@ -111,6 +110,14 @@
 ;>>> deferrable=True
 ;;
 ;; -------- Deferrable Functionality --------
+
+;; Testing read-string parsing errors
+(read-string "(+ 1")
+;/.*(EOF|end of input|unbalanced).*
+(read-string "[+ 1")
+;/.*(EOF|end of input|unbalanced).*
+(read-string "{:a 1")
+;/.*(EOF|end of input|unbalanced).*
 
 ;; Testing reading of large files
 (load-file "../tests/computations.mal")

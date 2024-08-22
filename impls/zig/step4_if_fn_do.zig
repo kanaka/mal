@@ -100,7 +100,7 @@ fn EVAL_let(mal: *MalType, env: *Env) MalError!*MalType {
         optional_node = iterator.next();
         key_mal.delete(Allocator);
     }
-    
+
     linked_list.destroy(Allocator, &binding_ll, true);
     binding_arg.data = MalData{.Nil=undefined};
     mal.delete(Allocator);

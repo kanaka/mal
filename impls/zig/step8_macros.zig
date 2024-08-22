@@ -164,8 +164,8 @@ fn macroexpand(mal: *MalType, env: *Env) MalError!*MalType {
             first.delete(Allocator);
         }
         try linked_list.prepend_mal(Allocator, &new_list, macro);
-        var new_mal = try apply_function(Allocator, new_list); 
-        linked_list.destroy(Allocator, &new_list, false);        
+        var new_mal = try apply_function(Allocator, new_list);
+        linked_list.destroy(Allocator, &new_list, false);
         cur_mal.shallow_destroy(Allocator);
         cur_mal = new_mal;
         optional_macro = is_macro_call(cur_mal, env);
@@ -216,7 +216,7 @@ fn EVAL_let(mal_ptr: **MalType, env_ptr: **Env) MalError!void {
         optional_node = iterator.next();
         key_mal.delete(Allocator);
     }
-    
+
     linked_list.destroy(Allocator, &binding_ll, true);
     binding_arg.data = MalData{.Nil=undefined};
     binding_arg.delete(Allocator);
@@ -367,7 +367,7 @@ fn rep_and_print_errors(environment: *Env, input: [] const u8) ?[]u8 {
 
 
 fn lookup(environment: *Env, symbol: []const u8, do_warn: bool) MalError!*MalType {
-     var mal = environment.get(symbol) catch |err| {
+    var mal = environment.get(symbol) catch |err| {
         if(do_warn) {
             const s1 = string_concat(Allocator, "'", symbol) catch return MalError.SystemError;
             const s2 = string_concat(Allocator, s1, "' not found") catch return MalError.SystemError;
@@ -462,7 +462,7 @@ fn make_environment() MalError!*Env {
     if(optional_output) |output| {
         Allocator.free(output);
     }
-    
+
     const load_file_string: [] const u8 =
         \\(def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) "\nnil)")))))
     ;

@@ -41,7 +41,6 @@
 (try* (map throw (list "my err")) (catch* exc exc))
 ;=>"my err"
 
-
 ;;
 ;; Testing builtin functions
 
@@ -112,6 +111,14 @@
 ;;
 ;; ------- Deferrable Functionality ----------
 ;; ------- (Needed for self-hosting) -------
+
+;; Test catch of reader errors
+(try* (eval (read-string "(+ 1")) (catch* e (prn :e e)))
+;/.*(EOF|end of input|unbalanced).*
+(try* (eval (read-string "[+ 1")) (catch* e (prn :e e)))
+;/.*(EOF|end of input|unbalanced).*
+(try* (eval (read-string "{:a 1")) (catch* e (prn :e e)))
+;/.*(EOF|end of input|unbalanced).*
 
 ;; Testing symbol and keyword functions
 (symbol? :abc)

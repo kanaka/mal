@@ -170,8 +170,8 @@ fn macroexpand(mal: *MalType, env: *Env) MalError!*MalType {
             first.delete(Allocator);
         }
         try linked_list.prepend_mal(Allocator, &new_list, macro);
-        var new_mal = try apply_function_unsafe(Allocator, new_list); 
-        linked_list.destroy(Allocator, &new_list, false);        
+        var new_mal = try apply_function_unsafe(Allocator, new_list);
+        linked_list.destroy(Allocator, &new_list, false);
         cur_mal.shallow_destroy(Allocator);
         cur_mal = new_mal;
         optional_macro = is_macro_call(cur_mal, env);
@@ -222,7 +222,7 @@ fn EVAL_let(mal_ptr: **MalType, env_ptr: **Env) MalError!void {
         optional_node = iterator.next();
         key_mal.delete(Allocator);
     }
-    
+
     linked_list.destroy(Allocator, &binding_ll, true);
     binding_arg.data = MalData{.Nil=undefined};
     binding_arg.delete(Allocator);
@@ -303,7 +303,7 @@ fn EVAL_try(mal: *MalType, env: *Env) MalError!*MalType {
         return EVAL(mal_to_try, env);
     }
     var catch_mal = try mal.sequence_pop_first(Allocator);
-    
+
     const evaled_mal = EVAL(mal_to_try, try env.copy(Allocator)) catch |err| {
         switch(err) {
             MalError.ThrownError => {
@@ -518,7 +518,7 @@ fn make_environment() MalError!*Env {
     const throw_mal = try MalType.new_nil(Allocator);
     throw_mal.data = MalData{.Fn1 = &throw};
     try environment.set("throw", throw_mal);
-    
+
     const def_not_string: [] const u8 =
         \\(def! not (fn* (a) (if a false true)))
     ;
@@ -548,7 +548,7 @@ fn make_environment() MalError!*Env {
     return environment;
 }
 
-fn do_print_header(environment: *Env) MalError!void {   
+fn do_print_header(environment: *Env) MalError!void {
     const welcome_msg_cmd: [] const u8 =
         \\(println (str "Mal [" *host-language* "]"))
     ;
@@ -597,7 +597,7 @@ pub fn main() !void {
     const stdout_file = try std.io.getStdOut();
     Allocator = CAllocator;
     core.set_allocator(Allocator);
-    
+
     var environment = try make_environment();
 
     const args = try std.process.argsAlloc(Allocator);
@@ -608,21 +608,21 @@ pub fn main() !void {
         try arg_list.sequence_append(Allocator, new_mal);
     }
     try environment.set("*ARGV*", arg_list);
-    
+
     if(args.len > 1) {
         const run_cmd = try string_concat(Allocator, try string_concat(Allocator, "(load-file \"", args[1]), "\")");
         var output = rep_and_print_errors(environment, run_cmd);
         return;
     }
-    
+
     try do_print_header(repl_environment);
-    
+
     while(true) {
         var line = (try getline(Allocator)) orelse break;
         var output = rep_and_print_errors(environment, line) orelse continue;
         try stdout_file.write(output);
         Allocator.free(output);
         Allocator.free(line);
-        try stdout_file.write("\n");        
+        try stdout_file.write("\n");
     }
 }

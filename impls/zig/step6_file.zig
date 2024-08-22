@@ -124,7 +124,7 @@ fn EVAL_let(mal_ptr: **MalType, env_ptr: **Env) MalError!void {
         optional_node = iterator.next();
         key_mal.delete(Allocator);
     }
-    
+
     linked_list.destroy(Allocator, &binding_ll, true);
     binding_arg.data = MalData{.Nil=undefined};
     binding_arg.delete(Allocator);
@@ -202,8 +202,27 @@ fn rep(environment: *Env, input: [] const u8) MalError!?[] u8 {
     return print_input;
 }
 
+fn rep_and_print_errors(environment: *Env, input: [] const u8) ?[]u8 {
+    return rep(environment, input) catch |err| {
+        switch(err) {
+            MalError.KeyError => { },
+            MalError.OutOfBounds => {
+                warn("Error: out of bounds\n");
+            },
+            MalError.ReaderUnmatchedParen => {
+                warn("Error: expected closing paren, got EOF\n");
+            },
+            else => {
+               warn("Unhandled error\n");
+            },
+        }
+        return null;
+    };
+}
+
+
 fn lookup(environment: *Env, symbol: []const u8, do_warn: bool) MalError!*MalType {
-     var mal = environment.get(symbol) catch |err| {
+    var mal = environment.get(symbol) catch |err| {
         if(do_warn) {
             const s1 = string_concat(Allocator, "'", symbol) catch return MalError.SystemError;
             const s2 = string_concat(Allocator, s1, "' not found") catch return MalError.SystemError;
@@ -290,7 +309,7 @@ fn make_environment() MalError!*Env {
     const eval_mal = try MalType.new_nil(Allocator);
     eval_mal.data = MalData{.Fn1 = &eval};
     try environment.set("eval", eval_mal);
-    
+
     const def_not_string: [] const u8 =
         \\(def! not (fn* (a) (if a false true)))
     ;
@@ -351,21 +370,13 @@ pub fn main() !void {
         var output = try rep(environment, run_cmd);
         return;
     }
-    
+
     while(true) {
         var line = (try getline(Allocator)) orelse break;
-        var optional_output = rep(environment, line) catch |err| {
-            if(err == MalError.KeyError) {
-                continue;
-            } else {
-                return err;
-            }
-        };
-        if(optional_output) |output| {
-            try stdout_file.write(output);
-            Allocator.free(output);
-            Allocator.free(line);
-            try stdout_file.write("\n");
-        }
+        var output = rep_and_print_errors(environment, line) orelse continue;
+        try stdout_file.write(output);
+        Allocator.free(output);
+        Allocator.free(line);
+        try stdout_file.write("\n");
     }
 }

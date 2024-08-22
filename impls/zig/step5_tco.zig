@@ -108,7 +108,7 @@ fn EVAL_let(mal_ptr: **MalType, env_ptr: **Env) MalError!void {
         optional_node = iterator.next();
         key_mal.delete(Allocator);
     }
-    
+
     linked_list.destroy(Allocator, &binding_ll, true);
     binding_arg.data = MalData{.Nil=undefined};
     mal.delete(Allocator);
@@ -275,7 +275,7 @@ fn make_environment() MalError!*Env {
     if(optional_output) |output| {
         Allocator.free(output);
     }
-    
+
     return environment;
 }
 

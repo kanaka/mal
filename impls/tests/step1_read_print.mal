@@ -142,6 +142,8 @@ false
 ;/.*(EOF|end of input|unbalanced).*
 [1 2
 ;/.*(EOF|end of input|unbalanced).*
+{"a" 2
+;/.*(EOF|end of input|unbalanced).*
 
 ;;; These should throw some error with no return value
 "abc

@@ -358,8 +358,16 @@
                 <xsl:value-of select="$args/value/malval/lvalue/malval[1]/@value"/>
               </str>
             </xsl:variable>
-            <xsl:for-each select="$read-string-context">
-              <xsl:call-template name="malreader-read_str"/>
+            <xsl:variable name="form">
+              <xsl:for-each select="$read-string-context">
+                <xsl:call-template name="malreader-read_str"/>
+              </xsl:for-each>
+            </xsl:variable>
+            <xsl:for-each select="$form">
+              <xsl:if test="error">
+                <xsl:value-of select="error(QName('MAL', 'Error'), string(error), core:makeMALValue(string(error), 'string'))"/>
+              </xsl:if>
+              <xsl:copy-of select="."/>
             </xsl:for-each>
           </xsl:when>
           <xsl:when test="$func/malval/@name = 'slurp'">
