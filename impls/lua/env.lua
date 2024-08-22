@@ -1,9 +1,12 @@
 local table = require('table')
 local types = require('types')
+local printer = require('printer')
 
 local Env = {}
 
 function Env:new(outer, binds, exprs)
+    -- binds is a MAL sequence of MAL symbols
+    -- exprs is an LUA table of MAL forms
     local data = {}
     local newObj = {outer = outer, data = data}
     self.__index = self
@@ -22,27 +25,35 @@ function Env:new(outer, binds, exprs)
     end
     return setmetatable(newObj, self)
 end
-function Env:find(sym)
-    if self.data[sym.val] ~= nil then
-        return self
-    else
-        if self.outer ~= nil then
-            return self.outer:find(sym)
-        else
-            return nil
-        end
+
+function Env:get(sym)
+    -- sym is an LUA string
+    -- returns nil if the key is not found
+    local env = self
+    local result
+    while true do
+        result = env.data[sym]
+        if result ~= nil then return result end
+        env = env.outer
+        if env == nil then return nil end
     end
 end
+
 function Env:set(sym,val)
-    self.data[sym.val] = val
+    -- sym is an LUA string
+    self.data[sym] = val
     return val
 end
-function Env:get(sym)
-    local env = self:find(sym)
-    if env then
-        return env.data[sym.val]
-    else
-        types.throw("'"..sym.val.."' not found")
+
+function Env:debug()
+    local env = self
+    while env.outer ~=nil do
+        line = '  ENV:'
+        for k, v in pairs(env.data) do
+            line = line .. ' ' .. k .. '=' .. printer._pr_str(v)
+        end
+        print(line)
+        env = env.outer
     end
 end
 
