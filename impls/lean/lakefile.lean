@@ -32,6 +32,11 @@ lean_exe "step2_eval" {
 }
 
 @[default_target]
+lean_exe "step3_env" {
+  root := `LeanMal.step3_env
+}
+
+@[default_target]
 lean_exe "mal" {
   root := `LeanMal.step1_read_print
 }
