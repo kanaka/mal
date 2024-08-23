@@ -251,6 +251,40 @@ def readString (lst: List Types) (envir: Dict := Dict.empty) : Except String Typ
     | Types.strVal v => read_types_with_env v envir
     | x => Except.error s!"unexpected symbol: {x.toString true}, expected: string"
 
+def cons (ref: Dict) (lst: List Types) : Except (Dict × String) (Dict × Types) :=
+  if lst.length < 2 then Except.error (ref, "cons: >= 2 arguments required")
+  else
+    let elem := lst[0]!
+    let seq := lst[1]!
+    match seq with
+    | Types.listVal v => Except.ok (ref, (Types.listVal (elem :: v)))
+    | Types.vecVal v => Except.ok (ref, (Types.listVal (elem :: (toList v))))
+    | x => Except.error (ref, s!"unexpected symbol: {x.toString true}, expected: list or vector")
+
+def concat (ref: Dict) (lst: List Types) : Except (Dict × String) (Dict × Types) :=
+  if lst.length < 1 then Except.ok (ref, Types.listVal [])
+  else
+    match lst.foldl (fun (acc: Except (Dict × String) (List Types)) x =>
+      match acc with
+      | Except.error e => Except.error e
+      | Except.ok newlist =>
+        match x with
+        | Types.listVal v => Except.ok (newlist ++ v)
+        | Types.vecVal v => Except.ok (newlist ++ (toList v))
+        | x => Except.ok (newlist ++ [x])
+    ) (Except.ok []) with
+    | Except.error e => Except.error e
+    | Except.ok v => Except.ok (ref, Types.listVal v)
+
+def makeVec (ref: Dict) (lst: List Types) : Except (Dict × String) (Dict × Types) :=
+  if lst.length < 1 then Except.error (ref, "vec: 1 arguments required")
+  else
+    let first := lst[0]!
+    match first with
+    | Types.vecVal v => Except.ok (ref, Types.vecVal v)
+    | Types.listVal v => Except.ok (ref, Types.vecVal (listToVec v))
+    | x => Except.error (ref, s!"unexpected symbol: {x.toString true}, expected: list or vector")
+
 def evalFnNative (ref : Dict := Dict.empty) (name: String) (results: List Types) (args: List Types): Except (Dict × String) (Dict × Types) :=
     match name with
     | "+" => sum ref results
@@ -264,6 +298,9 @@ def evalFnNative (ref : Dict := Dict.empty) (name: String) (results: List Types)
     | "=" => eq ref results false
     | "list" => Except.ok (ref, Types.listVal results)
     | "count" => countFunc ref results
+    | "cons" => cons ref results
+    | "concat" => concat ref results
+    | "vec" => makeVec ref results
     | "atom" => makeAtom ref results
     | "deref" => derefAtom ref results
     | "reset!" => resetAtom ref results args
@@ -334,6 +371,7 @@ def coreFnSymbols: List String := [
   "+", "-", "*", "/",
   "<", "<=", ">", ">=", "=",
   "list", "list?", "empty?", "count",
+   "concat", "cons", "vec",
   "prn", "pr-str", "str", "println",
   "read-string", "slurp",
   "atom", "atom?", "deref", "reset!",

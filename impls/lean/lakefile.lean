@@ -52,6 +52,11 @@ lean_exe "step6_file" {
 }
 
 @[default_target]
+lean_exe "step7_quote" {
+  root := `LeanMal.step7_quote
+}
+
+@[default_target]
 lean_exe "mal" {
   root := `LeanMal.step1_read_print
 }
