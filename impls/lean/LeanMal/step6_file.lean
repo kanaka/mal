@@ -37,12 +37,15 @@ mutual
     | Except.ok (newRef, results) =>
       match fn with
         | Types.funcVal v      => match v with
-          | Fun.builtin name => evalFnNative newRef name results args
+          | Fun.builtin name =>
+            evalFnNative newRef name results args
+            -- match evalFnNative newRef name results with
+            -- | Except.ok r => r
+            -- | Except.error e => evalFnNativeWithIO newRef name results
           | Fun.userDefined fref params body =>
             let keys: List String := match params with
               | Types.listVal v => v.map fun x => x.toString false
               | _               => []
-
             let built := buildDictWithSymbols fref keys results
             let merged := mergeDicts newRef built
             evalTypes merged body

@@ -37,7 +37,7 @@ mutual
     | Except.ok (newRef, results) =>
       match fn with
         | Types.funcVal v      => match v with
-          | Fun.builtin name => evalFnNative newRef name results
+          | Fun.builtin name => evalFnNative newRef name results args
           | Fun.userDefined fref params body =>
             let keys: List String := match params with
               | Types.listVal v => v.map fun x => x.toString false

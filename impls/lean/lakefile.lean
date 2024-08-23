@@ -47,6 +47,11 @@ lean_exe "step5_tco" {
 }
 
 @[default_target]
+lean_exe "step6_file" {
+  root := `LeanMal.step6_file
+}
+
+@[default_target]
 lean_exe "mal" {
   root := `LeanMal.step1_read_print
 }

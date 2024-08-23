@@ -213,7 +213,6 @@ mutual
 
   partial def read_types (envir: Dict := Dict.empty) : Parsec Types :=
       read_list envir <|> read_vector envir <|> read_hash_map envir  <|> read_symbol "'" "quote" envir <|> read_symbol "`" "quasiquote" envir <|> read_symbol "~@" "splice-unquote" envir <|> read_symbol "~" "unquote" envir <|> read_symbol "@" "deref" envir <|> read_with_meta envir <|> read_atom envir
-
 end
 
 def read_types_with_env (input : String) (envir: Dict := Dict.empty)  : Except String Types :=
