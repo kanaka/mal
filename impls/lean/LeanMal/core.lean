@@ -285,6 +285,64 @@ def makeVec (ref: Dict) (lst: List Types) : Except (Dict × String) (Dict × Typ
     | Types.listVal v => Except.ok (ref, Types.vecVal (listToVec v))
     | x => Except.error (ref, s!"unexpected symbol: {x.toString true}, expected: list or vector")
 
+def nthSeq (ref: Dict) (lst: List Types) : Except (Dict × String) (Dict × Types) :=
+  if lst.length < 2 then Except.error (ref, "nth: >= 2 arguments required")
+  else
+    let first := lst[0]!
+    let indx := lst[1]!
+    match indx with
+    | Types.intVal i =>
+      match first with
+      | Types.vecVal v =>
+        let lv := toList v
+        match lv.get? i.toNat with
+          | some v => Except.ok (ref, v)
+          | none => Except.error (ref, "nth: index out of range")
+      | Types.listVal lv =>
+        if lv.length <= i then Except.error (ref, s!"nth: index out of range: {i}")
+        else
+          match lv.get? i.toNat with
+          | some v => Except.ok (ref, v)
+          | none => Except.error (ref, "nth: index out of range")
+      | x => Except.error (ref, s!"unexpected symbol: {x.toString true}, expected: list or vector")
+    | x => Except.error (ref, s!"unexpected symbol: {x.toString true}, expected: number")
+
+def firstSeq (ref: Dict) (lst: List Types) : Except (Dict × String) (Dict × Types) :=
+  if lst.length < 1 then Except.error (ref, "first: 1 arguments required")
+  else
+    let first := lst[0]!
+    match first with
+    | Types.Nil => Except.ok (ref, Types.Nil)
+    | Types.vecVal v =>
+      let lv := toList v
+      if lv.length == 0 then Except.ok (ref, Types.Nil)
+      else
+        let elem := lv[0]!
+        Except.ok (ref, elem)
+    | Types.listVal lv =>
+      if lv.length == 0 then Except.ok (ref, Types.Nil)
+      else
+        let elem := lv[0]!
+        Except.ok (ref, elem)
+    | x => Except.error (ref, s!"unexpected symbol: {x.toString true}, expected: list or vector")
+
+def restSeq (ref: Dict) (lst: List Types) : Except (Dict × String) (Dict × Types) :=
+  if lst.length < 1 then Except.error (ref, "rest: 1 arguments required")
+  else
+    let first := lst[0]!
+    match first with
+    | Types.Nil => Except.ok (ref, Types.Nil)
+    | Types.vecVal v =>
+      let lv := toList v
+      if lv.length < 1 then Except.ok (ref, Types.listVal [])
+      else
+        Except.ok (ref, Types.listVal (lv.drop 1))
+    | Types.listVal lv =>
+      if lv.length < 1 then Except.ok (ref, Types.listVal [])
+      else
+        Except.ok (ref, Types.listVal (lv.drop 1))
+    | x => Except.error (ref, s!"unexpected symbol: {x.toString true}, expected: list or vector")
+
 def evalFnNative (ref : Dict := Dict.empty) (name: String) (results: List Types) (args: List Types): Except (Dict × String) (Dict × Types) :=
     match name with
     | "+" => sum ref results
@@ -301,6 +359,9 @@ def evalFnNative (ref : Dict := Dict.empty) (name: String) (results: List Types)
     | "cons" => cons ref results
     | "concat" => concat ref results
     | "vec" => makeVec ref results
+    | "nth" => nthSeq ref results
+    | "first" => firstSeq ref results
+    | "rest" => restSeq ref results
     | "atom" => makeAtom ref results
     | "deref" => derefAtom ref results
     | "reset!" => resetAtom ref results args
@@ -371,7 +432,8 @@ def coreFnSymbols: List String := [
   "+", "-", "*", "/",
   "<", "<=", ">", ">=", "=",
   "list", "list?", "empty?", "count",
-   "concat", "cons", "vec",
+  "concat", "cons",
+  "vec", "nth", "first", "rest",
   "prn", "pr-str", "str", "println",
   "read-string", "slurp",
   "atom", "atom?", "deref", "reset!",
