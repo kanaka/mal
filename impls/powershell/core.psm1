@@ -109,8 +109,8 @@ $core_ns = @{
     "throw"       = Get-Command mal_throw;
 
     "nil?"        = { param($a); $a -eq $null };
-    "true?"       = { param($a); $a -eq $true };
-    "false?"      = { param($a); $a -eq $false };
+    "true?"       = { param($a); $a -is [Boolean] -and $a -eq $true };
+    "false?"      = { param($a); $a -is [Boolean] -and $a -eq $false };
     "number?"     = { param($a); $a -is [int32] };
     "string?"     = { param($a); string? $a };
     "symbol"      = Get-Command new-symbol;

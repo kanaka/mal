@@ -27,12 +27,12 @@ Class Env {
     }
 
     [Object] set($key, $value) {
-        $this.data[$key.value] = $value
+        $this.data[$key] = $value
         return $value
     }
 
     [Env] find($key) {
-        if ($this.data.Contains($key.value)) {
+        if ($this.data.Contains($key)) {
             return $this
         } elseif ($this.outer -ne $null) {
             return $this.outer.find($key)
@@ -44,9 +44,9 @@ Class Env {
     [Object] get($key) {
         $e = $this.find($key)
         if ($e -ne $null) {
-            return $e.data[$key.value]
+            return $e.data[$key]
         } else {
-            throw "'$($key.value)' not found"
+            throw "'$($key)' not found"
         }
     }
 }
