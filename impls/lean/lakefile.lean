@@ -62,6 +62,11 @@ lean_exe "step8_macros" {
 }
 
 @[default_target]
+lean_exe "step9_try" {
+  root := `LeanMal.step9_try
+}
+
+@[default_target]
 lean_exe "mal" {
   root := `LeanMal.step1_read_print
 }

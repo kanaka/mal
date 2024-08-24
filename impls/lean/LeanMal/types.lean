@@ -132,6 +132,14 @@ def buildDictWithSymbols (ref: Dict) (keys : List String) (values : List Types) 
     let restDict := buildDictWithSymbols ref keyTail valueTail
     Dict.insert (KeyType.strKey key) val restDict
 
+def buildDict (keys : List String) (values : List Types) : Dict :=
+  match keys, values with
+  | [], _ => Dict.empty
+  | _, [] => Dict.empty
+  | key :: keyTail, value :: valueTail =>
+    let restDict := buildDict keyTail valueTail
+    Dict.insert (KeyType.strKey key) value restDict
+
 instance : Inhabited Dict where
   default := Dict.empty
 

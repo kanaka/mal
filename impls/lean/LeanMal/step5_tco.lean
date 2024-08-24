@@ -12,6 +12,16 @@ def makeFn (ref: Dict) (args : List Types) : Except (Dict × String) (Dict × Ty
     let newfn := Fun.userDefined ref params body
     Except.ok (ref, Types.funcVal newfn)
 
+def splitOnAmpersand (input : List String) : (List String × List String) :=
+  let rec loop (acc1 : List String) (rest : List String) : (List String × List String) :=
+    match rest with
+    | []         => (acc1, [])  -- If no "&" found, second list is empty
+    | "&" :: xs  => match xs with
+      | [] => (acc1, [])  -- If "&" is the last element, second list is empty
+      | y :: _ => (acc1, [y])  -- Add the next element after "&" to the second list
+    | x :: xs    => loop (acc1 ++ [x]) xs  -- Accumulate elements before "&"
+  loop [] input
+
 mutual
   partial def evalTypes (_ref : Dict := Dict.empty) (ast : Types) : Except (Dict × String) (Dict × Types) :=
     let ref := if getDebugEval _ref then logInfo _ref s!"EVAL:{pr_str true ast}"
@@ -37,14 +47,17 @@ mutual
     | Except.ok (newRef, results) =>
       match fn with
         | Types.funcVal v      => match v with
-          | Fun.builtin name => evalFnNative newRef name results args
+          | Fun.builtin name => evalFnNative newRef name results
           | Fun.userDefined fref params body =>
-            let keys: List String := match params with
+            let allkeys: List String := match params with
               | Types.listVal v => v.map fun x => x.toString false
               | _               => []
+            let (keys, variadic) := splitOnAmpersand allkeys
+            let normalArgs := results.take keys.length
+            let variadicArg := results.drop keys.length
+            let argVals := normalArgs ++ [Types.listVal variadicArg]
+            let merged := mergeDicts newRef (mergeDicts fref (buildDict (keys ++ variadic) argVals))
 
-            let built := buildDictWithSymbols fref keys results
-            let merged := mergeDicts newRef built
             evalTypes merged body
           | Fun.macroFn _ _ _ => Except.error (newRef, "macro not implemented")
         | _ => Except.error (newRef, s!"`unexpected token, expected: function`")
@@ -164,6 +177,32 @@ mutual
         if cond then evalTypes newRef thenExpr
         else if hasElse then evalTypes newRef args[2]!
         else Except.ok (newRef, Types.Nil)
+
+  partial def evalFnNative (ref : Dict := Dict.empty) (name: String) (results: List Types): Except (Dict × String) (Dict × Types) :=
+    match name with
+    | "+" => sum ref results
+    | "-" => sub ref results
+    | "*" => mul ref results
+    | "/" => div ref results
+    | "<" => lt ref results
+    | "<=" => lte ref results
+    | ">" => gt ref results
+    | ">=" => gte ref results
+    | "=" => eq ref results false
+    | "prn" => prnFunc ref results
+    | "pr-str" => prStrFunc ref results
+    | "str" => strFunc ref results
+    | "println" => printlnFunc ref results
+    | "list" => Except.ok (ref, Types.listVal results)
+    | "count" => countFunc ref results
+    | _ => match results with
+        | [x] => match x with
+          | Types.listVal x => match name with
+            | "list?" => Except.ok (ref, Types.boolVal true)
+            | "empty?" => Except.ok (ref, Types.boolVal (x.length == 0))
+            | _ => Except.ok (ref, Types.boolVal false)
+          | _   => Except.ok (ref, Types.boolVal false)
+        | _   => Except.error (ref, s!"'{name}' not found")
 end
 
 def READ (input : String): Except String Types :=
@@ -204,4 +243,4 @@ def main : IO Unit := do
       let (ref, val) := rep.{u} env value
       printLogs ref
       IO.println val
-      env := ref
+      env := resetLogs ref

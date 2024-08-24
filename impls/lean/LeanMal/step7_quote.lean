@@ -12,6 +12,16 @@ def makeFn (ref: Dict) (args : List Types) : Except (Dict × String) (Dict × Ty
     let newfn := Fun.userDefined ref params body
     Except.ok (ref, Types.funcVal newfn)
 
+def splitOnAmpersand (input : List String) : (List String × List String) :=
+  let rec loop (acc1 : List String) (rest : List String) : (List String × List String) :=
+    match rest with
+    | []         => (acc1, [])  -- If no "&" found, second list is empty
+    | "&" :: xs  => match xs with
+      | [] => (acc1, [])  -- If "&" is the last element, second list is empty
+      | y :: _ => (acc1, [y])  -- Add the next element after "&" to the second list
+    | x :: xs    => loop (acc1 ++ [x]) xs  -- Accumulate elements before "&"
+  loop [] input
+
 mutual
   partial def evalTypes (_ref : Dict := Dict.empty) (ast : Types) : Except (Dict × String) (Dict × Types) :=
     let ref := if getDebugEval _ref then logInfo _ref s!"EVAL:{pr_str true ast}"
@@ -39,15 +49,16 @@ mutual
         | Types.funcVal v      => match v with
           | Fun.builtin name =>
             evalFnNative newRef name results args
-            -- match evalFnNative newRef name results with
-            -- | Except.ok r => r
-            -- | Except.error e => evalFnNativeWithIO newRef name results
           | Fun.userDefined fref params body =>
-            let keys: List String := match params with
+            let allkeys: List String := match params with
               | Types.listVal v => v.map fun x => x.toString false
               | _               => []
-            let built := buildDictWithSymbols fref keys results
-            let merged := mergeDicts newRef built
+            let (keys, variadic) := splitOnAmpersand allkeys
+            let normalArgs := results.take keys.length
+            let variadicArg := results.drop keys.length
+            let argVals := normalArgs ++ [Types.listVal variadicArg]
+            let merged := mergeDicts newRef (mergeDicts fref (buildDict (keys ++ variadic) argVals))
+
             evalTypes merged body
           | Fun.macroFn _ _ _ => Except.error (newRef, "macro not implemented")
         | _ => Except.error (newRef, s!"`unexpected token, expected: function`")
@@ -174,6 +185,35 @@ mutual
         else if hasElse then evalTypes newRef args[2]!
         else Except.ok (newRef, Types.Nil)
 
+  partial def swapAtom (ref: Dict) (lst: List Types) : Except (Dict × String) (Dict × Types) :=
+  if lst.length < 2 then Except.error (ref, "swap!: >= 2 argument required")
+  else
+    let first := lst[0]!
+    let fn := lst[1]!
+    let rest := lst.drop 2
+    match fn with
+    | Types.funcVal _ =>
+      match first with
+      | Types.atomVal x => match x with
+        | Atom.v v =>
+          match evalFuncVal ref fn ([v] ++ rest) with
+          | Except.error (newRef, e) => Except.error (newRef, s!"swap! evaluate function: {e}")
+          | Except.ok (updatedRef, res) =>
+            Except.ok (updatedRef, Types.atomVal (Atom.v res))
+        | Atom.withmeta v meta =>
+          match evalFuncVal ref fn ([v] ++ rest) with
+          | Except.error (newRef, e) => Except.error (newRef, s!"swap! evaluate function: {e}")
+          | Except.ok (updatedRef, res) =>
+            Except.ok (updatedRef, Types.atomVal (Atom.withmeta res meta))
+      | x => Except.error (ref, s!"deref: unexpected symbol: {x.toString true}, expected: atom")
+    | x => Except.error (ref, s!"deref: unexpected symbol: {x.toString true}, expected: function")
+
+  partial def eval (ref: Dict) (lst : List Types) : Except (Dict × String) (Dict × Types) :=
+    if lst.length < 1 then Except.error (ref, "eval: unexpected syntax")
+    else
+      let ast := lst[0]!
+      evalTypes ref ast
+
   partial def starts_with (lst: List Types) (symb: String) : Bool :=
     if lst.length == 2 then
       match lst[0]! with
@@ -204,6 +244,46 @@ mutual
       else qq_foldr v
     | Types.vecVal v => Types.listVal [Types.symbolVal "vec", qq_foldr (toList v)]
     | _ => ast
+
+  partial def evalFnNative (ref : Dict := Dict.empty) (name: String) (results: List Types) (args: List Types): Except (Dict × String) (Dict × Types) :=
+    match name with
+    | "+" => sum ref results
+    | "-" => sub ref results
+    | "*" => mul ref results
+    | "/" => div ref results
+    | "<" => lt ref results
+    | "<=" => lte ref results
+    | ">" => gt ref results
+    | ">=" => gte ref results
+    | "=" => eq ref results false
+    | "list" => Except.ok (ref, Types.listVal results)
+    | "count" => countFunc ref results
+    | "cons" => cons ref results
+    | "concat" => concat ref results
+    | "vec" => makeVec ref results
+    | "atom" => makeAtom ref results
+    | "deref" => derefAtom ref results
+    | "reset!" => resetAtom ref results args
+    | "swap!" => swapAtom ref results
+    | "prn" => prnFunc ref results
+    | "pr-str" => prStrFunc ref results
+    | "str" => strFunc ref results
+    | "println" => printlnFunc ref results
+    | "eval" => eval ref results
+    | "read-string" => match readString results ref with -- readString results Dict.empty
+      | Except.error e => Except.error (ref, e)
+      | Except.ok res => Except.ok (ref, res)
+    | _ => match results with
+        | [x] => match x with
+          | Types.listVal x => match name with
+            | "list?" => Except.ok (ref, Types.boolVal true)
+            | "empty?" => Except.ok (ref, Types.boolVal (x.length == 0))
+            | _ => Except.ok (ref, Types.boolVal false)
+          | Types.atomVal _ => match name with
+            | "atom?" => Except.ok (ref, Types.boolVal true)
+            | _ => Except.ok (ref, Types.boolVal false)
+          | _   => Except.ok (ref, Types.boolVal false)
+        | _   => Except.error (ref, s!"'{name}' not found")
 
 end
 
@@ -246,4 +326,4 @@ def main : IO Unit := do
       let (ref, val) := rep.{u} env value
       printLogs ref
       IO.println val
-      env := ref
+      env := resetLogs ref

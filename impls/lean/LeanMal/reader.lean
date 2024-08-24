@@ -63,21 +63,45 @@ def read_str_val : Parsec Types := do
   let _ ← pchar '"'
   return Types.strVal str
 
+def is_symbol_char (c: Char): Bool :=
+  c.isAlphanum || c == '+' || c == '-' || c == '*' || c == '/' || c == '=' || c == '<' || c == '>' || c == ':' || c == '_' || c == '!' || c == '?' || c == '&'
+
+def read_symbol_val : Parsec Types := do
+  ws
+    let sym ← many1Chars (satisfy (λ c => is_symbol_char c))
+  ws
+  return Types.symbolVal sym
+
 def read_bool_val : Parsec Types := do
   ws
   let b ← (pstring "true" <|> pstring "false")
-  return Types.boolVal (b == "true")
+  let boolVal := Types.boolVal (b == "true")
+  let nextChar ← peek?
+  match nextChar with
+  | none => return boolVal
+  | some v =>
+    if is_symbol_char v then
+      let rest ← read_symbol_val
+      match rest with
+      | Types.symbolVal x => return Types.symbolVal (b ++ x)
+      | _ => return boolVal
+    else
+      return boolVal
 
 def read_nil_val : Parsec Types := do
   ws
   let _ ← pstring "nil"
-  return Types.Nil
-
-def read_symbol_val : Parsec Types := do
-  ws
-    let sym ← many1Chars (satisfy (λ c => c.isAlphanum || c == '+' || c == '-' || c == '*' || c == '/' || c == '=' || c == '<' || c == '>' || c == ':' || c == '_' || c == '!' || c == '?'))
-  ws
-  return Types.symbolVal sym
+  let nextChar ← peek?
+  match nextChar with
+  | none => return Types.Nil
+  | some v =>
+    if is_symbol_char v then
+      let rest ← read_symbol_val
+      match rest with
+      | Types.symbolVal x => return Types.symbolVal ("nil" ++ x)
+      | _ => return Types.Nil
+    else
+      return Types.Nil
 
 def read_keyword : Parsec Types := do
   let _ ← pstring ":"

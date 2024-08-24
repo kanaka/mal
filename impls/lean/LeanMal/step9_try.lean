@@ -37,7 +37,7 @@ mutual
 
   partial def evalFunc (ref: Dict) (head : Types) (args : List Types) : Except (Dict × String) (Dict × Types) :=
     match evalTypes ref head with
-    | Except.error (newref, e) => Except.error (newref, s!"error evaluating function: {head.toString true}: {e}")
+    | Except.error (newref, e) => Except.error (newref, e)
     | Except.ok (ref2, fn) => evalFuncVal ref2 fn args
 
   partial def evalFuncVal (ref: Dict) (fn: Types) (args: List Types) : Except (Dict × String) (Dict × Types) :=
@@ -81,13 +81,14 @@ mutual
     if List.length lst == 0 then Except.ok (ref, Types.listVal lst)
     else
       let head := lst[0]!
-      match lst[0]! with
+      match head with
       | Types.symbolVal v => match v with
         | "def!" => evalDefn ref (lst.drop 1)
         | "let*" => evalLet ref (lst.drop 1)
         | "do" => evalDo ref (lst.drop 1)
         | "if" => evalIf ref (lst.drop 1)
         | "fn*" => makeFn ref (lst.drop 1)
+        | "try*" => evalTry ref (lst.drop 1)
         | "quote" =>
           if lst.length < 2 then Except.error (ref, "quote: expected 1 argument")
           else Except.ok (ref, lst[1]!)
@@ -223,6 +224,40 @@ mutual
         else if hasElse then evalTypes newRef args[2]!
         else Except.ok (newRef, Types.Nil)
 
+  partial def evalTry (ref: Dict) (lst : List Types) : Except (Dict × String) (Dict × Types) :=
+    if lst.length < 1 then Except.error (ref, "try*: unexpected syntax")
+    else
+      match evalTypes ref lst[0]! with
+      | Except.ok (newRef, result) => Except.ok (newRef, result)
+      | Except.error evalErr =>
+        if lst.length < 2 then Except.error evalErr
+        else
+          match lst[1]! with
+          | Types.listVal catchBody =>
+            if catchBody.length < 1 then Except.error (ref, "try*: unexpected syntax")
+            else
+              match catchBody[0]! with
+              | Types.symbolVal catchSymbol =>
+                if catchSymbol == "catch*" then
+                  if catchBody.length < 2 then Except.error (ref, "try*: unexpected syntax")
+                  else
+                    let es := catchBody[1]!
+                    match es with
+                    | Types.symbolVal errorSymbol =>
+                      let (errRef, errStr) := evalErr
+                      let err := Types.strVal errStr
+                      if catchBody.length < 2 then Except.error (errRef, "try*: unexpected syntax")
+                      else
+                        let toeval := catchBody[2]!
+                        let built := buildDictWithSymbols ref [errorSymbol] [err]
+                        let merged := mergeDicts ref built
+                        evalTypes merged toeval
+                    | _ => Except.error (ref, s!"unexpected return type, expected: symbol")
+                else Except.error evalErr
+              | _ => Except.error evalErr
+          -- | Types.vecVal v => -- TODO
+          | _ => Except.error evalErr
+
   partial def swapAtom (ref: Dict) (lst: List Types) : Except (Dict × String) (Dict × Types) :=
   if lst.length < 2 then Except.error (ref, "swap!: >= 2 argument required")
   else
@@ -283,48 +318,126 @@ mutual
     | Types.vecVal v => Types.listVal [Types.symbolVal "vec", qq_foldr (toList v)]
     | _ => ast
 
+  partial def nativeMapFnApply (ref: Dict) (fn: Types) (args: List Types) : Except (Dict × String) (Dict × Types) :=
+    match args.foldl (fun (res : Except (Dict × String) (Dict × List Types)) x =>
+      match res with
+      | Except.error e => Except.error e
+      | Except.ok (r, acc) =>
+        match evalFuncVal r fn [x] with
+        | Except.error e => Except.error e
+        | Except.ok (updatedRef, res) =>
+          Except.ok (updatedRef, acc ++ [res])
+    ) (Except.ok (ref, [])) with
+    | Except.error e => Except.error e
+    | Except.ok (newRef, results) => Except.ok (newRef, Types.listVal results)
+
+  partial def nativeMap (ref: Dict) (lst: List Types) : Except (Dict × String) (Dict × Types) :=
+    if lst.length < 2 then Except.error (ref, "map: unexpected syntax")
+    else
+      let fn := lst[0]!
+      let params := lst[1]!
+      match fn with
+      | Types.funcVal _ =>
+        match params with
+        | Types.listVal v => nativeMapFnApply ref fn v
+        | Types.vecVal v => nativeMapFnApply ref fn (toList v)
+        | x => Except.error (ref, s!"unexpected symbol: {x.toString true}, expected: list or vector")
+      | x => Except.error (ref, s!"unexpected symbol: {x.toString true}, expected: function")
+
+  partial def nativeApply (ref: Dict) (lst : List Types) : Except (Dict × String) (Dict × Types) :=
+    if lst.length < 2 then Except.error (ref, "apply: unexpected syntax")
+    else
+      let fn := lst[0]!
+      let vecargs := lst[lst.length-1]!
+      let n := lst.length-2
+      let firstargs := lst.drop 1 |>.take n
+      match vecargs with
+        | Types.listVal v =>
+          evalFuncVal ref fn (firstargs ++ v)
+        | Types.vecVal v =>
+          evalFuncVal ref fn (firstargs ++ (toList v))
+        | x => Except.error (ref, s!"unexpected symbol: {x.toString true}, expected: list or vector")
+
   partial def evalFnNative (ref : Dict := Dict.empty) (name: String) (results: List Types) (args: List Types): Except (Dict × String) (Dict × Types) :=
-    match name with
-    | "+" => sum ref results
-    | "-" => sub ref results
-    | "*" => mul ref results
-    | "/" => div ref results
-    | "<" => lt ref results
-    | "<=" => lte ref results
-    | ">" => gt ref results
-    | ">=" => gte ref results
-    | "=" => eq ref results false
-    | "list" => Except.ok (ref, Types.listVal results)
-    | "count" => countFunc ref results
-    | "cons" => cons ref results
-    | "concat" => concat ref results
-    | "vec" => makeVec ref results
-    | "nth" => nthSeq ref results
-    | "first" => firstSeq ref results
-    | "rest" => restSeq ref results
-    | "atom" => makeAtom ref results
-    | "deref" => derefAtom ref results
-    | "reset!" => resetAtom ref results args
-    -- | "swap!" => swapAtom ref results
-    | "prn" => prnFunc ref results
-    | "pr-str" => prStrFunc ref results
-    | "str" => strFunc ref results
-    | "println" => printlnFunc ref results
-    -- | "eval" => eval ref results
-    | "read-string" => match readString results ref with -- readString results Dict.empty
-      | Except.error e => Except.error (ref, e)
-      | Except.ok res => Except.ok (ref, res)
-    | _ => match results with
-        | [x] => match x with
-          | Types.listVal x => match name with
-            | "list?" => Except.ok (ref, Types.boolVal true)
-            | "empty?" => Except.ok (ref, Types.boolVal (x.length == 0))
-            | _ => Except.ok (ref, Types.boolVal false)
-          | Types.atomVal _ => match name with
-            | "atom?" => Except.ok (ref, Types.boolVal true)
-            | _ => Except.ok (ref, Types.boolVal false)
-          | _   => Except.ok (ref, Types.boolVal false)
-        | _   => Except.error (ref, s!"'{name}' not found")
+      match name with
+      | "+" => sum ref results
+      | "-" => sub ref results
+      | "*" => mul ref results
+      | "/" => div ref results
+      | "<" => lt ref results
+      | "<=" => lte ref results
+      | ">" => gt ref results
+      | ">=" => gte ref results
+      | "=" => eq ref results false
+      | "list" => Except.ok (ref, Types.listVal results)
+      | "count" => countFunc ref results
+      | "cons" => cons ref results
+      | "concat" => concat ref results
+      | "map" => nativeMap ref results
+      | "apply" => nativeApply ref results
+      | "vec" => makeVec ref results
+      | "vector" => makeVector ref results
+      | "nth" => nthSeq ref results
+      | "first" => firstSeq ref results
+      | "rest" => restSeq ref results
+      | "conj" => conj ref results
+      | "seq" => seq ref results
+      | "hash-map" => makeDict ref results
+      | "assoc" => assocDict ref results
+      | "dissoc" => dissocDict ref results
+      | "get" => getDict ref results
+      | "contains?" => containsDict ref results
+      | "keys" => getKeysDict ref results
+      | "vals" => getValuesDict ref results
+      | "throw" => throwFn ref results
+      | "symbol" => makeSymbol ref results
+      | "keyword" => makeKeyword ref results
+      | "atom" => makeAtom ref results
+      | "deref" => derefAtom ref results
+      | "reset!" => resetAtom ref results args
+      | "swap!" => swapAtom ref results
+      | "prn" => prnFunc ref results
+      | "pr-str" => prStrFunc ref results
+      | "str" => strFunc ref results
+      | "println" => printlnFunc ref results
+      | "eval" => eval ref results
+      | "read-string" => match readString results ref with -- readString results Dict.empty
+        | Except.error e => Except.error (ref, e)
+        | Except.ok res => Except.ok (ref, res)
+      | _ => match results with
+          | [x] => match x with
+            | Types.Nil => if name == "nil?" then Except.ok (ref, Types.boolVal true) else Except.ok (ref, Types.boolVal false)
+            | Types.intVal _ => if name == "number?" then Except.ok (ref, Types.boolVal true) else Except.ok (ref, Types.boolVal false)
+            | Types.floatVal _ => if name == "number?" then Except.ok (ref, Types.boolVal true) else Except.ok (ref, Types.boolVal false)
+            | Types.strVal _ => if name == "string?" then Except.ok (ref, Types.boolVal true) else Except.ok (ref, Types.boolVal false)
+            | Types.symbolVal _ => if name == "symbol?" then Except.ok (ref, Types.boolVal true) else Except.ok (ref, Types.boolVal false)
+            | Types.keywordVal _ => if name == "keyword?" then Except.ok (ref, Types.boolVal true) else Except.ok (ref, Types.boolVal false)
+            | Types.dictVal _ => if name == "map?" then Except.ok (ref, Types.boolVal true) else Except.ok (ref, Types.boolVal false)
+            | Types.listVal x => match name with
+              | "list?" => Except.ok (ref, Types.boolVal true)
+              | "sequential?" => Except.ok (ref, Types.boolVal true)
+              | "empty?" => Except.ok (ref, Types.boolVal (x.length == 0))
+              | _ => Except.ok (ref, Types.boolVal false)
+            | Types.vecVal x => match name with
+              | "sequential?" => Except.ok (ref, Types.boolVal true)
+              | "vector?" => Except.ok (ref, Types.boolVal false)
+              | "empty?" => Except.ok (ref, Types.boolVal ((toList x).length == 0))
+              | _ => Except.ok (ref, Types.boolVal false)
+            | Types.boolVal x => match name with
+              | "true?" => Except.ok (ref, Types.boolVal x)
+              | "false?" => Except.ok (ref, Types.boolVal !x)
+              | _ => Except.ok (ref, Types.boolVal false)
+            | Types.atomVal _ => match name with
+              | "atom?" => Except.ok (ref, Types.boolVal true)
+              | _ => Except.ok (ref, Types.boolVal false)
+            | Types.funcVal func => match name with
+              | "fn?" => Except.ok (ref, Types.boolVal true)
+              | "macro?" => match func with
+                | Fun.builtin _ => Except.ok (ref, Types.boolVal false)
+                | Fun.userDefined _ _ _ => Except.ok (ref, Types.boolVal false)
+                | Fun.macroFn _ _ _ =>  Except.ok (ref, Types.boolVal true)
+              | _ => Except.ok (ref, Types.boolVal false)
+          | _   => Except.error (ref, s!"'{name}' not found")
 
 end
 
@@ -337,7 +450,7 @@ def PRINT (ast : Types): String :=
 def rep (ref: Dict) (input : String): Dict × String :=
   match READ.{u} input with
   | Except.ok result => match evalTypes ref result with
-    | Except.error (newref, e) => (newref, e)
+    | Except.error (newref, e) => (newref, s!"Error: {e}")
     | Except.ok (newref, res) => (newref, PRINT res)
   | Except.error err => (ref, s!"Parsing failed: {err}")
 
@@ -357,8 +470,7 @@ def loadMalFns (ref: Dict) (fndefs: List String): Dict × String :=
 
 def fnDefs: List String := [
     "(def! *host-language* \"Lean\")",
-    "(def! not (fn* (a) (if a false true)))",
-    "(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))",
+    "(def! not (fn* (a) (if a false true)))"
   ]
 
 def main : IO Unit := do
