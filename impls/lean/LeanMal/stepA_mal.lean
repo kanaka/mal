@@ -7,8 +7,11 @@ universe u
 def makeFn (ref: Dict) (args : List Types) : Except (Dict × String) (Dict × Types) :=
   if args.length < 2 then Except.error (ref, "unexpected syntax")
   else
-    let params := args[0]!
+    let p := args[0]!
     let body := args[1]!
+    let params := match p with
+      | Types.vecVal x => Types.listVal (toList x)
+      | _ => p
     let newfn := Fun.userDefined ref params body
     Except.ok (ref, Types.funcVal newfn)
 
@@ -259,28 +262,33 @@ mutual
           -- | Types.vecVal v => -- TODO
           | _ => Except.error evalErr
 
-  partial def swapAtom (ref: Dict) (lst: List Types) : Except (Dict × String) (Dict × Types) :=
+  partial def swapAtom (ref: Dict) (lst: List Types) (args: List Types) : Except (Dict × String) (Dict × Types) :=
   if lst.length < 2 then Except.error (ref, "swap!: >= 2 argument required")
   else
     let first := lst[0]!
     let fn := lst[1]!
     let rest := lst.drop 2
-    match fn with
-    | Types.funcVal _ =>
-      match first with
-      | Types.atomVal x => match x with
-        | Atom.v v =>
-          match evalFuncVal ref fn ([v] ++ rest) with
-          | Except.error (newRef, e) => Except.error (newRef, s!"swap! evaluate function: {e}")
-          | Except.ok (updatedRef, res) =>
-            Except.ok (updatedRef, Types.atomVal (Atom.v res))
-        | Atom.withmeta v meta =>
-          match evalFuncVal ref fn ([v] ++ rest) with
-          | Except.error (newRef, e) => Except.error (newRef, s!"swap! evaluate function: {e}")
-          | Except.ok (updatedRef, res) =>
-            Except.ok (updatedRef, Types.atomVal (Atom.withmeta res meta))
-      | x => Except.error (ref, s!"deref: unexpected symbol: {x.toString true}, expected: atom")
-    | x => Except.error (ref, s!"deref: unexpected symbol: {x.toString true}, expected: function")
+    match args[0]! with
+    | Types.symbolVal sym =>
+      match fn with
+      | Types.funcVal _ =>
+        match first with
+        | Types.atomVal x => match x with
+          | Atom.v v =>
+            match evalFuncVal ref fn ([v] ++ rest) with
+            | Except.error (newRef, e) => Except.error (newRef, s!"swap! evaluate function: {e}")
+            | Except.ok (updatedRef, res) =>
+              let newRef := addEntry updatedRef (KeyType.strKey sym) (Types.atomVal (Atom.v res))
+              Except.ok (newRef, res)
+          | Atom.withmeta v meta =>
+            match evalFuncVal ref fn ([v] ++ rest) with
+            | Except.error (newRef, e) => Except.error (newRef, s!"swap! evaluate function: {e}")
+            | Except.ok (updatedRef, res) =>
+              let newRef := addEntry updatedRef (KeyType.strKey sym) (Types.atomVal (Atom.withmeta res meta))
+              Except.ok (newRef, res)
+        | x => Except.error (ref, s!"swap!: unexpected symbol: {x.toString true}, expected: atom")
+      | x => Except.error (ref, s!"swap!: unexpected symbol: {x.toString true}, expected: function")
+    | x => Except.error (ref, s!"swap!: unexpected token: {x.toString true}, expected: symbol")
 
   partial def eval (ref: Dict) (lst : List Types) : Except (Dict × String) (Dict × Types) :=
     if lst.length < 1 then Except.error (ref, "eval: unexpected syntax")
@@ -396,7 +404,7 @@ mutual
       | "atom" => makeAtom ref results
       | "deref" => derefAtom ref results
       | "reset!" => resetAtom ref results args
-      | "swap!" => swapAtom ref results
+      | "swap!" => swapAtom ref results args
       | "prn" => prnFunc ref results
       | "pr-str" => prStrFunc ref results
       | "str" => strFunc ref results
@@ -471,7 +479,8 @@ def loadMalFns (ref: Dict) (fndefs: List String): Dict × String :=
 
 def fnDefs: List String := [
     "(def! *host-language* \"Lean\")",
-    "(def! not (fn* (a) (if a false true)))"
+    "(def! not (fn* (a) (if a false true)))",
+    "(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))",
   ]
 
 def main : IO Unit := do

@@ -180,28 +180,33 @@ mutual
         else if hasElse then evalTypes newRef args[2]!
         else Except.ok (newRef, Types.Nil)
 
-  partial def swapAtom (ref: Dict) (lst: List Types) : Except (Dict × String) (Dict × Types) :=
+  partial def swapAtom (ref: Dict) (lst: List Types) (args: List Types) : Except (Dict × String) (Dict × Types) :=
   if lst.length < 2 then Except.error (ref, "swap!: >= 2 argument required")
   else
     let first := lst[0]!
     let fn := lst[1]!
     let rest := lst.drop 2
-    match fn with
-    | Types.funcVal _ =>
-      match first with
-      | Types.atomVal x => match x with
-        | Atom.v v =>
-          match evalFuncVal ref fn ([v] ++ rest) with
-          | Except.error (newRef, e) => Except.error (newRef, s!"swap! evaluate function: {e}")
-          | Except.ok (updatedRef, res) =>
-            Except.ok (updatedRef, Types.atomVal (Atom.v res))
-        | Atom.withmeta v meta =>
-          match evalFuncVal ref fn ([v] ++ rest) with
-          | Except.error (newRef, e) => Except.error (newRef, s!"swap! evaluate function: {e}")
-          | Except.ok (updatedRef, res) =>
-            Except.ok (updatedRef, Types.atomVal (Atom.withmeta res meta))
-      | x => Except.error (ref, s!"deref: unexpected symbol: {x.toString true}, expected: atom")
-    | x => Except.error (ref, s!"deref: unexpected symbol: {x.toString true}, expected: function")
+    match args[0]! with
+    | Types.symbolVal sym =>
+      match fn with
+      | Types.funcVal _ =>
+        match first with
+        | Types.atomVal x => match x with
+          | Atom.v v =>
+            match evalFuncVal ref fn ([v] ++ rest) with
+            | Except.error (newRef, e) => Except.error (newRef, s!"swap! evaluate function: {e}")
+            | Except.ok (updatedRef, res) =>
+              let newRef := addEntry updatedRef (KeyType.strKey sym) (Types.atomVal (Atom.v res))
+              Except.ok (newRef, res)
+          | Atom.withmeta v meta =>
+            match evalFuncVal ref fn ([v] ++ rest) with
+            | Except.error (newRef, e) => Except.error (newRef, s!"swap! evaluate function: {e}")
+            | Except.ok (updatedRef, res) =>
+              let newRef := addEntry updatedRef (KeyType.strKey sym) (Types.atomVal (Atom.withmeta res meta))
+              Except.ok (newRef, res)
+        | x => Except.error (ref, s!"swap!: unexpected symbol: {x.toString true}, expected: atom")
+      | x => Except.error (ref, s!"swap!: unexpected symbol: {x.toString true}, expected: function")
+    | x => Except.error (ref, s!"swap!: unexpected token: {x.toString true}, expected: symbol")
 
   partial def eval (ref: Dict) (lst : List Types) : Except (Dict × String) (Dict × Types) :=
     if lst.length < 1 then Except.error (ref, "eval: unexpected syntax")
@@ -225,7 +230,7 @@ mutual
     | "atom" => makeAtom ref results
     | "deref" => derefAtom ref results
     | "reset!" => resetAtom ref results args
-    | "swap!" => swapAtom ref results
+    | "swap!" => swapAtom ref results args
     | "prn" => prnFunc ref results
     | "pr-str" => prStrFunc ref results
     | "str" => strFunc ref results

@@ -358,7 +358,9 @@ def makeDictInternal (initialDict : Dict) (lst: List Types) : Except String (Dic
     | [] => Except.ok acc
     | (Types.strVal k) :: v :: rest =>
       loop rest (Dict.insert (KeyType.strKey k) v acc)
-    | _ => Except.error "Invalid list format: Expected alternating strVal and Types"
+    | (Types.keywordVal k) :: v :: rest =>
+      loop rest (Dict.insert (KeyType.keywordKey k) v acc)
+    | _ => Except.error "Invalid list format: Expected alternating string/keyword and value"
   loop lst initialDict
 
 def makeDict (ref: Dict) (lst: List Types) : Except (Dict × String) (Dict × Types) :=
@@ -418,6 +420,10 @@ def getDict (ref: Dict) (lst: List Types) : Except (Dict × String) (Dict × Typ
         match (rest[0]!) with
         | Types.strVal k =>
           match getEntry v (KeyType.strKey k) with
+          | some val => Except.ok (ref, val)
+          | none => Except.ok (ref, Types.Nil)
+        | Types.keywordVal k =>
+          match getEntry v (KeyType.keywordKey k) with
           | some val => Except.ok (ref, val)
           | none => Except.ok (ref, Types.Nil)
         | x => Except.error (ref, s!"unexpected symbol: {x.toString true}, expected: keyword or string")
@@ -583,7 +589,8 @@ def coreFnSymbols: List String := [
   "nil?", "true?", "false?", "fn?", "macro?",
   "prn", "pr-str", "str", "println",
   "read-string", "slurp",
-  "atom", "atom?", "deref", "reset!",
+  "atom", "atom?", "deref", "reset!", "swap!",
+  "eval",
 ]
 
 def loadFnNativeAll (ref: Dict) : Dict :=
