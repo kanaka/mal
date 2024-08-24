@@ -573,7 +573,7 @@ def coreFnSymbols: List String := [
   "number?",
   "list", "list?", "empty?", "count",
   "concat", "cons",
-  "vec", "nth", "first", "rest", "vector",
+  "vec", "nth", "first", "rest", "vector", "vector?",
   "map", "apply",
   "conj", "seq", "sequential?",
   "hash-map", "assoc", "dissoc", "get", "contains?", "keys", "vals", "map?",

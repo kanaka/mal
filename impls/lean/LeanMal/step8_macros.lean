@@ -59,7 +59,8 @@ mutual
             let normalArgs := results.take keys.length
             let variadicArg := results.drop keys.length
             let argVals := normalArgs ++ [Types.listVal variadicArg]
-            let merged := mergeDicts newRef (mergeDicts fref (buildDict (keys ++ variadic) argVals))
+            let argsDict := (buildDict (keys ++ variadic) argVals)
+            let merged := mergeDicts (mergeDicts newRef fref) argsDict
 
             evalTypes merged body
         | Fun.macroFn fref params body =>
@@ -70,7 +71,8 @@ mutual
           let normalArgs := args.take keys.length
           let variadicArg := args.drop keys.length
           let argVals := normalArgs ++ [Types.listVal variadicArg]
-          let merged := mergeDicts ref (mergeDicts fref (buildDict (keys ++ variadic) argVals))
+          let argsDict := (buildDict (keys ++ variadic) argVals)
+          let merged := mergeDicts (mergeDicts ref fref) argsDict
 
           match evalTypes merged body with
           | Except.error e => Except.error e

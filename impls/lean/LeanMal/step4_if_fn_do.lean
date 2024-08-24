@@ -56,7 +56,8 @@ mutual
             let normalArgs := results.take keys.length
             let variadicArg := results.drop keys.length
             let argVals := normalArgs ++ [Types.listVal variadicArg]
-            let merged := mergeDicts newRef (mergeDicts fref (buildDict (keys ++ variadic) argVals))
+            let argsDict := (buildDict (keys ++ variadic) argVals)
+            let merged := mergeDicts (mergeDicts newRef fref) argsDict
 
             evalTypes merged body
           | Fun.macroFn _ _ _ => Except.error (newRef, "macro not implemented")
