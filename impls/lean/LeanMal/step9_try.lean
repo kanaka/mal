@@ -63,7 +63,7 @@ mutual
             let variadicArg := results.drop keys.length
             let argVals := normalArgs ++ [Types.listVal variadicArg]
             let argsDict := (buildDict (keys ++ variadic) argVals)
-            let merged := mergeDicts (mergeDicts newRef fref) argsDict
+            let merged := mergeDicts (mergeDicts fref newRef) argsDict
             evalTypes merged body
         | Fun.macroFn fref params body =>
           let allkeys: List String := match params with
@@ -74,7 +74,7 @@ mutual
           let variadicArg := args.drop keys.length
           let argVals := normalArgs ++ [Types.listVal variadicArg]
           let argsDict := (buildDict (keys ++ variadic) argVals)
-          let merged := mergeDicts (mergeDicts ref fref) argsDict
+          let merged := mergeDicts (mergeDicts fref ref) argsDict
 
           match evalTypes merged body with
           | Except.error e => Except.error e
@@ -440,7 +440,10 @@ mutual
               | "atom?" => Except.ok (ref, Types.boolVal true)
               | _ => Except.ok (ref, Types.boolVal false)
             | Types.funcVal func => match name with
-              | "fn?" => Except.ok (ref, Types.boolVal true)
+              | "fn?" => match func with
+                | Fun.builtin _ => Except.ok (ref, Types.boolVal true)
+                | Fun.userDefined _ _ _ => Except.ok (ref, Types.boolVal true)
+                | Fun.macroFn _ _ _ =>  Except.ok (ref, Types.boolVal false)
               | "macro?" => match func with
                 | Fun.builtin _ => Except.ok (ref, Types.boolVal false)
                 | Fun.userDefined _ _ _ => Except.ok (ref, Types.boolVal false)

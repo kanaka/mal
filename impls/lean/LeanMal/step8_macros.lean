@@ -60,7 +60,7 @@ mutual
             let variadicArg := results.drop keys.length
             let argVals := normalArgs ++ [Types.listVal variadicArg]
             let argsDict := (buildDict (keys ++ variadic) argVals)
-            let merged := mergeDicts (mergeDicts newRef fref) argsDict
+            let merged := mergeDicts (mergeDicts fref newRef) argsDict
 
             evalTypes merged body
         | Fun.macroFn fref params body =>

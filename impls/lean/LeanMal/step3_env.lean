@@ -80,7 +80,7 @@ mutual
               | Types.listVal v => v.map fun x => x.toString false
               | _               => []
             let argsDict := (buildDict keys results)
-            let merged := mergeDicts (mergeDicts newRef fref) argsDict
+            let merged := mergeDicts (mergeDicts fref newRef) argsDict
             evalTypes merged body
           | Fun.macroFn _ _ _ => Except.error "macro not implemented"
         | _ => Except.error s!"`unexpected token, expected: function`"

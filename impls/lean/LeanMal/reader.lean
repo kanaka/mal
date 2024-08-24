@@ -142,11 +142,12 @@ def read_operator_or_number : Parsec Types := do
   | some c =>
     if c.isWhitespace then return Types.symbolVal (String.singleton sign)
     else if c.isDigit then read_float_or_int_internal sign
-    else
+    else if is_symbol_char c then
       let rest ← read_symbol_val
       match rest with
       | Types.symbolVal x => return Types.symbolVal (String.singleton sign ++ x)
       | _ => return Types.symbolVal (String.singleton sign)
+    else return Types.symbolVal (String.singleton sign)
   | none => return Types.symbolVal (String.singleton sign)
 
 mutual

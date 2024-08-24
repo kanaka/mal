@@ -195,9 +195,9 @@ def KEY_LOGS_DEBUG := "LOGS_DEBUG"
 def KEY_DEBUG_EVAL := "DEBUG-EVAL"
 
 def resetLogs (ref: Dict): Dict :=
-  (
-    ref.insert (KeyType.strKey KEY_LOGS_INFO) (Types.listVal [])
-  ).insert (KeyType.strKey KEY_LOGS_DEBUG) (Types.listVal [])
+  addEntry (
+    addEntry ref (KeyType.strKey KEY_LOGS_INFO) (Types.listVal [])
+  ) (KeyType.strKey KEY_LOGS_DEBUG) (Types.listVal [])
 
 def getLogs (ref: Dict) (type: String): List Types :=
   match getEntry ref (KeyType.strKey type) with
@@ -220,7 +220,7 @@ def getLogsInfo (ref: Dict): List Types :=
 def logInfo (ref: Dict) (msg: String): Dict :=
   let loglist := getLogs ref KEY_LOGS_INFO
   let newlogs := loglist ++ [(Types.strVal msg)]
-  ref.insert (KeyType.strKey KEY_LOGS_INFO) (Types.listVal newlogs)
+  addEntry ref (KeyType.strKey KEY_LOGS_INFO) (Types.listVal newlogs)
 
 def prStrFunc (ref: Dict) (lst: List Types) : Except (Dict × String) (Dict × Types) :=
   let str := prStrInternal lst true " "
@@ -353,15 +353,19 @@ def makeVector (ref: Dict) (lst: List Types) : Except (Dict × String) (Dict × 
   Except.ok (ref, Types.vecVal (listToVec lst))
 
 def makeDictInternal (initialDict : Dict) (lst: List Types) : Except String (Dict) :=
-  let rec loop (lst : List Types) (acc : Dict) : Except String Dict :=
+  let rec loop (lst : List Types) (acckeys: List String) (acc : Dict) : Except String (Dict × List String) :=
     match lst with
-    | [] => Except.ok acc
+    | [] => Except.ok (acc, acckeys)
     | (Types.strVal k) :: v :: rest =>
-      loop rest (Dict.insert (KeyType.strKey k) v acc)
+      if acckeys.contains k then Except.ok (acc, acckeys)
+      else loop rest (acckeys ++ [k]) (Dict.insert (KeyType.strKey k) v acc)
     | (Types.keywordVal k) :: v :: rest =>
-      loop rest (Dict.insert (KeyType.keywordKey k) v acc)
+      if acckeys.contains k then Except.ok (acc, acckeys)
+      else loop rest (acckeys ++ [k]) (Dict.insert (KeyType.keywordKey k) v acc)
     | _ => Except.error "Invalid list format: Expected alternating string/keyword and value"
-  loop lst initialDict
+  match loop lst [] initialDict with
+  | Except.error e => Except.error e
+  | Except.ok (v, _) => Except.ok v
 
 def makeDict (ref: Dict) (lst: List Types) : Except (Dict × String) (Dict × Types) :=
   match makeDictInternal Dict.empty lst with
@@ -591,6 +595,7 @@ def coreFnSymbols: List String := [
   "read-string", "slurp",
   "atom", "atom?", "deref", "reset!", "swap!",
   "eval",
+  "time-ms", "meta", "with-meta"
 ]
 
 def loadFnNativeAll (ref: Dict) : Dict :=

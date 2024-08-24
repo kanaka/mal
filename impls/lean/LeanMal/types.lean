@@ -74,9 +74,6 @@ def getEntry : Dict → KeyType → Option Types
     | KeyType.strKey ks, KeyType.keywordKey keyg => if ks = keyg then some v else getEntry d key
     | KeyType.keywordKey ks, KeyType.strKey keyg => if ks = keyg then some v else getEntry d key
 
-def addEntry : Dict → KeyType → Types → Dict
-  | d, k, v => Dict.insert k v d
-
 def getKeys : Dict → List KeyType
   | Dict.empty => []
   | Dict.insert k _ d =>
@@ -99,11 +96,21 @@ def removeKey (d : Dict) (key : KeyType) : Dict :=
       | KeyType.strKey ks, KeyType.keywordKey keyg => if ks = keyg then removeKey rest key else Dict.insert k v (removeKey rest key)
       | KeyType.keywordKey ks, KeyType.strKey keyg => if ks = keyg then removeKey rest key else Dict.insert k v (removeKey rest key)
 
+
+def addEntry : Dict → KeyType → Types → Dict
+  | Dict.empty, key, value => Dict.insert key value Dict.empty
+  | Dict.insert k v d, key, value =>
+    match k, key with
+      | KeyType.strKey ks, KeyType.strKey keyg => if ks = keyg then Dict.insert k value d else Dict.insert k v (addEntry d key value)
+      | KeyType.keywordKey ks, KeyType.keywordKey keyg => if ks = keyg then Dict.insert k value d else Dict.insert k v (addEntry d key value)
+      | KeyType.strKey ks, KeyType.keywordKey keyg => if ks = keyg then Dict.insert k value d else Dict.insert k v (addEntry d key value)
+      | KeyType.keywordKey ks, KeyType.strKey keyg => if ks = keyg then Dict.insert k value d else Dict.insert k v (addEntry d key value)
+
 -- Function to merge two Dicts
 def mergeDicts : Dict → Dict → Dict
   | d1, Dict.empty => d1  -- If the second Dict is empty, return the first Dict
   | d1, Dict.insert k v rest =>
-    let d1Updated := Dict.insert k v d1
+    let d1Updated := addEntry d1 k v
     mergeDicts d1Updated rest
 
 -- Function to extract the string from a Types.symbolVal
