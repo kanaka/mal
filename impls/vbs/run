@@ -1,4 +1,7 @@
 #!/bin/bash
+echo cscript.exe -nologo \"`wslpath -w "$(dirname $0)/${STEP:-stepA_mal}.vbs"`\" "${@}" >> debug2.txt
+implpath=\"`wslpath -w "$(dirname $0)/${STEP:-stepA_mal}.vbs"`\"
+echo $implpath >>implpath.txt
 MAL_VBS_IMPL_NO_STDERR=1 MAL_VBS_IMPL_ECHO_STDIN=1 \
 WSLENV=MAL_VBS_IMPL_NO_STDERR/w:MAL_VBS_IMPL_ECHO_STDIN/w \
-cscript.exe -nologo $(dirname $0)/${STEP:-stepA_mal}.vbs "${@}"
+cscript.exe -nologo \"`wslpath -w "$(dirname $0)/${STEP:-stepA_mal}.vbs"`\" "${@}"
