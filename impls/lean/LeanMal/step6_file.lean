@@ -298,10 +298,11 @@ def fnDefs: List String := [
     "(def! not (fn* (a) (if a false true)))",
   ]
 
-def main : IO Unit := do
+def main (args : List String) : IO Unit := do
   IO.println "Welcome to Mal REPL!"
   let (env0, _) := loadMalFns.{u} (loadFnNativeAll (Env.data 0 Dict.empty)) fnDefs
-  let mut env := env0
+  let astArgs := (args.map (fun arg => Types.strVal arg))
+  let mut env := setSymbol env0 "*ARGV*" (Types.listVal astArgs)
   let mut donext := true
   while donext do
     IO.print "user> "

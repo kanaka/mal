@@ -624,8 +624,7 @@ def loadFnNativeAll (ref : Env) : Env :=
   ).add (KeyType.strKey KEY_DEBUG_EVAL) 0 (Types.boolVal false)
 
 def setSymbol (ref : Env) (name: String) (value: Types): Env :=
-  let newRef := loadFnNative ref name
-  newRef.add (KeyType.strKey name) 0 value
+  ref.add (KeyType.strKey name) 0 value
 
 -- forward mutated atoms defined in the outer environments
 -- outer environments always have a lower level index
