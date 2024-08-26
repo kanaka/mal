@@ -5,7 +5,7 @@ import LeanMal.core
 universe u
 
 def makeFn (ref: Env) (args : List Types) : IO (Env × Types) := do
-  if args.length < 2 then Except.error (ref, "unexpected syntax")
+  if args.length < 2 then throw (IO.userError "unexpected syntax")
   else
     let p := args[0]!
     let body := args[1]!
@@ -32,7 +32,7 @@ mutual
     match ast with
     | Types.symbolVal v   => match ref.get (KeyType.strKey v) with
       | some (_, vi) => Except.ok (ref, vi)
-      | none => Except.error (ref, s!"'{v}' not found")
+      | none => throw (IO.userError s!"'{v}' not found")
     | Types.listVal el    => (evalList ref el)
     | Types.vecVal el     => (evalVec ref (toList el))
     | Types.dictVal el    => (evalDict ref el)
@@ -97,7 +97,7 @@ mutual
       | Except.error e => Except.error e
       | Except.ok (newRef, newDict) => Except.ok (newRef, Types.dictVal newDict)
 
-  partial def evalDictInner (ref: Env) (lst : Dict) : Except (Env × String) (Env × Dict) :=
+  partial def evalDictInner (ref: Env) (lst : Dict) : IO (Env × Dict) :=
     match lst with
       | Dict.empty => Except.ok (ref, lst)
       | Dict.insert k _ v restDict => match evalTypes ref v with
@@ -108,8 +108,8 @@ mutual
             let newDict := Dict.insert k 0 newVal updatedDict
             Except.ok (updatedRef, newDict)
 
-  partial def evalFuncArgs (ref: Env) (args: List Types) : Except (Env × String) (Env × List Types) :=
-    match args.foldl (fun (res : Except (Env × String) (Env × List Types)) x =>
+  partial def evalFuncArgs (ref: Env) (args: List Types) : IO (Env × List Types) :=
+    match args.foldl (fun (res : IO (Env × List Types)) x =>
         match res with
         | Except.error (newref, e) => Except.error (newref, s!"error evaluating function argument accumulator: {x.toString true}: {e}")
         | Except.ok (r, acc) => match evalTypes r x with
@@ -121,7 +121,7 @@ mutual
       | Except.ok (newRef, results) => Except.ok (newRef, results)
 
   partial def evalDefn (ref: Env) (args : List Types) : IO (Env × Types) := do
-    if args.length < 2 then Except.error (ref, "def! unexpected syntax")
+    if args.length < 2 then throw (IO.userError "def! unexpected syntax")
     else
       let key := args[0]!
       let body := args[1]!
@@ -135,14 +135,14 @@ mutual
         | _ => Except.error (newRef, s!"def! unexpected token, expected: symbol")
 
   partial def evalLet (ref: Env) (args : List Types) : IO (Env × Types) := do
-    if args.length < 2 then Except.error (ref, "let*: unexpected syntax")
+    if args.length < 2 then throw (IO.userError "let*: unexpected syntax")
     else
       let pairs := args[0]!
       let body := args[1]!
       let result := match pairs with
       | Types.listVal v => evalLetArgs ref.increment v
       | Types.vecVal v => evalLetArgs ref.increment (toList v)
-      | _ => Except.error (ref, s!"unexpected token type: ${pairs.toString true}, expected: list or vector")
+      | _ => throw (IO.userError s!"unexpected token type: ${pairs.toString true}, expected: list or vector")
 
       match result with
       | Except.error (newRef, e) => Except.error (newRef, s!"let*: {e}")
@@ -151,17 +151,17 @@ mutual
         -- only propagate logs from the let* environment to the parent scope
         | Except.ok (letref, result) => Except.ok (forwardLogs letref ref, result)
 
-  partial def evalLetArgs (ref: Env) (args : List Types) : Except (Env × String) Env :=
+  partial def evalLetArgs (ref: Env) (args : List Types) : IO Env :=
     match args with
     | [] => Except.ok ref
-    | [_] => Except.error (ref, "let*: unexpected syntax")
+    | [_] => throw (IO.userError "let*: unexpected syntax")
     | x :: y :: rest =>
       match x with
       | Types.symbolVal key => match evalTypes ref y with
         | Except.error (newRef, e) => Except.error (newRef, s!"error evaluating function argument: {key}: {e}")
         | Except.ok (updatedRef, value) =>
           evalLetArgs (updatedRef.add (KeyType.strKey key) ref.getLevel value) rest
-      | _ => Except.error (ref, "let*: unexpected syntax")
+      | _ => throw (IO.userError "let*: unexpected syntax")
 
   partial def evalDo (ref: Env) (args : List Types) : IO (Env × Types) := do
     -- only return last computation result
@@ -172,7 +172,7 @@ mutual
       else Except.ok (newRef, results[results.length - 1]!)
 
   partial def evalIf (ref: Env) (args : List Types) : IO (Env × Types) := do
-    if args.length < 2 then Except.error (ref, "unexpected syntax")
+    if args.length < 2 then throw (IO.userError "unexpected syntax")
     else
       let condition := args[0]!
       let thenExpr := args[1]!
@@ -216,7 +216,7 @@ mutual
             | "empty?" => Except.ok (ref, Types.boolVal ((toList x).length == 0))
             | _ => Except.ok (ref, Types.boolVal false)
           | _   => Except.ok (ref, Types.boolVal false)
-        | _   => Except.error (ref, s!"'{name}' not found")
+        | _   => throw (IO.userError s!"'{name}' not found")
 end
 
 def READ (input : String): Except String Types :=

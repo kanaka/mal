@@ -8,39 +8,39 @@ def READ (input : String): Except String Types :=
 
 def sum (ref : Env) (lst: List Types) : IO (Env × Types) := do
   match lst with
-  | []                                   => Except.ok (ref, Types.intVal 0)
-  | [Types.intVal x]                     => Except.ok (ref, Types.intVal x)
-  | [Types.intVal x, Types.intVal y]     => Except.ok (ref, Types.intVal (x + y))
-  | [Types.floatVal x]                   => Except.ok (ref, Types.floatVal x)
-  | [Types.floatVal x, Types.floatVal y] => Except.ok (ref, Types.floatVal (x + y))
-  | _                                    => Except.error "+ operator not supported"
+  | []                                   => return (ref, Types.intVal 0)
+  | [Types.intVal x]                     => return (ref, Types.intVal x)
+  | [Types.intVal x, Types.intVal y]     => return (ref, Types.intVal (x + y))
+  | [Types.floatVal x]                   => return (ref, Types.floatVal x)
+  | [Types.floatVal x, Types.floatVal y] => return (ref, Types.floatVal (x + y))
+  | _                                    => throw (IO.userError "+ operator not supported")
 
 def sub (ref : Env) (lst: List Types) : IO (Env × Types) := do
   match lst with
-  | []                                   => Except.ok (ref, Types.intVal 0)
-  | [Types.intVal x]                     => Except.ok (ref, Types.intVal x)
-  | [Types.intVal x, Types.intVal y]     => Except.ok (ref, Types.intVal (x - y))
-  | [Types.floatVal x]                   => Except.ok (ref, Types.floatVal x)
-  | [Types.floatVal x, Types.floatVal y] => Except.ok (ref, Types.floatVal (x - y))
-  | _                                    => Except.error "- operator not supported"
+  | []                                   => return (ref, Types.intVal 0)
+  | [Types.intVal x]                     => return (ref, Types.intVal x)
+  | [Types.intVal x, Types.intVal y]     => return (ref, Types.intVal (x - y))
+  | [Types.floatVal x]                   => return (ref, Types.floatVal x)
+  | [Types.floatVal x, Types.floatVal y] => return (ref, Types.floatVal (x - y))
+  | _                                    => throw (IO.userError "- operator not supported")
 
 def mul (ref : Env) (lst: List Types) : IO (Env × Types) := do
   match lst with
-  | []                                   => Except.ok (ref, Types.intVal 0)
-  | [Types.intVal x]                     => Except.ok (ref, Types.intVal x)
-  | [Types.intVal x, Types.intVal y]     => Except.ok (ref, Types.intVal (x * y))
-  | [Types.floatVal x]                   => Except.ok (ref, Types.floatVal x)
-  | [Types.floatVal x, Types.floatVal y] => Except.ok (ref, Types.floatVal (x * y))
-  | _                                    => Except.error "* operator not supported"
+  | []                                   => return (ref, Types.intVal 0)
+  | [Types.intVal x]                     => return (ref, Types.intVal x)
+  | [Types.intVal x, Types.intVal y]     => return (ref, Types.intVal (x * y))
+  | [Types.floatVal x]                   => return (ref, Types.floatVal x)
+  | [Types.floatVal x, Types.floatVal y] => return (ref, Types.floatVal (x * y))
+  | _                                    => throw (IO.userError "* operator not supported")
 
 def div (ref : Env) (lst: List Types) : IO (Env × Types) := do
   match lst with
-  | []                                   => Except.ok (ref, Types.intVal 0)
-  | [Types.intVal x]                     => Except.ok (ref, Types.intVal x)
-  | [Types.intVal x, Types.intVal y]     => Except.ok (ref, Types.intVal (x / y))
-  | [Types.floatVal x]                   => Except.ok (ref, Types.floatVal x)
-  | [Types.floatVal x, Types.floatVal y] => Except.ok (ref, Types.floatVal (x / y))
-  | _                                    => Except.error "/ operator not supported"
+  | []                                   => return (ref, Types.intVal 0)
+  | [Types.intVal x]                     => return (ref, Types.intVal x)
+  | [Types.intVal x, Types.intVal y]     => return (ref, Types.intVal (x / y))
+  | [Types.floatVal x]                   => return (ref, Types.floatVal x)
+  | [Types.floatVal x, Types.floatVal y] => return (ref, Types.floatVal (x / y))
+  | _                                    => throw (IO.userError "/ operator not supported")
 
 def evalFnNative (ref : Env) (name: String) (results: List Types): IO (Env × Types) := do
     match name with
@@ -48,19 +48,19 @@ def evalFnNative (ref : Env) (name: String) (results: List Types): IO (Env × Ty
     | "-" => sub ref results
     | "*" => mul ref results
     | "/" => div ref results
-    | _   => Except.error s!"'{name}' not found"
+    | _   => throw (IO.userError s!"'{name}' not found")
 
 mutual
 
   partial def evalTypes (ref : Env) (ast : Types) : IO (Env × Types) := do
     match ast with
     | Types.symbolVal v   => match ref.get (KeyType.strKey v) with
-      | some (_, vi) => Except.ok (ref, vi)
-      | none    => Except.ok (ref, Types.symbolVal v )
+      | some (_, vi) => return (ref, vi)
+      | none    => return (ref, Types.symbolVal v )
     | Types.listVal el    => (evalList ref el)
     | Types.vecVal el     => (evalVec ref (toList el))
     | Types.dictVal el    => (evalDict ref el)
-    | x                   => Except.ok (ref, x)
+    | x                   => return (ref, x)
 
   partial def evalFunc (ref: Env) (head : Types) (args : List Types) : IO (Env × Types) := do
     match evalTypes ref head with
@@ -105,7 +105,7 @@ mutual
       | Except.error e => Except.error e
       | Except.ok (newRef, newDict) => Except.ok (newRef, Types.dictVal newDict)
 
-  partial def evalDictInner (ref: Env) (lst : Dict) : Except String (Env × Dict) :=
+  partial def evalDictInner (ref: Env) (lst : Dict) : IO (Env × Types) := do
     match lst with
       | Dict.empty => Except.ok (ref, lst)
       | Dict.insert k _ v restDict => match evalTypes ref v with
@@ -116,8 +116,8 @@ mutual
             let newDict := Dict.insert k 0 newVal updatedDict
             Except.ok (updatedRef, newDict)
 
-  partial def evalFuncArgs (ref: Env) (args: List Types) : Except String (Env × List Types) :=
-    match args.foldl (fun (res : Except String (Env × List Types)) x =>
+  partial def evalFuncArgs (ref: Env) (args: List Types) : IO (Env × List Types) := do
+    match args.foldl (fun (res : IO (Env × List Types)) x =>
         match res with
         | Except.error e => Except.error s!"error evaluating function argument accumulator: {x.toString true}: {e}"
         | Except.ok (r, acc) => match evalTypes r x with
@@ -132,7 +132,7 @@ end
 def PRINT (ast : Types): String :=
   pr_str true ast
 
-def rep (input : String): String :=
+def rep (input : String): IO String :=
   match READ.{u} input with
   | Except.ok result => match evalTypes (Env.data 0 Dict.empty) result with
     | Except.error e => e

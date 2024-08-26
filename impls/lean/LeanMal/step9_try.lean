@@ -5,7 +5,7 @@ import LeanMal.core
 universe u
 
 def makeFn (ref: Env) (args : List Types) : IO (Env × Types) := do
-  if args.length < 2 then Except.error (ref, "unexpected syntax")
+  if args.length < 2 then throw (IO.userError "unexpected syntax")
   else
     let p := args[0]!
     let body := args[1]!
@@ -32,7 +32,7 @@ mutual
     match ast with
     | Types.symbolVal v   => match ref.get (KeyType.strKey v) with
       | some (_, vi) => Except.ok (ref, vi)
-      | none => Except.error (ref, s!"'{v}' not found")
+      | none => throw (IO.userError s!"'{v}' not found")
     | Types.listVal el    => (evalList ref el)
     | Types.vecVal el     => (evalVec ref (toList el))
     | Types.dictVal el    => (evalDict ref el)
@@ -95,7 +95,7 @@ mutual
           match evalTypes merged body with
           | Except.error e => Except.error e
           | Except.ok (_, newast) => evalTypes ref newast
-      | _ => Except.error (ref, s!"`unexpected token, expected: function`")
+      | _ => throw (IO.userError s!"`unexpected token, expected: function`")
 
   partial def evalList (ref: Env) (lst : List Types) : IO (Env × Types) := do
     if List.length lst == 0 then Except.ok (ref, Types.listVal lst)
@@ -110,10 +110,10 @@ mutual
         | "fn*" => makeFn ref (lst.drop 1)
         | "try*" => evalTry ref (lst.drop 1)
         | "quote" =>
-          if lst.length < 2 then Except.error (ref, "quote: expected 1 argument")
+          if lst.length < 2 then throw (IO.userError "quote: expected 1 argument")
           else Except.ok (ref, lst[1]!)
         | "quasiquote" =>
-          if lst.length < 2 then Except.error (ref, "quasiquote: expected 1 argument")
+          if lst.length < 2 then throw (IO.userError "quasiquote: expected 1 argument")
           else evalTypes ref (quasiquote lst[1]!)
         | "defmacro!" => evalDefMacro ref (lst.drop 1)
         | _ => evalFunc ref head (lst.drop 1)
@@ -129,7 +129,7 @@ mutual
       | Except.error e => Except.error e
       | Except.ok (newRef, newDict) => Except.ok (newRef, Types.dictVal newDict)
 
-  partial def evalDictInner (ref: Env) (lst : Dict) : Except (Env × String) (Env × Dict) :=
+  partial def evalDictInner (ref: Env) (lst : Dict) : IO (Env × Dict) :=
     match lst with
       | Dict.empty => Except.ok (ref, lst)
       | Dict.insert k _ v restDict => match evalTypes ref v with
@@ -140,8 +140,8 @@ mutual
             let newDict := Dict.insert k 0 newVal updatedDict
             Except.ok (updatedRef, newDict)
 
-  partial def evalFuncArgs (ref: Env) (args: List Types) : Except (Env × String) (Env × List Types) :=
-    match args.foldl (fun (res : Except (Env × String) (Env × List Types)) x =>
+  partial def evalFuncArgs (ref: Env) (args: List Types) : IO (Env × List Types) :=
+    match args.foldl (fun (res : IO (Env × List Types)) x =>
         match res with
         | Except.error (newref, e) => Except.error (newref, s!"error evaluating function argument accumulator: {x.toString true}: {e}")
         | Except.ok (r, acc) => match evalTypes r x with
@@ -153,7 +153,7 @@ mutual
       | Except.ok (newRef, results) => Except.ok (newRef, results)
 
   partial def evalDefn (ref: Env) (args : List Types) : IO (Env × Types) := do
-    if args.length < 2 then Except.error (ref, "def! unexpected syntax")
+    if args.length < 2 then throw (IO.userError "def! unexpected syntax")
     else
       let key := args[0]!
       let body := args[1]!
@@ -167,7 +167,7 @@ mutual
         | _ => Except.error (newRef, s!"def! unexpected token, expected: symbol")
 
   partial def evalDefMacro (ref: Env) (args : List Types) : IO (Env × Types) := do
-    if args.length < 2 then Except.error (ref, "def! unexpected syntax")
+    if args.length < 2 then throw (IO.userError "def! unexpected syntax")
     else
       let key := args[0]!
       let body := args[1]!
@@ -190,14 +190,14 @@ mutual
         | _ => Except.error (newRef, s!"def! unexpected token, expected: symbol")
 
   partial def evalLet (ref: Env) (args : List Types) : IO (Env × Types) := do
-    if args.length < 2 then Except.error (ref, "let*: unexpected syntax")
+    if args.length < 2 then throw (IO.userError "let*: unexpected syntax")
     else
       let pairs := args[0]!
       let body := args[1]!
       let result := match pairs with
       | Types.listVal v => evalLetArgs ref.increment v
       | Types.vecVal v => evalLetArgs ref.increment (toList v)
-      | _ => Except.error (ref, s!"unexpected token type: ${pairs.toString true}, expected: list or vector")
+      | _ => throw (IO.userError s!"unexpected token type: ${pairs.toString true}, expected: list or vector")
 
       match result with
       | Except.error (newRef, e) => Except.error (newRef, s!"let*: {e}")
@@ -207,17 +207,17 @@ mutual
         | Except.ok (letref, result) =>
           Except.ok (forwardLogs letref (forwardMutatedAtoms letref ref), result)
 
-  partial def evalLetArgs (ref: Env) (args : List Types) : Except (Env × String) Env :=
+  partial def evalLetArgs (ref: Env) (args : List Types) : IO Env :=
     match args with
     | [] => Except.ok ref
-    | [_] => Except.error (ref, "let*: unexpected syntax")
+    | [_] => throw (IO.userError "let*: unexpected syntax")
     | x :: y :: rest =>
       match x with
       | Types.symbolVal key => match evalTypes ref y with
         | Except.error (newRef, e) => Except.error (newRef, s!"error evaluating function argument: {key}: {e}")
         | Except.ok (updatedRef, value) =>
           evalLetArgs (updatedRef.add (KeyType.strKey key) ref.getLevel value) rest
-      | _ => Except.error (ref, "let*: unexpected syntax")
+      | _ => throw (IO.userError "let*: unexpected syntax")
 
   partial def evalDo (ref: Env) (args : List Types) : IO (Env × Types) := do
     -- only return last computation result
@@ -228,7 +228,7 @@ mutual
       else Except.ok (newRef, results[results.length - 1]!)
 
   partial def evalIf (ref: Env) (args : List Types) : IO (Env × Types) := do
-    if args.length < 2 then Except.error (ref, "unexpected syntax")
+    if args.length < 2 then throw (IO.userError "unexpected syntax")
     else
       let condition := args[0]!
       let thenExpr := args[1]!
@@ -246,7 +246,7 @@ mutual
         else Except.ok (newRef, Types.Nil)
 
   partial def evalTry (ref: Env) (lst : List Types) : IO (Env × Types) := do
-    if lst.length < 1 then Except.error (ref, "try*: unexpected syntax")
+    if lst.length < 1 then throw (IO.userError "try*: unexpected syntax")
     else
       match evalTypes ref lst[0]! with
       | Except.ok (newRef, result) => Except.ok (newRef, result)
@@ -255,12 +255,12 @@ mutual
         else
           match lst[1]! with
           | Types.listVal catchBody =>
-            if catchBody.length < 1 then Except.error (ref, "try*: unexpected syntax")
+            if catchBody.length < 1 then throw (IO.userError "try*: unexpected syntax")
             else
               match catchBody[0]! with
               | Types.symbolVal catchSymbol =>
                 if catchSymbol == "catch*" then
-                  if catchBody.length < 2 then Except.error (ref, "try*: unexpected syntax")
+                  if catchBody.length < 2 then throw (IO.userError "try*: unexpected syntax")
                   else
                     let es := catchBody[1]!
                     match es with
@@ -273,14 +273,14 @@ mutual
                         let built := buildDictWithSymbols ref.getDict ref.getLevel [errorSymbol] [err]
                         let merged := ref.mergeDict (ref.getLevel + 1) built
                         evalTypes merged toeval
-                    | _ => Except.error (ref, s!"unexpected return type, expected: symbol")
+                    | _ => throw (IO.userError s!"unexpected return type, expected: symbol")
                 else Except.error evalErr
               | _ => Except.error evalErr
           -- | Types.vecVal v => -- TODO
           | _ => Except.error evalErr
 
   partial def swapAtom (ref: Env) (lst: List Types) (args: List Types) : IO (Env × Types) := do
-  if lst.length < 2 then Except.error (ref, "swap!: >= 2 argument required")
+  if lst.length < 2 then throw (IO.userError "swap!: >= 2 argument required")
   else
     let first := lst[0]!
     let fn := lst[1]!
@@ -290,7 +290,7 @@ mutual
       match fn with
       | Types.funcVal _ =>
         match ref.get (KeyType.strKey sym) with
-        | none => Except.error (ref, s!"{sym} not found")
+        | none => throw (IO.userError s!"{sym} not found")
         | some (level, _) => match first with
           | Types.atomVal x => match x with
             | Atom.v v =>
@@ -305,12 +305,12 @@ mutual
               | Except.ok (_, res) =>
                 let newRef := ref.add (KeyType.strKey sym) level (Types.atomVal (Atom.withmeta res meta))
                 Except.ok (newRef, res)
-          | x => Except.error (ref, s!"swap!: unexpected symbol: {x.toString true}, expected: atom")
-      | x => Except.error (ref, s!"swap!: unexpected symbol: {x.toString true}, expected: function")
-    | x => Except.error (ref, s!"swap!: unexpected token: {x.toString true}, expected: symbol")
+          | x => throw (IO.userError s!"swap!: unexpected symbol: {x.toString true}, expected: atom")
+      | x => throw (IO.userError s!"swap!: unexpected symbol: {x.toString true}, expected: function")
+    | x => throw (IO.userError s!"swap!: unexpected token: {x.toString true}, expected: symbol")
 
   partial def eval (ref: Env) (lst : List Types) : IO (Env × Types) := do
-    if lst.length < 1 then Except.error (ref, "eval: unexpected syntax")
+    if lst.length < 1 then throw (IO.userError "eval: unexpected syntax")
     else
       let ast := lst[0]!
       evalTypes ref ast
@@ -347,7 +347,7 @@ mutual
     | _ => ast
 
   partial def nativeMapOverList (ref: Env) (fn: Types) (args: List Types) : IO (Env × Types) := do
-    match args.foldl (fun (res : Except (Env × String) (Env × List Types)) x =>
+    match args.foldl (fun (res : IO (Env × List Types)) x =>
       match res with
       | Except.error e => Except.error e
       | Except.ok (r, acc) =>
@@ -360,7 +360,7 @@ mutual
     | Except.ok (newRef, results) => Except.ok (newRef, Types.listVal results)
 
   partial def nativeMap (ref: Env) (lst: List Types) : IO (Env × Types) := do
-    if lst.length < 2 then Except.error (ref, "map: unexpected syntax")
+    if lst.length < 2 then throw (IO.userError "map: unexpected syntax")
     else
       let fn := lst[0]!
       let params := lst[1]!
@@ -369,11 +369,11 @@ mutual
         match params with
         | Types.listVal v => nativeMapOverList ref fn v
         | Types.vecVal v => nativeMapOverList ref fn (toList v)
-        | x => Except.error (ref, s!"unexpected symbol: {x.toString true}, expected: list or vector")
-      | x => Except.error (ref, s!"unexpected symbol: {x.toString true}, expected: function")
+        | x => throw (IO.userError s!"unexpected symbol: {x.toString true}, expected: list or vector")
+      | x => throw (IO.userError s!"unexpected symbol: {x.toString true}, expected: function")
 
   partial def nativeApply (ref: Env) (lst : List Types) : IO (Env × Types) := do
-    if lst.length < 2 then Except.error (ref, "apply: unexpected syntax")
+    if lst.length < 2 then throw (IO.userError "apply: unexpected syntax")
     else
       let fn := lst[0]!
       let vecargs := lst[lst.length-1]!
@@ -384,7 +384,7 @@ mutual
           evalFuncVal ref fn (firstargs ++ v) false
         | Types.vecVal v =>
           evalFuncVal ref fn (firstargs ++ (toList v)) false
-        | x => Except.error (ref, s!"unexpected symbol: {x.toString true}, expected: list or vector")
+        | x => throw (IO.userError s!"unexpected symbol: {x.toString true}, expected: list or vector")
 
   partial def evalFnNative (ref : Env) (name: String) (results: List Types) (args: List Types): IO (Env × Types) := do
       match name with
@@ -430,7 +430,7 @@ mutual
       | "println" => printlnFunc ref results
       | "eval" => eval ref results
       | "read-string" => match readString results ref with -- readString results Dict.empty
-        | Except.error e => Except.error (ref, e)
+        | Except.error e => throw (IO.userError e)
         | Except.ok res => Except.ok (ref, res)
       | _ => match results with
           | [x] => match x with
@@ -468,7 +468,7 @@ mutual
                 | Fun.userDefined _ _ _ => Except.ok (ref, Types.boolVal false)
                 | Fun.macroFn _ _ _ =>  Except.ok (ref, Types.boolVal true)
               | _ => Except.ok (ref, Types.boolVal false)
-          | _   => Except.error (ref, s!"'{name}' not found")
+          | _   => throw (IO.userError s!"'{name}' not found")
 
 end
 
