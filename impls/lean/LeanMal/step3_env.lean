@@ -64,115 +64,97 @@ mutual
     | x                   => return (ref, x)
 
   partial def evalFunc (env: Env) (head : Types) (args : List Types) : IO (Env × Types) := do
-    match evalTypes ref head with
-    | Except.error e => Except.error s!"error evaluating function: {head.toString true}: {e}"
-    | Except.ok (_, fn) => evalFuncVal ref fn args
+    let (_, fn) ← evalTypes env head
+    evalFuncVal env fn args
 
   partial def evalFuncVal (env: Env) (fn: Types) (args: List Types) : IO (Env × Types) := do
     -- first execute each function argument - reduce computation
-    match evalFuncArgs ref args with
-    | Except.error e => Except.error e
-    | Except.ok (newEnv, results) =>
-      match fn with
-        | Types.funcVal v      => match v with
-          | Fun.builtin name => evalFnNative newEnv name results
-          | Fun.userDefined fref params body =>
-            let keys: List String := match params with
-              | Types.listVal v => v.map fun x => x.toString false
-              | _               => []
-            let argsLevel := fref.getLevel + 1
-            let argsDict := (buildDict argsLevel keys results)
-            let merged := (newEnv.merge fref).mergeDict argsLevel argsDict
-            evalTypes merged body
-          | Fun.macroFn _ _ _ => Except.error "macro not implemented"
-        | _ => Except.error s!"`unexpected token, expected: function`"
+    let (newEnv, results) ← evalFuncArgs env args
+    match fn with
+      | Types.funcVal v      => match v with
+        | Fun.builtin name => evalFnNative newEnv name results
+        | Fun.userDefined fref params body =>
+          let keys: List String := match params with
+            | Types.listVal v => v.map fun x => x.toString false
+            | _               => []
+          let argsLevel := fref.getLevel + 1
+          let argsDict := (buildDict argsLevel keys results)
+          let merged := (newEnv.merge fref).mergeDict argsLevel argsDict
+          evalTypes merged body
+        | Fun.macroFn _ _ _ => throw (IO.userError "macro not implemented")
+      | _ => throw (IO.userError s!"`unexpected token, expected: function`")
 
   partial def evalList (env: Env) (lst : List Types) : IO (Env × Types) := do
-    if List.length lst == 0 then Except.ok (ref, Types.listVal lst)
+    if List.length lst == 0 then return (env, Types.listVal lst)
     else
       let head := lst[0]!
       match lst[0]! with
       | Types.symbolVal v => match v with
-        | "def!" => evalDefn ref (lst.drop 1)
-        | "let*" => evalLet ref (lst.drop 1)
-        | _ => evalFunc ref head (lst.drop 1)
-      | _ => evalFunc ref head (lst.drop 1)
+        | "def!" => evalDefn env (lst.drop 1)
+        | "let*" => evalLet env (lst.drop 1)
+        | _ => evalFunc env head (lst.drop 1)
+      | _ => evalFunc env head (lst.drop 1)
 
   partial def evalVec (env: Env) (elems : List Types) : IO (Env × Types) := do
-    match evalFuncArgs ref elems with
-    | Except.error e => Except.error e
-    | Except.ok (newEnv, results) => Except.ok (newEnv, Types.vecVal (listToVec results))
+    let (newEnv, results) ← evalFuncArgs env elems
+    return (newEnv, Types.vecVal (listToVec results))
 
   partial def evalDict (env: Env) (lst : Dict) : IO (Env × Types) := do
-    match evalDictInner ref lst with
-      | Except.error e => Except.error e
-      | Except.ok (newEnv, newDict) => Except.ok (newEnv, Types.dictVal newDict)
+    let (newEnv, newDict) ← evalDictInner env lst
+    return (newEnv, Types.dictVal newDict)
 
-  partial def evalDictInner (env: Env) (lst : Dict) : IO (Env × Types) := do
+  partial def evalDictInner (env: Env) (lst : Dict) : IO (Env × Dict) := do
     match lst with
-      | Dict.empty => Except.ok (ref, lst)
-      | Dict.insert k _ v restDict => match evalTypes ref v with
-        | Except.error e => Except.error e
-        | Except.ok (newEnv, newVal) => match evalDictInner newEnv restDict with
-          | Except.error e => Except.error e
-          | Except.ok (updatedRef, updatedDict) =>
-            let newDict := Dict.insert k 0 newVal updatedDict
-            Except.ok (updatedRef, newDict)
+      | Dict.empty => return (env, lst)
+      | Dict.insert k _ v restDict =>
+        let (newEnv, newVal) ← evalTypes env v
+        let (updatedEnv, updatedDict) ← evalDictInner newEnv restDict
+        let newDict := Dict.insert k 0 newVal updatedDict
+        return (updatedEnv, newDict)
 
   partial def evalFuncArgs (env: Env) (args: List Types) : IO (Env × List Types) := do
-    match args.foldl (fun (res : IO (Dict × List Types)) x =>
-        match res with
-        | Except.error e => Except.error s!"error evaluating function argument accumulator: {x.toString true}: {e}"
-        | Except.ok (r, acc) => match evalTypes r x with
-          | Except.error e => Except.error s!"error evaluating function argument: {x.toString true}: {e}"
-          | Except.ok (updatedRef, res) =>
-            Except.ok (updatedRef, acc ++ [res])
-      ) (Except.ok (ref, [])) with
-      | Except.error e => Except.error e
-      | Except.ok (newEnv, results) => Except.ok (newEnv, results)
+    args.foldlM (fun (res : Env × List Types) (x : Types) => do
+      let (r, acc) := res
+      let (updatedRef, res) ← evalTypes r x
+      return (updatedRef, acc ++ [res])
+    ) (env, [])
 
   partial def evalDefn (env: Env) (args : List Types) : IO (Env × Types) := do
-    if args.length < 2 then Except.error "def! unexpected syntax"
+    if args.length < 2 then throw (IO.userError "def! unexpected syntax")
     else
       let key := args[0]!
       let body := args[1]!
-      match (evalTypes ref body)  with
-      | Except.error e => Except.error s!"def!: {e}"
-      | Except.ok (newEnv, value) =>
-        match key with
-        | Types.symbolVal v =>
-          let refResult := newEnv.add (KeyType.strKey v) ref.getLevel value
-          Except.ok (refResult, value)
-        | _ => Except.error s!"def! unexpected token, expected: symbol"
+      let (newEnv, value) ← (evalTypes env body)
+      match key with
+      | Types.symbolVal v =>
+        let envResult := newEnv.add (KeyType.strKey v) env.getLevel value
+        return (envResult, value)
+      | _ => throw (IO.userError s!"def! unexpected token, expected: symbol")
 
   partial def evalLet (env: Env) (args : List Types) : IO (Env × Types) := do
-    if args.length < 2 then Except.error "let*: unexpected syntax"
+    if args.length < 2 then throw (IO.userError "let*: unexpected syntax")
     else
       let pairs := args[0]!
       let body := args[1]!
-      let result := match pairs with
-      | Types.listVal v => evalLetArgs ref.increment v
-      | Types.vecVal v => evalLetArgs ref.increment (toList v)
-      | _ => Except.error s!"unexpected token type: ${pairs.toString true}, expected: list or vector"
+      let newEnv ← match pairs with
+      | Types.listVal v => evalLetArgs env.increment v
+      | Types.vecVal v => evalLetArgs env.increment (toList v)
+      | _ => throw (IO.userError s!"unexpected token type: ${pairs.toString true}, expected: list or vector")
 
-      match result with
-      | Except.error e => Except.error s!"let*: {e}"
-      | Except.ok newEnv => match evalTypes newEnv body with
-        | Except.error e => Except.error e
-        -- we do not propagate the let* environment to the parent scope
-        | Except.ok (_, result) => Except.ok (ref, result)
+      -- we do not propagate the let* environment to the parent scope
+      let (_, result) ← evalTypes newEnv body
+      return (env, result)
 
-  partial def evalLetArgs (env: Env) (args : List Types) : IO Env :=
+  partial def evalLetArgs (env: Env) (args : List Types) : IO Env := do
     match args with
-    | [] => Except.ok ref
-    | [_] => Except.error "let*: unexpected syntax"
+    | [] => return env
+    | [_] => throw (IO.userError "let*: unexpected syntax")
     | x :: y :: rest =>
       match x with
-      | Types.symbolVal key => match evalTypes ref y with
-        | Except.error e => Except.error s!"error evaluating function argument: {key}: {e}"
-        | Except.ok (updatedRef, value) =>
-          evalLetArgs (updatedRef.add (KeyType.strKey key) ref.getLevel value) rest
-      | _ => Except.error "let*: unexpected syntax"
+      | Types.symbolVal key =>
+        let (updatedRef, value) ← evalTypes env y
+        evalLetArgs (updatedRef.add (KeyType.strKey key) env.getLevel value) rest
+      | _ => throw (IO.userError "let*: unexpected syntax")
 end
 
 def loadFnNative (ref : Env) (name: String) : Env :=
@@ -182,7 +164,7 @@ def loadFnNativeAll (env: Env) : Env :=
   loadFnNative (
     loadFnNative (
       loadFnNative (
-        loadFnNative ref "+"
+        loadFnNative env "+"
       ) "-"
     ) "*"
   ) "/"
@@ -190,12 +172,15 @@ def loadFnNativeAll (env: Env) : Env :=
 def PRINT (ast : Types): String :=
   pr_str true ast
 
-def rep (env: Env) (input : String): Env × String :=
+def rep (env: Env) (input : String): IO (Env × String) := do
   match READ.{u} input with
-  | Except.ok result => match evalTypes ref result with
-    | Except.error e => (ref, e)
-    | Except.ok (newref, res) => (newref, PRINT res)
-  | Except.error err => (ref, s!"Parsing failed: {err}")
+  | Except.ok result =>
+    try
+      let (newenv, res) ← evalTypes env result
+      return (newenv, PRINT res)
+    catch
+      | e => return (env, s!"Error: {e}")
+  | Except.error err => return (env, s!"Parsing failed: {err}")
 
 def main : IO Unit := do
   let mut env := loadFnNativeAll (Env.data 0 Dict.empty)
@@ -211,6 +196,6 @@ def main : IO Unit := do
     if value.isEmpty then
       donext := false
     else
-      let (ref, val) := rep.{u} env value
+      let (newenv, val) ← rep.{u} env value
       IO.println val
-      env := ref
+      env := newenv
