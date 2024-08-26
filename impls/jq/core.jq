@@ -382,7 +382,6 @@ def core_interp(arguments; env):
         select(.function == "vec") | {kind:"vector", value:arguments[0].value}
     ) // (
         select(.function == "nth")
-            | _debug(arguments)
             | arguments[0].value as $lst
             | arguments[1].value as $idx
             | if ($lst|length < $idx) or ($idx < 0) then
