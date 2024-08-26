@@ -6,7 +6,7 @@ universe u
 def READ (input : String): Except String Types :=
   read_str.{u} input
 
-def sum (ref : Env) (lst: List Types) : Except String (Env × Types) :=
+def sum (ref : Env) (lst: List Types) : IO (Env × Types) := do
   match lst with
   | []                                   => Except.ok (ref, Types.intVal 0)
   | [Types.intVal x]                     => Except.ok (ref, Types.intVal x)
@@ -15,7 +15,7 @@ def sum (ref : Env) (lst: List Types) : Except String (Env × Types) :=
   | [Types.floatVal x, Types.floatVal y] => Except.ok (ref, Types.floatVal (x + y))
   | _                                    => Except.error "+ operator not supported"
 
-def sub (ref : Env) (lst: List Types) : Except String (Env × Types) :=
+def sub (ref : Env) (lst: List Types) : IO (Env × Types) := do
   match lst with
   | []                                   => Except.ok (ref, Types.intVal 0)
   | [Types.intVal x]                     => Except.ok (ref, Types.intVal x)
@@ -24,7 +24,7 @@ def sub (ref : Env) (lst: List Types) : Except String (Env × Types) :=
   | [Types.floatVal x, Types.floatVal y] => Except.ok (ref, Types.floatVal (x - y))
   | _                                    => Except.error "- operator not supported"
 
-def mul (ref : Env) (lst: List Types) : Except String (Env × Types) :=
+def mul (ref : Env) (lst: List Types) : IO (Env × Types) := do
   match lst with
   | []                                   => Except.ok (ref, Types.intVal 0)
   | [Types.intVal x]                     => Except.ok (ref, Types.intVal x)
@@ -33,7 +33,7 @@ def mul (ref : Env) (lst: List Types) : Except String (Env × Types) :=
   | [Types.floatVal x, Types.floatVal y] => Except.ok (ref, Types.floatVal (x * y))
   | _                                    => Except.error "* operator not supported"
 
-def div (ref : Env) (lst: List Types) : Except String (Env × Types) :=
+def div (ref : Env) (lst: List Types) : IO (Env × Types) := do
   match lst with
   | []                                   => Except.ok (ref, Types.intVal 0)
   | [Types.intVal x]                     => Except.ok (ref, Types.intVal x)
@@ -42,7 +42,7 @@ def div (ref : Env) (lst: List Types) : Except String (Env × Types) :=
   | [Types.floatVal x, Types.floatVal y] => Except.ok (ref, Types.floatVal (x / y))
   | _                                    => Except.error "/ operator not supported"
 
-def evalFnNative (ref : Env) (name: String) (results: List Types): Except String (Env × Types) :=
+def evalFnNative (ref : Env) (name: String) (results: List Types): IO (Env × Types) := do
     match name with
     | "+" => sum ref results
     | "-" => sub ref results
@@ -52,7 +52,7 @@ def evalFnNative (ref : Env) (name: String) (results: List Types): Except String
 
 mutual
 
-  partial def evalTypes (ref : Env) (ast : Types) : Except String (Env × Types) :=
+  partial def evalTypes (ref : Env) (ast : Types) : IO (Env × Types) := do
     match ast with
     | Types.symbolVal v   => match ref.get (KeyType.strKey v) with
       | some (_, vi) => Except.ok (ref, vi)
@@ -62,12 +62,12 @@ mutual
     | Types.dictVal el    => (evalDict ref el)
     | x                   => Except.ok (ref, x)
 
-  partial def evalFunc (ref: Env) (head : Types) (args : List Types) : Except String (Env × Types) :=
+  partial def evalFunc (ref: Env) (head : Types) (args : List Types) : IO (Env × Types) := do
     match evalTypes ref head with
     | Except.error e => Except.error s!"error evaluating function: {head.toString true}: {e}"
     | Except.ok (_, fn) => evalFuncVal ref fn args
 
-  partial def evalFuncVal (ref: Env) (fn: Types) (args: List Types) : Except String (Env × Types) :=
+  partial def evalFuncVal (ref: Env) (fn: Types) (args: List Types) : IO (Env × Types) := do
     -- first execute each function argument - reduce computation
     match evalFuncArgs ref args with
     | Except.error e => Except.error e
@@ -86,7 +86,7 @@ mutual
           | Fun.macroFn _ _ _ => Except.error "macro not implemented"
         | _ => Except.error s!"`unexpected token, expected: function`"
 
-  partial def evalList (ref: Env) (lst : List Types) : Except String (Env × Types) :=
+  partial def evalList (ref: Env) (lst : List Types) : IO (Env × Types) := do
     if List.length lst == 0 then Except.ok (ref, Types.listVal lst)
     else
       let head := lst[0]!
@@ -95,12 +95,12 @@ mutual
         | _ => evalFunc ref head (lst.drop 1)
       | _ => evalFunc ref head (lst.drop 1)
 
-  partial def evalVec (ref: Env) (elems : List Types) : Except String (Env × Types) :=
+  partial def evalVec (ref: Env) (elems : List Types) : IO (Env × Types) := do
     match evalFuncArgs ref elems with
     | Except.error e => Except.error e
     | Except.ok (newRef, results) => Except.ok (newRef, Types.vecVal (listToVec results))
 
-  partial def evalDict (ref: Env) (lst : Dict) : Except String (Env × Types) :=
+  partial def evalDict (ref: Env) (lst : Dict) : IO (Env × Types) := do
     match evalDictInner ref lst with
       | Except.error e => Except.error e
       | Except.ok (newRef, newDict) => Except.ok (newRef, Types.dictVal newDict)
