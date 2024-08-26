@@ -42,7 +42,7 @@ process guide](process/guide.md) there is also a [mal/make-a-lisp
 FAQ](docs/FAQ.md) where I attempt to answer some common questions.
 
 
-**3. Mal is implemented in 89 languages (95 different implementations and 116 runtime modes)**
+**3. Mal is implemented in 89 languages (95 different implementations and 115 runtime modes)**
 
 | Language | Creator |
 | -------- | ------- |
@@ -969,7 +969,7 @@ incompatibilities with python3.
 
 ### Python3
 
-This implementationd is checked for style and types
+This implementation is checked for style and types
 (flake8, pylint, mypy).  It reports all errors with details.
 It demonstrates iterators, decorators, functional tools, chain maps,
 dataclasses, introspection, match statements, assignement expressions.
