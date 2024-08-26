@@ -161,7 +161,7 @@ repl_env.set(types._symbol('eval'), lambda ast: EVAL(ast, repl_env))
 repl_env.set(types._symbol('*ARGV*'), types.List(sys.argv[2:]))
 
 # core.mal: defined using the language itself
-REP('(def! *host-language* "python")')
+REP('(def! *host-language* "python2")')
 REP("(def! not (fn* (a) (if a false true)))")
 REP('(def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) "\nnil)")))))')
 REP("""(defmacro! cond (fn* (& xs)

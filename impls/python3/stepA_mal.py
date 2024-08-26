@@ -237,7 +237,7 @@ def main() -> None:
         (list 'if (first xs) (if (> (count xs) 1) (nth xs 1)
         (throw "odd number of forms to cond"))
         (cons 'cond (rest (rest xs)))))))""", repl_env)
-    rep('(def! *host-language* "python.2")', repl_env)
+    rep('(def! *host-language* "python3")', repl_env)
     match sys.argv:
         case _, file_name, *args:
             repl_env['*ARGV*'] = List(String(a) for a in args)

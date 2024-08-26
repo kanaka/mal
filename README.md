@@ -112,8 +112,8 @@ FAQ](docs/FAQ.md) where I attempt to answer some common questions.
 | [PowerShell](#powershell) | [Joel Martin](https://github.com/kanaka)  |
 | [Prolog](#prolog-logical-language) | [Nicolas Boulenguez](https://github.com/asarhaddon) |
 | [PureScript](#purescript) | [mrsekut](https://github.com/mrsekut) |
-| [Python](#python-2x-and-3x) (2.X &amp; 3.X) | [Joel Martin](https://github.com/kanaka) |
-| [Python #2](#python2-3x) (3.X) | [Gavin Lewis](https://github.com/epylar) |
+| [Python2](#python2) | [Joel Martin](https://github.com/kanaka) |
+| [Python3](#python3) | [Gavin Lewis](https://github.com/epylar) |
 | [RPython](#rpython) | [Joel Martin](https://github.com/kanaka)  |
 | [R](#r) | [Joel Martin](https://github.com/kanaka)  |
 | [Racket](#racket-53) | [Joel Martin](https://github.com/kanaka)  |
@@ -962,16 +962,14 @@ make
 node ./stepX_YYY.js
 ```
 
-### Python (2.X and 3.X)
+### Python2
 
-```
-cd impls/python
-python stepX_YYY.py
-```
+This implementation only uses python2 features, but avoids
+incompatibilities with python3.
 
-### Python.2 (3.X)
+### Python3
 
-The second Python implementation is checked for style and types
+This implementationd is checked for style and types
 (flake8, pylint, mypy).  It reports all errors with details.
 It demonstrates iterators, decorators, functional tools, chain maps,
 dataclasses, introspection, match statements, assignement expressions.
@@ -1380,7 +1378,7 @@ make MAL_IMPL=IMPL "test^mal^step2"
 # e.g.
 make "test^mal^step2"   # js is default
 make MAL_IMPL=ruby "test^mal^step2"
-make MAL_IMPL=python "test^mal^step2"
+make MAL_IMPL=python3 "test^mal^step2"
 ```
 
 ### Starting the REPL
@@ -1414,7 +1412,7 @@ make MAL_IMPL=IMPL "repl^mal^stepX"
 # e.g.
 make "repl^mal^step2"   # js is default
 make MAL_IMPL=ruby "repl^mal^step2"
-make MAL_IMPL=python "repl^mal"
+make MAL_IMPL=python3 "repl^mal"
 ```
 
 ### Performance tests

@@ -75,9 +75,8 @@ IMPL:
   - {IMPL: ps}
   - {IMPL: powershell, NO_SELF_HOST: 1}  # works, but too slow be default enabled
   - {IMPL: purs}
-  - {IMPL: python, python_MODE: python2}
-  - {IMPL: python, python_MODE: python3}
-  - {IMPL: python.2}
+  - {IMPL: python2}
+  - {IMPL: python3}
   - {IMPL: r}
   - {IMPL: racket}
   - {IMPL: rexx}
