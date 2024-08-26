@@ -4,7 +4,7 @@ import LeanMal.core
 
 universe u
 
-def makeFn (ref: Env) (args : List Types) : IO (Env × Types) := do
+def makeFn (env: Env) (args : List Types) : IO (Env × Types) := do
   if args.length < 2 then throw (IO.userError "unexpected syntax")
   else
     let p := args[0]!
@@ -38,7 +38,7 @@ mutual
     | Types.dictVal el    => (evalDict ref el)
     | x                   => Except.ok (ref, x)
 
-  partial def evalFunc (ref: Env) (head : Types) (args : List Types) : IO (Env × Types) := do
+  partial def evalFunc (env: Env) (head : Types) (args : List Types) : IO (Env × Types) := do
     match evalTypes ref head with
     | Except.error (newref, e) => Except.error (newref, s!"error evaluating function: {head.toString true}: {e}")
     | Except.ok (ref2, fn) =>
@@ -48,14 +48,14 @@ mutual
         -- only propagate logs after executing a function
         Except.ok (forwardLogs fref ref, res)
 
-  partial def evalFuncVal (ref: Env) (fn: Types) (args: List Types) : IO (Env × Types) := do
+  partial def evalFuncVal (env: Env) (fn: Types) (args: List Types) : IO (Env × Types) := do
     -- first execute each function argument - reduce computation
     match evalFuncArgs ref args with
     | Except.error e => Except.error e
-    | Except.ok (newRef, results) =>
+    | Except.ok (newEnv, results) =>
       match fn with
         | Types.funcVal v      => match v with
-          | Fun.builtin name => evalFnNative newRef name results
+          | Fun.builtin name => evalFnNative newEnv name results
           | Fun.userDefined fref params body =>
             let allkeys: List String := match params with
               | Types.listVal v => v.map fun x => x.toString false
@@ -64,16 +64,16 @@ mutual
             let normalArgs := results.take keys.length
             let variadicArg := results.drop keys.length
             let argVals := normalArgs ++ [Types.listVal variadicArg]
-            let argsLevel := if fref.getLevel >= newRef.getLevel then fref.getLevel + 1 else newRef.getLevel + 1
+            let argsLevel := if fref.getLevel >= newEnv.getLevel then fref.getLevel + 1 else newEnv.getLevel + 1
 
             let argsDict := (buildDict argsLevel (keys ++ variadic) argVals)
-            let merged := (newRef.merge fref).mergeDict argsLevel argsDict
+            let merged := (newEnv.merge fref).mergeDict argsLevel argsDict
 
             evalTypes merged body
-          | Fun.macroFn _ _ _ => Except.error (newRef, "macro not implemented")
-        | _ => Except.error (newRef, s!"`unexpected token, expected: function`")
+          | Fun.macroFn _ _ _ => Except.error (newEnv, "macro not implemented")
+        | _ => Except.error (newEnv, s!"`unexpected token, expected: function`")
 
-  partial def evalList (ref: Env) (lst : List Types) : IO (Env × Types) := do
+  partial def evalList (env: Env) (lst : List Types) : IO (Env × Types) := do
     if List.length lst == 0 then Except.ok (ref, Types.listVal lst)
     else
       let head := lst[0]!
@@ -87,28 +87,28 @@ mutual
         | _ => evalFunc ref head (lst.drop 1)
       | _ => evalFunc ref head (lst.drop 1)
 
-  partial def evalVec (ref: Env) (elems : List Types) : IO (Env × Types) := do
+  partial def evalVec (env: Env) (elems : List Types) : IO (Env × Types) := do
     match evalFuncArgs ref elems with
     | Except.error e => Except.error e
-    | Except.ok (newRef, results) => Except.ok (newRef, Types.vecVal (listToVec results))
+    | Except.ok (newEnv, results) => Except.ok (newEnv, Types.vecVal (listToVec results))
 
-  partial def evalDict (ref: Env) (lst : Dict) : IO (Env × Types) := do
+  partial def evalDict (env: Env) (lst : Dict) : IO (Env × Types) := do
     match evalDictInner ref lst with
       | Except.error e => Except.error e
-      | Except.ok (newRef, newDict) => Except.ok (newRef, Types.dictVal newDict)
+      | Except.ok (newEnv, newDict) => Except.ok (newEnv, Types.dictVal newDict)
 
-  partial def evalDictInner (ref: Env) (lst : Dict) : IO (Env × Dict) :=
+  partial def evalDictInner (env: Env) (lst : Dict) : IO (Env × Dict) :=
     match lst with
       | Dict.empty => Except.ok (ref, lst)
       | Dict.insert k _ v restDict => match evalTypes ref v with
         | Except.error e => Except.error e
-        | Except.ok (newRef, newVal) => match evalDictInner newRef restDict with
+        | Except.ok (newEnv, newVal) => match evalDictInner newEnv restDict with
           | Except.error e => Except.error e
           | Except.ok (updatedRef, updatedDict) =>
             let newDict := Dict.insert k 0 newVal updatedDict
             Except.ok (updatedRef, newDict)
 
-  partial def evalFuncArgs (ref: Env) (args: List Types) : IO (Env × List Types) :=
+  partial def evalFuncArgs (env: Env) (args: List Types) : IO (Env × List Types) :=
     match args.foldl (fun (res : IO (Env × List Types)) x =>
         match res with
         | Except.error (newref, e) => Except.error (newref, s!"error evaluating function argument accumulator: {x.toString true}: {e}")
@@ -118,23 +118,23 @@ mutual
             Except.ok (updatedRef, acc ++ [res])
       ) (Except.ok (ref, [])) with
       | Except.error e => Except.error e
-      | Except.ok (newRef, results) => Except.ok (newRef, results)
+      | Except.ok (newEnv, results) => Except.ok (newEnv, results)
 
-  partial def evalDefn (ref: Env) (args : List Types) : IO (Env × Types) := do
+  partial def evalDefn (env: Env) (args : List Types) : IO (Env × Types) := do
     if args.length < 2 then throw (IO.userError "def! unexpected syntax")
     else
       let key := args[0]!
       let body := args[1]!
       match (evalTypes ref body)  with
       | Except.error (newref, e) => Except.error (newref, s!"def!: {e}")
-      | Except.ok (newRef, value) =>
+      | Except.ok (newEnv, value) =>
         match key with
         | Types.symbolVal v =>
-          let refResult := newRef.add (KeyType.strKey v) ref.getLevel value
+          let refResult := newEnv.add (KeyType.strKey v) ref.getLevel value
           Except.ok (refResult, value)
-        | _ => Except.error (newRef, s!"def! unexpected token, expected: symbol")
+        | _ => Except.error (newEnv, s!"def! unexpected token, expected: symbol")
 
-  partial def evalLet (ref: Env) (args : List Types) : IO (Env × Types) := do
+  partial def evalLet (env: Env) (args : List Types) : IO (Env × Types) := do
     if args.length < 2 then throw (IO.userError "let*: unexpected syntax")
     else
       let pairs := args[0]!
@@ -145,33 +145,33 @@ mutual
       | _ => throw (IO.userError s!"unexpected token type: ${pairs.toString true}, expected: list or vector")
 
       match result with
-      | Except.error (newRef, e) => Except.error (newRef, s!"let*: {e}")
-      | Except.ok newRef => match evalTypes newRef body with
+      | Except.error (newEnv, e) => Except.error (newEnv, s!"let*: {e}")
+      | Except.ok newEnv => match evalTypes newEnv body with
         | Except.error e => Except.error e
         -- only propagate logs from the let* environment to the parent scope
         | Except.ok (letref, result) => Except.ok (forwardLogs letref ref, result)
 
-  partial def evalLetArgs (ref: Env) (args : List Types) : IO Env :=
+  partial def evalLetArgs (env: Env) (args : List Types) : IO Env :=
     match args with
     | [] => Except.ok ref
     | [_] => throw (IO.userError "let*: unexpected syntax")
     | x :: y :: rest =>
       match x with
       | Types.symbolVal key => match evalTypes ref y with
-        | Except.error (newRef, e) => Except.error (newRef, s!"error evaluating function argument: {key}: {e}")
+        | Except.error (newEnv, e) => Except.error (newEnv, s!"error evaluating function argument: {key}: {e}")
         | Except.ok (updatedRef, value) =>
           evalLetArgs (updatedRef.add (KeyType.strKey key) ref.getLevel value) rest
       | _ => throw (IO.userError "let*: unexpected syntax")
 
-  partial def evalDo (ref: Env) (args : List Types) : IO (Env × Types) := do
+  partial def evalDo (env: Env) (args : List Types) : IO (Env × Types) := do
     -- only return last computation result
     match evalFuncArgs ref args with
     | Except.error e => Except.error e
-    | Except.ok (newRef, results) =>
-      if results.length == 0 then Except.ok (newRef, Types.Nil)
-      else Except.ok (newRef, results[results.length - 1]!)
+    | Except.ok (newEnv, results) =>
+      if results.length == 0 then Except.ok (newEnv, Types.Nil)
+      else Except.ok (newEnv, results[results.length - 1]!)
 
-  partial def evalIf (ref: Env) (args : List Types) : IO (Env × Types) := do
+  partial def evalIf (env: Env) (args : List Types) : IO (Env × Types) := do
     if args.length < 2 then throw (IO.userError "unexpected syntax")
     else
       let condition := args[0]!
@@ -179,15 +179,15 @@ mutual
       let hasElse := args.length > 2
 
       match evalTypes ref condition with
-      | Except.error (newRef, e) => Except.error (newRef, s!"if: {e}")
-      | Except.ok (newRef, condResp) =>
+      | Except.error (newEnv, e) => Except.error (newEnv, s!"if: {e}")
+      | Except.ok (newEnv, condResp) =>
         let cond := match condResp with
         | Types.boolVal v => v
         | Types.Nil => false
         | _ => true
-        if cond then evalTypes newRef thenExpr
-        else if hasElse then evalTypes newRef args[2]!
-        else Except.ok (newRef, Types.Nil)
+        if cond then evalTypes newEnv thenExpr
+        else if hasElse then evalTypes newEnv args[2]!
+        else Except.ok (newEnv, Types.Nil)
 
   partial def evalFnNative (ref : Env) (name: String) (results: List Types): IO (Env × Types) := do
     match name with
@@ -225,7 +225,7 @@ def READ (input : String): Except String Types :=
 def PRINT (ast : Types): String :=
   pr_str true ast
 
-def rep (ref: Env) (input : String): Env × String :=
+def rep (env: Env) (input : String): Env × String :=
   match READ.{u} input with
   | Except.ok result => match evalTypes ref result with
     | Except.error (newref, e) => (newref, e)
@@ -239,7 +239,7 @@ def printLogs (ref : Env) : IO Unit :=
     | x => IO.println (x.toString true)
   )
 
-def loadMalFns (ref: Env) (fndefs: List String): Env × String :=
+def loadMalFns (env: Env) (fndefs: List String): Env × String :=
   fndefs.foldl (fun (res : Env × String) fndef =>
     let (ref, msg) := res
     let (newref, newmsg) := rep.{u} ref fndef

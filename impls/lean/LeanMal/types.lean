@@ -50,8 +50,8 @@ mutual
 
   inductive Fun : Type u
     | builtin (name : String)
-    | userDefined (ref: Env) (params : Types) (body : Types)
-    | macroFn (ref: Env) (params : Types) (body : Types)
+    | userDefined (env: Env) (params : Types) (body : Types)
+    | macroFn (env: Env) (params : Types) (body : Types)
 
   inductive Dict: Type u
     | empty : Dict

@@ -187,11 +187,11 @@ def resetAtom (ref : Env) (lst: List Types) (args: List Types) : IO (Env × Type
       | some (level, _) => match first with
         | Types.atomVal x => match x with
           | Atom.v _ =>
-              let newRef := ref.add (KeyType.strKey sym) level (Types.atomVal (Atom.v second))
-              Except.ok (newRef, second)
+              let newEnv := ref.add (KeyType.strKey sym) level (Types.atomVal (Atom.v second))
+              Except.ok (newEnv, second)
           | Atom.withmeta _ meta =>
-              let newRef := ref.add (KeyType.strKey sym) level (Types.atomVal (Atom.withmeta second meta))
-              Except.ok (newRef, second)
+              let newEnv := ref.add (KeyType.strKey sym) level (Types.atomVal (Atom.withmeta second meta))
+              Except.ok (newEnv, second)
         | x => throw (IO.userError s!"reset!: unexpected symbol: {x.toString true}, expected: atom")
     | x => throw (IO.userError s!"reset!: unexpected token: {x.toString true}, expected: symbol")
 
@@ -245,13 +245,13 @@ def prStrFunc (ref : Env) (lst: List Types) : IO (Env × Types) := do
 
 def prnFunc (ref : Env) (lst: List Types) : IO (Env × Types) := do
   let str := prStrInternal lst true " "
-  let newRef := logInfo ref str
-  Except.ok (newRef, Types.Nil)
+  let newEnv := logInfo ref str
+  Except.ok (newEnv, Types.Nil)
 
 def printlnFunc (ref : Env) (lst: List Types) : IO (Env × Types) := do
   let str := prStrInternal lst false " "
-  let newRef := logInfo ref str
-  Except.ok (newRef, Types.Nil)
+  let newEnv := logInfo ref str
+  Except.ok (newEnv, Types.Nil)
 
 def strFunc (ref : Env) (lst: List Types) : IO (Env × Types) := do
   let str := prStrInternal lst false ""
