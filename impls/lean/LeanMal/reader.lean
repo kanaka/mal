@@ -193,7 +193,7 @@ mutual
     let _ ← optional  wspace_or_comma_strict
     let dict := Array.foldl (fun m (k, v) =>
 
-      m.insert k v
+      m.insert k 0 v
     ) (Dict.empty) els
     return Types.dictVal dict
 

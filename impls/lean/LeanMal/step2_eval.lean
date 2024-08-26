@@ -6,7 +6,7 @@ universe u
 def READ (input : String): Except String Types :=
   read_str.{u} input
 
-def sum (ref : Dict := Dict.empty) (lst: List Types) : Except String (Dict × Types) :=
+def sum (ref : Env) (lst: List Types) : Except String (Env × Types) :=
   match lst with
   | []                                   => Except.ok (ref, Types.intVal 0)
   | [Types.intVal x]                     => Except.ok (ref, Types.intVal x)
@@ -15,7 +15,7 @@ def sum (ref : Dict := Dict.empty) (lst: List Types) : Except String (Dict × Ty
   | [Types.floatVal x, Types.floatVal y] => Except.ok (ref, Types.floatVal (x + y))
   | _                                    => Except.error "+ operator not supported"
 
-def sub (ref : Dict := Dict.empty) (lst: List Types) : Except String (Dict × Types) :=
+def sub (ref : Env) (lst: List Types) : Except String (Env × Types) :=
   match lst with
   | []                                   => Except.ok (ref, Types.intVal 0)
   | [Types.intVal x]                     => Except.ok (ref, Types.intVal x)
@@ -24,7 +24,7 @@ def sub (ref : Dict := Dict.empty) (lst: List Types) : Except String (Dict × Ty
   | [Types.floatVal x, Types.floatVal y] => Except.ok (ref, Types.floatVal (x - y))
   | _                                    => Except.error "- operator not supported"
 
-def mul (ref : Dict := Dict.empty) (lst: List Types) : Except String (Dict × Types) :=
+def mul (ref : Env) (lst: List Types) : Except String (Env × Types) :=
   match lst with
   | []                                   => Except.ok (ref, Types.intVal 0)
   | [Types.intVal x]                     => Except.ok (ref, Types.intVal x)
@@ -33,7 +33,7 @@ def mul (ref : Dict := Dict.empty) (lst: List Types) : Except String (Dict × Ty
   | [Types.floatVal x, Types.floatVal y] => Except.ok (ref, Types.floatVal (x * y))
   | _                                    => Except.error "* operator not supported"
 
-def div (ref : Dict := Dict.empty) (lst: List Types) : Except String (Dict × Types) :=
+def div (ref : Env) (lst: List Types) : Except String (Env × Types) :=
   match lst with
   | []                                   => Except.ok (ref, Types.intVal 0)
   | [Types.intVal x]                     => Except.ok (ref, Types.intVal x)
@@ -42,32 +42,32 @@ def div (ref : Dict := Dict.empty) (lst: List Types) : Except String (Dict × Ty
   | [Types.floatVal x, Types.floatVal y] => Except.ok (ref, Types.floatVal (x / y))
   | _                                    => Except.error "/ operator not supported"
 
-def evalFnNative (ref : Dict := Dict.empty) (name: String) (results: List Types): Except String (Dict × Types) :=
+def evalFnNative (ref : Env) (name: String) (results: List Types): Except String (Env × Types) :=
     match name with
     | "+" => sum ref results
     | "-" => sub ref results
     | "*" => mul ref results
     | "/" => div ref results
-    | _   => Except.error s!"function not found: {name}"
+    | _   => Except.error s!"'{name}' not found"
 
 mutual
 
-  partial def evalTypes (ref : Dict := Dict.empty) (ast : Types) : Except String (Dict × Types) :=
+  partial def evalTypes (ref : Env) (ast : Types) : Except String (Env × Types) :=
     match ast with
-    | Types.symbolVal v   => match getEntry ref (KeyType.strKey v) with
-      | some vi => Except.ok (ref, vi)
+    | Types.symbolVal v   => match ref.get (KeyType.strKey v) with
+      | some (_, vi) => Except.ok (ref, vi)
       | none    => Except.ok (ref, Types.symbolVal v )
     | Types.listVal el    => (evalList ref el)
     | Types.vecVal el     => (evalVec ref (toList el))
     | Types.dictVal el    => (evalDict ref el)
     | x                   => Except.ok (ref, x)
 
-  partial def evalFunc (ref: Dict) (head : Types) (args : List Types) : Except String (Dict × Types) :=
+  partial def evalFunc (ref: Env) (head : Types) (args : List Types) : Except String (Env × Types) :=
     match evalTypes ref head with
     | Except.error e => Except.error s!"error evaluating function: {head.toString true}: {e}"
     | Except.ok (ref2, fn) => evalFuncVal ref2 fn args
 
-  partial def evalFuncVal (ref: Dict) (fn: Types) (args: List Types) : Except String (Dict × Types) :=
+  partial def evalFuncVal (ref: Env) (fn: Types) (args: List Types) : Except String (Env × Types) :=
     -- first execute each function argument - reduce computation
     match evalFuncArgs ref args with
     | Except.error e => Except.error e
@@ -80,13 +80,13 @@ mutual
             let keys: List String := match params with
               | Types.listVal v => v.map fun x => x.toString false
               | _               => []
-            let argsDict := (buildDict keys results)
-            let merged := mergeDicts (mergeDicts fref newRef) argsDict
+            let argsDict := (buildDict 0 keys results)
+            let merged := (newRef.merge fref).mergeDict (fref.getLevel + 1) argsDict
             evalTypes merged body
           | Fun.macroFn _ _ _ => Except.error "macro not implemented"
         | _ => Except.error s!"`unexpected token, expected: function`"
 
-  partial def evalList (ref: Dict) (lst : List Types) : Except String (Dict × Types) :=
+  partial def evalList (ref: Env) (lst : List Types) : Except String (Env × Types) :=
     if List.length lst == 0 then Except.ok (ref, Types.listVal lst)
     else
       let head := lst[0]!
@@ -95,29 +95,29 @@ mutual
         | _ => evalFunc ref head (lst.drop 1)
       | _ => evalFunc ref head (lst.drop 1)
 
-  partial def evalVec (ref: Dict) (elems : List Types) : Except String (Dict × Types) :=
+  partial def evalVec (ref: Env) (elems : List Types) : Except String (Env × Types) :=
     match evalFuncArgs ref elems with
     | Except.error e => Except.error e
     | Except.ok (newRef, results) => Except.ok (newRef, Types.vecVal (listToVec results))
 
-  partial def evalDict (ref: Dict) (lst : Dict) : Except String (Dict × Types) :=
+  partial def evalDict (ref: Env) (lst : Dict) : Except String (Env × Types) :=
     match evalDictInner ref lst with
       | Except.error e => Except.error e
       | Except.ok (newRef, newDict) => Except.ok (newRef, Types.dictVal newDict)
 
-  partial def evalDictInner (ref: Dict) (lst : Dict) : Except String (Dict × Dict) :=
+  partial def evalDictInner (ref: Env) (lst : Dict) : Except String (Env × Dict) :=
     match lst with
       | Dict.empty => Except.ok (ref, lst)
-      | Dict.insert k v restDict => match evalTypes ref v with
+      | Dict.insert k _ v restDict => match evalTypes ref v with
         | Except.error e => Except.error e
         | Except.ok (newRef, newVal) => match evalDictInner newRef restDict with
           | Except.error e => Except.error e
           | Except.ok (updatedRef, updatedDict) =>
-            let newDict := Dict.insert k newVal updatedDict
+            let newDict := Dict.insert k 0 newVal updatedDict
             Except.ok (updatedRef, newDict)
 
-  partial def evalFuncArgs (ref: Dict) (args: List Types) : Except String (Dict × List Types) :=
-    match args.foldl (fun (res : Except String (Dict × List Types)) x =>
+  partial def evalFuncArgs (ref: Env) (args: List Types) : Except String (Env × List Types) :=
+    match args.foldl (fun (res : Except String (Env × List Types)) x =>
         match res with
         | Except.error e => Except.error s!"error evaluating function argument accumulator: {x.toString true}: {e}"
         | Except.ok (r, acc) => match evalTypes r x with
@@ -134,7 +134,7 @@ def PRINT (ast : Types): String :=
 
 def rep (input : String): String :=
   match READ.{u} input with
-  | Except.ok result => match evalTypes Dict.empty result with
+  | Except.ok result => match evalTypes (Env.data 0 Dict.empty) result with
     | Except.error e => e
     | Except.ok (_, res) => PRINT res
   | Except.error err =>

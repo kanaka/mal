@@ -4,12 +4,15 @@ import LeanMal.core
 
 universe u
 
-def makeFn (ref: Dict) (args : List Types) : Except (Dict × String) (Dict × Types) :=
+def makeFn (ref: Env) (args : List Types) : Except (Env × String) (Env × Types) :=
   if args.length < 2 then Except.error (ref, "unexpected syntax")
   else
-    let params := args[0]!
+    let p := args[0]!
     let body := args[1]!
-    let newfn := Fun.userDefined ref params body
+    let params := match p with
+      | Types.vecVal x => Types.listVal (toList x)
+      | _ => p
+    let newfn := Fun.userDefined ref.increment params body
     Except.ok (ref, Types.funcVal newfn)
 
 def splitOnAmpersand (input : List String) : (List String × List String) :=
@@ -23,24 +26,29 @@ def splitOnAmpersand (input : List String) : (List String × List String) :=
   loop [] input
 
 mutual
-  partial def evalTypes (_ref : Dict := Dict.empty) (ast : Types) : Except (Dict × String) (Dict × Types) :=
+  partial def evalTypes (_ref : Env) (ast : Types) : Except (Env × String) (Env × Types) :=
     let ref := if getDebugEval _ref then logInfo _ref s!"EVAL:{pr_str true ast}"
       else _ref
     match ast with
-    | Types.symbolVal v   => match getEntry ref (KeyType.strKey v) with
-      | some vi => Except.ok (ref, vi)
+    | Types.symbolVal v   => match ref.get (KeyType.strKey v) with
+      | some (_, vi) => Except.ok (ref, vi)
       | none => Except.error (ref, s!"'{v}' not found")
     | Types.listVal el    => (evalList ref el)
     | Types.vecVal el     => (evalVec ref (toList el))
     | Types.dictVal el    => (evalDict ref el)
     | x                   => Except.ok (ref, x)
 
-  partial def evalFunc (ref: Dict) (head : Types) (args : List Types) : Except (Dict × String) (Dict × Types) :=
+  partial def evalFunc (ref: Env) (head : Types) (args : List Types) : Except (Env × String) (Env × Types) :=
     match evalTypes ref head with
     | Except.error (newref, e) => Except.error (newref, s!"error evaluating function: {head.toString true}: {e}")
-    | Except.ok (ref2, fn) => evalFuncVal ref2 fn args
+    | Except.ok (ref2, fn) =>
+      match evalFuncVal ref2 fn args with
+      | Except.error e => Except.error e
+      | Except.ok (fref, res) =>
+        -- only propagate logs after executing a function
+        Except.ok (forwardLogs fref ref, res)
 
-  partial def evalFuncVal (ref: Dict) (fn: Types) (args: List Types) : Except (Dict × String) (Dict × Types) :=
+  partial def evalFuncVal (ref: Env) (fn: Types) (args: List Types) : Except (Env × String) (Env × Types) :=
     -- first execute each function argument - reduce computation
     match evalFuncArgs ref args with
     | Except.error e => Except.error e
@@ -56,14 +64,16 @@ mutual
             let normalArgs := results.take keys.length
             let variadicArg := results.drop keys.length
             let argVals := normalArgs ++ [Types.listVal variadicArg]
-            let argsDict := (buildDict (keys ++ variadic) argVals)
-            let merged := mergeDicts (mergeDicts fref newRef) argsDict
+            let argsLevel := if fref.getLevel >= newRef.getLevel then fref.getLevel + 1 else newRef.getLevel + 1
+
+            let argsDict := (buildDict argsLevel (keys ++ variadic) argVals)
+            let merged := (newRef.merge fref).mergeDict argsLevel argsDict
 
             evalTypes merged body
           | Fun.macroFn _ _ _ => Except.error (newRef, "macro not implemented")
         | _ => Except.error (newRef, s!"`unexpected token, expected: function`")
 
-  partial def evalList (ref: Dict) (lst : List Types) : Except (Dict × String) (Dict × Types) :=
+  partial def evalList (ref: Env) (lst : List Types) : Except (Env × String) (Env × Types) :=
     if List.length lst == 0 then Except.ok (ref, Types.listVal lst)
     else
       let head := lst[0]!
@@ -77,29 +87,29 @@ mutual
         | _ => evalFunc ref head (lst.drop 1)
       | _ => evalFunc ref head (lst.drop 1)
 
-  partial def evalVec (ref: Dict) (elems : List Types) : Except (Dict × String) (Dict × Types) :=
+  partial def evalVec (ref: Env) (elems : List Types) : Except (Env × String) (Env × Types) :=
     match evalFuncArgs ref elems with
     | Except.error e => Except.error e
     | Except.ok (newRef, results) => Except.ok (newRef, Types.vecVal (listToVec results))
 
-  partial def evalDict (ref: Dict) (lst : Dict) : Except (Dict × String) (Dict × Types) :=
+  partial def evalDict (ref: Env) (lst : Dict) : Except (Env × String) (Env × Types) :=
     match evalDictInner ref lst with
       | Except.error e => Except.error e
       | Except.ok (newRef, newDict) => Except.ok (newRef, Types.dictVal newDict)
 
-  partial def evalDictInner (ref: Dict) (lst : Dict) : Except (Dict × String) (Dict × Dict) :=
+  partial def evalDictInner (ref: Env) (lst : Dict) : Except (Env × String) (Env × Dict) :=
     match lst with
       | Dict.empty => Except.ok (ref, lst)
-      | Dict.insert k v restDict => match evalTypes ref v with
+      | Dict.insert k _ v restDict => match evalTypes ref v with
         | Except.error e => Except.error e
         | Except.ok (newRef, newVal) => match evalDictInner newRef restDict with
           | Except.error e => Except.error e
           | Except.ok (updatedRef, updatedDict) =>
-            let newDict := Dict.insert k newVal updatedDict
+            let newDict := Dict.insert k 0 newVal updatedDict
             Except.ok (updatedRef, newDict)
 
-  partial def evalFuncArgs (ref: Dict) (args: List Types) : Except (Dict × String) (Dict × List Types) :=
-    match args.foldl (fun (res : Except (Dict × String) (Dict × List Types)) x =>
+  partial def evalFuncArgs (ref: Env) (args: List Types) : Except (Env × String) (Env × List Types) :=
+    match args.foldl (fun (res : Except (Env × String) (Env × List Types)) x =>
         match res with
         | Except.error (newref, e) => Except.error (newref, s!"error evaluating function argument accumulator: {x.toString true}: {e}")
         | Except.ok (r, acc) => match evalTypes r x with
@@ -110,7 +120,7 @@ mutual
       | Except.error e => Except.error e
       | Except.ok (newRef, results) => Except.ok (newRef, results)
 
-  partial def evalDefn (ref: Dict) (args : List Types) : Except (Dict × String) (Dict × Types) :=
+  partial def evalDefn (ref: Env) (args : List Types) : Except (Env × String) (Env × Types) :=
     if args.length < 2 then Except.error (ref, "def! unexpected syntax")
     else
       let key := args[0]!
@@ -120,18 +130,18 @@ mutual
       | Except.ok (newRef, value) =>
         match key with
         | Types.symbolVal v =>
-          let refResult := addEntry newRef (KeyType.strKey v) value
+          let refResult := newRef.add (KeyType.strKey v) ref.getLevel value
           Except.ok (refResult, value)
         | _ => Except.error (newRef, s!"def! unexpected token, expected: symbol")
 
-  partial def evalLet (ref: Dict) (args : List Types) : Except (Dict × String) (Dict × Types) :=
+  partial def evalLet (ref: Env) (args : List Types) : Except (Env × String) (Env × Types) :=
     if args.length < 2 then Except.error (ref, "let*: unexpected syntax")
     else
       let pairs := args[0]!
       let body := args[1]!
       let result := match pairs with
-      | Types.listVal v => evalLetArgs ref v
-      | Types.vecVal v => evalLetArgs ref (toList v)
+      | Types.listVal v => evalLetArgs ref.increment v
+      | Types.vecVal v => evalLetArgs ref.increment (toList v)
       | _ => Except.error (ref, s!"unexpected token type: ${pairs.toString true}, expected: list or vector")
 
       match result with
@@ -141,7 +151,7 @@ mutual
         -- we do not propagate the let* environment to the parent scope
         | Except.ok (_, result) => Except.ok (ref, result)
 
-  partial def evalLetArgs (ref: Dict) (args : List Types) : Except (Dict × String) Dict :=
+  partial def evalLetArgs (ref: Env) (args : List Types) : Except (Env × String) Env :=
     match args with
     | [] => Except.ok ref
     | [_] => Except.error (ref, "let*: unexpected syntax")
@@ -150,10 +160,10 @@ mutual
       | Types.symbolVal key => match evalTypes ref y with
         | Except.error (newRef, e) => Except.error (newRef, s!"error evaluating function argument: {key}: {e}")
         | Except.ok (updatedRef, value) =>
-          evalLetArgs (addEntry updatedRef (KeyType.strKey key) value) rest
+          evalLetArgs (updatedRef.add (KeyType.strKey key) ref.getLevel value) rest
       | _ => Except.error (ref, "let*: unexpected syntax")
 
-  partial def evalDo (ref: Dict) (args : List Types) : Except (Dict × String) (Dict × Types) :=
+  partial def evalDo (ref: Env) (args : List Types) : Except (Env × String) (Env × Types) :=
     -- only return last computation result
     match evalFuncArgs ref args with
     | Except.error e => Except.error e
@@ -161,7 +171,7 @@ mutual
       if results.length == 0 then Except.ok (newRef, Types.Nil)
       else Except.ok (newRef, results[results.length - 1]!)
 
-  partial def evalIf (ref: Dict) (args : List Types) : Except (Dict × String) (Dict × Types) :=
+  partial def evalIf (ref: Env) (args : List Types) : Except (Env × String) (Env × Types) :=
     if args.length < 2 then Except.error (ref, "unexpected syntax")
     else
       let condition := args[0]!
@@ -179,7 +189,7 @@ mutual
         else if hasElse then evalTypes newRef args[2]!
         else Except.ok (newRef, Types.Nil)
 
-  partial def evalFnNative (ref : Dict := Dict.empty) (name: String) (results: List Types): Except (Dict × String) (Dict × Types) :=
+  partial def evalFnNative (ref : Env) (name: String) (results: List Types): Except (Env × String) (Env × Types) :=
     match name with
     | "+" => sum ref results
     | "-" => sub ref results
@@ -202,6 +212,9 @@ mutual
             | "list?" => Except.ok (ref, Types.boolVal true)
             | "empty?" => Except.ok (ref, Types.boolVal (x.length == 0))
             | _ => Except.ok (ref, Types.boolVal false)
+          | Types.vecVal x => match name with
+            | "empty?" => Except.ok (ref, Types.boolVal ((toList x).length == 0))
+            | _ => Except.ok (ref, Types.boolVal false)
           | _   => Except.ok (ref, Types.boolVal false)
         | _   => Except.error (ref, s!"'{name}' not found")
 
@@ -213,23 +226,35 @@ def READ (input : String): Except String Types :=
 def PRINT (ast : Types): String :=
   pr_str true ast
 
-def rep (ref: Dict) (input : String): Dict × String :=
+def rep (ref: Env) (input : String): Env × String :=
   match READ.{u} input with
   | Except.ok result => match evalTypes ref result with
     | Except.error (newref, e) => (newref, e)
     | Except.ok (newref, res) => (newref, PRINT res)
   | Except.error err => (ref, s!"Parsing failed: {err}")
 
-def printLogs (ref : Dict) : IO Unit :=
+def printLogs (ref : Env) : IO Unit :=
   forM (getLogsInfo ref) (fun elem =>
     match elem with
     | Types.strVal log => IO.println log
     | x => IO.println (x.toString true)
   )
 
+def loadMalFns (ref: Env) (fndefs: List String): Env × String :=
+  fndefs.foldl (fun (res : Env × String) fndef =>
+    let (ref, msg) := res
+    let (newref, newmsg) := rep.{u} ref fndef
+    (newref, s!"{msg}¬{newmsg}")
+  ) (ref, "")
+
+def fnDefs: List String := [
+    "(def! not (fn* (a) (if a false true)))",
+  ]
+
 def main : IO Unit := do
   IO.println "Welcome to Mal REPL!"
-  let mut env := loadFnNativeAll Dict.empty
+  let (env0, _) := loadMalFns.{u} (loadFnNativeAll (Env.data 0 Dict.empty)) fnDefs
+  let mut env := env0
   let mut donext := true
   while donext do
     IO.print "user> "
@@ -245,4 +270,4 @@ def main : IO Unit := do
       let (ref, val) := rep.{u} env value
       printLogs ref
       IO.println val
-      env := ref
+      env := resetLogs ref
