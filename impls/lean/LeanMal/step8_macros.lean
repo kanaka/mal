@@ -7,9 +7,12 @@ universe u
 def makeFn (ref: Env) (args : List Types) : Except (Env × String) (Env × Types) :=
   if args.length < 2 then Except.error (ref, "unexpected syntax")
   else
-    let params := args[0]!
+    let p := args[0]!
     let body := args[1]!
-    let newfn := Fun.userDefined ref params body
+    let params := match p with
+      | Types.vecVal x => Types.listVal (toList x)
+      | _ => p
+    let newfn := Fun.userDefined ref.increment params body
     Except.ok (ref, Types.funcVal newfn)
 
 def splitOnAmpersand (input : List String) : (List String × List String) :=
@@ -27,8 +30,8 @@ mutual
     let ref := if getDebugEval _ref then logInfo _ref s!"EVAL:{pr_str true ast}"
       else _ref
     match ast with
-    | Types.symbolVal v   => match getEntry ref (KeyType.strKey v) with
-      | some vi => Except.ok (ref, vi)
+    | Types.symbolVal v   => match ref.get (KeyType.strKey v) with
+      | some (_, vi) => Except.ok (ref, vi)
       | none => Except.error (ref, s!"'{v}' not found")
     | Types.listVal el    => (evalList ref el)
     | Types.vecVal el     => (evalVec ref (toList el))
@@ -38,7 +41,12 @@ mutual
   partial def evalFunc (ref: Env) (head : Types) (args : List Types) : Except (Env × String) (Env × Types) :=
     match evalTypes ref head with
     | Except.error (newref, e) => Except.error (newref, s!"error evaluating function: {head.toString true}: {e}")
-    | Except.ok (ref2, fn) => evalFuncVal ref2 fn args
+    | Except.ok (ref2, fn) =>
+      match evalFuncVal ref2 fn args with
+      | Except.error e => Except.error e
+      | Except.ok (fref, res) =>
+        -- after executing a function, propagate atoms (defined in outer environments) and logs to the parent scope
+        Except.ok (forwardLogs fref (forwardMutatedAtoms fref ref), res)
 
   partial def evalFuncVal (ref: Env) (fn: Types) (args: List Types) : Except (Env × String) (Env × Types) :=
     match fn with
@@ -59,20 +67,23 @@ mutual
             let normalArgs := results.take keys.length
             let variadicArg := results.drop keys.length
             let argVals := normalArgs ++ [Types.listVal variadicArg]
-            let argsDict := (buildDict (keys ++ variadic) argVals)
-            let merged := mergeDicts (mergeDicts fref newRef) argsDict
+            let argsLevel := if fref.getLevel >= newRef.getLevel then fref.getLevel + 1 else newRef.getLevel + 1
+
+            let argsDict := (buildDict argsLevel (keys ++ variadic) argVals)
+            let merged := (newRef.merge fref).mergeDict argsLevel argsDict
 
             evalTypes merged body
         | Fun.macroFn fref params body =>
           let allkeys: List String := match params with
-            | Types.listVal v => v.map fun x => x.toString false
-            | _               => []
-          let (keys, variadic) := splitOnAmpersand allkeys
+              | Types.listVal v => v.map fun x => x.toString false
+              | _               => []
+            let (keys, variadic) := splitOnAmpersand allkeys
           let normalArgs := args.take keys.length
           let variadicArg := args.drop keys.length
           let argVals := normalArgs ++ [Types.listVal variadicArg]
-          let argsDict := (buildDict (keys ++ variadic) argVals)
-          let merged := mergeDicts (mergeDicts ref fref) argsDict
+          let argsLevel := if fref.getLevel >= ref.getLevel then fref.getLevel + 1 else ref.getLevel + 1
+          let argsDict := (buildDict argsLevel (keys ++ variadic) argVals)
+          let merged := (ref.merge fref).mergeDict argsLevel argsDict
 
           match evalTypes merged body with
           | Except.error e => Except.error e
@@ -113,16 +124,16 @@ mutual
   partial def evalDictInner (ref: Env) (lst : Dict) : Except (Env × String) (Env × Dict) :=
     match lst with
       | Dict.empty => Except.ok (ref, lst)
-      | Dict.insert k v restDict => match evalTypes ref v with
+      | Dict.insert k _ v restDict => match evalTypes ref v with
         | Except.error e => Except.error e
         | Except.ok (newRef, newVal) => match evalDictInner newRef restDict with
           | Except.error e => Except.error e
           | Except.ok (updatedRef, updatedDict) =>
-            let newDict := Dict.insert k newVal updatedDict
+            let newDict := Dict.insert k 0 newVal updatedDict
             Except.ok (updatedRef, newDict)
 
-  partial def evalFuncArgs (ref: Env) (args: List Types) : Except (Env × String) (Dict × List Types) :=
-    match args.foldl (fun (res : Except (Env × String) (Dict × List Types)) x =>
+  partial def evalFuncArgs (ref: Env) (args: List Types) : Except (Env × String) (Env × List Types) :=
+    match args.foldl (fun (res : Except (Env × String) (Env × List Types)) x =>
         match res with
         | Except.error (newref, e) => Except.error (newref, s!"error evaluating function argument accumulator: {x.toString true}: {e}")
         | Except.ok (r, acc) => match evalTypes r x with
@@ -143,7 +154,7 @@ mutual
       | Except.ok (newRef, value) =>
         match key with
         | Types.symbolVal v =>
-          let refResult := addEntry newRef (KeyType.strKey v) value
+          let refResult := newRef.add (KeyType.strKey v) ref.getLevel value
           Except.ok (refResult, value)
         | _ => Except.error (newRef, s!"def! unexpected token, expected: symbol")
 
@@ -161,10 +172,10 @@ mutual
           | Types.funcVal func =>
             match func with
             | Fun.macroFn _ _ _ =>
-              let refResult := addEntry newRef (KeyType.strKey v) value
+              let refResult := newRef.add (KeyType.strKey v) ref.getLevel value
               Except.ok (refResult, value)
             | Fun.userDefined fref params body =>
-              let refResult := addEntry newRef (KeyType.strKey v) (Types.funcVal (Fun.macroFn fref params body))
+              let refResult := newRef.add (KeyType.strKey v) ref.getLevel (Types.funcVal (Fun.macroFn fref params body))
               Except.ok (refResult, value)
             | _ => Except.error (newRef, s!"defmacro!: unexpected builtin function")
           | x => Except.error (newRef, s!"unexpected token type: {x.toString true}, expected: function")
@@ -176,18 +187,19 @@ mutual
       let pairs := args[0]!
       let body := args[1]!
       let result := match pairs with
-      | Types.listVal v => evalLetArgs ref v
-      | Types.vecVal v => evalLetArgs ref (toList v)
+      | Types.listVal v => evalLetArgs ref.increment v
+      | Types.vecVal v => evalLetArgs ref.increment (toList v)
       | _ => Except.error (ref, s!"unexpected token type: ${pairs.toString true}, expected: list or vector")
 
       match result with
       | Except.error (newRef, e) => Except.error (newRef, s!"let*: {e}")
       | Except.ok newRef => match evalTypes newRef body with
         | Except.error e => Except.error e
-        -- we do not propagate the let* environment to the parent scope
-        | Except.ok (_, result) => Except.ok (ref, result)
+        -- after executing let*, propagate atoms (defined in outer environments) and logs to the parent scope
+        | Except.ok (letref, result) =>
+          Except.ok (forwardLogs letref (forwardMutatedAtoms letref ref), result)
 
-  partial def evalLetArgs (ref: Env) (args : List Types) : Except (Env × String) Dict :=
+  partial def evalLetArgs (ref: Env) (args : List Types) : Except (Env × String) Env :=
     match args with
     | [] => Except.ok ref
     | [_] => Except.error (ref, "let*: unexpected syntax")
@@ -196,7 +208,7 @@ mutual
       | Types.symbolVal key => match evalTypes ref y with
         | Except.error (newRef, e) => Except.error (newRef, s!"error evaluating function argument: {key}: {e}")
         | Except.ok (updatedRef, value) =>
-          evalLetArgs (addEntry updatedRef (KeyType.strKey key) value) rest
+          evalLetArgs (updatedRef.add (KeyType.strKey key) ref.getLevel value) rest
       | _ => Except.error (ref, "let*: unexpected syntax")
 
   partial def evalDo (ref: Env) (args : List Types) : Except (Env × String) (Env × Types) :=
@@ -235,21 +247,23 @@ mutual
     | Types.symbolVal sym =>
       match fn with
       | Types.funcVal _ =>
-        match first with
-        | Types.atomVal x => match x with
-          | Atom.v v =>
-            match evalFuncVal ref fn ([v] ++ rest) with
-            | Except.error (newRef, e) => Except.error (newRef, s!"swap! evaluate function: {e}")
-            | Except.ok (updatedRef, res) =>
-              let newRef := addEntry updatedRef (KeyType.strKey sym) (Types.atomVal (Atom.v res))
-              Except.ok (newRef, res)
-          | Atom.withmeta v meta =>
-            match evalFuncVal ref fn ([v] ++ rest) with
-            | Except.error (newRef, e) => Except.error (newRef, s!"swap! evaluate function: {e}")
-            | Except.ok (updatedRef, res) =>
-              let newRef := addEntry updatedRef (KeyType.strKey sym) (Types.atomVal (Atom.withmeta res meta))
-              Except.ok (newRef, res)
-        | x => Except.error (ref, s!"swap!: unexpected symbol: {x.toString true}, expected: atom")
+        match ref.get (KeyType.strKey sym) with
+        | none => Except.error (ref, s!"{sym} not found")
+        | some (level, _) => match first with
+          | Types.atomVal x => match x with
+            | Atom.v v =>
+              match evalFuncVal ref fn ([v] ++ rest) with
+              | Except.error (newRef, e) => Except.error (newRef, s!"swap! evaluate function: {e}")
+              | Except.ok (_, res) =>
+                let newRef := ref.add (KeyType.strKey sym) level (Types.atomVal (Atom.v res))
+                Except.ok (newRef, res)
+            | Atom.withmeta v meta =>
+              match evalFuncVal ref fn ([v] ++ rest) with
+              | Except.error (newRef, e) => Except.error (newRef, s!"swap! evaluate function: {e}")
+              | Except.ok (_, res) =>
+                let newRef := ref.add (KeyType.strKey sym) level (Types.atomVal (Atom.withmeta res meta))
+                Except.ok (newRef, res)
+          | x => Except.error (ref, s!"swap!: unexpected symbol: {x.toString true}, expected: atom")
       | x => Except.error (ref, s!"swap!: unexpected symbol: {x.toString true}, expected: function")
     | x => Except.error (ref, s!"swap!: unexpected token: {x.toString true}, expected: symbol")
 
@@ -327,6 +341,9 @@ mutual
             | "list?" => Except.ok (ref, Types.boolVal true)
             | "empty?" => Except.ok (ref, Types.boolVal (x.length == 0))
             | _ => Except.ok (ref, Types.boolVal false)
+          | Types.vecVal x => match name with
+            | "empty?" => Except.ok (ref, Types.boolVal ((toList x).length == 0))
+            | _ => Except.ok (ref, Types.boolVal false)
           | Types.atomVal _ => match name with
             | "atom?" => Except.ok (ref, Types.boolVal true)
             | _ => Except.ok (ref, Types.boolVal false)
@@ -348,7 +365,7 @@ def rep (ref: Env) (input : String): Env × String :=
     | Except.ok (newref, res) => (newref, PRINT res)
   | Except.error err => (ref, s!"Parsing failed: {err}")
 
-def printLogs (ref : Dict) : IO Unit :=
+def printLogs (ref : Env) : IO Unit :=
   forM (getLogsInfo ref) (fun elem =>
     match elem with
     | Types.strVal log => IO.println log
@@ -370,9 +387,8 @@ def fnDefs: List String := [
 
 def main : IO Unit := do
   IO.println "Welcome to Mal REPL!"
-  let (env0, _) := loadMalFns.{u} (loadFnNativeAll Dict.empty) fnDefs
+  let (env0, _) := loadMalFns.{u} (loadFnNativeAll (Env.data 0 Dict.empty)) fnDefs
   let mut env := env0
-
   let mut donext := true
   while donext do
     IO.print "user> "
