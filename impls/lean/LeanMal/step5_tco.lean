@@ -148,8 +148,8 @@ mutual
       | Except.error (newRef, e) => Except.error (newRef, s!"let*: {e}")
       | Except.ok newRef => match evalTypes newRef body with
         | Except.error e => Except.error e
-        -- we do not propagate the let* environment to the parent scope
-        | Except.ok (_, result) => Except.ok (ref, result)
+        -- only propagate logs from the let* environment to the parent scope
+        | Except.ok (letref, result) => Except.ok (forwardLogs letref ref, result)
 
   partial def evalLetArgs (ref: Env) (args : List Types) : Except (Env × String) Env :=
     match args with

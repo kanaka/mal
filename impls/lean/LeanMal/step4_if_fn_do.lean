@@ -44,9 +44,8 @@ mutual
     | Except.ok (ref2, fn) =>
       match evalFuncVal ref2 fn args with
       | Except.error e => Except.error e
-      | Except.ok (fref, res) =>
-        -- only propagate logs after executing a function
-        Except.ok (forwardLogs fref ref, res)
+      -- only propagate logs after executing a function
+      | Except.ok (fref, res) => Except.ok (forwardLogs fref ref, res)
 
   partial def evalFuncVal (ref: Env) (fn: Types) (args: List Types) : Except (Env × String) (Env × Types) :=
     -- first execute each function argument - reduce computation
@@ -148,8 +147,8 @@ mutual
       | Except.error (newRef, e) => Except.error (newRef, s!"let*: {e}")
       | Except.ok newRef => match evalTypes newRef body with
         | Except.error e => Except.error e
-        -- we do not propagate the let* environment to the parent scope
-        | Except.ok (_, result) => Except.ok (ref, result)
+        -- only propagate logs from the let* environment to the parent scope
+        | Except.ok (letref, result) => Except.ok (forwardLogs letref ref, result)
 
   partial def evalLetArgs (ref: Env) (args : List Types) : Except (Env × String) Env :=
     match args with

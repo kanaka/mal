@@ -182,24 +182,18 @@ def resetAtom (ref : Env) (lst: List Types) (args: List Types) : Except (Env × 
     let atomSymbol := args[0]!
     match atomSymbol with
     | Types.symbolVal sym =>
-      match first with
-      | Types.atomVal x => match x with
-        | Atom.v _ =>
-          let oldRef := ref.get (KeyType.strKey sym)
-          match oldRef with
-          | none => Except.error (ref, s!"{sym} not found")
-          | some (level, _) =>
-            let newRef := ref.add (KeyType.strKey sym) level (Types.atomVal (Atom.v second))
-            Except.ok (newRef, second)
-        | Atom.withmeta _ meta =>
-          let oldRef := ref.get (KeyType.strKey sym)
-          match oldRef with
-          | none => Except.error (ref, s!"{sym} not found")
-          | some (level, _) =>
-            let newRef := ref.add (KeyType.strKey sym) level (Types.atomVal (Atom.withmeta second meta))
-            Except.ok (newRef, second)
-      | x => Except.error (ref, s!"deref: unexpected symbol: {x.toString true}, expected: atom")
-    | x => Except.error (ref, s!"deref: unexpected token: {x.toString true}, expected: symbol")
+      match ref.get (KeyType.strKey sym) with
+      | none => Except.error (ref, s!"{sym} not found")
+      | some (level, _) => match first with
+        | Types.atomVal x => match x with
+          | Atom.v _ =>
+              let newRef := ref.add (KeyType.strKey sym) level (Types.atomVal (Atom.v second))
+              Except.ok (newRef, second)
+          | Atom.withmeta _ meta =>
+              let newRef := ref.add (KeyType.strKey sym) level (Types.atomVal (Atom.withmeta second meta))
+              Except.ok (newRef, second)
+        | x => Except.error (ref, s!"reset!: unexpected symbol: {x.toString true}, expected: atom")
+    | x => Except.error (ref, s!"reset!: unexpected token: {x.toString true}, expected: symbol")
 
 def prStrInternal (lst: List Types) (printReadably: Bool) (sep: String) : String :=
   let elems := lst.map (fun x => x.toString printReadably)
@@ -273,12 +267,12 @@ def countFunc(ref : Env) (lst: List Types) : Except (Env × String) (Env × Type
       | Types.Nil => Except.ok (ref, Types.intVal 0)
       | _ => Except.error (ref, "count called on non-sequence")
 
-def readString (lst: List Types) (envir: Dict := Dict.empty) : Except String Types :=
+def readString (lst: List Types) (envir: Env) : Except String Types :=
   if lst.length < 1 then Except.error "read-string: 1 arguments required"
   else
     let first := lst[0]!
     match first with
-    | Types.strVal v => read_types_with_env v envir
+    | Types.strVal v => read_types_with_env v envir.getDict -- Dict.empty
     | x => Except.error s!"unexpected symbol: {x.toString true}, expected: string"
 
 def cons (ref : Env) (lst: List Types) : Except (Env × String) (Env × Types) :=
@@ -632,3 +626,15 @@ def loadFnNativeAll (ref : Env) : Env :=
 def setSymbol (ref : Env) (name: String) (value: Types): Env :=
   let newRef := loadFnNative ref name
   newRef.add (KeyType.strKey name) 0 value
+
+-- forward mutated atoms defined in the outer environments
+-- outer environments always have a lower level index
+def forwardMutatedAtoms (refSource: Env) (refOuter: Env): Env :=
+  refSource.getDict.fold refOuter (fun key l v acc =>
+    if l > acc.getLevel then acc
+    else
+    match acc.get key with
+      | none => acc
+      | some (lOuter, _) =>
+        if l != lOuter then acc else acc.add key l v
+  )

@@ -65,7 +65,7 @@ mutual
   partial def evalFunc (ref: Env) (head : Types) (args : List Types) : Except String (Env × Types) :=
     match evalTypes ref head with
     | Except.error e => Except.error s!"error evaluating function: {head.toString true}: {e}"
-    | Except.ok (ref2, fn) => evalFuncVal ref2 fn args
+    | Except.ok (_, fn) => evalFuncVal ref fn args
 
   partial def evalFuncVal (ref: Env) (fn: Types) (args: List Types) : Except String (Env × Types) :=
     -- first execute each function argument - reduce computation
