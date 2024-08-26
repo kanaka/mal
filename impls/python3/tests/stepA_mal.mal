@@ -1,5 +1,5 @@
 *host-language*
-;=>"python.2"
+;=>"python3"
 
 ;; Testing Python interop
 
