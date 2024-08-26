@@ -10,7 +10,6 @@ def rep (input : String): String :=
   PRINT (EVAL (READ input) "")
 
 def main : IO Unit := do
-  IO.println "Welcome to Mal REPL!"
   let mut donext := true
   while donext do
     IO.print "user> "

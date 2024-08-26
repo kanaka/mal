@@ -251,7 +251,6 @@ def fnDefs: List String := [
   ]
 
 def main : IO Unit := do
-  IO.println "Welcome to Mal REPL!"
   let (env0, _) := loadMalFns.{u} (loadFnNativeAll (Env.data 0 Dict.empty)) fnDefs
   let mut env := env0
   let mut donext := true

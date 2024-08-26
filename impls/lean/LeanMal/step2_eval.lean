@@ -141,7 +141,6 @@ def rep (input : String): String :=
     s!"Parsing failed: {err}"
 
 def main : IO Unit := do
-  IO.println "Welcome to Mal REPL!"
   let mut donext := true
   while donext do
     IO.print "user> "

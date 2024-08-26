@@ -198,7 +198,6 @@ def rep (ref: Env) (input : String): Env × String :=
   | Except.error err => (ref, s!"Parsing failed: {err}")
 
 def main : IO Unit := do
-  IO.println "Welcome to Mal REPL!"
   let mut env := loadFnNativeAll (Env.data 0 Dict.empty)
   let mut donext := true
   while donext do
