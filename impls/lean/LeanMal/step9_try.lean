@@ -42,37 +42,44 @@ mutual
     match evalTypes ref head with
     | Except.error e => Except.error e
     | Except.ok (ref2, fn) =>
-      match evalFuncVal ref2 fn args with
+      match evalFuncVal ref2 fn args true with
       | Except.error e => Except.error e
       | Except.ok (fref, res) =>
         -- after executing a function, propagate atoms (defined in outer environments) and logs to the parent scope
         Except.ok (forwardLogs fref (forwardMutatedAtoms fref ref), res)
 
-  partial def evalFuncVal (ref: Env) (fn: Types) (args: List Types) : Except (Env × String) (Env × Types) :=
+  partial def evalFuncVal (ref: Env) (fn: Types) (args: List Types) (evaluateArgs: Bool) : Except (Env × String) (Env × Types) :=
     match fn with
       | Types.funcVal v    => match v with
         | Fun.builtin name =>
-          match evalFuncArgs ref args with
-          | Except.error e => Except.error e
-          | Except.ok (newRef, results) =>
-            evalFnNative newRef name results args
+          match if !evaluateArgs then Except.ok (ref, args) else
+            match evalFuncArgs ref args with
+              | Except.error e => Except.error e
+              | Except.ok (newRef, results) => Except.ok (newRef, results)
+          with
+            | Except.error e => Except.error e
+            | Except.ok (newRef, results) => evalFnNative newRef name results args
         | Fun.userDefined fref params body =>
-          match evalFuncArgs ref args with
-          | Except.error e => Except.error e
-          | Except.ok (newRef, results) =>
-            let allkeys: List String := match params with
-              | Types.listVal v => v.map fun x => x.toString false
-              | _               => []
-            let (keys, variadic) := splitOnAmpersand allkeys
-            let normalArgs := results.take keys.length
-            let variadicArg := results.drop keys.length
-            let argVals := normalArgs ++ [Types.listVal variadicArg]
-            let argsLevel := if fref.getLevel >= newRef.getLevel then fref.getLevel + 1 else newRef.getLevel + 1
+           match if !evaluateArgs then Except.ok (ref, args) else
+            match evalFuncArgs ref args with
+              | Except.error e => Except.error e
+              | Except.ok (newRef, results) => Except.ok (newRef, results)
+          with
+            | Except.error e => Except.error e
+            | Except.ok (newRef, results) =>
+              let allkeys: List String := match params with
+                | Types.listVal v => v.map fun x => x.toString false
+                | _               => []
+              let (keys, variadic) := splitOnAmpersand allkeys
+              let normalArgs := results.take keys.length
+              let variadicArg := results.drop keys.length
+              let argVals := normalArgs ++ [Types.listVal variadicArg]
+              let argsLevel := if fref.getLevel >= newRef.getLevel then fref.getLevel + 1 else newRef.getLevel + 1
 
-            let argsDict := (buildDict argsLevel (keys ++ variadic) argVals)
-            let merged := (newRef.merge fref).mergeDict argsLevel argsDict
+              let argsDict := (buildDict argsLevel (keys ++ variadic) argVals)
+              let merged := (newRef.merge fref).mergeDict argsLevel argsDict
 
-            evalTypes merged body
+              evalTypes merged body
         | Fun.macroFn fref params body =>
           let allkeys: List String := match params with
               | Types.listVal v => v.map fun x => x.toString false
@@ -287,13 +294,13 @@ mutual
         | some (level, _) => match first with
           | Types.atomVal x => match x with
             | Atom.v v =>
-              match evalFuncVal ref fn ([v] ++ rest) with
+              match evalFuncVal ref fn ([v] ++ rest) false with
               | Except.error (newRef, e) => Except.error (newRef, s!"swap! evaluate function: {e}")
               | Except.ok (_, res) =>
                 let newRef := ref.add (KeyType.strKey sym) level (Types.atomVal (Atom.v res))
                 Except.ok (newRef, res)
             | Atom.withmeta v meta =>
-              match evalFuncVal ref fn ([v] ++ rest) with
+              match evalFuncVal ref fn ([v] ++ rest) false with
               | Except.error (newRef, e) => Except.error (newRef, s!"swap! evaluate function: {e}")
               | Except.ok (_, res) =>
                 let newRef := ref.add (KeyType.strKey sym) level (Types.atomVal (Atom.withmeta res meta))
@@ -344,7 +351,7 @@ mutual
       match res with
       | Except.error e => Except.error e
       | Except.ok (r, acc) =>
-        match evalFuncVal r fn [x] with
+        match evalFuncVal r fn [x] false with
         | Except.error e => Except.error e
         | Except.ok (updatedRef, res) =>
           Except.ok (updatedRef, acc ++ [res])
@@ -374,9 +381,9 @@ mutual
       let firstargs := lst.drop 1 |>.take n
       match vecargs with
         | Types.listVal v =>
-          evalFuncVal ref fn (firstargs ++ v)
+          evalFuncVal ref fn (firstargs ++ v) false
         | Types.vecVal v =>
-          evalFuncVal ref fn (firstargs ++ (toList v))
+          evalFuncVal ref fn (firstargs ++ (toList v)) false
         | x => Except.error (ref, s!"unexpected symbol: {x.toString true}, expected: list or vector")
 
   partial def evalFnNative (ref : Env) (name: String) (results: List Types) (args: List Types): Except (Env × String) (Env × Types) :=
