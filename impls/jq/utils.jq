@@ -45,30 +45,34 @@ def find_free_references(keys):
         | if .kind == "symbol" then
             if keys | contains([$dot.value]) then [] else [$dot.value] end
         else if "list" == $dot.kind then
-            # if - scan args
-            # def! - scan body
-            # let* - add keys sequentially, scan body
-            # fn* - add keys, scan body
-            # quote - []
-            # quasiquote - ???
-            $dot.value[0] as $head
-            | if $head.kind == "symbol" then 
-                (
-                    select($head.value == "if") | $dot.value[1:] | map(_refs) | reduce .[] as $x ([]; . + $x)
-                ) // (
-                    select($head.value == "def!") | $dot.value[2] | _refs
-                ) // (
-                    select($head.value == "let*") | $dot.value[2] | find_free_references(($dot.value[1].value as $value | ([ range(0; $value|length; 2) ] | map(select(. % 2 == 0) | $value[.].value))) + keys)
-                ) // (
-                    select($head.value == "fn*") | $dot.value[2] | find_free_references(($dot.value[1].value | map(.value)) + keys) 
-                ) // (
-                    select($head.value == "quote") | []
-                ) // (
-                    select($head.value == "quasiquote") | []
-                ) // ($dot.value | map(_refs) | reduce .[] as $x ([]; . + $x))
-              else
-                [ $dot.values[1:][] | _refs ]
-              end
+            if $dot.value|length == 0 then
+                []
+            else
+                # if - scan args
+                # def! - scan body
+                # let* - add keys sequentially, scan body
+                # fn* - add keys, scan body
+                # quote - []
+                # quasiquote - ???
+                $dot.value[0] as $head
+                | if $head.kind == "symbol" then
+                    (
+                        select($head.value == "if") | $dot.value[1:] | map(_refs) | reduce .[] as $x ([]; . + $x)
+                    ) // (
+                        select($head.value == "def!") | $dot.value[2] | _refs
+                    ) // (
+                        select($head.value == "let*") | $dot.value[2] | find_free_references(($dot.value[1].value as $value | ([ range(0; $value|length; 2) ] | map(select(. % 2 == 0) | $value[.].value))) + keys)
+                    ) // (
+                        select($head.value == "fn*") | $dot.value[2] | find_free_references(($dot.value[1].value | map(.value)) + keys)
+                    ) // (
+                        select($head.value == "quote") | []
+                    ) // (
+                        select($head.value == "quasiquote") | []
+                    ) // ($dot.value | map(_refs) | reduce .[] as $x ([]; . + $x))
+                  else
+                    [ $dot.values[1:][] | _refs ]
+                  end
+                end
         else if "vector" == $dot.kind then
             ($dot.value | map(_refs) | reduce .[] as $x ([]; . + $x))
         else if "hashmap" == $dot.kind then
