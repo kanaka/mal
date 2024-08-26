@@ -7,65 +7,65 @@ universe u
 def READ (input : String): Except String Types :=
   read_str.{u} input
 
-def sum (ref : Env) (lst: List Types) : IO (Env × Types) := do
+def sum (env : Env) (lst: List Types) : IO (Env × Types) := do
   match lst with
-  | []                                   => return (ref, Types.intVal 0)
-  | [Types.intVal x]                     => return (ref, Types.intVal x)
-  | [Types.intVal x, Types.intVal y]     => return (ref, Types.intVal (x + y))
-  | [Types.floatVal x]                   => return (ref, Types.floatVal x)
-  | [Types.floatVal x, Types.floatVal y] => return (ref, Types.floatVal (x + y))
+  | []                                   => return (env, Types.intVal 0)
+  | [Types.intVal x]                     => return (env, Types.intVal x)
+  | [Types.intVal x, Types.intVal y]     => return (env, Types.intVal (x + y))
+  | [Types.floatVal x]                   => return (env, Types.floatVal x)
+  | [Types.floatVal x, Types.floatVal y] => return (env, Types.floatVal (x + y))
   | _                                    => throw (IO.userError "+ operator not supported")
 
-def sub (ref : Env) (lst: List Types) : IO (Env × Types) := do
+def sub (env : Env) (lst: List Types) : IO (Env × Types) := do
   match lst with
-  | []                                   => return (ref, Types.intVal 0)
-  | [Types.intVal x]                     => return (ref, Types.intVal x)
-  | [Types.intVal x, Types.intVal y]     => return (ref, Types.intVal (x - y))
-  | [Types.floatVal x]                   => return (ref, Types.floatVal x)
-  | [Types.floatVal x, Types.floatVal y] => return (ref, Types.floatVal (x - y))
+  | []                                   => return (env, Types.intVal 0)
+  | [Types.intVal x]                     => return (env, Types.intVal x)
+  | [Types.intVal x, Types.intVal y]     => return (env, Types.intVal (x - y))
+  | [Types.floatVal x]                   => return (env, Types.floatVal x)
+  | [Types.floatVal x, Types.floatVal y] => return (env, Types.floatVal (x - y))
   | _                                    => throw (IO.userError "- operator not supported")
 
-def mul (ref : Env) (lst: List Types) : IO (Env × Types) := do
+def mul (env : Env) (lst: List Types) : IO (Env × Types) := do
   match lst with
-  | []                                   => return (ref, Types.intVal 0)
-  | [Types.intVal x]                     => return (ref, Types.intVal x)
-  | [Types.intVal x, Types.intVal y]     => return (ref, Types.intVal (x * y))
-  | [Types.floatVal x]                   => return (ref, Types.floatVal x)
-  | [Types.floatVal x, Types.floatVal y] => return (ref, Types.floatVal (x * y))
+  | []                                   => return (env, Types.intVal 0)
+  | [Types.intVal x]                     => return (env, Types.intVal x)
+  | [Types.intVal x, Types.intVal y]     => return (env, Types.intVal (x * y))
+  | [Types.floatVal x]                   => return (env, Types.floatVal x)
+  | [Types.floatVal x, Types.floatVal y] => return (env, Types.floatVal (x * y))
   | _                                    => throw (IO.userError "* operator not supported")
 
-def div (ref : Env) (lst: List Types) : IO (Env × Types) := do
+def div (env : Env) (lst: List Types) : IO (Env × Types) := do
   match lst with
-  | []                                   => return (ref, Types.intVal 0)
-  | [Types.intVal x]                     => return (ref, Types.intVal x)
-  | [Types.intVal x, Types.intVal y]     => return (ref, Types.intVal (x / y))
-  | [Types.floatVal x]                   => return (ref, Types.floatVal x)
-  | [Types.floatVal x, Types.floatVal y] => return (ref, Types.floatVal (x / y))
+  | []                                   => return (env, Types.intVal 0)
+  | [Types.intVal x]                     => return (env, Types.intVal x)
+  | [Types.intVal x, Types.intVal y]     => return (env, Types.intVal (x / y))
+  | [Types.floatVal x]                   => return (env, Types.floatVal x)
+  | [Types.floatVal x, Types.floatVal y] => return (env, Types.floatVal (x / y))
   | _                                    => throw (IO.userError "/ operator not supported")
 
-def evalFnNative (ref : Env) (name: String) (results: List Types): IO (Env × Types) := do
+def evalFnNative (env : Env) (name: String) (results: List Types): IO (Env × Types) := do
     match name with
-    | "+" => sum ref results
-    | "-" => sub ref results
-    | "*" => mul ref results
-    | "/" => div ref results
+    | "+" => sum env results
+    | "-" => sub env results
+    | "*" => mul env results
+    | "/" => div env results
     | _   => throw (IO.userError s!"'{name}' not found")
 
 mutual
 
-  partial def evalTypes (ref : Env) (ast : Types) : IO (Env × Types) := do
+  partial def evalTypes (env : Env) (ast : Types) : IO (Env × Types) := do
     match ast with
-    | Types.symbolVal v   => match ref.get (KeyType.strKey v) with
-      | some (_, vi) => return (ref, vi)
+    | Types.symbolVal v   => match env.get (KeyType.strKey v) with
+      | some (_, vi) => return (env, vi)
       | none => throw (IO.userError s!"'{v}' not found")
-    | Types.listVal el    => (evalList ref el)
-    | Types.vecVal el     => (evalVec ref (toList el))
-    | Types.dictVal el    => (evalDict ref el)
-    | x                   => return (ref, x)
+    | Types.listVal el    => (evalList env el)
+    | Types.vecVal el     => (evalVec env (toList el))
+    | Types.dictVal el    => (evalDict env el)
+    | x                   => return (env, x)
 
   partial def evalFunc (env: Env) (head : Types) (args : List Types) : IO (Env × Types) := do
-    let (_, fn) ← evalTypes env head
-    evalFuncVal env fn args
+    let (env2, fn) ← evalTypes env head
+    evalFuncVal env2 fn args
 
   partial def evalFuncVal (env: Env) (fn: Types) (args: List Types) : IO (Env × Types) := do
     -- first execute each function argument - reduce computation
@@ -73,13 +73,13 @@ mutual
     match fn with
       | Types.funcVal v      => match v with
         | Fun.builtin name => evalFnNative newEnv name results
-        | Fun.userDefined fref params body =>
+        | Fun.userDefined fenv params body =>
           let keys: List String := match params with
             | Types.listVal v => v.map fun x => x.toString false
             | _               => []
-          let argsLevel := fref.getLevel + 1
+          let argsLevel := fenv.getLevel + 1
           let argsDict := (buildDict argsLevel keys results)
-          let merged := (newEnv.merge fref).mergeDict argsLevel argsDict
+          let merged := (newEnv.merge fenv).mergeDict argsLevel argsDict
           evalTypes merged body
         | Fun.macroFn _ _ _ => throw (IO.userError "macro not implemented")
       | _ => throw (IO.userError s!"`unexpected token, expected: function`")
@@ -115,8 +115,8 @@ mutual
   partial def evalFuncArgs (env: Env) (args: List Types) : IO (Env × List Types) := do
     args.foldlM (fun (res : Env × List Types) (x : Types) => do
       let (r, acc) := res
-      let (updatedRef, res) ← evalTypes r x
-      return (updatedRef, acc ++ [res])
+      let (updatedenv, res) ← evalTypes r x
+      return (updatedenv, acc ++ [res])
     ) (env, [])
 
   partial def evalDefn (env: Env) (args : List Types) : IO (Env × Types) := do
@@ -152,13 +152,13 @@ mutual
     | x :: y :: rest =>
       match x with
       | Types.symbolVal key =>
-        let (updatedRef, value) ← evalTypes env y
-        evalLetArgs (updatedRef.add (KeyType.strKey key) env.getLevel value) rest
+        let (updatedEnv, value) ← evalTypes env y
+        evalLetArgs (updatedEnv.add (KeyType.strKey key) env.getLevel value) rest
       | _ => throw (IO.userError "let*: unexpected syntax")
 end
 
-def loadFnNative (ref : Env) (name: String) : Env :=
-  ref.add (KeyType.strKey name) 0 (Types.funcVal (Fun.builtin name))
+def loadFnNative (env : Env) (name: String) : Env :=
+  env.add (KeyType.strKey name) 0 (Types.funcVal (Fun.builtin name))
 
 def loadFnNativeAll (env: Env) : Env :=
   loadFnNative (

@@ -304,7 +304,7 @@ mutual
     | Types.vecVal v => Types.listVal [Types.symbolVal "vec", qq_foldr (toList v)]
     | _ => ast
 
-  partial def evalFnNative (ref : Env) (name: String) (results: List Types) (args: List Types): IO (Env × Types) := do
+  partial def evalFnNative (env : Env) (name: String) (results: List Types) (args: List Types): IO (Env × Types) := do
     match name with
     | "+" => sum ref results
     | "-" => sub ref results
@@ -365,7 +365,7 @@ def rep (env: Env) (input : String): Env × String :=
     | Except.ok (newref, res) => (newref, PRINT res)
   | Except.error err => (ref, s!"Parsing failed: {err}")
 
-def printLogs (ref : Env) : IO Unit :=
+def printLogs (env : Env) : IO Unit :=
   forM (getLogsInfo ref) (fun elem =>
     match elem with
     | Types.strVal log => IO.println log

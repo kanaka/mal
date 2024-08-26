@@ -5,40 +5,40 @@ import LeanMal.reader
 
 universe u
 
-def sum (ref : Env) (lst: List Types) : IO (Env × Types) := do
+def sum (env : Env) (lst: List Types) : IO (Env × Types) := do
   match lst with
-  | []                                   => return (ref, Types.intVal 0)
-  | [Types.intVal x]                     => return (ref, Types.intVal x)
-  | [Types.intVal x, Types.intVal y]     => return (ref, Types.intVal (x + y))
-  | [Types.floatVal x]                   => return (ref, Types.floatVal x)
-  | [Types.floatVal x, Types.floatVal y] => return (ref, Types.floatVal (x + y))
+  | []                                   => return (env, Types.intVal 0)
+  | [Types.intVal x]                     => return (env, Types.intVal x)
+  | [Types.intVal x, Types.intVal y]     => return (env, Types.intVal (x + y))
+  | [Types.floatVal x]                   => return (env, Types.floatVal x)
+  | [Types.floatVal x, Types.floatVal y] => return (env, Types.floatVal (x + y))
   | _                                    => throw (IO.userError "+ operator not supported")
 
-def sub (ref : Env) (lst: List Types) : IO (Env × Types) := do
+def sub (env : Env) (lst: List Types) : IO (Env × Types) := do
   match lst with
-  | []                                   => return (ref, Types.intVal 0)
-  | [Types.intVal x]                     => return (ref, Types.intVal x)
-  | [Types.intVal x, Types.intVal y]     => return (ref, Types.intVal (x - y))
-  | [Types.floatVal x]                   => return (ref, Types.floatVal x)
-  | [Types.floatVal x, Types.floatVal y] => return (ref, Types.floatVal (x - y))
+  | []                                   => return (env, Types.intVal 0)
+  | [Types.intVal x]                     => return (env, Types.intVal x)
+  | [Types.intVal x, Types.intVal y]     => return (env, Types.intVal (x - y))
+  | [Types.floatVal x]                   => return (env, Types.floatVal x)
+  | [Types.floatVal x, Types.floatVal y] => return (env, Types.floatVal (x - y))
   | _                                    => throw (IO.userError "- operator not supported")
 
-def mul (ref : Env) (lst: List Types) : IO (Env × Types) := do
+def mul (env : Env) (lst: List Types) : IO (Env × Types) := do
   match lst with
-  | []                                   => return (ref, Types.intVal 0)
-  | [Types.intVal x]                     => return (ref, Types.intVal x)
-  | [Types.intVal x, Types.intVal y]     => return (ref, Types.intVal (x * y))
-  | [Types.floatVal x]                   => return (ref, Types.floatVal x)
-  | [Types.floatVal x, Types.floatVal y] => return (ref, Types.floatVal (x * y))
+  | []                                   => return (env, Types.intVal 0)
+  | [Types.intVal x]                     => return (env, Types.intVal x)
+  | [Types.intVal x, Types.intVal y]     => return (env, Types.intVal (x * y))
+  | [Types.floatVal x]                   => return (env, Types.floatVal x)
+  | [Types.floatVal x, Types.floatVal y] => return (env, Types.floatVal (x * y))
   | _                                    => throw (IO.userError "* operator not supported")
 
-def div (ref : Env) (lst: List Types) : IO (Env × Types) := do
+def div (env : Env) (lst: List Types) : IO (Env × Types) := do
   match lst with
-  | []                                   => return (ref, Types.intVal 0)
-  | [Types.intVal x]                     => return (ref, Types.intVal x)
-  | [Types.intVal x, Types.intVal y]     => return (ref, Types.intVal (x / y))
-  | [Types.floatVal x]                   => return (ref, Types.floatVal x)
-  | [Types.floatVal x, Types.floatVal y] => return (ref, Types.floatVal (x / y))
+  | []                                   => return (env, Types.intVal 0)
+  | [Types.intVal x]                     => return (env, Types.intVal x)
+  | [Types.intVal x, Types.intVal y]     => return (env, Types.intVal (x / y))
+  | [Types.floatVal x]                   => return (env, Types.floatVal x)
+  | [Types.floatVal x, Types.floatVal y] => return (env, Types.floatVal (x / y))
   | _                                    => throw (IO.userError "/ operator not supported")
 
 def ltInternal (first: Types) (second: Types) (orEq: Bool) : Bool :=
@@ -50,21 +50,21 @@ def ltInternal (first: Types) (second: Types) (orEq: Bool) : Bool :=
   | Types.strVal n, Types.strVal v => n < v || (if orEq then n == v else false)
   | _, _ => false
 
-def lt (ref : Env) (lst: List Types) : IO (Env × Types) := do
+def lt (env : Env) (lst: List Types) : IO (Env × Types) := do
   if lst.length < 2 then throw (IO.userError "eq: 2 arguments required")
   else
     let first := lst[0]!
     let second := lst[1]!
     let res := ltInternal first second false
-    Except.ok (ref, Types.boolVal res)
+    return (env, Types.boolVal res)
 
-def lte (ref : Env) (lst: List Types) : IO (Env × Types) := do
+def lte (env : Env) (lst: List Types) : IO (Env × Types) := do
   if lst.length < 2 then throw (IO.userError "eq: 2 arguments required")
   else
     let first := lst[0]!
     let second := lst[1]!
     let res := ltInternal first second true
-    Except.ok (ref, Types.boolVal res)
+    return (env, Types.boolVal res)
 
 def gtInternal (first: Types) (second: Types) (orEq: Bool) : Bool :=
   match first, second with
@@ -75,21 +75,21 @@ def gtInternal (first: Types) (second: Types) (orEq: Bool) : Bool :=
   | Types.strVal n, Types.strVal v => n > v || (if orEq then n == v else false)
   | _, _ => false
 
-def gt (ref : Env) (lst: List Types) : IO (Env × Types) := do
+def gt (env : Env) (lst: List Types) : IO (Env × Types) := do
   if lst.length < 2 then throw (IO.userError "eq: 2 arguments required")
   else
     let first := lst[0]!
     let second := lst[1]!
     let res := gtInternal first second false
-    Except.ok (ref, Types.boolVal res)
+    return (env, Types.boolVal res)
 
-def gte (ref : Env) (lst: List Types) : IO (Env × Types) := do
+def gte (env : Env) (lst: List Types) : IO (Env × Types) := do
   if lst.length < 2 then throw (IO.userError "eq: 2 arguments required")
   else
     let first := lst[0]!
     let second := lst[1]!
     let res := gtInternal first second true
-    Except.ok (ref, Types.boolVal res)
+    return (env, Types.boolVal res)
 
 mutual
   partial def eqList (n: List Types) (v: List Types) (strict: Bool) : Bool :=
@@ -150,31 +150,31 @@ mutual
 
 end
 
-def eq (ref : Env) (lst: List Types) (strict: Bool) : IO (Env × Types) := do
+def eq (env : Env) (lst: List Types) (strict: Bool) : IO (Env × Types) := do
   if lst.length < 2 then throw (IO.userError "eq: 2 arguments required")
   else
     let first := lst[0]!
     let second := lst[1]!
     let res := eqInternal first second strict
-    Except.ok (ref, Types.boolVal res)
+    return (env, Types.boolVal res)
 
-def makeAtom (ref : Env) (lst: List Types) : IO (Env × Types) := do
+def makeAtom (env : Env) (lst: List Types) : IO (Env × Types) := do
   if lst.length < 1 then throw (IO.userError "keyword: 1 argument required")
   else
     let first := lst[0]!
-    Except.ok (ref, Types.atomVal (Atom.v first))
+    return (env, Types.atomVal (Atom.v first))
 
-def derefAtom (ref : Env) (lst: List Types) : IO (Env × Types) := do
+def derefAtom (env : Env) (lst: List Types) : IO (Env × Types) := do
   if lst.length < 1 then throw (IO.userError "deref: 1 argument required")
   else
     let first := lst[0]!
     match first with
     | Types.atomVal x => match x with
-      | Atom.v v => Except.ok (ref, v)
-      | Atom.withmeta v _ => Except.ok (ref, v)
+      | Atom.v v => return (env, v)
+      | Atom.withmeta v _ => return (env, v)
     | x => throw (IO.userError s!"deref: unexpected symbol: {x.toString true}, expected: atom")
 
-def resetAtom (ref : Env) (lst: List Types) (args: List Types) : IO (Env × Types) := do
+def resetAtom (env : Env) (lst: List Types) (args: List Types) : IO (Env × Types) := do
   if lst.length < 2 then throw (IO.userError "reset!: 2 argument required")
   else
     let first := lst[0]!
@@ -182,16 +182,16 @@ def resetAtom (ref : Env) (lst: List Types) (args: List Types) : IO (Env × Type
     let atomSymbol := args[0]!
     match atomSymbol with
     | Types.symbolVal sym =>
-      match ref.get (KeyType.strKey sym) with
+      match env.get (KeyType.strKey sym) with
       | none => throw (IO.userError s!"{sym} not found")
       | some (level, _) => match first with
         | Types.atomVal x => match x with
           | Atom.v _ =>
-              let newEnv := ref.add (KeyType.strKey sym) level (Types.atomVal (Atom.v second))
-              Except.ok (newEnv, second)
+              let newEnv := env.add (KeyType.strKey sym) level (Types.atomVal (Atom.v second))
+              return (newEnv, second)
           | Atom.withmeta _ meta =>
-              let newEnv := ref.add (KeyType.strKey sym) level (Types.atomVal (Atom.withmeta second meta))
-              Except.ok (newEnv, second)
+              let newEnv := env.add (KeyType.strKey sym) level (Types.atomVal (Atom.withmeta second meta))
+              return (newEnv, second)
         | x => throw (IO.userError s!"reset!: unexpected symbol: {x.toString true}, expected: atom")
     | x => throw (IO.userError s!"reset!: unexpected token: {x.toString true}, expected: symbol")
 
@@ -199,72 +199,42 @@ def prStrInternal (lst: List Types) (printReadably: Bool) (sep: String) : String
   let elems := lst.map (fun x => x.toString printReadably)
   String.intercalate sep elems
 
--- we avoid introducing the IO monad for logging, by just collecting the logs in the environment Dict
-def KEY_LOGS_INFO := "LOGS_INFO"
-def KEY_LOGS_DEBUG := "LOGS_DEBUG"
 def KEY_DEBUG_EVAL := "DEBUG-EVAL"
 
-def resetLogs (ref : Env): Env :=
-  (
-    ref.add (KeyType.strKey KEY_LOGS_INFO) 0 (Types.listVal [])
-  ).add (KeyType.strKey KEY_LOGS_DEBUG) 0 (Types.listVal [])
-
-def getLogs (ref : Env) (type: String): List Types :=
-  match ref.get (KeyType.strKey type) with
-    | some (_, v) => match v with
-      | Types.listVal loglist => loglist
-      | _ => []
-    | _ => []
-
-def getDebugEval (ref : Env): Bool :=
-  match ref.get (KeyType.strKey KEY_DEBUG_EVAL) with
+def getDebugEval (env : Env): Bool :=
+  match env.get (KeyType.strKey KEY_DEBUG_EVAL) with
     | some (_, v) => match v with
       | Types.boolVal v => v
       | Types.Nil => false
       | _ => false
     | _ => false
 
-def getLogsInfo (ref : Env): List Types :=
-  getLogs ref KEY_LOGS_INFO
-
-def forwardLogs (sourceRef : Env) (targetRef : Env): Env :=
-  let infologs := getLogs sourceRef KEY_LOGS_INFO
-  let debuglogs := getLogs sourceRef KEY_LOGS_DEBUG
-  (
-    targetRef.add (KeyType.strKey KEY_LOGS_INFO) 0 (Types.listVal infologs)
-  ).add (KeyType.strKey KEY_LOGS_DEBUG) 0 (Types.listVal debuglogs)
-
-def logInfo (ref : Env) (msg: String): Env :=
-  let loglist := getLogs ref KEY_LOGS_INFO
-  let newlogs := loglist ++ [(Types.strVal msg)]
-  ref.add (KeyType.strKey KEY_LOGS_INFO) 0 (Types.listVal newlogs)
-
-def prStrFunc (ref : Env) (lst: List Types) : IO (Env × Types) := do
+def prStrFunc (env : Env) (lst: List Types) : IO (Env × Types) := do
   let str := prStrInternal lst true " "
-  Except.ok (ref, Types.strVal str)
+  return (env, Types.strVal str)
 
-def prnFunc (ref : Env) (lst: List Types) : IO (Env × Types) := do
+def prnFunc (env : Env) (lst: List Types) : IO (Env × Types) := do
   let str := prStrInternal lst true " "
-  let newEnv := logInfo ref str
-  Except.ok (newEnv, Types.Nil)
+  IO.println str
+  return (env, Types.Nil)
 
-def printlnFunc (ref : Env) (lst: List Types) : IO (Env × Types) := do
+def printlnFunc (env : Env) (lst: List Types) : IO (Env × Types) := do
   let str := prStrInternal lst false " "
-  let newEnv := logInfo ref str
-  Except.ok (newEnv, Types.Nil)
+  IO.println str
+  return (env, Types.Nil)
 
-def strFunc (ref : Env) (lst: List Types) : IO (Env × Types) := do
+def strFunc (env : Env) (lst: List Types) : IO (Env × Types) := do
   let str := prStrInternal lst false ""
-  Except.ok (ref, Types.strVal str)
+  return (env, Types.strVal str)
 
-def countFunc(ref : Env) (lst: List Types) : IO (Env × Types) := do
+def countFunc(env : Env) (lst: List Types) : IO (Env × Types) := do
   if lst.length < 1 then throw (IO.userError "count: 1 argument required")
   else
     let x := lst[0]!
     match x with
-      | Types.listVal v => Except.ok (ref, Types.intVal v.length)
-      | Types.vecVal v => Except.ok (ref, Types.intVal (toList v).length)
-      | Types.Nil => Except.ok (ref, Types.intVal 0)
+      | Types.listVal v => return (env, Types.intVal v.length)
+      | Types.vecVal v => return (env, Types.intVal (toList v).length)
+      | Types.Nil => return (env, Types.intVal 0)
       | _ => throw (IO.userError "count called on non-sequence")
 
 def readString (lst: List Types) (envir: Env) : Except String Types :=
@@ -275,41 +245,38 @@ def readString (lst: List Types) (envir: Env) : Except String Types :=
     | Types.strVal v => read_types_with_env v envir.getDict -- Dict.empty
     | x => Except.error s!"unexpected symbol: {x.toString true}, expected: string"
 
-def cons (ref : Env) (lst: List Types) : IO (Env × Types) := do
+def cons (env : Env) (lst: List Types) : IO (Env × Types) := do
   if lst.length < 2 then throw (IO.userError "cons: >= 2 arguments required")
   else
     let elem := lst[0]!
     let seq := lst[1]!
     match seq with
-    | Types.listVal v => Except.ok (ref, (Types.listVal (elem :: v)))
-    | Types.vecVal v => Except.ok (ref, (Types.listVal (elem :: (toList v))))
+    | Types.listVal v => return (env, (Types.listVal (elem :: v)))
+    | Types.vecVal v => return (env, (Types.listVal (elem :: (toList v))))
     | x => throw (IO.userError s!"unexpected symbol: {x.toString true}, expected: list or vector")
 
-def concat (ref : Env) (lst: List Types) : IO (Env × Types) := do
-  if lst.length < 1 then Except.ok (ref, Types.listVal [])
+def concat (env : Env) (lst: List Types) : IO (Env × Types) := do
+  if lst.length < 1 then return (env, Types.listVal [])
   else
-    match lst.foldl (fun (acc: Except (Env × String) (List Types)) x =>
-      match acc with
-      | Except.error e => Except.error e
-      | Except.ok newlist =>
-        match x with
-        | Types.listVal v => Except.ok (newlist ++ v)
-        | Types.vecVal v => Except.ok (newlist ++ (toList v))
-        | x => Except.ok (newlist ++ [x])
-    ) (Except.ok []) with
-    | Except.error e => Except.error e
-    | Except.ok v => Except.ok (ref, Types.listVal v)
+    let v ← lst.foldlM (fun (acc: List Types) x =>
+      match x with
+        | Types.listVal v => return acc ++ v
+        | Types.vecVal v => return acc ++ (toList v)
+        | x => return acc ++ [x]
+    ) []
+    return (env, Types.listVal v)
 
-def makeVec (ref : Env) (lst: List Types) : IO (Env × Types) := do
+
+def makeVec (env : Env) (lst: List Types) : IO (Env × Types) := do
   if lst.length < 1 then throw (IO.userError "vec: 1 arguments required")
   else
     let first := lst[0]!
     match first with
-    | Types.vecVal v => Except.ok (ref, Types.vecVal v)
-    | Types.listVal v => Except.ok (ref, Types.vecVal (listToVec v))
+    | Types.vecVal v => return (env, Types.vecVal v)
+    | Types.listVal v => return (env, Types.vecVal (listToVec v))
     | x => throw (IO.userError s!"unexpected symbol: {x.toString true}, expected: list or vector")
 
-def nthSeq (ref : Env) (lst: List Types) : IO (Env × Types) := do
+def nthSeq (env : Env) (lst: List Types) : IO (Env × Types) := do
   if lst.length < 2 then throw (IO.userError "nth: >= 2 arguments required")
   else
     let first := lst[0]!
@@ -320,77 +287,77 @@ def nthSeq (ref : Env) (lst: List Types) : IO (Env × Types) := do
       | Types.vecVal v =>
         let lv := toList v
         match lv.get? i.toNat with
-          | some v => Except.ok (ref, v)
+          | some v => return (env, v)
           | none => throw (IO.userError "nth: index out of range")
       | Types.listVal lv =>
         if lv.length <= i then throw (IO.userError s!"nth: index out of range: {i}")
         else
           match lv.get? i.toNat with
-          | some v => Except.ok (ref, v)
+          | some v => return (env, v)
           | none => throw (IO.userError "nth: index out of range")
       | x => throw (IO.userError s!"unexpected symbol: {x.toString true}, expected: list or vector")
     | x => throw (IO.userError s!"unexpected symbol: {x.toString true}, expected: number")
 
-def firstSeq (ref : Env) (lst: List Types) : IO (Env × Types) := do
+def firstSeq (env : Env) (lst: List Types) : IO (Env × Types) := do
   if lst.length < 1 then throw (IO.userError "first: 1 arguments required")
   else
     let first := lst[0]!
     match first with
-    | Types.Nil => Except.ok (ref, Types.Nil)
+    | Types.Nil => return (env, Types.Nil)
     | Types.vecVal v =>
       let lv := toList v
-      if lv.length == 0 then Except.ok (ref, Types.Nil)
+      if lv.length == 0 then return (env, Types.Nil)
       else
         let elem := lv[0]!
-        Except.ok (ref, elem)
+        return (env, elem)
     | Types.listVal lv =>
-      if lv.length == 0 then Except.ok (ref, Types.Nil)
+      if lv.length == 0 then return (env, Types.Nil)
       else
         let elem := lv[0]!
-        Except.ok (ref, elem)
+        return (env, elem)
     | x => throw (IO.userError s!"unexpected symbol: {x.toString true}, expected: list or vector")
 
-def restSeq (ref : Env) (lst: List Types) : IO (Env × Types) := do
+def restSeq (env : Env) (lst: List Types) : IO (Env × Types) := do
   if lst.length < 1 then throw (IO.userError "rest: 1 arguments required")
   else
     let first := lst[0]!
     match first with
-    | Types.Nil => Except.ok (ref, Types.listVal [])
+    | Types.Nil => return (env, Types.listVal [])
     | Types.vecVal v =>
       let lv := toList v
-      if lv.length < 1 then Except.ok (ref, Types.listVal [])
+      if lv.length < 1 then return (env, Types.listVal [])
       else
-        Except.ok (ref, Types.listVal (lv.drop 1))
+        return (env, Types.listVal (lv.drop 1))
     | Types.listVal lv =>
-      if lv.length < 1 then Except.ok (ref, Types.listVal [])
+      if lv.length < 1 then return (env, Types.listVal [])
       else
-        Except.ok (ref, Types.listVal (lv.drop 1))
+        return (env, Types.listVal (lv.drop 1))
     | x => throw (IO.userError s!"unexpected symbol: {x.toString true}, expected: list or vector")
 
-def makeVector (ref : Env) (lst: List Types) : IO (Env × Types) := do
-  Except.ok (ref, Types.vecVal (listToVec lst))
+def makeVector (env : Env) (lst: List Types) : IO (Env × Types) := do
+  return (env, Types.vecVal (listToVec lst))
 
 def makeDictInternal (initialDict : Dict) (lst: List Types) : Except String (Dict) :=
   let rec loop (lst : List Types) (acckeys: List String) (acc : Dict) : Except String (Dict × List String) :=
     match lst with
-    | [] => Except.ok (acc, acckeys)
+    | [] => return (acc, acckeys)
     | (Types.strVal k) :: v :: rest =>
-      if acckeys.contains k then Except.ok (acc, acckeys)
+      if acckeys.contains k then return (acc, acckeys)
       else loop rest (acckeys ++ [k]) (Dict.insert (KeyType.strKey k) 0 v acc)
     | (Types.keywordVal k) :: v :: rest =>
-      if acckeys.contains k then Except.ok (acc, acckeys)
+      if acckeys.contains k then return (acc, acckeys)
       else loop rest (acckeys ++ [k]) (Dict.insert (KeyType.keywordKey k) 0 v acc)
     | _ => Except.error "Invalid list format: Expected alternating string/keyword and value"
   match loop lst [] initialDict with
   | Except.error e => Except.error e
   | Except.ok (v, _) => Except.ok v
 
-def makeDict (ref : Env) (lst: List Types) : IO (Env × Types) := do
+def makeDict (env : Env) (lst: List Types) : IO (Env × Types) := do
   match makeDictInternal Dict.empty lst with
   | Except.error e => throw (IO.userError e)
-  | Except.ok (newDict) => Except.ok (ref, Types.dictVal newDict)
+  | Except.ok (newDict) => return (env, Types.dictVal newDict)
 
-def assocDict (ref : Env) (lst: List Types) : IO (Env × Types) := do
+def assocDict (env : Env) (lst: List Types) : IO (Env × Types) := do
   if lst.length < 1 then throw (IO.userError "assoc: >= 1 arguments required")
   else
     let first := lst[0]!
@@ -399,7 +366,7 @@ def assocDict (ref : Env) (lst: List Types) : IO (Env × Types) := do
     | Types.dictVal v =>
       match makeDictInternal v rest with
       | Except.error e => throw (IO.userError e)
-      | Except.ok (newDict) => Except.ok (ref, Types.dictVal newDict)
+      | Except.ok (newDict) => return (env, Types.dictVal newDict)
     | x => throw (IO.userError s!"unexpected symbol: {x.toString true}, expected: hash-map")
 
 def dissoc (dict : Dict) (keys : List Types) : Except String Dict :=
@@ -417,7 +384,7 @@ def dissoc (dict : Dict) (keys : List Types) : Except String Dict :=
       | x => Except.error s!"unexpected symbol: {x.toString true}, expected: keyword or string"
   loop keys dict
 
-def dissocDict (ref : Env) (lst: List Types) : IO (Env × Types) := do
+def dissocDict (env : Env) (lst: List Types) : IO (Env × Types) := do
   if lst.length < 1 then throw (IO.userError "dissoc: >= 1 arguments required")
   else
     let first := lst[0]!
@@ -426,10 +393,10 @@ def dissocDict (ref : Env) (lst: List Types) : IO (Env × Types) := do
     | Types.dictVal v =>
       match dissoc v rest with
       | Except.error e => throw (IO.userError e)
-      | Except.ok newDict => Except.ok (ref, Types.dictVal newDict)
+      | Except.ok newDict => return (env, Types.dictVal newDict)
     | x => throw (IO.userError s!"unexpected symbol: {x.toString true}, expected: hash-map")
 
-def getDict (ref : Env) (lst: List Types) : IO (Env × Types) := do
+def getDict (env : Env) (lst: List Types) : IO (Env × Types) := do
   if lst.length < 1 then throw (IO.userError "get: >= 1 arguments required")
   else
     let first := lst[0]!
@@ -437,22 +404,22 @@ def getDict (ref : Env) (lst: List Types) : IO (Env × Types) := do
     match first with
     | Types.dictVal v =>
       match rest with
-      | [] => Except.ok (ref, Types.Nil)
+      | [] => return (env, Types.Nil)
       | _ =>
         match (rest[0]!) with
         | Types.strVal k =>
           match v.get (KeyType.strKey k) with
-          | some (_, val) => Except.ok (ref, val)
-          | none => Except.ok (ref, Types.Nil)
+          | some (_, val) => return (env, val)
+          | none => return (env, Types.Nil)
         | Types.keywordVal k =>
           match v.get (KeyType.keywordKey k) with
-          | some (_, val) => Except.ok (ref, val)
-          | none => Except.ok (ref, Types.Nil)
+          | some (_, val) => return (env, val)
+          | none => return (env, Types.Nil)
         | x => throw (IO.userError s!"unexpected symbol: {x.toString true}, expected: keyword or string")
-    | Types.Nil => Except.ok (ref, Types.Nil)
+    | Types.Nil => return (env, Types.Nil)
     | x => throw (IO.userError s!"unexpected symbol: {x.toString true}, expected: hash-map")
 
-def containsDict (ref : Env) (lst: List Types) : IO (Env × Types) := do
+def containsDict (env : Env) (lst: List Types) : IO (Env × Types) := do
   if lst.length < 1 then throw (IO.userError "contains?: >= 1 arguments required")
   else
     let first := lst[0]!
@@ -460,22 +427,22 @@ def containsDict (ref : Env) (lst: List Types) : IO (Env × Types) := do
     match first with
     | Types.dictVal v =>
       match rest with
-        | [] => Except.ok (ref, Types.boolVal false)
+        | [] => return (env, Types.boolVal false)
         | _ =>
           match (rest[0]!) with
           | Types.strVal k =>
             match v.get (KeyType.strKey k) with
-            | some _ => Except.ok (ref, Types.boolVal true)
-            | none => Except.ok (ref, Types.boolVal false)
+            | some _ => return (env, Types.boolVal true)
+            | none => return (env, Types.boolVal false)
           | Types.keywordVal k =>
             match v.get  (KeyType.strKey k) with
-            | some _ => Except.ok (ref, Types.boolVal true)
-            | none => Except.ok (ref, Types.boolVal false)
+            | some _ => return (env, Types.boolVal true)
+            | none => return (env, Types.boolVal false)
           | x => throw (IO.userError s!"unexpected symbol: {x.toString true}, expected: keyword or string")
-    | Types.Nil => Except.ok (ref, Types.boolVal false)
+    | Types.Nil => return (env, Types.boolVal false)
     | x => throw (IO.userError s!"unexpected symbol: {x.toString true}, expected: hash-map")
 
-def getKeysDict (ref : Env) (lst: List Types) : IO (Env × Types) := do
+def getKeysDict (env : Env) (lst: List Types) : IO (Env × Types) := do
   if lst.length < 1 then throw (IO.userError "keys: 1 arguments required")
   else
     let first := lst[0]!
@@ -487,113 +454,113 @@ def getKeysDict (ref : Env) (lst: List Types) : IO (Env × Types) := do
         | KeyType.strKey v => (Types.strVal v)
         | KeyType.keywordKey v => (Types.keywordVal v)
       )
-      Except.ok (ref, (Types.listVal result))
+      return (env, (Types.listVal result))
     | x => throw (IO.userError s!"unexpected symbol: {x.toString true}, expected: hash-map")
 
-def getValuesDict (ref : Env) (lst: List Types) : IO (Env × Types) := do
+def getValuesDict (env : Env) (lst: List Types) : IO (Env × Types) := do
   if lst.length < 1 then throw (IO.userError "get: 1 arguments required")
   else
     let first := lst[0]!
     match first with
     | Types.dictVal v =>
       let values := v.values
-      Except.ok (ref, (Types.listVal values))
+      return (env, (Types.listVal values))
     | x => throw (IO.userError s!"unexpected symbol: {x.toString true}, expected: hash-map")
 
-def makeSymbol (ref : Env) (lst: List Types) : IO (Env × Types) := do
+def makeSymbol (env : Env) (lst: List Types) : IO (Env × Types) := do
   if lst.length < 1 then throw (IO.userError "symbol: 1 argument required")
   else
     let first := lst[0]!
     match first with
-    | Types.symbolVal v => Except.ok (ref, Types.symbolVal v)
-    | Types.strVal v => Except.ok (ref, Types.symbolVal v)
+    | Types.symbolVal v => return (env, Types.symbolVal v)
+    | Types.strVal v => return (env, Types.symbolVal v)
     | x => throw (IO.userError s!"symbol: unexpected symbol: {x.toString true}, expected: string")
 
-def makeKeyword (ref : Env) (lst: List Types) : IO (Env × Types) := do
+def makeKeyword (env : Env) (lst: List Types) : IO (Env × Types) := do
   if lst.length < 1 then throw (IO.userError "keyword: 1 argument required")
   else
     let first := lst[0]!
     match first with
-    | Types.keywordVal v => Except.ok (ref, Types.keywordVal v)
-    | Types.strVal v => Except.ok (ref, Types.keywordVal v)
+    | Types.keywordVal v => return (env, Types.keywordVal v)
+    | Types.strVal v => return (env, Types.keywordVal v)
     | x => throw (IO.userError s!"keyword: unexpected symbol: {x.toString true}, expected: string")
 
-def conj (ref : Env) (lst: List Types) : IO (Env × Types) := do
+def conj (env : Env) (lst: List Types) : IO (Env × Types) := do
   if lst.length < 1 then throw (IO.userError "conj: >= 1 arguments required")
   else
     let first := lst[0]!
     let rest := lst.drop 1
     match first with
-    | Types.listVal v => Except.ok (ref, Types.listVal ( rest.reverse ++ v))
-    | Types.vecVal v => Except.ok (ref, Types.vecVal (listToVec ((toList v) ++ rest)))
+    | Types.listVal v => return (env, Types.listVal ( rest.reverse ++ v))
+    | Types.vecVal v => return (env, Types.vecVal (listToVec ((toList v) ++ rest)))
     | x => throw (IO.userError s!"unexpected symbol: {x.toString true}, expected: list or vector")
 
-def seq (ref : Env) (lst: List Types) : IO (Env × Types) := do
+def seq (env : Env) (lst: List Types) : IO (Env × Types) := do
   if lst.length < 1 then throw (IO.userError "conj: 1 arguments required")
   else
     let first := lst[0]!
     match first with
-    | Types.Nil => Except.ok (ref, Types.Nil)
-    | Types.listVal v => if v.length == 0 then Except.ok (ref, Types.Nil) else Except.ok (ref, Types.listVal v)
+    | Types.Nil => return (env, Types.Nil)
+    | Types.listVal v => if v.length == 0 then return (env, Types.Nil) else return (env, Types.listVal v)
     | Types.vecVal vv =>
       let v := toList vv
-      if v.length == 0 then Except.ok (ref, Types.Nil) else Except.ok (ref, Types.listVal v)
+      if v.length == 0 then return (env, Types.Nil) else return (env, Types.listVal v)
     | Types.strVal v =>
-      if v.length == 0 then Except.ok (ref, Types.Nil)
+      if v.length == 0 then return (env, Types.Nil)
       else
         let lv := v.toList.map (fun x => Types.strVal (String.singleton x))
-        Except.ok (ref, Types.listVal lv)
+        return (env, Types.listVal lv)
     | x => throw (IO.userError s!"unexpected symbol: {x.toString true}, expected: list, vector or string")
 
-partial def throwFn (ref : Env) (lst : List Types) : IO (Env × Types) := do
+partial def throwFn (_ : Env) (lst : List Types) : IO (Env × Types) := do
     if lst.length < 1 then throw (IO.userError "panic")
     else
       let a := lst[0]!
       match a with
       | Types.strVal v => throw (IO.userError v)
-      | x => throw (IO.userError x.toString true)
+      | x => throw (IO.userError (x.toString true))
 
 def readFileContent (filePath : String) : IO String := do
   IO.FS.readFile filePath
 
-def slurp (ref : Env) (lst: List Types) : IO (Except (Env × String) (Env × Types)) := do
+def slurp (env : Env) (lst: List Types) : IO (Except (Env × String) (Env × Types)) := do
   if lst.length < 1 then
-    return throw (IO.userError "slurp: 2 arguments required")
+    throw (IO.userError "slurp: 2 arguments required")
   else
     match lst[0]! with
     | Types.strVal filename => do
       let result ← try
         let content ← readFileContent filename
-        return Except.ok (ref, Types.strVal content)
+        return return (env, Types.strVal content)
       catch e =>
-        return throw (IO.userError s!"slurp: failed to read file: {e.toString}")
+        throw (IO.userError s!"slurp: failed to read file: {e.toString}")
 
       -- return result
     | _ =>
-      return throw (IO.userError "slurp: filename must be a string")
+      throw (IO.userError "slurp: filename must be a string")
 
-def slurp2 (ref : Env) (lst: List Types) : IO (Env × Types) := do
+def slurp2 (env : Env) (lst: List Types) : IO (Env × Types) := do
   if lst.length < 1 then
     throw (IO.userError "slurp: 2 arguments required")
   else
     match lst[0]! with
     | Types.strVal filename => do
       let content ← readFileContent filename
-      return (ref, Types.strVal content)
+      return (env, Types.strVal content)
     | _ =>
       throw (IO.userError "slurp: filename must be a string")
 
 -- IO monad limits some of the formal proving capabilities that Lean offers because IO introduces side effects that are inherently non-deterministic and impure, such as reading from files
-def evalFnNativeWithIO (ref : Env) (name: String) (results: List Types): IO (Except (Env × String) (Env × Types)) :=
+def evalFnNativeWithIO (env : Env) (name: String) (results: List Types): IO (Except (Env × String) (Env × Types)) :=
   match name with
-  | "slurp" => slurp ref results
-  | _   => return throw (IO.userError s!"'{name}' not found")
+  | "slurp" => slurp env results
+  | _   => throw (IO.userError s!"'{name}' not found")
 
-def loadFnNative (ref : Env) (name: String) : Env :=
-  ref.add (KeyType.strKey name) 0 (Types.funcVal (Fun.builtin name))
+def loadFnNative (env : Env) (name: String) : Env :=
+  env.add (KeyType.strKey name) 0 (Types.funcVal (Fun.builtin name))
 
-def loadFnNativeFold (ref : Env) (fnNames : List String) : Env :=
-  fnNames.foldl loadFnNative ref
+def loadFnNativeFold (env : Env) (fnNames : List String) : Env :=
+  fnNames.foldl loadFnNative env
 
 def coreFnSymbols: List String := [
   "+", "-", "*", "/",
@@ -616,20 +583,18 @@ def coreFnSymbols: List String := [
   "time-ms", "meta", "with-meta"
 ]
 
-def loadFnNativeAll (ref : Env) : Env :=
-  (((
-    loadFnNativeFold ref coreFnSymbols
-  ).add (KeyType.strKey KEY_LOGS_INFO) 0 (Types.listVal [])
-  ).add (KeyType.strKey KEY_LOGS_DEBUG) 0 (Types.listVal [])
+def loadFnNativeAll (env : Env) : Env :=
+  (
+    loadFnNativeFold env coreFnSymbols
   ).add (KeyType.strKey KEY_DEBUG_EVAL) 0 (Types.boolVal false)
 
-def setSymbol (ref : Env) (name: String) (value: Types): Env :=
-  ref.add (KeyType.strKey name) 0 value
+def setSymbol (env : Env) (name: String) (value: Types): Env :=
+  env.add (KeyType.strKey name) 0 value
 
 -- forward mutated atoms defined in the outer environments
 -- outer environments always have a lower level index
-def forwardMutatedAtoms (refSource: Env) (refOuter: Env): Env :=
-  refSource.getDict.fold refOuter (fun key l v acc =>
+def forwardMutatedAtoms (envSource: Env) (envOuter: Env): Env :=
+  envSource.getDict.fold envOuter (fun key l v acc =>
     if l > acc.getLevel then acc
     else
     match acc.get key with
