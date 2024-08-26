@@ -524,7 +524,7 @@ def conj (ref : Env) (lst: List Types) : Except (Env × String) (Env × Types) :
     let first := lst[0]!
     let rest := lst.drop 1
     match first with
-    | Types.listVal v => Except.ok (ref, Types.listVal (v ++ rest))
+    | Types.listVal v => Except.ok (ref, Types.listVal ( rest.reverse ++ v))
     | Types.vecVal v => Except.ok (ref, Types.vecVal (listToVec ((toList v) ++ rest)))
     | x => Except.error (ref, s!"unexpected symbol: {x.toString true}, expected: list or vector")
 
