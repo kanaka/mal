@@ -1,45 +1,95 @@
-;;; general accessors
+;; Structural pattern matching is ideal, but too slow for MAL.
 
-(defun mal-type (mal-object)
-  (aref mal-object 0))
-
-(defun mal-value (mal-object)
-  (aref mal-object 1))
-
-(defun mal-meta (mal-object)
-  (aref mal-object 2))
-
-;;; objects
+;; So we use a mal-foo-value getter that returns nil in case of bad
+;; type (or if a list is empty, unfortunately).
 
 (defmacro mal-object (name)
   (let ((constructor (intern (format "mal-%s" name)))
-        (predicate (intern (format "mal-%s-p" name))))
+        (accessor (intern (format "mal-%s-value" name))))
     `(progn
-       (defun ,constructor (&optional value meta)
-         (vector ',name value meta))
-       (defun ,predicate (arg)
-         (and (vectorp arg) (eq (aref arg 0) ',name))))))
+       (defsubst ,constructor (value)
+         (record ',name value))
+       (defun ,accessor (arg)
+         (and (recordp arg)
+              (eq (aref arg 0) ',name)
+              (aref arg 1))))))
 
-(mal-object nil)
-(mal-object true)
-(mal-object false)
+(defconst mal-nil   #&8"n")
+(defconst mal-false #&8"f")
+(defconst mal-true  #&8"t")
 
-(defvar mal-nil (mal-nil))
-(defvar mal-true (mal-true 'true))
-(defvar mal-false (mal-false 'false))
+(defsubst mal-number (elisp-number) elisp-number)
+(defsubst mal-number-value (obj) (and (numberp obj) obj))
 
-(mal-object number)
-(mal-object string)
-(mal-object symbol)
+(defsubst mal-symbol (elisp-symbol) elisp-symbol)
+;; A nil result means either 'not a symbol' or 'the nil symbol'.
+(defsubst mal-symbol-value (obj) (and (symbolp obj)obj))
+
+(defsubst mal-string (elisp-string) elisp-string)
+(defsubst mal-string-value (obj) (and (stringp obj) obj))
+
+;; In elisp, keywords are symbols.  Using them would cause confusion,
+;; or at least make mal-symbol-value more complex, for little benefit.
+;; The wrapped value is an elisp string including the initial colon.
 (mal-object keyword)
 
-(mal-object list)
-(mal-object vector)
-(mal-object map)
+;; Use the native type when possible, but #s(type value meta ...) for
+;; the empty list or when metadata is present.
+
+(defsubst mal-vector (elisp-vector) elisp-vector)
+(defun mal-vector-value (obj)
+  (if (vectorp obj)
+      obj
+    (and (recordp obj) (eq (aref obj 0) 'vector) (aref obj 1))))
+
+(defsubst mal-map (elisp-hash-table) elisp-hash-table)
+(defun mal-map-value (obj)
+  (if (hash-table-p obj)
+      obj
+    (and (recordp obj) (eq (aref obj 0) 'map) (aref obj 1))))
+
+(defconst mal-empty-list #s(list nil))
+(defsubst mal-list (elisp-list) (or elisp-list mal-empty-list))
+;; A nil result means either 'not a list' or 'empty list'.
+(defun mal-list-value (obj)
+  (if (listp obj) obj
+    (and (recordp obj) (eq (aref obj 0) 'list) (aref obj 1))))
+(defun mal-list-p (obj)
+  (or (listp obj)
+      (and (recordp obj) (eq (aref obj 0) 'list))))
+
+;; A nil result means either 'not a list' or 'empty list'.
+(defun mal-seq-value (arg) (or (mal-vector-value arg) (mal-list-value arg)))
 
 (mal-object atom)
-(mal-object fn)
-(mal-object func)
+(defun mal-reset (atom value) (setf (aref atom 1) value))
+
+(mal-object fn-core)
+(mal-object macro)
+
+;; Function created by fn*.
+(defsubst mal-func (value body params env)
+  (record 'func value body params env))
+(defun mal-func-value ( obj)
+  (and (recordp obj) (eq (aref obj 0) 'func) (aref obj 1)))
+(defsubst mal-func-body   (obj) (aref obj 2))
+(defsubst mal-func-params (obj) (aref obj 3))
+(defsubst mal-func-env    (obj) (aref obj 4))
+
+(defun with-meta (obj meta)
+  (cond
+   ((vectorp      obj)  (record 'vector obj meta))
+   ((hash-table-p obj)  (record 'map    obj meta))
+   ((listp        obj)  (record 'list   obj meta))
+   ((< (length obj) 4)  (record (aref obj 0) (aref obj 1) meta))
+   (t                   (record (aref obj 0) (aref obj 1)
+                                (aref obj 2) (aref obj 3)
+                                (aref obj 4) meta))))
+
+(defun mal-meta (obj)
+  (if (and (recordp obj) (member (length obj) '(3 6)))
+      (aref obj (1- (length obj)))
+    mal-nil))
 
 ;;; regex
 

@@ -2,159 +2,140 @@
 
 (require 'cl-lib)
 (require 'mal/types)
-(require 'mal/func)
 (require 'mal/env)
 (require 'mal/reader)
 (require 'mal/printer)
 (require 'mal/core)
 
-(defvar repl-env (mal-env))
-
-(dolist (binding core-ns)
-  (let ((symbol (car binding))
-        (fn (cdr binding)))
-    (mal-env-set repl-env symbol fn)))
-
-(defun starts-with-p (ast sym)
-  (let ((l (mal-value ast)))
-    (and l
-         (let ((s (car l)))
-           (and (mal-symbol-p s)
-                (eq (mal-value s) sym))))))
-
 (defun qq-reducer (elt acc)
-  (mal-list (if (and (mal-list-p elt)
-                     (starts-with-p elt 'splice-unquote))
-                (list (mal-symbol 'concat) (cadr (mal-value elt)) acc)
-              (list (mal-symbol 'cons) (quasiquote elt) acc))))
+  (let ((value (mal-list-value elt)))
+    (mal-list (if (eq 'splice-unquote (mal-symbol-value (car value)))
+                  (list (mal-symbol 'concat) (cadr value) acc)
+                (list (mal-symbol 'cons) (quasiquote elt) acc)))))
 
 (defun qq-iter (elts)
   (cl-reduce 'qq-reducer elts :from-end t :initial-value (mal-list nil)))
 
 (defun quasiquote (ast)
-  (cl-case (mal-type ast)
-    (list         (if (starts-with-p ast 'unquote)
-                      (cadr (mal-value ast))
-                    (qq-iter (mal-value ast))))
-    (vector       (mal-list (list (mal-symbol 'vec) (qq-iter (mal-value ast)))))
-    ((map symbol) (mal-list (list (mal-symbol 'quote) ast)))
-    (t            ast)))
+  (let (value)
+    (cond
+     ((setq value (mal-list-value ast)) ; not empty
+      (if (eq 'unquote (mal-symbol-value (car value)))
+          (cadr value)
+        (qq-iter value)))
+     ((setq value (mal-vector-value ast))
+      (mal-list (list (mal-symbol 'vec) (qq-iter value))))
+     ((or (mal-map-value ast)
+          (mal-symbol-value ast))
+      (mal-list (list (mal-symbol 'quote) ast)))
+     (t                                 ; including the empty list case
+      ast))))
 
 (defun READ (input)
   (read-str input))
 
 (defun EVAL (ast env)
-  (catch 'return
-    (while t
+  (let (return a)
+    (while (not return)
 
      (let ((dbgeval (mal-env-get env 'DEBUG-EVAL)))
-       (if (and dbgeval
-                (not (member (mal-type dbgeval) '(false nil))))
+       (if (not (memq dbgeval (list nil mal-nil mal-false)))
          (println "EVAL: %s\n" (PRINT ast))))
 
-     (cl-case (mal-type ast)
+     (cond
 
-     (list
-          (let* ((a (mal-value ast))
-                 (a1 (cadr a))
-                 (a2 (nth 2 a))
-                 (a3 (nth 3 a)))
-            (unless a (throw 'return ast))
-            (cl-case (mal-value (car a))
-             (def!
-              (let ((identifier (mal-value a1))
-                    (value (EVAL a2 env)))
-                (throw 'return (mal-env-set env identifier value))))
-             (let*
-              (let ((env* (mal-env env))
-                    (bindings (mal-listify a1))
-                    (form a2))
-                (while bindings
-                  (let ((key (mal-value (pop bindings)))
-                        (value (EVAL (pop bindings) env*)))
-                    (mal-env-set env* key value)))
-                (setq env env*
-                      ast form))) ; TCO
-             (quote
-              (throw 'return a1))
-             (quasiquote
-              (setq ast (quasiquote a1))) ; TCO
-             (do
-              (let* ((a0... (cdr a))
-                     (butlast (butlast a0...))
-                     (last (car (last a0...))))
-                (mapcar (lambda (item) (EVAL item env)) butlast)
-                (setq ast last))) ; TCO
-             (if
-              (let* ((condition (EVAL a1 env))
-                     (condition-type (mal-type condition))
-                     (then a2)
-                     (else a3))
-                (if (and (not (eq condition-type 'false))
-                         (not (eq condition-type 'nil)))
-                    (setq ast then) ; TCO
-                  (if else
-                      (setq ast else) ; TCO
-                    (throw 'return mal-nil)))))
-             (fn*
-              (let* ((binds (mapcar 'mal-value (mal-value a1)))
-                     (body a2)
-                     (fn (mal-fn
-                          (lambda (&rest args)
-                            (let ((env* (mal-env env binds args)))
-                              (EVAL body env*))))))
-                (throw 'return (mal-func body binds env fn))))
-             (t
-              ;; not a special form
-              (let ((fn (EVAL (car a) env))
-                    (args (mapcar (lambda (x) (EVAL x env)) (cdr a))))
-                (if (mal-func-p fn)
-                    (let ((env* (mal-env (mal-func-env fn)
-                                         (mal-func-params fn)
-                                         args)))
-                      (setq env env*
-                            ast (mal-func-ast fn))) ; TCO
-                  ;; built-in function
-                  (let ((fn* (mal-value fn)))
-                    (throw 'return (apply fn* args)))))))))
-     (symbol
-      (let ((key (mal-value ast)))
-        (throw 'return (or (mal-env-get env key)
-                           (error "'%s' not found" key)))))
-     (vector
-      (throw 'return
+     ((setq a (mal-list-value ast))
+        (cl-case (mal-symbol-value (car a))
+         (def!
+           (let ((identifier (mal-symbol-value (cadr a)))
+                 (value (EVAL (caddr a) env)))
+             (setq return (mal-env-set env identifier value))))
+         (let*
+             (let ((env* (mal-env env))
+                   (bindings (mal-seq-value (cadr a)))
+                   (form (caddr a))
+                   key)
+               (seq-do (lambda (current)
+                         (if key
+                             (let ((value (EVAL current env*)))
+                               (mal-env-set env* key value)
+                               (setq key nil))
+                           (setq key (mal-symbol-value current))))
+                       bindings)
+            (setq env env*
+                  ast form))) ; TCO
+         (quote
+          (setq return (cadr a)))
+         (quasiquote
+          (setq ast (quasiquote (cadr a)))) ; TCO
+         (do
+          (setq a (cdr a))              ; skip 'do
+          (while (cdr a)
+            (EVAL (pop a) env))
+          (setq ast (car a))) ; TCO
+         (if
+          (let ((condition (EVAL (cadr a) env)))
+            (if (memq condition (list mal-nil mal-false))
+                (if (cdddr a)
+                    (setq ast (cadddr a)) ; TCO
+                  (setq return mal-nil))
+              (setq ast (caddr a))))) ; TCO
+         (fn*
+          (let ((binds (mapcar 'mal-symbol-value (mal-seq-value (cadr a))))
+                (body (caddr a)))
+            (setq return (mal-func
+                      (lambda (&rest args)
+                            (EVAL body (mal-env env binds args)))
+                          body binds env))))
+         (t
+          ;; not a special form
+          (let ((fn (EVAL (car a) env))
+                (args (cdr a))
+                fn*)
+            (cond
+             ((mal-func-value fn)
+              (setq env (mal-env (mal-func-env fn)
+                                     (mal-func-params fn)
+                                     (mapcar (lambda (x) (EVAL x env)) args))
+                    ast (mal-func-body fn))) ; TCO
+             ((setq fn* (mal-fn-core-value fn))
+              ;; built-in function
+              (setq return (apply fn* (mapcar (lambda (x) (EVAL x env)) args))))
+             (t (error "cannot apply %s" (PRINT ast))))))))
+     ((setq a (mal-symbol-value ast))
+      (setq return (or (mal-env-get env a)
+                       (error "'%s' not found" a))))
+     ((setq a (mal-vector-value ast))
+      (setq return
              (mal-vector (vconcat (mapcar (lambda (item) (EVAL item env))
-                                          (mal-value ast))))))
-     (map
-      (let ((map (copy-hash-table (mal-value ast))))
+                                          a)))))
+     ((setq a (mal-map-value ast))
+      (let ((map (copy-hash-table a)))
         (maphash (lambda (key val)
                    (puthash key (EVAL val env) map))
                  map)
-        (throw 'return (mal-map map))))
+        (setq return (mal-map map))))
      (t
       ;; return as is
-      (throw 'return ast))))))
+      (setq return ast))))
 
-(mal-env-set repl-env 'eval (mal-fn (let ((env repl-env)) (lambda (form) (EVAL form env)))))
-(mal-env-set repl-env '*ARGV* (mal-list (mapcar 'mal-string (cdr argv))))
+    ;; End of the TCO loop
+    return))
 
 (defun PRINT (input)
   (pr-str input t))
 
-(defun rep (input)
+(defun rep (input repl-env)
   (PRINT (EVAL (READ input) repl-env)))
-
-(rep "(def! not (fn* (a) (if a false true)))")
-(rep "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \"\nnil)\")))))")
 
 (defun readln (prompt)
   ;; C-d throws an error
   (ignore-errors (read-from-minibuffer prompt)))
 
 (defun println (format-string &rest args)
-  (if (not args)
-      (princ format-string)
-    (princ (apply 'format format-string args)))
+  (princ (if args
+             (apply 'format format-string args)
+           format-string))
   (terpri))
 
 (defmacro with-error-handling (&rest body)
@@ -174,17 +155,28 @@
       (println (error-message-string err)))))
 
 (defun main ()
+  (defvar repl-env (mal-env))
+
+  (dolist (binding core-ns)
+    (let ((symbol (car binding))
+          (fn (cdr binding)))
+      (mal-env-set repl-env symbol (mal-fn-core fn))))
+
+  (mal-env-set repl-env 'eval (mal-fn-core (byte-compile (lambda (form) (EVAL form repl-env)))))
+  (mal-env-set repl-env '*ARGV* (mal-list (mapcar 'mal-string (cdr argv))))
+
+  (rep "(def! not (fn* (a) (if a false true)))" repl-env)
+  (rep "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f)
+        \"\nnil)\")))))" repl-env)
+
   (if argv
       (with-error-handling
-       (rep (format "(load-file \"%s\")" (car argv))))
-    (let (eof)
-      (while (not eof)
-        (let ((input (readln "user> ")))
-          (if input
+       (rep (format "(load-file \"%s\")" (car argv)) repl-env))
+    (let (input)
+      (while (setq input (readln "user> "))
               (with-error-handling
-               (println (rep input)))
-            (setq eof t)
-            ;; print final newline
-            (terpri)))))))
+               (println (rep input repl-env))))
+      ;; print final newline
+      (terpri))))
 
 (main)
