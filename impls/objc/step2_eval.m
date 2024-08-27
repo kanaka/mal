@@ -11,51 +11,41 @@ NSObject *READ(NSString *str) {
 }
 
 // eval
-
-// forward declaration
-NSObject *EVAL(NSObject *ast, NSDictionary *env);
-
-NSObject *eval_ast(NSObject *ast, NSDictionary *env) {
+NSObject *EVAL(NSObject *ast, NSDictionary *env) {
+    // NSLog(@"EVAL: %@ (%@)", _pr_str(ast, true), env);
     if ([ast isMemberOfClass:[MalSymbol class]]) {
         if ([env objectForKey:ast]) {
             return env[ast];
         } else {
             @throw [NSString stringWithFormat:@"'%@' not found", ast];
         }
-    } else if ([ast isKindOfClass:[NSArray class]]) {
+    } else if ([ast isKindOfClass:[MalVector class]]) {
         NSMutableArray *newLst = [NSMutableArray array];
         for (NSObject * x in (NSArray *)ast) {
             [newLst addObject:EVAL(x, env)];
         }
-        if ([ast isKindOfClass:[MalVector class]]) {
-            return [MalVector fromArray:newLst];
-        } else {
-            return newLst;
-        }
+        return [MalVector fromArray:newLst];
     } else if ([ast isKindOfClass:[NSDictionary class]]) {
         NSMutableDictionary *newDict = [NSMutableDictionary dictionary];
         for (NSString * k in (NSDictionary *)ast) {
             newDict[k] = EVAL(((NSDictionary *)ast)[k], env);
         }
         return newDict;
-    } else {
+    } else if (! [ast isKindOfClass:[NSArray class]]) {
         return ast;
-    }
-}
-
-NSObject *EVAL(NSObject *ast, NSDictionary *env) {
-    //NSLog(@"EVAL: %@", ast);
-    if (!list_Q(ast)) {
-        return eval_ast(ast, env);
     }
 
     // apply list
-    if ([(NSArray *)ast count] == 0) {
+    NSArray * alst = (NSArray *)ast;
+    if ([alst count] == 0) {
         return ast;
     }
-    NSArray * el = (NSArray *) eval_ast(ast, env);
-    NSObject * (^ f)(NSArray *) = el[0];
-    NSArray * args = _rest(el);
+    id el0 = EVAL(alst[0], env);
+    NSObject * (^ f)(NSArray *) = el0;
+    NSMutableArray * args = [NSMutableArray array];
+    for (int i = 1; i < [alst count]; i++) {
+        [args addObject:EVAL(alst[i], env)];
+    }
     return f(args);
 }
 
