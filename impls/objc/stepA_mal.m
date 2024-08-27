@@ -226,6 +226,7 @@ int main () {
     }
 
     while (true) {
+        REP(@"(println (str \"Mal [\" *host-language* \"]\"))", repl_env);
         char *rawline = _readline("user> ");
         if (!rawline) { break; }
         NSString *line = [NSString stringWithUTF8String:rawline];
