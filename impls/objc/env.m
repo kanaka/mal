@@ -52,23 +52,14 @@
     return val;
 }
 
-- (Env *) find:(MalSymbol *)key {
-    if (_data[key]) {
-        return self;
-    } else if (_outer) {
-        Env * e = _outer;
-        return [e find:key];
-    } else {
-        return nil;
-    }
-}
-
 - (NSObject *) get:(MalSymbol *)key {
-    Env * e = [self find:key];
-    if (e) {
-        return e.data[key];
-    } else {
-        return nil;
+    NSObject * value;
+    Env * e = self;
+    while (true) {
+        value = e.data[key];
+        if (value != nil) return value;
+        e = e.outer;
+        if (e == nil) return nil;
     }
 }
 
