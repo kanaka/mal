@@ -104,7 +104,7 @@ NSObject *EVAL(NSObject *ast, Env *env) {
     } else if ([(NSString *)a0 isEqualTo:@"quasiquote"]) {
         ast = quasiquote(alst[1]); // TCO
     } else if ([a0sym isEqualTo:@"defmacro!"]) {
-        MalFunc * f = (MalFunc *)EVAL(alst[2], env);
+        MalFunc * f = [(MalFunc *)EVAL(alst[2], env) copy];
         f.isMacro = true;
         return [env set:alst[1] val:f];
     } else if ([a0sym isEqualTo:@"try*"]) {
