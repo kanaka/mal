@@ -66,7 +66,22 @@ sub quasiquote {
     return $ast;
 }
 
-## no critic (Subroutines::ProhibitExcessComplexity)
+my %special_forms = (
+    'def!' => \&special_def,
+    'let*' => \&special_let,
+
+    'do'  => \&special_do,
+    'if'  => \&special_if,
+    'fn*' => \&special_fn,
+
+    'quasiquote' => \&special_quasiquote,
+    'quote'      => \&special_quote,
+
+    'defmacro!' => \&special_defmacro,
+
+    'try*' => \&special_try,
+);
+
 sub EVAL {
     my ( $ast, $env ) = @_;
 
@@ -85,99 +100,107 @@ sub EVAL {
         return Mal::HashMap->new(
             { pairmap { $a => EVAL( $b, $env ) } %{$ast} } );
     }
-    $ast->isa('Mal::List') or return $ast;
-
-    # apply list
-
-    @{$ast} or return $ast;
-    my ($a0) = @{$ast};
-    if ( $a0->isa('Mal::Symbol') ) {
-        if ( ${$a0} eq 'def!' ) {
-            my ( undef, $sym, $val ) = @{$ast};
-            return $env->set( ${$sym}, EVAL( $val, $env ) );
+    if ( $ast->isa('Mal::List') and @{$ast} ) {
+        my ( $a0, @args ) = @{$ast};
+        if ( $a0->isa('Mal::Symbol') and my $sf = $special_forms{ ${$a0} } ) {
+            @_ = ( $env, @args );
+            goto &{$sf};
         }
-        if ( ${$a0} eq 'let*' ) {
-            my ( undef, $bindings, $body ) = @{$ast};
-            my $let_env = Mal::Env->new($env);
-            foreach my $pair ( pairs @{$bindings} ) {
-                my ( $k, $v ) = @{$pair};
-                $let_env->set( ${$k}, EVAL( $v, $let_env ) );
-            }
-            @_ = ( $body, $let_env );
+        my $f = EVAL( $a0, $env );
+        if ( $f->isa('Mal::Macro') ) {
+            @_ = ( $f->(@args), $env );
             goto &EVAL;
         }
-        if ( ${$a0} eq 'quote' ) {
-            return $ast->[1];
-        }
-        if ( ${$a0} eq 'quasiquote' ) {
-            @_ = ( quasiquote( $ast->[1] ), $env );
-            goto &EVAL;
-        }
-        if ( ${$a0} eq 'defmacro!' ) {
-            my ( undef, $sym, $val ) = @{$ast};
-            return $env->set( ${$sym},
-                Mal::Macro->new( EVAL( $val, $env )->clone ) );
-        }
-        if ( ${$a0} eq 'try*' ) {
-            my ( undef, $try, $catch ) = @{$ast};
-            if ($catch) {
-                my ( undef, $binding, $body ) = @{$catch};
-                if ( my $ret = eval { EVAL( $try, $env ) } ) {
-                    return $ret;
-                }
-                my $exc = $EVAL_ERROR;
-                if ( not blessed($exc) or not $exc->isa('Mal::Type') ) {
-                    chomp $exc;
-                    $exc = Mal::String->new($exc);
-                }
-                my $catch_env = Mal::Env->new( $env, [$binding], [$exc] );
-                @_ = ( $body, $catch_env );
-                goto &EVAL;
-            }
-            @_ = ( $try, $env );
-            goto &EVAL;
-        }
-        if ( ${$a0} eq 'do' ) {
-            my ( undef, @todo ) = @{$ast};
-            my $final = pop @todo;
-            for (@todo) {
-                EVAL( $_, $env );
-            }
-            @_ = ( $final, $env );
-            goto &EVAL;
-        }
-        if ( ${$a0} eq 'if' ) {
-            my ( undef, $if, $then, $else ) = @{$ast};
-            my $cond = EVAL( $if, $env );
-            if ( $cond ne $nil and $cond ne $false ) {
-                @_ = ( $then, $env );
-                goto &EVAL;
-            }
-            if ( defined $else ) {
-                @_ = ( $else, $env );
-                goto &EVAL;
-            }
-            return $nil;
-        }
-        if ( ${$a0} eq 'fn*' ) {
-            my ( undef, $params, $body ) = @{$ast};
-            return Mal::Function->new(
-                sub {
-                    #print "running fn*\n";
-                    @_ = ( $body, Mal::Env->new( $env, $params, \@_ ) );
-                    goto &EVAL;
-                }
-            );
-        }
+        @_ = map { EVAL( $_, $env ) } @args;
+        goto &{$f};
     }
-    my $f = EVAL( $a0, $env );
-    my ( undef, @args ) = @{$ast};
-    if ( $f->isa('Mal::Macro') ) {
-        @_ = ( $f->(@args), $env );
+    return $ast;
+}
+
+sub special_def {
+    my ( $env, $sym, $val ) = @_;
+    return $env->set( ${$sym}, EVAL( $val, $env ) );
+}
+
+sub special_let {
+    my ( $env, $bindings, $body ) = @_;
+    my $let_env = Mal::Env->new($env);
+    foreach my $pair ( pairs @{$bindings} ) {
+        my ( $k, $v ) = @{$pair};
+        $let_env->set( ${$k}, EVAL( $v, $let_env ) );
+    }
+    @_ = ( $body, $let_env );
+    goto &EVAL;
+}
+
+sub special_quote {
+    my ( $env, $quoted ) = @_;
+    return $quoted;
+}
+
+sub special_quasiquote {
+    my ( $env, $quoted ) = @_;
+    @_ = ( quasiquote($quoted), $env );
+    goto &EVAL;
+}
+
+sub special_defmacro {
+    my ( $env, $sym, $val ) = @_;
+    return $env->set( ${$sym}, Mal::Macro->new( EVAL( $val, $env )->clone ) );
+}
+
+sub special_try {
+    my ( $env, $try, $catch ) = @_;
+    if ($catch) {
+        my ( undef, $binding, $body ) = @{$catch};
+        if ( my $ret = eval { EVAL( $try, $env ) } ) {
+            return $ret;
+        }
+        my $exc = $EVAL_ERROR;
+        if ( not blessed($exc) or not $exc->isa('Mal::Type') ) {
+            chomp $exc;
+            $exc = Mal::String->new($exc);
+        }
+        my $catch_env = Mal::Env->new( $env, [$binding], [$exc] );
+        @_ = ( $body, $catch_env );
         goto &EVAL;
     }
-    @_ = map { EVAL( $_, $env ) } @args;
-    goto &{$f};
+    @_ = ( $try, $env );
+    goto &EVAL;
+}
+
+sub special_do {
+    my ( $env, @todo ) = @_;
+    my $final = pop @todo;
+    for (@todo) {
+        EVAL( $_, $env );
+    }
+    @_ = ( $final, $env );
+    goto &EVAL;
+}
+
+sub special_if {
+    my ( $env, $if, $then, $else ) = @_;
+    my $cond = EVAL( $if, $env );
+    if ( $cond ne $nil and $cond ne $false ) {
+        @_ = ( $then, $env );
+        goto &EVAL;
+    }
+    if ($else) {
+        @_ = ( $else, $env );
+        goto &EVAL;
+    }
+    return $nil;
+}
+
+sub special_fn {
+    my ( $env, $params, $body ) = @_;
+    return Mal::Function->new(
+        sub {
+            @_ = ( $body, Mal::Env->new( $env, $params, \@_ ) );
+            goto &EVAL;
+        }
+    );
 }
 
 # print
