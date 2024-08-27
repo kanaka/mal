@@ -21,5 +21,18 @@ mal: mal.pl
 	chmod +x $@
 
 clean:
-	rm -f mal.pl mal fatpacker.trace packlists fatlib/*
+	rm -f mal.pl mal fatpacker.trace packlists fatlib/* *-lint
 	[ -d fatlib ] && rmdir fatlib || true
+
+no_critic := \
+  ErrorHandling::RequireCarping \
+  RequireVersionVar \
+  # EOL
+
+lint-all: $(addsuffix -lint,$(wildcard *.pl *.pm))
+lint: $(SOURCES:%=%-lint)
+%-lint: % Makefile
+	perl -c -I. $*
+	perltidy -st $* | diff -u $* -
+	perlcritic -1 --verbose 11 $(no_critic:%=--exclude=%) $*
+	touch $@
