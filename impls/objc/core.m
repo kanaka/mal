@@ -42,7 +42,11 @@ NSObject * wrap_tf(BOOL val) {
         return wrap_tf([args[0] isKindOfClass:[MalSymbol class]]);
     },
     @"keyword": ^(NSArray *args){
-        return [NSString stringWithFormat:@"\u029e%@", args[0]];
+        if (string_Q(args[0])) {
+            return [NSString stringWithFormat:@"\u029e%@", args[0]];
+        } else {
+            return args[0];
+        }
     },
     @"keyword?": ^(NSArray *args){
         return wrap_tf([args[0] isKindOfClass:[NSString class]] &&
