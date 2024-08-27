@@ -16,9 +16,18 @@ NSObject *READ(NSString *str) {
 // eval
 NSObject *EVAL(NSObject *ast, Env *env) {
   while (true) {
-    // NSLog(@"EVAL: %@ (%@)", _pr_str(ast, true), env);
+    NSObject * dbgeval = [env get:[MalSymbol stringWithString:@"DEBUG-EVAL"]];
+    if (dbgeval != nil
+        && ! [dbgeval isKindOfClass:[NSNull class]]
+        && ! [dbgeval isKindOfClass:[MalFalse class]]) {
+      printf("EVAL: %s\n", [[_pr_str(ast, true) description] UTF8String]);
+    }
     if ([ast isMemberOfClass:[MalSymbol class]]) {
-        return [env get:(MalSymbol *)ast];
+        NSObject * value = [env get:(MalSymbol *)ast];
+        if (value == nil) {
+          @throw [NSString stringWithFormat:@"'%@' not found", ast];
+        }
+        return value;
     } else if ([ast isKindOfClass:[MalVector class]]) {
         NSMutableArray *newLst = [NSMutableArray array];
         for (NSObject * x in (NSArray *)ast) {

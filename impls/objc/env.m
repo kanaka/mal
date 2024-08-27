@@ -68,7 +68,7 @@
     if (e) {
         return e.data[key];
     } else {
-        @throw [NSString stringWithFormat:@"'%@' not found", key];
+        return nil;
     }
 }
 
