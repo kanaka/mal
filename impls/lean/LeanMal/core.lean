@@ -237,13 +237,15 @@ def countFunc(env : Env) (lst: List Types) : IO (Env × Types) := do
       | Types.Nil => return (env, Types.intVal 0)
       | _ => throw (IO.userError "count called on non-sequence")
 
-def readString (lst: List Types) (envir: Env) : Except String Types :=
-  if lst.length < 1 then Except.error "read-string: 1 arguments required"
+def readString (lst: List Types) (envir: Env) : IO Types := do
+  if lst.length < 1 then throw (IO.userError "read-string: 1 arguments required")
   else
     let first := lst[0]!
     match first with
-    | Types.strVal v => read_types_with_env v envir.getDict -- Dict.empty
-    | x => Except.error s!"unexpected symbol: {x.toString true}, expected: string"
+    | Types.strVal v => match read_types_with_env v envir.getDict with -- Dict.empty
+      | Except.error e => throw (IO.userError e)
+      | Except.ok res => return res
+    | x => throw (IO.userError s!"unexpected symbol: {x.toString true}, expected: string")
 
 def cons (env : Env) (lst: List Types) : IO (Env × Types) := do
   if lst.length < 2 then throw (IO.userError "cons: >= 2 arguments required")
@@ -337,8 +339,8 @@ def restSeq (env : Env) (lst: List Types) : IO (Env × Types) := do
 def makeVector (env : Env) (lst: List Types) : IO (Env × Types) := do
   return (env, Types.vecVal (listToVec lst))
 
-def makeDictInternal (initialDict : Dict) (lst: List Types) : Except String (Dict) :=
-  let rec loop (lst : List Types) (acckeys: List String) (acc : Dict) : Except String (Dict × List String) :=
+def makeDictInternal (initialDict : Dict) (lst: List Types) : IO (Dict) := do
+  let rec loop (lst : List Types) (acckeys: List String) (acc : Dict) : IO (Dict × List String) :=
     match lst with
     | [] => return (acc, acckeys)
     | (Types.strVal k) :: v :: rest =>
@@ -347,15 +349,13 @@ def makeDictInternal (initialDict : Dict) (lst: List Types) : Except String (Dic
     | (Types.keywordVal k) :: v :: rest =>
       if acckeys.contains k then return (acc, acckeys)
       else loop rest (acckeys ++ [k]) (Dict.insert (KeyType.keywordKey k) 0 v acc)
-    | _ => Except.error "Invalid list format: Expected alternating string/keyword and value"
-  match loop lst [] initialDict with
-  | Except.error e => Except.error e
-  | Except.ok (v, _) => Except.ok v
+    | _ => throw (IO.userError "Invalid list format: Expected alternating string/keyword and value")
+  let (v, _) ← loop lst [] initialDict
+  return v
 
 def makeDict (env : Env) (lst: List Types) : IO (Env × Types) := do
-  match makeDictInternal Dict.empty lst with
-  | Except.error e => throw (IO.userError e)
-  | Except.ok (newDict) => return (env, Types.dictVal newDict)
+  let newDict ← makeDictInternal Dict.empty lst
+  return (env, Types.dictVal newDict)
 
 def assocDict (env : Env) (lst: List Types) : IO (Env × Types) := do
   if lst.length < 1 then throw (IO.userError "assoc: >= 1 arguments required")
@@ -364,15 +364,14 @@ def assocDict (env : Env) (lst: List Types) : IO (Env × Types) := do
     let rest := lst.drop 1
     match first with
     | Types.dictVal v =>
-      match makeDictInternal v rest with
-      | Except.error e => throw (IO.userError e)
-      | Except.ok (newDict) => return (env, Types.dictVal newDict)
+      let newDict ← makeDictInternal v rest
+      return (env, Types.dictVal newDict)
     | x => throw (IO.userError s!"unexpected symbol: {x.toString true}, expected: hash-map")
 
-def dissoc (dict : Dict) (keys : List Types) : Except String Dict :=
-  let rec loop (keys : List Types) (acc : Dict) : Except String Dict :=
+def dissoc (dict : Dict) (keys : List Types) : IO Dict :=
+  let rec loop (keys : List Types) (acc : Dict) : IO Dict :=
     match keys with
-    | [] => Except.ok acc
+    | [] => return acc
     | key :: rest =>
       match key with
       | Types.strVal v =>
@@ -381,7 +380,7 @@ def dissoc (dict : Dict) (keys : List Types) : Except String Dict :=
       | Types.keywordVal v =>
         let newDict := acc.remove (KeyType.strKey v)
         loop rest newDict
-      | x => Except.error s!"unexpected symbol: {x.toString true}, expected: keyword or string"
+      | x => throw (IO.userError s!"unexpected symbol: {x.toString true}, expected: keyword or string")
   loop keys dict
 
 def dissocDict (env : Env) (lst: List Types) : IO (Env × Types) := do
@@ -391,9 +390,8 @@ def dissocDict (env : Env) (lst: List Types) : IO (Env × Types) := do
     let rest := lst.drop 1
     match first with
     | Types.dictVal v =>
-      match dissoc v rest with
-      | Except.error e => throw (IO.userError e)
-      | Except.ok newDict => return (env, Types.dictVal newDict)
+      let newDict ← dissoc v rest
+      return (env, Types.dictVal newDict)
     | x => throw (IO.userError s!"unexpected symbol: {x.toString true}, expected: hash-map")
 
 def getDict (env : Env) (lst: List Types) : IO (Env × Types) := do
@@ -523,7 +521,7 @@ partial def throwFn (_ : Env) (lst : List Types) : IO (Env × Types) := do
 def readFileContent (filePath : String) : IO String := do
   IO.FS.readFile filePath
 
-def slurp (env : Env) (lst: List Types) : IO (Except (Env × String) (Env × Types)) := do
+def slurp (env : Env) (lst: List Types) : IO (Env × Types) := do
   if lst.length < 1 then
     throw (IO.userError "slurp: 2 arguments required")
   else
@@ -531,30 +529,11 @@ def slurp (env : Env) (lst: List Types) : IO (Except (Env × String) (Env × Typ
     | Types.strVal filename => do
       let result ← try
         let content ← readFileContent filename
-        return return (env, Types.strVal content)
+        return (env, Types.strVal content)
       catch e =>
         throw (IO.userError s!"slurp: failed to read file: {e.toString}")
-
-      -- return result
     | _ =>
       throw (IO.userError "slurp: filename must be a string")
-
-def slurp2 (env : Env) (lst: List Types) : IO (Env × Types) := do
-  if lst.length < 1 then
-    throw (IO.userError "slurp: 2 arguments required")
-  else
-    match lst[0]! with
-    | Types.strVal filename => do
-      let content ← readFileContent filename
-      return (env, Types.strVal content)
-    | _ =>
-      throw (IO.userError "slurp: filename must be a string")
-
--- IO monad limits some of the formal proving capabilities that Lean offers because IO introduces side effects that are inherently non-deterministic and impure, such as reading from files
-def evalFnNativeWithIO (env : Env) (name: String) (results: List Types): IO (Except (Env × String) (Env × Types)) :=
-  match name with
-  | "slurp" => slurp env results
-  | _   => throw (IO.userError s!"'{name}' not found")
 
 def loadFnNative (env : Env) (name: String) : Env :=
   env.add (KeyType.strKey name) 0 (Types.funcVal (Fun.builtin name))
