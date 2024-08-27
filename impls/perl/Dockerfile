@@ -20,3 +20,6 @@ WORKDIR /mal
 ##########################################################
 
 RUN apt-get -y install perl
+
+# For style checks in Makefile.
+# RUN apt-get -y install libperl-critic-perl perltidy
