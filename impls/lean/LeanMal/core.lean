@@ -523,7 +523,7 @@ def readFileContent (filePath : String) : IO String := do
 
 def slurp (env : Env) (lst: List Types) : IO (Env × Types) := do
   if lst.length < 1 then
-    throw (IO.userError "slurp: 2 arguments required")
+    throw (IO.userError "slurp: 1 argument required")
   else
     match lst[0]! with
     | Types.strVal filename => do
@@ -532,8 +532,43 @@ def slurp (env : Env) (lst: List Types) : IO (Env × Types) := do
         return (env, Types.strVal content)
       catch e =>
         throw (IO.userError s!"slurp: failed to read file: {e.toString}")
-    | _ =>
-      throw (IO.userError "slurp: filename must be a string")
+    | _ => throw (IO.userError "slurp: filename must be a string")
+
+def isEOF (stdin : IO.FS.Stream) : IO Bool := do
+  let input ← stdin.read 1 -- Try to read one more character
+  if input.isEmpty then
+    pure true -- EOF detected
+  else
+    pure false -- Some input available
+
+def prompt (msg: String) : IO (Option String) := do
+  IO.print msg
+  let stdin ← IO.getStdin
+  let input ← stdin.getLine
+  if input.isEmpty then
+    let eof ← isEOF stdin
+    if eof then
+      return none -- Indicates EOF (Ctrl+D)
+    else
+      return some ""
+  else
+    let value := input.trim
+    if value = "exit" then
+      return some ""
+    else
+      return some value
+
+def readline (env : Env) (lst: List Types) : IO (Env × Types) := do
+  if lst.length < 1 then
+    throw (IO.userError "readline: 1 arguments required")
+  else
+     match lst[0]! with
+    | Types.strVal msg => do
+      let ret := ← prompt msg
+      match ret with
+      | none => return (env, Types.Nil)
+      | some v => return (env, Types.strVal v)
+    | _ => throw (IO.userError "readline: argument must be a string")
 
 def loadFnNative (env : Env) (name: String) : Env :=
   env.add (KeyType.strKey name) 0 (Types.funcVal (Fun.builtin name))
@@ -559,6 +594,7 @@ def coreFnSymbols: List String := [
   "read-string", "slurp",
   "atom", "atom?", "deref", "reset!", "swap!",
   "eval",
+  "readline",
   "time-ms", "meta", "with-meta"
 ]
 
