@@ -120,8 +120,33 @@ deferrable until later. But I am always open to suggestions.
 Absolutely! I want mal to have a idiomatic implementation in every
 programming language.
 
-Here are a few guidelines for getting your implementation accepted
-into the main repository:
+Here is a quick checklist of what you need to do to merge a new
+implementation:
+- Follow the incremental layout (no extracted eval code)
+- Dockerfile that defines requirements for building and running you
+  implementation and has this LABEL and
+  ```
+  LABEL org.opencontainers.image.source=https://github.com/kanaka/mal
+  ```
+- Makefile: if it is a compiled/built implementation then add rules
+  for building each step and a clean rule.
+- Add your implementation to IMPLS.yml
+  - if takes a long time to build add `SLOW: 1`
+- Add implemenation to `Makefile.impls`
+    - Add to `IMPLS` variable (alphabetical order)
+    - Add a `*_STEP_TO_PROG` line for resolving artifacts to build and
+      run (if not compiled, just point to the step file itself)
+- Update the top-level README.md:
+    - Increment the implementation and runtime counts
+    - Add to the table of implementations
+    - Add a build/run notes sub-section to the `Implementation
+      Details` section
+- Create a pull request (this will trigger CI and allow review)
+- Make sure that CI passes for your implementation including
+  self-hosting (some esoteric languages can have an exception to this)
+
+Here are more detailed guidelines for getting your implementation
+accepted into the main repository:
 
 * Your implementation should follow the existing mal steps and
   structure: Lisp-centric code (eval, eval_ast, quasiquote,
