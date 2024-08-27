@@ -5,8 +5,7 @@ Pull request requirements:
   the implementation name.
 - [ ] Github Actions CI passes all checks (including self-host)
 
-Additional requirements if your are adding a new implementation (see
-[FAQ](../docs/FAQ.md#add_implementation) for details):
+Additional requirements if you are adding a new implementation (see [FAQ](../docs/FAQ.md#add_implementation) for details):
 
 - [ ] Follow incremental structure (no common eval code)
 - [ ] Add `impls/<IMPL>/Dockerfile`
