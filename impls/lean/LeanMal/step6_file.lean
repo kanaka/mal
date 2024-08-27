@@ -127,7 +127,7 @@ mutual
       | _ => throw (IO.userError s!"unexpected token type: ${pairs.toString true}, expected: list or vector")
 
       let (letref, result) ← evalTypes newEnv body
-      -- after executing let*, propagate atoms (defined in outer environments) and logs to the parent scope
+      -- after executing let*, propagate atoms (defined in outer environments) to the parent scope
       return ((forwardMutatedAtoms letref env), result)
 
   partial def evalLetArgs (env: Env) (args : List Types) : IO Env := do
