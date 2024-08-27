@@ -19,7 +19,6 @@
 + (id)fromBindings:(Env *)outer binds:(NSArray *)binds exprs:(NSArray *)exprs;
 
 - (NSObject *) set:(MalSymbol *)key val:(NSObject *)val;
-- (Env *) find:(MalSymbol *)key;
 - (NSObject *) get:(MalSymbol *)key;
 
 @end
