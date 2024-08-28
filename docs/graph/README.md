@@ -5,42 +5,68 @@
 
 * Install prerequisites:
 
+For ubuntu:
 ```
-sudo aptitude install ruby2.3-dev
-sudo gem install travis --no-rdoc --no-ri
-```
-
-* Download the latest successful travis build (BUILD is the travis
-  build number):
-
-```
-cd docs/graph
-
-BUILD=1490
-
-for x in $(seq 1 109); do echo ${BUILD}/${x}; mkdir -p logs/${BUILD}; while ! travis logs ${BUILD}.${x} > logs/${BUILD}/${x}; do true; done; done
+sudo apt-get install gh
+sudo apt-get golang
 ```
 
-* Run the [StackOverflow tags query](https://data.stackexchange.com/stackoverflow/query/edit/1013465) and update the CSV link:
+For macos:
+```
+brew install gh
+brew install go
+```
+
+* Create logs dir and enter graph dir:
+```
+mkdir -p docs/graph/logs
+cd docs/graph/logs
+```
+
+* Install npm deps
+```
+npm install
+```
+
+* Clone and build loccount:
+```
+git clone https://gitlab.com/esr/loccount
+make -C loccount
+```
+
+* Auth with github:
+```
+gh auth login
+```
+
+* Download artifacts from a recent full and successful workflow run:
 
 ```
-export SO_TAG_CSV_URL=... # from the query page
-    E.G.
-export SO_TAG_CSV_URL=https://data.stackexchange.com/stackoverflow/csv/1451851
+# list workflow runs
+$ gh run list --repo kanaka/mal
+
+# Download recent full successful run:
+$ gh run download 10598199016 --repo kanaka/mal
+```
+
+* Run the [StackOverflow tags
+  query](https://data.stackexchange.com/stackoverflow/query/edit/1013465)
+  and then download the CSV link:
+
+```
+curl https://data.stackexchange.com/stackoverflow/csv/2267200 -o so-tags.csv
 ```
 
 * Remove/clean all generated files:
 
 ```
-make -C ../.. clean
+( cd ../.. && git ls-files --others impls/ | xargs rm )
 ```
 
 * Download GitHub and StackOverflow data and generate the final
   combined data set:
 
 ```
-PATH=$PATH:~/personal/programming/loccount
-
-npm install
-time VERBOSE=1 node ./collect_data.js logs/${BUILD}/ all_data.json
+PATH=$PATH:$(pwd)/loccount
+time VERBOSE=1 node ./collect_data.js logs/ all_data.json
 ```

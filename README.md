@@ -83,7 +83,7 @@ FAQ](docs/FAQ.md) where I attempt to answer some common questions.
 | [Io](#io) | [Dov Murik](https://github.com/dubek) |
 | [Janet](#janet) | [sogaiu](https://github.com/sogaiu) |
 | [Java](#java-17) | [Joel Martin](https://github.com/kanaka)  |
-| [Java](#java-using-truffle-for-graalvm) (Truffle/GraalVM) | [Matt McGill](https://github.com/mmcgill)
+| [Java Truffle](#java-using-truffle-for-graalvm) (Truffle/GraalVM) | [Matt McGill](https://github.com/mmcgill) |
 | [JavaScript](#javascriptnode) ([Demo](http://kanaka.github.io/mal)) | [Joel Martin](https://github.com/kanaka) |
 | [jq](#jq) | [Ali MohammadPur](https://github.com/alimpfard) |
 | [Julia](#julia) | [Joel Martin](https://github.com/kanaka)  |
