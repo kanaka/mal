@@ -11,7 +11,7 @@ proc initEnv*(outer: Env = nil, binds, exprs: MalType = nilObj): Env =
       else:
         result.data[e.str] = exprs.list[i]
 
-proc set*(e: var Env, key: string, value: MalType): MalType {.discardable.} =
+proc set*(e: Env, key: string, value: MalType): MalType {.discardable.} =
   e.data[key] = value
   value
 
