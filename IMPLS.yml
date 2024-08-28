@@ -115,7 +115,6 @@ IMPL:
   - {IMPL: zig}
 
   # See .travis.yml (for older osx / xcode tests)
-# - {IMPL: objc, NO_DOCKER: 1, OS: xcode7}}
 # - {IMPL: swift,  NO_DOCKER: 1, OS: xcode7.3}}
 # - {IMPL: swift3, NO_DOCKER: 1, OS: xcode8}}
 # - {IMPL: swift4, NO_DOCKER: 1, OS: xcode10}}
