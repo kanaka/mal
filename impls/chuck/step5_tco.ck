@@ -1,5 +1,4 @@
 // @import readline.ck
-// @import types/boxed/*.ck
 // @import types/MalObject.ck
 // @import types/mal/MalAtom.ck
 // @import types/mal/MalError.ck
