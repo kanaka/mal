@@ -2,7 +2,7 @@ public class MalSlurp extends MalSubr
 {
     fun MalObject call(MalObject args[])
     {
-        (args[0]$MalString).value() => string filename;
+        args[0].stringValue => string filename;
         FileIO f;
         string output[0];
 

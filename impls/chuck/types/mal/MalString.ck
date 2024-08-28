@@ -2,14 +2,9 @@ public class MalString extends MalObject
 {
     "string" => type;
 
-    fun string value()
-    {
-        return (object$String).value;
-    }
-
     fun void init(string value)
     {
-        String.create(value) @=> object;
+       value => stringValue;
     }
 
     fun static MalString create(string value)

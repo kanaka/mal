@@ -30,17 +30,17 @@ fun MalObject EVAL(MalObject m, Env env)
 {
     if( m.type == "list" )
     {
-        if( (m$MalList).value().size() == 0 )
+        if( m.objects.size() == 0 )
         {
             return m;
         }
 
-        (m$MalList).value() @=> MalObject ast[];
-        (ast[0]$MalSymbol).value() => string a0;
+        m.malObjectValues() @=> MalObject ast[];
+        ast[0].stringValue => string a0;
 
         if( a0 == "def!" )
         {
-            (ast[1]$MalSymbol).value() => string a1;
+            ast[1].stringValue => string a1;
 
             EVAL(ast[2], env) @=> MalObject value;
             if( value.type == "error" )
@@ -54,11 +54,11 @@ fun MalObject EVAL(MalObject m, Env env)
         else if( a0 == "let*" )
         {
             Env.create(env) @=> Env let_env;
-            Util.sequenceToMalObjectArray(ast[1]) @=> MalObject bindings[];
+            ast[1].malObjectValues() @=> MalObject bindings[];
 
             for( 0 => int i; i < bindings.size(); 2 +=> i)
             {
-                (bindings[i]$MalSymbol).value() => string symbol;
+                bindings[i].stringValue => string symbol;
                 EVAL(bindings[i+1], let_env) @=> MalObject value;
 
                 if( value.type == "error" )
@@ -78,7 +78,7 @@ fun MalObject EVAL(MalObject m, Env env)
             return result;
         }
 
-        (result$MalList).value() @=> MalObject values[];
+        result.malObjectValues() @=> MalObject values[];
         values[0]$MalSubr @=> MalSubr subr;
         MalObject.slice(values, 1) @=> MalObject args[];
 
@@ -97,12 +97,11 @@ fun MalObject eval_ast(MalObject m, Env env)
 
     if( type == "symbol" )
     {
-        (m$MalSymbol).value() => string symbol;
-        return env.get(symbol);
+        return env.get(m.stringValue);
     }
     else if( type == "list" || type == "vector" || type == "hashmap" )
     {
-        MalObject.toMalObjectArray(m.objects) @=> MalObject values[];
+        m.malObjectValues() @=> MalObject values[];
         MalObject results[values.size()];
 
         if( type != "hashmap" )
@@ -171,8 +170,7 @@ repl_env.set("/", new MalDiv);
 
 fun string errorMessage(MalObject m)
 {
-    (m$MalError).value() @=> MalObject value;
-    return "exception: " + Printer.pr_str(value, true);
+    return "exception: " + String.repr(m.stringValue);
 }
 
 fun string rep(string input)

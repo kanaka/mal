@@ -7,8 +7,8 @@ public class MalGet extends MalSubr
             return Constants.NIL;
         }
 
-        (args[0]$MalHashMap).value() @=> MalObject map[];
-        Util.keyName(args[1]) => string keyName;
+        args[0].malObjectValues() @=> MalObject map[];
+        args[1].stringValue => string keyName;
 
         MalObject mapKey;
         MalObject mapValue;
@@ -19,9 +19,8 @@ public class MalGet extends MalSubr
         {
             map[i] @=> mapKey;
             map[i+1] @=> mapValue;
-            Util.keyName(mapKey) => string mapKeyName;
 
-            if( keyName == mapKeyName )
+            if( keyName == mapKey.stringValue )
             {
                 true => isKeyPresent;
             }

@@ -5,8 +5,7 @@ public class MalCount extends MalSubr
         args[0].type => string kind;
         if( kind == "list" || kind == "vector" )
         {
-            Util.sequenceToMalObjectArray(args[0]) @=> MalObject values[];
-            return MalInt.create(values.size());
+            return MalInt.create(args[0].objects.size());
         }
         else
         {

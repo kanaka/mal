@@ -2,17 +2,12 @@ public class MalError extends MalObject
 {
     "error" => type;
 
-    fun MalObject value()
+    fun void init(string value)
     {
-        return object$MalObject;
+        value => stringValue;
     }
 
-    fun void init(MalObject value)
-    {
-        value @=> object;
-    }
-
-    fun static MalError create(MalObject value)
+    fun static MalError create(string value)
     {
         MalError m;
         m.init(value);

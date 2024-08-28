@@ -2,14 +2,9 @@ public class MalKeyword extends MalObject
 {
     "keyword" => type;
 
-    fun string value()
-    {
-        return (object$String).value;
-    }
-
     fun void init(string value)
     {
-        String.create(value) @=> object;
+        value => stringValue;
     }
 
     fun static MalKeyword create(string value)

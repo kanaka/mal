@@ -27,51 +27,66 @@ fun MalObject READ(string input)
     return Reader.read_str(input);
 }
 
-fun int starts_with(MalObject a[], string sym)
+fun int startsWith(MalObject a[], string sym)
 {
     if (a.size() != 2)
     {
         return false;
     }
+
     a[0] @=> MalObject a0;
-    return a0.type == "symbol" && (a0$MalSymbol).value() == sym;
+    return a0.type == "symbol" && a0.stringValue == sym;
 }
-fun MalList qq_loop(MalObject elt, MalList acc)
+
+fun MalList qqLoop(MalObject elt, MalList acc)
 {
-    if( elt.type == "list" && starts_with ((elt$MalList).value(), "splice-unquote") )
+    if( elt.type == "list" )
     {
-        return MalList.create([MalSymbol.create("concat"), (elt$MalList).value()[1], acc]);
+        elt.malObjectValues() @=> MalObject ast[];
+
+        if( startsWith(ast, "splice-unquote") )
+        {
+            return MalList.create([MalSymbol.create("concat"), ast[1], acc]);
+        }
     }
     return MalList.create([MalSymbol.create("cons"), quasiquote(elt), acc]);
 }
-fun MalList qq_foldr(MalObject a[])
+
+fun MalList qqFoldr(MalObject a[])
 {
     MalObject empty[0];  //  empty, but typed
     MalList.create(empty) @=> MalList acc;
+
     for( a.size() - 1 => int i; 0 <= i; i-- )
     {
-        qq_loop(a[i], acc) @=> acc;
+        qqLoop(a[i], acc) @=> acc;
     }
+
     return acc;
 }
+
 fun MalObject quasiquote(MalObject ast)
 {
     ast.type => string type;
     if (type == "list") {
-        if (starts_with((ast$MalList).value(), "unquote"))
+        ast.malObjectValues() @=> MalObject a[];
+        if (startsWith(a, "unquote"))
         {
-            return (ast$MalList).value()[1];
+            return a[1];
         }
-        return qq_foldr((ast$MalList).value());
+        return qqFoldr(a);
     }
+
     if (type == "vector")
     {
-        return MalList.create([MalSymbol.create("vec"), qq_foldr((ast$MalVector).value())]);
+        return MalList.create([MalSymbol.create("vec"), qqFoldr(ast.malObjectValues())]);
     }
+
     if (type == "symbol" || type == "hashmap")
     {
         return MalList.create([MalSymbol.create("quote"), ast]);
     }
+
     return ast;
 }
 
@@ -79,11 +94,11 @@ fun int isMacroCall(MalObject ast, Env env)
 {
     if( ast.type == "list" )
     {
-        (ast$MalList).value() @=> MalObject a[];
+        ast.malObjectValues() @=> MalObject a[];
 
         if( a[0].type == "symbol" )
         {
-            (a[0]$MalSymbol).value() => string name;
+            a[0].stringValue => string name;
             env.find(name) @=> MalObject value;
 
             if( value != null && value.type == "func" && (value$Func).isMacro )
@@ -100,8 +115,8 @@ fun MalObject macroexpand(MalObject ast, Env env)
 {
     while( isMacroCall(ast, env) )
     {
-        Util.sequenceToMalObjectArray(ast) @=> MalObject list[];
-        (list[0]$MalSymbol).value() => string name;
+        ast.malObjectValues() @=> MalObject list[];
+        list[0].stringValue => string name;
         env.get(name) @=> MalObject macro;
         MalObject.slice(list, 1) @=> MalObject args[];
 
@@ -129,7 +144,7 @@ fun MalObject EVAL(MalObject m, Env env)
             return eval_ast(m, env);
         }
 
-        if( (m$MalList).value().size() == 0 )
+        if( m.objects.size() == 0 )
         {
             return m;
         }
@@ -141,15 +156,15 @@ fun MalObject EVAL(MalObject m, Env env)
             return eval_ast(m, env);
         }
 
-        (m$MalList).value() @=> MalObject ast[];
+        m.malObjectValues() @=> MalObject ast[];
 
         if( ast[0].type == "symbol" )
         {
-            (ast[0]$MalSymbol).value() => string a0;
+            ast[0].stringValue => string a0;
 
             if( a0 == "def!" )
             {
-                (ast[1]$MalSymbol).value() => string a1;
+                ast[1].stringValue => string a1;
 
                 EVAL(ast[2], env) @=> MalObject value;
                 if( value.type == "error" )
@@ -163,11 +178,11 @@ fun MalObject EVAL(MalObject m, Env env)
             else if( a0 == "let*" )
             {
                 Env.create(env) @=> Env let_env;
-                Util.sequenceToMalObjectArray(ast[1]) @=> MalObject bindings[];
+                ast[1].malObjectValues() @=> MalObject bindings[];
 
                 for( 0 => int i; i < bindings.size(); 2 +=> i)
                 {
-                    (bindings[i]$MalSymbol).value() => string symbol;
+                    bindings[i].stringValue => string symbol;
                     EVAL(bindings[i+1], let_env) @=> MalObject value;
 
                     if( value.type == "error" )
@@ -197,7 +212,7 @@ fun MalObject EVAL(MalObject m, Env env)
             }
             else if( a0 == "defmacro!" )
             {
-                (ast[1]$MalSymbol).value() => string a1;
+                ast[1].stringValue => string a1;
 
                 EVAL(ast[2], env) @=> MalObject value;
                 if( value.type == "error" )
@@ -257,12 +272,12 @@ fun MalObject EVAL(MalObject m, Env env)
             }
             else if( a0 == "fn*" )
             {
-                MalObject.toMalObjectArray(ast[1].objects) @=> MalObject arg_values[];
+                ast[1].malObjectValues() @=> MalObject arg_values[];
                 string args[arg_values.size()];
 
                 for( 0 => int i; i < arg_values.size(); i++ )
                 {
-                    (arg_values[i]$MalSymbol).value() => args[i];
+                    arg_values[i].stringValue => args[i];
                 }
 
                 ast[2] @=> MalObject _ast;
@@ -277,7 +292,7 @@ fun MalObject EVAL(MalObject m, Env env)
             return result;
         }
 
-        (result$MalList).value() @=> MalObject values[];
+        result.malObjectValues() @=> MalObject values[];
         values[0].type => string type;
         MalObject.slice(values, 1) @=> MalObject args[];
 
@@ -305,12 +320,11 @@ fun MalObject eval_ast(MalObject m, Env env)
 
     if( type == "symbol" )
     {
-        (m$MalSymbol).value() => string symbol;
-        return env.get(symbol);
+        return env.get(m.stringValue);
     }
     else if( type == "list" || type == "vector" || type == "hashmap" )
     {
-        MalObject.toMalObjectArray(m.objects) @=> MalObject values[];
+        m.malObjectValues() @=> MalObject values[];
         MalObject results[values.size()];
 
         if( type != "hashmap" )
@@ -424,8 +438,7 @@ repl_env.set("*ARGV*", MalList.create(MalArgv(args)));
 
 fun string errorMessage(MalObject m)
 {
-    (m$MalError).value() @=> MalObject value;
-    return "exception: " + Printer.pr_str(value, true);
+    return "exception: " + String.repr(m.stringValue);
 }
 
 fun string rep(string input)

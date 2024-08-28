@@ -86,7 +86,7 @@ public class Env extends MalObject
         }
         else
         {
-            return MalError.create(MalString.create("'" + key + "' not found"));
+            return MalError.create("'" + key + "' not found");
         }
     }
 }

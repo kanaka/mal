@@ -6,7 +6,7 @@ public class MalConcat extends MalSubr
 
         for( 0 => int i; i < args.size(); i++ )
         {
-            Util.sequenceToMalObjectArray(args[i]) @=> MalObject list[];
+            args[i].malObjectValues() @=> MalObject list[];
             MalObject.append(value, list) @=> value;
         }
 

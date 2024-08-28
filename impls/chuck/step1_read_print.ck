@@ -34,8 +34,7 @@ fun string PRINT(MalObject m)
 
 fun string errorMessage(MalObject m)
 {
-    (m$MalError).value() @=> MalObject value;
-    return "exception: " + Printer.pr_str(value, true);
+    return "exception: " + String.repr(m.stringValue);
 }
 
 fun string rep(string input)

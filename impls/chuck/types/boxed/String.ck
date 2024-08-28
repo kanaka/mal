@@ -1,16 +1,5 @@
 public class String
 {
-    string value;
-
-    fun static String create(string value)
-    {
-        String s;
-        value => s.value;
-        return s;
-    }
-
-    // helpers
-
     // "x".substring(1) errors out (bug?), this doesn't
     fun static string slice(string input, int index)
     {

@@ -10,7 +10,7 @@ public class MalRest extends MalSubr
             return MalList.create(result);
         }
 
-        Util.sequenceToMalObjectArray(args[0]) @=> MalObject list[];
+        args[0].malObjectValues() @=> MalObject list[];
 
         if( list.size() > 0 )
         {

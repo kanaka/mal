@@ -5,16 +5,11 @@ public class MalHashMap extends MalObject
     "hashmap" => type;
 
 
-    fun MalObject[] value()
-    {
-        return MalObject.toMalObjectArray(objects);
-    }
-
     fun string keyName(MalObject m)
     {
         if( m.type == "string" || m.type == "keyword" )
         {
-            return (m.object $ String).value;
+            return m.stringValue;
         }
         else
         {

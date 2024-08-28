@@ -7,9 +7,9 @@ public class MalVec extends MalSubr
             if (a0.type == "vector") {
                 return a0;
             } else if (a0.type == "list") {
-                return MalVector.create((a0$MalList).value());
+                return MalVector.create(a0.malObjectValues());
             }
         }
-        return MalError.create(MalString.create("vec: wrong arguments"));
+        return MalError.create("vec: wrong arguments");
     }
 }

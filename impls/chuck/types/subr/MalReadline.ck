@@ -2,7 +2,7 @@ public class MalReadline extends MalSubr
 {
     fun MalObject call(MalObject args[])
     {
-        (args[0]$MalString).value() => string prompt;
+        args[0].stringValue => string prompt;
         Readline.readline(prompt) => string input;
 
         if( input == null )

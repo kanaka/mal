@@ -2,7 +2,7 @@ public class MalAssoc extends MalSubr
 {
     fun MalObject call(MalObject args[])
     {
-        (args[0]$MalHashMap).value() @=> MalObject map[];
+        args[0].malObjectValues() @=> MalObject map[];
         MalObject.slice(args, 1) @=> MalObject kvs[];
 
         MalObject result[0];
@@ -12,7 +12,7 @@ public class MalAssoc extends MalSubr
 
         for( 0 => int i; i < map.size(); 2 +=> i )
         {
-            Util.keyName(map[i]) => string key;
+            map[i].stringValue => string key;
 
             keys << key;
 
@@ -22,7 +22,7 @@ public class MalAssoc extends MalSubr
 
         for( 0 => int i; i < kvs.size(); 2 +=> i )
         {
-            Util.keyName(kvs[i]) => string key;
+            kvs[i].stringValue => string key;
 
             if( cachedValues[key] == null )
             {

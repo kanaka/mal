@@ -56,7 +56,7 @@ public class Reader
 
         if( reader.tokens.size() == 0 )
         {
-            return MalError.create(MalString.create("empty input"));
+            return MalError.create("empty input");
         }
         else
         {
@@ -81,7 +81,7 @@ public class Reader
         }
         else if( token == ")" || token == "]" || token == "}" )
         {
-            return MalError.create(MalString.create("unexpected '" + token + "'"));
+            return MalError.create("unexpected '" + token + "'");
         }
         else if( token == "'" )
         {
@@ -126,7 +126,7 @@ public class Reader
             // bothersome to do indirectly)
             if( reader.position == reader.tokens.size() )
             {
-                return MalError.create(MalString.create("expected '" + end + "', got EOF"));
+                return MalError.create("expected '" + end + "', got EOF");
             }
 
             if( reader.peek() == end )
@@ -198,7 +198,7 @@ public class Reader
             }
             else
             {
-                return MalError.create(MalString.create("expected '\"', got EOF"));
+                return MalError.create("expected '\"', got EOF");
             }
         }
         else if( token.substring(0, 1) == ":" )

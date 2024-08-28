@@ -30,7 +30,7 @@ fun MalObject EVAL(MalObject m, MalSubr env[])
 {
     if( m.type == "list" )
     {
-        if( (m$MalList).value().size() == 0 )
+        if( m.objects.size() == 0 )
         {
             return m;
         }
@@ -41,7 +41,7 @@ fun MalObject EVAL(MalObject m, MalSubr env[])
             return result;
         }
 
-        (result$MalList).value() @=> MalObject values[];
+        result.malObjectValues() @=> MalObject values[];
         values[0]$MalSubr @=> MalSubr subr;
         MalObject.slice(values, 1) @=> MalObject args[];
 
@@ -59,12 +59,12 @@ fun MalObject eval_ast(MalObject m, MalSubr env[])
 
     if( type == "symbol" )
     {
-        (m$MalSymbol).value() => string symbol;
+        m.stringValue => string symbol;
         env[symbol] @=> MalSubr subr;
 
         if( subr == null )
         {
-            return MalError.create(MalString.create("'" + symbol + "' not found"));
+            return MalError.create("'" + symbol + "' not found");
         }
         else
         {
@@ -73,7 +73,7 @@ fun MalObject eval_ast(MalObject m, MalSubr env[])
     }
     else if( type == "list" || type == "vector" || type == "hashmap" )
     {
-        MalObject.toMalObjectArray(m.objects) @=> MalObject values[];
+        m.malObjectValues() @=> MalObject values[];
         MalObject results[values.size()];
 
         if( type != "hashmap" )
@@ -142,8 +142,7 @@ new MalDiv @=> repl_env["/"];
 
 fun string errorMessage(MalObject m)
 {
-    (m$MalError).value() @=> MalObject value;
-    return "exception: " + Printer.pr_str(value, true);
+    return "exception: " + String.repr(m.stringValue);
 }
 
 fun string rep(string input)
