@@ -1,5 +1,4 @@
 import Lean
-import Mathlib
 import LeanMal.types
 import LeanMal.reader
 

@@ -39,7 +39,6 @@ mutual
 
   partial def evalFunc (env: Env) (head : Types) (args : List Types) : IO (Env × Types) := do
     let (env2, fn) ← evalTypes env head
-    -- only propagate logs after executing a function
     let (_, res) ← evalFuncVal env2 fn args
     return (env, res)
 

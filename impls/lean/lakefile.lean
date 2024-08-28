@@ -8,8 +8,6 @@ package "mal" where
   ]
   -- add any additional package configuration options here
 
-require "leanprover-community" / "mathlib"
-
 require Parser from git "https://github.com/fgdorais/lean4-parser" @ "main"
 
 @[default_target]

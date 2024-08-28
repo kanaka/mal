@@ -1,5 +1,4 @@
 import Lean
-import Mathlib
 import LeanMal.types
 
 open Lean Lean.Parsec
