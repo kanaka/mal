@@ -2,7 +2,7 @@ import rdstdin, tables, sequtils, types, reader, printer, env
 
 proc read(str: string): MalType = str.read_str
 
-proc eval(ast: MalType, env: var Env): MalType =
+proc eval(ast: MalType, env: Env): MalType =
 
   let dbgeval = env.get("DEBUG-EVAL")
   if not (dbgeval.isNil or dbgeval.kind in {Nil, False}):
@@ -30,7 +30,7 @@ proc eval(ast: MalType, env: var Env): MalType =
     of "def!":
       result = env.set(a1.str, a2.eval(env))
     of "let*":
-      var let_env = initEnv(env)
+      let let_env = initEnv(env)
       case a1.kind
       of List, Vector:
         for i in countup(0, a1.list.high, 2):
@@ -48,7 +48,7 @@ proc print(exp: MalType): string = exp.pr_str
 template wrapNumberFun(op): untyped =
   fun proc(xs: varargs[MalType]): MalType = number op(xs[0].number, xs[1].number)
 
-var repl_env = initEnv()
+let repl_env = initEnv()
 
 repl_env.set("+", wrapNumberFun(`+`))
 repl_env.set("-", wrapNumberFun(`-`))

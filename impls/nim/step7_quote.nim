@@ -7,7 +7,7 @@ proc quasiquote(ast: MalType): MalType
 proc quasiquote_loop(xs: seq[MalType]): MalType =
   result = list()
   for i in countdown(xs.high, 0):
-    var elt = xs[i]
+    let elt = xs[i]
     if elt.kind == List and 0 < elt.list.len and elt.list[0] == symbol "splice-unquote":
       result = list(symbol "concat", elt.list[1], result)
     else:
@@ -72,7 +72,7 @@ proc eval(ast: MalType, env: Env): MalType =
         let
           a1 = ast.list[1]
           a2 = ast.list[2]
-        var let_env = initEnv(env)
+        let let_env = initEnv(env)
         case a1.kind
         of List, Vector:
           for i in countup(0, a1.list.high, 2):
@@ -115,10 +115,8 @@ proc eval(ast: MalType, env: Env): MalType =
         let
           a1 = ast.list[1]
           a2 = ast.list[2]
-        var env2 = env
         let fn = proc(a: varargs[MalType]): MalType =
-          var newEnv = initEnv(env2, a1, list(a))
-          a2.eval(newEnv)
+          a2.eval(initEnv(env, a1, list(a)))
         return malfun(fn, a2, a1, env)
 
     let f = eval(a0, env)
@@ -132,12 +130,12 @@ proc eval(ast: MalType, env: Env): MalType =
 
 proc print(exp: MalType): string = exp.pr_str
 
-var repl_env = initEnv()
+let repl_env = initEnv()
 
 for k, v in ns.items:
   repl_env.set(k, v)
 repl_env.set("eval", fun(proc(xs: varargs[MalType]): MalType = eval(xs[0], repl_env)))
-var ps = commandLineParams()
+let ps = commandLineParams()
 repl_env.set("*ARGV*", list((if paramCount() > 1: ps[1..ps.high] else: @[]).map(str)))
 
 
