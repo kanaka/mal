@@ -55,10 +55,6 @@ procedure StepA_Mal is
       --  optimization goes to <<Restart>>.
       Ast            : Types.T  := Ast0;
       Env            : Envs.Ptr := Env0;
-      Env_Reusable   : Boolean  := False;
-      --  True when the environment has been created in this recursion
-      --  level, and has not yet been referenced by a closure. If so,
-      --  we can reuse it instead of creating a subenvironment.
       First          : Types.T;
    begin
       <<Restart>>
@@ -113,10 +109,7 @@ procedure StepA_Mal is
                  renames Ast.Sequence.all.Data (2).Sequence.all.Data;
             begin
                Err.Check (Bindings'Length mod 2 = 0, "expected even binds");
-               if not Env_Reusable then
-                  Env := Envs.New_Env (Outer => Env);
-                  Env_Reusable := True;
-               end if;
+               Env := Envs.New_Env (Outer => Env);
                for I in 0 .. Bindings'Length / 2 - 1 loop
                   Env.all.Set (Bindings (Bindings'First + 2 * I),
                          Eval (Bindings (Bindings'First + 2 * I + 1), Env));
@@ -171,7 +164,6 @@ procedure StepA_Mal is
             begin
                Err.Check (Params.Kind in Types.Kind_Sequence,
                           "first argument of fn* must be a sequence");
-               Env_Reusable := False;
                return (Kind_Fn, Types.Fns.New_Function
                  (Params => Params.Sequence,
                   Ast    => Ast.Sequence.all.Data (3),
@@ -203,10 +195,7 @@ procedure StepA_Mal is
                   when Err.Error =>
                      null;
                end;
-               if not Env_Reusable then
-                  Env := Envs.New_Env (Outer => Env);
-                  Env_Reusable := True;
-               end if;
+               Env := Envs.New_Env (Outer => Env);
                Env.all.Set (A3 (A3'First + 1), Err.Data); --  check key kind
                Ast := A3 (A3'Last);
                goto Restart;
@@ -259,7 +248,6 @@ procedure StepA_Mal is
          end case;
          --  Like Types.Fns.Apply, except that we use TCO.
          Env := Envs.New_Env (Outer => First.Fn.all.Env);
-         Env_Reusable := True;
          Env.all.Set_Binds (Binds => First.Fn.all.Params.all.Data,
                             Exprs => Args);
          Ast := First.Fn.all.Ast;
