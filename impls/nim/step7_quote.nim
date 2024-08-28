@@ -158,6 +158,7 @@ while true:
     let line = readLineFromStdin("user> ")
     echo line.rep
   except Blank: discard
+  except IOError: quit()
   except:
     echo getCurrentExceptionMsg()
     echo getCurrentException().getStackTrace()

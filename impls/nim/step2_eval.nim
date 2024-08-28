@@ -43,5 +43,6 @@ while true:
   try:
     let line = readLineFromStdin("user> ")
     echo line.rep
+  except IOError: quit()
   except:
     echo getCurrentExceptionMsg()
