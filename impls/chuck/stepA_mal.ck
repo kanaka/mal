@@ -1,12 +1,12 @@
 // @import readline.ck
 // @import types/MalObject.ck
 // @import types/mal/MalAtom.ck
+// @import types/mal/MalString.ck
 // @import types/mal/MalError.ck
 // @import types/mal/MalNil.ck
 // @import types/mal/MalFalse.ck
 // @import types/mal/MalTrue.ck
 // @import types/mal/MalInt.ck
-// @import types/mal/MalString.ck
 // @import types/mal/MalSymbol.ck
 // @import types/mal/MalKeyword.ck
 // @import types/mal/MalList.ck
@@ -246,9 +246,9 @@ fun MalObject EVAL(MalObject m, Env env)
 
                 ast[2].malObjectValues() @=> MalObject form[];
                 form[1].stringValue => string name;
-                MalString.create(value.stringValue) @=> MalObject error_message;
+                value.malObjectValue() @=> MalObject error;
 
-                Env.create(env, [name], [error_message]) @=> Env error_env;
+                Env.create(env, [name], [error]) @=> Env error_env;
                 return EVAL(form[2], error_env);
             }
             else if( a0 == "do" )
@@ -464,7 +464,19 @@ repl_env.set("*host-language*", MalString.create("chuck"));
 
 fun string errorMessage(MalObject m)
 {
-    return "exception: " + String.repr(m.stringValue);
+    m.malObjectValue() @=> MalObject e;
+    string message;
+
+    if( e.type == "string" )
+    {
+        String.repr(e.stringValue) => message;
+    }
+    else
+    {
+        Printer.pr_str(e, true) => message;
+    }
+
+    return "exception: " + message;
 }
 
 fun string rep(string input)
@@ -501,7 +513,7 @@ fun void main()
         {
             rep(input) => string output;
 
-            if( output == "empty input" )
+            if( output == "exception: \"empty input\"" )
             {
                 // proceed immediately with prompt
             }
