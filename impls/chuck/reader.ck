@@ -160,6 +160,11 @@ public class Reader
         {
             return MalHashMap.create(items);
         }
+        else
+        {
+            Util.panic("Programmer error (failed to specify correct start token)");
+            return null;
+        }
     }
 
     fun static MalObject read_atom(Reader reader)

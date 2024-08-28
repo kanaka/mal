@@ -10,22 +10,32 @@ public class Util
         {
             return (m$MalVector).value();
         }
+        else
+        {
+            return null;
+        }
     }
 
     fun static string keyName(MalObject m)
     {
-        if( m.type == "string" )
+        if( m.type == "string" || m.type == "keyword" )
         {
-            return (m$MalString).value();
+            return ((m.object)$String).value;
         }
-        else if (m.type == "keyword" )
+        else
         {
-            return (m$MalKeyword).value();
+            return "this shouldn't happen";
         }
     }
 
     fun static void println(string message)
     {
         chout <= message + "\n";
+    }
+
+    fun static void panic(string message)
+    {
+        println("This shouldn't happen because: " + message);
+        Machine.crash();
     }
 }

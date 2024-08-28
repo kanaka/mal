@@ -41,5 +41,9 @@ public class MalSeq extends MalSubr
                 return Constants.NIL;
             }
         }
+        else
+        {
+            return MalError.create(MalString.create("Invalid argument"));
+        }
     }
 }

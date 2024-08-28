@@ -116,7 +116,7 @@ fun MalObject EVAL(MalObject m, Env env)
             }
             else if( a0 == "fn*" )
             {
-                (ast[1]$MalList).value() @=> MalObject arg_values[];
+                MalObject.toMalObjectArray(ast[1].objects) @=> MalObject arg_values[];
                 string args[arg_values.size()];
 
                 for( 0 => int i; i < arg_values.size(); i++ )
@@ -170,7 +170,7 @@ fun MalObject eval_ast(MalObject m, Env env)
     }
     else if( type == "list" || type == "vector" || type == "hashmap" )
     {
-        (m$MalList).value() @=> MalObject values[];
+        MalObject.toMalObjectArray(m.objects) @=> MalObject values[];
         MalObject results[values.size()];
 
         if( type != "hashmap" )
@@ -213,6 +213,11 @@ fun MalObject eval_ast(MalObject m, Env env)
         else if( type == "hashmap" )
         {
             return MalHashMap.create(results);
+        }
+        else
+        {
+            Util.panic("Programmer error (exhaustive match)");
+            return null;
         }
     }
     else

@@ -13,8 +13,15 @@ public class MalSlurp extends MalSubr
             output << f.readLine();
         }
 
-        f.close();
+        // HACK: not only do we assume files are joined by \n, but the
+        // final newline cannot be detected otherwise
+        String.join(output, "\n") => string content;
+        if( f.size() == content.length() + 1 )
+        {
+           "\n"  +=> content;
+        }
 
-        return MalString.create(String.join(output, "\n"));
+        f.close();
+        return MalString.create(content);
     }
 }

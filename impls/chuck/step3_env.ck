@@ -102,7 +102,7 @@ fun MalObject eval_ast(MalObject m, Env env)
     }
     else if( type == "list" || type == "vector" || type == "hashmap" )
     {
-        (m$MalList).value() @=> MalObject values[];
+        MalObject.toMalObjectArray(m.objects) @=> MalObject values[];
         MalObject results[values.size()];
 
         if( type != "hashmap" )
@@ -145,6 +145,11 @@ fun MalObject eval_ast(MalObject m, Env env)
         else if( type == "hashmap" )
         {
             return MalHashMap.create(results);
+        }
+        else
+        {
+            Util.panic("Programmer error (exhaustive match)");
+            return null;
         }
     }
     else
