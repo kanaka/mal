@@ -80,15 +80,12 @@
     ($MEM_VAL1_ptr ($MEM_VAL0_ptr ($MEM_VAL0_ptr ($MEM_VAL0_ptr $ast)))))
 
   (func $ECHO_IF_DEBUG_EVAL (param $ast i32 $env i32)
-    (local $res_env i64 $value i32)
-    (local.set $res_env ($ENV_FIND $env (global.get $DEBUG_EVAL_S)))
-    (if (i32.wrap_i64 $res_env)
+    (LET $value ($ENV_GET $env (global.get $DEBUG_EVAL_S)))
+    (if (AND $value
+             (i32.ne $value (global.get $NIL))
+             (i32.ne $value (global.get $FALSE)))
       (then
-        (local.set $value (i32.wrap_i64 (i64.shr_u $res_env (i64.const 32))))
-        (if (AND (i32.ne $value (global.get $NIL))
-                 (i32.ne $value (global.get $FALSE)))
-          (then
-            ($PR_VALUE "EVAL: %s\n" $ast))))))
+        ($PR_VALUE "EVAL: %s\n" $ast))))
 
   (func $EVAL (param $orig_ast i32 $orig_env i32) (result i32)
     (LET $ast $orig_ast
@@ -112,6 +109,8 @@
     (if (i32.eq $ast_type (global.get $SYMBOL_T))
       (then
         (local.set $res ($ENV_GET $env $ast))
+        (if (i32.eqz $res)
+          ($THROW_STR_1 "'%s' not found" ($to_String $ast)))
         (br $EVAL_return)))
 
     (if (OR (i32.eq $ast_type (global.get $VECTOR_T))
