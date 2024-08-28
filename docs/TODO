@@ -1,26 +1,38 @@
-In process/stepA.gliffy, add inc and remove *gensym-counter*.
-Then refresh the .png files.
+General:
+    * GHA: ignore changes to Makefile.impls and IMPLS.yml for
+      determining tests to run.
+
+    * Add self-hosted CI mode/variable
+
+    * Go through PRs. Close or update.
+
+    * Add quick checklist for merging upstream to FAQ:
+
+    * Add PR template/checklist.
+
+    * Update diagrams to reflect the merged eval-ast/macroexpand
+      process.
+
+    * Check that implementations are actually running self-hosted.
+      Check for "mal-user>" prompt or something.
+
+    - Fix self-hosted implementations #662
+
+    - update get-changed-files
+        - use GITHUB_OUTPUT instead of set-output
+        - update version of node
+
+    - update language graph code and data
+        - pull from GHA instead of Travis
+
+All/multiple Implementations:
+    - Add step3 and step4 tests. Fix powershell, jq, and xslt with
+      binding/closures. https://github.com/kanaka/mal/issues/645
+
+common-lisp:
+    * Fix to run/build with latest sbcl/Ubuntu
 
 ---------------------------------------------
-
-General:
-    - add chat bot for #mal
-    - move tokenizer.mal and reader.mal from malc to ./lib directory
-
-    - Finish guide.md
-        - mention that identifier names are suggested. some have run
-          into collisions with READ,EVAL,PRINT in case insensitive
-          languages
-        - simplify: "X argument (list element Y)" -> ast[Y]
-        - more clarity about when to peek and poke in read_list and
-          read_form
-        - tokenizer: use first group rather than whole match (to
-          eliminate whitespace/commas)
-
-All Implementations:
-    - regular expression matching in runtest
-    - add re (use in rep) everywhere and use that (to avoid printing)
-    - fix stepA soft failures: lua matlab miniMAL perl racket
 
 Other ideas for All:
     - propagate/print errors when self-hosted
