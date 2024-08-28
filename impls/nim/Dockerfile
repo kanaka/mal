@@ -1,4 +1,4 @@
-FROM ubuntu:20.04
+FROM ubuntu:24.04
 MAINTAINER Joel Martin <github@martintribe.org>
 
 ##########################################################
@@ -19,7 +19,6 @@ WORKDIR /mal
 # Specific implementation requirements
 ##########################################################
 
-# Nim
-RUN apt-get -y install gcc libc-dev libreadline-dev nim
+RUN apt-get -y install gcc libc-dev nim
 
 ENV HOME /mal

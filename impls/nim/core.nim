@@ -1,6 +1,6 @@
 import strutils, rdstdin, tables, times, sequtils, types, printer, reader
 
-type MalError* = object of Exception
+type MalError* = object of CatchableError
   t*: MalType
 
 # String functions

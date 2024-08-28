@@ -6,7 +6,7 @@ let
   strRE   = re"""^"(?:\\.|[^\\"])*"$"""
 
 type
-  Blank* = object of Exception
+  Blank* = object of CatchableError
 
   Reader = object
     tokens: seq[string]
