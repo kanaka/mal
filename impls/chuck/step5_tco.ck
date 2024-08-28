@@ -31,6 +31,13 @@ fun MalObject EVAL(MalObject m, Env env)
 {
     while( true )
     {
+        env.find("DEBUG-EVAL") @=> MalObject debugEval;
+        if( debugEval != null && (debugEval.type != "false" &&
+                                  debugEval.type != "nil" ) )
+        {
+            Util.println("EVAL: " + Printer.pr_str(m, true));
+        }
+
         if( m.type != "list" )
         {
             return eval_ast(m, env);

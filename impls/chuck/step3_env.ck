@@ -28,6 +28,13 @@ fun MalObject READ(string input)
 
 fun MalObject EVAL(MalObject m, Env env)
 {
+    env.find("DEBUG-EVAL") @=> MalObject debugEval;
+    if( debugEval != null && (debugEval.type != "false" &&
+                              debugEval.type != "nil" ) )
+    {
+        Util.println("EVAL: " + Printer.pr_str(m, true));
+    }
+
     if( m.type == "list" )
     {
         if( m.objects.size() == 0 )
