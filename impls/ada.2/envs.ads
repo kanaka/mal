@@ -14,8 +14,6 @@ package Envs is
    subtype Ptr is not null Link;
 
    function New_Env (Outer : in Link := null) return Ptr with Inline;
-   --  Set_Binds is provided as distinct subprograms because we some
-   --  time spare the creation of a subenvironment.
 
    procedure Set_Binds (Env   : in out Instance;
                         Binds : in     Types.T_Array;
