@@ -21,6 +21,7 @@ proc eval(ast: MalType, env: var Env): MalType =
       result.hash_map[k] = v.eval(env)
   of List:
     if ast.list.len == 0: return ast
+
     let a0 = ast.list[0]
     if a0.kind == Symbol:
       case a0.str
@@ -34,15 +35,13 @@ proc eval(ast: MalType, env: var Env): MalType =
         let
           a1 = ast.list[1]
           a2 = ast.list[2]
-        var letEnv: Env
-        letEnv.deepCopy(env)
-
+        var let_env = initEnv(env)
         case a1.kind
         of List, Vector:
           for i in countup(0, a1.list.high, 2):
-            letEnv.set(a1.list[i].str, a1.list[i+1].eval(letEnv))
+            let_env.set(a1.list[i].str, a1.list[i+1].eval(let_env))
         else: discard
-        return a2.eval(letEnv)
+        return a2.eval(let_env)
 
       of "do":
         let el = ast.list[1 .. ^1].mapIt(it.eval(env))

@@ -30,14 +30,13 @@ proc eval(ast: MalType, env: var Env): MalType =
     of "def!":
       result = env.set(a1.str, a2.eval(env))
     of "let*":
-      var letEnv: Env
-      letEnv.deepCopy(env)
+      var let_env = initEnv(env)
       case a1.kind
       of List, Vector:
         for i in countup(0, a1.list.high, 2):
-          letEnv.set(a1.list[i].str, a1.list[i+1].eval(letEnv))
+          let_env.set(a1.list[i].str, a1.list[i+1].eval(let_env))
       else: discard
-      result = a2.eval(letEnv)
+      result = a2.eval(let_env)
     else:
       let el = ast.list.mapIt(it.eval(env))
       result = el[0].fun(el[1 .. ^1])
