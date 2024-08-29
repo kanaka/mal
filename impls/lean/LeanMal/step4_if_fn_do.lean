@@ -220,6 +220,11 @@ def fnDefs: List String := [
     "(def! not (fn* (a) (if a false true)))",
   ]
 
+def repAndPrint (env: Env) (output : String): IO Env := do
+  if output.endsWith "endofinput" then IO.print ""
+  else IO.println output
+  return env
+
 def main : IO Unit := do
   let (env0, _) ← loadMalFns.{u} (loadFnNativeAll (Env.data 0 Dict.empty)) fnDefs
   let mut env := env0
@@ -235,6 +240,5 @@ def main : IO Unit := do
     if value.isEmpty then
       donext := false
     else
-      let (newenv, val) ← rep.{u} env value
-      IO.println val
-      env := newenv
+      let (newenv, value) ← rep.{u} env value
+      env ← repAndPrint newenv value

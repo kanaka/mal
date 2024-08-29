@@ -149,6 +149,19 @@ def read_operator_or_number : Parsec Types := do
     else return Types.symbolVal (String.singleton sign)
   | none => return Types.symbolVal (String.singleton sign)
 
+-- Define a parser for inline comments starting with ";" or ";;"
+def read_comment : Parsec Unit := do
+  skipString ";"
+
+  let nextCh ← peek?
+  match nextCh with
+  | none => pure ()
+  | some _ =>
+    let _ ← optional (many (satisfy (λ c => c ≠ '\n' && c ≠ '\r')))
+    _ ← optional (satisfy (λ c => c = '\n' || c = '\r'))
+    let _ ← optional  wspace
+    pure ()
+
 mutual
   partial def read_list (envir: Dict := Dict.empty) : Parsec Types := do
     -- ws
@@ -235,8 +248,13 @@ mutual
   partial def read_atom (_: Dict := Dict.empty) : Parsec Types :=
     read_operator_or_number <|> read_float_or_int <|> read_str_val <|> read_keyword <|> read_nil_val <|> read_bool_val <|> read_symbol_val
 
-  partial def read_types (envir: Dict := Dict.empty) : Parsec Types :=
-      read_list envir <|> read_vector envir <|> read_hash_map envir  <|> read_symbol "'" "quote" envir <|> read_symbol "`" "quasiquote" envir <|> read_symbol "~@" "splice-unquote" envir <|> read_symbol "~" "unquote" envir <|> read_symbol "@" "deref" envir <|> read_with_meta envir <|> read_atom envir
+  partial def read_types (envir: Dict := Dict.empty) : Parsec Types := do
+      let _ ← optional  wspace
+      let _ ← optional (many read_comment)
+      match ← peek? with
+      | none => fail "endofinput"
+      | some _ =>
+        read_list envir <|> read_vector envir <|> read_hash_map envir  <|> read_symbol "'" "quote" envir <|> read_symbol "`" "quasiquote" envir <|> read_symbol "~@" "splice-unquote" envir <|> read_symbol "~" "unquote" envir <|> read_symbol "@" "deref" envir <|> read_with_meta envir <|> read_atom envir
 end
 
 def read_types_with_env (input : String) (envir: Dict := Dict.empty)  : Except String Types :=

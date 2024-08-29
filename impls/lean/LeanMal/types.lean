@@ -129,9 +129,9 @@ partial def Dict.fold (d : Dict) (init : α) (f : KeyType → Nat → Types → 
   | Dict.empty => init
   | Dict.insert k l v d' => d'.fold (f k l v init) f
 
--- Function to merge two Dicts
-def Dict.merge (baseDict newDict : Dict) : Dict :=
-  let merged := newDict.fold baseDict (fun key l v acc =>
+-- Function to merge two Dicts.
+def Dict.merge (baseDict overwriteDict : Dict) : Dict :=
+  let merged := overwriteDict.fold baseDict (fun key l v acc =>
     match acc.get key with
     | some (lBase, _) =>
       if l > lBase then acc.add key l v else acc

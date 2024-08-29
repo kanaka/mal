@@ -605,14 +605,17 @@ def loadFnNativeAll (env : Env) : Env :=
 def setSymbol (env : Env) (name: String) (value: Types): Env :=
   env.add (KeyType.strKey name) 0 value
 
--- forward mutated atoms defined in the outer environments
--- outer environments always have a lower level index
-def forwardMutatedAtoms (envSource: Env) (envOuter: Env): Env :=
+-- forwards mutated variables defined in outer scopes
+-- outer scopes always have a lower level index
+-- used to forward mutated atoms and variables defined by `eval` in the root scope
+def forwardOuterScopeDefs (envSource: Env) (envOuter: Env): Env :=
   envSource.getDict.fold envOuter (fun key l v acc =>
     if l > acc.getLevel then acc
+    else if l < acc.getLevel then acc.add key l v
     else
-    match acc.get key with
-      | none => acc
-      | some (lOuter, _) =>
-        if l != lOuter then acc else acc.add key l v
+      match acc.get key with
+        | none => acc.add key l v
+        | some (lOuter, _) =>
+          if l != lOuter then acc
+          else acc.add key l v
   )

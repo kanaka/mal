@@ -40,8 +40,7 @@ mutual
   partial def evalFunc (env: Env) (head : Types) (args : List Types) : IO (Env × Types) := do
     let (env2, fn) ← evalTypes env head
     let (fref, res) ← evalFuncVal env2 fn args
-    -- after executing a function, propagate atoms (defined in outer environments) to the parent scope
-    return ((forwardMutatedAtoms fref env), res)
+    return ((forwardOuterScopeDefs fref env), res)
 
   partial def evalFuncVal (env: Env) (fn: Types) (args: List Types) : IO (Env × Types) := do
     -- first execute each function argument - reduce computation
@@ -133,8 +132,7 @@ mutual
       | _ => throw (IO.userError s!"unexpected token type: ${pairs.toString true}, expected: list or vector")
 
       let (letref, result) ← evalTypes newEnv body
-      -- after executing let*, propagate atoms (defined in outer environments) to the parent scope
-      return ((forwardMutatedAtoms letref env), result)
+      return ((forwardOuterScopeDefs letref env), result)
 
   partial def evalLetArgs (env: Env) (args : List Types) : IO Env := do
     match args with
@@ -199,7 +197,9 @@ mutual
     if lst.length < 1 then throw (IO.userError "eval: unexpected syntax")
     else
       let ast := lst[0]!
-      evalTypes env ast
+      -- any new variables are defined on level 0
+      let env0 := Env.data 0 env.getDict
+      evalTypes env0 ast
 
   partial def starts_with (lst: List Types) (symb: String) : Bool :=
     if lst.length == 2 then
@@ -305,9 +305,14 @@ def fnDefs: List String := [
     "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \"\nnil)\")))))",
   ]
 
+def repAndPrint (env: Env) (output : String): IO Env := do
+  if output.endsWith "endofinput" then IO.print ""
+  else IO.println output
+  return env
+
 def main (args : List String) : IO Unit := do
   let (env0, _) ← loadMalFns.{u} (loadFnNativeAll (Env.data 0 Dict.empty)) fnDefs
-  let astArgs := (args.map (fun arg => Types.strVal arg))
+  let astArgs := ((args.drop 1).map (fun arg => Types.strVal arg))
   let mut env := setSymbol env0 "*ARGV*" (Types.listVal astArgs)
 
   if args.length > 0 then
@@ -327,6 +332,5 @@ def main (args : List String) : IO Unit := do
     if value.isEmpty then
       donext := false
     else
-      let (newenv, val) ← rep.{u} env value
-      IO.println val
-      env := newenv
+      let (newenv, value) ← rep.{u} env value
+      env ← repAndPrint newenv value

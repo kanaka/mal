@@ -182,6 +182,11 @@ def rep (env: Env) (input : String): IO (Env × String) := do
       | e => return (env, s!"Error: {e}")
   | Except.error err => return (env, s!"Parsing failed: {err}")
 
+def repAndPrint (env: Env) (output : String): IO Env := do
+  if output.endsWith "endofinput" then IO.print ""
+  else IO.println output
+  return env
+
 def main : IO Unit := do
   let mut env := loadFnNativeAll (Env.data 0 Dict.empty)
   let mut donext := true
@@ -196,6 +201,5 @@ def main : IO Unit := do
     if value.isEmpty then
       donext := false
     else
-      let (newenv, val) ← rep.{u} env value
-      IO.println val
-      env := newenv
+      let (newenv, value) ← rep.{u} env value
+      env ← repAndPrint newenv value
