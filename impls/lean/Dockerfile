@@ -26,6 +26,8 @@ RUN apt-get -y install curl git-core
 # install lean toolchain manager
 RUN curl https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -sSf | sh -s -- -y -v
 
+RUN /root/.elan/bin/elan default leanprover/lean4:stable
+
 # non-root users must have access
 RUN mv /root/.elan/bin/lake /usr/local/bin/
 

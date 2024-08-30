@@ -49,7 +49,7 @@ IMPL:
   - {IMPL: julia}
   - {IMPL: kotlin}
   - {IMPL: latex3, NO_PERF: 1, NO_SELF_HOST: 1, SLOW: 1}
-  - {IMPL: lean, SLOW: 1}
+  - {IMPL: lean}
   - {IMPL: livescript}
   - {IMPL: logo}
   - {IMPL: lua}
