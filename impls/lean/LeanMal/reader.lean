@@ -163,13 +163,13 @@ def read_comment : Parsec Unit := do
     pure ()
 
 mutual
-  partial def read_list (envir: Dict := Dict.empty) : Parsec Types := do
+  partial def read_list : Parsec Types := do
     -- ws
     let _ ← optional  wspace_or_comma_strict
     let _ ← pstring "("
     let _ ← optional  wspace_or_comma_strict
     let els ← many (do
-      let e ← read_types envir
+      let e ← read_types
       let _ ← optional  wspace_or_comma_strict
       -- let _ ← optional (pchar ',')
       return e)
@@ -179,12 +179,12 @@ mutual
     let _ ← optional  wspace_or_comma_strict
     return Types.listVal (els.toList)
 
-    partial def read_vector (envir: Dict := Dict.empty) : Parsec Types := do
+    partial def read_vector : Parsec Types := do
     let _ ← optional  wspace_or_comma_strict
     let _ ← pchar '['
     let _ ← optional  wspace_or_comma_strict
     let els ← many (do
-      let e ← read_types envir
+      let e ← read_types
       let _ ← optional  wspace_or_comma_strict
       -- let _ ← optional (pchar ',')
       return e)
@@ -195,7 +195,7 @@ mutual
     let vec  := listToVec vecLst
     return Types.vecVal vec
 
-  partial def read_hash_map (_: Dict := Dict.empty) : Parsec Types := do
+  partial def read_hash_map : Parsec Types := do
     let _ ← optional  wspace_or_comma_strict
     let _ ← pchar '{'
     let _ ← optional  wspace_or_comma_strict
@@ -222,21 +222,21 @@ mutual
       | Types.strVal v => return (KeyType.strKey v, value)
       | _ => default
 
-  partial def read_symbol (chars: String) (name: String) (envir: Dict := Dict.empty) : Parsec Types := do
+  partial def read_symbol (chars: String) (name: String) : Parsec Types := do
     let _ ← optional  wspace_or_comma_strict
     let _ ← pstring chars
-    let elem ← read_types envir
+    let elem ← read_types
     let _ ← optional  wspace_or_comma_strict
 
     let vecLst := [(Types.symbolVal name), elem]
     return Types.listVal vecLst
 
-  partial def read_with_meta (envir: Dict := Dict.empty) : Parsec Types := do
+  partial def read_with_meta : Parsec Types := do
     ws
     let _ ← pstring "^"
 
     let els ← many (do
-      let e ← read_types envir
+      let e ← read_types
       ws
       let _ ← optional (pchar ',')
       return e)
@@ -245,22 +245,22 @@ mutual
     let vecLst := (Types.symbolVal "with-meta") :: elsVec
     return Types.listVal (List.append vecLst elsVec)
 
-  partial def read_atom (_: Dict := Dict.empty) : Parsec Types :=
+  partial def read_atom : Parsec Types :=
     read_operator_or_number <|> read_float_or_int <|> read_str_val <|> read_keyword <|> read_nil_val <|> read_bool_val <|> read_symbol_val
 
-  partial def read_types (envir: Dict := Dict.empty) : Parsec Types := do
+  partial def read_types : Parsec Types := do
       let _ ← optional  wspace
       let _ ← optional (many read_comment)
       match ← peek? with
       | none => fail "endofinput"
       | some _ =>
-        read_list envir <|> read_vector envir <|> read_hash_map envir  <|> read_symbol "'" "quote" envir <|> read_symbol "`" "quasiquote" envir <|> read_symbol "~@" "splice-unquote" envir <|> read_symbol "~" "unquote" envir <|> read_symbol "@" "deref" envir <|> read_with_meta envir <|> read_atom envir
+        read_list <|> read_vector <|> read_hash_map  <|> read_symbol "'" "quote" <|> read_symbol "`" "quasiquote" <|> read_symbol "~@" "splice-unquote" <|> read_symbol "~" "unquote" <|> read_symbol "@" "deref" <|> read_with_meta <|> read_atom
 end
 
-def read_types_with_env (input : String) (envir: Dict := Dict.empty)  : Except String Types :=
-  match read_types envir input.trim.iter with
+def read_types_with_env (input : String)  : Except String Types :=
+  match read_types input.trim.iter with
   | Lean.Parsec.ParseResult.success _ res => Except.ok res
   | Lean.Parsec.ParseResult.error _ err => Except.error err
 
 def read_str (input : String)  : Except String Types :=
-  read_types_with_env input (Dict.empty : Dict.{u})
+  read_types_with_env input

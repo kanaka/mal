@@ -236,12 +236,12 @@ def countFunc(env : Env) (lst: List Types) : IO (Env × Types) := do
       | Types.Nil => return (env, Types.intVal 0)
       | _ => throw (IO.userError "count called on non-sequence")
 
-def readString (lst: List Types) (envir: Env) : IO Types := do
+def readString (lst: List Types) (_: Env) : IO Types := do
   if lst.length < 1 then throw (IO.userError "read-string: 1 arguments required")
   else
     let first := lst[0]!
     match first with
-    | Types.strVal v => match read_types_with_env v envir.getDict with -- Dict.empty
+    | Types.strVal v => match read_types_with_env v with -- Dict.empty
       | Except.error e => throw (IO.userError e)
       | Except.ok res => return res
     | x => throw (IO.userError s!"unexpected symbol: {x.toString true}, expected: string")

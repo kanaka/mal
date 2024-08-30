@@ -4,7 +4,7 @@ import LeanMal.printer
 universe u
 
 def READ (input : String) :=
-  read_str.{u} input
+  read_str input
 
 def EVAL (ast : Types) (_: String) := ast
 
@@ -12,7 +12,7 @@ def PRINT (ast : Types): String :=
   pr_str true ast
 
 def rep (input : String): String :=
-  match READ.{u} input with
+  match READ input with
   | Except.ok result =>
     PRINT (EVAL result "")
   | Except.error err =>
@@ -31,4 +31,4 @@ def main : IO Unit := do
     if value.isEmpty then
       donext := false
     else
-      IO.println (rep.{u} value)
+      IO.println (rep value)

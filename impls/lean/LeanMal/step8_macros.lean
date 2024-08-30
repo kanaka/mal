@@ -134,7 +134,7 @@ mutual
         | _ => throw (IO.userError s!"def! unexpected token, expected: symbol")
 
   partial def evalDefMacro (env: Env) (args : List Types) : IO (Env × Types) := do
-    if args.length < 2 then throw (IO.userError "def! unexpected syntax")
+    if args.length < 2 then throw (IO.userError "defmacro! unexpected syntax")
     else
       let key := args[0]!
       let body := args[1]!
@@ -148,8 +148,9 @@ mutual
             let refResult := newEnv.add (KeyType.strKey v) env.getLevel value
             return (refResult, value)
           | Fun.userDefined fref params body =>
-            let refResult := newEnv.add (KeyType.strKey v) env.getLevel (Types.funcVal (Fun.macroFn fref params body))
-            return (refResult, value)
+            let res := (Types.funcVal (Fun.macroFn fref params body))
+            let refResult := newEnv.add (KeyType.strKey v) env.getLevel res
+            return (refResult, res)
           | _ => throw (IO.userError s!"defmacro!: unexpected builtin function")
         | x => throw (IO.userError s!"unexpected token type: {x.toString true}, expected: function")
       | _ => throw (IO.userError s!"def! unexpected token, expected: symbol")
@@ -308,19 +309,30 @@ mutual
           | Types.atomVal _ => match name with
             | "atom?" => return (env, Types.boolVal true)
             | _ => return (env, Types.boolVal false)
+          | Types.funcVal func =>
+            match name with
+            | "fn?" => match func with
+              | Fun.builtin _ => return (env, Types.boolVal true)
+              | Fun.userDefined _ _ _ => return (env, Types.boolVal true)
+              | Fun.macroFn _ _ _ =>  return (env, Types.boolVal false)
+            | "macro?" => match func with
+              | Fun.builtin _ => return (env, Types.boolVal false)
+              | Fun.userDefined _ _ _ => return (env, Types.boolVal false)
+              | Fun.macroFn _ _ _ => return (env, Types.boolVal true)
+            | _ => return (env, Types.boolVal false)
           | _   => return (env, Types.boolVal false)
         | _   => throw (IO.userError s!"'{name}' not found")
 
 end
 
 def READ (input : String): Except String Types :=
-  read_str.{u} input
+  read_str input
 
 def PRINT (ast : Types): String :=
   pr_str true ast
 
 def rep (env: Env) (input : String): IO (Env × String) := do
-  match READ.{u} input with
+  match READ input with
   | Except.ok result =>
     try
       let (newenv, res) ← evalTypes env result
@@ -332,7 +344,7 @@ def rep (env: Env) (input : String): IO (Env × String) := do
 def loadMalFns (env: Env) (fndefs: List String): IO (Env × String) := do
   fndefs.foldlM (fun (res : Env × String) fndef => do
     let (ref, msg) := res
-    let (newref, newmsg) ← rep.{u} ref fndef
+    let (newref, newmsg) ← rep ref fndef
     return (newref, s!"{msg}¬{newmsg}")
   ) (env, "")
 
@@ -348,17 +360,10 @@ def repAndPrint (env: Env) (output : String): IO Env := do
   else IO.println output
   return env
 
-def main (args : List String) : IO Unit := do
-  let (env0, _) ← loadMalFns.{u} (loadFnNativeAll (Env.data 0 Dict.empty)) fnDefs
-  let astArgs := ((args.drop 1).map (fun arg => Types.strVal arg))
-  let mut env := setSymbol env0 "*ARGV*" (Types.listVal astArgs)
-
-  if args.length > 0 then
-    let (_, val) ← rep.{u} env s!"(load-file \"{args[0]!}\")"
-    IO.println val
-  else
-
-  let mut donext := true
+def reploop (inienv: Env) : IO Unit := do
+  let mut donext := false
+  let mut env := inienv
+  donext := true
   while donext do
     IO.print "user> "
     let stdin ← IO.getStdin
@@ -370,5 +375,16 @@ def main (args : List String) : IO Unit := do
     if value.isEmpty then
       donext := false
     else
-      let (newenv, value) ← rep.{u} env value
+      let (newenv, value) ← rep env value
       env ← repAndPrint newenv value
+
+def main (args : List String) : IO Unit := do
+  let (env0, _) ← loadMalFns (loadFnNativeAll (Env.data 0 Dict.empty)) fnDefs
+  let env := setSymbol env0 "*ARGV*" (Types.listVal [])
+
+  if args.length > 0 then do
+    let astArgs := ((args.drop 1).map (fun arg => Types.strVal arg))
+    let newenv := setSymbol env0 "*ARGV*" (Types.listVal astArgs)
+    let (_, _) ← rep newenv s!"(load-file \"{args[0]!}\")"
+    IO.Process.exit 0
+  else reploop env

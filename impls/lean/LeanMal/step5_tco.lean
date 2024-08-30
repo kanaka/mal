@@ -193,13 +193,13 @@ mutual
 end
 
 def READ (input : String): Except String Types :=
-  read_str.{u} input
+  read_str input
 
 def PRINT (ast : Types): String :=
   pr_str true ast
 
 def rep (env: Env) (input : String): IO (Env × String) := do
-  match READ.{u} input with
+  match READ input with
   | Except.ok result =>
     try
       let (newenv, res) ← evalTypes env result
@@ -211,7 +211,7 @@ def rep (env: Env) (input : String): IO (Env × String) := do
 def loadMalFns (env: Env) (fndefs: List String): IO (Env × String) := do
   fndefs.foldlM (fun (res : Env × String) fndef => do
     let (ref, msg) := res
-    let (newref, newmsg) ← rep.{u} ref fndef
+    let (newref, newmsg) ← rep ref fndef
     return (newref, s!"{msg}¬{newmsg}")
   ) (env, "")
 
@@ -225,7 +225,7 @@ def repAndPrint (env: Env) (output : String): IO Env := do
   return env
 
 def main : IO Unit := do
-  let (env0, _) ← loadMalFns.{u} (loadFnNativeAll (Env.data 0 Dict.empty)) fnDefs
+  let (env0, _) ← loadMalFns (loadFnNativeAll (Env.data 0 Dict.empty)) fnDefs
   let mut env := env0
   let mut donext := true
   while donext do
@@ -239,5 +239,5 @@ def main : IO Unit := do
     if value.isEmpty then
       donext := false
     else
-      let (newenv, value) ← rep.{u} env value
+      let (newenv, value) ← rep env value
       env ← repAndPrint newenv value

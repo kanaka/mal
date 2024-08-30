@@ -5,7 +5,7 @@ import LeanMal.types
 universe u
 
 def READ (input : String): Except String Types :=
-  read_str.{u} input
+  read_str input
 
 def sum (env : Env) (lst: List Types) : IO (Env × Types) := do
   match lst with
@@ -173,7 +173,7 @@ def PRINT (ast : Types): String :=
   pr_str true ast
 
 def rep (env: Env) (input : String): IO (Env × String) := do
-  match READ.{u} input with
+  match READ input with
   | Except.ok result =>
     try
       let (newenv, res) ← evalTypes env result
@@ -201,5 +201,5 @@ def main : IO Unit := do
     if value.isEmpty then
       donext := false
     else
-      let (newenv, value) ← rep.{u} env value
+      let (newenv, value) ← rep env value
       env ← repAndPrint newenv value

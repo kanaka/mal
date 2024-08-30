@@ -436,13 +436,13 @@ mutual
 end
 
 def READ (input : String): Except String Types :=
-  read_str.{u} input
+  read_str input
 
 def PRINT (ast : Types): String :=
   pr_str true ast
 
 def rep (env: Env) (input : String): IO (Env × String) := do
-  match READ.{u} input with
+  match READ input with
   | Except.ok result =>
     try
       let (newenv, res) ← evalTypes env result
@@ -454,7 +454,7 @@ def rep (env: Env) (input : String): IO (Env × String) := do
 def loadMalFns (env: Env) (fndefs: List String): IO (Env × String) := do
   fndefs.foldlM (fun (res : Env × String) fndef => do
     let (ref, msg) := res
-    let (newref, newmsg) ← rep.{u} ref fndef
+    let (newref, newmsg) ← rep ref fndef
     return (newref, s!"{msg}¬{newmsg}")
   ) (env, "")
 
@@ -470,20 +470,12 @@ def repAndPrint (env: Env) (output : String): IO Env := do
   else IO.println output
   return env
 
-def main (args : List String) : IO Unit := do
-  let (env0, _) ← loadMalFns.{u} (loadFnNativeAll (Env.data 0 Dict.empty)) fnDefs
-  let astArgs := ((args.drop 1).map (fun arg => Types.strVal arg))
-  let mut env := setSymbol env0 "*ARGV*" (Types.listVal astArgs)
+def reploop (inienv: Env) : IO Unit := do
+  let (_, _) ← rep inienv s!"(println (str \"Mal [\" *host-language* \"]\"))"
 
-  if args.length > 0 then
-    let (_, val) ← rep.{u} env s!"(load-file \"{args[0]!}\")"
-    IO.println val
-  else
-
-  let (_, val) ← rep.{u} env s!"(println (str \"Mal [\" *host-language* \"]\"))"
-  IO.println val
-
-  let mut donext := true
+  let mut donext := false
+  let mut env := inienv
+  donext := true
   while donext do
     IO.print "user> "
     let stdin ← IO.getStdin
@@ -495,5 +487,16 @@ def main (args : List String) : IO Unit := do
     if value.isEmpty then
       donext := false
     else
-      let (newenv, value) ← rep.{u} env value
+      let (newenv, value) ← rep env value
       env ← repAndPrint newenv value
+
+def main (args : List String) : IO Unit := do
+  let (env0, _) ← loadMalFns (loadFnNativeAll (Env.data 0 Dict.empty)) fnDefs
+  let env := setSymbol env0 "*ARGV*" (Types.listVal [])
+
+  if args.length > 0 then do
+    let astArgs := ((args.drop 1).map (fun arg => Types.strVal arg))
+    let newenv := setSymbol env0 "*ARGV*" (Types.listVal astArgs)
+    let (_, _) ← rep newenv s!"(load-file \"{args[0]!}\")"
+    IO.Process.exit 0
+  else reploop env
