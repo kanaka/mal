@@ -1,58 +1,92 @@
-const warn = @import("std").debug.warn;
-const Allocator = @import("std").mem.Allocator;
+const warn = @import("std").log.warn;
+const allocator = @import("std").heap.c_allocator;
 
 const hash_map = @import("std").hash_map;
 const MalType = @import("types.zig").MalType;
-const string_eql = @import("utils.zig").string_eql;
-const string_copy = @import("utils.zig").string_copy;
+const string_eql = @import("std").hash_map.eqlString;
 const MalError = @import("error.zig").MalError;
+const debug_alloc = @import("types.zig").debug_alloc;
 
-fn bad_hash(str: []const u8) u32 {
-    var hash: u64 = 1;
-    const m: u32 = (1<<31);
-    const a: u32 = 1103515245;
-    const c: u32 = 12345;
+const Context = struct {
 
-    var i: usize = 0;
-    const n = str.len;
-    while(i < n) {
-        hash = (hash + str[i]) % m;
-        hash = (a * hash) % m;
-        hash = (c + hash) % m;
-        i += 1;
+    pub fn hash(_: @This(), key: *MalType) u64 {
+        return switch(key.*) {
+            .Symbol, .String, .Keyword => |s| hash_map.hashString(s.data),
+            else                       => unreachable,
+        };
     }
-    const res: u32 = @intCast(u32, hash % m);
-    return res;
-}
 
-pub const MalHashMap = hash_map.HashMap([]const u8, *MalType, bad_hash, string_eql);
+    pub fn eql(_: @This(), ma: *MalType, mb: *MalType) bool {
+        return switch(ma.*) {
+            .Keyword => |a| switch(mb.*) {
+                .Keyword => |b| string_eql(a.data, b.data),
+                else     =>    false,
+            },
+            .String => |a| switch(mb.*) {
+                .String => |b| string_eql(a.data, b.data),
+                else    =>     false,
+            },
+            .Symbol => |a| switch(mb.*) {
+                .Symbol => |b| string_eql(a.data, b.data),
+                else    =>     false,
+            },
+            else        =>     unreachable,
+        };
+    }
+};
 
-pub fn deepcopy(allocator: *Allocator, hashmap: MalHashMap) MalError!MalHashMap {
-    var hmap_cpy = MalHashMap.init(allocator);
+
+pub const MalHashMap = hash_map.HashMapUnmanaged(*MalType, *MalType,
+                                                 Context, 80);
+
+pub fn map_destroy(hashmap: *MalHashMap) void {
+    if (debug_alloc) {
+        warn("destroy_map_elements", .{});
+    }
     var iterator = hashmap.iterator();
-    var optional_pair = iterator.next();
-    while(true) {
-        const pair = optional_pair orelse break;
-        const key = string_copy(allocator, pair.key) catch return MalError.SystemError;
-        const val = try pair.value.copy(allocator);
-        _ = hmap_cpy.put(key, val) catch return MalError.SystemError;
-        optional_pair = iterator.next();
+    while(iterator.next()) |pair| {
+        pair.key_ptr.*.decref();
+        pair.value_ptr.*.decref();
     }
-    return hmap_cpy;
+    hashmap.deinit(allocator);
 }
 
-pub fn destroy(allocator: *Allocator, hashmap: MalHashMap, shallow: bool) void {
-    var iterator = hashmap.iterator();
-    var optional_pair = iterator.next();
-    while(true) {
-        const pair = optional_pair orelse break;
-        //warn(" deleting {} {}\n", pair.key, pair.value);
-        if(!shallow) {
-            allocator.free(pair.key);
-            pair.value.delete(allocator);
-        }
-        optional_pair = iterator.next();
+// If the key was present in the map, the implementation reuses it,
+// instead of the new one.  So we need to increment the reference
+// counting for the key here.
+// The ref count of the value is not incremented here.
+pub fn map_insert_incref_key(hashmap: *MalHashMap, key: *MalType, value: *MalType) !void {
+    switch(key.*) {
+        .String, .Keyword, .Symbol => {
+            if (try hashmap.fetchPut(allocator, key, value)) |old| {
+                // No change in the key reference count.
+                old.value.decref();
+            } else {
+                key.incref();
+            }
+        },
+        else => return MalError.TypeError,
     }
-    hashmap.deinit();
 }
 
+pub fn map_insert_from_map(hashmap: *MalHashMap, from: MalHashMap) !void {
+    var iterator = from.iterator();
+    while(iterator.next()) |pair| {
+        const key = pair.key_ptr.*;
+        const value = pair.value_ptr.*;
+        try map_insert_incref_key(hashmap, key, value);
+        value.incref();
+    }
+}
+
+pub fn map_insert_from_kvs(hashmap: *MalHashMap, kvs: []const *MalType) !void {
+    if (kvs.len % 2 == 1) {
+        return MalError.TypeError;
+    }
+    for (0..kvs.len/2) |i| {
+        const key = kvs[2*i];
+        const value = kvs[2*i+1];
+        try map_insert_incref_key(hashmap, key, value);
+        value.incref();
+    }
+}
