@@ -1,160 +1,110 @@
 const std = @import("std");
-const warn = @import("std").debug.warn;
-const Allocator = @import("std").mem.Allocator;
+const warn = std.log.warn;
+const allocator = std.heap.c_allocator;
 
-const string_copy = @import("utils.zig").string_copy;
-const string_eql = @import("utils.zig").string_eql;
 const MalType = @import("types.zig").MalType;
-const MalTypeValue = @import("types.zig").MalTypeValue;
 const MalHashMap = @import("hmap.zig").MalHashMap;
-const MalLinkedList = @import("linked_list.zig").MalLinkedList;
 const MalError = @import("error.zig").MalError;
-const linked_list = @import("linked_list.zig");
 const hash_map = @import("hmap.zig");
+const debug_alloc = @import("types.zig").debug_alloc;
 
 pub const Env = struct {
-    outer: ?**Env,
-    data: *MalHashMap,
-    allocator: *Allocator,
-    refcount: *i32,
+    outer: ?*Env,
+    data: MalHashMap,
+    refcount: i32 = 1,
 
-    pub fn new(allocator: *Allocator, optional_outer: ?*Env) MalError!*Env {
-        const env = allocator.create(Env) catch return MalError.SystemError;
-        env.refcount = allocator.create(i32) catch return MalError.SystemError;
-        env.refcount.* = 1;
-        if(optional_outer) |outer| {
-            const env_ptr = allocator.create(*Env) catch return MalError.SystemError;
-            env_ptr.* = try outer.copy(allocator);
-            env.outer = env_ptr;
-        } else {
-            env.outer = null;
-        }
-        env.data = allocator.create(MalHashMap) catch return MalError.SystemError;
-        env.data.* = MalHashMap.init(allocator);
-        env.allocator = allocator;
+    pub fn new_root() Env {
+        return .{.outer = null, .data = .{}};
+    }
+
+    pub fn new(outer: *Env) !*Env {
+        //  The caller is in charge of incremeting the reference count
+        //  for outer if necessary.
+        const env = try allocator.create(Env);
+        env.* = .{ .outer = outer, .data = .{} };
+        if(debug_alloc) warn("Env: new {any}", .{env});
         return env;
     }
 
-    pub fn copy(env: *Env, allocator: *Allocator) MalError!*Env {
-        const new_env = allocator.create(Env) catch return MalError.SystemError;
-        new_env.refcount = env.refcount;
-        env.refcount.* += 1;
-        new_env.outer = env.outer;
-        new_env.data = env.data;
-        new_env.allocator = allocator;
-        return new_env;
+    pub fn incref(env: *Env) void {
+        if(debug_alloc) {
+            warn("Env: incref {any}", .{env});
+        }
+        env.refcount += 1;
+        // std.debug.assert(env.refcount < 100);
     }
 
-    pub fn delete(env: *Env) void {
-        env.refcount.* -= 1;
-        if(env.refcount.* <= 0) {
-            if(env.outer) |*outer| {
-                outer.*.*.delete();
-                env.allocator.destroy(env.outer.?);
+    pub fn decref(env: *Env) void {
+        var e = env;
+        while (true) {
+            if(debug_alloc) {
+                warn("Env: decref {any}", .{e});
+                e.print_keys();
             }
-            //env.print_keys();
-            hash_map.destroy(env.allocator, env.data.*, false);
-            env.allocator.destroy(env.refcount);
-            env.allocator.destroy(env.data);
-        }
-        env.allocator.destroy(env);
-    }
-
-    pub fn set(env: *Env, key: []const u8, value: *MalType) MalError!void {
-        const optional_prev_mal = env.data.getValue(key);
-        if(optional_prev_mal) |prev_mal| {
-            prev_mal.delete(env.allocator);
-        }
-        //warn("Setting {}\n", key);
-        const key_copy = string_copy(env.allocator, key) catch return MalError.SystemError;
-        _ = env.data.put(key_copy, value) catch return MalError.SystemError;
-    }
-
-    pub fn root_set(env: *Env, key: []const u8, value: *MalType) MalError!void {
-        var root_env = env;
-        while(true) {
-            const outer_ptr = root_env.outer orelse break;
-            root_env = outer_ptr.*;
-        }
-        try root_env.set(key, value);
-    }
-
-    pub fn find(env: *const Env, key: []const u8) bool {
-        const optional_mal = env.data.getValue(key);
-        if(optional_mal) |mal| {
-            return true;
-        }
-        if(env.outer) |outer| {
-            return outer.*.find(key);
-        }
-        return false;
-    }
-
-    pub fn get(env: *const Env, key: []const u8) MalError!*MalType {
-        const optional_mal = env.data.getValue(key);
-        if(optional_mal) |mal| {
-            //warn("Got for key '{}': {} (me: {})\n", key, mal, @ptrToInt(env));
-            return mal;
-        }
-        if(env.outer) |outer| {
-            return outer.*.get(key);
-        }
-        return MalError.EnvLookupError;
-    }
-
-    pub fn set_list(env: *Env, names: MalLinkedList, vals: MalLinkedList) MalError!void {
-        var name_arr = names.toSlice();
-        var vals_arr = vals.toSlice();
-        var i: usize = 0;        
-        
-        while(i < name_arr.len) {
-            const key = try name_arr[i].as_symbol();
-            if(!string_eql(key, "&")) {
-                try env.set(key, vals_arr[i]);
-                i += 1;
-                continue;
+            std.debug.assert (0 < e.refcount);
+            e.refcount -= 1;
+            if(0 < e.refcount) {
+                break;
             }
-
-            // Here we deal with variadic binding
-            if(i+1 >= name_arr.len) return MalError.OutOfBounds;
-            const var_key = try name_arr[i+1].as_symbol();
-            var new_ll = MalLinkedList.init(env.allocator);
-            new_ll.appendSlice(vals_arr[i..vals_arr.len]) catch return MalError.SystemError;
-            const new_mal = try MalType.new_list(env.allocator, new_ll);
-            try env.set(var_key, new_mal);
-            return;
+            if(debug_alloc) {
+                warn("Env: FREE {any}", .{e});
+            }
+            const old = e;
+            if(e.outer) |outer| {
+                e = outer;
+            } else {
+                warn("INTERNAL ERROR: repl-env should never reach a 0 refcount.", .{});
+                break;
+            }
+            hash_map.map_destroy(&old.data);
+            allocator.destroy(old);
         }
     }
 
-    pub fn set_slice(env: *Env, name_arr: []*MalType, vals_arr: []*MalType) MalError!void {
-        var i: usize = 0;        
-        
-        while(i < name_arr.len) {
-            const key = try name_arr[i].as_symbol();
-            if(!string_eql(key, "&")) {
-                try env.set(key, vals_arr[i]);
-                i += 1;
-                continue;
-            }
+    //  Incref both the key and value.
+    pub fn set(env: *Env, key: *MalType, value: *MalType) !void {
+        //  The caller is in charge of incremeting the reference count
+        //  for the value if necessary.
+        switch (key.*) {
+            .Symbol => {
+                if(debug_alloc) {
+                    warn("Env: set {s} {any}", .{key.Symbol.data, key});
+                }
+                try hash_map.map_insert_incref_key(&env.data, key, value);
+            },
+            else => return MalError.ArgError,
+        }
+    }
 
-            // Here we deal with variadic binding
-            if(i+1 >= name_arr.len) return MalError.OutOfBounds;
-            const var_key = try name_arr[i+1].as_symbol();
-            var new_ll = MalLinkedList.init(env.allocator);
-            new_ll.appendSlice(vals_arr[i..vals_arr.len]) catch return MalError.SystemError;
-            const new_mal = try MalType.new_list(env.allocator, new_ll);
-            try env.set(var_key, new_mal);
-            return;
+    pub fn get(env: Env, key: *MalType) !?*MalType {
+        // The result is not increfed().
+        switch (key.*) {
+            .Symbol => {
+                if(debug_alloc) {
+                    warn("Env: get {s} {any}", .{key.Symbol.data, key});
+                }
+                var e: * const Env = &env;
+                while(true) {
+                    if(e.data.get(key)) |value| {
+                        return value;
+                    }
+                    e = e.outer orelse return null;
+                }
+            },
+            else => return MalError.KeyError,
         }
     }
     
-    pub fn print_keys(env: *Env) void {
-        var it = env.data.iterator();
-        var optional_pair = it.next();
-        while(optional_pair) |pair| {
-            warn("{},",pair.key);
-            optional_pair = it.next();
+    pub fn print_keys(env: Env) void {
+        var it = env.data.keyIterator();
+        var count: i32 = 5;
+        while (it.next()) |key| {
+            warn("  key={s},", .{key.*.Symbol.data});
+            count -= 1;
+            if(count <= 0) {
+                warn("  ...", .{});
+                break;
+            }
         }
-        warn("\n");
     }
 };
