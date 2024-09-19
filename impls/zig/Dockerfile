@@ -20,7 +20,7 @@ WORKDIR /mal
 ##########################################################
 RUN apt-get -y install ca-certificates curl gcc libc6-dev libpcre3-dev libreadline-dev xz-utils
 
-RUN curl https://ziglang.org/download/0.13.0/zig-linux-x86_64-0.13.0.tar.xz | tar -xJC/mal
-RUN ln -fst/usr/local/bin /mal/zig-linux-x86_64-0.13.0/zig
+RUN curl https://ziglang.org/download/0.13.0/zig-linux-x86_64-0.13.0.tar.xz | tar -xJC/opt
+RUN ln -fst/usr/local/bin /opt/zig-linux-x86_64-0.13.0/zig
 
 ENV HOME /mal
