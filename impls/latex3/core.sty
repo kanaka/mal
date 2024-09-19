@@ -403,18 +403,31 @@
     \tl_set:Nx \l_tmpa_tl { s \l_tmpa_str }
   }
 
+% Seconds since the UNIX epoch * on first call to time-ms *.
+\int_gzero_new:N \g_mal_first_epoch_int
+
 \mal_def_builtin:nnn { time-ms } { time_ms }
   {
     % Seconds are not accurate enough for MAL tests, so use %s%N.
     % The raw nanosecond count overflows LaTeX integers.
-    % Extract the seconds, subtract the date of publication,
-    % then add the three millisecond digits.
+    % Even the millisecond count since 2024 overflows.
     \iow_term:n {MAL_LATEX3_STRIP_ON}
     \sys_get_shell:xnN { date ~ + \c_percent_str s \c_percent_str N} {}
       \l_tmpa_str
     \iow_term:n {MAL_LATEX3_STRIP_OFF}
+    % Extract the digits representing seconds.
     \int_set:Nx \l_tmpa_int { \tl_range:Vnn \l_tmpa_str 1 { -10 } }
-    \int_set:Nn \l_tmpa_int { \l_tmpa_int - 1723068439 }
+    % If this is the first time this function is called,
+    \int_if_zero:VTF \g_mal_first_epoch_int {
+      % then store the seconds since the epoch for later use
+      \int_gset_eq:NN \g_mal_first_epoch_int \l_tmpa_int
+      % and return 0 seconds
+      \int_zero:N \l_tmpa_int
+    } {
+      % else return the duration in seconds since first call
+      \int_set:Nn \l_tmpa_int { \l_tmpa_int - \g_mal_first_epoch_int }
+    }
+    % ... in both cases, append the three digits for millisecond.
     \tl_set:Nx \l_tmpa_tl { i \int_to_arabic:V \l_tmpa_int
       \tl_range:Vnn \l_tmpa_str { -9 } { -7 } }
   }
