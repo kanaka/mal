@@ -65,9 +65,7 @@ fn EVAL(mal: *MalType, env: hash_map.MalHashMap) MalError!*MalType {
 }
 
 fn PRINT(mal: MalType) !void {
-    const output = try printer.print_str(mal);
-    defer Allocator.free(output);
-    try stdout_file.writeAll(output);
+    try printer.one_stdout(mal);
     try stdout_file.writeAll("\n");
 }
 

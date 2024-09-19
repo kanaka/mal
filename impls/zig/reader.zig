@@ -7,7 +7,6 @@ const pcre = @cImport({
 const MalType = @import("types.zig").MalType;
 const MalError = @import("error.zig").MalError;
 const MalLinkedList = @import("linked_list.zig").MalLinkedList;
-const printer = @import("printer.zig");
 
 const Allocator = @import("std").heap.c_allocator;
 const string_eql = @import("std").hash_map.eqlString;

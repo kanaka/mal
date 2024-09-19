@@ -118,9 +118,7 @@ fn EVAL_let(args: []*MalType, env: *Env) !*MalType {
 }
 
 fn PRINT(mal: MalType) !void {
-    const output = try printer.print_str(mal);
-    defer Allocator.free(output);
-    try stdout_file.writeAll(output);
+    try printer.one_stdout(mal);
     try stdout_file.writeAll("\n");
 }
 

@@ -294,18 +294,14 @@ fn empty(args: []*MalType) !*MalType {
 }
 
 fn prn(args: []*MalType) MalError!*MalType {
-    const s = try printer.print_mal_to_string(args, true, true);
-    defer Allocator.free(s);
-    try stdout_file.writeAll(s);
+    try printer.n_stdout(args, true, true);
     try stdout_file.writeAll("\n");
     const mal = &MalType.NIL;
     return mal;
 }
 
 fn println(args: []*MalType) !*MalType {
-    const s = try printer.print_mal_to_string(args, false, true);
-    defer Allocator.free(s);
-    try stdout_file.writeAll(s);
+    try printer.n_stdout(args, false, true);
     try stdout_file.writeAll("\n");
     const mal = &MalType.NIL;
     return mal;
@@ -313,11 +309,13 @@ fn println(args: []*MalType) !*MalType {
 
 fn str(args: []*MalType) !*MalType {
     const items = try printer.print_mal_to_string(args, false, false);
+    errdefer Allocator.free(items);
     return MalType.new_string(items, false);
 }
 
 fn pr_str(args: []*MalType) !*MalType {
     const s = try printer.print_mal_to_string(args, true, true);
+    errdefer Allocator.free(s);
     return MalType.new_string(s, false);
 }
 
