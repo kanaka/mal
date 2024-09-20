@@ -5,7 +5,7 @@
 (import [mal_types [MalException]])
 (import [reader [read-str Blank]])
 (import [printer [pr-str]])
-(import [env [env-new env-get env-set]])
+(import [env [env-new env-get env-set env-find]])
 (import core)
 
 ;; read
@@ -13,30 +13,35 @@
   (read-str str))
 
 ;; eval
-(defn eval-ast [ast env]
-  ;;(print "eval-ast:" ast (type ast))
-  (if
-    (symbol? ast)         (env-get env ast)
-    (instance? dict ast)  (dict (map (fn [k]
-                                       [k (EVAL (get ast k) env)])
-                                     ast))
-    (instance? tuple ast) (tuple (map (fn [x] (EVAL x env)) ast))
-    (instance? list ast)  (list (map (fn [x] (EVAL x env)) ast))
-    True                  ast))
-
 (defn EVAL [ast env]
-  ;;(print "EVAL:" ast (type ast))
   ;; indented to match later steps
-      (if (not (instance? tuple ast))
-        (eval-ast ast env)
+    (setv [dbgevalenv] [(env-find env (Sym "DEBUG-EVAL"))])
+    (if dbgevalenv
+      (do (setv [dbgevalsym] [(env-get dbgevalenv (Sym "DEBUG-EVAL"))])
+          (if (not (none? dbgevalsym))
+            (print "EVAL:" (pr-str ast True)))))
+      (if
+        (symbol? ast)
+        (env-get env ast)
+
+        (instance? dict ast)
+        (dict (map (fn [k]
+                     [k (EVAL (get ast k) env)])
+                   ast))
+
+        (instance? list ast)
+        (list (map (fn [x] (EVAL x env)) ast))
+
+        (not (instance? tuple ast))
+        ast
+
+        (empty? ast)
+        ast
 
         ;; apply list
             (do
               (setv [a0 a1 a2] [(nth ast 0) (nth ast 1) (nth ast 2)])
               (if
-                (none? a0)
-                ast
-
                 (= (Sym "def!") a0)
                 (env-set env a1 (EVAL a2 env))
 
@@ -48,7 +53,7 @@
                   (EVAL a2 env))
 
                 (= (Sym "do") a0)
-                (last (eval-ast (list (rest ast)) env))
+                (last (list (map (fn [x] (EVAL x env)) (list (rest ast)))))
 
                 (= (Sym "if") a0)
                 (do
@@ -66,7 +71,7 @@
 
                 ;; apply
                 (do
-                  (setv el (eval-ast ast env)
+                  (setv el (list (map (fn [x] (EVAL x env)) ast))
                         f (first el)
                         args (list (rest el)))
                   (apply f args))))))
