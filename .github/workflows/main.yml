@@ -164,8 +164,8 @@ jobs:
         run: |
           sudo apt update -y
           sudo apt install make -y
-          sudo apt install python2 -y
-          sudo ln -s /usr/bin/python2 /usr/bin/python
+          sudo apt install python3 -y
+          sudo ln -s /usr/bin/python3 /usr/bin/python
       - uses: actions/checkout@v4
       - name: Build
         shell: wsl-bash {0}
