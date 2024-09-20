@@ -31,53 +31,37 @@
     (= (first ast) (Sym "unquote")) (get ast 1)
     True                            (qq-foldr ast)))
 
-(defn macro? [ast env]
-  (when (and (coll? ast)
-             (symbol? (first ast))
-             (env-find env (first ast)))
-    (setv mac (env-get env (first ast)))
-    (and (hasattr mac "macro")
-         mac.macro)))
-
-(defn macroexpand [ast env]
- (while (macro? ast env)
-   (setv mac (env-get env (first ast))
-         ast (apply mac (tuple (rest ast)))))
- ast)
-
-
-
-(defn eval-ast [ast env]
-  ;;(print "eval-ast:" ast (type ast))
-  (if
-    (symbol? ast)         (env-get env ast)
-    (instance? dict ast)  (dict (map (fn [k]
-                                       [k (EVAL (get ast k) env)])
-                                     ast))
-    (instance? tuple ast) (tuple (map (fn [x] (EVAL x env)) ast))
-    (instance? list ast)  (list (map (fn [x] (EVAL x env)) ast))
-    True                  ast))
-
 (defn EVAL [ast env]
-  ;;(print "EVAL:" ast (type ast) (instance? tuple ast))
   (setv res None)
   (while True
+    (setv [dbgevalenv] [(env-find env (Sym "DEBUG-EVAL"))])
+    (if dbgevalenv
+      (do (setv [dbgevalsym] [(env-get dbgevalenv (Sym "DEBUG-EVAL"))])
+          (if (not (none? dbgevalsym))
+            (print "EVAL:" (pr-str ast True)))))
     (setv res
-      (if (not (instance? tuple ast))
-        (eval-ast ast env)
+      (if
+        (symbol? ast)
+        (env-get env ast)
+
+        (instance? dict ast)
+        (dict (map (fn [k]
+                     [k (EVAL (get ast k) env)])
+                   ast))
+
+        (instance? list ast)
+        (list (map (fn [x] (EVAL x env)) ast))
+
+        (not (instance? tuple ast))
+        ast
+
+        (empty? ast)
+        ast
 
         ;; apply list
-        (do
-          (setv ast (macroexpand ast env))
-          (if (not (instance? tuple ast))
-            (eval-ast ast env)
-
             (do
               (setv [a0 a1 a2] [(nth ast 0) (nth ast 1) (nth ast 2)])
               (if
-                (none? a0)
-                ast
-
                 (= (Sym "def!") a0)
                 (env-set env a1 (EVAL a2 env))
 
@@ -92,9 +76,6 @@
                 (= (Sym "quote") a0)
                 a1
 
-                (= (Sym "quasiquoteexpand") a0)
-                (QUASIQUOTE a1)
-
                 (= (Sym "quasiquote") a0)
                 (do (setv ast (QUASIQUOTE a1)) (continue)) ;; TCO
 
@@ -102,9 +83,6 @@
                 (do (setv func (EVAL a2 env)
                           func.macro True)
                     (env-set env a1 func))
-
-                (= (Sym "macroexpand") a0)
-                (macroexpand a1 env)
 
                 (= (Sym "try*") a0)
                 (if (and a2 (= (Sym "catch*") (nth a2 0)))
@@ -114,12 +92,15 @@
                       (if (instance? MalException e)
                         (setv exc e.val)
                         (setv exc (Str (get e.args 0))))
-                      (EVAL (nth a2 2) (env-new env [(nth a2 1)]
-                                                    [exc]))))
-                  (EVAL a1 env))
+                      (do (setv ast (nth a2 2)
+                                env (env-new env [(nth a2 1)]
+                                                 [exc]))
+                          (continue)))) ;; TCO
+                  (do (setv ast a1) (continue))) ;; TCO
 
                 (= (Sym "do") a0)
-                (do (eval-ast (list (butlast (rest ast))) env)
+                (do (list (map (fn [x] (EVAL x env))
+                               (list (butlast (rest ast)))))
                     (setv ast (last ast))
                     (continue)) ;; TCO
 
@@ -144,14 +125,17 @@
 
                 ;; apply
                 (do
-                  (setv el (eval-ast ast env)
-                        f (first el)
-                        args (list (rest el)))
+                  (setv f (EVAL a0 env))
+                  (if (and (hasattr f "macro") f.macro)
+                    (do (setv ast (apply f (list (rest ast))))
+                        (continue))) ;; TCO
+                  (setv args (list (map (fn [x] (EVAL x env))
+                                        (list (rest ast)))))
                   (if (hasattr f "ast")
                     (do (setv ast f.ast
                               env (env-new f.env f.params args))
                         (continue)) ;; TCO
-                    (apply f args)))))))))
+                    (apply f args)))))))
     (break))
   res)
 
