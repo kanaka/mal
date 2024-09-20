@@ -158,7 +158,7 @@ jobs:
     steps:
       - uses: Vampire/setup-wsl@v3
         with:
-            distribution: kali-linux
+            distribution: Ubuntu-24.04
       - name: Install requirements for WSL
         shell: wsl-bash {0}
         run: |
