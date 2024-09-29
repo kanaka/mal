@@ -1,3 +1,52 @@
-#!/bin/sh
+#!/usr/bin/python3
+"""Spawn a jq subprocess and wrap some IO interactions for it.
 
-exec python rts.py "${@}"
+jq seems unable to
+ - open an arbitrary file (slurp)
+ - emit a string on stdout without new line (readline)
+"""
+from json import JSONDecodeError, dumps, loads
+from os import environ
+from os.path import dirname, join, realpath
+from subprocess import PIPE, Popen
+from sys import argv
+
+rundir = dirname(realpath(__file__))
+with Popen(args=['/usr/bin/jq',
+                 '--argjson', 'DEBUG', 'false',
+                 '-nrM',  # --null-input --raw-output --monochrome-output
+                 '-L', rundir,
+                 '-f', join(rundir, environ.get('STEP', 'stepA_mal') + '.jq'),
+                 '--args'] + argv[1:],
+           stdin=PIPE, stderr=PIPE, encoding='utf-8',
+           ) as proc:
+    assert proc.stderr is not None  # for mypy
+    for received in proc.stderr:
+        try:
+            as_json = loads(received)
+        except JSONDecodeError:
+            print(f'JQ STDERR: {received}', end=None)
+        else:
+            match as_json:
+                case ['DEBUG:', ['display', str(message)]]:
+                    # While at it, provide a way to immediately print to
+                    # stdin for DEBUG-EVAL, println and prn (jq is able to
+                    # output to stderr, but *we* are already piping it).
+                    print(message)
+                    # Jq waits for this signal to go on, so that its own
+                    # output is not mixed with our one.
+                    print('null', file=proc.stdin, flush=True)
+                case ['DEBUG:', ['readline', str(prompt)]]:
+                    try:
+                        data = input(prompt)
+                    except EOFError:
+                        break                   # Expected end of this script
+                    print(dumps(data), file=proc.stdin, flush=True)
+                case ['DEBUG:', ['slurp', str(fname)]]:
+                    with open(fname, 'r', encoding='utf-8') as file_handler:
+                        data = file_handler.read()
+                    print(dumps(data), file=proc.stdin, flush=True)
+                case _:
+                    # Allow normal debugging information for other purposes.
+                    print(f'JQ STDERR: {received}', end=None)
+print()

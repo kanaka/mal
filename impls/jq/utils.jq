@@ -1,12 +1,3 @@
-def _debug(ex):
-    . as $top
-    | ex
-    | debug
-    | $top;
-
-def _print:
-    tostring;
-
 def nwise(n):
     def _nwise:
         if length <= n then 
@@ -102,54 +93,16 @@ def tomal:
         )
     );
 
-def _extern(options):
-    {command: .} 
-    | debug
-    | if (options.nowait | not) then
-        input | fromjson
-      else
-        null
-      end;
-
-def issue_extern(cmd; options):
-    {cmd: cmd, args: .}
-    | _extern(options);
-
-def issue_extern(cmd):
-    issue_extern(cmd; {});
-
-def _readline:
-      [.]
-    | issue_extern("readline"; {nowait: false})
-    ;
-
-def __readline(prompt):
-    . as $top 
-    | prompt
-    | _readline;
+# The following IO actions are implemented in rts.py.
 
 def __readline:
-    __readline(.);
+    ["readline", .] | debug | input;
 
+# The output is not very interesting.
+# 'input' here only ensures that the python process has printed the
+# message before any further output by the jq process.
 def _display:
-    tostring | .+"\n" | debug;
+    ["display", .] | debug | input;
 
-def _write_to_file(name):
-    . as $value
-    | [(name|tojson), (.|tojson), (false|tojson)]
-    | issue_extern("fwrite"; {nowait: true})
-    | $value;
-
-def _append_to_file(name):
-    . as $value
-    | [(name|tojson), (.|tojson), (true|tojson)]
-    | issue_extern("fwrite"; {nowait: true})
-    | $value;
-
-def _halt:
-    []
-    | issue_extern("halt"; {nowait: true})
-    | halt;
-    
-def trap:
-    _write_to_file("trap_reason.json") | jqmal_error("trap");
+def slurp:
+    ["slurp", .] | debug | input;

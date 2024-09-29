@@ -71,7 +71,7 @@ def addFrees(newEnv; frees):
 def interpret(arguments; env; _eval):
     extractReplEnv(env) as $replEnv |
     extractAtoms(env) as $envAtoms |
-    (if $DEBUG then _debug("INTERP: \(. | pr_str(env))") else . end) |
+    (if $DEBUG then debug("INTERP: \(pr_str(env))") end) |
     (select(.kind == "fn") |
         arg_check(arguments) | 
             (select(.function == "eval") | 

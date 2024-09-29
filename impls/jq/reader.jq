@@ -308,4 +308,4 @@ def read_form_(depth):
         end end end end end end end end end end);
 
 def read_form:
-    {tokens: .} | read_form_(0);
+    ({tokens: read_str} | read_form_(0).value) // {kind: "nil"};
