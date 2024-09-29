@@ -49,37 +49,8 @@ def pureChildEnv:
         fallback: null
     };
 
-def rootEnv:
-    {
-        parent: null,
-        fallback: null,
-        environment: {}
-    };
-
-def inform_function(name):
-    (.names += [name]) | (.names |= unique);
-
-def inform_function_multi(names):
-    . as $dot | reduce names[] as $name(
-        $dot;
-        inform_function($name)
-    );
-
-def env_multiset(keys; value):
-    (if value.kind == "function" then # multiset not allowed on atoms
-        value | inform_function_multi(keys)
-    else
-        value
-    end) as $value | {
-        parent: .parent,
-        environment: (
-            .environment + (reduce keys[] as $key(.environment; .[$key] |= value))
-        ),
-        fallback: .fallback
-    };
-
-def env_multiset(env; keys; value):
-    env | env_multiset(keys; value);
+def env_multiset(fn):
+    .environment += (reduce fn.names[] as $key(.environment; .[$key] |= fn));
 
 def env_set($key; $value):
     (if $value.kind == "function" or $value.kind == "atom" then
@@ -96,7 +67,10 @@ def env_set($key; $value):
             end
         else
             .
-        end) | inform_function($key)
+        end) |
+        .names += [$key] |
+        .names |= unique
+
     else 
         $value
     end) as $value | {

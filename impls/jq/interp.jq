@@ -137,10 +137,10 @@ def interpret(arguments; env; _eval):
         (.body | pr_str(env)) as $src |
         # _debug("INTERP " + $src) |
         # _debug("FREES " + ($fn.free_referencess | tostring)) | 
-        env_setfallback(extractEnv(.env | addFrees(env; $fn.free_referencess)); extractEnv(env)) | childEnv($fn.binds; arguments) as $fnEnv |
+        env_setfallback(extractEnv(.env | addFrees(env; $fn.free_referencess)); extractEnv(env)) | childEnv($fn.binds; arguments) |
             # tell it about its surroundings
             (reduce $fn.free_referencess[] as $name (
-                $fnEnv;
+                .;
                 . as $env | try env_set_(
                     .;
                     $name;
@@ -150,12 +150,12 @@ def interpret(arguments; env; _eval):
                     else
                         $xvalue
                     end
-                ) catch $env)) as $fnEnv |
+                ) catch $env)) |
             # tell it about itself
-            env_multiset($fnEnv; $fn.names; $fn) as $fnEnv |
+            env_multiset($fn) |
+            wrapEnv($replEnv; $envAtoms) |
             {
-                env: env_multiset($fnEnv; $fn.names; $fn)
-                     | wrapEnv($replEnv; $envAtoms),
+                env: .,
                 expr: $fn.body
             }
             | . as $dot
