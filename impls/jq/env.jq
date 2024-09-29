@@ -257,7 +257,7 @@ def addToEnv(envexp; name):
 def _env_remove_references(refs):
     if . != null then
         if .environment == null then
-            _debug("This one broke the rules, officer: \(.)")
+            debug("This one broke the rules, officer: \(.)")
         else
             {
                 environment: (.environment | to_entries | map(select(.key as $key | refs | contains([$key]) | not)) | from_entries),

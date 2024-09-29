@@ -1,4 +1,4 @@
-FROM ubuntu:bionic
+FROM ubuntu:24.04
 MAINTAINER Joel Martin <github@martintribe.org>
 
 ##########################################################
@@ -9,10 +9,8 @@ MAINTAINER Joel Martin <github@martintribe.org>
 RUN apt-get -y update
 
 # Required for running tests
-RUN apt-get -y install make python
-
-# Some typical implementation and test requirements
-RUN apt-get -y install curl libreadline-dev libedit-dev libpcre3-dev
+RUN apt-get -y install make python3
+RUN ln -fs /usr/bin/python3 /usr/local/bin/python
 
 RUN mkdir -p /mal
 WORKDIR /mal
@@ -21,12 +19,4 @@ WORKDIR /mal
 # Specific implementation requirements
 #########################################################
 
-RUN apt-get -y install python3.8 wget
-RUN update-alternatives --install /usr/bin/python python /usr/bin/python3.8 10
-
-# grab jq 1.6 from github releases
-RUN wget https://github.com/stedolan/jq/releases/download/jq-1.6/jq-linux64
-
-RUN chmod +x jq-linux64
-# a bit ugly, but it'll do?
-RUN mv jq-linux64 /usr/bin/jq
+RUN DEBIAN_FRONTEND=noninteractive apt-get -y install jq
