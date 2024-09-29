@@ -22,13 +22,6 @@ def wrap(kind):
         value: .
     };
 
-def wrap2(kind; opts):
-    opts + {
-        kind: kind,
-        value: .
-    };
-
-
 def find_free_references(keys):
     def _refs:
       if . == null then [] else
@@ -73,25 +66,6 @@ def find_free_references(keys):
         end end end end
       end;
     _refs | unique;
-
-def tomal:
-    (
-        select(type == "array") | (
-            map(tomal) | wrap("list")
-        )
-    ) // (
-        select(type == "string") | (
-            if startswith("sym/") then
-                .[4:] | wrap("symbol")
-            else
-                wrap("string")
-            end
-        )
-    ) // (
-        select(type == "number") | (
-            wrap("number")
-        )
-    );
 
 # The following IO actions are implemented in rts.py.
 
