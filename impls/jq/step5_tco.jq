@@ -162,29 +162,6 @@ def EVAL(env):
     def _eval_here:
         .env as $env | .expr | EVAL($env);
 
-    def hmap_with_env:
-        .env as $env | .list as $list |
-            if $list|length == 0 then
-                empty
-            else
-                $list[0] as $elem |
-                $list[1:] as $rest |
-                    $elem[1] | EVAL($env) as $resv |
-                        { value: [$elem[0], $resv.expr], env: env },
-                        ({env: $resv.env, list: $rest} | hmap_with_env)
-            end;
-    def map_with_env:
-        .env as $env | .list as $list |
-            if $list|length == 0 then
-                empty
-            else
-                $list[0] as $elem |
-                $list[1:] as $rest |
-                    $elem | EVAL($env) as $resv |
-                        { value: $resv.expr, env: env },
-                        ({env: $resv.env, list: $rest} | map_with_env)
-            end;
-
     . as $ast
     | { env: env, ast: ., cont: true, finish: false, ret_env: null }
     | [ recurseflip(.cont;
@@ -261,27 +238,29 @@ def EVAL(env):
                                 TCOWrap($_menv; $_orig_retenv; false)
                         )
             ) //
-            (select(.kind == "vector") |
-                if .value|length == 0 then
-                    {
-                        kind: "vector",
-                        value: []
-                    } | TCOWrap($_menv; $_orig_retenv; false)
-                else
-                    [ { env: $_menv, list: .value } | map_with_env ] as $res |
-                    {
-                        kind: "vector",
-                        value: $res | map(.value)
-                    } | TCOWrap($res | last.env; $_orig_retenv; false)
-                end
+            (
+                select(.kind == "vector") |
+                .value |
+                reduce .[] as $x ({expr:[], env:env};
+                    . as $acc |
+                    $x | EVAL($acc.env) |
+                    .expr |= $acc.expr + [.]
+                ) |
+                .env as $e |
+               {kind:"vector", value:.expr} |
+               TCOWrap($e; $_orig_retenv; false)
             ) //
             (
                 select(.kind == "hashmap") |
-                [ { env: $_menv, list: .value | to_entries } | hmap_with_env ] as $res |
-                {
-                    kind: "hashmap",
-                    value: $res | map(.value) | from_entries
-                } | TCOWrap($res | last.env; $_orig_retenv; false)
+                .value | to_entries |
+                 reduce .[] as $x ({expr:[], env:env};
+                    . as $acc |
+                    $x.value.value | EVAL($acc.env) |
+                    .expr |= (. as $e | $acc.expr + [$x | .value.value |= $e])
+                ) |
+                .env as $e |
+                {kind:"hashmap", value:.expr|from_entries} |
+                TCOWrap($e; $_orig_retenv; false)
             ) //
             (
                 select(.kind == "function") |

@@ -150,29 +150,6 @@ def EVAL(env):
     def _eval_here:
         .env as $env | .expr | EVAL($env);
 
-    def hmap_with_env:
-        .env as $env | .list as $list |
-            if $list|length == 0 then
-                empty
-            else
-                $list[0] as $elem |
-                $list[1:] as $rest |
-                    $elem[1] | EVAL($env) as $resv |
-                        { value: [$elem[0], $resv.expr], env: env },
-                        ({env: $resv.env, list: $rest} | hmap_with_env)
-            end;
-    def map_with_env:
-        .env as $env | .list as $list |
-            if $list|length == 0 then
-                empty
-            else
-                $list[0] as $elem |
-                $list[1:] as $rest |
-                    $elem | EVAL($env) as $resv |
-                        { value: $resv.expr, env: env },
-                        ({env: $resv.env, list: $rest} | map_with_env)
-            end;
-
     # EVAL starts here.
             if "DEBUG-EVAL" | env_find(env).environment["DEBUG-EVAL"] |
                 . != null and .kind != "false" and .kind != "nil"
@@ -239,37 +216,31 @@ def EVAL(env):
                             )
                         )
             ) //
-            (select(.kind == "vector") |
-                if .value|length == 0 then
-                    {
-                        kind: "vector",
-                        value: []
-                    } | addEnv(env)
-                else
-                    [ { env: env, list: .value } | map_with_env ] as $res |
-                    {
-                        kind: "vector",
-                        value: $res | map(.value)
-                    } | addEnv($res | last.env)
-                end
+            (
+                select(.kind == "vector") |
+                .value |
+                reduce .[] as $x ({expr:[], env:env};
+                    . as $acc |
+                    $x | EVAL($acc.env) |
+                    .expr |= $acc.expr + [.]
+                ) |
+               .expr |= {kind:"vector", value:.}
             ) //
             (
                 select(.kind == "hashmap") |
-                [ { env: env, list: .value | to_entries } | hmap_with_env ] as $res |
-                {
-                    kind: "hashmap",
-                    value: $res | map(.value) | from_entries
-                } | addEnv($res | last.env)
-            ) //
-            (
-                select(.kind == "function") |
-                . | addEnv(env) # return this unchanged, since it can only be applied to
+                .value | to_entries |
+                 reduce .[] as $x ({expr:[], env:env};
+                    . as $acc |
+                    $x.value.value | EVAL($acc.env) |
+                    .expr |= (. as $e | $acc.expr + [$x | .value.value |= $e])
+                ) |
+                .expr |= {kind:"hashmap", value:from_entries}
             ) //
             (
                 select(.kind == "symbol") |
                 .value | env_get(env) | addEnv(env)
-            )
-            // addEnv(env);
+            ) //
+            addEnv(env);
 
 def PRINT:
     pr_str;
