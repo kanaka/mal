@@ -15,7 +15,7 @@ def env_set(env; $key; $value):
         $value | (.names += [$key]) | (.names |= unique) |
         if $value.kind == "atom" then
             # check if the one we have is newer
-            env_req(env; $key) as $ours |
+            ($key | env_req(env)) as $ours |
             if $ours.last_modified > $value.last_modified then
                 $ours
             else
@@ -91,7 +91,7 @@ def addFrees(newEnv; frees):
     | reduce frees[] as $free (
         $env;
         . as $dot
-        | env_req(newEnv; $free) as $lookup
+        | ($free | env_req(newEnv)) as $lookup
         | if $lookup != null then
             env_set_(.; $free; $lookup)
           else
@@ -132,7 +132,7 @@ def interpret(arguments; env; _eval):
                 expr: $fn.body
             }
             | . as $dot
-            # | debug("FNEXEC " + (.expr | pr_str) + " " + (env_req($dot.env; $fn.binds[0]) | pr_str))
+            # | debug("FNEXEC " + (.expr | pr_str) + " " + ($fn.binds[0] | env_req($dot.env) | pr_str))
             | _eval 
             | . as $envexp
             |
@@ -141,7 +141,7 @@ def interpret(arguments; env; _eval):
                 env: env
             }
             # | . as $dot
-            # | debug("FNPOST " + (.expr | pr_str) + " " + (env_req($dot.expr.env; $fn.binds[0]) | pr_str))
+            # | debug("FNPOST " + (.expr | pr_str) + " " + ($fn.binds[0] | env_req($dot.expr.env) | pr_str))
             # | debug("INTERP " + $src + " = " + (.expr|pr_str))
     ) //
         jqmal_error("Unsupported function kind \(.kind)");
@@ -173,7 +173,7 @@ def EVAL(env):
             | .ret_env as $_orig_retenv
             | .ast
             |
-            if "DEBUG-EVAL" | env_find($_menv).environment["DEBUG-EVAL"] |
+            if "DEBUG-EVAL" | env_req($_menv) |
                 . != null and .kind != "false" and .kind != "nil"
             then
                 ("EVAL: \(pr_str(env))" | _display | empty), .

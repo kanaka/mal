@@ -58,7 +58,7 @@ def env_set($key; $value):
         ($value |
         if $value.kind == "atom" then
             # check if the one we have is newer
-            env_req(env; key) as $ours |
+            ($key | env_req(env)) as $ours |
             if $ours.last_modified > $value.last_modified then
                 $ours
             else
@@ -129,21 +129,15 @@ def env_get(env):
 def env_get(env; key):
     key | env_get(env);
 
-def env_req(env; key):
-    key as $key | key | env_find(env).environment[$key] as $value |
-    if $value == null then
-        null
-    else
-        if $value.kind == "atom" then
-            $value.identity as $id |
-            $key | env_find(env.parent).environment[$key] as $possibly_newer |
-            if $possibly_newer.identity == $id and $possibly_newer.last_modified > $value.last_modified then
-                $possibly_newer
-            else
-                $value
-            end
-        else
-            $value
+def env_req(env):
+    . as $key |
+    env_find(env).environment[$key] |
+    if . != null and .kind == "atom" then
+        ($key | env_find(env.parent).environment[$key]) as $possibly_newer |
+        if $possibly_newer.identity == .identity
+            and $possibly_newer.last_modified > .last_modified
+        then
+            $possibly_newer
         end
     end;
 

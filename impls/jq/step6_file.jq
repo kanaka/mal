@@ -39,7 +39,7 @@ def EVAL(env):
             | $_menv | unwrapReplEnv    as $replEnv    # -
             | $init
             |
-            if "DEBUG-EVAL" | env_find($currentEnv).environment["DEBUG-EVAL"] |
+            if "DEBUG-EVAL" | env_req($currentEnv) |
                 . != null and .kind != "false" and .kind != "nil"
             then
                 ("EVAL: \(pr_str(env))" | _display | empty), .
