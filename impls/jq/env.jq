@@ -73,11 +73,9 @@ def env_set($key; $value):
 
     else 
         $value
-    end) as $value | {
-        parent: .parent,
-        environment: (.environment + (.environment | .[$key] |= $value)), # merge together, as .environment[key] |= value does not work
-        fallback: .fallback
-    };
+    end) as $value |
+    # merge together, as .environment[$key] |= value does not work
+    .environment += (.environment | .[$key] |= $value);
 
 def env_dump_keys:
     def _dump1:
@@ -97,6 +95,7 @@ def env_dump_keys:
         end | unique
     end;
 
+# It should be possible to merge env_get env_req env_find.
 def env_find(env):
     if env.environment[.] == null then
         if env.parent then
@@ -126,10 +125,8 @@ def env_get(env):
         end
     end;
 
-def env_get(env; key):
-    key | env_get(env);
-
 def env_req(env):
+    # key -> value or null
     . as $key |
     env_find(env).environment[$key] |
     if . != null and .kind == "atom" then
@@ -153,13 +150,6 @@ def env_set(env; $key; $value):
         fallback: env.fallback
     };
 
-def env_setfallback(env; fallback):
-    {
-        parent: env.parent,
-        fallback: fallback,
-        environment: env.environment
-    };
-    
 def addEnv(env):
     {
         expr: .,
