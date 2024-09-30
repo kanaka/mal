@@ -59,7 +59,7 @@ def addFrees(newEnv; frees):
         $env;
         . as $dot
         | extractEnv(newEnv) as $env
-        | env_req($env; $free) as $lookup
+        | ($free | env_req($env)) as $lookup
         | if $lookup != null then
             env_set_(.; $free; $lookup)
           else
@@ -159,7 +159,7 @@ def interpret(arguments; env; _eval):
                 expr: $fn.body
             }
             | . as $dot
-            # | _debug("FNEXEC " + (.expr | pr_str) + " " + (env_req($dot.env; $fn.binds[0]) | pr_str))
+            # | _debug("FNEXEC " + (.expr | pr_str) + " " + ($fn.binds[0] | env_req($dot.env) | pr_str))
             | _eval 
             | . as $envexp
             | (extractReplEnv($envexp.env)) as $xreplenv
@@ -171,7 +171,7 @@ def interpret(arguments; env; _eval):
                     | wrapEnv($xreplenv; $envexp.env.atoms)
             }
             # | . as $dot
-            # | _debug("FNPOST " + (.expr | pr_str) + " " + (env_req($dot.expr.env; $fn.binds[0]) | pr_str))
+            # | _debug("FNPOST " + (.expr | pr_str) + " " + ($fn.binds[0] | env_req($dot.expr.env) | pr_str))
             # | _debug("INTERP " + $src + " = " + (.expr|pr_str))
     ) //
         jqmal_error("Unsupported function kind \(.kind)");

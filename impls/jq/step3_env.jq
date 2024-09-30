@@ -66,7 +66,7 @@ def interpret(arguments; env):
         jqmal_error("Unsupported native function kind \(.kind)");
 
 def EVAL(env):
-            if "DEBUG-EVAL" | env_find(env).environment["DEBUG-EVAL"] |
+            if "DEBUG-EVAL" | env_req(env) |
                 . != null and .kind != "false" and .kind != "nil"
             then
                 ("EVAL: \(pr_str(env))" | _display | empty), .
