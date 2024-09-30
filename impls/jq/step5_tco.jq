@@ -111,7 +111,10 @@ def interpret(arguments; env; _eval):
         (.body | pr_str(env)) as $src |
         # debug("INTERP " + $src) |
         # debug("FREES " + ($fn.free_referencess | tostring)) | 
-        env_setfallback((.env | addFrees(env; $fn.free_referencess)); env) | childEnv($fn.binds; arguments) |
+        .env |
+        addFrees(env; $fn.free_referencess) |
+        .fallback |= env |
+        childEnv($fn.binds; arguments) |
             # tell it about its surroundings
             (reduce $fn.free_referencess[] as $name (
                 .;
@@ -132,7 +135,7 @@ def interpret(arguments; env; _eval):
                 expr: $fn.body
             }
             | . as $dot
-            # | debug("FNEXEC " + (.expr | pr_str) + " " + ($fn.binds[0] | env_req($dot.env) | pr_str))
+            # | debug("FNEXEC \(.expr | pr_str) \($fn.binds[0] | env_req($dot.env) | pr_str)")
             | _eval 
             | . as $envexp
             |
@@ -141,8 +144,8 @@ def interpret(arguments; env; _eval):
                 env: env
             }
             # | . as $dot
-            # | debug("FNPOST " + (.expr | pr_str) + " " + ($fn.binds[0] | env_req($dot.expr.env) | pr_str))
-            # | debug("INTERP " + $src + " = " + (.expr|pr_str))
+            # | debug("FNPOST \(.expr | pr_str) \($fn.binds[0] | env_req($dot.expr.env) | pr_str)")
+            # | debug("INTERP \($src) = \(.expr | pr_str)")
     ) //
         jqmal_error("Unsupported function kind \(.kind)");
 

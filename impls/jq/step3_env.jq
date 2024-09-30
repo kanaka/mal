@@ -14,30 +14,11 @@ def env_set(env; $key; $value):
         environment: (env.environment + (env.environment | .[$key] |= $value)) # merge together, as .environment[key] |= value does not work
     };
 
-def env_find(env):
-    if env.environment[.] == null then
-        if env.parent then
-            env_find(env.parent)
-        else
-            null
-        end
-    else
-        env
-    end;
-
 def addToEnv(envexp; name):
     {
         expr: envexp.expr,
         env: env_set(envexp.env; name; envexp.expr)
     };
-
-def env_get(env):
-    . as $key | $key | env_find(env).environment[$key] as $value |
-    if $value == null then
-        jqmal_error("'\($key)' not found")
-    else
-        $value
-    end;
 
 def arg_check(args):
     if .inputs != (args|length) then
