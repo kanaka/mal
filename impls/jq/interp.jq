@@ -59,7 +59,7 @@ def addFrees(newEnv; frees):
         $env;
         . as $dot
         | extractEnv(newEnv) as $env
-        | ($free | env_req($env)) as $lookup
+        | ($free | env_get($env)) as $lookup
         | if $lookup != null then
             env_set_(.; $free; $lookup)
           else
@@ -146,7 +146,8 @@ def interpret(arguments; env; _eval):
                 . as $env | try env_set_(
                     .;
                     $name;
-                    $name | env_get(env) | . as $xvalue
+                    $name | env_get(env) // jqmal_error("'\(.)' not found ") |
+                    . as $xvalue
                     | if $xvalue.kind == "function" then
                         setpath(["free_referencess"]; $fn.free_referencess)
                     else
@@ -161,7 +162,7 @@ def interpret(arguments; env; _eval):
                 expr: $fn.body
             }
             | . as $dot
-            # | debug("FNEXEC \(.expr | pr_str) \($fn.binds[0] | env_req($dot.env) | pr_str)")
+            # | debug("FNEXEC \(.expr | pr_str) \($fn.binds[0] | env_get($dot.env) | pr_str)")
             | _eval 
             | . as $envexp
             | (extractReplEnv($envexp.env)) as $xreplenv
@@ -173,7 +174,7 @@ def interpret(arguments; env; _eval):
                     | wrapEnv($xreplenv; $envexp.env.atoms)
             }
             # | . as $dot
-            # | debug("FNPOST \(.expr | pr_str) \($fn.binds[0] | env_req($dot.expr.env) | pr_str)")
+            # | debug("FNPOST \(.expr | pr_str) \($fn.binds[0] | env_get($dot.expr.env) | pr_str)")
             # | debug("INTERP \($src) = \(.expr | pr_str)")
     ) //
         jqmal_error("Unsupported function kind \(.kind)");
