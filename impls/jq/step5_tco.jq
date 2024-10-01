@@ -33,27 +33,6 @@ def env_set(env; $key; $value):
         fallback: env.fallback
     };
 
-def addToEnv6(envexp; name):
-    envexp.expr as $value
-    | envexp.env as $rawEnv
-    | (if $rawEnv.isReplEnv then
-        env_set_($rawEnv.currentEnv; name; $value) | wrapEnv($rawEnv.atoms)
-    else
-        env_set_($rawEnv.currentEnv; name; $value) | wrapEnv($rawEnv.replEnv; $rawEnv.atoms)
-    end) as $newEnv
-    | {
-        expr: $value,
-        env: $newEnv
-    };
-
-def addToEnv(envexp; name):
-    if envexp.env.replEnv != null then
-        addToEnv6(envexp; name)
-    else {
-        expr: envexp.expr,
-        env: env_set_(envexp.env; name; envexp.expr)
-    } end;
-
 def _env_remove_references(refs):
     if . != null then
         {
@@ -189,7 +168,16 @@ def EVAL(env):
                             (
                                 select(.[0].value == "def!") |
                                     ($value[2] | EVAL($_menv)) as $evval |
-                                        addToEnv($evval; $value[1].value) as $val |
+                                        (
+                                        if $evval.env.replEnv != null then
+                                            addToEnv($evval; $value[1].value)
+                                        else
+                                            {
+                                                expr: $evval.expr,
+                                                env: env_set_($evval.env; $value[1].value; $evval.expr)
+                                            }
+                                        end
+                                        ) as $val |
                                         $val.expr | TCOWrap($val.env; $_orig_retenv; false)
                             ) //
                             (
