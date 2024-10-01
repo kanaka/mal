@@ -58,7 +58,7 @@ def env_set($key; $value):
         ($value |
         if $value.kind == "atom" then
             # check if the one we have is newer
-            ($key | env_req(env)) as $ours |
+            ($key | env_get(env)) as $ours |
             if $ours.last_modified > $value.last_modified then
                 $ours
             else
@@ -95,7 +95,7 @@ def env_dump_keys:
         end | unique
     end;
 
-# It should be possible to merge env_get env_req env_find.
+# Helper for env_get.
 def env_find(env):
     if env.environment[.] == null then
         if env.parent then
@@ -108,27 +108,8 @@ def env_find(env):
     end;
 
 def env_get(env):
-    . as $key | $key | env_find(env).environment[$key] as $value |
-    if $value == null then
-        jqmal_error("'\($key)' not found")
-    else
-        if $value.kind == "atom" then
-            $value.identity as $id |
-            $key | env_find(env.parent).environment[$key] as $possibly_newer |
-            if $possibly_newer.identity == $id and $possibly_newer.last_modified > $value.last_modified then
-                $possibly_newer
-            else
-                $value
-            end
-        else
-            $value
-        end
-    end;
-
-def env_req(env):
     # key -> value or null
-    . as $key |
-    env_find(env).environment[$key] |
+    . as $key | env_find(env).environment[$key] |
     if . != null and .kind == "atom" then
         ($key | env_find(env.parent).environment[$key]) as $possibly_newer |
         if $possibly_newer.identity == .identity

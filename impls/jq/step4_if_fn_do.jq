@@ -15,7 +15,7 @@ def env_set(env; $key; $value):
         $value | (.names += [$key]) | (.names |= unique) |
         if $value.kind == "atom" then
             # check if the one we have is newer
-            ($key | env_req(env)) as $ours |
+            ($key | env_get(env)) as $ours |
             if $ours.last_modified > $value.last_modified then
                 $ours
             else
@@ -91,7 +91,7 @@ def addFrees(newEnv; frees):
     | reduce frees[] as $free (
         $env;
         . as $dot
-        | ($free | env_req(newEnv)) as $lookup
+        | ($free | env_get(newEnv)) as $lookup
         | if $lookup != null then
             env_set_(.; $free; $lookup)
           else
@@ -121,7 +121,8 @@ def interpret(arguments; env; _eval):
                 . as $env | try env_set(
                     .;
                     $name;
-                    $name | env_get(env) | . as $xvalue
+                    $name | env_get(env) // jqmal_error("'\(.)' not found")
+                    | . as $xvalue
                     | if $xvalue.kind == "function" then
                         setpath(["free_referencess"]; $fn.free_referencess)
                     else
@@ -135,7 +136,7 @@ def interpret(arguments; env; _eval):
                 expr: $fn.body
             }
             | . as $dot
-            # | debug("FNEXEC \(.expr | pr_str) \($fn.binds[0] | env_req($dot.env) | pr_str)")
+            # | debug("FNEXEC \(.expr | pr_str) \($fn.binds[0] | env_get($dot.env) | pr_str)")
             | _eval 
             | . as $envexp
             |
@@ -144,7 +145,7 @@ def interpret(arguments; env; _eval):
                 env: env
             }
             # | . as $dot
-            # | debug("FNPOST \(.expr | pr_str) \(; $fn.binds[0] | env_req($dot.expr.env) | pr_str)")
+            # | debug("FNPOST \(.expr | pr_str) \(; $fn.binds[0] | env_get($dot.expr.env) | pr_str)")
             # | debug("INTERP \($src) = \(.expr | pr_str)")
     ) //
         jqmal_error("Unsupported function kind \(.kind)");
@@ -154,7 +155,7 @@ def EVAL(env):
         .env as $env | .expr | EVAL($env);
 
     # EVAL starts here.
-            if "DEBUG-EVAL" | env_req(env) |
+            if "DEBUG-EVAL" | env_get(env) |
                 . != null and .kind != "false" and .kind != "nil"
             then
                 ("EVAL: \(pr_str(env))" | _display | empty), .
@@ -241,7 +242,8 @@ def EVAL(env):
             ) //
             (
                 select(.kind == "symbol") |
-                .value | env_get(env) | addEnv(env)
+                .value | env_get(env) // jqmal_error("'\(.)' not found") |
+                addEnv(env)
             ) //
             addEnv(env);
 

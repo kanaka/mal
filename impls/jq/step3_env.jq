@@ -47,28 +47,26 @@ def interpret(arguments; env):
         jqmal_error("Unsupported native function kind \(.kind)");
 
 def EVAL(env):
-            if "DEBUG-EVAL" | env_req(env) |
+            if "DEBUG-EVAL" | env_get(env) |
                 . != null and .kind != "false" and .kind != "nil"
             then
                 ("EVAL: \(pr_str(env))" | _display | empty), .
             end
             |
             (select(.kind == "list") |
-                .value | select(length != 0) as $value |
-                        (
+                .value | select(length != 0) |
                             (
-                                select(.[0].value == "def!") as $value |
-                                    ($value[2] | EVAL(env)) as $evval |
-                                        addToEnv($evval; $value[1].value)
+                                select(.[0].value == "def!") |
+                                    addToEnv(.[2] | EVAL(env); .[1].value)
                             ) //
                             (
-                                select(.[0].value == "let*") as $value |
-                                    (env | pureChildEnv) as $subenv |
-                                        (reduce ($value[1].value | nwise(2)) as $xvalue (
-                                            $subenv;
-                                            . as $env | $xvalue[1] | EVAL($env) as $expenv |
-                                                env_set($expenv.env; $xvalue[0].value; $expenv.expr))) as $env
-                                                    | $value[2] | { expr: EVAL($env).expr, env: env }
+                                select(.[0].value == "let*") |
+                                        (reduce (.[1].value | nwise(2)) as $xvalue (
+                                            env | pureChildEnv;
+                                            . as $env | $xvalue[1] | EVAL($env) |
+                                            env_set(.env; $xvalue[0].value; .expr)
+                                        )) as $env |
+                                        .[2] | {expr:EVAL($env).expr, env:env}
                             ) //
                             (
                                 reduce .[] as $elem (
@@ -79,7 +77,6 @@ def EVAL(env):
                                     | $ev.expr | first |
                                         interpret($ev.expr[1:]; $ev.env)
                             )
-                        )
             ) //
             (
                 select(.kind == "vector") |
@@ -103,7 +100,8 @@ def EVAL(env):
             ) //
             (
                 select(.kind == "symbol") |
-                .value | env_get(env) | addEnv(env)
+                .value | env_get(env) // jqmal_error("'\(.)' not found ") |
+                addEnv(env)
             ) //
             addEnv(env);
 

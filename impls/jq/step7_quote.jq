@@ -74,7 +74,7 @@ def EVAL(env):
             | $_menv | unwrapReplEnv    as $replEnv    # -
             | $init
             |
-            if "DEBUG-EVAL" | env_req($currentEnv) |
+            if "DEBUG-EVAL" | env_get($currentEnv) |
                 . != null and .kind != "false" and .kind != "nil"
             then
                 ("EVAL: \(pr_str(env))" | _display | empty), .
@@ -188,7 +188,9 @@ def EVAL(env):
             ) //
             (
                 select(.kind == "symbol") |
-                .value | env_get($currentEnv) | TCOWrap($_menv; $_orig_retenv; false)
+                .value |
+                env_get($currentEnv) // jqmal_error("'\(.)' not found") |
+                TCOWrap($_menv; $_orig_retenv; false)
             ) //
             TCOWrap($_menv; $_orig_retenv; false)
         end
