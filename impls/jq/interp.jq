@@ -88,7 +88,8 @@ def interpret(arguments; env; _eval):
                 # env modifying function
                 arguments[0].identity as $id |
                 ($envAtoms | setpath([$id]; arguments[1])) as $envAtoms |
-                arguments[1] | addEnv(env | setpath(["atoms"]; $envAtoms))
+                arguments[1] |
+                {expr:., env: (env | setpath(["atoms"]; $envAtoms))}
             ) //
             (select(.function == "swap!") | 
                 # env modifying function
@@ -98,15 +99,16 @@ def interpret(arguments; env; _eval):
                 ([$initValue] + arguments[2:]) as $args |
                 ($function | interpret($args; env; _eval)) as $newEnvValue |
                 ($envAtoms | setpath([$id]; $newEnvValue.expr)) as $envAtoms |
-                $newEnvValue.expr | addEnv(env | setpath(["atoms"]; $envAtoms))
+                $newEnvValue.expr |
+                {expr:., env:(env | setpath(["atoms"]; $envAtoms))}
             ) // (select(.function == "atom") |
                 (now|tostring) as $id |
                 {kind: "atom", identity: $id} as $value |
                 ($envAtoms | setpath([$id]; arguments[0])) as $envAtoms |
-                $value | addEnv(env | setpath(["atoms"]; $envAtoms))
+                $value | {expr:., env:(env | setpath(["atoms"]; $envAtoms))}
             ) // (select(.function == "deref") |
-                $envAtoms[arguments[0].identity] | addEnv(env)
-            ) // 
+                $envAtoms[arguments[0].identity] | {expr:., env:env}
+            ) //
             (select(.function  == "apply") |
                 # (apply F ...T A) -> (F ...T ...A)
                 arguments as $args
@@ -128,9 +130,9 @@ def interpret(arguments; env; _eval):
                         env: (.env | setpath(["atoms"]; $val.env.atoms))
                     }
                   )) as $ex
-                | $ex.val | wrap("list") | addEnv($ex.env)
+                | $ex.val | wrap("list") | {expr:., env:$ex.env}
             ) //
-                (core_interp(arguments; env) | addEnv(env))
+                (core_interp(arguments; env) | {expr:., env:env})
     ) //
     (select(.kind == "function") as $fn |
         # todo: arg_check

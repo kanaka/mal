@@ -83,7 +83,7 @@ def interpret(arguments; env; _eval):
     (if $DEBUG then debug("INTERP: \(. | pr_str(env))") else . end) |
     (select(.kind == "fn") |
         arg_check(arguments) | 
-                (core_interp(arguments; env) | addEnv(env))
+                (core_interp(arguments; env) | {expr:., env:env})
     ) //
     (select(.kind == "function") as $fn |
         # todo: arg_check
@@ -192,7 +192,7 @@ def EVAL(env):
                                         body: $value[2],
                                         names: [], # we can't do that circular reference thing
                                         free_referencess: $value[2] | find_free_references(env | env_dump_keys + $binds) # for dynamically scoped variables
-                                    } | addEnv(env)
+                                    } | {expr: ., env:env}
                             ) //
                             (
                                 reduce .[] as $elem (
@@ -227,10 +227,11 @@ def EVAL(env):
             ) //
             (
                 select(.kind == "symbol") |
-                .value | env_get(env) // jqmal_error("'\(.)' not found") |
-                addEnv(env)
+                .value |
+                env_get(env) // jqmal_error("'\(.)' not found") |
+                {expr:., env:env}
             ) //
-            addEnv(env);
+            {expr:., env:env};
 
 def PRINT:
     pr_str;
