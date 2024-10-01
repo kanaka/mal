@@ -14,12 +14,6 @@ def env_set(env; $key; $value):
         environment: (env.environment + (env.environment | .[$key] |= $value)) # merge together, as .environment[key] |= value does not work
     };
 
-def addToEnv(envexp; name):
-    {
-        expr: envexp.expr,
-        env: env_set(envexp.env; name; envexp.expr)
-    };
-
 def arg_check(args):
     if .inputs != (args|length) then
         jqmal_error("Invalid number of arguments (expected \(.inputs), got \(args|length))")
@@ -57,7 +51,10 @@ def EVAL(env):
                 .value | select(length != 0) |
                             (
                                 select(.[0].value == "def!") |
-                                    addToEnv(.[2] | EVAL(env); .[1].value)
+                                    .[1].value as $key |
+                                    .[2] | EVAL(env) |
+                                    .expr as $value |
+                                    .env |= env_set(.; $key; $value)
                             ) //
                             (
                                 select(.[0].value == "let*") |

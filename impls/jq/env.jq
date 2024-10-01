@@ -137,13 +137,6 @@ def addEnv(env):
         env: env
     };
 
-def addToEnv(env; name; expr):
-    {
-        expr: expr,
-        env: env_set(env; name; expr)
-    };
-
-
 def wrapEnv(atoms):
     {
         replEnv: .,
