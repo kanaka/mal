@@ -249,11 +249,9 @@ def EVAL(env):
             TCOWrap($_menv; $_orig_retenv; false)
         end
         | (if $DEBUG then debug("POSTEVAL: \($ast | pr_str($_menv)) = \(.ast | pr_str($_menv))") else . end)
-    ) ] 
-    | last as $result
-    | ($result.ret_env // $result.env) as $env
-    | $result.ast
-    | addEnv($env);
+    ) ] |
+    last |
+    {expr: .ast, env:(.ret_env // .env)};
 
 def PRINT(env):
     pr_str(env);

@@ -37,7 +37,8 @@ def interpret(arguments; env):
             select(.function == "number_div") |
             arguments | map(.value) | .[0] / .[1] | wrap("number")
         )
-    ) | addEnv(env) //
+        | {expr:., env:env}
+    ) //
         jqmal_error("Unsupported native function kind \(.kind)");
 
 def EVAL(env):
@@ -98,9 +99,9 @@ def EVAL(env):
             (
                 select(.kind == "symbol") |
                 .value | env_get(env) // jqmal_error("'\(.)' not found ") |
-                addEnv(env)
+                {expr:., env:env}
             ) //
-            addEnv(env);
+            {expr:., env:env};
 
 def PRINT:
     pr_str;

@@ -131,12 +131,6 @@ def env_set(env; $key; $value):
         fallback: env.fallback
     };
 
-def addEnv(env):
-    {
-        expr: .,
-        env: env
-    };
-
 def wrapEnv(atoms):
     {
         replEnv: .,

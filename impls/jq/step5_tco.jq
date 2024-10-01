@@ -83,7 +83,7 @@ def interpret(arguments; env; _eval):
     (if $DEBUG then debug("INTERP: \(. | pr_str(env))") else . end) |
     (select(.kind == "fn") |
         arg_check(arguments) | 
-                (core_interp(arguments; env) | addEnv(env))
+                core_interp(arguments; env) | {expr:., env:env}
     ) //
     (select(.kind == "function") as $fn |
         # todo: arg_check
@@ -265,11 +265,9 @@ def EVAL(env):
             ) //
             TCOWrap($_menv; $_orig_retenv; false)
         end
-    ) ] 
-    | last as $result
-    | ($result.ret_env // $result.env) as $env
-    | $result.ast
-    | addEnv($env);
+    ) ] |
+    last |
+    {expr: .ast, env:(.ret_env // .env)};
 
 def PRINT:
     pr_str;
