@@ -129,11 +129,12 @@ def EVAL(env):
                             ) //
                             (
                                 select(.[0].value == "try*") |
+                                  if $value[2]
+                                  and ($value[2].value[0] | .kind == "symbol" and .value == "catch*")
+                                  then
                                     try (
                                         $value[1] | EVAL($_menv) as $exp | $exp.expr | TCOWrap($exp.env; $_orig_retenv; false)
                                     ) catch ( . as $exc |
-                                        if $value[2] then
-                                            if ($value[2].value[0] | .kind == "symbol" and .value == "catch*") then
                                                 (if ($exc | is_jqmal_error) then
                                                     $exc[19:] as $ex |
                                                         try (
@@ -148,13 +149,11 @@ def EVAL(env):
                                                 end) as $exc |
                                                 $value[2].value[2] | EVAL($currentEnv | childEnv([$value[2].value[1].value]; [$exc]) | wrapEnv($replEnv; $_menv.atoms)) as $ex |
                                                 $ex.expr | TCOWrap($ex.env; $_retenv; false)
-                                            else
-                                                error($exc)
-                                            end
-                                        else
-                                            error($exc)
-                                        end
                                     )
+                                  else
+                                      $value[1] | EVAL($_menv) as $exp |
+                                      $exp.expr | TCOWrap($exp.env; $_orig_retenv; false)
+                                  end
                             ) //
                             (
                                 select(.[0].value == "if") |
