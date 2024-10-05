@@ -241,7 +241,7 @@ def EVAL(env):
             (
                 select(.kind == "vector") |
                 .value |
-                reduce .[] as $x ({expr:[], env:env};
+                reduce .[] as $x ({expr:[], env:$_menv};
                     . as $acc |
                     $x | EVAL($acc.env) |
                     .expr |= $acc.expr + [.]
