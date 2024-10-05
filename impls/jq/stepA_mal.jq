@@ -122,10 +122,11 @@ def EVAL(env):
                             ) //
                             (
                                 select(.[0].value == "do") |
-                                    (reduce ($value[1:][]) as $xvalue (
-                                        { env: $_menv, expr: {kind:"nil"} };
-                                        .env as $env | $xvalue | EVAL($env)
-                                    )) | . as $ex | .expr | TCOWrap($ex.env; $_orig_retenv; false)
+                                    (reduce $value[1:-1][] as $xvalue (
+                                        $_menv;
+                                        . as $env | $xvalue | EVAL($env) | .env
+                                    )) as $env |
+                                    $value[-1] | TCOWrap($env; $_orig_retenv; true)
                             ) //
                             (
                                 select(.[0].value == "try*") |
