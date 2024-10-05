@@ -61,7 +61,7 @@ def EVAL(env):
                                 select(.[0].value == "let*") |
                                         (reduce (.[1].value | nwise(2)) as $xvalue (
                                             # Initial accumulator
-                                            {parent: env, environment:{}, fallback:null};
+                                            {parent:env, environment:{}, fallback:null};
                                             # Loop body
                                             . as $env | $xvalue[1] | EVAL($env) |
                                             env_set(.env; $xvalue[0].value; .expr)
@@ -100,19 +100,14 @@ def EVAL(env):
             ) //
             (
                 select(.kind == "symbol") |
-                .value | env_get(env) // jqmal_error("'\(.)' not found ") |
+                .value |
+                env_get(env) // jqmal_error("'\(.)' not found") |
                 {expr:., env:env}
             ) //
             {expr:., env:env};
 
 def PRINT:
     pr_str;
-
-def childEnv(binds; value):
-    {
-        parent: .,
-        environment: [binds, value] | transpose | map({(.[0]): .[1]}) | from_entries
-    };
 
 def repl:
     # Infinite generator, interrupted by an exception or ./run.
