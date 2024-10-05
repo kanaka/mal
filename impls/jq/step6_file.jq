@@ -145,7 +145,7 @@ def EVAL(env):
             ) //
             (
                 select(.kind == "symbol") |
-                .value | env_get($currentEnv) | TCOWrap($_menv; null; false)
+                .value | env_get($currentEnv) | TCOWrap($_menv; $_orig_retenv; false)
             ) //
             TCOWrap($_menv; $_orig_retenv; false)
         end
