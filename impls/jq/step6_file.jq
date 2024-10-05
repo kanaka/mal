@@ -56,9 +56,11 @@ def EVAL(env):
                             ) //
                             (
                                 select(.[0].value == "let*") |
-                                        ($currentEnv | pureChildEnv | wrapEnv($replEnv; $_menv.atoms)) as $_menv |
                                         (reduce ($value[1].value | nwise(2)) as $xvalue (
-                                            $_menv;
+                                            # Initial accumulator
+                                            {parent:$currentEnv, environment:{}, fallback:null} |
+                                            wrapEnv($replEnv; $_menv.atoms);
+                                            # Loop body
                                             . as $env | $xvalue[1] | EVAL($env) as $expenv |
                                                 env_set_($expenv.env; $xvalue[0].value; $expenv.expr))) as $env
                                                     | $value[2] | TCOWrap($env; $_retenv; true)

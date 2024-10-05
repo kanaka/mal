@@ -42,13 +42,6 @@ def childEnv(binds; exprs):
         ) | .value | map({(.[0]): .[1]}) | add 
     };
 
-def pureChildEnv:
-    {
-        parent: .,
-        environment: {},
-        fallback: null
-    };
-
 def env_multiset(fn):
     .environment += (reduce fn.names[] as $key(.environment; .[$key] |= fn));
 
