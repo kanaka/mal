@@ -67,7 +67,7 @@ def EVAL(env):
         .env as $env | .expr | EVAL($env);
 
     . as $ast
-    | { env: env, ast: ., cont: true, finish: false, ret_env: null }
+    | TCOWrap(env; null; true)
     | [ recurseflip(.cont;
         .env as $_menv
         | (if $DEBUG then debug("EVAL: \($ast | pr_str($_menv))") else . end)
