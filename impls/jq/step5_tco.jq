@@ -182,9 +182,10 @@ def EVAL(env):
                             ) //
                             (
                                 select(.[0].value == "let*") |
-                                    ($_menv | pureChildEnv) as $subenv |
                                         (reduce ($value[1].value | nwise(2)) as $xvalue (
-                                            $subenv;
+                                            # Initial accumulator
+                                            {parent:$_menv, environment:{}, fallback:null};
+                                            # Loop body
                                             . as $env | $xvalue[1] | EVAL($env) as $expenv |
                                                 env_set($expenv.env; $xvalue[0].value; $expenv.expr))) as $env
                                                     | $value[2] | TCOWrap($env; $_retenv; true)

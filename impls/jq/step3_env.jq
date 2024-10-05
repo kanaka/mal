@@ -60,7 +60,9 @@ def EVAL(env):
                             (
                                 select(.[0].value == "let*") |
                                         (reduce (.[1].value | nwise(2)) as $xvalue (
-                                            env | pureChildEnv;
+                                            # Initial accumulator
+                                            {parent: env, environment:{}, fallback:null};
+                                            # Loop body
                                             . as $env | $xvalue[1] | EVAL($env) |
                                             env_set(.env; $xvalue[0].value; .expr)
                                         )) as $env |
