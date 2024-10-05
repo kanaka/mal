@@ -175,8 +175,7 @@ def EVAL(env):
                                             interpret($expr.val; $expr.env; _eval_here) as $exprenv |
                                         $exprenv.expr | TCOWrap($exprenv.env; $_orig_retenv; false)
                                 end
-                            ) //
-                                TCOWrap($_menv; $_orig_retenv; false)
+                            )
                         )
             ) //
             (
