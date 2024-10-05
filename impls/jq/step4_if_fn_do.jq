@@ -83,7 +83,7 @@ def interpret(arguments; env; _eval):
     (if $DEBUG then debug("INTERP: \(. | pr_str(env))") else . end) |
     (select(.kind == "fn") |
         arg_check(arguments) | 
-                (core_interp(arguments; env) | {expr:., env:env})
+                core_interp(arguments; env) | {expr:., env:env}
     ) //
     (select(.kind == "function") as $fn |
         # todo: arg_check
@@ -100,8 +100,8 @@ def interpret(arguments; env; _eval):
                 . as $env | try env_set(
                     .;
                     $name;
-                    $name | env_get(env) // jqmal_error("'\(.)' not found")
-                    | . as $xvalue
+                    $name | env_get(env) // jqmal_error("'\(.)' not found") |
+                    . as $xvalue
                     | if $xvalue.kind == "function" then
                         setpath(["free_referencess"]; $fn.free_referencess)
                     else
@@ -124,7 +124,7 @@ def interpret(arguments; env; _eval):
                 env: env
             }
             # | . as $dot
-            # | debug("FNPOST \(.expr | pr_str) \(; $fn.binds[0] | env_get($dot.expr.env) | pr_str)")
+            # | debug("FNPOST \(.expr | pr_str) \($fn.binds[0] | env_get($dot.expr.env) | pr_str)")
             # | debug("INTERP \($src) = \(.expr | pr_str)")
     ) //
         jqmal_error("Unsupported function kind \(.kind)");
@@ -142,16 +142,15 @@ def EVAL(env):
             |
             (select(.kind == "list") |
                 .value | select(length != 0) as $value |
-                        (
                             (
                                 select(.[0].value == "def!") |
                                     .[1].value as $key |
                                     .[2] | EVAL(env) |
-                                    .expr as $value |
                                     if .env.replEnv != null then
-                                        addToEnv(.; $key)
+                                        addToEnv($key)
                                     else
-                                        .env |= env_set_(.; $key; $value)
+                                        .expr as $def_value |
+                                        .env |= env_set_(.; $key; $def_value)
                                     end
                             ) //
                             (
@@ -204,7 +203,6 @@ def EVAL(env):
                                     | $ev.expr | first |
                                         interpret($ev.expr[1:]; $ev.env; _eval_here)
                             )
-                        )
             ) //
             (
                 select(.kind == "vector") |

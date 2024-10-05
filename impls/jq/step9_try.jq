@@ -67,7 +67,7 @@ def EVAL(env):
         .env as $env | .expr | EVAL($env);
 
     . as $ast
-    | { env: env, ast: ., cont: true, finish: false, ret_env: null }
+    | TCOWrap(env; null; true)
     | [ recurseflip(.cont;
         .env as $_menv
         | if .finish then
@@ -89,17 +89,17 @@ def EVAL(env):
             |
             (select(.kind == "list") |
                 .value | select(length != 0) as $value |
-                        (
                             (
                                 select(.[0].value == "def!") |
-                                    ($value[2] | EVAL($_menv)) as $evval |
-                                        addToEnv($evval; $value[1].value) as $val |
+                                    $value[2] | EVAL($_menv) |
+                                        addToEnv($value[1].value) as $val |
                                         $val.expr | TCOWrap($val.env; $_orig_retenv; false)
                             ) //
                             (
                                 select(.[0].value == "defmacro!") |
-                                    ($value[2] | EVAL($_menv) | (.expr |= set_macro_function)) as $evval |
-                                        addToEnv($evval; $value[1].value) as $val |
+                                    $value[2] | EVAL($_menv) |
+                                        .expr |= set_macro_function |
+                                        addToEnv($value[1].value) as $val |
                                         $val.expr | TCOWrap($val.env; $_orig_retenv; false)
                             ) //
                             (
@@ -115,18 +115,20 @@ def EVAL(env):
                             ) //
                             (
                                 select(.[0].value == "do") |
-                                    (reduce ($value[1:][]) as $xvalue (
-                                        { env: $_menv, expr: {kind:"nil"} };
-                                        .env as $env | $xvalue | EVAL($env)
-                                    )) | . as $ex | .expr | TCOWrap($ex.env; $_orig_retenv; false)
+                                    (reduce $value[1:-1][] as $xvalue (
+                                        $_menv;
+                                        . as $env | $xvalue | EVAL($env) | .env
+                                    )) as $env |
+                                    $value[-1] | TCOWrap($env; $_orig_retenv; true)
                             ) //
                             (
                                 select(.[0].value == "try*") |
+                                  if $value[2]
+                                  and ($value[2].value[0] | .kind == "symbol" and .value == "catch*")
+                                  then
                                     try (
                                         $value[1] | EVAL($_menv) as $exp | $exp.expr | TCOWrap($exp.env; $_orig_retenv; false)
                                     ) catch ( . as $exc |
-                                        if $value[2] then
-                                            if ($value[2].value[0] | .kind == "symbol" and .value == "catch*") then
                                                 (if ($exc | is_jqmal_error) then
                                                     $exc[19:] as $ex |
                                                         try (
@@ -141,13 +143,11 @@ def EVAL(env):
                                                 end) as $exc |
                                                 $value[2].value[2] | EVAL($currentEnv | childEnv([$value[2].value[1].value]; [$exc]) | wrapEnv($replEnv; $_menv.atoms)) as $ex |
                                                 $ex.expr | TCOWrap($ex.env; $_retenv; false)
-                                            else
-                                                error($exc)
-                                            end
-                                        else
-                                            error($exc)
-                                        end
                                     )
+                                  else
+                                      $value[1] | EVAL($_menv) as $exp |
+                                      $exp.expr | TCOWrap($exp.env; $_orig_retenv; false)
+                                  end
                             ) //
                             (
                                 select(.[0].value == "if") |
@@ -205,7 +205,6 @@ def EVAL(env):
                                         $exprenv.expr | TCOWrap($exprenv.env; $_orig_retenv; false)
                                 end
                             )
-                        )
             ) //
             (
                 select(.kind == "vector") |
