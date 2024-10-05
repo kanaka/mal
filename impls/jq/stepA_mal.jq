@@ -91,7 +91,6 @@ def EVAL(env):
             |
             (select(.kind == "list") |
                 .value | select(length != 0) as $value |
-                        (
                             (
                                 select(.[0].value == "atoms??") |
                                     $_menv.atoms | keys | map(wrap("string")) | wrap("list") | TCOWrap($_menv; $_orig_retenv; false)
@@ -212,7 +211,6 @@ def EVAL(env):
                                         $exprenv.expr | TCOWrap($exprenv.env; $_orig_retenv; false)
                                 end
                             )
-                        )
             ) //
             (
                 select(.kind == "vector") |
