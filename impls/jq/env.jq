@@ -158,18 +158,16 @@ def env_set_(env; key; value):
         env_set(env; key; value)
     end;
 
-def addToEnv(envexp; name):
-    envexp.expr as $value
-    | envexp.env as $rawEnv
-    | (if $rawEnv.isReplEnv then
-        env_set_($rawEnv.currentEnv; name; $value) | wrapEnv($rawEnv.atoms)
-    else
-        env_set_($rawEnv.currentEnv; name; $value) | wrapEnv($rawEnv.replEnv; $rawEnv.atoms)
-    end) as $newEnv
-    | {
-        expr: $value,
-        env: $newEnv
-    };
+def addToEnv(name):
+    # { expr, env } -> { same expr, new env }
+    .expr as $value |
+    .env |= (
+        . as $rawEnv |
+        if .isReplEnv then
+            env_set_(.currentEnv; name; $value) | wrapEnv($rawEnv.atoms)
+        else
+            env_set_(.currentEnv; name; $value) | wrapEnv($rawEnv.replEnv; $rawEnv.atoms)
+        end);
 
 def _env_remove_references(refs):
     if . != null then

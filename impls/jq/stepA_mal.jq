@@ -98,14 +98,15 @@ def EVAL(env):
                             ) //
                             (
                                 select(.[0].value == "def!") |
-                                    ($value[2] | EVAL($_menv)) as $evval |
-                                        addToEnv($evval; $value[1].value) as $val |
+                                    $value[2] | EVAL($_menv) |
+                                        addToEnv($value[1].value) as $val |
                                         $val.expr | TCOWrap($val.env; $_orig_retenv; false)
                             ) //
                             (
                                 select(.[0].value == "defmacro!") |
-                                    ($value[2] | EVAL($_menv) | (.expr |= set_macro_function)) as $evval |
-                                        addToEnv($evval; $value[1].value) as $val |
+                                    $value[2] | EVAL($_menv) |
+                                        .expr |= set_macro_function |
+                                        addToEnv($value[1].value) as $val |
                                         $val.expr | TCOWrap($val.env; $_orig_retenv; false)
                             ) //
                             (
