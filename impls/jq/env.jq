@@ -146,16 +146,14 @@ def unwrapReplEnv:
 def unwrapCurrentEnv:
     .currentEnv;
 
-def env_set6(env; key; value):
-    if env.isReplEnv then
-        env_set(env.currentEnv; key; value) | wrapEnv(env.atoms)
-    else
-        env_set(env.currentEnv; key; value) | wrapEnv(env.replEnv; env.atoms)
-    end;
-
 def env_set_(env; key; value):
     if env.currentEnv != null then
-        env_set6(env; key; value)
+        # Moving the common env_set before the if breaks something. ?
+        if env.isReplEnv then
+            env_set(env.currentEnv; key; value) | wrapEnv(env.atoms)
+        else
+            env_set(env.currentEnv; key; value) | wrapEnv(env.replEnv; env.atoms)
+        end
     else
         env_set(env; key; value)
     end;
