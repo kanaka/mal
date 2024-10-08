@@ -9,35 +9,29 @@ exit
 read: procedure expose values. err /* read(str) */
   return read_str(arg(1))
 
-eval_ast: procedure expose values. env. err /* eval_ast(ast) */
+eval: procedure expose values. env. err /* eval(ast) */
   ast = arg(1)
+
+  --  call lineout , ("EVAL: " || print(ast))
+
   type = obj_type(ast)
-  val = obj_val(ast)
+  astval = obj_val(ast)
   select
     when type == "symb" then do
-      varname = val
+      varname = astval
       if env.varname == "" then do
         err = "'" || varname || "' not found"
         return "ERR"
       end
       return env.varname
     end
-    when type == "list" then do
-      res = ""
-      do i=1 to words(val)
-        element = eval(word(val, i))
-        if element == "ERR" then return "ERR"
-        if i > 1 then
-          res = res || " " || element
-        else
-          res = element
-      end
-      return new_list(res)
+    when type == "list" & words(astval) > 0 then do
+      --  proceed after this select statement
     end
     when type == "vect" then do
       res = ""
-      do i=1 to words(val)
-        element = eval(word(val, i))
+      do i=1 to words(astval)
+        element = eval(word(astval, i), env_idx)
         if element == "ERR" then return "ERR"
         if i > 1 then
           res = res || " " || element
@@ -48,8 +42,8 @@ eval_ast: procedure expose values. env. err /* eval_ast(ast) */
     end
     when type == "hash" then do
       res = ""
-      do i=1 to words(val)
-        element = eval(word(val, i))
+      do i=1 to words(astval)
+        element = eval(word(astval, i), env_idx)
         if element == "ERR" then return "ERR"
         if i > 1 then
           res = res || " " || element
@@ -62,16 +56,24 @@ eval_ast: procedure expose values. env. err /* eval_ast(ast) */
       return ast
     end
 
-eval: procedure expose values. env. err /* eval(ast) */
-  ast = arg(1)
-  if \list?(ast) then return eval_ast(ast)
-  astval = obj_val(ast)
-  if words(astval) == 0 then return ast
-  lst_obj = eval_ast(ast)
-  if lst_obj == "ERR" then return "ERR"
-  lst = obj_val(lst_obj)
-  f = word(lst, 1)
-  call_args = subword(lst, 2)
+  --  ast is a non-empty list
+
+  a0 = word(astval, 1)
+  f = eval(a0, env_idx)
+  if f == "ERR" then return "ERR"
+
+  --  Evaluate the arguments and store them to lst.
+  lst = ""
+  do i=2 to words(astval)
+    element = eval(word(astval, i), env_idx)
+    if element == "ERR" then return "ERR"
+    if i > 2 then
+      lst = lst || " " || element
+    else
+      lst = element
+  end
+
+  call_args = lst
   call_list = ""
   do i=1 to words(call_args)
     element = '"' || word(call_args, i) || '"'
