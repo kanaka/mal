@@ -129,6 +129,11 @@ eval: procedure expose values. env. err /* eval(ast) */
   ast = arg(1)
   env_idx = arg(2)
   do forever
+
+    debug_eval = obj_type(env_get(env_idx, "DEBUG-EVAL"))
+    if  debug_eval <> "ERR" & debug_eval <> "nill" & debug_eval <> "fals" then,
+        call lineout , ("EVAL: " || print(ast))
+
     if \list?(ast) then return eval_ast(ast, env_idx)
     ast = macroexpand(ast, env_idx)
     if \list?(ast) then return eval_ast(ast, env_idx)
