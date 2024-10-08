@@ -185,9 +185,13 @@ func_is_macro: procedure expose values. /* func_is_macro(func_obj) */
   return word(obj_val(arg(1)), 4)
 
 func_mark_as_macro: procedure expose values. /* func_mark_as_macro(func_obj) */
-  idx = substr(arg(1), 6)
-  values.idx = subword(values.idx, 1, 3) 1
-  return arg(1)
+  body_ast = func_body_ast(arg(1))
+  env_idx = func_env_idx(arg(1))
+  binds = func_binds(arg(1))
+  is_macro = 1
+  idx = new_value_index()
+  values.idx = body_ast env_idx binds is_macro
+  return "func_" || idx
 
 new_atom: procedure expose values. /* new_atom(obj) */
   obj = arg(1)
