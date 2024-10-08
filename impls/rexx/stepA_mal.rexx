@@ -21,7 +21,7 @@ read: procedure expose values. err /* read(str) */
 starts_with?: procedure expose values. /* starts_with?(lst, sym) */
   lst = arg(1)
   sym = arg(2)
-  if words(obj_val(lst)) != 2 then return 0
+  if words(obj_val(lst)) <> 2 then return 0
   a0 = word(obj_val(lst), 1)
   return symbol?(a0) & obj_val(a0) == sym
 
