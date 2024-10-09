@@ -4,6 +4,7 @@ module Mal
   class Type
     alias Func = (Array(Type) -> Type)
 
+    # It is (now) probably possible to only store is_macro for Closures.
     property :is_macro, :meta
 
     def initialize(@val : ValueType)

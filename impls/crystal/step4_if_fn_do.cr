@@ -21,56 +21,43 @@ module Mal
     }.as(Mal::Func)
   end
 
-  def eval_ast(ast, env)
-    return ast.map { |n| eval(n, env).as(Mal::Type) } if ast.is_a? Mal::List
-
-    val = ast.unwrap
-
-    Mal::Type.new case val
-    when Mal::Symbol
-      if e = env.get(val.str)
-        e
-      else
-        eval_error "'#{val.str}' not found"
-      end
-    when Mal::List
-      val.each_with_object(Mal::List.new) { |n, l| l << eval(n, env) }
-    when Mal::Vector
-      val.each_with_object(Mal::Vector.new) { |n, l| l << eval(n, env) }
-    when Mal::HashMap
-      val.each { |k, v| val[k] = eval(v, env) }
-      val
-    else
-      val
-    end
-  end
-
-  def eval_invocation(list, env)
-    f = eval(list.first, env).unwrap
-    eval_error "expected function symbol as the first symbol of list" unless f.is_a? Mal::Func
-    f.call eval_ast(list[1..-1].each_with_object(Mal::List.new) { |i, l| l << i }, env)
-  end
-
   def read(str)
     read_str str
   end
 
   def eval(ast, env)
-    list = ast.unwrap
+    puts "EVAL: #{print(ast)}" if env.get("DEBUG-EVAL")
 
-    return eval_ast(ast, env) unless list.is_a? Mal::List
-    return gen_type Mal::List if list.empty?
+    val = ast.unwrap
 
-    head = list.first.unwrap
-
-    Mal::Type.new case head
+    case val
     when Mal::Symbol
-      case head.str
+      e = env.get(val.str)
+      eval_error "'#{val.str}' not found" unless e
+      return e
+    when Mal::Vector
+      new_vec = val.each_with_object(Mal::Vector.new) { |n, l| l << eval(n, env) }
+      return Mal::Type.new new_vec
+    when Mal::HashMap
+      new_map = Mal::HashMap.new
+      val.each { |k, v| new_map[k] = eval(v, env) }
+      return Mal::Type.new new_map
+    when Mal::List
+      list = val
+      return ast if list.empty?
+
+      head = list.first.unwrap
+      if head.is_a? Mal::Symbol
+         a0sym = head.str
+      else
+         a0sym = ""
+      end
+      case a0sym
       when "def!"
         eval_error "wrong number of argument for 'def!'" unless list.size == 3
         a1 = list[1].unwrap
-        eval_error "1st argument of 'def!' must be symbol" unless a1.is_a? Mal::Symbol
-        env.set(a1.str, eval(list[2], env))
+        eval_error "1st argument of 'def!' must be symbol: #{a1}" unless a1.is_a? Mal::Symbol
+        return Mal::Type.new env.set(a1.str, eval(list[2], env))
       when "let*"
         eval_error "wrong number of argument for 'def!'" unless list.size == 3
 
@@ -82,33 +69,45 @@ module Mal
         bindings.each_slice(2) do |binding|
           key, value = binding
           name = key.unwrap
-          eval_error "name of binding must be specified as symbol" unless name.is_a? Mal::Symbol
+          eval_error "name of binding must be specified as symbol #{name}" unless name.is_a? Mal::Symbol
           new_env.set(name.str, eval(value, new_env))
         end
 
-        eval(list[2], new_env)
+        return eval(list[2], new_env)
       when "do"
-        list.shift 1
-        eval_ast(list, env).last
+        if list.empty?
+          return Mal::Type.new(nil)
+        end
+        return list[1..-1].map { |n| eval(n, env) }.last
       when "if"
-        cond = eval(list[1], env).unwrap
-        case cond
-        when Nil
-          list.size >= 4 ? eval(list[3], env) : nil
-        when false
-          list.size >= 4 ? eval(list[3], env) : nil
+        if eval(list[1], env).unwrap
+          return eval(list[2], env)
+        elsif list.size >= 4
+          return eval(list[3], env)
         else
-          eval(list[2], env)
+          return Mal::Type.new(nil)
         end
       when "fn*"
-        # Note:
-        # If writing lambda expression here directly, compiler will fail to infer type of 'list'. (Error 'Nil for empty?')
-        func_of(env, list[1].unwrap, list[2])
+        params = list[1].unwrap
+        unless params.is_a? Array
+          eval_error "'fn*' parameters must be list or vector: #{params}"
+        end
+        return Mal::Type.new Mal::Closure.new(list[2], params, env, func_of(env, params, list[2]))
       else
-        eval_invocation(list, env)
+        f = eval(list.first, env).unwrap
+        case f
+        when Mal::Closure
+          args = list[1..-1].map { |n| eval(n, env).as(Mal::Type) }
+          return eval(f.ast, Mal::Env.new(f.env, f.params, args))
+        when Mal::Func
+          args = list[1..-1].map { |n| eval(n, env).as(Mal::Type) }
+          return f.call args
+        else
+          eval_error "expected function as the first argument: #{f}"
+        end
       end
     else
-      eval_invocation(list, env)
+      return Mal::Type.new val
     end
   end
 
@@ -125,7 +124,7 @@ REPL_ENV = Mal::Env.new nil
 Mal::NS.each { |k, v| REPL_ENV.set(k, Mal::Type.new(v)) }
 Mal.rep "(def! not (fn* (a) (if a false true)))"
 
-while line = Readline.readline("user> ")
+while line = Readline.readline("user> ", true)
   begin
     puts Mal.rep(line)
   rescue e : Mal::RuntimeException
