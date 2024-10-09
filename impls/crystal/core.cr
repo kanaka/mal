@@ -185,6 +185,9 @@ module Mal
   def self.keyword(args)
     head = args.first.unwrap
     eval_error "1st argument of symbol function must be string" unless head.is_a? String
+    if ! head.empty? && head[0] == '\u029e'
+       return head
+    end
     "\u029e" + head
   end
 
