@@ -46,21 +46,16 @@ module Mal
       @data[key] = value
     end
 
-    def find(key)
-      return self if @data.has_key? key
+    def get(key)
+      return @data[key] if @data.has_key? key
 
       o = @outer
       if o
-        o.find key
+        o.get key
       else
         nil
       end
     end
 
-    def get(key)
-      e = find key
-      eval_error "'#{key}' not found" unless e
-      e.data[key]
-    end
   end
 end
