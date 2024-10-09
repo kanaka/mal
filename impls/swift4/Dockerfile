@@ -31,11 +31,11 @@ RUN apt-get -y install clang-3.6 cmake pkg-config \
 RUN ln -sf /usr/lib/llvm-3.6/bin/clang++ /usr/bin/clang++
 RUN ln -sf /usr/lib/llvm-3.6/bin/clang /usr/bin/clang
 
-ENV SWIFT_PREFIX swift-4.2.3-RELEASE
+ENV SWIFT_PREFIX swift-4.2.4-RELEASE
 ENV SWIFT_RELEASE ${SWIFT_PREFIX}-ubuntu16.04
 
 RUN cd /opt && \
-    curl -O https://swift.org/builds/swift-4.2.3-release/ubuntu1604/${SWIFT_PREFIX}/${SWIFT_RELEASE}.tar.gz && \
+    curl -O https://download.swift.org/swift-4.2.4-release/ubuntu1604/${SWIFT_PREFIX}/${SWIFT_RELEASE}.tar.gz && \
     tar xvzf ${SWIFT_RELEASE}.tar.gz && \
     rm ${SWIFT_RELEASE}.tar.gz
 
