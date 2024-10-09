@@ -6,20 +6,35 @@ function ret = READ(str)
 end
 
 % eval
-function ret = eval_ast(ast, env)
+function ret = EVAL(ast, env)
+
+    dbgeval = env.get('DEBUG-EVAL');
+    if ~isequal(dbgeval, {}) ...
+       && ~strcmp(class(dbgeval), 'types.Nil') ...
+       && (~islogical(dbgeval) || dbgeval)
+      fprintf('EVAL: %s\n', printer.pr_str(ast, true));
+    end
+
     switch class(ast)
     case 'types.Symbol'
-        ret = env.get(ast);
-    case 'types.List'
-        ret = types.List();
-        for i=1:length(ast)
-            ret.append(EVAL(ast.get(i), env));
+        ret = env.get(ast.name);
+        if isequal(ret, {})
+            msg = sprintf('''%s'' not found', ast.name);
+            if exist('OCTAVE_VERSION', 'builtin') ~= 0
+                error('ENV:notfound', msg);
+            else
+                throw(MException('ENV:notfound', msg));
+            end
         end
+        return;
+    case 'types.List'
+        %  Proceed after this switch.
     case 'types.Vector'
         ret = types.Vector();
         for i=1:length(ast)
             ret.append(EVAL(ast.get(i), env));
         end
+        return;
     case 'types.HashMap'
         ret = types.HashMap();
         ks = ast.keys();
@@ -27,15 +42,9 @@ function ret = eval_ast(ast, env)
             k = ks{i};
             ret.set(k, EVAL(ast.get(k), env));
         end
+        return;
     otherwise
         ret = ast;
-    end
-end
-
-function ret = EVAL(ast, env)
-    %fprintf('EVAL: %s\n', printer.pr_str(ast, true));
-    if ~type_utils.list_Q(ast)
-        ret = eval_ast(ast, env);
         return;
     end
 
@@ -44,6 +53,7 @@ function ret = EVAL(ast, env)
         ret = ast;
         return;
     end
+
     if isa(ast.get(1),'types.Symbol')
         a1sym = ast.get(1).name;
     else
@@ -59,10 +69,12 @@ function ret = EVAL(ast, env)
         end
         ret = EVAL(ast.get(3), let_env);
     otherwise
-        el = eval_ast(ast, env);
-        f = el.get(1);
-        args = el.data(2:end);
-        ret = f(args{:});
+       f = EVAL(ast.get(1), env);
+        args = types.List();
+        for i=2:length(ast)
+            args.append(EVAL(ast.get(i), env));
+        end
+        ret = f(args.data{:});
     end
 end
 
