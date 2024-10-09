@@ -132,7 +132,7 @@ function ret = EVAL(ast, env)
     case 'quasiquote'
         ast = quasiquote(ast.get(2)); % TCO
     case 'defmacro!'
-        ret = env.set(ast.get(2), EVAL(ast.get(3), env));
+        ret = env.set(ast.get(2), EVAL(ast.get(3), env).clone());
         ret.is_macro = true;
         return;
     case 'macroexpand'
