@@ -160,7 +160,9 @@ module Mal
         eval_error "wrong number of argument for 'defmacro!'" unless list.size == 3
         a1 = list[1].unwrap
         eval_error "1st argument of 'defmacro!' must be symbol: #{a1}" unless a1.is_a? Mal::Symbol
-        return Mal::Type.new env.set(a1.str, eval(list[2], env).tap { |n| n.is_macro = true })
+        mac = eval(list[2], env).dup
+        mac.is_macro = true
+        return Mal::Type.new env.set(a1.str, mac)
       when "try*"
         catch_list = list.size >= 3 ? list[2].unwrap : Mal::Type.new(nil)
         return eval(list[1], env) unless catch_list.is_a? Mal::List
