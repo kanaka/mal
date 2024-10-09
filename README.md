@@ -42,7 +42,7 @@ process guide](process/guide.md) there is also a [mal/make-a-lisp
 FAQ](docs/FAQ.md) where I attempt to answer some common questions.
 
 
-**3. Mal is implemented in 89 languages (95 different implementations and 118 runtime modes)**
+**3. Mal is implemented in 88 languages (94 different implementations and 117 runtime modes)**
 
 | Language | Creator |
 | -------- | ------- |
@@ -125,7 +125,6 @@ FAQ](docs/FAQ.md) where I attempt to answer some common questions.
 | [Scheme (R7RS)](#scheme-r7rs) | [Vasilij Schneidermann](https://github.com/wasamasa) |
 | [Skew](#skew) | [Dov Murik](https://github.com/dubek) |
 | [Standard ML](#sml) | [Fabian Bergström](https://github.com/fabjan) |
-| [Swift 2](#swift) | [Keith Rollin](https://github.com/keith-rollin) |
 | [Swift 3](#swift-3) | [Joel Martin](https://github.com/kanaka)  |
 | [Swift 4](#swift-4) | [陆遥](https://github.com/LispLY)  |
 | [Swift 5](#swift-5) | [Oleg Montak](https://github.com/MontakOleg)  |
@@ -177,7 +176,7 @@ make DOCKERIZE=1 "repl^IMPL^stepX"
 make DOCKERIZE=1 "repl^IMPL"
 ```
 
-## External Implementations
+## External / Alternate Implementations
 
 The following implementations are maintained as separate projects:
 
@@ -189,6 +188,10 @@ The following implementations are maintained as separate projects:
 
 * [by Tim Morgan](https://github.com/seven1m/mal-rust)
 * [by vi](https://github.com/vi/mal-rust-vi) - using [Pest](https://pest.rs/) grammar, not using typical Mal infrastructure (cargo-ized steps and built-in converted tests).
+
+### Swift 2
+
+* [by Keith Rollin](https://github.com/kanaka/mal/tree/fbfe678/impls/swift) - This implementation used to be in the repo. However, Swift 2 is no longer easily buildable/testable.
 
 ### Q
 
@@ -1118,18 +1121,6 @@ make sml_MODE=mosml
 ./stepX_YYY
 ```
 
-
-### Swift
-
-The Swift implementation of mal requires the Swift 2.0 compiler (Xcode
-7.0) to build. Older versions will not work due to changes in the
-language and standard library.
-
-```
-cd impls/swift
-make
-./stepX_YYY
-```
 
 ### Swift 3
 
