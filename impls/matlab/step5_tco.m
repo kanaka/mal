@@ -6,20 +6,36 @@ function ret = READ(str)
 end
 
 % eval
-function ret = eval_ast(ast, env)
+function ret = EVAL(ast, env)
+  while true
+
+    dbgeval = env.get('DEBUG-EVAL');
+    if ~isequal(dbgeval, {}) ...
+       && ~strcmp(class(dbgeval), 'types.Nil') ...
+       && (~islogical(dbgeval) || dbgeval)
+      fprintf('EVAL: %s\n', printer.pr_str(ast, true));
+    end
+
     switch class(ast)
     case 'types.Symbol'
-        ret = env.get(ast);
-    case 'types.List'
-        ret = types.List();
-        for i=1:length(ast)
-            ret.append(EVAL(ast.get(i), env));
+        ret = env.get(ast.name);
+        if isequal(ret, {})
+            msg = sprintf('''%s'' not found', ast.name);
+            if exist('OCTAVE_VERSION', 'builtin') ~= 0
+                error('ENV:notfound', msg);
+            else
+                throw(MException('ENV:notfound', msg));
+            end
         end
+        return;
+    case 'types.List'
+        %  Proceed after this switch.
     case 'types.Vector'
         ret = types.Vector();
         for i=1:length(ast)
             ret.append(EVAL(ast.get(i), env));
         end
+        return;
     case 'types.HashMap'
         ret = types.HashMap();
         ks = ast.keys();
@@ -27,16 +43,9 @@ function ret = eval_ast(ast, env)
             k = ks{i};
             ret.set(k, EVAL(ast.get(k), env));
         end
+        return;
     otherwise
         ret = ast;
-    end
-end
-
-function ret = EVAL(ast, env)
-  while true
-    %fprintf('EVAL: %s\n', printer.pr_str(ast, true));
-    if ~type_utils.list_Q(ast)
-        ret = eval_ast(ast, env);
         return;
     end
 
@@ -45,6 +54,7 @@ function ret = EVAL(ast, env)
         ret = ast;
         return;
     end
+
     if isa(ast.get(1),'types.Symbol')
         a1sym = ast.get(1).name;
     else
@@ -62,7 +72,9 @@ function ret = EVAL(ast, env)
         env = let_env;
         ast = ast.get(3); % TCO
     case 'do'
-        el = eval_ast(ast.slice(2,length(ast)-1), env);
+        for i=2:(length(ast) -1)
+            ret = EVAL(ast.get(i), env);
+        end
         ast = ast.get(length(ast)); % TCO
     case 'if'
         cond = EVAL(ast.get(2), env);
@@ -83,9 +95,11 @@ function ret = EVAL(ast, env)
         ret = types.Function(fn, ast.get(3), env, ast.get(2));
         return;
     otherwise
-        el = eval_ast(ast, env);
-        f = el.get(1);
-        args = el.slice(2);
+      f = EVAL(ast.get(1), env);
+        args = types.List();
+        for i=2:length(ast)
+            args.append(EVAL(ast.get(i), env));
+        end
         if isa(f, 'types.Function')
             env = Env({f.env}, f.params, args);
             ast = f.ast; % TCO
