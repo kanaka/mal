@@ -25,7 +25,7 @@ REPL_ENV = Mal::Env.new nil
 REPL_ENV.set("+", Mal::Type.new num_func(->(x : Int64, y : Int64) { x + y }))
 REPL_ENV.set("-", Mal::Type.new num_func(->(x : Int64, y : Int64) { x - y }))
 REPL_ENV.set("*", Mal::Type.new num_func(->(x : Int64, y : Int64) { x * y }))
-REPL_ENV.set("/", Mal::Type.new num_func(->(x : Int64, y : Int64) { x / y }))
+REPL_ENV.set("/", Mal::Type.new num_func(->(x : Int64, y : Int64) { x // y }))
 
 module Mal
   extend self

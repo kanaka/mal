@@ -83,7 +83,7 @@ REPL_ENV = {
   "+" => Mal.num_func(->(x : Int64, y : Int64) { x + y }),
   "-" => Mal.num_func(->(x : Int64, y : Int64) { x - y }),
   "*" => Mal.num_func(->(x : Int64, y : Int64) { x * y }),
-  "/" => Mal.num_func(->(x : Int64, y : Int64) { x / y }),
+  "/" => Mal.num_func(->(x : Int64, y : Int64) { x // y }),
 } of String => Mal::Func
 
 while line = Readline.readline("user> ", true)

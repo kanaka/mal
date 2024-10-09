@@ -1,0 +1,28 @@
+name: make-a-lisp
+version: 0.1.0
+targets:
+  step0_repl:
+    main: step0_repl.cr
+  step1_read_print:
+    main: step1_read_print.cr
+  step2_eval:
+    main: step2_eval.cr
+  step3_env:
+    main: step3_env.cr
+  step4_if_fn_do:
+    main: step4_if_fn_do.cr
+  step5_tco:
+    main: step5_tco.cr
+  step6_file:
+    main: step6_file.cr
+  step7_quote:
+    main: step7_quote.cr
+  step8_macros:
+    main: step8_macros.cr
+  step9_try:
+    main: step9_try.cr
+  stepA_mal:
+    main: stepA_mal.cr
+dependencies:
+  readline:
+    github: crystal-lang/crystal-readline
