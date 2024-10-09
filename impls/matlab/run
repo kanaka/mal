@@ -1,13 +1,21 @@
-#!/bin/bash
-args=""
-if [ "$#" -gt 0 ]; then
-    args="'$1'"
-    for a in "${@:2}"; do
-        args="$args,'$a'"
-    done
-fi
-if [ "$matlab_MODE" = "matlab" ] ; then
-    exec matlab -nodisplay -nosplash -nodesktop -nojvm -r "${STEP:-stepA_mal}($args);quit;"
-else
-    exec octave -q --no-gui --no-history --eval "${STEP:-stepA_mal}($args);quit;"
-fi
+#!/bin/sh
+
+args=
+for x; do
+    args="$args${args:+, }'$x'"
+done
+
+case "$matlab_MODE" in
+    matlab)
+        options='-nodisplay -nosplash -nodesktop -nojvm -r'
+        ;;
+    octave)
+        options='-q --no-gui --no-history --eval'
+        ;;
+    *)
+        echo "Bad matlab_MODE: $matlab_MODE"
+        exit 1
+        ;;
+esac
+
+exec $matlab_MODE $options "${STEP:-stepA_mal}($args);quit;"
