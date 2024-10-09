@@ -35,7 +35,7 @@ ENV SWIFT_PREFIX swift-5.1.1-RELEASE
 ENV SWIFT_RELEASE ${SWIFT_PREFIX}-ubuntu16.04
 
 RUN cd /opt && \
-    curl -O https://swift.org/builds/swift-5.1.1-release/ubuntu1604/${SWIFT_PREFIX}/${SWIFT_RELEASE}.tar.gz && \
+    curl -O https://download.swift.org/swift-5.1.1-release/ubuntu1604/${SWIFT_PREFIX}/${SWIFT_RELEASE}.tar.gz && \
     tar xvzf ${SWIFT_RELEASE}.tar.gz && \
     rm ${SWIFT_RELEASE}.tar.gz
 
