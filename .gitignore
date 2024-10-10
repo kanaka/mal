@@ -13,6 +13,7 @@
 .sbt
 .npm
 .node-gyp
+.elan
 */experiments
 node_modules
 */notes
