@@ -78,7 +78,7 @@ languages:
   - [ruby.2        , "Ruby #2"        , OTHER  , Dynamic    , []]
   - [rust          , Rust             , C      , Static     , []]
   - [scala         , Scala            , C      , Static     , []]
-  - [scheme        , Scheme (R7RS)    , Lisp   , Dynamic    , [chibi,kawa,gauche,chicken,sagittarius,cyclone,foment]]
+  - [scheme        , Scheme (R7RS)    , Lisp   , Dynamic    , [chibi,kawa,gauche,chicken,sagittarius,cyclone,foment,guile]]
   - [skew          , Skew             , OTHER  , Static     , []]
   - [sml           , "Standard ML"    , ML     , Static     , []]
   - [swift5        , "Swift 5"        , C      , Static     , []]

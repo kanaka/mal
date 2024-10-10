@@ -92,6 +92,7 @@ IMPL:
   - {IMPL: scheme, scheme_MODE: sagittarius}
   - {IMPL: scheme, scheme_MODE: cyclone}
 # - {IMPL: scheme, scheme_MODE: foment}
+  - {IMPL: scheme, scheme_MODE: guile}
   - {IMPL: skew}
   - {IMPL: sml, sml_MODE: polyml}
   - {IMPL: sml, sml_MODE: mlton}
