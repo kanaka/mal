@@ -9,25 +9,26 @@ object step6_file {
   }
 
   // eval
-  def eval_ast(ast: Any, env: Env): Any = {
-    ast match {
-      case s : Symbol    => env.get(s)
-      case v: MalVector  => v.map(EVAL(_, env))
-      case l: MalList    => l.map(EVAL(_, env))
-      case m: MalHashMap => {
-        m.map{case (k,v) => (k, EVAL(v, env))}
-      }
-      case _             => ast
-    }
-  }
-
   def EVAL(orig_ast: Any, orig_env: Env): Any = {
    var ast = orig_ast; var env = orig_env;
    while (true) {
 
-    //println("EVAL: " + printer._pr_str(ast,true))
-    if (!_list_Q(ast))
-      return eval_ast(ast, env)
+    if (env.find(Symbol("DEBUG-EVAL")) != null) {
+      val dbgeval = env.get(Symbol("DEBUG-EVAL"))
+      if (dbgeval != null && dbgeval != false) {
+        println("EVAL: " + printer._pr_str(ast,true))
+      }
+    }
+
+    ast match {
+      case s : Symbol    => return env.get(s)
+      case v: MalVector  => return v.map(EVAL(_, env))
+      case l: MalList    => {}
+      case m: MalHashMap => {
+        return m.map{case (k,v) => (k, EVAL(v, env))}
+      }
+      case _             => return ast
+    }
 
     // apply list
     ast.asInstanceOf[MalList].value match {
@@ -46,7 +47,7 @@ object step6_file {
         ast = a2   // continue loop (TCO)
       }
       case Symbol("do") :: rest => {
-        eval_ast(_list(rest.slice(0,rest.length-1):_*), env)
+        rest.slice(0,rest.length-1).map(EVAL(_, env))
         ast = ast.asInstanceOf[MalList].value.last  // continue loop (TCO)
       }
       case Symbol("if") :: a1 :: a2 :: rest => {
@@ -67,7 +68,7 @@ object step6_file {
       }
       case _ => {
         // function call
-        eval_ast(ast, env).asInstanceOf[MalList].value match {
+        ast.asInstanceOf[MalList].map(EVAL(_, env)).value match {
           case f :: el => {
             f match {
               case fn: MalFunction => {
