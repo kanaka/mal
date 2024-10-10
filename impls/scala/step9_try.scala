@@ -91,8 +91,8 @@ object step9_try {
         ast = quasiquote(a1)  // continue loop (TCO)
       }
       case Symbol("defmacro!") :: a1 :: a2 :: Nil => {
-        val f = EVAL(a2, env)
-        f.asInstanceOf[MalFunction].ismacro = true
+        val f = EVAL(a2, env).asInstanceOf[MalFunction].clone()
+        f.ismacro = true
         return env.set(a1.asInstanceOf[Symbol], f)
       }
       case Symbol("try*") :: a1 :: rest => {
