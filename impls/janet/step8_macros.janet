@@ -1,6 +1,7 @@
 (import ./reader)
 (import ./printer)
 (import ./types :as t)
+(import ./utils :as u)
 (import ./env :as e)
 (import ./core)
 
@@ -14,48 +15,7 @@
   [code-str]
   (reader/read_str code-str))
 
-(defn is_macro_call
-  [ast env]
-  (when (and (t/list?* ast)
-             (not (t/empty?* ast)))
-    (let [head-ast (in (t/get-value ast) 0)]
-      (when (and (t/symbol?* head-ast)
-                 (e/env-find env head-ast))
-        (let [target-ast (e/env-get env head-ast)]
-          (t/macro?* target-ast))))))
-
-(defn macroexpand
-  [ast env]
-  (var ast-var ast)
-  (while (is_macro_call ast-var env)
-    (let [inner-asts (t/get-value ast-var)
-          head-ast (in inner-asts 0)
-          macro-fn (t/get-value (e/env-get env head-ast))
-          args (drop 1 inner-asts)]
-      (set ast-var (macro-fn args))))
-  ast-var)
-
 (var EVAL nil)
-
-(defn eval_ast
-  [ast env]
-  (cond
-    (t/symbol?* ast)
-    (e/env-get env ast)
-    #
-    (t/hash-map?* ast)
-    (t/make-hash-map (struct ;(map |(EVAL $0 env)
-                                   (kvs (t/get-value ast)))))
-    #
-    (t/list?* ast)
-    (t/make-list (map |(EVAL $0 env)
-                      (t/get-value ast)))
-    #
-    (t/vector?* ast)
-    (t/make-vector (map |(EVAL $0 env)
-                        (t/get-value ast)))
-    #
-    ast))
 
 (defn starts-with
   [ast name]
@@ -99,24 +59,43 @@
     ##
     ast))
 
+(var DEBUG-EVAL (t/make-symbol "DEBUG-EVAL"))
+
 (varfn EVAL
   [ast-param env-param]
   (var ast ast-param)
   (var env env-param)
   (label result
     (while true
-      (when (not (t/list?* ast))
-        (return result (eval_ast ast env)))
-      ##
-      (set ast (macroexpand ast env))
-      ##
-      (when (not (t/list?* ast))
-        (return result (eval_ast ast env)))
-      ##
-      (when (t/empty?* ast)
-        (return result ast))
-      ##
-      (let [ast-head (first (t/get-value ast))
+
+    (if-let [dbgeval (e/env-get env DEBUG-EVAL)]
+      (if (not (or (t/nil?* dbgeval)
+                   (t/false?* dbgeval)))
+        (print (string "EVAL: " (printer/pr_str ast true)))))
+
+    (case (t/get-type ast)
+
+    :symbol
+    (if-let [value (e/env-get env ast)]
+      (return result value)
+      (u/throw*
+        (t/make-string
+          (string "'" (t/get-value ast) "'" " not found" ))))
+
+    :hash-map
+    (return result
+      (t/make-hash-map (struct ;(map |(EVAL $0 env)
+                                     (kvs (t/get-value ast))))))
+
+    :vector
+    (return result
+      (t/make-vector (map |(EVAL $0 env)
+                          (t/get-value ast))))
+
+    :list
+    (if (t/empty?* ast)
+      (return result ast)
+      (let [ast-head (in (t/get-value ast) 0)
             head-name (t/get-value ast-head)]
         (case head-name
           "def!"
@@ -134,9 +113,6 @@
                        def-name macro-ast)
             (return result macro-ast))
           ##
-          "macroexpand"
-          (return result (macroexpand (in (t/get-value ast) 1) env))
-          ##
           "let*"
           (let [new-env (e/make-env env)
                 bindings (t/get-value (in (t/get-value ast) 1))]
@@ -150,18 +126,14 @@
           "quote"
           (return result (in (t/get-value ast) 1))
           ##
-          "quasiquoteexpand"
-          ## tco
-          (return result (quasiquote* (in (t/get-value ast) 1)))
-          ##
           "quasiquote"
           ## tco
           (set ast (quasiquote* (in (t/get-value ast) 1)))
           ##
           "do"
           (let [most-do-body-forms (slice (t/get-value ast) 1 -2)
-                last-body-form (last (t/get-value ast))
-                res-ast (eval_ast (t/make-list most-do-body-forms) env)]
+                last-body-form (last (t/get-value ast))]
+            (each x most-do-body-forms (EVAL x env))
             ## tco
             (set ast last-body-form))
           ##
@@ -187,15 +159,20 @@
                                nil false
                                body params env)))
           ##
-          (let [eval-list (t/get-value (eval_ast ast env))
-                f (first eval-list)
-                args (drop 1 eval-list)]
+          (let [f (EVAL ast-head env)
+                raw-args (drop 1 (t/get-value ast))]
+          (if (t/macro?* f)
+          (set ast ((t/get-value f) raw-args))
+          (let [args (map |(EVAL $0 env) raw-args)]
             (if-let [body (t/get-ast f)] ## tco
               (do
                 (set ast body)
                 (set env (e/make-env (t/get-env f) (t/get-params f) args)))
               (return result
                 ((t/get-value f) args)))))))))
+
+    # Neither a list, map, symbol or vector.
+    (return result ast)))))
 
 (defn PRINT
   [ast]
