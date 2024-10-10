@@ -1,6 +1,7 @@
 (import ./reader)
 (import ./printer)
 (import ./types :as t)
+(import ./utils :as u)
 (import ./env :as e)
 (import ./core)
 
@@ -15,26 +16,6 @@
   (reader/read_str code-str))
 
 (var EVAL nil)
-
-(defn eval_ast
-  [ast env]
-  (cond
-    (t/symbol?* ast)
-    (e/env-get env ast)
-    #
-    (t/hash-map?* ast)
-    (t/make-hash-map (struct ;(map |(EVAL $0 env)
-                                   (kvs (t/get-value ast)))))
-    #
-    (t/list?* ast)
-    (t/make-list (map |(EVAL $0 env)
-                      (t/get-value ast)))
-    #
-    (t/vector?* ast)
-    (t/make-vector (map |(EVAL $0 env)
-                        (t/get-value ast)))
-    #
-    ast))
 
 (defn starts-with
   [ast name]
@@ -78,88 +59,110 @@
     ##
     ast))
 
+(var DEBUG-EVAL (t/make-symbol "DEBUG-EVAL"))
+
 (varfn EVAL
   [ast-param env-param]
   (var ast ast-param)
   (var env env-param)
   (label result
     (while true
-      (cond
-        (not (t/list?* ast))
-        (return result (eval_ast ast env))
-        ##
-        (t/empty?* ast)
-        (return result ast)
-        ##
-        (let [ast-head (first (t/get-value ast))
-              head-name (t/get-value ast-head)]
-          (case head-name
-            "def!"
-            (let [def-name (in (t/get-value ast) 1)
-                  def-val (EVAL (in (t/get-value ast) 2) env)]
-              (e/env-set env
-                         def-name def-val)
-              (return result def-val))
-            ##
-            "let*"
-            (let [new-env (e/make-env env)
-                  bindings (t/get-value (in (t/get-value ast) 1))]
-              (each [let-name let-val] (partition 2 bindings)
-                    (e/env-set new-env
-                               let-name (EVAL let-val new-env)))
-              ## tco
-              (set ast (in (t/get-value ast) 2))
-              (set env new-env))
-            ##
-            "quote"
-            (return result (in (t/get-value ast) 1))
-            ##
-            "quasiquoteexpand"
+
+    (if-let [dbgeval (e/env-get env DEBUG-EVAL)]
+      (if (not (or (t/nil?* dbgeval)
+                   (t/false?* dbgeval)))
+        (print (string "EVAL: " (printer/pr_str ast true)))))
+
+    (case (t/get-type ast)
+
+    :symbol
+    (if-let [value (e/env-get env ast)]
+      (return result value)
+      (u/throw*
+        (t/make-string
+          (string "'" (t/get-value ast) "'" " not found" ))))
+
+    :hash-map
+    (return result
+      (t/make-hash-map (struct ;(map |(EVAL $0 env)
+                                     (kvs (t/get-value ast))))))
+
+    :vector
+    (return result
+      (t/make-vector (map |(EVAL $0 env)
+                          (t/get-value ast))))
+
+    :list
+    (if (t/empty?* ast)
+      (return result ast)
+      (let [ast-head (in (t/get-value ast) 0)
+            head-name (t/get-value ast-head)]
+        (case head-name
+          "def!"
+          (let [def-name (in (t/get-value ast) 1)
+                def-val (EVAL (in (t/get-value ast) 2) env)]
+            (e/env-set env
+                       def-name def-val)
+            (return result def-val))
+          ##
+          "let*"
+          (let [new-env (e/make-env env)
+                bindings (t/get-value (in (t/get-value ast) 1))]
+            (each [let-name let-val] (partition 2 bindings)
+                  (e/env-set new-env
+                             let-name (EVAL let-val new-env)))
             ## tco
-            (return result (quasiquote* (in (t/get-value ast) 1)))
-            ##
-            "quasiquote"
+            (set ast (in (t/get-value ast) 2))
+            (set env new-env))
+          ##
+          "quote"
+          (return result (in (t/get-value ast) 1))
+          ##
+          "quasiquote"
+          ## tco
+          (set ast (quasiquote* (in (t/get-value ast) 1)))
+          ##
+          "do"
+          (let [most-do-body-forms (slice (t/get-value ast) 1 -2)
+                last-body-form (last (t/get-value ast))]
+            (each x most-do-body-forms (EVAL x env))
             ## tco
-            (set ast (quasiquote* (in (t/get-value ast) 1)))
-            ##
-            "do"
-            (let [most-do-body-forms (slice (t/get-value ast) 1 -2)
-                  last-body-form (last (t/get-value ast))
-                  res-ast (eval_ast (t/make-list most-do-body-forms) env)]
-              ## tco
-              (set ast last-body-form))
-            ##
-            "if"
-            (let [cond-res (EVAL (in (t/get-value ast) 1) env)]
-              (if (or (t/nil?* cond-res)
-                      (t/false?* cond-res))
-                (if-let [else-ast (get (t/get-value ast) 3)]
-                  ## tco
-                  (set ast else-ast)
-                  (return result t/mal-nil))
+            (set ast last-body-form))
+          ##
+          "if"
+          (let [cond-res (EVAL (in (t/get-value ast) 1) env)]
+            (if (or (t/nil?* cond-res)
+                    (t/false?* cond-res))
+              (if-let [else-ast (get (t/get-value ast) 3)]
                 ## tco
-                (set ast (in (t/get-value ast) 2))))
-            ##
-            "fn*"
-            (let [params (t/get-value (in (t/get-value ast) 1))
-                  body (in (t/get-value ast) 2)]
+                (set ast else-ast)
+                (return result t/mal-nil))
               ## tco
+              (set ast (in (t/get-value ast) 2))))
+          ##
+          "fn*"
+          (let [params (t/get-value (in (t/get-value ast) 1))
+                body (in (t/get-value ast) 2)]
+            ## tco
+            (return result
+              (t/make-function (fn [args]
+                                 (EVAL body
+                                   (e/make-env env params args)))
+                               nil false
+                               body params env)))
+          ##
+          (let [f (EVAL ast-head env)
+                raw-args (drop 1 (t/get-value ast))
+                args (map |(EVAL $0 env) raw-args)]
+            (if-let [body (t/get-ast f)] ## tco
+              (do
+                (set ast body)
+                (set env (e/make-env (t/get-env f) (t/get-params f) args)))
               (return result
-                      (t/make-function (fn [args]
-                                         (EVAL body
-                                           (e/make-env env params args)))
-                                       nil false
-                                       body params env)))
-            ##
-            (let [eval-list (t/get-value (eval_ast ast env))
-                  f (first eval-list)
-                  args (drop 1 eval-list)]
-              (if-let [body (t/get-ast f)] ## tco
-                (do
-                  (set ast body)
-                  (set env (e/make-env (t/get-env f) (t/get-params f) args)))
-                (return result
-                        ((t/get-value f) args))))))))))
+                ((t/get-value f) args)))))))
+
+    # Neither a list, map, symbol or vector.
+    (return result ast)))))
 
 (defn PRINT
   [ast]

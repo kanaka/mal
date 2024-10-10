@@ -20,45 +20,42 @@
 
 (var EVAL nil)
 
-(defn eval_ast
+(defn EVAL
   [ast env]
-  (cond
-    (t/symbol?* ast)
-    (if-let [val (env ast)]
-      val
-      (error (t/make-string (string "unbound symbol: " (t/get-value ast)))))
-    #
-    (t/hash-map?* ast)
+
+  # (print (string "EVAL: " (printer/pr_str ast true)))
+
+    (case (t/get-type ast)
+
+    :symbol
+    (or (env ast)
+      (error
+        (t/make-string
+          (string "'" (t/get-value ast) "'" " not found" ))))
+
+    :hash-map
     (t/make-hash-map (struct ;(map |(EVAL $0 env)
                                    (kvs (t/get-value ast)))))
-    #
-    (t/list?* ast)
-    (t/make-list (map |(EVAL $0 env)
-                      (t/get-value ast)))
-    #
-    (t/vector?* ast)
+
+    :vector
     (t/make-vector (map |(EVAL $0 env)
                         (t/get-value ast)))
-    #
+
+    :list
+    (if (t/empty?* ast)
+      ast
+      (let [ast-head (in (t/get-value ast) 0)
+                f (EVAL ast-head env)
+                raw-args (drop 1 (t/get-value ast))
+                args (map |(EVAL $0 env) raw-args)]
+        (apply f args)))
+
+    # Neither a list, map, symbol or vector.
     ast))
 
-(varfn EVAL
-  [ast env]
-  (cond
-    (not (t/list?* ast))
-    (eval_ast ast env)
-    #
-    (t/empty?* ast)
-    ast
-    #
-    (let [eval-list (t/get-value (eval_ast ast env))
-          f (first eval-list)
-          args (drop 1 eval-list)]
-      (apply f args))))
-
 (defn PRINT
-  [value]
-  (printer/pr_str value true))
+  [ast]
+  (printer/pr_str ast true))
 
 (defn rep
   [code-str]

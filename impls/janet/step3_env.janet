@@ -1,6 +1,7 @@
 (import ./reader)
 (import ./printer)
 (import ./types :as t)
+(import ./utils :as u)
 (import ./env :as e)
 
 (defn READ
@@ -23,61 +24,64 @@
 
 (var EVAL nil)
 
-(defn eval_ast
-  [ast env]
-  (cond
-    (t/symbol?* ast)
-    (e/env-get env ast)
-    #
-    (t/hash-map?* ast)
-    (t/make-hash-map (struct ;(map |(EVAL $0 env)
-                                   (kvs (t/get-value ast)))))
-    #
-    (t/list?* ast)
-    (t/make-list (map |(EVAL $0 env)
-                      (t/get-value ast)))
-    #
-    (t/vector?* ast)
-    (t/make-vector (map |(EVAL $0 env)
-                        (t/get-value ast)))
-    #
-    ast))
+(var DEBUG-EVAL (t/make-symbol "DEBUG-EVAL"))
 
 (varfn EVAL
   [ast env]
-  (cond
-    (not (t/list?* ast))
-    (eval_ast ast env)
-    #
-    (t/empty?* ast)
-    ast
-    #
-    (let [ast-head (first (t/get-value ast))
-          head-name (t/get-value ast-head)]
-      (case head-name
-        "def!"
-        (let [def-name (in (t/get-value ast) 1)
-              def-val (EVAL (in (t/get-value ast) 2) env)]
-          (e/env-set env
-                     def-name def-val)
-          def-val)
-        #
-        "let*"
-        (let [new-env (e/make-env env)
-              bindings (t/get-value (in (t/get-value ast) 1))]
-          (each [let-name let-val] (partition 2 bindings)
-                (e/env-set new-env
-                           let-name (EVAL let-val new-env)))
-          (EVAL (in (t/get-value ast) 2) new-env))
-        #
-        (let [eval-list (t/get-value (eval_ast ast env))
-              f (first eval-list)
-              args (drop 1 eval-list)]
-          (apply f args))))))
+
+    (if-let [dbgeval (e/env-get env DEBUG-EVAL)]
+      (if (not (or (t/nil?* dbgeval)
+                   (t/false?* dbgeval)))
+        (print (string "EVAL: " (printer/pr_str ast true)))))
+
+    (case (t/get-type ast)
+
+    :symbol
+    (or (e/env-get env ast)
+      (u/throw*
+        (t/make-string
+          (string "'" (t/get-value ast) "'" " not found" ))))
+
+    :hash-map
+    (t/make-hash-map (struct ;(map |(EVAL $0 env)
+                                   (kvs (t/get-value ast)))))
+
+    :vector
+    (t/make-vector (map |(EVAL $0 env)
+                        (t/get-value ast)))
+
+    :list
+    (if (t/empty?* ast)
+      ast
+      (let [ast-head (in (t/get-value ast) 0)
+            head-name (t/get-value ast-head)]
+        (case head-name
+          "def!"
+          (let [def-name (in (t/get-value ast) 1)
+                def-val (EVAL (in (t/get-value ast) 2) env)]
+            (e/env-set env
+                       def-name def-val)
+            def-val)
+          ##
+          "let*"
+          (let [new-env (e/make-env env)
+                bindings (t/get-value (in (t/get-value ast) 1))]
+            (each [let-name let-val] (partition 2 bindings)
+                  (e/env-set new-env
+                             let-name (EVAL let-val new-env)))
+            (EVAL (in (t/get-value ast) 2) new-env))
+          ##
+          (let [f (EVAL ast-head env)
+                raw-args (drop 1 (t/get-value ast))
+                args (map |(EVAL $0 env) raw-args)]
+            (apply f args)))))
+
+    # Neither a list, map, symbol or vector.
+    ast))
 
 (defn PRINT
-  [value]
-  (printer/pr_str value true))
+  [ast]
+  (printer/pr_str ast true))
 
 (defn rep
   [code-str]
