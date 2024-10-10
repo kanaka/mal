@@ -14,7 +14,8 @@ object core {
 
   // Scalar functions
   def keyword(a: List[Any]) = {
-    "\u029e" + a(0).asInstanceOf[String]
+    val s = a(0).asInstanceOf[String]
+    if (0 < s.length && s(0) == '\u029e') s else "\u029e" + s
   }
 
   def keyword_Q(a: List[Any]) = {
