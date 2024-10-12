@@ -20,6 +20,6 @@ WORKDIR /mal
 ##########################################################
 
 RUN DEBIAN_FRONTEND=noninteractive \
-    apt-get -y install g++ libreadline-dev libedit-dev nodejs npm
+    apt-get -y install libreadline-dev libedit-dev livescript npm
 
 ENV NPM_CONFIG_CACHE /mal/.npm

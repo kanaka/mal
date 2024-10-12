@@ -6,7 +6,7 @@ SOURCES = $(SOURCES_BASE) $(SOURCES_STEPS)
 
 BINS = $(SOURCES:%.ls=%.js)
 
-LSC = node_modules/.bin/lsc
+LSC = lsc
 
 all: node_modules $(BINS)
 
