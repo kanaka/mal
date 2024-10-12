@@ -227,6 +227,7 @@ export ns = do
         {type: \symbol, value: str.value}
 
     'keyword': fn (str) ->
+        if str.type == \keyword then return str
         check-type 'keyword', 0, \string, str.type
         {type: \keyword, value: ':' + str.value}
 
