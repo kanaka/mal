@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "dependencies": {
-    "ffi-napi": "4.0.3",
+    "koffi": "^2.9.0",
     "prelude-ls": "^1.1.2"
   },
   "devDependencies": {

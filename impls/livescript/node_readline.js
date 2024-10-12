@@ -1,17 +1,20 @@
 // IMPORTANT: choose one
-var RL_LIB = "libreadline";  // NOTE: libreadline is GPL
-//var RL_LIB = "libedit";
+var RL_LIB = "libreadline.so";  // NOTE: libreadline is GPL
+//var RL_LIB = "libedit.so";
 
 var HISTORY_FILE = require('path').join(process.env.HOME, '.mal-history');
 
 var rlwrap = {}; // namespace for this module in web context
 
-var ffi = require('ffi-napi'),
+var koffi = require('koffi'),
     fs = require('fs');
 
-var rllib = ffi.Library(RL_LIB, {
-    'readline':    [ 'string', [ 'string' ] ],
-    'add_history': [ 'int',    [ 'string' ] ]});
+var koffi_rl = koffi.load(RL_LIB)
+
+var rllib = {
+    readline: koffi_rl.func("char *readline(char *prompt)"),
+    add_history: koffi_rl.func("int add_history(char *line)")
+}
 
 var rl_history_loaded = false;
 
