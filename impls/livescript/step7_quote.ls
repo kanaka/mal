@@ -28,20 +28,24 @@ make-call = (name, params) -> make-list [make-symbol name] ++ params
 is-symbol = (ast, name) -> ast.type == \symbol and ast.value == name
 
 
-eval_simple = (env, {type, value}: ast) ->
-    switch type
-    | \symbol => env.get value
-    | \list, \vector => ast |> fmap-ast map eval_ast env
-    | \map => ast |> fmap-ast Obj.map eval_ast env
-    | otherwise => ast
-
-
 eval_ast = (env, {type, value}: ast) -->
-    loop
-        if type != \list
-            return eval_simple env, ast
-        else if value.length == 0
+  loop
+
+    dbgeval = env.get "DEBUG-EVAL"
+    if dbgeval and is-thruthy dbgeval then console.log "EVAL: #{pr_str ast}"
+
+    switch type
+    | \symbol => return (env.get value
+                         or throw new Error "'#{value}' not found")
+    | \list =>
+        # Proceed after this switch
+    | \vector => return (ast |> fmap-ast map eval_ast env)
+    | \map => return (ast |> fmap-ast Obj.map eval_ast env)
+    | otherwise => return ast
+
+    if value.length == 0
             return ast
+    else
 
         result = if value[0].type == \symbol
             params = value[1 to]
@@ -52,7 +56,6 @@ eval_ast = (env, {type, value}: ast) -->
             | 'if'         => eval_if env, params
             | 'fn*'        => eval_fn env, params
             | 'quote'      => eval_quote env, params
-            | 'quasiquoteexpand' => eval_quasiquoteexpand params
             | 'quasiquote' => eval_quasiquote env, params
             | otherwise    => eval_apply env, value
         else 

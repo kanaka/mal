@@ -28,24 +28,24 @@ make-call = (name, params) -> make-list [make-symbol name] ++ params
 is-symbol = (ast, name) -> ast.type == \symbol and ast.value == name
 
 
-eval_simple = (env, {type, value}: ast) ->
+eval_ast = (env, {type, value}: ast) -->
+  loop
+
+    dbgeval = env.get "DEBUG-EVAL"
+    if dbgeval and is-thruthy dbgeval then console.log "EVAL: #{pr_str ast}"
+
     switch type
-    | \symbol => env.get value
-    | \list, \vector => ast |> fmap-ast map eval_ast env
-    | \map => ast |> fmap-ast Obj.map eval_ast env
-    | otherwise => ast
+    | \symbol => return (env.get value
+                         or throw new Error "'#{value}' not found")
+    | \list =>
+        # Proceed after this switch
+    | \vector => return (ast |> fmap-ast map eval_ast env)
+    | \map => return (ast |> fmap-ast Obj.map eval_ast env)
+    | otherwise => return ast
 
-
-eval_ast = (env, ast) -->
-    loop
-        if ast.type != \list
-            return eval_simple env, ast
-
-        ast = macroexpand env, ast
-        if ast.type != \list
-            return eval_simple env, ast
-        else if ast.value.length == 0
+    if value.length == 0
             return ast
+    else
 
         result = if ast.value[0].type == \symbol
             params = ast.value[1 to]
@@ -56,16 +56,15 @@ eval_ast = (env, ast) -->
             | 'if'          => eval_if env, params
             | 'fn*'         => eval_fn env, params
             | 'quote'       => eval_quote env, params
-            | 'quasiquoteexpand' => eval_quasiquoteexpand params
             | 'quasiquote'  => eval_quasiquote env, params
             | 'defmacro!'   => eval_defmacro env, params
-            | 'macroexpand' => eval_macroexpand env, params
             | otherwise     => eval_apply env, ast.value
         else 
             eval_apply env, ast.value
 
         if result.type == \tco
-            {env, ast} = result
+            env = result.env
+            {type, value}: ast = result.ast
         else
             return result
 
@@ -198,10 +197,14 @@ eval_fn = (env, params) ->
 
 
 eval_apply = (env, list) ->
-    [fn, ...args] = list |> map eval_ast env
+    [first, ...raw_args] = list
+    fn = first |> eval_ast env
     if fn.type != \function
         runtime-error "#{fn.value} is not a function, got a #{fn.type}"
 
+    if fn.is_macro
+        return (defer-tco env, (unpack-tco (fn.value.apply env, raw_args)))
+    args = raw_args |> map eval_ast env
     fn.value.apply env, args
 
 
@@ -278,30 +281,6 @@ eval_defmacro = (env, params) ->
     # Copy fn and mark the function as a macro.
     macro_fn = fn with is_macro: true
     env.set name.value, macro_fn
-
-
-get-macro-fn = (env, ast) ->
-    if ast.type == \list and
-            ast.value.length != 0 and
-            ast.value[0].type == \symbol
-        fn = env.try-get ast.value[0].value
-        if fn and fn.type == \function and fn.is_macro
-        then fn
-
-
-macroexpand = (env, ast) ->
-    loop # until ast is not a macro function call.
-        macro_fn = get-macro-fn env, ast
-        if not macro_fn then return ast
-        ast = unpack-tco <| macro_fn.value.apply env, ast.value[1 to]
-
-
-eval_macroexpand = (env, params) ->
-    if params.length != 1
-        runtime-error "'macroexpand' expected 1 parameter, 
-                       got #{params.length}"
-
-    macroexpand env, params[0]
 
 
 repl_env = new Env
