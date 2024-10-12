@@ -167,10 +167,8 @@ read-macro = (symbol, reader) ->
 
 read-with-meta = (reader) ->
     reader.next! # accept ^
-    if reader.peek! != '{'
-        parse-error "expected a map after with-meta reader macro '^'"
 
-    meta = read_list reader, '}'
+    meta = read_form reader
     form = read_form reader
 
     do
