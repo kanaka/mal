@@ -1,5 +1,5 @@
 readline = require './node_readline'
-{id, map, each} = require 'prelude-ls'
+{id, map, Obj, each} = require 'prelude-ls'
 {read_str} = require './reader'
 {pr_str} = require './printer'
 {Env} = require './env'
@@ -27,19 +27,25 @@ list-to-pairs = (list) ->
     [0 to (list.length - 2) by 2] \
         |> map (idx) -> [list[idx], list[idx+1]]
 
-
-eval_simple = (env, {type, value}: ast) ->
-    switch type
-    | \symbol => env.get value
-    | \list, \vector => do
-        type: type
-        value: value |> map eval_ast env
-    | otherwise => ast
+is-thruthy = ({type, value}) -> 
+    type != \const or value not in [\nil \false]
 
 
 eval_ast = (env, {type, value}: ast) -->
-    if type != \list then eval_simple env, ast
-    else if value.length == 0 then ast
+
+    dbgeval = env.get "DEBUG-EVAL"
+    if dbgeval and is-thruthy dbgeval then console.log "EVAL: #{pr_str ast}"
+
+    switch type
+    | \symbol => return (env.get value
+                         or throw new Error "'#{value}' not found")
+    | \list =>
+        # Proceed after this switch
+    | \vector => return {type: \vector, value: value |> map eval_ast env}
+    | \map => return {type: \map, value: value |> Obj.map eval_ast env}
+    | otherwise => return ast
+
+    if value.length == 0 then ast
     else if value[0].type == \symbol
         params = value[1 to]
         switch value[0].value
