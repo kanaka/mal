@@ -38,3 +38,9 @@ class Env():
         env = self.find(key)
         if not env: throw_str("'" + str(key.value) + "' not found")
         return env.data[key.value]
+
+    def get_or_None(self, key):
+        assert isinstance(key, MalSym)
+        env = self.find(key)
+        if not env: return None
+        return env.data[key.value]

@@ -12,6 +12,7 @@ import mal_readline
 import mal_types as types
 from mal_types import (MalSym, MalInt, MalStr,
                        nil, true, false, _symbol, _keywordu,
+                       throw_str,
                        MalList, _list, MalVector, MalHashMap, MalFunc)
 import reader, printer
 from env import Env
@@ -49,9 +50,17 @@ def quasiquote(ast):
     else:
         return ast
 
+def eval_ast(ast, env):
+    assert isinstance(ast, MalList)
+    res = []
+    for a in ast.values:
+        res.append(EVAL(a, env))
+    return MalList(res)
+
 def EVAL(ast, env):
   while True:
-    #print("EVAL %s" % printer._pr_str(ast))
+    if env.get_or_None(MalSym(u"DEBUG-EVAL")) not in (None, nil, false):
+        print(u"EVAL: " + printer._pr_str(ast))
     if types._symbol_Q(ast):
         assert isinstance(ast, MalSym)
         return env.get(ast)
@@ -116,8 +125,8 @@ def EVAL(ast, env):
         elif u"do" == a0sym:
             if len(ast) == 0:
                 return nil
-            for i in range(1, len(ast) - 1):
-                EVAL(ast[i], env)
+            elif len(ast) > 1:
+                eval_ast(ast.slice2(1, len(ast)-1), env)
             ast = ast[-1] # Continue loop (TCO)
         elif u"if" == a0sym:
             a1, a2 = ast[1], ast[2]
@@ -131,21 +140,17 @@ def EVAL(ast, env):
             a1, a2 = ast[1], ast[2]
             return MalFunc(None, a2, env, a1, EVAL)
         else:
-          f = EVAL(a0, env)
-          args = ast.rest()
-          if f.ismacro:
-              ast = f.apply(ast.rest()) # Continue loop (TCO)
-          else:
-            res = []
-            for a in args.values:
-                res.append(EVAL(a, env))
-            el = MalList(res)
+            f = EVAL(a0, env)
+            if f.ismacro:
+                ast = f.apply(ast.rest()) # Continue loop (TCO)
+                continue
+            args = eval_ast(ast.rest(), env)
             if isinstance(f, MalFunc):
                 if f.ast:
                     ast = f.ast
-                    env = f.gen_env(el) # Continue loop (TCO)
+                    env = f.gen_env(args) # Continue loop (TCO)
                 else:
-                    return f.apply(el)
+                    return f.apply(args)
             else:
                 raise Exception("%s is not callable" % f)
 

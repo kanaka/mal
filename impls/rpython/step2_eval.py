@@ -12,17 +12,20 @@ def READ(str):
 
 # eval
 def eval_ast(ast, env):
+    assert isinstance(ast, MalList)
+    res = []
+    for a in ast.values:
+        res.append(EVAL(a, env))
+    return MalList(res)
+
+def EVAL(ast, env):
+    # print(u"EVAL: " + printer._pr_str(ast))
     if types._symbol_Q(ast):
         assert isinstance(ast, MalSym)
         if ast.value in env:
             return env[ast.value]
         else:
             raise Exception(u"'" + ast.value + u"' not found")
-    elif types._list_Q(ast):
-        res = []
-        for a in ast.values:
-            res.append(EVAL(a, env))
-        return MalList(res)
     elif types._vector_Q(ast):
         res = []
         for a in ast.values:
@@ -33,14 +36,9 @@ def eval_ast(ast, env):
         for k in ast.dct.keys():
             new_dct[k] = EVAL(ast.dct[k], env)
         return MalHashMap(new_dct)
-    else:
+    elif not types._list_Q(ast):
         return ast  # primitive value, return unchanged
-
-def EVAL(ast, env):
-        #print("EVAL %s" % printer._pr_str(ast))
-        if not types._list_Q(ast):
-            return eval_ast(ast, env)
-
+    else:
         # apply list
         if len(ast) == 0: return ast
         el = eval_ast(ast, env)
