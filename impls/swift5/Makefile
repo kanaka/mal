@@ -1,9 +1,5 @@
-step%: 
-	mkdir -p ./out
+step%:
 	swift build --product $@
-	cp "$(shell swift build --show-bin-path)/$@" "./out/$@"
-
+	[ -L .build/$@ ] || ln -s "$(shell swift build --show-bin-path)/$@" .build/$@
 clean:
-	rm -rf ./out
-	rm -rf ./.build
-
+	rm -fr .build/
