@@ -42,12 +42,12 @@ extension Expr: Equatable {
             return a == b
         case let (.symbol(a), .symbol(b)):
             return a == b
-        case let (.list(a), .list(b)),
-             let (.vector(a), .vector(b)),
-             let (.list(a), .vector(b)),
-             let (.vector(a), .list(b)):
+        case let (.list(a, _), .list(b, _)),
+             let (.vector(a, _), .vector(b, _)),
+             let (.list(a, _), .vector(b, _)),
+             let (.vector(a, _), .list(b, _)):
                 return a == b
-        case let (.hashmap(a), .hashmap(b)):
+        case let (.hashmap(a, _), .hashmap(b, _)):
             return a == b
         case let (.function(a), .function(b)):
             return a == b
