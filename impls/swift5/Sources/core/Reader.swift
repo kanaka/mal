@@ -113,7 +113,7 @@ private extension Parsers {
     static let spliceUnquote = ("~@" *> _form).readerMacros("splice-unquote")
     static let unquote = ("~" *> _form).readerMacros("unquote")
     static let deref = ("@" *> _form).readerMacros("deref")
-    static let meta = ("^" *> hashmap <*> _form).map { Expr.list([.symbol("with-meta"), $1, $0]) }
+    static let meta = ("^" *> _form <*> _form).map { Expr.list([.symbol("with-meta"), $1, $0]) }
 
 
     static let readerMacros = oneOf(
