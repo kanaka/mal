@@ -24,33 +24,32 @@ func read(_ s: String) throws -> Expr {
     return try Reader.read(s)
 }
 
-private func evalAst(_ expr: Expr, env: Env) throws -> Expr {
+func eval(_ expr: Expr, env: Env) throws -> Expr {
+
+    //  print("EVAL: " + print(expr))
+
     switch expr {
     case let .symbol(name):
-        return try env.get(name)
+        let val = env.get(name)
+        guard val != nil else { throw MalError.symbolNotFound(name) }
+        return val!
     case let .vector(values, _):
         return .vector(try values.map { try eval($0, env: env) })
     case let .hashmap(values, _):
         return .hashmap(try values.mapValues { try eval($0, env: env) })
     case let .list(ast, _):
-        return .list(try ast.map { try eval($0, env: env) })
+
+        if ast.isEmpty {
+            return expr
+        }
+
+            let ast = try ast.map { try eval($0, env: env) }
+            guard case let .function(fn) = ast.first else { throw MalError.invalidFunctionCall(ast[0]) }
+            return try fn.run(Array(ast.dropFirst()))
+
     default:
         return expr
     }
-}
-
-func eval(_ expr: Expr, env: Env) throws -> Expr {
-    guard case let .list(values, _) = expr else {
-        return try evalAst(expr, env: env)
-    }
-
-    if values.isEmpty {
-        return expr
-    }
-
-    let ast = try values.map { try eval($0, env: env) }
-    guard case let .function(fn) = ast.first else { throw MalError.invalidFunctionCall(ast[0]) }
-    return try fn.run(Array(ast.dropFirst()))
 }
 
 func print(_ expr: Expr) -> String {
