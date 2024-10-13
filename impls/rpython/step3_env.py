@@ -3,6 +3,7 @@ import mal_readline
 import mal_types as types
 from mal_types import (MalSym, MalInt, MalStr,
                        _symbol, _keywordu,
+                       nil, false, throw_str,
                        MalList, _list, MalVector, MalHashMap, MalFunc)
 import reader, printer
 from env import Env
@@ -13,14 +14,18 @@ def READ(str):
 
 # eval
 def eval_ast(ast, env):
+    assert isinstance(ast, MalList)
+    res = []
+    for a in ast.values:
+        res.append(EVAL(a, env))
+    return MalList(res)
+
+def EVAL(ast, env):
+    if env.get_or_None(MalSym(u"DEBUG-EVAL")) not in (None, nil, false):
+        print(u"EVAL: " + printer._pr_str(ast))
     if types._symbol_Q(ast):
         assert isinstance(ast, MalSym)
         return env.get(ast)
-    elif types._list_Q(ast):
-        res = []
-        for a in ast.values:
-            res.append(EVAL(a, env))
-        return MalList(res)
     elif types._vector_Q(ast):
         res = []
         for a in ast.values:
@@ -31,14 +36,9 @@ def eval_ast(ast, env):
         for k in ast.dct.keys():
             new_dct[k] = EVAL(ast.dct[k], env)
         return MalHashMap(new_dct)
-    else:
+    elif not types._list_Q(ast):
         return ast  # primitive value, return unchanged
-
-def EVAL(ast, env):
-        #print("EVAL %s" % printer._pr_str(ast))
-        if not types._list_Q(ast):
-            return eval_ast(ast, env)
-
+    else:
         # apply list
         if len(ast) == 0: return ast
         a0 = ast[0]
