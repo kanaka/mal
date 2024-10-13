@@ -29,17 +29,12 @@ public class Env {
         data[key] = val
     }
 
-    public func get(_ key: String) throws -> Expr {
-        guard let val = find(key) else { throw MalError.symbolNotFound(key) }
-        return val
-    }
-
-    private func find(_ key: String) -> Expr? {
+    public func get(_ key: String) -> Expr? {
         if let val = data[key] {
             return val
         }
         if let outer = outer {
-            return outer.find(key)
+            return outer.get(key)
         }
         return nil
     }

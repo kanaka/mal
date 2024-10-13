@@ -39,48 +39,27 @@ private func quasiquote(_ expr: Expr) throws -> Expr {
     }
 }
 
-private func macroExpand(_ expr: Expr, env: Env) throws -> Expr {
+func eval(_ expr: Expr, env: Env) throws -> Expr {
+
+    var env = env
     var expr = expr
     while true {
-        guard case let .list(ast, _) = expr,
-            case let .symbol(name) = ast.first,
-            case let .function(fn) = try? env.get(name),
-            fn.isMacro else {
-                break
-        }
 
-        expr = try fn.run(Array(ast.dropFirst()))
+    switch env.get("DEBUG-EVAL") {
+        case nil, .bool(false), .null: break
+        default: print("EVAL: " + print(expr))
     }
-    return expr
-}
 
-private func evalAst(_ expr: Expr, env: Env) throws -> Expr {
     switch expr {
     case let .symbol(name):
-        return try env.get(name)
+        let val = env.get(name)
+        guard val != nil else { throw MalError.symbolNotFound(name) }
+        return val!
     case let .vector(values, _):
         return .vector(try values.map { try eval($0, env: env) })
     case let .hashmap(values, _):
         return .hashmap(try values.mapValues { try eval($0, env: env) })
     case let .list(ast, _):
-        return .list(try ast.map { try eval($0, env: env) })
-    default:
-        return expr
-    }
-}
-
-func eval(_ expr: Expr, env: Env) throws -> Expr {
-
-    var env = env
-    var expr = expr
-
-    while true {
-
-        expr = try macroExpand(expr, env: env)
-
-        guard case let .list(ast, _) = expr else {
-            return try evalAst(expr, env: env)
-        }
 
         if ast.isEmpty {
             return expr
@@ -119,10 +98,6 @@ func eval(_ expr: Expr, env: Env) throws -> Expr {
             guard ast.count == 2 else { throw MalError.invalidArguments("quote") }
             return ast[1]
 
-        case .symbol("quasiquoteexpand"):
-            guard ast.count == 2 else { throw MalError.invalidArguments("quasiquoteexpand") }
-            return try quasiquote(ast[1])
-
         case .symbol("quasiquote"):
             guard ast.count == 2 else { throw MalError.invalidArguments("quasiquote") }
             expr = try quasiquote(ast[1])
@@ -135,10 +110,6 @@ func eval(_ expr: Expr, env: Env) throws -> Expr {
             let macros = fn.asMacros()
             env.set(forKey: name, val: .function(macros))
             return .function(macros)
-
-        case .symbol("macroexpand"):
-            guard ast.count == 2 else { throw MalError.invalidArguments("macroexpand") }
-            return try macroExpand(ast[1], env: env)
 
         case .symbol("try*"):
             if ast.count == 2 {
@@ -202,10 +173,12 @@ func eval(_ expr: Expr, env: Env) throws -> Expr {
             return .function(f)
 
         default:
-            guard case let .list(ast, _) = try evalAst(expr, env: env) else { fatalError() }
-            guard case let .function(fn) = ast[0] else { throw MalError.invalidFunctionCall(ast[0]) }
-
-            let args = Array(ast.dropFirst())
+            guard case let .function(fn) = try eval(ast[0], env: env) else { throw MalError.invalidFunctionCall(ast[0]) }
+            if fn.isMacro {
+                expr = try fn.run(Array(ast.dropFirst()))
+                continue
+            }
+            let args = try ast.dropFirst().map { try eval($0, env: env) }
             if let ast = fn.ast, let fnEnv = fn.env {
                 let newEnv = try Env(binds: fn.params, exprs: args, outer: fnEnv)
                 env = newEnv
@@ -214,6 +187,9 @@ func eval(_ expr: Expr, env: Env) throws -> Expr {
                 return try fn.run(args)
             }
         }
+    default:
+        return expr
+    }
     }
 }
 
