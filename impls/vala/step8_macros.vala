@@ -172,14 +172,26 @@ class Mal.Main : GLib.Object {
                     var sym = first as Mal.Sym;
                     switch (sym.v) {
                     case "def!":
-                    case "defmacro!":
                         if (list.length() != 3)
                             throw new Mal.Error.BAD_PARAMS(
                                 "def!: expected two values");
-                        var val = define_eval(list.next.data, list.next.next.data, env);
-                        if (sym.v == "defmacro!" && val is Mal.Function) {
-                            (val as Mal.Function).is_macro = true;
-                        }
+                        return define_eval(list.next.data, list.next.next.data,
+                                           env);
+                    case "defmacro!":
+                        if (list.length() != 3)
+                            throw new Mal.Error.BAD_PARAMS(
+                                "defmacro!: expected two values");
+                        var symkey = list.next.data as Mal.Sym;
+                        if (symkey == null)
+                            throw new Mal.Error.BAD_PARAMS(
+                                "defmacro!: expects a symbol");
+                        var val = EVAL(list.next.next.data, env) as Mal.Function;
+                        if (val == null)
+                            throw new Mal.Error.BAD_PARAMS(
+                                "defmacro!: expected a function");
+                        val = val.copy() as Mal.Function;
+                        val.is_macro = true;
+                        env.set(symkey, val);
                         return val;
                     case "let*":
                         if (list.length() != 3)
