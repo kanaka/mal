@@ -88,18 +88,15 @@ class Mal.Main : GLib.Object {
         }
     }
 
-    public static Mal.Val eval_ast(Mal.Val ast, Mal.Env env)
+    public static Mal.Val EVAL(Mal.Val ast, Mal.Env env)
     throws Mal.Error {
-        var roota = new GC.Root(ast); (void)roota;
+        var ast_root = new GC.Root(ast); (void)ast_root;
+        GC.Core.maybe_collect();
+
+        //  stdout.printf("EVAL: %s\n", pr_str(ast));
+
         if (ast is Mal.Sym)
             return env.get(ast as Mal.Sym);
-        if (ast is Mal.List) {
-            var result = new Mal.List.empty();
-            var root = new GC.Root(result); (void)root;
-            foreach (var elt in (ast as Mal.List).vs)
-                result.vs.append(EVAL(elt, env));
-            return result;
-        }
         if (ast is Mal.Vector) {
             var vec = ast as Mal.Vector;
             var result = new Mal.Vector.with_size(vec.length);
@@ -116,25 +113,20 @@ class Mal.Main : GLib.Object {
                 result.insert(key, EVAL(map[key], env));
             return result;
         }
-        return ast;
-    }
-
-    public static Mal.Val EVAL(Mal.Val ast, Mal.Env env)
-    throws Mal.Error {
-        var ast_root = new GC.Root(ast); (void)ast_root;
-        GC.Core.maybe_collect();
-
         if (ast is Mal.List) {
             unowned GLib.List<Mal.Val> list = (ast as Mal.List).vs;
             if (list.first() == null)
                 return ast;
-            var newlist = eval_ast(ast, env) as Mal.List;
-            unowned GLib.List<Mal.Val> firstlink = newlist.vs.first();
-            var fn = firstlink.data as Mal.BuiltinFunction;
-            newlist.vs.remove_link(firstlink);
-            return fn.call(newlist);
+
+            Mal.Val firstdata = EVAL(list.first().data, env);
+            var newlist = new Mal.List.empty();
+            var root = new GC.Root(newlist); (void)root;
+            for (var iter = (ast as Mal.Listlike).iter().step(); iter.nonempty(); iter.step())
+                newlist.vs.append(EVAL(iter.deref(), env));
+
+            return (firstdata as Mal.BuiltinFunction).call(newlist);
         } else {
-            return eval_ast(ast, env);
+            return ast;
         }
     }
 

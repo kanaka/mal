@@ -14,6 +14,7 @@ class Mal.BuiltinFunctionEval : Mal.BuiltinFunction {
 
 class Mal.Main : GLib.Object {
     static bool eof;
+    static Mal.Sym dbgevalsym;
 
     static construct {
         eof = false;
@@ -36,38 +37,6 @@ class Mal.Main : GLib.Object {
             eof = true;
             return null;
         }
-    }
-
-    public static Mal.Val eval_ast(Mal.Val ast, Mal.Env env)
-    throws Mal.Error {
-        var roota = new GC.Root(ast); (void)roota;
-        var roote = new GC.Root(env); (void)roote;
-        if (ast is Mal.Sym)
-            return env.get(ast as Mal.Sym);
-        if (ast is Mal.List) {
-            var result = new Mal.List.empty();
-            var root = new GC.Root(result); (void)root;
-            foreach (var elt in (ast as Mal.List).vs)
-                result.vs.append(EVAL(elt, env));
-            return result;
-        }
-        if (ast is Mal.Vector) {
-            var vec = ast as Mal.Vector;
-            var result = new Mal.Vector.with_size(vec.length);
-            var root = new GC.Root(result); (void)root;
-            for (var i = 0; i < vec.length; i++)
-                result[i] = EVAL(vec[i], env);
-            return result;
-        }
-        if (ast is Mal.Hashmap) {
-            var result = new Mal.Hashmap();
-            var root = new GC.Root(result); (void)root;
-            var map = (ast as Mal.Hashmap).vs;
-            foreach (var key in map.get_keys())
-                result.insert(key, EVAL(map[key], env));
-            return result;
-        }
-        return ast;
     }
 
     private static Mal.Val define_eval(Mal.Val key, Mal.Val value,
@@ -99,6 +68,36 @@ class Mal.Main : GLib.Object {
             ast_root.obj = ast;
             env_root.obj = env;
             GC.Core.maybe_collect();
+
+            if (dbgevalsym == null)
+                dbgevalsym = new Mal.Sym("DEBUG-EVAL");
+            var dbgeval = env.get(dbgevalsym);
+            if (dbgeval != null && dbgeval.truth_value())
+                stdout.printf("EVAL: %s\n", pr_str(ast));
+
+            if (ast is Mal.Sym) {
+                var key = ast as Mal.Sym;
+                var val = env.get(key);
+                if (val == null)
+                    throw new Error.ENV_LOOKUP_FAILED("'%s' not found", key.v);
+                return val;
+            }
+            if (ast is Mal.Vector) {
+                var vec = ast as Mal.Vector;
+                var result = new Mal.Vector.with_size(vec.length);
+                var root = new GC.Root(result); (void)root;
+                for (var i = 0; i < vec.length; i++)
+                    result[i] = EVAL(vec[i], env);
+                return result;
+            }
+            if (ast is Mal.Hashmap) {
+                var result = new Mal.Hashmap();
+                var root = new GC.Root(result); (void)root;
+                var map = (ast as Mal.Hashmap).vs;
+                foreach (var key in map.get_keys())
+                    result.insert(key, EVAL(map[key], env));
+                return result;
+            }
             if (ast is Mal.List) {
                 unowned GLib.List<Mal.Val> list = (ast as Mal.List).vs;
                 if (list.first() == null)
@@ -186,10 +185,12 @@ class Mal.Main : GLib.Object {
                     }
                 }
 
-                var newlist = eval_ast(ast, env) as Mal.List;
-                unowned GLib.List<Mal.Val> firstlink = newlist.vs.first();
-                Mal.Val firstdata = firstlink.data;
-                newlist.vs.remove_link(firstlink);
+                Mal.Val firstdata = EVAL(list.first().data, env);
+                var newlist = new Mal.List.empty();
+                var root = new GC.Root(newlist); (void)root;
+                for (var iter = (ast as Mal.Listlike).iter().step();
+                     iter.nonempty(); iter.step())
+                    newlist.vs.append(EVAL(iter.deref(), env));
 
                 if (firstdata is Mal.BuiltinFunction) {
                     return (firstdata as Mal.BuiltinFunction).call(newlist);
@@ -203,7 +204,7 @@ class Mal.Main : GLib.Object {
                         "bad value at start of list");
                 }
             } else {
-                return eval_ast(ast, env);
+                return ast;
             }
         }
     }
