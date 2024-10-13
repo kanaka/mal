@@ -59,18 +59,11 @@ class Mal.Env : GC.Object {
         data[key] = f;
     }
 
-    public Mal.Env? find(Mal.Sym key) {
+    public new Mal.Val? get(Mal.Sym key) {
         if (key in data)
-            return this;
+            return data[key];
         if (outer == null)
             return null;
-        return outer.find(key);
-    }
-
-    public new Mal.Val get(Mal.Sym key) throws Mal.Error {
-        var found = find(key);
-        if (found == null)
-            throw new Error.ENV_LOOKUP_FAILED("'%s' not found", key.v);
-        return found.data[key];
+        return outer.get(key);
     }
 }
