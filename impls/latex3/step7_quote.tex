@@ -129,7 +129,6 @@
 
 \tl_const:Nx \c_quote_symbol { y \tl_to_str:n { quote } }
 \tl_const:Nx \c_quasiquote_symbol { y \tl_to_str:n { quasiquote } }
-\tl_const:Nx \c_quasiquoteexpand_symbol { y \tl_to_str:n { quasiquoteexpand } }
 \tl_const:Nx \c_splice_unquote_symbol { y \tl_to_str:n { splice-unquote } }
 \tl_const:Nx \c_unquote_symbol { y \tl_to_str:n { unquote } }
 
@@ -188,9 +187,7 @@
     \tl_if_head_eq_charcode:nNTF { #1 } b
       { \use_none:nn #1 { #2 } }
       {
-        \bool_lazy_or:nnTF
-          { \tl_if_head_eq_charcode_p:nN { #1 } u }
-          { \tl_if_head_eq_charcode_p:nN { #1 } c }
+        \tl_if_head_eq_charcode:nNTF { #1 } u
           {
             \exp_args:Nx \mal_env_new:N { \tl_item:nn { #1 } { 4 } }
             \mal_env_set_keys_values:on { \use_none:nnnn #1 } { #2 }
@@ -251,10 +248,6 @@
 
         { \tl_if_eq_p:NN \l_tmpa_tl \c_quasiquote_symbol }
         { \mal_eval:xN { \mal_eval_quasiquote:nn #1 } #2 }
-
-        { \tl_if_eq_p:NN \l_tmpa_tl \c_quasiquoteexpand_symbol }
-        { \tl_set:Nx \l_tmpa_tl { \mal_eval_quasiquote:nn #1 } }
-
       }
       {
         % \iow_term:n {eval_mal_list~apply_phase~tl=#1~env=#2}

@@ -129,7 +129,6 @@
 
 \tl_const:Nx \c_quote_symbol { y \tl_to_str:n { quote } }
 \tl_const:Nx \c_quasiquote_symbol { y \tl_to_str:n { quasiquote } }
-\tl_const:Nx \c_quasiquoteexpand_symbol { y \tl_to_str:n { quasiquoteexpand } }
 \tl_const:Nx \c_splice_unquote_symbol { y \tl_to_str:n { splice-unquote } }
 \tl_const:Nx \c_unquote_symbol { y \tl_to_str:n { unquote } }
 
@@ -183,7 +182,6 @@
 % Step 8
 
 \tl_const:Nx \c_defmacro_symbol { y \tl_to_str:n { defmacro! } }
-\tl_const:Nx \c_macroexpand_symbol { y \tl_to_str:n { macroexpand } }
 
 \cs_new:Nn \mal_eval_defmacro:nnnN
   {
@@ -196,34 +194,6 @@
       }
     % \iow_term:V \l_tmpa_tl
   }
-
-\cs_new:Nn \mal_macroexpand:nN
-  {
-    % \iow_term:n {macroexpand~ast=#1~env=#2}
-    \tl_if_head_eq_charcode:nNTF { #1 } l
-      {
-        \tl_set:No \l_tmpb_tl { \use_none:nn #1 }
-        \tl_if_empty:NTF \l_tmpb_tl
-          { \tl_set:Nn \l_tmpa_tl { #1 } }
-          {
-            \mal_env_get:NxTF #2 { \tl_head:N \l_tmpb_tl }
-              {
-                \tl_if_head_eq_charcode:VNTF \l_tmpa_tl c
-                  {
-                    \mal_fn_apply:Vo \l_tmpa_tl { \use_none:nnn #1 }
-                    \tl_if_head_eq_charcode:VNF \l_tmpa_tl e
-                      { \mal_macroexpand:VN \l_tmpa_tl #2 }
-                  }
-                  { \tl_set:Nn \l_tmpa_tl { #1 } }
-              }
-              { \tl_set:Nn \l_tmpa_tl { #1 } }
-          }
-      }
-      { \tl_set:Nn \l_tmpa_tl { #1 } }
-  }
-\cs_generate_variant:Nn \mal_macroexpand:nN { VN }
-
-\cs_new:Nn \mal_eval_macroexpand:nnN { \mal_macroexpand:nN { #2 } #3 }
 
 % EVAL
 
@@ -297,14 +267,8 @@
         { \tl_if_eq_p:NN \l_tmpa_tl \c_quasiquote_symbol }
         { \mal_eval:xN { \mal_eval_quasiquote:nn #1 } #2 }
 
-        { \tl_if_eq_p:NN \l_tmpa_tl \c_quasiquoteexpand_symbol }
-        { \tl_set:Nx \l_tmpa_tl { \mal_eval_quasiquote:nn #1 } }
-
         { \tl_if_eq_p:NN \l_tmpa_tl \c_defmacro_symbol }
         { \mal_eval_defmacro:nnnN #1 #2 }
-
-        { \tl_if_eq_p:NN \l_tmpa_tl \c_macroexpand_symbol }
-        { \mal_eval_macroexpand:nnN #1 #2 }
       }
       {
         % \iow_term:n {eval_mal_list~apply_phase~tl=#1~env=#2}
