@@ -102,8 +102,10 @@ def EVAL(ast, env):
             ast = quasiquote(ast[1]) # Continue loop (TCO)
         elif u"defmacro!" == a0sym:
             func = EVAL(ast[2], env)
-            func.ismacro = True
-            return env.set(ast[1], func)
+            return env.set(ast[1],
+                           MalFunc(func.fn, ast=func.ast, env=func.env,
+                           params=func.params, EvalFunc=func.EvalFunc,
+                           ismacro=True))
         elif u"try*" == a0sym:
             if len(ast) < 3:
                 return EVAL(ast[1], env);
