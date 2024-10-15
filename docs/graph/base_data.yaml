@@ -81,7 +81,7 @@ languages:
   - [scheme        , Scheme (R7RS)    , Lisp   , Dynamic    , [chibi,kawa,gauche,chicken,sagittarius,cyclone,foment]]
   - [skew          , Skew             , OTHER  , Static     , []]
   - [sml           , "Standard ML"    , ML     , Static     , []]
-  - [swift5        , "Swift 5"        , C      , Static     , []]
+  - [swift6        , "Swift 6"        , C      , Static     , []]
   - [tcl           , Tcl              , OTHER  , Dynamic    , []]
   - [ts            , TypeScript       , C      , Static     , []]
   - [vala          , Vala             , C      , Static     , []]

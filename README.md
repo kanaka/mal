@@ -127,7 +127,7 @@ FAQ](docs/FAQ.md) where I attempt to answer some common questions.
 | [Standard ML](#sml) | [Fabian Bergström](https://github.com/fabjan) |
 | [Swift 3](#swift-3) | [Joel Martin](https://github.com/kanaka)  |
 | [Swift 4](#swift-4) | [陆遥](https://github.com/LispLY)  |
-| [Swift 5](#swift-5) | [Oleg Montak](https://github.com/MontakOleg)  |
+| [Swift 6](#swift-6) | [Oleg Montak](https://github.com/MontakOleg)  |
 | [Tcl](#tcl-86) | [Dov Murik](https://github.com/dubek) |
 | [TypeScript](#typescript) | [Masahiro Wakame](https://github.com/vvakame) |
 | [Vala](#vala) | [Simon Tatham](https://github.com/sgtatham) |
@@ -1150,7 +1150,7 @@ The Swift 5 implementation of mal requires the Swift 5.0 compiler. It
 has been tested with Swift 5.1.1 release.
 
 ```
-cd impls/swift5
+cd impls/swift6
 swift run stepX_YYY
 ```
 
