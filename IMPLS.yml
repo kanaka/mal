@@ -119,7 +119,7 @@ IMPL:
 # - {IMPL: swift3, NO_DOCKER: 1, OS: xcode8}
   - {IMPL: swift4}
 # - {IMPL: swift4, NO_DOCKER: 1, OS: xcode10}
-  - {IMPL: swift5}
-  - {IMPL: swift5, NO_DOCKER: 1, OS: macos}
+  - {IMPL: swift6}
+  - {IMPL: swift6, NO_DOCKER: 1, OS: macos}
 
   - {IMPL: vbs, NO_DOCKER: 1, OS: windows}

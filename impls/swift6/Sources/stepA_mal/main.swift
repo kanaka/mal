@@ -216,7 +216,7 @@ replEnv.set(forKey: "eval", val: .function(Func { args in
     return try eval(expr, env: replEnv)
 }))
 replEnv.set(forKey: "*ARGV*", val: .list(CommandLine.arguments.dropFirst(2).map(Expr.string)))
-replEnv.set(forKey: "*host-language*", val: .string("swift5"))
+replEnv.set(forKey: "*host-language*", val: .string("swift6"))
 
 rep("(def! not (fn* (a) (if a false true)))", env: replEnv)
 rep(#"(def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) "\nnil)")))))"#, env: replEnv)
