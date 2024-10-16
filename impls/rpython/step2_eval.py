@@ -11,13 +11,6 @@ def READ(str):
     return reader.read_str(str)
 
 # eval
-def eval_ast(ast, env):
-    assert isinstance(ast, MalList)
-    res = []
-    for a in ast.values:
-        res.append(EVAL(a, env))
-    return MalList(res)
-
 def EVAL(ast, env):
     # print(u"EVAL: " + printer._pr_str(ast))
     if types._symbol_Q(ast):
@@ -41,10 +34,13 @@ def EVAL(ast, env):
     else:
         # apply list
         if len(ast) == 0: return ast
-        el = eval_ast(ast, env)
-        f = el.values[0]
+        f = EVAL(ast[0], env)
+        args_list = []
+        for i in range(1, len(ast)):
+            args_list.append(EVAL(ast[i], env))
+        args = MalList(args_list)
         if isinstance(f, MalFunc):
-            return f.apply(el.values[1:])
+            return f.apply(args)
         else:
             raise Exception("%s is not callable" % f)
 
@@ -53,7 +49,7 @@ def PRINT(exp):
     return printer._pr_str(exp)
 
 # repl
-repl_env = {} 
+repl_env = {}
 def REP(str, env):
     return PRINT(EVAL(READ(str), env))
 

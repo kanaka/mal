@@ -41,20 +41,16 @@ def quasiquote(ast):
     else:
         return ast
 
-def eval_ast(ast, env):
-    assert isinstance(ast, MalList)
-    res = []
-    for a in ast.values:
-        res.append(EVAL(a, env))
-    return MalList(res)
-
 def EVAL(ast, env):
   while True:
-    if env.get_or_None(MalSym(u"DEBUG-EVAL")) not in (None, nil, false):
+    if env.get(u"DEBUG-EVAL") not in (None, nil, false):
         print(u"EVAL: " + printer._pr_str(ast))
     if types._symbol_Q(ast):
         assert isinstance(ast, MalSym)
-        return env.get(ast)
+        value = env.get(ast.value)
+        if value is None:
+            throw_str("'" + str(ast.value) + "' not found")
+        return value
     elif types._vector_Q(ast):
         res = []
         for a in ast.values:
@@ -100,8 +96,8 @@ def EVAL(ast, env):
         elif u"do" == a0sym:
             if len(ast) == 0:
                 return nil
-            elif len(ast) > 1:
-                eval_ast(ast.slice2(1, len(ast)-1), env)
+            for i in range(1, len(ast) - 1):
+                EVAL(ast[i], env)
             ast = ast[-1] # Continue loop (TCO)
         elif u"if" == a0sym:
             a1, a2 = ast[1], ast[2]
@@ -119,7 +115,10 @@ def EVAL(ast, env):
             if f.ismacro:
                 ast = f.apply(ast.rest()) # Continue loop (TCO)
                 continue
-            args = eval_ast(ast.rest(), env)
+            args_list = []
+            for i in range(1, len(ast)):
+                args_list.append(EVAL(ast[i], env))
+            args = MalList(args_list)
             if isinstance(f, MalFunc):
                 if f.ast:
                     ast = f.ast
