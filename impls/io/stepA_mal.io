@@ -20,23 +20,6 @@ quasiquote := method(ast,
                          qq_foldr(ast)),
         ast))
 
-isMacroCall := method(ast, env,
-    if(ast type != "MalList", return false)
-    a0 := ast first
-    if(a0 type != "MalSymbol", return false)
-    if(env find(a0) isNil, return false)
-    f := env get(a0)
-    (f type == "MalFunc") and (f isMacro)
-)
-
-macroexpand := method(ast, env,
-    while(isMacroCall(ast, env),
-        macro := env get(ast at(0))
-        ast = macro blk call(ast rest)
-    )
-    ast
-)
-
 eval_ast := method(ast, env,
    (ast type) switch(
        "MalSymbol", env get(ast),
@@ -52,11 +35,15 @@ eval_ast := method(ast, env,
    )
 )
 
+debugEvalSymbol := MalSymbol with("DEBUG-EVAL")
+
 EVAL := method(ast, env,
     loop(
-        if(ast type != "MalList", return(eval_ast(ast, env)))
 
-        ast = macroexpand(ast, env)
+        debugEvalEnv := env find(debugEvalSymbol)
+        if((debugEvalEnv isNil not) and (debugEvalEnv get(debugEvalSymbol)),
+            ("EVAL: " .. PRINT(ast)) println)
+
         if(ast type != "MalList", return(eval_ast(ast, env)))
         if(ast isEmpty, return ast)
 
@@ -87,15 +74,11 @@ EVAL := method(ast, env,
                     continue, // TCO
                 "quote",
                     return(ast at(1)),
-                "quasiquoteexpand",
-                    return quasiquote(ast at(1)),
                 "quasiquote",
                     ast = quasiquote(ast at(1))
                     continue, // TCO
                 "defmacro!",
                     return(env set(ast at(1), EVAL(ast at(2), env) clone setIsMacro(true))),
-                "macroexpand",
-                    return(macroexpand(ast at(1), env)),
                 "try*",
                     if(ast at(2) == nil, return(EVAL(ast at(1), env)))
                     e := try(result := EVAL(ast at(1), env))
@@ -111,13 +94,17 @@ EVAL := method(ast, env,
         )
 
         // Apply
-        el := eval_ast(ast, env)
-        f := el at(0)
-        args := el rest
+        f := EVAL(ast at(0), env)
+        raw_args := ast rest
         f type switch(
             "Block",
+                args := eval_ast(raw_args, env)
                 return(f call(args)),
             "MalFunc",
+                if(f isMacro,
+                    ast = f blk call(raw_args)
+                    continue) // TCO
+                args := eval_ast(raw_args, env)
                 ast = f ast
                 env = Env with(f env, f params, args)
                 continue, // TCO

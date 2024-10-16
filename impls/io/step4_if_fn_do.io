@@ -18,7 +18,14 @@ eval_ast := method(ast, env,
    )
 )
 
+debugEvalSymbol := MalSymbol with("DEBUG-EVAL")
+
 EVAL := method(ast, env,
+
+    debugEvalEnv := env find(debugEvalSymbol)
+    if((debugEvalEnv isNil not) and (debugEvalEnv get(debugEvalSymbol)),
+        ("EVAL: " .. PRINT(ast)) println)
+
     if(ast type != "MalList", return(eval_ast(ast, env)))
     if(ast isEmpty, return ast)
     if(ast at(0) type == "MalSymbol",
