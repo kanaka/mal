@@ -1,4 +1,4 @@
-FROM ubuntu:20.04
+FROM ubuntu:24.04
 MAINTAINER Joel Martin <github@martintribe.org>
 
 ##########################################################
@@ -19,4 +19,5 @@ WORKDIR /mal
 # Specific implementation requirements
 ##########################################################
 
-RUN apt-get -y install default-jdk-headless libsaxonhe-java
+RUN DEBIAN_FRONTEND=noninteractive apt-get -y install \
+  default-jre-headless libsaxonhe-java
