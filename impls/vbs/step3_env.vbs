@@ -129,11 +129,34 @@ Function Read(strCode)
 	Set Read = ReadString(strCode)
 End Function
 
+Sub DebugEval(objCode, objEnv)
+	Dim value, bool
+	Set value = objEnv.Get("DEBUG-EVAL")
+	If TypeName(value) = "Nothing" Then
+		bool = False
+	Else
+		Select Case value.Type
+			Case TYPES.NIL
+				bool = False
+			Case TYPES.BOOLEAN
+				bool = value.Value
+			Case Else
+				bool = True
+		End Select
+	End If
+	If bool Then
+		IO.WriteLine "EVAL: " + Print(objCode)
+	End If
+End Sub
+
 Function Evaluate(objCode, objEnv)
 	If TypeName(objCode) = "Nothing" Then
 		Set Evaluate = Nothing
 		Exit Function
 	End If
+
+	DebugEval objCode, objEnv
+
 	Dim varRet, objFirst
 	If objCode.Type = TYPES.LIST Then
 		If objCode.Count = 0 Then ' ()
