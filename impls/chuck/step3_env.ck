@@ -34,126 +34,113 @@ fun MalObject EVAL(MalObject m, Env env)
         Util.println("EVAL: " + Printer.pr_str(m, true));
     }
 
-    if( m.type == "list" )
+    if( m.type == "symbol" )
     {
-        if( m.objects.size() == 0 )
+        return env.get(m.stringValue);
+    }
+    else if( m.type == "vector" )
+    {
+        m.malObjectValues() @=> MalObject values[];
+        MalObject results[values.size()];
+        for( 0 => int i; i < values.size(); i++ )
+        {
+            EVAL(values[i], env) @=> MalObject result;
+            if( result.type == "error" )
+            {
+                return result;
+            }
+            result @=> results[i];
+        }
+        return MalVector.create(results);
+    }
+    else if( m.type == "hashmap" )
+    {
+        m.malObjectValues() @=> MalObject values[];
+        MalObject results[values.size()];
+        for( 0 => int i; i < values.size(); i++ )
+        {
+            if( i % 2 == 0 )
+            {
+                values[i] @=> results[i];
+            }
+            else
+            {
+                EVAL(values[i], env) @=> results[i];
+            }
+        }
+        return MalHashMap.create(results);
+    }
+    else if( m.type == "list" )
+    {
+        m.malObjectValues() @=> MalObject ast[];
+
+        if( ast.size() == 0 )
         {
             return m;
         }
-
-        m.malObjectValues() @=> MalObject ast[];
-        ast[0].stringValue => string a0;
-
-        if( a0 == "def!" )
+        else if( ast[0].type == "symbol" )
         {
-            ast[1].stringValue => string a1;
+            ast[0].stringValue => string a0;
 
-            EVAL(ast[2], env) @=> MalObject value;
-            if( value.type == "error" )
+            if( a0 == "def!" )
             {
-                return value;
-            }
+                ast[1].stringValue => string a1;
 
-            env.set(a1, value);
-            return value;
-        }
-        else if( a0 == "let*" )
-        {
-            Env.create(env) @=> Env let_env;
-            ast[1].malObjectValues() @=> MalObject bindings[];
-
-            for( 0 => int i; i < bindings.size(); 2 +=> i)
-            {
-                bindings[i].stringValue => string symbol;
-                EVAL(bindings[i+1], let_env) @=> MalObject value;
-
+                EVAL(ast[2], env) @=> MalObject value;
                 if( value.type == "error" )
                 {
                     return value;
                 }
 
-                let_env.set(symbol, value);
+                env.set(a1, value);
+                return value;
             }
-
-            return EVAL(ast[2], let_env);
-        }
-
-        eval_ast(m, env) @=> MalObject result;
-        if( result.type == "error" )
-        {
-            return result;
-        }
-
-        result.malObjectValues() @=> MalObject values[];
-        values[0]$MalSubr @=> MalSubr subr;
-        MalObject.slice(values, 1) @=> MalObject args[];
-
-        return subr.call(args);
-    }
-    else
-    {
-        eval_ast(m, env) @=> MalObject result;
-        return result;
-    }
-}
-
-fun MalObject eval_ast(MalObject m, Env env)
-{
-    m.type => string type;
-
-    if( type == "symbol" )
-    {
-        return env.get(m.stringValue);
-    }
-    else if( type == "list" || type == "vector" || type == "hashmap" )
-    {
-        m.malObjectValues() @=> MalObject values[];
-        MalObject results[values.size()];
-
-        if( type != "hashmap" )
-        {
-            for( 0 => int i; i < values.size(); i++ )
+            else if( a0 == "let*" )
             {
-                EVAL(values[i], env) @=> MalObject result;
+                Env.create(env) @=> Env let_env;
+                ast[1].malObjectValues() @=> MalObject bindings[];
 
-                if( result.type == "error" )
+                for( 0 => int i; i < bindings.size(); 2 +=> i)
                 {
-                    return result;
+                    bindings[i].stringValue => string symbol;
+                    EVAL(bindings[i+1], let_env) @=> MalObject value;
+
+                    if( value.type == "error" )
+                    {
+                        return value;
+                    }
+
+                    let_env.set(symbol, value);
                 }
 
-                result @=> results[i];
+                return EVAL(ast[2], let_env);
             }
+        }
+
+        EVAL(ast[0], env) @=> MalObject first;
+        if( first.type == "error" )
+        {
+            return first;
+        }
+
+        MalObject args[ast.size() - 1];
+        for( 0 => int i; i < args.size(); i++ )
+        {
+            EVAL(ast[i + 1], env) @=> MalObject result;
+            if( result.type == "error" )
+            {
+                return result;
+            }
+            result @=> args[i];
+        }
+        if( first.type == "subr" )
+        {
+            first$MalSubr @=> MalSubr subr;
+            return subr.call(args);
         }
         else
         {
-            for( 0 => int i; i < values.size(); i++ )
-            {
-                if( i % 2 == 0 )
-                {
-                    values[i] @=> results[i];
-                }
-                else
-                {
-                    EVAL(values[i], env) @=> results[i];
-                }
-            }
-        }
-
-        if( type == "list" )
-        {
-            return MalList.create(results);
-        }
-        else if( type == "vector" )
-        {
-            return MalVector.create(results);
-        }
-        else if( type == "hashmap" )
-        {
-            return MalHashMap.create(results);
-        }
-        else
-        {
-            Util.panic("Programmer error (exhaustive match)");
+            Util.panic("Programmer error: cannot apply");
             return null;
         }
     }

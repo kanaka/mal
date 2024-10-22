@@ -27,36 +27,10 @@ fun MalObject READ(string input)
 
 fun MalObject EVAL(MalObject m, MalSubr env[])
 {
-    if( m.type == "list" )
-    {
-        if( m.objects.size() == 0 )
-        {
-            return m;
-        }
 
-        eval_ast(m, env) @=> MalObject result;
-        if( result.type == "error" )
-        {
-            return result;
-        }
+    //  Util.println("EVAL: " + Printer.pr_str(m, true));
 
-        result.malObjectValues() @=> MalObject values[];
-        values[0]$MalSubr @=> MalSubr subr;
-        MalObject.slice(values, 1) @=> MalObject args[];
-
-        return subr.call(args);
-    }
-    else
-    {
-        return eval_ast(m, env);
-    }
-}
-
-fun MalObject eval_ast(MalObject m, MalSubr env[])
-{
-    m.type => string type;
-
-    if( type == "symbol" )
+    if( m.type == "symbol" )
     {
         m.stringValue => string symbol;
         env[symbol] @=> MalSubr subr;
@@ -70,55 +44,71 @@ fun MalObject eval_ast(MalObject m, MalSubr env[])
             return subr;
         }
     }
-    else if( type == "list" || type == "vector" || type == "hashmap" )
+    else if( m.type == "vector" )
     {
         m.malObjectValues() @=> MalObject values[];
         MalObject results[values.size()];
-
-        if( type != "hashmap" )
+        for( 0 => int i; i < values.size(); i++ )
         {
-            for( 0 => int i; i < values.size(); i++ )
+            EVAL(values[i], env) @=> MalObject result;
+            if( result.type == "error" )
             {
-                EVAL(values[i], env) @=> MalObject result;
-
-                if( result.type == "error" )
-                {
-                    return result;
-                }
-
-                result @=> results[i];
+                return result;
             }
+            result @=> results[i];
+        }
+        return MalVector.create(results);
+    }
+    else if( m.type == "hashmap" )
+    {
+        m.malObjectValues() @=> MalObject values[];
+        MalObject results[values.size()];
+        for( 0 => int i; i < values.size(); i++ )
+        {
+            if( i % 2 == 0 )
+            {
+                values[i] @=> results[i];
+            }
+            else
+            {
+                EVAL(values[i], env) @=> results[i];
+            }
+        }
+        return MalHashMap.create(results);
+    }
+    else if( m.type == "list" )
+    {
+        m.malObjectValues() @=> MalObject ast[];
+
+        if( ast.size() == 0 )
+        {
+            return m;
+        }
+
+        EVAL(ast[0], env) @=> MalObject first;
+        if( first.type == "error" )
+        {
+            return first;
+        }
+
+        MalObject args[ast.size() - 1];
+        for( 0 => int i; i < args.size(); i++ )
+        {
+            EVAL(ast[i + 1], env) @=> MalObject result;
+            if( result.type == "error" )
+            {
+                return result;
+            }
+            result @=> args[i];
+        }
+        if( first.type == "subr" )
+        {
+            first$MalSubr @=> MalSubr subr;
+            return subr.call(args);
         }
         else
         {
-            for( 0 => int i; i < values.size(); i++ )
-            {
-                if( i % 2 == 0 )
-                {
-                    values[i] @=> results[i];
-                }
-                else
-                {
-                    EVAL(values[i], env) @=> results[i];
-                }
-            }
-        }
-
-        if( type == "list" )
-        {
-            return MalList.create(results);
-        }
-        else if( type == "vector" )
-        {
-            return MalVector.create(results);
-        }
-        else if( type == "hashmap" )
-        {
-            return MalHashMap.create(results);
-        }
-        else
-        {
-            Util.panic("Programmer error (exhaustive match)");
+            Util.panic("Programmer error: cannot apply");
             return null;
         }
     }
