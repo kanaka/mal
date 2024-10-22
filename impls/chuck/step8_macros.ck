@@ -202,6 +202,7 @@ fun MalObject EVAL(MalObject m, Env env)
                     return value;
                 }
 
+                value.clone() @=> value;
                 true => (value$Func).isMacro;
 
                 env.set(a1, value);
