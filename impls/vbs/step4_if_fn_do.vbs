@@ -169,6 +169,10 @@ Function EvaluateAST(objCode, objEnv)
 	Select Case objCode.Type
 		Case TYPES.SYMBOL
 			Set varRet = objEnv.Get(objCode.Value)
+			if TypeName(varRet) = "Nothing" Then
+				Err.Raise vbObjectError, _
+					"EvaluateAST", "'" + objCode.Value + "' not found"
+			End If
 		Case TYPES.LIST
 			Err.Raise vbObjectError, _
 				"EvaluateAST", "Unexpect type."
