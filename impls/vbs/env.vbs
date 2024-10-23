@@ -35,14 +35,14 @@ Class Environment
 
 	Public Function Find(varKey)
 		Dim varRet
-		If objBinds.Exists(varKey.Value) Then
+		If objBinds.Exists(varKey) Then
 			Set varRet = objSelf
 		Else
 			If TypeName(objOuter) <> "Nothing" Then
 				Set varRet = objOuter.Find(varKey)
 			Else
 				Err.Raise vbObjectError, _
-					"Environment", "'" + varKey.Value + "' not found"
+					"Environment", "'" + varKey + "' not found"
 			End If
 		End If
 
@@ -53,7 +53,7 @@ Class Environment
 		Dim objEnv, varRet
 		Set objEnv = Find(varKey)
 		If objEnv Is objSelf Then
-			Set varRet = objBinds(varKey.Value)
+			Set varRet = objBinds(varKey)
 		Else
 			Set varRet = objEnv.Get(varKey)
 		End If

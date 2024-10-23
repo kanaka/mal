@@ -26,11 +26,11 @@ Class Enviroment
 	End Function
 
 	Public Function [Get](objSymbol)
-		If objDict.Exists(objSymbol.Value) Then
-			Set [Get] = objDict.Item(objSymbol.Value)
+		If objDict.Exists(objSymbol) Then
+			Set [Get] = objDict.Item(objSymbol)
 		Else
 			Err.Raise vbObjectError, _
-				"Enviroment", "Symbol '" + PrintMalType(objSymbol, True) + "' not found."
+				"Enviroment", "Symbol '" + objSymbol + "' not found."
 		End If
 	End Function
 End Class
@@ -143,7 +143,7 @@ Function EvaluateAST(objCode, objEnv)
 	Dim varRet, i
 	Select Case objCode.Type
 		Case TYPES.SYMBOL
-			Set varRet = objEnv.Get(objCode)
+			Set varRet = objEnv.Get(objCode.Value)
 		Case TYPES.LIST
 			Err.Raise vbObjectError, _
 				"EvaluateAST", "Unexpect type."
