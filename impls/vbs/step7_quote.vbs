@@ -160,7 +160,6 @@ Function MQuasiQuoteExpand(objArgs, objEnv)
 
 	Set MQuasiQuoteExpand = varRes
 End Function
-objNS.Add NewMalSym("quasiquoteexpand"), NewVbsProc("MQuasiQuoteExpand", True)
 
 Class ExpandType
 	Public Splice
