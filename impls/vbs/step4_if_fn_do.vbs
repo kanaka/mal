@@ -19,10 +19,10 @@ Function MDef(objArgs, objEnv)
 	CheckArgNum objArgs, 2
 	CheckType objArgs.Item(1), TYPES.SYMBOL
 	Set varRet = Evaluate(objArgs.Item(2), objEnv)
-	objEnv.Add objArgs.Item(1), varRet
+	objEnv.Add objArgs.Item(1).Value, varRet
 	Set MDef = varRet
 End Function
-objNS.Add NewMalSym("def!"), NewVbsProc("MDef", True)
+objNS.Add "def!", NewVbsProc("MDef", True)
 
 Function MLet(objArgs, objEnv)
 	Dim varRet
@@ -43,13 +43,13 @@ Function MLet(objArgs, objEnv)
 	For i = 0 To objBinds.Count - 1 Step 2
 		Set objSym = objBinds.Item(i)
 		CheckType objSym, TYPES.SYMBOL
-		objNewEnv.Add objSym, Evaluate(objBinds.Item(i + 1), objNewEnv)
+		objNewEnv.Add objSym.Value, Evaluate(objBinds.Item(i + 1), objNewEnv)
 	Next
 
 	Set varRet = Evaluate(objArgs.Item(2), objNewEnv)
 	Set MLet = varRet
 End Function
-objNS.Add NewMalSym("let*"), NewVbsProc("MLet", True)
+objNS.Add "let*", NewVbsProc("MLet", True)
 
 Function MDo(objArgs, objEnv)
 	Dim varRet, i
@@ -62,7 +62,7 @@ Function MDo(objArgs, objEnv)
 	Next
 	Set MDo = varRet
 End Function
-objNS.Add NewMalSym("do"), NewVbsProc("MDo", True)
+objNS.Add "do", NewVbsProc("MDo", True)
 
 Function MIf(objArgs, objEnv)
 	Dim varRet
@@ -92,7 +92,7 @@ Function MIf(objArgs, objEnv)
 	End If
 	Set MIf = varRet
 End Function
-objNS.Add NewMalSym("if"), NewVbsProc("MIf", True)
+objNS.Add "if", NewVbsProc("MIf", True)
 
 Function MFn(objArgs, objEnv)
 	Dim varRet
@@ -110,13 +110,13 @@ Function MFn(objArgs, objEnv)
 	Set varRet = NewMalProc(objParams, objCode, objEnv)
 	Set MFn = varRet
 End Function
-objNS.Add NewMalSym("fn*"), NewVbsProc("MFn", True)
+objNS.Add "fn*", NewVbsProc("MFn", True)
 
 Call InitBuiltIn()
 
 Call REPL()
 Sub REPL()
-	Dim strCode, strResult
+	Dim strCode
 	While True
 		IO.Write "user> "
 
