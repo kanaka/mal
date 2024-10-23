@@ -41,8 +41,7 @@ Class Environment
 			If TypeName(objOuter) <> "Nothing" Then
 				Set varRet = objOuter.Find(varKey)
 			Else
-				Err.Raise vbObjectError, _
-					"Environment", "'" + varKey + "' not found"
+				Set varRet = Nothing
 			End If
 		End If
 
@@ -55,7 +54,11 @@ Class Environment
 		If objEnv Is objSelf Then
 			Set varRet = objBinds(varKey)
 		Else
+		  If TypeName(objEnv) <> "Nothing" Then
 			Set varRet = objEnv.Get(varKey)
+		  Else
+			Set varRet = Nothing
+		  End If
 		End If
 		
 		Set [Get] = varRet
