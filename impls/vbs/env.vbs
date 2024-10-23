@@ -30,7 +30,7 @@ Class Environment
 	End Property
 	
 	Public Sub Add(varKey, varValue)
-		Set objBinds.Item(varKey.Value) = varValue
+		Set objBinds.Item(varKey) = varValue
 	End Sub
 
 	Public Function Find(varKey)

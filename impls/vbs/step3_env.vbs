@@ -16,7 +16,7 @@ Function MAdd(objArgs, objEnv)
 	Set MAdd = NewMalNum( _
 		objArgs.Item(1).Value + objArgs.Item(2).Value)
 End Function
-objEnv.Add NewMalSym("+"), NewVbsProc("MAdd", False)
+objEnv.Add "+", NewVbsProc("MAdd", False)
 
 Function MSub(objArgs, objEnv)
 	CheckArgNum objArgs, 2
@@ -25,7 +25,7 @@ Function MSub(objArgs, objEnv)
 	Set MSub = NewMalNum( _
 		objArgs.Item(1).Value - objArgs.Item(2).Value)
 End Function
-objEnv.Add NewMalSym("-"), NewVbsProc("MSub", False)
+objEnv.Add "-", NewVbsProc("MSub", False)
 
 Function MMul(objArgs, objEnv)
 	CheckArgNum objArgs, 2
@@ -34,7 +34,7 @@ Function MMul(objArgs, objEnv)
 	Set MMul = NewMalNum( _
 		objArgs.Item(1).Value * objArgs.Item(2).Value)
 End Function
-objEnv.Add NewMalSym("*"), NewVbsProc("MMul", False)
+objEnv.Add "*", NewVbsProc("MMul", False)
 
 Function MDiv(objArgs, objEnv)
 	CheckArgNum objArgs, 2
@@ -43,7 +43,7 @@ Function MDiv(objArgs, objEnv)
 	Set MDiv = NewMalNum( _
 		objArgs.Item(1).Value \ objArgs.Item(2).Value)
 End Function
-objEnv.Add NewMalSym("/"), NewVbsProc("MDiv", False)
+objEnv.Add "/", NewVbsProc("MDiv", False)
 
 Sub CheckArgNum(objArgs, lngArgNum)
 	If objArgs.Count - 1 <> lngArgNum Then
@@ -64,10 +64,10 @@ Function MDef(objArgs, objEnv)
 	CheckArgNum objArgs, 2
 	CheckType objArgs.Item(1), TYPES.SYMBOL
 	Set varRet = Evaluate(objArgs.Item(2), objEnv)
-	objEnv.Add objArgs.Item(1), varRet
+	objEnv.Add objArgs.Item(1).Value, varRet
 	Set MDef = varRet
 End Function
-objEnv.Add NewMalSym("def!"), NewVbsProc("MDef", True)
+objEnv.Add "def!", NewVbsProc("MDef", True)
 
 Function MLet(objArgs, objEnv)
 	Dim varRet
@@ -92,17 +92,17 @@ Function MLet(objArgs, objEnv)
 	For i = 0 To objBinds.Count - 1 Step 2
 		Set objSym = objBinds.Item(i)
 		CheckType objSym, TYPES.SYMBOL
-		objNewEnv.Add objSym, Evaluate(objBinds.Item(i + 1), objNewEnv)
+		objNewEnv.Add objSym.Value, Evaluate(objBinds.Item(i + 1), objNewEnv)
 	Next
 
 	Set varRet = Evaluate(objArgs.Item(2), objNewEnv)
 	Set MLet = varRet
 End Function
-objEnv.Add NewMalSym("let*"), NewVbsProc("MLet", True)
+objEnv.Add "let*", NewVbsProc("MLet", True)
 
 Call REPL()
 Sub REPL()
-	Dim strCode, strResult
+	Dim strCode
 	While True
 		IO.Write "user> "
 

@@ -14,7 +14,7 @@ Class Enviroment
 	End Sub
 
 	Public Function Add(objSymbol, objProcedure)
-		objDict.Add objSymbol.Value, objProcedure
+		objDict.Add objSymbol, objProcedure
 	End Function
 
 	Public Property Set Self(objThis)
@@ -46,7 +46,7 @@ Function MAdd(objArgs, objEnv)
 	Set MAdd = NewMalNum( _
 		objArgs.Item(1).Value + objArgs.Item(2).Value)
 End Function
-objEnv.Add NewMalSym("+"), NewVbsProc("MAdd", False)
+objEnv.Add "+", NewVbsProc("MAdd", False)
 
 Function MSub(objArgs, objEnv)
 	CheckArgNum objArgs, 2
@@ -55,7 +55,7 @@ Function MSub(objArgs, objEnv)
 	Set MSub = NewMalNum( _
 		objArgs.Item(1).Value - objArgs.Item(2).Value)
 End Function
-objEnv.Add NewMalSym("-"), NewVbsProc("MSub", False)
+objEnv.Add "-", NewVbsProc("MSub", False)
 
 Function MMul(objArgs, objEnv)
 	CheckArgNum objArgs, 2
@@ -64,7 +64,7 @@ Function MMul(objArgs, objEnv)
 	Set MMul = NewMalNum( _
 		objArgs.Item(1).Value * objArgs.Item(2).Value)
 End Function
-objEnv.Add NewMalSym("*"), NewVbsProc("MMul", False)
+objEnv.Add "*", NewVbsProc("MMul", False)
 
 Function MDiv(objArgs, objEnv)
 	CheckArgNum objArgs, 2
@@ -73,7 +73,7 @@ Function MDiv(objArgs, objEnv)
 	Set MDiv = NewMalNum( _
 		objArgs.Item(1).Value \ objArgs.Item(2).Value)
 End Function
-objEnv.Add NewMalSym("/"), NewVbsProc("MDiv", False)
+objEnv.Add "/", NewVbsProc("MDiv", False)
 
 Sub CheckArgNum(objArgs, lngArgNum)
 	If objArgs.Count - 1 <> lngArgNum Then

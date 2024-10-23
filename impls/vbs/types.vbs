@@ -458,7 +458,7 @@ Class MalProcedure 'Extends MalType
 			If objParams.Item(i).Value = "&" Then
 				If objParams.Count - 1 = i + 1 Then
 					Set objList = NewMalList(Array())
-					objNewEnv.Add objParams.Item(i + 1), objList
+					objNewEnv.Add objParams.Item(i + 1).Value, objList
 					While i + 1 < objArgs.Count
 						objList.Add Evaluate(objArgs.Item(i + 1), objEnv)
 						i = i + 1
@@ -473,7 +473,7 @@ Class MalProcedure 'Extends MalType
 					Err.Raise vbObjectError, _
 						"MalProcedureApply", "Need more arguments."
 				End If
-				objNewEnv.Add objParams.Item(i), _
+				objNewEnv.Add objParams.Item(i).Value, _
 					Evaluate(objArgs.Item(i + 1), objEnv)
 				i = i + 1
 			End If
@@ -501,7 +501,7 @@ Class MalProcedure 'Extends MalType
 					Set objList = NewMalList(Array())
 					
 					' No evaluation
-					objNewEnv.Add objParams.Item(i + 1), objList
+					objNewEnv.Add objParams.Item(i + 1).Value, objList
 					While i + 1 < objArgs.Count
 						objList.Add objArgs.Item(i + 1)
 						i = i + 1
@@ -518,7 +518,7 @@ Class MalProcedure 'Extends MalType
 				End If
 				
 				' No evaluation
-				objNewEnv.Add objParams.Item(i), _
+				objNewEnv.Add objParams.Item(i).Value, _
 					objArgs.Item(i + 1)
 				i = i + 1
 			End If
@@ -543,7 +543,7 @@ Class MalProcedure 'Extends MalType
 					Set objList = NewMalList(Array())
 					
 					' No evaluation
-					objNewEnv.Add objParams.Item(i + 1), objList
+					objNewEnv.Add objParams.Item(i + 1).Value, objList
 					While i + 1 < objArgs.Count
 						objList.Add objArgs.Item(i + 1)
 						i = i + 1
@@ -560,7 +560,7 @@ Class MalProcedure 'Extends MalType
 				End If
 				
 				' No evaluation
-				objNewEnv.Add objParams.Item(i), _
+				objNewEnv.Add objParams.Item(i).Value, _
 					objArgs.Item(i + 1)
 				i = i + 1
 			End If
