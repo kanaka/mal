@@ -266,47 +266,6 @@ Function MDefMacro(objArgs, objEnv)
 End Function
 objNS.Add NewMalSym("defmacro!"), NewVbsProc("MDefMacro", True)
 
-Function IsMacroCall(objCode, objEnv)
-	Dim varRes
-	varRes = False
-
-	' VBS has no short-circuit evaluation.
-	If objCode.Type = TYPES.LIST Then
-		If objCode.Count > 0 Then
-			If objCode.Item(0).Type = TYPES.SYMBOL Then
-				Dim varValue
-				Set varValue = objEnv.Get(objCode.Item(0))
-				If varValue.Type = TYPES.PROCEDURE Then
-					If varValue.IsMacro Then
-						varRes = True
-					End If
-				End If
-			End If
-		End If
-	End If
-
-	IsMacroCall = varRes
-End Function
-
-Function MacroExpand(ByVal objAST, ByVal objEnv)
-	Dim varRes
-	While IsMacroCall(objAST, objEnv)
-		Dim varMacro
-		Set varMacro = objEnv.Get(objAST.Item(0))
-		Set objAST = varMacro.MacroApply(objAST, objEnv)		
-	Wend
-	Set varRes = objAST
-	Set MacroExpand = varRes
-End Function
-
-Function MMacroExpand(objArgs, objEnv)
-	Dim varRes
-	CheckArgNum objArgs, 1
-	Set varRes = MacroExpand(objArgs.Item(1), objEnv)
-	Set MMacroExpand = varRes
-End Function
-objNS.Add NewMalSym("macroexpand"), NewVbsProc("MMacroExpand", True)
-
 Function MTry(objArgs, objEnv)
 	Dim varRes
 	
@@ -399,7 +358,7 @@ Sub REPL()
 			strCode = IO.ReadLine
 			If Err.Number <> 0 Then WScript.Quit 0
 		On Error Goto 0
-		
+
 		Dim strRes
 		On Error Resume Next
 			strRes = REP(strCode)
@@ -430,8 +389,6 @@ Function Evaluate(ByVal objCode, ByVal objEnv)
 			Set Evaluate = Nothing
 			Exit Function
 		End If
-		
-		Set objCode = MacroExpand(objCode, objEnv)
 
 		Dim varRet, objFirst
 		If objCode.Type = TYPES.LIST Then
@@ -441,7 +398,11 @@ Function Evaluate(ByVal objCode, ByVal objEnv)
 			End If
 
 			Set objFirst = Evaluate(objCode.Item(0), objEnv)
-			Set varRet = objFirst.Apply(objCode, objEnv)
+			If objFirst.IsMacro Then
+				Set varRet = EvalLater(objFirst.MacroApply(objCode, objEnv), objEnv)
+			Else
+				Set varRet = objFirst.Apply(objCode, objEnv)
+			End If
 		Else
 			Set varRet = EvaluateAST(objCode, objEnv)
 		End If
