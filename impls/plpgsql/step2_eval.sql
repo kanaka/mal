@@ -41,7 +41,7 @@ BEGIN
             RAISE EXCEPTION '''%'' not found', symkey;
         END IF;
     END;
-    WHEN type IN (8, 9) THEN
+    WHEN type = 9 THEN
     BEGIN
         SELECT val_seq INTO seq FROM types.value WHERE value_id = ast;
         -- Evaluate each entry creating a new sequence
@@ -76,7 +76,7 @@ END; $$ LANGUAGE plpgsql;
 CREATE FUNCTION mal.EVAL(ast integer, env hstore) RETURNS integer AS $$
 DECLARE
     type     integer;
-    el       integer;
+    a0       integer;
     fname    varchar;
     args     integer[];
     result   integer;
@@ -89,10 +89,13 @@ BEGIN
         RETURN ast;
     END IF;
 
-    el := mal.eval_ast(ast, env);
+    a0 := types._first(ast);
+    a0 := mal.EVAL(a0, env);
     SELECT val_string INTO fname FROM types.value
-        WHERE value_id = types._first(el);
-    args := types._restArray(el);
+        WHERE value_id = a0;
+    FOR i in 0 .. types._count(ast) - 2 LOOP
+        args[i] := mal.EVAL(types._nth(ast, i+1), env);
+    END LOOP;
     EXECUTE format('SELECT %s($1);', fname) INTO result USING args;
     RETURN result;
 END; $$ LANGUAGE plpgsql;

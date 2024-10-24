@@ -119,15 +119,9 @@ BEGIN
     e := envs.find(env, symkey);
     --RAISE NOTICE 'envs.find env: %, symkey: % -> e: %', env, symkey, e;
     IF e IS NULL THEN
-        RAISE EXCEPTION '''%'' not found', symkey;
+        RETURN NULL;
     ELSE
         SELECT data -> symkey INTO result FROM envs.env WHERE env_id = e;
     END IF;
     RETURN result;
-END; $$ LANGUAGE plpgsql;
-
--- envs.get
-CREATE FUNCTION envs.get(env integer, key integer) RETURNS integer AS $$
-BEGIN
-    RETURN envs.vget(env, types._valueToString(key));
 END; $$ LANGUAGE plpgsql;

@@ -77,38 +77,11 @@ BEGIN
     END CASE;
 END; $$ LANGUAGE plpgsql;
 
-CREATE FUNCTION mal.is_macro_call(ast integer, env integer) RETURNS boolean AS $$
-DECLARE
-    a0      integer;
-    f       integer;
-    result  boolean = false;
-BEGIN
-    IF types._list_Q(ast) THEN
-        a0 = types._first(ast);
-        IF types._symbol_Q(a0) AND
-           envs.find(env, types._valueToString(a0)) IS NOT NULL THEN
-            f := envs.get(env, a0);
-            SELECT macro INTO result FROM types.value WHERE value_id = f;
-        END IF;
-    END IF;
-    RETURN result;
-END; $$ LANGUAGE plpgsql;
-
-CREATE FUNCTION mal.macroexpand(ast integer, env integer) RETURNS integer AS $$
-DECLARE
-    mac  integer;
-BEGIN
-    WHILE mal.is_macro_call(ast, env)
-    LOOP
-        mac := envs.get(env, types._first(ast));
-        ast := types._apply(mac, types._valueToArray(types._rest(ast)));
-    END LOOP;
-    RETURN ast;
-END; $$ LANGUAGE plpgsql;
-
+--  Helper for EVAL. ast is not a list.
 CREATE FUNCTION mal.eval_ast(ast integer, env integer) RETURNS integer AS $$
 DECLARE
     type           integer;
+    symkey         varchar;
     seq            integer[];
     eseq           integer[];
     hash           hstore;
@@ -121,9 +94,13 @@ BEGIN
     CASE
     WHEN type = 7 THEN
     BEGIN
-        result := envs.get(env, ast);
+        symkey := types._valueToString(ast);
+        result := envs.vget(env, symkey);
+        IF result IS NULL THEN
+            RAISE EXCEPTION '''%'' not found', symkey;
+        END IF;
     END;
-    WHEN type IN (8, 9) THEN
+    WHEN type = 9 THEN
     BEGIN
         SELECT val_seq INTO seq FROM types.value WHERE value_id = ast;
         -- Evaluate each entry creating a new sequence
@@ -164,7 +141,8 @@ DECLARE
     let_env  integer;
     idx      integer;
     binds    integer[];
-    el       integer;
+    ignored  integer;
+    macro    boolean;
     fn       integer;
     fname    varchar;
     args     integer[];
@@ -175,13 +153,15 @@ DECLARE
     result   integer;
 BEGIN
   LOOP
-    -- PERFORM writeline(format('EVAL: %s [%s]', pr_str(ast), ast));
-    SELECT type_id INTO type FROM types.value WHERE value_id = ast;
-    IF type <> 8 THEN
-        RETURN mal.eval_ast(ast, env);
+
+    cond := envs.vget(env, 'DEBUG-EVAL');
+    IF cond IS NOT NULL THEN
+        SELECT type_id INTO cond FROM types.value WHERE value_id = cond;
+        IF cond NOT IN (0, 1) THEN
+            PERFORM io.writeline(format('EVAL: %s [%s]', mal.PRINT(ast), ast));
+        END IF;
     END IF;
 
-    ast := mal.macroexpand(ast, env);
     SELECT type_id INTO type FROM types.value WHERE value_id = ast;
     IF type <> 8 THEN
         RETURN mal.eval_ast(ast, env);
@@ -222,8 +202,6 @@ BEGIN
     BEGIN
         RETURN types._nth(ast, 1);
     END;
-    WHEN a0sym = 'quasiquoteexpand' THEN
-        RETURN mal.quasiquote(types._nth(ast, 1));
     WHEN a0sym = 'quasiquote' THEN
     BEGIN
         ast := mal.quasiquote(types._nth(ast, 1));
@@ -235,13 +213,11 @@ BEGIN
         fn := types._macro(fn);
         RETURN envs.set(env, types._nth(ast, 1), fn);
     END;
-    WHEN a0sym = 'macroexpand' THEN
-    BEGIN
-        RETURN mal.macroexpand(types._nth(ast, 1), env);
-    END;
     WHEN a0sym = 'do' THEN
     BEGIN
-        PERFORM mal.eval_ast(types._slice(ast, 1, types._count(ast)-1), env);
+        FOR i IN 1 .. types._count(ast) - 2 LOOP
+            ignored := mal.EVAL(types._nth(ast, i), env);
+        END LOOP;
         ast := types._nth(ast, types._count(ast)-1);
         CONTINUE; -- TCO
     END;
@@ -267,11 +243,17 @@ BEGIN
     END;
     ELSE
     BEGIN
-        el := mal.eval_ast(ast, env);
-        SELECT type_id, val_string, ast_id, params_id, env_id
-            INTO type, fname, fast, fparams, fenv
-            FROM types.value WHERE value_id = types._first(el);
-        args := types._restArray(el);
+        a0 := mal.EVAL(a0, env);
+        SELECT type_id, val_string, ast_id, params_id, env_id, macro
+            INTO type, fname, fast, fparams, fenv, macro
+            FROM types.value WHERE value_id = a0;
+        IF macro THEN
+            ast := types._apply(a0, types._restArray(ast));
+            CONTINUE; -- TCO
+        END IF;
+        FOR i in 0 .. types._count(ast) - 2 LOOP
+            args[i] := mal.EVAL(types._nth(ast, i+1), env);
+        END LOOP;
         IF type = 11 THEN
             EXECUTE format('SELECT %s($1);', fname)
                 INTO result USING args;

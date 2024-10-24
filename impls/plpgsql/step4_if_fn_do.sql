@@ -23,6 +23,7 @@ END; $$ LANGUAGE plpgsql;
 CREATE FUNCTION mal.eval_ast(ast integer, env integer) RETURNS integer AS $$
 DECLARE
     type           integer;
+    symkey         varchar;
     seq            integer[];
     eseq           integer[];
     hash           hstore;
@@ -35,9 +36,13 @@ BEGIN
     CASE
     WHEN type = 7 THEN
     BEGIN
-        result := envs.get(env, ast);
+        symkey := types._valueToString(ast);
+        result := envs.vget(env, symkey);
+        IF result IS NULL THEN
+            RAISE EXCEPTION '''%'' not found', symkey;
+        END IF;
     END;
-    WHEN type IN (8, 9) THEN
+    WHEN type = 9 THEN
     BEGIN
         SELECT val_seq INTO seq FROM types.value WHERE value_id = ast;
         -- Evaluate each entry creating a new sequence
@@ -78,8 +83,7 @@ DECLARE
     let_env  integer;
     idx      integer;
     binds    integer[];
-    el       integer;
-    fn       integer;
+    ignored  integer;
     fname    varchar;
     args     integer[];
     cond     integer;
@@ -88,7 +92,14 @@ DECLARE
     fenv     integer;
     result   integer;
 BEGIN
-    -- PERFORM writeline(format('EVAL: %s [%s]', pr_str(ast), ast));
+    cond := envs.vget(env, 'DEBUG-EVAL');
+    IF cond IS NOT NULL THEN
+        SELECT type_id INTO cond FROM types.value WHERE value_id = cond;
+        IF cond NOT IN (0, 1) THEN
+            PERFORM io.writeline(format('EVAL: %s [%s]', mal.PRINT(ast), ast));
+        END IF;
+    END IF;
+
     SELECT type_id INTO type FROM types.value WHERE value_id = ast;
     IF type <> 8 THEN
         RETURN mal.eval_ast(ast, env);
@@ -125,8 +136,10 @@ BEGIN
     END;
     WHEN a0sym = 'do' THEN
     BEGIN
-        el := mal.eval_ast(types._rest(ast), env);
-        RETURN types._nth(el, types._count(el)-1);
+        FOR i IN 1 .. types._count(ast) - 2 LOOP
+            ignored := mal.EVAL(types._nth(ast, i), env);
+        END LOOP;
+        RETURN mal.EVAL(types._nth(ast, types._count(ast)-1), env);
     END;
     WHEN a0sym = 'if' THEN
     BEGIN
@@ -148,11 +161,13 @@ BEGIN
     END;
     ELSE
     BEGIN
-        el := mal.eval_ast(ast, env);
+        a0 := mal.EVAL(a0, env);
         SELECT type_id, val_string, ast_id, params_id, env_id
             INTO type, fname, fast, fparams, fenv
-            FROM types.value WHERE value_id = types._first(el);
-        args := types._restArray(el);
+            FROM types.value WHERE value_id = a0;
+        FOR i in 0 .. types._count(ast) - 2 LOOP
+            args[i] := mal.EVAL(types._nth(ast, i+1), env);
+        END LOOP;
         IF type = 11 THEN
             EXECUTE format('SELECT %s($1);', fname)
                 INTO result USING args;
