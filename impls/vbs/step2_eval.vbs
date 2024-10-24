@@ -5,39 +5,17 @@ Include "Types.vbs"
 Include "Reader.vbs"
 Include "Printer.vbs"
 
-Class Enviroment
-	Private objDict
-	Private objSelf
-
-	Private Sub Class_Initialize
-		Set objDict = CreateObject("Scripting.Dictionary")
-	End Sub
-
-	Public Function Add(objSymbol, objProcedure)
-		objDict.Add objSymbol, objProcedure
-	End Function
-
-	Public Property Set Self(objThis)
-		Set objSelf = objThis
-	End Property
-
-	Public Function Find(varKey)
-		Set Find = objSelf
-	End Function
-
-	Public Function [Get](objSymbol)
+	Function EnvGet(objDict, objSymbol)
 		If objDict.Exists(objSymbol) Then
-			Set [Get] = objDict.Item(objSymbol)
+			Set EnvGet = objDict.Item(objSymbol)
 		Else
 			Err.Raise vbObjectError, _
 				"Enviroment", "Symbol '" + objSymbol + "' not found."
 		End If
 	End Function
-End Class
 
 Dim objEnv
-Set objEnv = New Enviroment
-Set objEnv.Self = objEnv
+Set objEnv = CreateObject("Scripting.Dictionary")
 
 Function MAdd(objArgs, objEnv)
 	CheckArgNum objArgs, 2
@@ -146,7 +124,7 @@ Function EvaluateAST(objCode, objEnv)
 	Dim varRet, i
 	Select Case objCode.Type
 		Case TYPES.SYMBOL
-			Set varRet = objEnv.Get(objCode.Value)
+			Set varRet = EnvGet(objEnv, objCode.Value)
 		Case TYPES.LIST
 			Err.Raise vbObjectError, _
 				"EvaluateAST", "Unexpect type."
