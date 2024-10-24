@@ -7,36 +7,32 @@ class Main
     return Reader.read_str(s)
   }
 
-  static MalVal eval_ast(MalVal ast, Str:MalFunc env)
+  static MalVal EVAL(MalVal ast, Str:MalVal env)
   {
-    switch (ast.typeof)
-    {
-      case MalSymbol#:
-        varName := (ast as MalSymbol).value
-        varVal := env[varName] ?: throw Err("'$varName' not found")
-        return (MalVal)varVal
-      case MalList#:
-        newElements := (ast as MalList).value.map |MalVal v -> MalVal| { EVAL(v, env) }
-        return MalList(newElements)
-      case MalVector#:
-        newElements := (ast as MalVector).value.map |MalVal v -> MalVal| { EVAL(v, env) }
-        return MalVector(newElements)
-      case MalHashMap#:
-        newElements := (ast as MalHashMap).value.map |MalVal v -> MalVal| { EVAL(v, env) }
-        return MalHashMap.fromMap(newElements)
-      default:
-        return ast
-    }
-  }
+      switch (ast.typeof)
+      {
+        case MalSymbol#:
+          varName := (ast as MalSymbol).value
+          return env[varName] ?: throw Err("'$varName' not found")
+        case MalVector#:
+          newElements := (ast as MalVector).value.map |MalVal v -> MalVal| { EVAL(v, env) }
+          return MalVector(newElements)
+        case MalHashMap#:
+          newElements := (ast as MalHashMap).value.map |MalVal v -> MalVal| { EVAL(v, env) }
+          return MalHashMap.fromMap(newElements)
+        case MalList#:
+          astList := ast as MalList
+          if (astList.isEmpty) return ast
 
-  static MalVal EVAL(MalVal ast, Str:MalFunc env)
-  {
-    if (!(ast is MalList)) return eval_ast(ast, env)
-    astList := ast as MalList
-    if (astList.isEmpty) return ast
-    evaled_ast := eval_ast(ast, env) as MalList
-    f := evaled_ast[0] as MalFunc
-    return f.call(evaled_ast[1..-1])
+              f := EVAL(astList[0], env)
+              args := astList.value[1..-1].map |MalVal v -> MalVal| { EVAL(v, env) }
+
+                  malfunc := f as MalFunc
+                  return malfunc.call(args)
+
+        default:
+          return ast
+      }
   }
 
   static Str PRINT(MalVal exp)
@@ -44,14 +40,14 @@ class Main
     return exp.toString(true)
   }
 
-  static Str REP(Str s, Str:MalFunc env)
+  static Str REP(Str s, Str:MalVal env)
   {
     return PRINT(EVAL(READ(s), env))
   }
 
   static Void main()
   {
-    env := [
+    repl_env := [
       "+": MalFunc { MalInteger((it[0] as MalInteger).value + (it[1] as MalInteger).value) },
       "-": MalFunc { MalInteger((it[0] as MalInteger).value - (it[1] as MalInteger).value) },
       "*": MalFunc { MalInteger((it[0] as MalInteger).value * (it[1] as MalInteger).value) },
@@ -62,7 +58,7 @@ class Main
       if (line == null) break
       if (line.isSpace) continue
       try
-        echo(REP(line, env))
+        echo(REP(line, repl_env))
       catch (Err e)
         echo("Error: $e.msg")
     }

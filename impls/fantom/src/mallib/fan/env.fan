@@ -27,14 +27,8 @@ class MalEnv
     return value
   }
 
-  MalEnv? find(MalSymbol key)
+  MalVal? get(Str key)
   {
-    return data.containsKey(key.value) ? this : outer?.find(key)
-  }
-
-  MalVal get(MalSymbol key)
-  {
-    foundEnv := find(key) ?: throw Err("'$key.value' not found")
-    return (MalVal)foundEnv.data[key.value]
+    return data.containsKey(key) ? data[key] : outer?.get(key)
   }
 }
