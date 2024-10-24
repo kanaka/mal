@@ -1,66 +1,41 @@
 Option Explicit
 
 Function NewEnv(objOuter)
-	Dim varRet
-	Set varRet = New Environment
-	Set varRet.Self = varRet
-	Set varRet.Outer = objOuter
-	Set NewEnv = varRet
+	Set NewEnv = New Environment
+	Set NewEnv.Outer = objOuter
 End Function
 
 Class Environment
-	Private objOuter, objSelf
-	Private objBinds
+	Public objOuter
+	Public objBinds
 	Private Sub Class_Initialize()
 		Set objBinds = CreateObject("Scripting.Dictionary")
 		Set objOuter = Nothing
-		Set objSelf = Nothing
 	End Sub
 	
 	Public Property Set Outer(objEnv)
 		Set objOuter = objEnv
 	End Property
 
-	Public Property Get Outer()
-		Set Outer = objOuter
-	End Property
-
-	Public Property Set Self(objEnv)
-		Set objSelf = objEnv
-	End Property
-	
 	Public Sub Add(varKey, varValue)
 		Set objBinds.Item(varKey) = varValue
 	End Sub
 
-	Public Function Find(varKey)
-		Dim varRet
-		If objBinds.Exists(varKey) Then
-			Set varRet = objSelf
-		Else
-			If TypeName(objOuter) <> "Nothing" Then
-				Set varRet = objOuter.Find(varKey)
-			Else
-				Set varRet = Nothing
-			End If
-		End If
-
-		Set Find = varRet
-	End Function
-	
 	Public Function [Get](varKey)
 		Dim objEnv, varRet
-		Set objEnv = Find(varKey)
-		If objEnv Is objSelf Then
-			Set varRet = objBinds(varKey)
-		Else
-		  If TypeName(objEnv) <> "Nothing" Then
-			Set varRet = objEnv.Get(varKey)
-		  Else
-			Set varRet = Nothing
-		  End If
-		End If
-		
+		Set objEnv = Me
+		Do
+			If objEnv.objBinds.Exists(varKey) Then
+				Set varRet = objEnv.objBinds(varKey)
+				Exit Do
+			End If
+			Set objEnv = objEnv.objOuter
+			If TypeName(objEnv) = "Nothing" Then
+				Set varRet = Nothing
+				Exit Do
+			End If
+		Loop
+
 		Set [Get] = varRet
 	End Function
 End Class
