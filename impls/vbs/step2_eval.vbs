@@ -123,6 +123,9 @@ Function Evaluate(objCode, objEnv)
 		Set Evaluate = Nothing
 		Exit Function
 	End If
+
+	' DebugEval objCode, objEnv
+
 	Dim varRet, objFirst
 	If objCode.Type = TYPES.LIST Then
 		If objCode.Count = 0 Then ' ()

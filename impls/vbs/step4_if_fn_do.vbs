@@ -144,23 +144,22 @@ Function Read(strCode)
 End Function
 
 Sub DebugEval(objCode, objEnv)
-	Dim value, bool
+	Dim value
 	Set value = objEnv.Get("DEBUG-EVAL")
+	' And and Or do not short-circuit.
 	If TypeName(value) = "Nothing" Then
-		bool = False
+		Exit Sub
 	Else
 		Select Case value.Type
 			Case TYPES.NIL
-				bool = False
+				Exit Sub
 			Case TYPES.BOOLEAN
-				bool = value.Value
-			Case Else
-				bool = True
+				If Not value.Value Then
+					Exit Sub
+				End If
 		End Select
 	End If
-	If bool Then
-		IO.WriteLine "EVAL: " + Print(objCode)
-	End If
+	IO.WriteLine "EVAL: " + Print(objCode)
 End Sub
 
 Function Evaluate(objCode, objEnv)
