@@ -25,10 +25,10 @@ Function MDef(objArgs, objEnv)
 	CheckArgNum objArgs, 2
 	CheckType objArgs.Item(1), TYPES.SYMBOL
 	Set varRet = Evaluate(objArgs.Item(2), objEnv)
-	objEnv.Add objArgs.Item(1), varRet
+	objEnv.Add objArgs.Item(1).Value, varRet
 	Set MDef = varRet
 End Function
-objNS.Add NewMalSym("def!"), NewVbsProc("MDef", True)
+objNS.Add "def!", NewVbsProc("MDef", True)
 
 Function MLet(objArgs, objEnv)
 	Dim varRet
@@ -49,13 +49,13 @@ Function MLet(objArgs, objEnv)
 	For i = 0 To objBinds.Count - 1 Step 2
 		Set objSym = objBinds.Item(i)
 		CheckType objSym, TYPES.SYMBOL
-		objNewEnv.Add objSym, Evaluate(objBinds.Item(i + 1), objNewEnv)
+		objNewEnv.Add objSym.Value, Evaluate(objBinds.Item(i + 1), objNewEnv)
 	Next
 
 	Set varRet = EvalLater(objArgs.Item(2), objNewEnv)
 	Set MLet = varRet
 End Function
-objNS.Add NewMalSym("let*"), NewVbsProc("MLet", True)
+objNS.Add "let*", NewVbsProc("MLet", True)
 
 Function MDo(objArgs, objEnv)
 	Dim varRet, i
@@ -71,7 +71,7 @@ Function MDo(objArgs, objEnv)
 		objEnv)
 	Set MDo = varRet
 End Function
-objNS.Add NewMalSym("do"), NewVbsProc("MDo", True)
+objNS.Add "do", NewVbsProc("MDo", True)
 
 Function MIf(objArgs, objEnv)
 	Dim varRet
@@ -101,7 +101,7 @@ Function MIf(objArgs, objEnv)
 	End If
 	Set MIf = varRet
 End Function
-objNS.Add NewMalSym("if"), NewVbsProc("MIf", True)
+objNS.Add "if", NewVbsProc("MIf", True)
 
 Function MFn(objArgs, objEnv)
 	Dim varRet
@@ -119,7 +119,7 @@ Function MFn(objArgs, objEnv)
 	Set varRet = NewMalProc(objParams, objCode, objEnv)
 	Set MFn = varRet
 End Function
-objNS.Add NewMalSym("fn*"), NewVbsProc("MFn", True)
+objNS.Add "fn*", NewVbsProc("MFn", True)
 
 Function MEval(objArgs, objEnv)
 	Dim varRes
@@ -129,13 +129,13 @@ Function MEval(objArgs, objEnv)
 	Set varRes = EvalLater(varRes, objNS)
 	Set MEval = varRes
 End Function
-objNS.Add NewMalSym("eval"), NewVbsProc("MEval", True)
+objNS.Add "eval", NewVbsProc("MEval", True)
 
 Function MQuote(objArgs, objEnv)
 	CheckArgNum objArgs, 1
 	Set MQuote = objArgs.Item(1)
 End Function
-objNS.Add NewMalSym("quote"), NewVbsProc("MQuote", True)
+objNS.Add "quote", NewVbsProc("MQuote", True)
 
 Function MQuasiQuote(objArgs, objEnv)
 	Dim varRes
@@ -145,7 +145,7 @@ Function MQuasiQuote(objArgs, objEnv)
 		MQuasiQuoteExpand(objArgs, objEnv), objEnv)
 	Set MQuasiQuote = varRes
 End Function
-objNS.Add NewMalSym("quasiquote"), NewVbsProc("MQuasiQuote", True)
+objNS.Add "quasiquote", NewVbsProc("MQuasiQuote", True)
 
 Function MQuasiQuoteExpand(objArgs, objEnv)
 	Dim varRes
@@ -160,7 +160,6 @@ Function MQuasiQuoteExpand(objArgs, objEnv)
 
 	Set MQuasiQuoteExpand = varRes
 End Function
-objNS.Add NewMalSym("quasiquoteexpand"), NewVbsProc("MQuasiQuoteExpand", True)
 
 Class ExpandType
 	Public Splice
@@ -262,51 +261,10 @@ Function MDefMacro(objArgs, objEnv)
 	Set varRet = Evaluate(objArgs.Item(2), objEnv).Copy()
 	CheckType varRet, TYPES.PROCEDURE
 	varRet.IsMacro = True
-	objEnv.Add objArgs.Item(1), varRet
+	objEnv.Add objArgs.Item(1).Value, varRet
 	Set MDefMacro = varRet
 End Function
-objNS.Add NewMalSym("defmacro!"), NewVbsProc("MDefMacro", True)
-
-Function IsMacroCall(objCode, objEnv)
-	Dim varRes
-	varRes = False
-
-	' VBS has no short-circuit evaluation.
-	If objCode.Type = TYPES.LIST Then
-		If objCode.Count > 0 Then
-			If objCode.Item(0).Type = TYPES.SYMBOL Then
-				Dim varValue
-				Set varValue = objEnv.Get(objCode.Item(0))
-				If varValue.Type = TYPES.PROCEDURE Then
-					If varValue.IsMacro Then
-						varRes = True
-					End If
-				End If
-			End If
-		End If
-	End If
-
-	IsMacroCall = varRes
-End Function
-
-Function MacroExpand(ByVal objAST, ByVal objEnv)
-	Dim varRes
-	While IsMacroCall(objAST, objEnv)
-		Dim varMacro
-		Set varMacro = objEnv.Get(objAST.Item(0))
-		Set objAST = varMacro.MacroApply(objAST, objEnv)		
-	Wend
-	Set varRes = objAST
-	Set MacroExpand = varRes
-End Function
-
-Function MMacroExpand(objArgs, objEnv)
-	Dim varRes
-	CheckArgNum objArgs, 1
-	Set varRes = MacroExpand(objArgs.Item(1), objEnv)
-	Set MMacroExpand = varRes
-End Function
-objNS.Add NewMalSym("macroexpand"), NewVbsProc("MMacroExpand", True)
+objNS.Add "defmacro!", NewVbsProc("MDefMacro", True)
 
 Call InitBuiltIn()
 Call InitMacro()
@@ -321,7 +279,7 @@ Sub InitArgs()
 		objArgs.Add NewMalStr(WScript.Arguments.Item(i))
 	Next
 	
-	objNS.Add NewMalSym("*ARGV*"), objArgs
+	objNS.Add "*ARGV*", objArgs
 	
 	If WScript.Arguments.Count > 0 Then
 		REP "(load-file """ + WScript.Arguments.Item(0) + """)"
@@ -358,14 +316,33 @@ Function Read(strCode)
 	Set Read = ReadString(strCode)
 End Function
 
+Sub DebugEval(objCode, objEnv)
+	Dim value
+	Set value = objEnv.Get("DEBUG-EVAL")
+	' And and Or do not short-circuit.
+	If TypeName(value) = "Nothing" Then
+		Exit Sub
+	Else
+		Select Case value.Type
+			Case TYPES.NIL
+				Exit Sub
+			Case TYPES.BOOLEAN
+				If Not value.Value Then
+					Exit Sub
+				End If
+		End Select
+	End If
+	IO.WriteLine "EVAL: " + Print(objCode)
+End Sub
+
 Function Evaluate(ByVal objCode, ByVal objEnv)
 	While True
 		If TypeName(objCode) = "Nothing" Then
 			Set Evaluate = Nothing
 			Exit Function
 		End If
-		
-		Set objCode = MacroExpand(objCode, objEnv)
+
+		DebugEval objCode, objEnv
 
 		Dim varRet, objFirst
 		If objCode.Type = TYPES.LIST Then
@@ -375,7 +352,11 @@ Function Evaluate(ByVal objCode, ByVal objEnv)
 			End If
 
 			Set objFirst = Evaluate(objCode.Item(0), objEnv)
-			Set varRet = objFirst.Apply(objCode, objEnv)
+			If objFirst.IsMacro Then
+				Set varRet = EvalLater(objFirst.MacroApply(objCode, objEnv), objEnv)
+			Else
+				Set varRet = objFirst.Apply(objCode, objEnv)
+			End If
 		Else
 			Set varRet = EvaluateAST(objCode, objEnv)
 		End If
@@ -398,7 +379,11 @@ Function EvaluateAST(objCode, objEnv)
 	Dim varRet, i
 	Select Case objCode.Type
 		Case TYPES.SYMBOL
-			Set varRet = objEnv.Get(objCode)
+			Set varRet = objEnv.Get(objCode.Value)
+			If TypeName(varRet) = "Nothing" Then
+				Err.Raise vbObjectError, _
+					"EvaluateAST", "'" + objCode.Value + "' not found"
+			End If
 		Case TYPES.LIST
 			Err.Raise vbObjectError, _
 				"EvaluateAST", "Unexpect type."

@@ -5,39 +5,17 @@ Include "Types.vbs"
 Include "Reader.vbs"
 Include "Printer.vbs"
 
-Class Enviroment
-	Private objDict
-	Private objSelf
-
-	Private Sub Class_Initialize
-		Set objDict = CreateObject("Scripting.Dictionary")
-	End Sub
-
-	Public Function Add(objSymbol, objProcedure)
-		objDict.Add objSymbol.Value, objProcedure
-	End Function
-
-	Public Property Set Self(objThis)
-		Set objSelf = objThis
-	End Property
-
-	Public Function Find(varKey)
-		Set Find = objSelf
-	End Function
-
-	Public Function [Get](objSymbol)
-		If objDict.Exists(objSymbol.Value) Then
-			Set [Get] = objDict.Item(objSymbol.Value)
+	Function EnvGet(objDict, objSymbol)
+		If objDict.Exists(objSymbol) Then
+			Set EnvGet = objDict.Item(objSymbol)
 		Else
 			Err.Raise vbObjectError, _
-				"Enviroment", "Symbol '" + PrintMalType(objSymbol, True) + "' not found."
+				"Enviroment", "Symbol '" + objSymbol + "' not found."
 		End If
 	End Function
-End Class
 
 Dim objEnv
-Set objEnv = New Enviroment
-Set objEnv.Self = objEnv
+Set objEnv = CreateObject("Scripting.Dictionary")
 
 Function MAdd(objArgs, objEnv)
 	CheckArgNum objArgs, 2
@@ -46,7 +24,7 @@ Function MAdd(objArgs, objEnv)
 	Set MAdd = NewMalNum( _
 		objArgs.Item(1).Value + objArgs.Item(2).Value)
 End Function
-objEnv.Add NewMalSym("+"), NewVbsProc("MAdd", False)
+objEnv.Add "+", NewVbsProc("MAdd", False)
 
 Function MSub(objArgs, objEnv)
 	CheckArgNum objArgs, 2
@@ -55,7 +33,7 @@ Function MSub(objArgs, objEnv)
 	Set MSub = NewMalNum( _
 		objArgs.Item(1).Value - objArgs.Item(2).Value)
 End Function
-objEnv.Add NewMalSym("-"), NewVbsProc("MSub", False)
+objEnv.Add "-", NewVbsProc("MSub", False)
 
 Function MMul(objArgs, objEnv)
 	CheckArgNum objArgs, 2
@@ -64,7 +42,7 @@ Function MMul(objArgs, objEnv)
 	Set MMul = NewMalNum( _
 		objArgs.Item(1).Value * objArgs.Item(2).Value)
 End Function
-objEnv.Add NewMalSym("*"), NewVbsProc("MMul", False)
+objEnv.Add "*", NewVbsProc("MMul", False)
 
 Function MDiv(objArgs, objEnv)
 	CheckArgNum objArgs, 2
@@ -73,7 +51,7 @@ Function MDiv(objArgs, objEnv)
 	Set MDiv = NewMalNum( _
 		objArgs.Item(1).Value \ objArgs.Item(2).Value)
 End Function
-objEnv.Add NewMalSym("/"), NewVbsProc("MDiv", False)
+objEnv.Add "/", NewVbsProc("MDiv", False)
 
 Sub CheckArgNum(objArgs, lngArgNum)
 	If objArgs.Count - 1 <> lngArgNum Then
@@ -123,6 +101,9 @@ Function Evaluate(objCode, objEnv)
 		Set Evaluate = Nothing
 		Exit Function
 	End If
+
+	' DebugEval objCode, objEnv
+
 	Dim varRet, objFirst
 	If objCode.Type = TYPES.LIST Then
 		If objCode.Count = 0 Then ' ()
@@ -143,7 +124,7 @@ Function EvaluateAST(objCode, objEnv)
 	Dim varRet, i
 	Select Case objCode.Type
 		Case TYPES.SYMBOL
-			Set varRet = objEnv.Get(objCode)
+			Set varRet = EnvGet(objEnv, objCode.Value)
 		Case TYPES.LIST
 			Err.Raise vbObjectError, _
 				"EvaluateAST", "Unexpect type."

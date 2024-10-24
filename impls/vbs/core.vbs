@@ -38,7 +38,7 @@ Function MAdd(objArgs, objEnv)
 	Set MAdd = NewMalNum( _
 		objArgs.Item(1).Value + objArgs.Item(2).Value)
 End Function
-objNS.Add NewMalSym("+"), NewVbsProc("MAdd", False)
+objNS.Add "+", NewVbsProc("MAdd", False)
 
 Function MSub(objArgs, objEnv)
 	CheckArgNum objArgs, 2
@@ -47,7 +47,7 @@ Function MSub(objArgs, objEnv)
 	Set MSub = NewMalNum( _
 		objArgs.Item(1).Value - objArgs.Item(2).Value)
 End Function
-objNS.Add NewMalSym("-"), NewVbsProc("MSub", False)
+objNS.Add "-", NewVbsProc("MSub", False)
 
 Function MMul(objArgs, objEnv)
 	CheckArgNum objArgs, 2
@@ -56,7 +56,7 @@ Function MMul(objArgs, objEnv)
 	Set MMul = NewMalNum( _
 		objArgs.Item(1).Value * objArgs.Item(2).Value)
 End Function
-objNS.Add NewMalSym("*"), NewVbsProc("MMul", False)
+objNS.Add "*", NewVbsProc("MMul", False)
 
 Function MDiv(objArgs, objEnv)
 	CheckArgNum objArgs, 2
@@ -65,7 +65,7 @@ Function MDiv(objArgs, objEnv)
 	Set MDiv = NewMalNum( _
 		objArgs.Item(1).Value \ objArgs.Item(2).Value)
 End Function
-objNS.Add NewMalSym("/"), NewVbsProc("MDiv", False)
+objNS.Add "/", NewVbsProc("MDiv", False)
 
 Function MList(objArgs, objEnv)
 	Dim varRet
@@ -76,14 +76,14 @@ Function MList(objArgs, objEnv)
 	Next
 	Set MList = varRet
 End Function
-objNS.Add NewMalSym("list"), NewVbsProc("MList", False)
+objNS.Add "list", NewVbsProc("MList", False)
 
 Function MIsList(objArgs, objEnv)
 	CheckArgNum objArgs, 1
 
 	Set MIsList = NewMalBool(objArgs.Item(1).Type = TYPES.LIST)
 End Function
-objNS.Add NewMalSym("list?"), NewVbsProc("MIsList", False)
+objNS.Add "list?", NewVbsProc("MIsList", False)
 
 Function MIsEmpty(objArgs, objEnv)
 	CheckArgNum objArgs, 1
@@ -91,7 +91,7 @@ Function MIsEmpty(objArgs, objEnv)
 
 	Set MIsEmpty = NewMalBool(objArgs.Item(1).Count = 0)
 End Function
-objNS.Add NewMalSym("empty?"), NewVbsProc("MIsEmpty", False)
+objNS.Add "empty?", NewVbsProc("MIsEmpty", False)
 
 Function MCount(objArgs, objEnv)
 	CheckArgNum objArgs, 1
@@ -102,7 +102,7 @@ Function MCount(objArgs, objEnv)
 		Set MCount = NewMalNum(objArgs.Item(1).Count)
 	End If
 End Function
-objNS.Add NewMalSym("count"), NewVbsProc("MCount", False)
+objNS.Add "count", NewVbsProc("MCount", False)
 
 Function MEqual(objArgs, objEnv)
 	Dim varRet
@@ -159,7 +159,7 @@ Function MEqual(objArgs, objEnv)
 
 	Set MEqual = varRet
 End Function
-objNS.Add NewMalSym("="), NewVbsProc("MEqual", False)
+objNS.Add "=", NewVbsProc("MEqual", False)
 
 Function MGreater(objArgs, objEnv)
 	Dim varRet
@@ -170,7 +170,7 @@ Function MGreater(objArgs, objEnv)
 		objArgs.Item(1).Value > objArgs.Item(2).Value)
 	Set MGreater = varRet
 End Function
-objNS.Add NewMalSym(">"), NewVbsProc("MGreater", False)
+objNS.Add ">", NewVbsProc("MGreater", False)
 
 Function MPrStr(objArgs, objEnv)
 	Dim varRet
@@ -187,7 +187,7 @@ Function MPrStr(objArgs, objEnv)
 	Set varRet = NewMalStr(strRet)
 	Set MPrStr = varRet
 End Function
-objNS.Add NewMalSym("pr-str"), NewVbsProc("MPrStr", False)
+objNS.Add "pr-str", NewVbsProc("MPrStr", False)
 
 Function MStr(objArgs, objEnv)
 	Dim varRet
@@ -201,7 +201,7 @@ Function MStr(objArgs, objEnv)
 	Set varRet = NewMalStr(strRet)
 	Set MStr = varRet
 End Function
-objNS.Add NewMalSym("str"), NewVbsProc("MStr", False)
+objNS.Add "str", NewVbsProc("MStr", False)
 
 Function MPrn(objArgs, objEnv)
 	Dim varRet
@@ -211,7 +211,7 @@ Function MPrn(objArgs, objEnv)
 	Set varRet = NewMalNil()
 	Set MPrn = varRet
 End Function
-objNS.Add NewMalSym("prn"), NewVbsProc("MPrn", False)
+objNS.Add "prn", NewVbsProc("MPrn", False)
 
 Function MPrintln(objArgs, objEnv)
 	Dim varRet
@@ -229,7 +229,7 @@ Function MPrintln(objArgs, objEnv)
 	Set varRet = NewMalNil()
 	Set MPrintln = varRet
 End Function
-objNS.Add NewMalSym("println"), NewVbsProc("MPrintln", False)
+objNS.Add "println", NewVbsProc("MPrintln", False)
 
 Sub InitBuiltIn()
 	REP "(def! not (fn* [bool] (if bool false true)))"
@@ -257,7 +257,7 @@ Function MReadStr(objArgs, objEnv)
 	End If
 	Set MReadStr = varRes
 End Function
-objNS.Add NewMalSym("read-string"), NewVbsProc("MReadStr", False)
+objNS.Add "read-string", NewVbsProc("MReadStr", False)
 
 Function MSlurp(objArgs, objEnv)
 	Dim varRes
@@ -275,7 +275,7 @@ Function MSlurp(objArgs, objEnv)
 	Set varRes = NewMalStr(strRes)
 	Set MSlurp = varRes
 End Function
-objNS.Add NewMalSym("slurp"), NewVbsProc("MSlurp", False)
+objNS.Add "slurp", NewVbsProc("MSlurp", False)
 
 Function MAtom(objArgs, objEnv)
 	Dim varRes
@@ -284,7 +284,7 @@ Function MAtom(objArgs, objEnv)
 	Set varRes = NewMalAtom(objArgs.Item(1))
 	Set MAtom = varRes
 End Function
-objNS.Add NewMalSym("atom"), NewVbsProc("MAtom", False)
+objNS.Add "atom", NewVbsProc("MAtom", False)
 
 Function MIsAtom(objArgs, objEnv)
 	Dim varRes
@@ -293,7 +293,7 @@ Function MIsAtom(objArgs, objEnv)
 	Set varRes = NewMalBool(objArgs.Item(1).Type = TYPES.ATOM)
 	Set MIsAtom = varRes
 End Function
-objNS.Add NewMalSym("atom?"), NewVbsProc("MIsAtom", False)
+objNS.Add "atom?", NewVbsProc("MIsAtom", False)
 
 Function MDeref(objArgs, objEnv)
 	Dim varRes
@@ -303,7 +303,7 @@ Function MDeref(objArgs, objEnv)
 	Set varRes = objArgs.Item(1).Value
 	Set MDeref = varRes
 End Function
-objNS.Add NewMalSym("deref"), NewVbsProc("MDeref", False)
+objNS.Add "deref", NewVbsProc("MDeref", False)
 
 Function MReset(objArgs, objEnv)
 	Dim varRes
@@ -314,7 +314,7 @@ Function MReset(objArgs, objEnv)
 	Set varRes = objArgs.Item(2)
 	Set MReset = varRes
 End Function
-objNS.Add NewMalSym("reset!"), NewVbsProc("MReset", False)
+objNS.Add "reset!", NewVbsProc("MReset", False)
 
 Function MSwap(objArgs, objEnv)
 	Dim varRes
@@ -341,7 +341,7 @@ Function MSwap(objArgs, objEnv)
 	Set varRes = objAtom.Value
 	Set MSwap = varRes
 End Function
-objNS.Add NewMalSym("swap!"), NewVbsProc("MSwap", False)
+objNS.Add "swap!", NewVbsProc("MSwap", False)
 
 Function MConcat(objArgs, objEnv)
 	Dim varRes
@@ -359,7 +359,7 @@ Function MConcat(objArgs, objEnv)
 	Next
 	Set MConcat = varRes
 End Function
-objNS.Add NewMalSym("concat"), NewVbsProc("MConcat", False)
+objNS.Add "concat", NewVbsProc("MConcat", False)
 
 Function MVec(objArgs, objEnv)
 	Dim varRes
@@ -372,7 +372,7 @@ Function MVec(objArgs, objEnv)
 	Next
 	Set MVec = varRes
 End Function
-objNS.Add NewMalSym("vec"), NewVbsProc("MVec", False)
+objNS.Add "vec", NewVbsProc("MVec", False)
 
 Function MNth(objArgs, objEnv)
 	Dim varRes
@@ -389,7 +389,7 @@ Function MNth(objArgs, objEnv)
 
 	Set MNth = varRes
 End Function
-objNS.Add NewMalSym("nth"), NewVbsProc("MNth", False)
+objNS.Add "nth", NewVbsProc("MNth", False)
 
 Function MFirst(objArgs, objEnv)
 	Dim varRes
@@ -411,7 +411,7 @@ Function MFirst(objArgs, objEnv)
 
 	Set MFirst = varRes
 End Function
-objNS.Add NewMalSym("first"), NewVbsProc("MFirst", False)
+objNS.Add "first", NewVbsProc("MFirst", False)
 
 Function MRest(objArgs, objEnv)
 	Dim varRes
@@ -435,7 +435,7 @@ Function MRest(objArgs, objEnv)
 	
 	Set MRest = varRes
 End Function
-objNS.Add NewMalSym("rest"), NewVbsProc("MRest", False)
+objNS.Add "rest", NewVbsProc("MRest", False)
 
 Sub InitMacro()
 	REP "(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw ""odd number of forms to cond"")) (cons'cond (rest (rest xs)))))))"
@@ -475,7 +475,7 @@ Function MThrow(objArgs, objEnv)
 	Err.Raise vbObjectError, _
 		"MThrow", strRnd
 End Function
-objNS.Add NewMalSym("throw"), NewVbsProc("MThrow", False)
+objNS.Add "throw", NewVbsProc("MThrow", False)
 
 Function MApply(objArgs, objEnv)
 	Dim varRes
@@ -510,7 +510,7 @@ Function MApply(objArgs, objEnv)
 	Set varRes = objFn.ApplyWithoutEval(objAST, objEnv)
 	Set MApply = varRes
 End Function
-objNS.Add NewMalSym("apply"), NewVbsProc("MApply", False)
+objNS.Add "apply", NewVbsProc("MApply", False)
 
 Function MMap(objArgs, objEnv)
 	Dim varRes
@@ -534,7 +534,7 @@ Function MMap(objArgs, objEnv)
 
 	Set MMap = varRes
 End Function
-objNS.Add NewMalSym("map"), NewVbsProc("MMap", False)
+objNS.Add "map", NewVbsProc("MMap", False)
 
 Function MIsSymbol(objArgs, objEnv)
 	Dim varRes
@@ -542,7 +542,7 @@ Function MIsSymbol(objArgs, objEnv)
 	Set varRes = NewMalBool(objArgs.Item(1).Type = TYPES.SYMBOL)
 	Set MIsSymbol = varRes
 End Function
-objNS.Add NewMalSym("symbol?"), NewVbsProc("MIsSymbol", False)
+objNS.Add "symbol?", NewVbsProc("MIsSymbol", False)
 
 Function MSymbol(objArgs, objEnv)
 	Dim varRes
@@ -551,7 +551,7 @@ Function MSymbol(objArgs, objEnv)
 	Set varRes = NewMalSym(objArgs.Item(1).Value)
 	Set MSymbol = varRes
 End Function
-objNS.Add NewMalSym("symbol"), NewVbsProc("MSymbol", False)
+objNS.Add "symbol", NewVbsProc("MSymbol", False)
 
 Function MKeyword(objArgs, objEnv)
 	Dim varRes
@@ -567,7 +567,7 @@ Function MKeyword(objArgs, objEnv)
 	End Select
 	Set MKeyword = varRes
 End Function
-objNS.Add NewMalSym("keyword"), NewVbsProc("MKeyword", False)
+objNS.Add "keyword", NewVbsProc("MKeyword", False)
 
 Function MIsKeyword(objArgs, objEnv)
 	Dim varRes
@@ -575,7 +575,7 @@ Function MIsKeyword(objArgs, objEnv)
 	Set varRes = NewMalBool(objArgs.Item(1).Type = TYPES.KEYWORD)
 	Set MIsKeyword = varRes
 End Function
-objNS.Add NewMalSym("keyword?"), NewVbsProc("MIsKeyword", False)
+objNS.Add "keyword?", NewVbsProc("MIsKeyword", False)
 
 Function MIsSeq(objArgs, objEnv)
 	Dim varRes
@@ -585,7 +585,7 @@ Function MIsSeq(objArgs, objEnv)
 		objArgs.Item(1).Type = TYPES.VECTOR)
 	Set MIsSeq = varRes
 End Function
-objNS.Add NewMalSym("sequential?"), NewVbsProc("MIsSeq", False)
+objNS.Add "sequential?", NewVbsProc("MIsSeq", False)
 
 Function MIsVec(objArgs, objEnv)
 	Dim varRes
@@ -593,7 +593,7 @@ Function MIsVec(objArgs, objEnv)
 	Set varRes = NewMalBool(objArgs.Item(1).Type = TYPES.VECTOR)
 	Set MIsVec = varRes
 End Function
-objNS.Add NewMalSym("vector?"), NewVbsProc("MIsVec", False)
+objNS.Add "vector?", NewVbsProc("MIsVec", False)
 
 Function MIsMap(objArgs, objEnv)
 	Dim varRes
@@ -601,7 +601,7 @@ Function MIsMap(objArgs, objEnv)
 	Set varRes = NewMalBool(objArgs.Item(1).Type = TYPES.HASHMAP)
 	Set MIsMap = varRes
 End Function
-objNS.Add NewMalSym("map?"), NewVbsProc("MIsMap", False)
+objNS.Add "map?", NewVbsProc("MIsMap", False)
 
 Function MHashMap(objArgs, objEnv)
 	Dim varRes
@@ -616,7 +616,7 @@ Function MHashMap(objArgs, objEnv)
 	Next
 	Set MHashMap = varRes
 End Function
-objNS.Add NewMalSym("hash-map"), NewVbsProc("MHashMap", False)
+objNS.Add "hash-map", NewVbsProc("MHashMap", False)
 
 Function MAssoc(objArgs, objEnv)
 	Dim varRes
@@ -639,7 +639,7 @@ Function MAssoc(objArgs, objEnv)
 	Next
 	Set MAssoc = varRes
 End Function
-objNS.Add NewMalSym("assoc"), NewVbsProc("MAssoc", False)
+objNS.Add "assoc", NewVbsProc("MAssoc", False)
 
 Function MGet(objArgs, objEnv)
 	Dim varRes
@@ -658,7 +658,7 @@ Function MGet(objArgs, objEnv)
 	
 	Set MGet = varRes
 End Function
-objNS.Add NewMalSym("get"), NewVbsProc("MGet", False)
+objNS.Add "get", NewVbsProc("MGet", False)
 
 Function MDissoc(objArgs, objEnv)
 	Dim varRes
@@ -688,14 +688,14 @@ Function MDissoc(objArgs, objEnv)
 
 	Set MDissoc = varRes
 End Function
-objNS.Add NewMalSym("dissoc"), NewVbsProc("MDissoc", False)
+objNS.Add "dissoc", NewVbsProc("MDissoc", False)
 
 Function MKeys(objArgs, objEnv)
 	CheckArgNum objArgs, 1
 	CheckType objArgs.Item(1), TYPES.HASHMAP
 	Set MKeys = NewMalList(objArgs.Item(1).Keys)
 End Function
-objNS.Add NewMalSym("keys"), NewVbsProc("MKeys", False)
+objNS.Add "keys", NewVbsProc("MKeys", False)
 
 Function MIsContains(objArgs, objEnv)
 	CheckArgNum objArgs, 2
@@ -703,7 +703,7 @@ Function MIsContains(objArgs, objEnv)
 
 	Set MIsContains = NewMalBool(objArgs.Item(1).Exists(objArgs.Item(2)))
 End Function
-objNS.Add NewMalSym("contains?"), NewVbsProc("MIsContains", False)
+objNS.Add "contains?", NewVbsProc("MIsContains", False)
 
 Function MReadLine(objArgs, objEnv)
 	Dim varRes
@@ -722,24 +722,24 @@ Function MReadLine(objArgs, objEnv)
 	On Error Goto 0
 	Set MReadLine = varRes
 End Function
-objNS.Add NewMalSym("readline"), NewVbsProc("MReadLine", False)
+objNS.Add "readline", NewVbsProc("MReadLine", False)
 
 Function MTimeMs(objArgs, objEnv)
 	Set MTimeMs = NewMalNum(CLng(Timer * 1000))
 End Function
-objNS.Add NewMalSym("time-ms"), NewVbsProc("MTimeMs", False)
+objNS.Add "time-ms", NewVbsProc("MTimeMs", False)
 
 Function MIsStr(objArgs, objEnv)
 	CheckArgNum objArgs, 1
 	Set MIsStr = NewMalBool(objArgs.Item(1).Type = TYPES.STRING)
 End Function
-objNS.Add NewMalSym("string?"), NewVbsProc("MIsStr", False)
+objNS.Add "string?", NewVbsProc("MIsStr", False)
 
 Function MIsNum(objArgs, objEnv)
 	CheckArgNum objArgs, 1
 	Set MIsNum = NewMalBool(objArgs.Item(1).Type = TYPES.NUMBER)
 End Function
-objNS.Add NewMalSym("number?"), NewVbsProc("MIsNum", False)
+objNS.Add "number?", NewVbsProc("MIsNum", False)
 
 Function MIsFn(objArgs, objEnv)
 	CheckArgNum objArgs, 1
@@ -752,7 +752,7 @@ Function MIsFn(objArgs, objEnv)
 	
 	Set MIsFn = NewMalBool(varRes)
 End Function
-objNS.Add NewMalSym("fn?"), NewVbsProc("MIsFn", False)
+objNS.Add "fn?", NewVbsProc("MIsFn", False)
 
 
 Function MIsMacro(objArgs, objEnv)
@@ -766,7 +766,7 @@ Function MIsMacro(objArgs, objEnv)
 	
 	Set MIsMacro = NewMalBool(varRes)
 End Function
-objNS.Add NewMalSym("macro?"), NewVbsProc("MIsMacro", False)
+objNS.Add "macro?", NewVbsProc("MIsMacro", False)
 
 
 Function MMeta(objArgs, objEnv)
@@ -777,7 +777,7 @@ Function MMeta(objArgs, objEnv)
 	Set varRes = GetMeta(objArgs.Item(1))
 	Set MMeta = varRes
 End Function
-objNS.Add NewMalSym("meta"), NewVbsProc("MMeta", False)
+objNS.Add "meta", NewVbsProc("MMeta", False)
 
 Function MWithMeta(objArgs, objEnv)
 	CheckArgNum objArgs, 2
@@ -787,7 +787,7 @@ Function MWithMeta(objArgs, objEnv)
 	Set varRes = SetMeta(objArgs.Item(1), objArgs.Item(2))
 	Set MWithMeta = varRes
 End Function
-objNS.Add NewMalSym("with-meta"), NewVbsProc("MWithMeta", False)
+objNS.Add "with-meta", NewVbsProc("MWithMeta", False)
 
 Function MConj(objArgs, objEnv)
 	If objArgs.Count - 1 < 1 Then
@@ -821,7 +821,7 @@ Function MConj(objArgs, objEnv)
 	End Select
 	Set MConj = varRes
 End Function
-objNS.Add NewMalSym("conj"), NewVbsProc("MConj", False)
+objNS.Add "conj", NewVbsProc("MConj", False)
 
 Function MSeq(objArgs, objEnv)
 	CheckArgNum objArgs, 1
@@ -862,5 +862,5 @@ Function MSeq(objArgs, objEnv)
 	End Select
 	Set MSeq = varRes
 End Function
-objNS.Add NewMalSym("seq"), NewVbsProc("MSeq", False)
+objNS.Add "seq", NewVbsProc("MSeq", False)
 

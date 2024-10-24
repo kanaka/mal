@@ -25,10 +25,10 @@ Function MDef(objArgs, objEnv)
 	CheckArgNum objArgs, 2
 	CheckType objArgs.Item(1), TYPES.SYMBOL
 	Set varRet = Evaluate(objArgs.Item(2), objEnv)
-	objEnv.Add objArgs.Item(1), varRet
+	objEnv.Add objArgs.Item(1).Value, varRet
 	Set MDef = varRet
 End Function
-objNS.Add NewMalSym("def!"), NewVbsProc("MDef", True)
+objNS.Add "def!", NewVbsProc("MDef", True)
 
 Function MLet(objArgs, objEnv)
 	Dim varRet
@@ -49,13 +49,13 @@ Function MLet(objArgs, objEnv)
 	For i = 0 To objBinds.Count - 1 Step 2
 		Set objSym = objBinds.Item(i)
 		CheckType objSym, TYPES.SYMBOL
-		objNewEnv.Add objSym, Evaluate(objBinds.Item(i + 1), objNewEnv)
+		objNewEnv.Add objSym.Value, Evaluate(objBinds.Item(i + 1), objNewEnv)
 	Next
 
 	Set varRet = EvalLater(objArgs.Item(2), objNewEnv)
 	Set MLet = varRet
 End Function
-objNS.Add NewMalSym("let*"), NewVbsProc("MLet", True)
+objNS.Add "let*", NewVbsProc("MLet", True)
 
 Function MDo(objArgs, objEnv)
 	Dim varRet, i
@@ -71,7 +71,7 @@ Function MDo(objArgs, objEnv)
 		objEnv)
 	Set MDo = varRet
 End Function
-objNS.Add NewMalSym("do"), NewVbsProc("MDo", True)
+objNS.Add "do", NewVbsProc("MDo", True)
 
 Function MIf(objArgs, objEnv)
 	Dim varRet
@@ -101,7 +101,7 @@ Function MIf(objArgs, objEnv)
 	End If
 	Set MIf = varRet
 End Function
-objNS.Add NewMalSym("if"), NewVbsProc("MIf", True)
+objNS.Add "if", NewVbsProc("MIf", True)
 
 Function MFn(objArgs, objEnv)
 	Dim varRet
@@ -119,7 +119,7 @@ Function MFn(objArgs, objEnv)
 	Set varRet = NewMalProc(objParams, objCode, objEnv)
 	Set MFn = varRet
 End Function
-objNS.Add NewMalSym("fn*"), NewVbsProc("MFn", True)
+objNS.Add "fn*", NewVbsProc("MFn", True)
 
 Call InitBuiltIn()
 
@@ -138,7 +138,7 @@ Sub REPL()
 		On Error Resume Next
 			strRes = REP(strCode)
 			If Err.Number <> 0 Then
-				IO.WriteErrLine "Exception: " + Err.Description 
+				IO.WriteErrLine "Exception: " + Err.Description
 			Else
 				If strRes <> "" Then
 					IO.WriteLine strRes
@@ -152,19 +152,41 @@ Function Read(strCode)
 	Set Read = ReadString(strCode)
 End Function
 
+Sub DebugEval(objCode, objEnv)
+	Dim value
+	Set value = objEnv.Get("DEBUG-EVAL")
+	' And and Or do not short-circuit.
+	If TypeName(value) = "Nothing" Then
+		Exit Sub
+	Else
+		Select Case value.Type
+			Case TYPES.NIL
+				Exit Sub
+			Case TYPES.BOOLEAN
+				If Not value.Value Then
+					Exit Sub
+				End If
+		End Select
+	End If
+	IO.WriteLine "EVAL: " + Print(objCode)
+End Sub
+
 Function Evaluate(ByVal objCode, ByVal objEnv)
 	While True
 		If TypeName(objCode) = "Nothing" Then
 			Set Evaluate = Nothing
 			Exit Function
 		End If
-		
+
+		DebugEval objCode, objEnv
+
 		Dim varRet, objFirst
 		If objCode.Type = TYPES.LIST Then
 			If objCode.Count = 0 Then ' ()
 				Set Evaluate = objCode
 				Exit Function
 			End If
+
 			Set objFirst = Evaluate(objCode.Item(0), objEnv)
 			Set varRet = objFirst.Apply(objCode, objEnv)
 		Else
@@ -189,7 +211,11 @@ Function EvaluateAST(objCode, objEnv)
 	Dim varRet, i
 	Select Case objCode.Type
 		Case TYPES.SYMBOL
-			Set varRet = objEnv.Get(objCode)
+			Set varRet = objEnv.Get(objCode.Value)
+			If TypeName(varRet) = "Nothing" Then
+				Err.Raise vbObjectError, _
+					"EvaluateAST", "'" + objCode.Value + "' not found"
+			End If
 		Case TYPES.LIST
 			Err.Raise vbObjectError, _
 				"EvaluateAST", "Unexpect type."
