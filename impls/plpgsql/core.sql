@@ -131,7 +131,7 @@ DECLARE
 BEGIN
     fname := types._valueToString(args[1]);
     IF fname NOT LIKE '/%' THEN
-        fname := types._valueToString(envs.vget(0, '*PWD*')) || '/' || fname;
+        fname := types._valueToString(envs.get(0, '*PWD*')) || '/' || fname;
     END IF;
 
     tmp := CAST(round(random()*1000000) AS varchar);
