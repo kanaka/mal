@@ -249,7 +249,8 @@ a:
 ;; Testing read of ^/metadata
 ^{"a" 1} [1 2 3]
 ;=>(with-meta [1 2 3] {"a" 1})
-
+^2 [1 2 3]
+;=>(with-meta [1 2 3] 2)
 
 ;; Non alphanumeric characters in strings
 ;;; \t is not specified enough to be tested
