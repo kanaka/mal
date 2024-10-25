@@ -98,9 +98,7 @@ EVAL := method(ast, env,
                     ast = quasiquote(ast at(1))
                     continue, // TCO
                 "defmacro!",
-                    return(env set(ast at(1), EVAL(ast at(2), env) clone setIsMacro(true))),
-                "macroexpand",
-                    return(macroexpand(ast at(1), env))
+                    return(env set(ast at(1), EVAL(ast at(2), env) clone setIsMacro(true)))
             )
         )
 
