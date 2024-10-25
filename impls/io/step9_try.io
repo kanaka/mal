@@ -99,8 +99,6 @@ EVAL := method(ast, env,
                     continue, // TCO
                 "defmacro!",
                     return(env set(ast at(1), EVAL(ast at(2), env) clone setIsMacro(true))),
-                "macroexpand",
-                    return(macroexpand(ast at(1), env)),
                 "try*",
                     if(ast at(2) == nil, return(EVAL(ast at(1), env)))
                     e := try(result := EVAL(ast at(1), env))
