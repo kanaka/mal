@@ -52,8 +52,15 @@ eval_ast := method(ast, env,
    )
 )
 
+debugEvalSymbol := MalSymbol with("DEBUG-EVAL")
+
 EVAL := method(ast, env,
     loop(
+
+        debugEvalEnv := env find(debugEvalSymbol)
+        if((debugEvalEnv isNil not) and (debugEvalEnv get(debugEvalSymbol)),
+            ("EVAL: " .. PRINT(ast)) println)
+
         if(ast type != "MalList", return(eval_ast(ast, env)))
 
         ast = macroexpand(ast, env)
