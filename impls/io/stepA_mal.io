@@ -87,8 +87,6 @@ EVAL := method(ast, env,
                     continue, // TCO
                 "quote",
                     return(ast at(1)),
-                "quasiquoteexpand",
-                    return quasiquote(ast at(1)),
                 "quasiquote",
                     ast = quasiquote(ast at(1))
                     continue, // TCO
