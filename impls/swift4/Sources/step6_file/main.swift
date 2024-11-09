@@ -8,6 +8,11 @@ func READ(_ input: String) throws -> MalData {
 func EVAL(_ anAst: MalData, env anEnv: Env) throws -> MalData {
     var ast = anAst, env = anEnv
     while true {
+        if let dbgeval = try? env.get(forKey: Symbol("DEBUG-EVAL")) {
+            if ![.False, .Nil].contains(dbgeval.dataType) {
+                print("EVAL: " + PRINT(ast))
+            }
+        }
         switch ast.dataType {
         case .List:
             let list = ast as! [MalData]
@@ -53,15 +58,16 @@ func EVAL(_ anAst: MalData, env anEnv: Env) throws -> MalData {
                 }
             }
             // not a symbol. maybe: function, list, or some wrong type
-            let evaluated = try eval_ast(list, env: env) as! [MalData]
-            guard let function = evaluated[0] as? Function else {
+            guard let function = try EVAL(list[0], env: env) as? Function else {
                 throw MalError.SymbolNotFound(list[0] as? Symbol ?? Symbol("Symbol"))
             }
+            let raw_args = list.dropFirst()
+            let args = try raw_args.map { try EVAL($0, env: env) }
             if let fnAst = function.ast { // a full fn
                 ast = fnAst
-                env = Env(binds: function.params!, exprs: evaluated.dropFirst().listForm, outer: function.env!)
+                env = Env(binds: function.params!, exprs: args, outer: function.env!)
             } else { // normal function
-                return try function.fn(evaluated.dropFirst().listForm)
+                return try function.fn(args)
             }
             continue
         case .Vector:
@@ -70,8 +76,15 @@ func EVAL(_ anAst: MalData, env anEnv: Env) throws -> MalData {
         case .HashMap:
             let hashMap = ast as! HashMap<String, MalData>
             return try hashMap.mapValues { value in try EVAL(value, env: env) }
+        case .Symbol:
+            let sym = ast as! Symbol
+            if let value = try? env.get(forKey: sym) {
+                return value
+            } else {
+                throw MalError.SymbolNotFound(sym)
+            }
         default:
-            return try eval_ast(ast, env: env)
+            return ast
         }
     }
 }
@@ -83,27 +96,6 @@ func PRINT(_ input: MalData) -> String {
 @discardableResult func rep(_ input: String, env: Env) throws -> String {
     return try PRINT(EVAL(READ(input), env: env))
 }
-
-func eval_ast(_ ast: MalData, env: Env) throws -> MalData {
-    switch ast.dataType {
-    case .Symbol:
-        let sym = ast as! Symbol
-        if let function =  try? env.get(forKey: sym) {
-            return function
-        } else {
-            throw MalError.SymbolNotFound(sym)
-        }
-    case .List:
-        let list = ast as! [MalData]
-        return try list.map { element in try EVAL(element, env: env) }
-    case .Atom:
-        return (ast as! Atom).value
-    default:
-        return ast
-    }
-}
-
-
 
 var repl_env = Env()
 for (key, value) in ns {

@@ -48,34 +48,16 @@ func quasiquote(_ ast: MalData) -> MalData {
 }
 
 func EVAL(_ anAst: MalData, env anEnv: Env) throws -> MalData {
-    func macroexpand(_ anAst: MalData, env: Env) throws -> MalData {
-        func isMacro_call(_ ast: MalData, env: Env) -> Bool { // not used
-            if let list = ast as? [MalData],
-                let symbol = list[0] as? Symbol,
-                let fn = try? env.get(forKey: symbol) as? Function {
-                return fn?.isMacro ?? false
-            }
-            return false
-        }
-        
-        var ast = anAst
-        while let list = ast as? [MalData],
-            let symbol = list[0] as? Symbol,
-            let fn = try? env.get(forKey: symbol) as? Function,
-            let isMacro = fn?.isMacro, isMacro == true {
-                ast = try fn!.fn(List(list.dropFirst()))
-        }
-        return ast
-    }
-    
-    /// Apply
     var ast = anAst, env = anEnv
     while true {
+        if let dbgeval = try? env.get(forKey: Symbol("DEBUG-EVAL")) {
+            if ![.False, .Nil].contains(dbgeval.dataType) {
+                print("EVAL: " + PRINT(ast))
+            }
+        }
         switch ast.dataType {
         case .List:
-            if (ast as! [MalData]).isEmpty { return ast }
-            ast = try macroexpand(ast, env: env)
-            guard let list = ast as? [MalData] else { return try eval_ast(ast, env: env) }
+            let list = ast as! [MalData]
             guard !list.isEmpty else { return list }
             if let sym = list[0] as? Symbol {
                 switch sym.name {
@@ -119,27 +101,28 @@ func EVAL(_ anAst: MalData, env anEnv: Env) throws -> MalData {
                     return Function(ast: list[2], params: (list[1].listForm as! [Symbol]), env:env , fn: fn)
                 case "quote":
                     return list[1]
-                case "quasiquoteexpand":
-                    return quasiquote(list[1])
                 case "quasiquote":
                     ast = quasiquote(list[1])
                     continue
-                case "macroexpand":
-                    return try macroexpand(list[1], env: env)
                 default:
                     break
                 }
             }
             // not a symbol. maybe: function, list, or some wrong type
-            let evaluated = try eval_ast(list, env: env) as! [MalData]
-            guard let function = evaluated[0] as? Function else {
+            guard let function = try EVAL(list[0], env: env) as? Function else {
                 throw MalError.SymbolNotFound(list[0] as? Symbol ?? Symbol("Symbol"))
             }
+            let raw_args = list.dropFirst()
+            if function.isMacro {
+                ast = try function.fn(List(raw_args))
+                continue
+            }
+            let args = try raw_args.map { try EVAL($0, env: env) }
             if let fnAst = function.ast { // a full fn
                 ast = fnAst
-                env = Env(binds: function.params!, exprs: evaluated.dropFirst().listForm, outer: function.env!)
+                env = Env(binds: function.params!, exprs: args, outer: function.env!)
             } else { // normal function
-                return try function.fn(evaluated.dropFirst().listForm)
+                return try function.fn(args)
             }
             continue
         case .Vector:
@@ -148,8 +131,15 @@ func EVAL(_ anAst: MalData, env anEnv: Env) throws -> MalData {
         case .HashMap:
             let hashMap = ast as! HashMap<String, MalData>
             return try hashMap.mapValues { value in try EVAL(value, env: env) }
+        case .Symbol:
+            let sym = ast as! Symbol
+            if let value = try? env.get(forKey: sym) {
+                return value
+            } else {
+                throw MalError.SymbolNotFound(sym)
+            }
         default:
-            return try eval_ast(ast, env: env)
+            return ast
         }
     }
 }
@@ -161,27 +151,6 @@ func PRINT(_ input: MalData) -> String {
 @discardableResult func rep(_ input: String, env: Env) throws -> String {
     return try PRINT(EVAL(READ(input), env: env))
 }
-
-func eval_ast(_ ast: MalData, env: Env) throws -> MalData {
-    switch ast.dataType {
-    case .Symbol:
-        let sym = ast as! Symbol
-        if let function =  try? env.get(forKey: sym) {
-            return function
-        } else {
-            throw MalError.SymbolNotFound(sym)
-        }
-    case .List:
-        let list = ast as! [MalData]
-        return try list.map { element in try EVAL(element, env: env) }
-    case .Atom:
-        return (ast as! Atom).value
-    default:
-        return ast
-    }
-}
-
-
 
 var repl_env = Env()
 for (key, value) in ns {

@@ -6,42 +6,34 @@ func READ(_ str: String) throws -> MalVal {
 }
 
 // eval
-func eval_ast(_ ast: MalVal, _ env: Dictionary<String, MalVal>) throws -> MalVal {
+func EVAL(_ ast: MalVal, _ env: Dictionary<String, MalVal>) throws -> MalVal {
+    /* print("EVAL: " + PRINT(ast)) */
     switch ast {
     case MalVal.MalSymbol(let sym):
-        if env[sym] == nil {
+        if let value = env[sym] {
+            return value
+        } else {
             throw MalError.General(msg: "'\(sym)' not found")
         }
-        return env[sym]!
-    case MalVal.MalList(let lst, _):
-        return list(try lst.map { try EVAL($0, env) })
     case MalVal.MalVector(let lst, _):
         return vector(try lst.map { try EVAL($0, env) })
     case MalVal.MalHashMap(let dict, _):
         var new_dict = Dictionary<String,MalVal>()
         for (k,v) in dict { new_dict[k] = try EVAL(v, env) }
         return hash_map(new_dict)
+    case MalVal.MalList(let lst, _):
+        if lst.count == 0 { return ast }
+
+                let raw_args = lst[1..<lst.count]
+                switch try EVAL(lst[0], env) {
+                case MalVal.MalFunc(let fn, nil, _, _, _, _):
+                    let args = try raw_args.map { try EVAL($0, env) }
+                    return try fn(args)
+                default:
+                    throw MalError.General(msg: "Cannot apply on '\(lst[0])'")
+                }
     default:
         return ast
-    }
-}
-
-func EVAL(_ ast: MalVal, _ env: Dictionary<String, MalVal>) throws -> MalVal {
-    switch ast {
-    case MalVal.MalList(let lst, _): if lst.count == 0 { return ast }
-    default: return try eval_ast(ast, env)
-    }
-
-    switch try eval_ast(ast, env) {
-    case MalVal.MalList(let elst, _):
-        switch elst[0] {
-        case MalVal.MalFunc(let fn,_,_,_,_,_):
-            let args = Array(elst[1..<elst.count])
-            return try fn(args)
-        default:
-            throw MalError.General(msg: "Cannot apply on '\(elst[0])'")
-        }
-    default: throw MalError.General(msg: "Invalid apply")
     }
 }
 

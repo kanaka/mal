@@ -8,6 +8,11 @@ func READ(_ input: String) throws -> MalData {
 func EVAL(_ anAst: MalData, env anEnv: Env) throws -> MalData {
     var ast = anAst, env = anEnv
     while true {
+        if let dbgeval = try? env.get(forKey: Symbol("DEBUG-EVAL")) {
+            if ![.False, .Nil].contains(dbgeval.dataType) {
+                print("EVAL: " + PRINT(ast))
+            }
+        }
         switch ast.dataType {
         case .List:
             let list = ast as! [MalData]
@@ -53,44 +58,36 @@ func EVAL(_ anAst: MalData, env anEnv: Env) throws -> MalData {
                 }
             }
             // not a symbol. maybe: function, list, or some wrong type
-            let evaluated = try eval_ast(list, env: env) as! [MalData]
-            guard let function = evaluated[0] as? Function else {
+            guard let function = try EVAL(list[0], env: env) as? Function else {
                 throw MalError.SymbolNotFound(list[0] as? Symbol ?? Symbol("Symbol"))
             }
+            let raw_args = list.dropFirst()
+            let args = try raw_args.map { try EVAL($0, env: env) }
             if let fnAst = function.ast { // a full fn
                 ast = fnAst
-                env = Env(binds: function.params!, exprs: evaluated.dropFirst().listForm, outer: function.env!)
+                env = Env(binds: function.params!, exprs: args, outer: function.env!)
             } else { // normal function
-                return try function.fn(evaluated.dropFirst().listForm)
+                return try function.fn(args)
             }
             continue
-/* fn 的尾递归优化
-fn 的语法形式： （（fn （a，b）（+ a b ）） 1 2） 形参，函数体，实参
-fn 本来的实现。
-    1.生成：制造一个闭包
-            1.1 闭包的功能：读入实参， 建立 形参=实参 的环境，在这个环境中 求值函数体
-            1.2 闭包本身不带有环境，当求值闭包时使用当时的环境
-    2.使用：
-            以使用时的环境，使用实参调用闭包，闭包的返回值作为返回值。over （一次函数调用）
-fn 的 TCO 实现。
-    1.生成: 形参 函数体 闭包（闭包包含最初的形参和函数体）+ 生成fn时的环境
-    2.使用：
-            取出 函数体，
-            使用求值时的形参，以 fn 中的 env 为外层 env 建立环境 （）
-            通过循环，在新建的环境中求值函数体
- */
         case .Vector:
             let vector = ast as! ContiguousArray<MalData>
             return try ContiguousArray(vector.map { element in try EVAL(element, env: env) })
         case .HashMap:
             let hashMap = ast as! HashMap<String, MalData>
             return try hashMap.mapValues { value in try EVAL(value, env: env) }
+        case .Symbol:
+            let sym = ast as! Symbol
+            if let value = try? env.get(forKey: sym) {
+                return value
+            } else {
+                throw MalError.SymbolNotFound(sym)
+            }
         default:
-            return try eval_ast(ast, env: env)
+            return ast
         }
     }
 }
-
 
 func PRINT(_ input: MalData) -> String {
     return pr_str(input, print_readably: true)
@@ -99,24 +96,6 @@ func PRINT(_ input: MalData) -> String {
 @discardableResult func rep(_ input: String, env: Env) throws -> String {
     return try PRINT(EVAL(READ(input), env: env))
 }
-
-func eval_ast(_ ast: MalData, env: Env) throws -> MalData {
-    switch ast.dataType {
-    case .Symbol:
-        let sym = ast as! Symbol
-        if let function =  try? env.get(forKey: sym) {
-            return function
-        } else {
-            throw MalError.SymbolNotFound(sym)
-        }
-    case .List:
-        let list = ast as! [MalData]
-        return try list.map { element in try EVAL(element, env: env) }
-    default:
-        return ast
-    }
-}
-
 
 var repl_env = Env()
 for (key, value) in ns {
