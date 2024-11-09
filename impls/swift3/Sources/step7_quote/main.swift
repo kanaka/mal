@@ -51,33 +51,30 @@ func quasiquote(_ ast: MalVal) -> MalVal {
     }
 }
 
-func eval_ast(_ ast: MalVal, _ env: Env) throws -> MalVal {
+func EVAL(_ orig_ast: MalVal, _ orig_env: Env) throws -> MalVal {
+  var ast = orig_ast, env = orig_env
+  while true {
+    if let dbgeval = env.get("DEBUG-EVAL") {
+        switch dbgeval {
+        case MalVal.MalFalse, MalVal.MalNil: break
+        default: print("EVAL: " + PRINT(ast))
+        }
+    }
     switch ast {
-    case MalVal.MalSymbol:
-        return try env.get(ast)
-    case MalVal.MalList(let lst, _):
-        return list(try lst.map { try EVAL($0, env) })
+    case MalVal.MalSymbol(let sym):
+        if let value = env.get(sym) {
+            return value
+        } else {
+            throw MalError.General(msg: "'\(sym)' not found")
+        }
     case MalVal.MalVector(let lst, _):
         return vector(try lst.map { try EVAL($0, env) })
     case MalVal.MalHashMap(let dict, _):
         var new_dict = Dictionary<String,MalVal>()
         for (k,v) in dict { new_dict[k] = try EVAL(v, env) }
         return hash_map(new_dict)
-    default:
-        return ast
-    }
-}
-
-func EVAL(_ orig_ast: MalVal, _ orig_env: Env) throws -> MalVal {
-  var ast = orig_ast, env = orig_env
-  while true {
-    switch ast {
-    case MalVal.MalList(let lst, _): if lst.count == 0 { return ast }
-    default: return try eval_ast(ast, env)
-    }
-
-    switch ast {
     case MalVal.MalList(let lst, _):
+        if lst.count == 0 { return ast }
         switch lst[0] {
         case MalVal.MalSymbol("def!"):
             return try env.set(lst[1], try EVAL(lst[2], env))
@@ -100,13 +97,13 @@ func EVAL(_ orig_ast: MalVal, _ orig_env: Env) throws -> MalVal {
             ast = lst[2] // TCO
         case MalVal.MalSymbol("quote"):
             return lst[1]
-        case MalVal.MalSymbol("quasiquoteexpand"):
-            return quasiquote(lst[1])
         case MalVal.MalSymbol("quasiquote"):
             ast = quasiquote(lst[1]) // TCO
         case MalVal.MalSymbol("do"):
             let slc = lst[1..<lst.index(before: lst.endIndex)]
-            try _ = eval_ast(list(Array(slc)), env)
+            for item in slc {
+                _ = try EVAL(item, env)
+            }
             ast = lst[lst.index(before: lst.endIndex)] // TCO
         case MalVal.MalSymbol("if"):
             switch try EVAL(lst[1], env) {
@@ -125,25 +122,22 @@ func EVAL(_ orig_ast: MalVal, _ orig_env: Env) throws -> MalVal {
                                                  exprs: list($0)))
             }, ast:[lst[2]], env:env, params:[lst[1]])
         default:
-            switch try eval_ast(ast, env) {
-            case MalVal.MalList(let elst, _):
-                switch elst[0] {
+                let raw_args = lst[1..<lst.count]
+                switch try EVAL(lst[0], env) {
                 case MalVal.MalFunc(let fn, nil, _, _, _, _):
-                    let args = Array(elst[1..<elst.count])
+                    let args = try raw_args.map { try EVAL($0, env) }
                     return try fn(args)
                 case MalVal.MalFunc(_, let a, let e, let p, _, _):
-                    let args = Array(elst[1..<elst.count])
+                    let args = try raw_args.map { try EVAL($0, env) }
                     env = try Env(e, binds: p![0],
                                      exprs: list(args)) // TCO
                     ast = a![0] // TCO
                 default:
-                    throw MalError.General(msg: "Cannot apply on '\(elst[0])'")
+                    throw MalError.General(msg: "Cannot apply on '\(lst[0])'")
                 }
-            default: throw MalError.General(msg: "Invalid apply")
-            }
         }
     default:
-        throw MalError.General(msg: "Invalid apply")
+        return ast
     }
   }
 }

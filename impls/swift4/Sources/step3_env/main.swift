@@ -6,43 +6,57 @@ func READ(_ input: String) throws -> MalData {
 }
 
 func EVAL(_ ast: MalData, env: Env) throws -> MalData {
-    switch ast.dataType {
-    case .Vector:
-        let vector = ast as! ContiguousArray<MalData>
-        return try ContiguousArray(vector.map { element in try EVAL(element, env: env) })
-    case .List:
-        let list = ast as! [MalData]
-        guard !list.isEmpty else { return list }
-        guard let sym = list[0] as? Symbol else { throw MalError.Error }
-        
-        switch sym.name {
-        case "def!":
-            let value = try EVAL(list[2], env: env), key = list[1] as! Symbol
-            env.set(value, forKey: key)
-            return value
-        case "let*":
-            let newEnv = Env(outer: env), expr = list[2]
-            let bindings = (list[1] is Vector<MalData>) ? List(list[1] as! Vector<MalData>) : list[1] as! List<MalData>
-            for i in stride(from: 0, to: bindings.count-1, by: 2) {
-                let key = bindings[i], value = bindings[i+1]
-                let result = try EVAL(value, env: newEnv)
-                newEnv.set(result, forKey: key as! Symbol)
-            }
-            return try EVAL(expr, env: newEnv)
-        default:
-            let evaluated = try eval_ast(list, env: env) as! [MalData]
-            if let function = evaluated[0] as? Function {
-                return try function.fn(List(evaluated.dropFirst()))
-            } else {
-                throw MalError.SymbolNotFound(list[0] as! Symbol)
+        if let dbgeval = try? env.get(forKey: Symbol("DEBUG-EVAL")) {
+            if ![.False, .Nil].contains(dbgeval.dataType) {
+                print("EVAL: " + PRINT(ast))
             }
         }
-    case .HashMap:
-        let hashMap = ast as! HashMap<String, MalData>
-        return try hashMap.mapValues { value in try EVAL(value, env: env) }
-    default:
-        return try eval_ast(ast, env: env)
-    }
+        switch ast.dataType {
+        case .List:
+            let list = ast as! [MalData]
+            guard !list.isEmpty else { return list }
+            if let sym = list[0] as? Symbol {
+                switch sym.name {
+                case "def!":
+                    let value = try EVAL(list[2], env: env), key = list[1] as! Symbol
+                    env.set(value, forKey: key)
+                    return value
+                case "let*":
+                    let newEnv = Env(outer: env), expr = list[2]
+                    let bindings = list[1].listForm
+                    for i in stride(from: 0, to: bindings.count-1, by: 2) {
+                        let key = bindings[i], value = bindings[i+1]
+                        let result = try EVAL(value, env: newEnv)
+                        newEnv.set(result, forKey: key as! Symbol)
+                    }
+                    return try EVAL(expr, env: newEnv)
+                default:
+                    break
+                }
+            }
+            // not a symbol. maybe: function, list, or some wrong type
+            guard let function = try EVAL(list[0], env: env) as? Function else {
+                throw MalError.SymbolNotFound(list[0] as? Symbol ?? Symbol("Symbol"))
+            }
+            let raw_args = list.dropFirst()
+            let args = try raw_args.map { try EVAL($0, env: env) }
+            return try function.fn(args)
+        case .Vector:
+            let vector = ast as! ContiguousArray<MalData>
+            return try ContiguousArray(vector.map { element in try EVAL(element, env: env) })
+        case .HashMap:
+            let hashMap = ast as! HashMap<String, MalData>
+            return try hashMap.mapValues { value in try EVAL(value, env: env) }
+        case .Symbol:
+            let sym = ast as! Symbol
+            if let value = try? env.get(forKey: sym) {
+                return value
+            } else {
+                throw MalError.SymbolNotFound(sym)
+            }
+        default:
+            return ast
+        }
 }
 
 func PRINT(_ input: MalData) -> String {
@@ -50,25 +64,7 @@ func PRINT(_ input: MalData) -> String {
 }
 
 @discardableResult func rep(_ input: String, env: Env) throws -> String {
-
     return try PRINT(EVAL(READ(input), env: env))
-}
-
-func eval_ast(_ ast: MalData, env: Env) throws -> MalData {
-    switch ast.dataType {
-    case .Symbol:
-        let sym = ast as! Symbol
-        if let function =  try? env.get(forKey: sym) {
-            return function
-        } else {
-            throw MalError.SymbolNotFound(sym)
-        }
-    case .List:
-        let list = ast as! [MalData]
-        return try list.map { element in try EVAL(element, env: env) }
-    default:
-        return ast
-    }
 }
 
 func calculate(_ args: [MalData], op: (Number, Number) -> Number) throws -> MalData {
