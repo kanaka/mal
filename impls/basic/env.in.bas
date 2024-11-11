@@ -63,27 +63,17 @@ ENV_SET_S:
   R=C
   RETURN
 
-REM ENV_FIND(E, K) -> R
-REM   Returns environment (R) containing K. If found, value found is
-REM   in R4
-SUB ENV_FIND
+REM ENV_GET(E, B$) -> R
+REM   - R3=1 if the key was found, else 0
+SUB ENV_GET
   T=E
   ENV_FIND_LOOP:
     H=Z%(T+1)
     REM More efficient to use GET for value (R) and contains? (R3)
     GOSUB HASHMAP_GET
-    REM if we found it, save value in R4 for ENV_GET
-    IF R3=1 THEN R4=R:R=T:GOTO ENV_FIND_DONE
+    REM if we found it, return it
+    IF R3=1 THEN GOTO ENV_FIND_DONE
     T=Z%(T+2): REM get outer environment
     IF T>0 THEN GOTO ENV_FIND_LOOP
-    R=-1
   ENV_FIND_DONE:
 END SUB
-
-REM ENV_GET(E, K) -> R
-ENV_GET:
-  CALL ENV_FIND
-  IF R=-1 THEN ER=-1:E$="'"+S$(Z%(K+1))+"' not found":GOTO ENV_GET_RETURN
-  R=R4
-  GOSUB INC_REF_R
-  GOTO ENV_GET_RETURN
