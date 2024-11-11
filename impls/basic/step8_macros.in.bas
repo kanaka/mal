@@ -10,10 +10,7 @@ REM $INCLUDE: 'core.in.bas'
 
 REM $INCLUDE: 'debug.in.bas'
 
-REM READ(A$) -> R
-MAL_READ:
-  GOSUB READ_STR
-  RETURN
+REM READ is inlined in RE
 
 REM QUASIQUOTE(A) -> R
 SUB QUASIQUOTE
@@ -172,7 +169,7 @@ SUB EVAL_AST
 
   GOSUB TYPE_A
   IF T=5 THEN GOTO EVAL_AST_SYMBOL
-  IF T>=6 AND T<=8 THEN GOTO EVAL_AST_SEQ
+  IF T>5 AND T<9 THEN GOTO EVAL_AST_SEQ
 
   REM scalar: deref to actual value and inc ref cnt
   R=A
@@ -520,17 +517,15 @@ SUB EVAL
 
 END SUB
 
-REM PRINT(A) -> R$
-MAL_PRINT:
-  AZ=A:B=1:GOSUB PR_STR
-  RETURN
+REM PRINT is inlined in REP
+
 
 REM RE(A$) -> R
 REM Assume D has repl_env
 REM caller must release result
 RE:
   R1=-1
-  GOSUB MAL_READ
+  GOSUB READ_STR: REM inlined MAL_READ
   R1=R
   IF ER<>-2 THEN GOTO RE_DONE
 
@@ -550,7 +545,7 @@ SUB REP
   R2=R
   IF ER<>-2 THEN GOTO REP_DONE
 
-  A=R:GOSUB MAL_PRINT
+  AZ=R:B=1:GOSUB PR_STR: REM MAL_PRINT
 
   REP_DONE:
     REM Release memory from MAL_READ and EVAL
@@ -624,6 +619,10 @@ MAIN:
 
   QUIT:
     REM GOSUB PR_MEMORY_SUMMARY_SMALL
+    REM GOSUB PR_MEMORY_MAP
+    REM P1=0:P2=ZI:GOSUB PR_MEMORY
+    REM P1=D:GOSUB PR_OBJECT
+    REM P1=ZK:GOSUB PR_OBJECT
     #cbm END
     #qbasic SYSTEM
 
