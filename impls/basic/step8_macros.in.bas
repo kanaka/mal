@@ -279,7 +279,6 @@ SUB EVAL
     IF A$="quote" THEN GOTO EVAL_QUOTE
     IF A$="quasiquote" THEN GOTO EVAL_QUASIQUOTE
     IF A$="defmacro!" THEN GOTO EVAL_DEFMACRO
-    IF A$="macroexpand" THEN GOTO EVAL_MACROEXPAND
     IF A$="do" THEN GOTO EVAL_DO
     IF A$="if" THEN GOTO EVAL_IF
     IF A$="fn*" THEN GOTO EVAL_FN
@@ -394,16 +393,6 @@ SUB EVAL
 
       REM set A1 in env to A2
       K=A1:C=R:GOSUB ENV_SET
-      GOTO EVAL_RETURN
-
-    EVAL_MACROEXPAND:
-      REM PRINT "macroexpand"
-      R=Z%(Z%(A+1)+2)
-      A=R:CALL MACROEXPAND
-      R=A
-
-      REM since we are returning it unevaluated, inc the ref cnt
-      GOSUB INC_REF_R
       GOTO EVAL_RETURN
 
     EVAL_IF:
