@@ -15,48 +15,46 @@ REM READ is inlined in RE
 REM QUASIQUOTE(A) -> R
 SUB QUASIQUOTE
   GOSUB TYPE_A
-  IF T<5 OR T>8 THEN GOTO QQ_UNCHANGED
-  IF T=5 OR T=8 THEN GOTO QQ_QUOTE
-  IF T=7 THEN GOTO QQ_VECTOR
-  IF (Z%(A+1)=0) THEN GOTO QQ_LIST
-  R=Z%(A+2)
-  IF (Z%(R)AND 31)<>5 THEN GOTO QQ_LIST
-  IF S$(Z%(R+1))<>"unquote" THEN GOTO QQ_LIST
-  GOTO QQ_UNQUOTE
+  T=T-4
+  IF 0<T THEN ON T GOTO QQ_SYMBOL,QQ_LIST,QQ_VECTOR,QQ_MAP
 
-  QQ_UNCHANGED:
+  REM Return other types unchanged.
     R=A
     GOSUB INC_REF_R
-
     GOTO QQ_DONE
 
-  QQ_QUOTE:
-    REM ['quote, ast]
+  QQ_MAP:
+  QQ_SYMBOL:
+    REM Return a list containing 'quote and A.
     B$="quote":T=5:GOSUB STRING
     B=R:GOSUB LIST2
     AY=B:GOSUB RELEASE
-
     GOTO QQ_DONE
 
   QQ_VECTOR:
-    REM ['vec, (qq_foldr ast)]
+    REM Return a list containing 'vec and the result of QQ_FOLDR on A.
     CALL QQ_FOLDR
     A=R
     B$="vec":T=5:GOSUB STRING:B=R
     GOSUB LIST2
     AY=A:GOSUB RELEASE
     AY=B:GOSUB RELEASE
-
-    GOTO QQ_DONE
-
-  QQ_UNQUOTE:
-    REM [ast[1]]
-    R=Z%(Z%(A+1)+2)
-    GOSUB INC_REF_R
-
     GOTO QQ_DONE
 
   QQ_LIST:
+    REM Check if A contains 'unquote and a form.
+    IF (Z%(A+1)=0) THEN GOTO QQ_LIST_NORMAL
+    R=Z%(A+2)
+    IF (Z%(R)AND 31)<>5 THEN GOTO QQ_LIST_NORMAL
+    IF S$(Z%(R+1))<>"unquote" THEN GOTO QQ_LIST_NORMAL
+
+  REM Indeed.  Return a list containing 'unquote and the form.
+    R=Z%(Z%(A+1)+2)
+    GOSUB INC_REF_R
+    GOTO QQ_DONE
+
+  QQ_LIST_NORMAL:
+    REM Normal list, process with QQ_FOLDR.
     CALL QQ_FOLDR
 
 QQ_DONE:
