@@ -106,6 +106,7 @@ SUB EVAL
     GOTO EVAL_RETURN
 
   APPLY_LIST:
+
     GOSUB EMPTY_Q
     IF R THEN R=A:GOSUB INC_REF_R:GOTO EVAL_RETURN
 
@@ -182,11 +183,22 @@ SUB EVAL
       F=Z%(R+2)
 
       GOSUB TYPE_F
-      IF T<>9 THEN R=-1:ER=-1:E$="apply of non-function":GOTO EVAL_INVOKE_DONE
-      GOSUB DO_FUNCTION
+
+      REM ON .. GOTO here reduces the diff with later steps.
+      T=T-8
+      IF 0<T THEN ON T GOTO EVAL_DO_FUNCTION
+
+      REM if error, pop and return f/args for release by caller
+      R=-1:ER=-1:E$="apply of non-function":GOTO EVAL_INVOKE_DONE
+
+      EVAL_DO_FUNCTION:
+        REM regular function
+
+        GOSUB DO_FUNCTION
+
       EVAL_INVOKE_DONE:
+        REM pop and release f/args
       AY=W:GOSUB RELEASE
-      GOTO EVAL_RETURN
 
   EVAL_RETURN:
     REM AZ=R: B=1: GOSUB PR_STR

@@ -438,7 +438,8 @@ SUB EVAL
       GOSUB TYPE_F
       IF T=14 THEN F=Z%(F+1):GOSUB TYPE_F
 
-      ON T-8 GOTO EVAL_DO_FUNCTION,EVAL_DO_MAL_FUNCTION,EVAL_DO_MAL_FUNCTION
+      T=T-8
+      IF 0<T THEN ON T GOTO EVAL_DO_FUNCTION,EVAL_DO_MAL_FUNCTION
 
       REM if error, pop and return f/args for release by caller
       GOSUB POP_R
