@@ -200,7 +200,6 @@ SUB EVAL_AST
       REM release it below)
       IF T=8 THEN N=M:M=Z%(A+2):Z%(M)=Z%(M)+32
 
-
       REM update the return sequence structure
       REM release N (and M if T=8) since seq takes full ownership
       C=1:GOSUB MAP_LOOP_UPDATE
@@ -470,7 +469,6 @@ SUB EVAL
       REM if metadata, get the actual object
       GOSUB TYPE_F
       IF T=14 THEN F=Z%(F+1):GOSUB TYPE_F
-
       T=T-8
       IF 0<T THEN ON T GOTO EVAL_DO_FUNCTION,EVAL_DO_MAL_FUNCTION
 
@@ -541,20 +539,19 @@ END SUB
 
 REM PRINT is inlined in REP
 
-
 REM RE(A$) -> R
 REM Assume D has repl_env
 REM caller must release result
 RE:
   R1=-1
-  GOSUB READ_STR: REM inlined MAL_READ
+  GOSUB READ_STR: REM inlined READ
   R1=R
   IF ER<>-2 THEN GOTO RE_DONE
 
   A=R:E=D:CALL EVAL
 
   RE_DONE:
-    REM Release memory from MAL_READ
+    REM Release memory from READ
     AY=R1:GOSUB RELEASE
     RETURN: REM caller must release result of EVAL
 
@@ -567,10 +564,10 @@ SUB REP
   R2=R
   IF ER<>-2 THEN GOTO REP_DONE
 
-  AZ=R:B=1:GOSUB PR_STR: REM MAL_PRINT
+  AZ=R:B=1:GOSUB PR_STR: REM inlined PRINT
 
   REP_DONE:
-    REM Release memory from MAL_READ and EVAL
+    REM Release memory from EVAL
     AY=R2:GOSUB RELEASE
 END SUB
 
@@ -619,9 +616,24 @@ MAIN:
   GOSUB RE
 
   REM no arguments, start REPL loop
-  IF R<16 THEN GOTO REPL
-
   REM if there is an argument, then run it as a program
+  IF 15<R THEN GOTO RUN_PROG
+
+  REM print the REPL startup header
+  REM save memory by printing this directly
+  #cbm PRINT "Mal [C64 BASIC]"
+  #qbasic PRINT "Mal [QBasic]"
+
+  REPL_LOOP:
+    A$="user> ":GOSUB READLINE: REM call input parser
+    IF EZ=1 THEN GOTO QUIT
+    IF R$="" THEN GOTO REPL_LOOP
+
+    A$=R$:CALL REP
+
+    IF ER<>-2 THEN GOSUB PRINT_ERROR:GOTO REPL_LOOP
+    PRINT R$
+    GOTO REPL_LOOP
 
   RUN_PROG:
     REM free up first arg because we get it again
@@ -630,24 +642,6 @@ MAIN:
     A$="(load-file (first -*ARGS*-))"
     GOSUB RE
     IF ER<>-2 THEN GOSUB PRINT_ERROR
-    GOTO QUIT
-
-  REPL:
-    REM print the REPL startup header
-    REM save memory by printing this directly
-    #cbm PRINT "Mal [C64 BASIC]"
-    #qbasic PRINT "Mal [QBasic]"
-
-  REPL_LOOP:
-    A$="user> ":GOSUB READLINE: REM call input parser
-    IF EZ=1 THEN GOTO QUIT
-    IF R$="" THEN GOTO REPL_LOOP
-
-    A$=R$:CALL REP: REM call REP
-
-    IF ER<>-2 THEN GOSUB PRINT_ERROR:GOTO REPL_LOOP
-    PRINT R$
-    GOTO REPL_LOOP
 
   QUIT:
     REM GOSUB PR_MEMORY_SUMMARY_SMALL
@@ -664,4 +658,3 @@ MAIN:
     PRINT "Error: "+E$
     ER=-2:E$=""
     RETURN
-

@@ -47,7 +47,6 @@ SUB EVAL_AST
       REM release it below)
       IF T=8 THEN N=M:M=Z%(A+2):Z%(M)=Z%(M)+32
 
-
       REM update the return sequence structure
       REM release N (and M if T=8) since seq takes full ownership
       C=1:GOSUB MAP_LOOP_UPDATE
@@ -183,8 +182,6 @@ SUB EVAL
       F=Z%(R+2)
 
       GOSUB TYPE_F
-
-      REM ON .. GOTO here reduces the diff with later steps.
       T=T-8
       IF 0<T THEN ON T GOTO EVAL_DO_FUNCTION
 
@@ -203,10 +200,6 @@ SUB EVAL
   EVAL_RETURN:
     REM AZ=R: B=1: GOSUB PR_STR
     REM PRINT "EVAL_RETURN R: ["+R$+"] ("+STR$(R)+"), LV:"+STR$(LV)+",ER:"+STR$(ER)
-
-    REM release environment if not the top one on the stack
-    GOSUB PEEK_Q_1
-    IF E<>Q THEN AY=E:GOSUB RELEASE
 
     LV=LV-1: REM track basic return stack level
 
@@ -257,24 +250,36 @@ DO_FUNCTION:
 
 REM PRINT is inlined in REP
 
+REM RE(A$) -> R
+REM Assume D has repl_env
+REM caller must release result
+RE:
+  R1=-1
+  GOSUB READ_STR: REM inlined READ
+  R1=R
+  IF ER<>-2 THEN GOTO RE_DONE
+
+  A=R:E=D:CALL EVAL
+
+  RE_DONE:
+    REM Release memory from READ
+    AY=R1:GOSUB RELEASE
+    RETURN: REM caller must release result of EVAL
+
 REM REP(A$) -> R$
 REM Assume D has repl_env
 SUB REP
-  R1=-1
-  GOSUB READ_STR: REM inlined MAL_READ
-  R1=R
-  IF ER<>-2 THEN GOTO REP_DONE
+  R2=-1
 
-  A=R:E=D:CALL EVAL
+  GOSUB RE
   R2=R
   IF ER<>-2 THEN GOTO REP_DONE
 
-  AZ=R:B=1:GOSUB PR_STR: REM MAL_PRINT
+  AZ=R:B=1:GOSUB PR_STR: REM inlined PRINT
 
   REP_DONE:
-    REM Release memory from MAL_READ and EVAL
+    REM Release memory from EVAL
     AY=R2:GOSUB RELEASE
-    AY=R1:GOSUB RELEASE
 END SUB
 
 REM MAIN program
@@ -285,8 +290,8 @@ MAIN:
 
   REM create repl_env
   C=0:GOSUB ENV_NEW:D=R
-
   E=D
+
   REM + function
   T=9:L=1:GOSUB ALLOC: REM native function
   B$="+":C=R:GOSUB ENV_SET_S
@@ -310,7 +315,7 @@ MAIN:
     IF EZ=1 THEN GOTO QUIT
     IF R$="" THEN GOTO REPL_LOOP
 
-    A$=R$:CALL REP: REM call REP
+    A$=R$:CALL REP
 
     IF ER<>-2 THEN GOSUB PRINT_ERROR:GOTO REPL_LOOP
     PRINT R$
@@ -329,4 +334,3 @@ MAIN:
     PRINT "Error: "+E$
     ER=-2:E$=""
     RETURN
-
