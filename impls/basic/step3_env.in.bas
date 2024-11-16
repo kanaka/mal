@@ -172,30 +172,43 @@ SUB EVAL
         A=A2:CALL EVAL: REM eval A2 using let_env
         GOTO EVAL_RETURN
     EVAL_INVOKE:
-      CALL EVAL_AST
-      W=R
 
-      REM if error, return f/args for release by caller
+      REM evaluate A0
+      GOSUB PUSH_A
+      A=A0:CALL EVAL
+      GOSUB POP_A
       IF ER<>-2 THEN GOTO EVAL_RETURN
 
-      AR=Z%(R+1): REM rest
-      F=Z%(R+2)
+      REM set F, push it in the stack for release after call
+      GOSUB PUSH_R
+      F=R
 
       GOSUB TYPE_F
       T=T-8
       IF 0<T THEN ON T GOTO EVAL_DO_FUNCTION
 
-      REM if error, pop and return f/args for release by caller
-      R=-1:ER=-1:E$="apply of non-function":GOTO EVAL_INVOKE_DONE
+      REM if error, pop and return f for release by caller
+      GOSUB POP_R
+      ER=-1:E$="apply of non-function":GOTO EVAL_RETURN
 
       EVAL_DO_FUNCTION:
         REM regular function
 
+        REM Evaluate the arguments
+        A=Z%(A+1):CALL EVAL_AST
+        IF ER<>-2 THEN GOSUB POP_Q:AY=Q:GOSUB RELEASE:GOTO EVAL_RETURN
+
+        REM set F and AR, push AR (after F) in the stack for release after call
+        GOSUB PEEK_Q:F=Q
+        GOSUB PUSH_R
+        AR=R
+
         GOSUB DO_FUNCTION
 
-      EVAL_INVOKE_DONE:
         REM pop and release f/args
-      AY=W:GOSUB RELEASE
+        GOSUB POP_Q:AY=Q:GOSUB RELEASE
+        GOSUB POP_Q:AY=Q
+        GOSUB RELEASE
 
   EVAL_RETURN:
     REM AZ=R: B=1: GOSUB PR_STR
