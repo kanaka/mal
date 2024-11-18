@@ -48,7 +48,7 @@ FAQ](docs/FAQ.md) where I attempt to answer some common questions.
 | -------- | ------- |
 | [Ada](#ada) | [Chris Moore](https://github.com/zmower) |
 | [Ada #2](#ada2) | [Nicolas Boulenguez](https://github.com/asarhaddon) |
-| [GNU Awk](#gnu-awk) | [Miutsuru Kariya](https://github.com/kariya-mitsuru) |
+| [GNU Awk](#gnu-awk) | [Mitsuru Kariya](https://github.com/kariya-mitsuru) |
 | [Bash 4](#bash-4) | [Joel Martin](https://github.com/kanaka)  |
 | [BASIC](#basic-c64-and-qbasic) (C64 &amp; QBasic) | [Joel Martin](https://github.com/kanaka) |
 | [BBC BASIC V](#bbc-basic-v) | [Ben Harris](https://github.com/bjh21) |
