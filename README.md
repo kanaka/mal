@@ -1,6 +1,6 @@
 # mal - Make a Lisp
 
-[![Build Status](https://travis-ci.org/kanaka/mal.svg?branch=master)](https://travis-ci.org/kanaka/mal)
+[![Build and Test](https://github.com/kanaka/mal/actions/workflows/main.yml/badge.svg)](https://github.com/kanaka/mal/actions/workflows/main.yml)
 
 ## Description
 
