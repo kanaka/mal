@@ -123,10 +123,15 @@ class Runner():
             if self.stdout in outs:
                 new_data = self.stdout.read(1)
                 new_data = new_data.decode("latin1") if IS_PY_3 else new_data
-                #print("new_data: '%s'" % new_data)
+                #print("new_data: %s" % repr(new_data))
                 debug(new_data)
                 # Perform newline cleanup
                 self.buf += new_data.replace("\r", "")
+                if self.buf.endswith('\x1b[6n'):
+                    log("Handling cursor query")
+                    self.stdin.write(b"\x1b[1;1R")
+                    self.buf = ""
+                    continue
                 for prompt in prompts:
                     regexp = re.compile(prompt)
                     match = regexp.search(self.buf)
@@ -142,7 +147,9 @@ class Runner():
         def _to_bytes(s):
             return bytes(s, "latin1") if IS_PY_3 else s
 
-        self.stdin.write(_to_bytes(str.replace('\r', '\x16\r') + self.line_break))
+        data = _to_bytes(str.replace('\r', '\x16\r') + self.line_break)
+        #print("write: %s" % repr(data))
+        self.stdin.write(data)
 
     def cleanup(self):
         #print "cleaning up"
