@@ -1,7 +1,7 @@
 basic_MODE = cbm
 BASICPP_OPTS = --mode $(basic_MODE)
 
-QB64 = qb64
+FBC = fbc -lang qb
 
 STEPS4_A = step4_if_fn_do.bas step5_tco.bas step6_file.bas \
            step7_quote.bas step8_macros.bas step9_try.bas stepA_mal.bas
@@ -11,8 +11,8 @@ STEPS0_A = step0_repl.bas $(STEPS1_A)
 
 all: $(if $(filter qbasic,$(basic_MODE)),$(subst .bas,,$(STEPS0_A)),$(STEPS0_A))
 
-$(STEPS0_A): readline.in.bas readline_line.in.bas readline_char.in.bas
-$(STEPS1_A): debug.in.bas mem.in.bas types.in.bas reader.in.bas printer.in.bas
+$(STEPS0_A): debug.in.bas mem.in.bas readline.in.bas
+$(STEPS1_A): types.in.bas reader.in.bas printer.in.bas
 $(STEPS3_A): env.in.bas
 $(STEPS4_A): core.in.bas
 
@@ -26,7 +26,7 @@ tests/%.bas: tests/%.in.bas
 
 # QBasic specific compilation rule
 step%: step%.bas
-	$(QB64) -x $(abspath $<) -o $(abspath $@)
+	$(FBC) $< -x $@
 
 # CBM/C64 image rules
 
@@ -58,5 +58,5 @@ mal.d64: mal.prg .args.mal.prg core.mal.prg
 .PHONY: clean
 
 clean:
-	rm -f $(STEPS0_A) $(subst .bas,,$(STEPS0_A)) *.d64 *.prg qb64
+	rm -f $(STEPS0_A) $(subst .bas,,$(STEPS0_A)) *.d64 *.prg
 	rm -rf ./internal

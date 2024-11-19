@@ -280,8 +280,8 @@ DO_FUNCTION:
     EZ=0
     #cbm OPEN 2,8,0,S$(A1)
     #qbasic A$=S$(A1)
-    #qbasic IF NOT _FILEEXISTS(A$) THEN ER=-1:E$="File not found":RETURN
     #qbasic OPEN A$ FOR INPUT AS #2
+    #qbasic IF ERR()<>0 THEN ER=-1:E$="File not found":RETURN
     DO_SLURP_LOOP:
       C$=""
       RJ=1:GOSUB READ_FILE_CHAR
@@ -323,7 +323,7 @@ DO_FUNCTION:
     RETURN
   DO_TIME_MS:
     #cbm T=2:L=INT((TI-BT)*16.667):GOSUB ALLOC
-    #qbasic T=2:L=INT((TIMER(0.001)-BT#)*1000):GOSUB ALLOC
+    #qbasic T=2:L=INT((TIMER()-BT#)*1000):GOSUB ALLOC
     RETURN
 
   DO_LIST:

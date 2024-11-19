@@ -252,26 +252,27 @@ bash stepX_YYY.sh
 ### BASIC (C64 and QBasic)
 
 The BASIC implementation uses a preprocessor that can generate BASIC
-code that is compatible with both C64 BASIC (CBM v2) and QBasic. The
+code that is compatible with both C64 BASIC (CBM v2) or QBasic. The
 C64 mode has been tested with
 [cbmbasic](https://github.com/kanaka/cbmbasic) (the patched version is
 currently required to fix issues with line input) and the QBasic mode
-has been tested with [qb64](http://www.qb64.net/).
+has been tested with [FreeBASIC](freebasic.net).
 
 Generate C64 code and run it using cbmbasic:
 
 ```
 cd impls/basic
-make stepX_YYY.bas
-STEP=stepX_YYY ./run
+make MODE=cbm stepX_YYY.bas
+STEP=stepX_YYY basic_MODE=cbm ./run
 ```
 
-Generate QBasic code and load it into qb64:
+Generate QBasic code, compile using FreeBASIC, and execute it:
 
 ```
 cd impls/basic
 make MODE=qbasic stepX_YYY.bas
-./qb64 stepX_YYY.bas
+make MODE=qbasic stepX_YYY
+./stepX_YYY
 ```
 
 Thanks to [Steven Syrek](https://github.com/sjsyrek) for the original

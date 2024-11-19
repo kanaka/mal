@@ -384,7 +384,7 @@ INIT_MEMORY:
 
   REM start of time clock
   #cbm BT=TI
-  #qbasic BT#=TIMER(0.001)
+  #qbasic BT#=TIMER()
 
   RETURN
 

@@ -23,6 +23,8 @@ END SUB
 
 REM MAIN program
 MAIN:
+  GOSUB DIM_MEMORY
+
   REPL_LOOP:
     A$="user> ":GOSUB READLINE: REM call input parser
     IF EZ=1 THEN GOTO QUIT

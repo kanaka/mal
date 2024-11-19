@@ -13,7 +13,6 @@ def parse_args():
     parser.add_argument('infiles', type=str, nargs='+',
                         help='the Basic files to preprocess')
     parser.add_argument('--mode', choices=["cbm", "qbasic"], default="cbm")
-    parser.add_argument('--sub-mode', choices=["noui", "ui"], default="noui")
     parser.add_argument('--keep-rems', action='store_true', default=False,
                         help='The type of REMs to keep (0 (none) -> 4 (all)')
     parser.add_argument('--keep-blank-lines', action='store_true', default=False,
@@ -26,7 +25,6 @@ def parse_args():
                         help='Do not combine lines using the ":" separator')
 
     args = parser.parse_args()
-    args.full_mode = "%s-%s" % (args.mode, args.sub_mode)
     if args.keep_rems and not args.skip_combine_lines:
         debug("Option --keep-rems implies --skip-combine-lines ")
         args.skip_combine_lines = True
@@ -48,7 +46,7 @@ def resolve_includes(orig_lines, args):
         if m:
             mode = m.group(1)
             f = m.group(2)
-            if mode and mode != args.mode and mode != args.full_mode:
+            if mode and mode != args.mode:
                 position += 1
             elif f not in included:
                 ilines = [l.rstrip() for l in open(f).readlines()]
@@ -67,8 +65,6 @@ def resolve_mode(orig_lines, args):
         m = re.match(r"^ *#([^ \n]*) *([^\n]*)$", line)
         if m:
             if m.group(1) == args.mode:
-                lines.append(m.group(2))
-            elif m.group(1) == args.full_mode:
                 lines.append(m.group(2))
             continue
         lines.append(line)
@@ -111,7 +107,7 @@ def misc_fixups(orig_lines):
     text = re.sub(r"\bIF ", "IF", text)
     text = re.sub(r"\bPRINT *", "PRINT", text)
     text = re.sub(r"\bDIM ", "DIM", text)
-    text = re.sub(r"\OPEN ", "OPEN", text)
+    text = re.sub(r"\bOPEN ", "OPEN", text)
     text = re.sub(r"\bGET ", "GET", text)
     text = re.sub(r"\bPOKE ", "POKE", text)
     text = re.sub(r"\bCLOSE ", "CLOSE", text)
@@ -161,7 +157,7 @@ def finalize(lines, args):
         if m:
             prefix = m.groups(1)[0]
             sub = m.groups(1)[1]
-            if not call_index.has_key(sub):
+            if not sub in call_index:
                 call_index[sub] = 0
             call_index[sub] += 1
             label = sub+"_"+str(call_index[sub])
@@ -294,14 +290,6 @@ def finalize(lines, args):
             b = renumber[a]
             text = update_labels_lines(text, a, b)
         lines = text.split("\n")
-
-    # Force non-UI QBasic to use text console. LINE INPUT also needs
-    # to be used instead in character-by-character READLINE
-    if args.full_mode == "qbasic-noui":
-        # Add console program prefix for qb64/qbasic
-        lines = ["$CONSOLE",
-                 "$SCREENHIDE",
-                 "_DEST _CONSOLE"] + lines
 
     return lines
 
