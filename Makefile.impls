@@ -37,7 +37,8 @@ IMPLS = ada ada.2 awk bash basic bbc-basic c c.2 chuck clojure coffee common-lis
 	guile haskell haxe hy io janet java java-truffle js jq julia kotlin latex3 livescript logo lua make mal \
 	matlab miniMAL nasm nim objc objpascal ocaml perl perl6 php picolisp pike plpgsql \
 	plsql powershell prolog ps purs python2 python3 r racket rexx rpython ruby ruby.2 rust scala scheme skew sml \
-	swift swift3 swift4 swift6 tcl ts vala vb vbs vhdl vimscript wasm wren yorick xslt zig
+	swift swift3 swift4 swift6 tcl ts vala vb vbs vhdl vimscript wasm wren yorick xslt zig \
+    python-compile
 
 step5_EXCLUDES += bash        # never completes at 10,000
 step5_EXCLUDES += basic       # too slow, and limited to ints of 2^16
@@ -174,6 +175,7 @@ ps_STEP_TO_PROG =            impls/ps/$($(1)).ps
 purs_STEP_TO_PROG =          impls/purs/$($(1)).js
 python2_STEP_TO_PROG =       impls/python2/$($(1)).py
 python3_STEP_TO_PROG =       impls/python3/$($(1)).py
+python-compile_STEP_TO_PROG = impls/python-compile/$($(1)).py
 r_STEP_TO_PROG =             impls/r/$($(1)).r
 racket_STEP_TO_PROG =        impls/racket/$($(1)).rkt
 rexx_STEP_TO_PROG =          impls/rexx/$($(1)).rexxpp
