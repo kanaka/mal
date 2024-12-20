@@ -2,11 +2,19 @@ def READ(str string) MalVal {
   return read_str(str)
 }
 
-def eval_ast(ast MalVal, env Env) MalVal {
+def EVAL(ast MalVal, env Env) MalVal {
+  const dbgeval = env.get("DEBUG-EVAL")
+  if dbgeval != null && !(dbgeval is MalNil) && !(dbgeval is MalFalse) {
+    printLn("EVAL: " + PRINT(ast))
+  }
+
   if ast is MalSymbol {
-    return env.get(ast as MalSymbol)
+    const key = (ast as MalSymbol).val
+    const val = env.get(key)
+    if val == null { throw MalError.new("'" + key + "' not found") }
+    return val
   } else if ast is MalList {
-    return MalList.new((ast as MalList).val.map<MalVal>(e => EVAL(e, env)))
+    # proceed further after this conditional
   } else if ast is MalVector {
     return MalVector.new((ast as MalVector).val.map<MalVal>(e => EVAL(e, env)))
   } else if ast is MalHashMap {
@@ -19,10 +27,7 @@ def eval_ast(ast MalVal, env Env) MalVal {
   } else {
     return ast
   }
-}
 
-def EVAL(ast MalVal, env Env) MalVal {
-  if !(ast is MalList) { return eval_ast(ast, env) }
   const astList = ast as MalList
   if astList.isEmpty { return ast }
   const a0sym = astList[0] as MalSymbol
@@ -36,9 +41,9 @@ def EVAL(ast MalVal, env Env) MalVal {
     }
     return EVAL(astList[2], letenv)
   } else {
-    const evaledList = eval_ast(ast, env) as MalList
+    const evaledList = astList.val.map<MalVal>(e => EVAL(e, env))
     const fn = evaledList[0] as MalNativeFunc
-    return fn.call(evaledList.val.slice(1))
+    return fn.call(evaledList.slice(1))
   }
 }
 

@@ -8,52 +8,34 @@ __mal_util_included := true
 _TOP_DIR := $(dir $(lastword $(MAKEFILE_LIST)))
 include $(_TOP_DIR)gmsl.mk
 
-SEMI := ;
+encoded_equal := Ξ
+encoded_colon := κ
+encoded_slash := λ
+raw_hash      := \#
+encoded_hash  := η
+
 COMMA := ,
 COLON := :
-LCURLY := {
-RCURLY := }
 LPAREN := (
 RPAREN := )
-LBRACKET := [
-RBRACKET := ]
-DQUOTE := "# "
 SLASH := $(strip \ )
-ESC_DQUOTE := $(SLASH)$(DQUOTE)
-ESC_N := $(SLASH)n
-SQUOTE := '# '
-QQUOTE := `# `
-SPACE := 
-SPACE += 
-MINUS := -
-NUMBERS := 0 1 2 3 4 5 6 7 8 9
-UNQUOTE := ~
-SPLICE_UNQUOTE := ~@
+SPACE :=
+SPACE := $(SPACE) $(SPACE)
 define NEWLINE
 
 
 endef
-CARET := ^
-ATSIGN := @
 
 # \u00ab
 _LP := «
 # \u00bb
 _RP := »
-# \u00ed
-_LC := í
-# \u00ec
-_RC := ì
 ## \u00a7
 _SP := §
 ## \u00ae
-_SUQ := ®
-## \u015e
 _DOL := Ş
 ## \u00b6
 _NL := ¶
-## \u00a8
-###_EDQ := ¨
 
 
 #
@@ -62,38 +44,67 @@ _NL := ¶
 
 _EQ = $(if $(subst x$1,,x$2)$(subst x$2,,x$1),,true)
 
-_NOT = $(if $1,,true)
-
-# take a list of words and join them with a separator
-# params: words, seperator, result
-_join = $(strip \
-          $(if $(strip $(1)),\
-            $(if $(strip $(3)),\
-              $(call _join,$(wordlist 2,$(words $(1)),$(1)),$(2),$(3)$(2)$(word 1,$(1))),\
-              $(call _join,$(wordlist 2,$(words $(1)),$(1)),$(2),$(word 1,$(1)))),\
-            $(3)))
-
-#$(info _join(1 2 3 4): [$(call _join,1 2 3 4)])
-#$(info _join(1 2 3 4,X): [$(call _join,1 2 3 4, )])
-#$(info _join(1): [$(call _join,1)])
-#$(info _join(): [$(call _join,)])
-
 # reverse list of words
-_reverse = $(if $(1),$(call _reverse,$(wordlist 2,$(words $(1)),$(1)))) $(firstword $(1))
+_reverse = $(if $1,$(call _reverse,$(_rest)) $(firstword $1))
+
 
 #$(info reverse(1 2 3 4 5): $(call reverse,1 2 3 4 5))
 
 # str_encode: take a string and return an encoded version of it with
 # every character separated by a space and special characters replaced
 # with special Unicode characters
-str_encode = $(strip $(eval __temp := $$(subst $$$$,$(_DOL) ,$$(subst $(SPLICE_UNQUOTE),$(_SUQ) ,$$(subst $$(LPAREN),$$(_LP) ,$$(subst $$(RPAREN),$$(_RP) ,$$(subst $$(LCURLY),$$(_LC) ,$$(subst $$(RCURLY),$$(_RC) ,$$(subst $$(NEWLINE),$$(_NL) ,$$(subst $$(SPACE),$(_SP) ,$$1)))))))))$(foreach a,$(gmsl_characters),$(eval __temp := $$(subst $$a,$$a$$(SPACE),$(__temp))))$(__temp))
+define str_encode
+$(eval __temp := $1)$(rem \
+)$(foreach a,$(encoded_slash) $(_DOL) $(_LP) $(_RP) $(_NL) \
+  $(encoded_hash) $(encoded_colon) $(_SP) $(encoded_equal) $(gmsl_characters)\
+  ,$(eval __temp := $$(subst $$a,$$a$$(SPACE),$(__temp))))$(rem \
+)$(__temp)
+endef
 
 # str_decode: take an encoded string an return an unencoded version of
 # it by replacing the special Unicode charactes with the real
 # characters and with all characters joined into a regular string
-str_decode = $(subst $(_SP),$(SPACE),$(subst $(_NL),$(NEWLINE),$(subst $(_LC),$(LCURLY),$(subst $(_RC),$(RCURLY),$(subst $(_LP),$(LPAREN),$(subst $(_RP),$(RPAREN),$(subst $(_SUQ),$(SPLICE_UNQUOTE),$(subst $(_DOL),$$,$(strip $(call _join,$(1)))))))))))
+str_decode = $(subst $(SPACE),,$1)
+
+define str_encode_nospace
+$(subst $(SLASH),$(encoded_slash),$(rem \
+)$(subst $$,$(_DOL),$(rem \
+)$(subst $(LPAREN),$(_LP),$(rem \
+)$(subst $(RPAREN),$(_RP),$(rem \
+)$(subst $(NEWLINE),$(_NL),$(rem \
+)$(subst $(raw_hash),$(encoded_hash),$(rem \
+)$(subst $(COLON),$(encoded_colon),$(rem \
+)$(subst $(SPACE),$(_SP),$(rem \
+)$(subst =,$(encoded_equal),$(rem \
+)$1)))))))))
+endef
+
+define str_decode_nospace
+$(subst $(encoded_slash),$(SLASH),$(rem \
+)$(subst $(_DOL),$$,$(rem \
+)$(subst $(_LP),$(LPAREN),$(rem \
+)$(subst $(_RP),$(RPAREN),$(rem \
+)$(subst $(_NL),$(NEWLINE),$(rem \
+)$(subst $(encoded_hash),$(raw_hash),$(rem \
+)$(subst $(encoded_colon),$(COLON),$(rem \
+)$(subst $(_SP),$(SPACE),$(rem \
+)$(subst $(encoded_equal),=,$1)))))))))
+endef
 
 # Read a whole file substituting newlines with $(_NL)
-_read_file = $(subst $(_NL),$(NEWLINE),$(shell out=""; while read -r l; do out="$${out}$${l}$(_NL)"; done < $(1); echo "$$out"))
+_read_file = $(call str_encode_nospace,$(shell \
+  sed -z 's/\n/$(_NL)/g' '$(str_decode_nospace)'))
+
+print = $(info $(str_decode_nospace))
+
+_rest = $(wordlist 2,$(words $1),$1)
+_rest2 = $(wordlist 3,$(words $1),$1)
+
+# Evaluate $2 repeatedly with $k and $v set to key/value pairs from $1.
+define _foreach2
+$(foreach k,$(firstword $1)\
+  ,$(foreach v,$(word 2,$1)\
+    ,$(eval $2)$(call _foreach2,$(_rest2),$2)))
+endef
 
 endif

@@ -46,61 +46,28 @@ object stepA_mal {
     }
   }
 
-  def is_macro_call(ast: Any, env: Env): Boolean = {
-    ast match {
-      case ml: MalList => {
-        if (ml.value.length > 0 &&
-            types._symbol_Q(ml(0)) &&
-            env.find(ml(0).asInstanceOf[Symbol]) != null) {
-          env.get(ml(0).asInstanceOf[Symbol]) match {
-            case f: MalFunction => return f.ismacro
-            case _ => return false
-          }
-        }
-        return false
-      }
-      case _ => return false
-    }
-  }
-
-  def macroexpand(orig_ast: Any, env: Env): Any = {
-    var ast = orig_ast;
-    while (is_macro_call(ast, env)) {
-      ast.asInstanceOf[MalList].value match {
-        case f :: args => {
-          val mac = env.get(f.asInstanceOf[Symbol])
-          ast = mac.asInstanceOf[MalFunction](args)
-        }
-        case _ => throw new Exception("macroexpand: invalid call")
-      }
-    }
-    ast
-  }
-
-  def eval_ast(ast: Any, env: Env): Any = {
-    ast match {
-      case s : Symbol    => env.get(s)
-      case v: MalVector  => v.map(EVAL(_, env))
-      case l: MalList    => l.map(EVAL(_, env))
-      case m: MalHashMap => {
-        m.map{case (k,v) => (k, EVAL(v, env))}
-      }
-      case _             => ast
-    }
-  }
-
   def EVAL(orig_ast: Any, orig_env: Env): Any = {
    var ast = orig_ast; var env = orig_env;
    while (true) {
 
-    //println("EVAL: " + printer._pr_str(ast,true))
-    if (!_list_Q(ast))
-      return eval_ast(ast, env)
+    if (env.find(Symbol("DEBUG-EVAL")) != null) {
+      val dbgeval = env.get(Symbol("DEBUG-EVAL"))
+      if (dbgeval != null && dbgeval != false) {
+        println("EVAL: " + printer._pr_str(ast,true))
+      }
+    }
+
+    ast match {
+      case s : Symbol    => return env.get(s)
+      case v: MalVector  => return v.map(EVAL(_, env))
+      case l: MalList    => {}
+      case m: MalHashMap => {
+        return m.map{case (k,v) => (k, EVAL(v, env))}
+      }
+      case _             => return ast
+    }
 
     // apply list
-    ast = macroexpand(ast, env)
-    if (!_list_Q(ast))
-      return eval_ast(ast, env)
 
     ast.asInstanceOf[MalList].value match {
       case Nil => {
@@ -120,19 +87,13 @@ object stepA_mal {
       case Symbol("quote") :: a1 :: Nil => {
         return a1
       }
-      case Symbol("quasiquoteexpand") :: a1 :: Nil => {
-        return quasiquote(a1)
-      }
       case Symbol("quasiquote") :: a1 :: Nil => {
         ast = quasiquote(a1)  // continue loop (TCO)
       }
       case Symbol("defmacro!") :: a1 :: a2 :: Nil => {
-        val f = EVAL(a2, env)
-        f.asInstanceOf[MalFunction].ismacro = true
+        val f = EVAL(a2, env).asInstanceOf[MalFunction].clone()
+        f.ismacro = true
         return env.set(a1.asInstanceOf[Symbol], f)
-      }
-      case Symbol("macroexpand") :: a1 :: Nil => {
-        return macroexpand(a1, env)
       }
       case Symbol("try*") :: a1 :: rest => {
         try {
@@ -156,7 +117,7 @@ object stepA_mal {
         }
       }
       case Symbol("do") :: rest => {
-        eval_ast(_list(rest.slice(0,rest.length-1):_*), env)
+        rest.slice(0,rest.length-1).map(EVAL(_, env))
         ast = ast.asInstanceOf[MalList].value.last  // continue loop (TCO)
       }
       case Symbol("if") :: a1 :: a2 :: rest => {
@@ -175,25 +136,26 @@ object stepA_mal {
           }
         )
       }
-      case _ => {
+      case first :: rest => {
         // function call
-        eval_ast(ast, env).asInstanceOf[MalList].value match {
-          case f :: el => {
-            f match {
+          EVAL(first, env) match {
               case fn: MalFunction => {
+               if (fn.ismacro) {
+                ast = fn(rest)  // continue loop (TCO)
+               } else {
+                val el = rest.map(EVAL(_, env))
                 env = fn.gen_env(el) 
                 ast = fn.ast  // continue loop (TCO)
+               }
               }
               case fn: Func => {
+                val el = rest.map(EVAL(_, env))
                 return fn(el)
               }
-              case _ => {
+              case f => {
                 throw new Exception("attempt to call non-function: " + f)
               }
-            }
           }
-          case _ => throw new Exception("invalid apply")
-        }
       }
     }
    }

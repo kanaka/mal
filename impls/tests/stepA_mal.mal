@@ -46,6 +46,36 @@
 (map symbol? '(nil false true))
 ;=>(false false false)
 
+(def! add1 (fn* (x) (+ x 1)))
+
+;; Testing fn? function
+(fn? +)
+;=>true
+(fn? list?)
+;=>true
+(fn? add1)
+;=>true
+(fn? cond)
+;=>false
+(fn? "+")
+;=>false
+(fn? :+)
+;=>false
+
+;; Testing macro? function
+(macro? cond)
+;=>true
+(macro? +)
+;=>false
+(macro? add1)
+;=>false
+(macro? "+")
+;=>false
+(macro? :+)
+;=>false
+(macro? {})
+;=>false
+
 ;; ------------------------------------------------------------------
 
 ;>>> soft=True
@@ -137,36 +167,6 @@
 (number? false)
 ;=>false
 (number? "123")
-;=>false
-
-(def! add1 (fn* (x) (+ x 1)))
-
-;; Testing fn? function
-(fn? +)
-;=>true
-(fn? add1)
-;=>true
-(fn? cond)
-;=>false
-(fn? "+")
-;=>false
-(fn? :+)
-;=>false
-(fn? ^{"ismacro" true} (fn* () 0))
-;=>true
-
-;; Testing macro? function
-(macro? cond)
-;=>true
-(macro? +)
-;=>false
-(macro? add1)
-;=>false
-(macro? "+")
-;=>false
-(macro? :+)
-;=>false
-(macro? {})
 ;=>false
 
 
@@ -267,7 +267,9 @@
 ;=>{"b" 2}
 
 ;;
-;; Testing metadata on builtin functions
+;; Testing metadata on mal and builtin functions
+(fn? ^{"ismacro" true} (fn* () 0))
+;=>true
 (meta +)
 ;=>nil
 (def! f-wm3 ^{"def" 2} +)
@@ -275,6 +277,19 @@
 ;=>{"def" 2}
 (meta +)
 ;=>nil
+
+;; Metadata should not break equality.
+(= [1] ^2 [1])
+;=>true
+
+(= '(1) ^2 '(1))
+;=>true
+
+(= {"a" 1} ^2 {"a" 1})
+;=>true
+
+(= '(1) ^2 [1])
+;=>true
 
 ;; Loading sumdown from computations.mal
 (load-file "../tests/computations.mal")

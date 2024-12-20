@@ -1,28 +1,24 @@
-SOURCES = step0_repl.elm step1_read_print.elm step2_eval.elm \
-	step3_env.elm step4_if_fn_do.elm step5_tco.elm step6_file.elm \
-	step7_quote.elm step8_macros.elm step9_try.elm stepA_mal.elm
+SOURCES = src/Step0_repl.elm src/Step1_read_print.elm src/Step2_eval.elm \
+	  src/Step3_env.elm src/Step4_if_fn_do.elm src/Step5_tco.elm src/Step6_file.elm \
+	  src/Step7_quote.elm src/Step8_macros.elm src/Step9_try.elm src/StepA_mal.elm
 
-BINS = $(SOURCES:%.elm=%.js)
+BINS = $(SOURCES:src/Step%.elm=step%.js)
 
-ELM_MAKE = node_modules/.bin/elm-make
-ELM_PACKAGE = node_modules/.bin/elm-package
+ELM = node_modules/.bin/elm
 
-all: node_modules elm_packages $(BINS)
+all: node_modules $(BINS)
 
 node_modules:
 	npm install
 
-elm_packages:
-	$(ELM_PACKAGE) install -y
+step%.js: src/Step%.elm node_modules
+	$(ELM) make $< --output $@
 
-%.js: %.elm node_modules elm_packages
-	$(ELM_MAKE) $(@:%.js=%.elm) --output $@
-
-STEP0_SOURCES = IO.elm
-STEP1_SOURCES = $(STEP0_SOURCES) Reader.elm Printer.elm Utils.elm Types.elm Env.elm
+STEP0_SOURCES = src/IO.elm
+STEP1_SOURCES = $(STEP0_SOURCES) src/Reader.elm src/Printer.elm src/Utils.elm src/Types.elm src/Env.elm
 STEP2_SOURCES = $(STEP1_SOURCES)
 STEP3_SOURCES = $(STEP2_SOURCES)
-STEP4_SOURCES = $(STEP3_SOURCES) Core.elm Eval.elm
+STEP4_SOURCES = $(STEP3_SOURCES) src/Core.elm src/Eval.elm
 
 step0_repl.js: $(STEP0_SOURCES)
 step1_read_print.js: $(STEP1_SOURCES)

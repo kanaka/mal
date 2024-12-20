@@ -20,12 +20,16 @@ architecture test of step5_tco is
   -- Forward declaration
   procedure EVAL(in_ast: inout mal_val_ptr; in_env: inout env_ptr; result: out mal_val_ptr; err: out mal_val_ptr);
 
-  procedure eval_ast_seq(ast_seq: inout mal_seq_ptr; env: inout env_ptr; result: inout mal_seq_ptr; err: out mal_val_ptr) is
+  procedure eval_ast_seq(ast_seq : inout mal_seq_ptr;
+                         skip    : in    natural;
+                         env     : inout env_ptr;
+                         result  : inout mal_seq_ptr;
+                         err     :   out mal_val_ptr) is
     variable eval_err: mal_val_ptr;
   begin
-    result := new mal_seq(0 to ast_seq'length - 1);
+    result := new mal_seq(0 to ast_seq'length - 1 - skip);
     for i in result'range loop
-      EVAL(ast_seq(i), env, result(i), eval_err);
+      EVAL(ast_seq(skip + i), env, result(i), eval_err);
       if eval_err /= null then
         err := eval_err;
         return;
@@ -33,22 +37,42 @@ architecture test of step5_tco is
     end loop;
   end procedure eval_ast_seq;
 
-  procedure eval_ast(ast: inout mal_val_ptr; env: inout env_ptr; result: out mal_val_ptr; err: out mal_val_ptr) is
-    variable key, val, eval_err, env_err: mal_val_ptr;
+  procedure EVAL(in_ast : inout mal_val_ptr;
+                 in_env : inout env_ptr;
+                 result :   out mal_val_ptr;
+                 err    :   out mal_val_ptr) is
+    variable val, eval_err, a0, call_args, vars, fn, sub_err: mal_val_ptr;
+    variable ast : mal_val_ptr := in_ast;
+    variable env : env_ptr     := in_env;
+    variable let_env, fn_env : env_ptr;
+    variable s: line;
     variable new_seq: mal_seq_ptr;
     variable i: integer;
   begin
+    loop
+
+    new_symbol("DEBUG-EVAL", a0);
+    env_get(env, a0, val);
+    if val /= null and val.val_type /= mal_nil and val.val_type /= mal_false
+    then
+      mal_printstr("EVAL: ");
+      pr_str(ast, true, s);
+      mal_printline(s.all);
+    end if;
+
     case ast.val_type is
       when mal_symbol =>
-        env_get(env, ast, val, env_err);
-        if env_err /= null then
-          err := env_err;
+        env_get(env, ast, val);
+        if val = null then
+          new_string("'" & ast.string_val.all & "' not found", err);
           return;
         end if;
         result := val;
         return;
-      when mal_list | mal_vector | mal_hashmap =>
-        eval_ast_seq(ast.seq_val, env, new_seq, eval_err);
+      when mal_list =>
+        null;
+      when mal_vector | mal_hashmap =>
+        eval_ast_seq(ast.seq_val, 0, env, new_seq, eval_err);
         if eval_err /= null then
           err := eval_err;
           return;
@@ -59,20 +83,6 @@ architecture test of step5_tco is
         result := ast;
         return;
     end case;
-  end procedure eval_ast;
-
-  procedure EVAL(in_ast: inout mal_val_ptr; in_env: inout env_ptr; result: out mal_val_ptr; err: out mal_val_ptr) is
-    variable i: integer;
-    variable ast, evaled_ast, a0, call_args, val, vars, sub_err, fn: mal_val_ptr;
-    variable env, let_env, fn_env: env_ptr;
-  begin
-    ast := in_ast;
-    env := in_env;
-    loop
-      if ast.val_type /= mal_list then
-        eval_ast(ast, env, result, err);
-        return;
-      end if;
 
       if ast.seq_val'length = 0 then
         result := ast;
@@ -144,13 +154,18 @@ architecture test of step5_tco is
         end if;
       end if;
 
-      eval_ast(ast, env, evaled_ast, sub_err);
+      EVAL (a0, env, fn, sub_err);
       if sub_err /= null then
         err := sub_err;
         return;
       end if;
-      seq_drop_prefix(evaled_ast, 1, call_args);
-      fn := evaled_ast.seq_val(0);
+      -- Evaluate arguments
+      eval_ast_seq(ast.seq_val, 1, env, new_seq, sub_err);
+      if sub_err /= null then
+        err := sub_err;
+        return;
+      end if;
+      new_seq_obj(mal_list, new_seq, call_args);
       case fn.val_type is
         when mal_nativefn =>
           eval_native_func(fn, call_args, result, err);

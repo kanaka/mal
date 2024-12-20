@@ -7,12 +7,12 @@
 .mal_history
 .crystal
 .lein
+.local
 .m2
 .ivy2
 .sbt
 .npm
 .node-gyp
-package-lock.json
 */experiments
 node_modules
 */notes
@@ -22,3 +22,5 @@ GRTAGS
 logs
 old
 tmp/
+.xslt_mal_history
+zig-cache/

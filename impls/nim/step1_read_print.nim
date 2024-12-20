@@ -10,5 +10,6 @@ while true:
   try:
     let line = readLineFromStdin("user> ")
     echo line.read.eval.print
+  except IOError: quit()
   except:
     echo getCurrentExceptionMsg()

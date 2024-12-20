@@ -1,38 +1,36 @@
 GOTO MAIN
 
+REM $INCLUDE: 'mem.in.bas'
 REM $INCLUDE: 'readline.in.bas'
 
 REM $INCLUDE: 'debug.in.bas'
 
-REM READ(A$) -> R$
-MAL_READ:
-  R$=A$
-  RETURN
+REM READ is inlined in RE
 
-REM EVAL(A$, E) -> R$
-EVAL:
+REM EVAL(A$) -> R$
+SUB EVAL
   R$=A$
-  RETURN
+END SUB
 
-REM PRINT(A$) -> R$
-MAL_PRINT:
-  R$=A$
-  RETURN
+REM PRINT is inlined in REP
 
 REM REP(A$) -> R$
-REP:
-  GOSUB MAL_READ
-  A=R:GOSUB EVAL
-  A=R:GOSUB MAL_PRINT
-  RETURN
+SUB REP
+  REM inlined READ (not affecting A$)
+  CALL EVAL
+  REM inlined PRINT (not affecting A$)
+END SUB
 
 REM MAIN program
 MAIN:
+  GOSUB DIM_MEMORY
+
   REPL_LOOP:
     A$="user> ":GOSUB READLINE: REM call input parser
     IF EZ=1 THEN GOTO QUIT
+    IF R$="" THEN GOTO REPL_LOOP
 
-    A$=R$:GOSUB REP: REM call REP
+    A$=R$:CALL REP
 
     PRINT R$
     GOTO REPL_LOOP
@@ -41,4 +39,3 @@ MAIN:
     REM GOSUB PR_MEMORY_SUMMARY_SMALL
     #cbm END
     #qbasic SYSTEM
-

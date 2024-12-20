@@ -1,4 +1,4 @@
-FROM ubuntu:xenial
+FROM ubuntu:24.04
 MAINTAINER Joel Martin <github@martintribe.org>
 
 ##########################################################
@@ -9,10 +9,8 @@ MAINTAINER Joel Martin <github@martintribe.org>
 RUN apt-get -y update
 
 # Required for running tests
-RUN apt-get -y install make python
-
-# Some typical implementation and test requirements
-RUN apt-get -y install curl libreadline-dev libedit-dev
+RUN apt-get -y install make python3
+RUN ln -fs /usr/bin/python3 /usr/local/bin/python
 
 RUN mkdir -p /mal
 WORKDIR /mal
@@ -21,15 +19,6 @@ WORKDIR /mal
 # Specific implementation requirements
 ##########################################################
 
-# Java and maven deps
-RUN apt-get -y install openjdk-8-jdk
-RUN apt-get -y install maven
-ENV MAVEN_OPTS -Duser.home=/mal
-
-# GNU Octave
-RUN apt-get -y install software-properties-common && \
-    apt-add-repository -y ppa:octave/stable && \
-    apt-get -y update && \
-    apt-get -y install octave
+RUN DEBIAN_FRONTEND=noninteractive apt-get -y install octave
 
 ENV HOME /mal

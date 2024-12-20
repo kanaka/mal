@@ -31,14 +31,7 @@ module REPL
         | [node] -> node
         | _ -> raise <| Error.wrongArity ()
 
-    let rec eval_ast env = function
-        | Symbol(sym) -> Env.get env sym
-        | List(_, lst) -> lst |> List.map (eval env) |> makeList
-        | Vector(_, seg) -> seg |> Seq.map (eval env) |> Array.ofSeq |> Node.ofArray
-        | Map(_, map) -> map |> Map.map (fun k v -> eval env v) |> makeMap
-        | node -> node
-
-    and defBangForm env = function
+    let rec defBangForm env = function
         | [sym; form] ->
             match sym with
             | Symbol(sym) ->
@@ -95,8 +88,16 @@ module REPL
         | [_; _] -> raise <| Error.errExpectedX "bindings of list or vector"
         | _ -> raise <| Error.wrongArity ()
 
-    and eval env = function
-        | List(_, []) as emptyList -> emptyList
+    and eval env ast =
+        ignore <| match Env.get env "DEBUG-EVAL" with
+                  | None | Some(Bool(false)) | Some(Nil) -> ()
+                  | _ -> Printer.pr_str [ast] |> printfn "EVAL: %s"
+        match ast with
+        | Symbol(sym) -> match Env.get env sym with
+                         | Some(value) -> value
+                         | None -> Error.symbolNotFound sym |> raise
+        | Vector(_, seg) -> seg |> Seq.map (eval env) |> Array.ofSeq |> Node.ofArray
+        | Map(_, map) -> map |> Map.map (fun k v -> eval env v) |> makeMap
         | List(_, Symbol("def!")::rest) -> defBangForm env rest
         | List(_, Symbol("let*")::rest) ->
             let inner, form = letStarForm env rest
@@ -105,19 +106,17 @@ module REPL
         | List(_, Symbol("do")::rest) -> doForm env rest |> eval env
         | List(_, Symbol("fn*")::rest) -> fnStarForm env rest
         | List(_, Symbol("quote")::rest) -> quoteForm rest
-        | List(_, [Symbol("quasiquoteexpand");form]) -> quasiquote form
-        | List(_,  Symbol("quasiquoteexpand")::_)    -> raise <| Error.wrongArity ()
         | List(_, [Symbol("quasiquote");form]) -> eval env <| quasiquote form
         | List(_,  Symbol("quasiquote")::_)    -> raise <| Error.wrongArity ()
-        | List(_, _) as node ->
-            let resolved = node |> eval_ast env
-            match resolved with
-            | List(_, BuiltInFunc(_, _, f)::rest) -> f rest
-            | List(_, Func(_, _, _, body, binds, outer)::rest) ->
-                let inner = Env.makeNew outer binds rest
+        | List(_, (a0 :: rest)) ->
+            let args = List.map (eval env) rest
+            match eval env a0 with
+            | BuiltInFunc(_, _, f) -> f args
+            | Func(_, _, _, body, binds, outer) ->
+                let inner = Env.makeNew outer binds args
                 body |> eval inner
             | _ -> raise <| Error.errExpectedX "func"
-        | node -> node |> eval_ast env
+        | _ -> ast
 
     let READ input =
         Reader.read_str input

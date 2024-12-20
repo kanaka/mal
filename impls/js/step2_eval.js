@@ -11,15 +11,17 @@ function READ(str) {
 }
 
 // eval
-function eval_ast(ast, env) {
+function _EVAL(ast, env) {
+    // printer.println("EVAL:", printer._pr_str(ast, true));
+    // Non-list types.
     if (types._symbol_Q(ast)) {
-        if (ast in env) {
-            return env[ast];
+        if (ast.value in env) {
+            return env[ast.value];
         } else {
             throw new Error("'" + ast.value + "' not found");
         }
     } else if (types._list_Q(ast)) {
-        return ast.map(function(a) { return EVAL(a, env); });
+        // Exit this switch.
     } else if (types._vector_Q(ast)) {
         var v = ast.map(function(a) { return EVAL(a, env); });
         v.__isvector__ = true;
@@ -33,20 +35,15 @@ function eval_ast(ast, env) {
     } else {
         return ast;
     }
-}
 
-function _EVAL(ast, env) {
-    //printer.println("EVAL:", printer._pr_str(ast, true));
-    if (!types._list_Q(ast)) {
-        return eval_ast(ast, env);
-    }
     if (ast.length === 0) {
         return ast;
     }
 
     // apply list
-    var el = eval_ast(ast, env), f = el[0];
-    return f.apply(f, el.slice(1));
+    var f = EVAL(ast[0], env);
+    var args = ast.slice(1).map(function(a) { return EVAL(a, env); });
+    return f.apply(f, args);
 }
 
 function EVAL(ast, env) {

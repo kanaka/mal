@@ -26,8 +26,12 @@ module Mal
 
     Mal.rep("(def! not (fn* (a) (if a false true)))")
     Mal.rep("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \"\nnil)\")))))")
-    Mal.rep("(def! *ARGV* (list))") if !run_application?
     Mal.rep("(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))")
+
+    if !run_application?
+      Mal.rep("(def! *ARGV* (list))")
+      Mal.rep("(println (str \"Mal [\" \*host-language\* \"]\"))")
+    end
   end
 
   def run_application?
@@ -45,9 +49,32 @@ module Mal
 
   def EVAL(ast, environment)
     loop do
-      ast = macro_expand(ast, environment)
 
-      if Types::List === ast && ast.size > 0
+      case environment.get(Types::Symbol.for("DEBUG-EVAL"))
+      when 0, Types::Nil, Types::False
+      else
+        puts "EVAL: #{pr_str(ast, true)}"
+      end
+
+      case ast
+      when Types::Symbol
+        value = environment.get(ast)
+        if value == 0
+          raise SymbolNotFoundError, "'#{ast.value}' not found"
+        end
+        return value
+      when Types::Vector
+        vec = Types::Vector.new
+        ast.each { |i| vec << EVAL(i, environment) }
+        return vec
+      when Types::Hashmap
+        hashmap = Types::Hashmap.new
+        ast.each { |k, v| hashmap[k] = EVAL(v, environment) }
+        return hashmap
+      when Types::List
+        if ast.size == 0
+          return ast
+        end
         case ast.first
         when Types::Symbol.for("def!")
           _, sym, val = ast
@@ -62,9 +89,6 @@ module Mal
           else
             raise TypeError
           end
-        when Types::Symbol.for("macroexpand")
-          _, ast_rest = ast
-          return macro_expand(ast_rest, environment)
         when Types::Symbol.for("let*")
           e = Env.new(environment)
           _, bindings, val = ast
@@ -133,31 +157,36 @@ module Mal
         when Types::Symbol.for("quasiquote")
           _, ast_rest = ast
           ast = quasiquote(ast_rest)
-        when Types::Symbol.for("quasiquoteexpand")
-          _, ast_rest = ast
-          return quasiquote(ast_rest)
         else
-          evaluated = eval_ast(ast, environment)
-          maybe_callable = evaluated.first
-
-          if maybe_callable.respond_to?(:call) && maybe_callable.is_mal_fn?
+          maybe_callable = EVAL(ast.first, environment)
+          if !maybe_callable.respond_to?(:call)
+            raise NotCallableError, "Error! #{PRINT(maybe_callable)} is not callable."
+          end
+          raw_args = ast[1..]
+          if maybe_callable.is_macro?
+            if raw_args.any?
+              ast = maybe_callable.call(Types::Args.new(raw_args))
+            else
+              ast = maybe_callable.call
+            end
+            next
+          end
+          args = Types::List.new
+          raw_args.each { |i| args << EVAL(i, environment) }
+          if maybe_callable.is_mal_fn?
             # Continue loop
             ast = maybe_callable.ast
             environment = Env.new(
               maybe_callable.env,
               maybe_callable.params,
-              evaluated[1..],
+              args,
             )
-          elsif maybe_callable.respond_to?(:call) && !maybe_callable.is_mal_fn?
-            return maybe_callable.call(Types::Args.new(evaluated[1..]))
           else
-            raise NotCallableError, "Error! #{PRINT(maybe_callable)} is not callable."
+            return maybe_callable.call(Types::Args.new(args))
           end
         end
-      elsif Types::List === ast && ast.size == 0
-        return ast
       else
-        return eval_ast(ast, environment)
+        return ast
       end
     end
   end
@@ -188,27 +217,6 @@ module Mal
     nil
   rescue TypeError
     nil
-  end
-
-  def eval_ast(mal, environment)
-    case mal
-    when Types::Symbol
-      environment.get(mal)
-    when Types::List
-      list = Types::List.new
-      mal.each { |i| list << EVAL(i, environment) }
-      list
-    when Types::Vector
-      vec = Types::Vector.new
-      mal.each { |i| vec << EVAL(i, environment) }
-      vec
-    when Types::Hashmap
-      hashmap = Types::Hashmap.new
-      mal.each { |k, v| hashmap[k] = EVAL(v, environment) }
-      hashmap
-    else
-      mal
-    end
   end
 
   def quasiquote_list(mal)
@@ -256,29 +264,6 @@ module Mal
     end
   end
 
-  def is_macro_call?(mal, env)
-    return false unless Types::List === mal
-    return false unless Types::Symbol === mal.first
-    val = env.get(mal.first)
-    return false unless Types::Callable === val
-    val.is_macro?
-  rescue SymbolNotFoundError
-    false
-  end
-
-  def macro_expand(mal, env)
-    while is_macro_call?(mal, env)
-      macro_fn = env.get(mal.first)
-
-      if (args = mal[1..]).any?
-        mal = macro_fn.call(Types::Args.new(mal[1..]))
-      else
-        mal = macro_fn.call
-      end
-    end
-
-    mal
-  end
 end
 
 Mal.boot_repl!

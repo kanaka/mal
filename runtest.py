@@ -122,11 +122,16 @@ class Runner():
             [outs,_,_] = select([self.stdout], [], [], 1)
             if self.stdout in outs:
                 new_data = self.stdout.read(1)
-                new_data = new_data.decode("utf-8") if IS_PY_3 else new_data
-                #print("new_data: '%s'" % new_data)
+                new_data = new_data.decode("latin1") if IS_PY_3 else new_data
+                #print("new_data: %s" % repr(new_data))
                 debug(new_data)
                 # Perform newline cleanup
                 self.buf += new_data.replace("\r", "")
+                if self.buf.endswith('\x1b[6n'):
+                    log("Handling cursor query")
+                    self.stdin.write(b"\x1b[1;1R")
+                    self.buf = ""
+                    continue
                 for prompt in prompts:
                     regexp = re.compile(prompt)
                     match = regexp.search(self.buf)
@@ -140,9 +145,11 @@ class Runner():
 
     def writeline(self, str):
         def _to_bytes(s):
-            return bytes(s, "utf-8") if IS_PY_3 else s
+            return bytes(s, "latin1") if IS_PY_3 else s
 
-        self.stdin.write(_to_bytes(str.replace('\r', '\x16\r') + self.line_break))
+        data = _to_bytes(str.replace('\r', '\x16\r') + self.line_break)
+        #print("write: %s" % repr(data))
+        self.stdin.write(data)
 
     def cleanup(self):
         #print "cleaning up"
@@ -245,7 +252,7 @@ def assert_prompt(runner, prompts, timeout):
 
 # Wait for the initial prompt
 try:
-    assert_prompt(r, ['[^\s()<>]+> '], args.start_timeout)
+    assert_prompt(r, ['[^\\s()<>]+> '], args.start_timeout)
 except:
     _, exc, _ = sys.exc_info()
     log("\nException: %s" % repr(exc))
@@ -256,7 +263,7 @@ except:
 if args.pre_eval:
     sys.stdout.write("RUNNING pre-eval: %s" % args.pre_eval)
     r.writeline(args.pre_eval)
-    assert_prompt(r, ['[^\s()<>]+> '], args.test_timeout)
+    assert_prompt(r, ['[^\\s()<>]+> '], args.test_timeout)
 
 test_cnt = 0
 pass_cnt = 0
@@ -293,7 +300,7 @@ while t.next():
     r.writeline(t.form)
     try:
         test_cnt += 1
-        res = r.read_to_prompt(['\r\n[^\s()<>]+> ', '\n[^\s()<>]+> '],
+        res = r.read_to_prompt(['\r\n[^\\s()<>]+> ', '\n[^\\s()<>]+> '],
                                 timeout=args.test_timeout)
         #print "%s,%s,%s" % (idx, repr(p.before), repr(p.after))
         if (res == None):

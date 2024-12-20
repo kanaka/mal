@@ -10,67 +10,81 @@
 
 
 ;; eval
-(def! eval-ast (fn* [ast env]
-  ;; (do (prn "eval-ast" ast "/" (keys @env)) )
-  (cond
-    (symbol? ast) (env-get env ast)
-
-    (list? ast)   (map (fn* [exp] (EVAL exp env)) ast)
-
-    (vector? ast) (vec (map (fn* [exp] (EVAL exp env)) ast))
-
-    (map? ast)    (apply hash-map
-                    (apply concat
-                      (map (fn* [k] [k (EVAL (get ast k) env)])
-                           (keys ast))))
-
-    "else"        ast)))
-
 (def! LET (fn* [env binds form]
   (if (empty? binds)
     (EVAL form env)
-    (do
-      (env-set env (first binds) (EVAL (nth binds 1) env))
-      (LET env (rest (rest binds)) form)))))
+    (if (if (< 1 (count binds)) (symbol? (first binds)))
+      (do
+        (env-set env (first binds) (EVAL (nth binds 1) env))
+        (LET env (rest (rest binds)) form))
+      (throw "invalid binds")))))
 
 (def! EVAL (fn* [ast env]
-  ;; (do (prn "EVAL" ast "/" (keys @env)) )
-  (try*
-    (if (not (list? ast))
-      (eval-ast ast env)
+  (do
+    (if (env-get-or-nil env 'DEBUG-EVAL)
+      (println "EVAL:" (pr-str ast (env-as-map env))))
+    (try*
+      (cond
+        (symbol? ast)
+        (env-get env ast)
 
-      ;; apply list
-      (let* [a0 (first ast)]
-        (cond
-          (empty? ast)
-          ast
+        (vector? ast)
+        (vec (map (fn* [exp] (EVAL exp env)) ast))
 
-          (= 'def! a0)
-          (env-set env (nth ast 1) (EVAL (nth ast 2) env))
+        (map? ast)
+        (apply hash-map
+          (apply concat (map (fn* [k] [k (EVAL (get ast k) env)]) (keys ast))))
 
-          (= 'let* a0)
-          (LET (new-env env) (nth ast 1) (nth ast 2))
+        (list? ast)
+        (if (empty? ast)
+          ()
+          (let* [a0 (first ast)]
+            (cond
+              (= 'def! a0)
+              (if (if (= 3 (count ast)) (symbol? (nth ast 1)))
+               (let* [val (EVAL (nth ast 2) env)]
+                (do
+                  (env-set env (nth ast 1) val)
+                  val))
+               (throw "bad arguments"))
 
-          (= 'do a0)
-          (nth (eval-ast (rest ast) env) (- (count ast) 2))
+              (= 'let* a0)
+              (if (if (= 3 (count ast)) (sequential? (nth ast 1)))
+                (LET (new-env env) (nth ast 1) (nth ast 2))
+                (throw "bad arguments"))
 
-          (= 'if a0)
-          (if (EVAL (nth ast 1) env)
-            (EVAL (nth ast 2) env)
-            (if (> (count ast) 3)
-              (EVAL (nth ast 3) env)))
+              (= 'do a0)
+              (if (<= 2 (count ast))
+                (nth (map (fn* [exp] (EVAL exp env)) (rest ast)) (- (count ast) 2))
+                (throw "bad argument count"))
 
-          (= 'fn* a0)
-          (fn* [& args] (EVAL (nth ast 2) (new-env env (nth ast 1) args)))
+              (= 'if a0)
+              (if (if (<= 3 (count ast)) (<= (count ast) 4))
+                (if (EVAL (nth ast 1) env)
+                  (EVAL (nth ast 2) env)
+                  (if (= 4 (count ast))
+                    (EVAL (nth ast 3) env)))
+                (throw "bad argument count"))
 
-          "else"
-          (let* [el (eval-ast ast env)]
-            (apply (first el) (rest el))))))
+              (= 'fn* a0)
+              (if (if (= 3 (count ast)) (sequential? (nth ast 1)))
+                (fn* [& args] (EVAL (nth ast 2) (new-env env (nth ast 1) args)))
+                (throw "bad arguments"))
+
+              "else"
+              (let* [f    (EVAL a0 env)
+                     args (rest ast)]
+                  (if (fn? f)
+                    (apply f (map (fn* [exp] (EVAL exp env)) args))
+                    (throw "can only apply functions"))))))
+
+        "else"
+        ast)
 
     (catch* exc
       (do
         (swap! trace str "\n  in mal EVAL: " ast)
-        (throw exc))))))
+        (throw exc)))))))
 
 ;; print
 (def! PRINT pr-str)

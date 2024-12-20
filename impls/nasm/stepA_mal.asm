@@ -27,6 +27,9 @@ section .data
         
         static prompt_string, db 10,"user> "      ; The string to print at the prompt
 
+        static eval_debug_string, db "EVAL: "
+        static eval_debug_cr, db 10
+
         static error_string, db 27,'[31m',"Error",27,'[0m',": "
 
         static not_found_string, db " not found"
@@ -56,13 +59,13 @@ section .data
         
 ;; Symbols used for comparison
 
+        static_symbol debug_eval, 'DEBUG-EVAL'
         static_symbol def_symbol, 'def!'
         static_symbol let_symbol, 'let*'
         static_symbol do_symbol, 'do'
         static_symbol if_symbol, 'if'
         static_symbol fn_symbol, 'fn*'
         static_symbol defmacro_symbol, 'defmacro!'
-        static_symbol macroexpand_symbol, 'macroexpand'
         static_symbol try_symbol, 'try*'
         static_symbol catch_symbol, 'catch*'
         
@@ -70,7 +73,6 @@ section .data
 
         static_symbol quote_symbol, 'quote'
         static_symbol quasiquote_symbol, 'quasiquote'
-        static_symbol quasiquoteexpand_symbol, 'quasiquoteexpand'
         static_symbol unquote_symbol, 'unquote'
         static_symbol splice_unquote_symbol, 'splice-unquote'
         static_symbol concat_symbol, 'concat'
@@ -121,9 +123,48 @@ car_and_incref:
 ;;
 ;; Inputs: RSI   Form to evaluate
 ;;         RDI   Environment
+;; Returns: Result in RAX
+;; Note: Both the form and environment will have their reference count
+;; reduced by one (released). This is for tail call optimisation (Env),
+;; quasiquote and macroexpand (AST)
 ;; 
-eval_ast:
+eval:
+        push rdi                ; save environment
+        mov r15, rsi            ; save form
+
+        mov rsi, rdi            ; look for DEBUG-EVAL in environment
+        mov rdi, debug_eval
+        call env_get
+        jne .debug_eval_finished
+        mov bl, BYTE [rax]      ; Get type of result
+        mov cl, bl
+        and cl, content_mask
+        cmp cl, content_pointer
+        je .debug_eval_release_pointer
+        cmp bl, maltype_nil
+        je .debug_eval_finished
+        cmp bl, maltype_false
+        je .debug_eval_finished
+
+        print_str_mac eval_debug_string ; -> rsi, rdx ->
+        mov rdi, 1
+        mov rsi, r15            ; ast
+        call pr_str             ; rdi, rsi -> rcx, r8, r12, r13, r14 -> rax
+        mov rsi, rax
+        call print_string       ; rsi -> ->
+        call release_array      ; rsi -> [rsi], rax, rbx ->
+        print_str_mac eval_debug_cr ; -> rsi, rdx ->
+        jmp .debug_eval_finished
+.debug_eval_release_pointer:
+        mov rsi, rax
+        call release_object
+.debug_eval_finished:
+        mov rsi, r15            ; restore form
+        pop rdi                 ; restore environment
+        
         mov r15, rdi             ; Save Env in r15
+
+        push rsi                ; AST pushed, must be popped before return
         
         ; Check the type
         mov al, BYTE [rsi]
@@ -148,7 +189,7 @@ eval_ast:
         call incref_object      ; Increment reference count
         
         mov rax, rsi
-        ret
+        jmp .return
         
 .symbol:
         ; Check if first character of symbol is ':'
@@ -205,16 +246,104 @@ eval_ast:
         ; Just return keywords unaltered
         call incref_object
         mov rax, rsi
-        ret
+        jmp .return
         
         ; ------------------------------
-.list:
-        ; Evaluate each element of the list
-        ;        
-        xor r8, r8              ; The list to return
-        ; r9 contains head of list
+.list_map_eval:
 
+        ;; Some code is duplicated for the first element because
+        ;; the iteration must stop if its evaluation products a macro,
+        ;; else a new list must be constructed.
+
+        ; Evaluate first element of the list
+
+        mov al, BYTE [rsi]      ; Check type
+        mov ah, al
+        and ah, content_mask
+        cmp ah, content_pointer
+        je .list_pointer_first
+        
+        ; A value in RSI, so copy
+        
+        call alloc_cons
+        mov bl, BYTE [rsi]
+        and bl, content_mask
+        add bl, (block_cons + container_list)
+        mov [rax], BYTE bl      ; set type
+        mov rbx, [rsi + Cons.car]
+        mov [rax + Cons.car], rbx ; copy value
+
+        ; Result in RAX
+        jmp .list_append_first
+.list_pointer_first:
+        ; List element is a pointer to something
+        push rsi
+        push r15                  ; Env
+        mov rdi, [rsi + Cons.car] ; Get the address
+        mov rsi, r15
+
+        call incref_object      ; Environment increment refs
+        xchg rsi, rdi           ; Env in RDI, AST in RSI
+        
+        call incref_object      ; AST increment refs
+        
+        call eval             ; Evaluate it, result in rax
+        pop r15
+        pop rsi
+        
+        ; Check the type it's evaluated to
+        mov bl, BYTE [rax]
+        ;; If the evaluated first element is a macro, exit the loop.
+        cmp bl, maltype_macro
+        je macroexpand
+        mov bh, bl
+        and bh, (block_mask + container_mask)
+        cmp bh, (block_cons + container_value)
+        je .list_eval_value_first
+        
+        ; Not a value, so need a pointer to it
+        push rax
+        call alloc_cons
+        mov [rax], BYTE (block_cons + container_list + content_pointer)
+        pop rbx                 ; Address to point to
+        mov [rax + Cons.car], rbx
+        jmp .list_append_first
+        
+.list_eval_value_first:
+        ; Got value in RAX, so copy
+        push rax
+        call alloc_cons         ; Copy in RAX
+        pop rbx                 ; Value to copy in RBX
+        mov cl, BYTE [rbx]
+        and cl, content_mask
+        or  cl, (block_cons + container_list)
+        mov [rax], BYTE cl      ; set type
+        mov rcx, [rbx + Cons.car]
+        mov [rax + Cons.car], rcx ; copy value
+
+        ; Release the value in RBX
+        push rsi
+        push rax
+        mov rsi, rbx
+        call release_cons
+        pop rax
+        pop rsi
+        ; Fall through to .list_append_first
+.list_append_first:
+        ; In RAX
+        ; r8 contains the head of the constructed list
+        ; append to r9
+        mov r8, rax
+        mov r9, rax
 .list_loop:
+        ; Evaluate each element of the remaining list
+
+        ; Check if there's another
+        mov al, BYTE [rsi + Cons.typecdr]
+        cmp al, content_pointer
+        jne .list_done          ; finished list
+        mov rsi, [rsi + Cons.cdr] ; next in list
+
         mov al, BYTE [rsi]      ; Check type
         mov ah, al
         and ah, content_mask
@@ -292,32 +421,15 @@ eval_ast:
         ; Fall through to .list_append
 .list_append:
         ; In RAX
-        
-        cmp r8, 0               ; Check if this is the first
-        je .list_first
-
         ; append to r9
         mov [r9 + Cons.cdr], rax
         mov [r9 + Cons.typecdr], BYTE content_pointer
         mov r9, rax
-        jmp .list_next
-        
-.list_first:
-        mov r8, rax
-        mov r9, rax
-        ; fall through to .list_next
-        
-.list_next:
-        ; Check if there's another
-        mov al, BYTE [rsi + Cons.typecdr]
-        cmp al, content_pointer
-        jne .list_done          ; finished list
-        mov rsi, [rsi + Cons.cdr] ; next in list
         jmp .list_loop
         
 .list_done:
         mov rax, r8            ; Return the list
-        ret
+        jmp eval.return_from_list_map_eval
         
         ; ---------------------
 .map:
@@ -330,7 +442,7 @@ eval_ast:
         ; map empty. Just return it
         call incref_object
         mov rax, rsi
-        ret
+        jmp .return
         
 .map_not_empty:
         
@@ -456,11 +568,11 @@ eval_ast:
 
 .map_done:
         mov rax, r12
-        ret
+        jmp .return
         
 .map_error_missing_value:
         mov rax, r12
-        ret
+        jmp .return
         
         ; ------------------------------
 .vector:
@@ -571,11 +683,11 @@ eval_ast:
         
 .vector_done:
         mov rax, r8            ; Return the vector
-        ret
+        jmp .return
         
         ; ---------------------
 .done:
-        ret
+        jmp .return             ; Releases Env
 
 
         
@@ -594,65 +706,15 @@ eval_ast:
         test rax, rax           ; ZF set if rax = 0 (equal)
 %endmacro
         
-;; ----------------------------------------------------
-;; Evaluates a form
-;;      
-;; Input: RSI   AST to evaluate   [ Released ]
-;;        RDI   Environment       [ Released ]
-;;
-;; Returns: Result in RAX
-;;
-;; Note: Both the form and environment will have their reference count
-;; reduced by one (released). This is for tail call optimisation (Env),
-;; quasiquote and macroexpand (AST)
-;; 
-eval:
-        mov r15, rdi            ; Env
-
-        push rsi                ; AST pushed, must be popped before return
-        
-        ; Check type
-        mov al, BYTE [rsi]
-        cmp al, maltype_empty_list
-        je .empty_list           ; empty list, return unchanged
-
-        and al, container_mask
-        cmp al, container_list
-        je .list
-        
-        ; Not a list. Evaluate and return
-        call eval_ast
-        jmp .return             ; Releases Env
-
         ; --------------------
 .list:
         ; A list
         
-        ; Macro expand
-	pop rax ; Old AST, discard from stack
-        call macroexpand        ; Replaces RSI
-        push rsi ; New AST
-
-        ; Check if RSI is a list, and if 
+        ; Check if
         ; the first element is a symbol
-        mov al, BYTE [rsi]
-
-        ; Check type
-        mov al, BYTE [rsi]
         cmp al, maltype_empty_list
         je .empty_list           ; empty list, return unchanged
 
-        mov ah, al
-        and ah, container_mask
-        cmp ah, container_list
-        je .list_still_list
-
-        ; Not a list, so call eval_ast on it
-        mov rdi, r15            ; Environment
-        call eval_ast
-        jmp .return
-
-.list_still_list:
         and al, content_mask
         cmp al, content_pointer
         jne .list_eval
@@ -684,17 +746,11 @@ eval:
         eval_cmp_symbol quote_symbol ; quote
         je .quote_symbol
 
-        eval_cmp_symbol quasiquoteexpand_symbol
-        je .quasiquoteexpand_symbol
-
         eval_cmp_symbol quasiquote_symbol ; quasiquote
         je .quasiquote_symbol
 
         eval_cmp_symbol defmacro_symbol ; defmacro!
         je .defmacro_symbol
-
-        eval_cmp_symbol macroexpand_symbol ; macroexpand
-        je .macroexpand_symbol
 
         eval_cmp_symbol try_symbol ; try*
         je .try_symbol
@@ -1468,20 +1524,6 @@ eval:
         
         ; -----------------------------
 
-;;; Like quasiquote, but do not evaluate the result.
-.quasiquoteexpand_symbol:
-        ;; Return nil if no cdr
-        mov cl, BYTE [rsi + Cons.typecdr]
-        cmp cl, content_pointer
-        jne .return_nil
-
-        mov rsi, [rsi + Cons.cdr]
-        call car_and_incref
-        call quasiquote
-        jmp .return
-
-        ; -----------------------------
-        
 .quasiquote_symbol:
         ; call quasiquote function with first argument
         
@@ -1522,37 +1564,6 @@ eval:
         mov rsi, r11            ; New AST in RSI
         
         jmp eval                ; Tail call
-        
-        ; -----------------------------
-.macroexpand_symbol:
-        ; Check if we have a second list element
-        
-        mov al, BYTE [rsi + Cons.typecdr]
-        cmp al, content_pointer
-        jne .return_nil         ; No argument
-
-        mov rsi, [rsi + Cons.cdr]
-        
-        ; Check if this is a value or pointer
-        mov al, BYTE [rsi + Cons.typecar]
-        and al, content_mask
-        cmp al, content_pointer
-        je .macroexpand_pointer
-        
-        ; RSI contains a value. Remove the list container
-        mov [rsi + Cons.typecar], BYTE al
-        call incref_object
-        mov rax, rsi
-        jmp .return
-
-.macroexpand_pointer:
-        mov rsi, [rsi + Cons.car]
-        call incref_object      ; Since RSI will be released
-        
-        call macroexpand   ; May release and replace RSI
-        
-        mov rax, rsi
-        jmp .return ; Releases original AST
         
         ; -----------------------------
         
@@ -1773,7 +1784,8 @@ eval:
         push rsi
         mov rdi, r15            ; Environment
         push r15
-        call eval_ast           ; List of evaluated forms in RAX
+        jmp .list_map_eval     ; List of evaluated forms in RAX
+.return_from_list_map_eval
         pop r15
         pop rsi
         
@@ -2198,83 +2210,13 @@ qq_loop:
 
         ret
 
-
-;; Tests if an AST in RSI is a list containing
-;; a macro defined in the ENV in R15
-;;
-;; Inputs: AST in RSI (not modified)
-;;         ENV in R15 (not modified)
-;;
-;; Returns: Sets ZF if macro call. If set (true),
-;;          then the macro object is in RAX
-;;
-;; Modifies:
-;;    RAX
-;;    RBX
-;;    RCX
-;;    RDX
-;;    R8
-;;    R9
-is_macro_call:
-        ; Test if RSI is a list which contains a pointer
-        mov al, BYTE [rsi]
-        cmp al, (block_cons + container_list + content_pointer)
-        jne .false
-
-        ; Test if this is a symbol
-        mov rbx, [rsi + Cons.car]
-        mov al, BYTE [rbx]
-        cmp al, maltype_symbol
-        jne .false
-
-        ; Look up symbol in Env
-        push rsi
-        push r15
-        mov rdi, rbx            ; symbol in RDI
-        mov rsi, r15            ; Environment in RSI
-        call env_get
-        pop r15
-        pop rsi
-        jne .false              ; Not in environment
-        
-        ; Object in RAX
-        ; If this is not a macro then needs to be released
-        mov dl, BYTE [rax]
-
-        cmp dl, maltype_macro
-        je .true
-
-        ; Not a macro, so release
-        mov r8, rsi
-        mov rsi, rax
-        call release_object
-        mov rsi, r8
-        
-.false:
-        lahf                    ; flags in AH
-        and ah, 255-64          ; clear zero flag
-        sahf
-        ret
-.true:
-        mov rbx, rax            ; Returning Macro object
-        lahf                    ; flags in AH
-        or ah, 64               ; set zero flag
-        sahf
-        mov rax, rbx
-        ret
-
 ;; Expands macro calls
 ;;
-;; Input: AST in RSI (released and replaced)
-;;        Env in R15 (not modified)
-;; 
-;; Result: New AST in RSI
+;; A part of eval, written here for historical reasons.
+;; RSI: AST, a non-empty list (released and replaced)
+;; RAX: evaluated first element of AST, a macro
+;; R15: env
 macroexpand:
-        push r15
-        
-        call is_macro_call
-        jne .done
-
         mov r13, rsi
         
         mov rdi, rax  ; Macro in RDI
@@ -2312,13 +2254,11 @@ macroexpand:
         
         call apply_fn
         
-        mov rsi, rax ; Result in RSI
-
-        pop r15
-        jmp macroexpand
-.done:
-        pop r15
-        ret
+        mov rsi, rax        ; Result in RSI
+        pop rdi             ; env pushed as r15 by .list_eval
+        pop rax             ; (ignored) ast pushed as r15 by .list_eval
+        pop rax             ; (ignored) ast pushed as rsi by eval
+        jmp eval
 
 ;; Read and eval
 read_eval:

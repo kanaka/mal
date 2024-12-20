@@ -2,8 +2,7 @@ program Mal;
 
 {$H+} // Use AnsiString
 
-Uses CMem,
-     mal_readline;
+Uses mal_readline;
 
 var
     Repl_Env: string = '';

@@ -21,18 +21,11 @@
   [code-str]
   (reader.read_str code-str))
 
-;; forward declaration
-(var EVAL 1)
-
-(fn eval_ast
+(fn EVAL
   [ast env]
+  ;; (print (.. "EVAL: " (printer.pr_str ast true)))
   (if (t.symbol?* ast)
       (. env (t.get-value ast))
-      ;;
-      (t.list?* ast)
-      (t.make-list (u.map (fn [elt-ast]
-                            (EVAL elt-ast env))
-                          (t.get-value ast)))
       ;;
       (t.vector?* ast)
       (t.make-vector (u.map (fn [elt-ast]
@@ -44,20 +37,13 @@
                                 (EVAL elt-ast env))
                               (t.get-value ast)))
       ;;
-      ast))
-
-(set EVAL
-  (fn [ast env]
-      (if (not (t.list?* ast))
-          (eval_ast ast env)
-          ;;
-          (t.empty?* ast)
+          (or (not (t.list?* ast)) (t.empty?* ast))
           ast
           ;;
-          (let [eval-list (eval_ast ast env)
-                f (u.first (t.get-value eval-list))
-                args (u.slice (t.get-value eval-list) 2 -1)]
-            (f (table.unpack args))))))
+          (let [eval-list (u.map (fn [x] (EVAL x env)) (t.get-value ast))
+                f (u.first eval-list)
+                args (u.slice eval-list 2 -1)]
+            (f (table.unpack args)))))
 
 (fn PRINT
   [ast]

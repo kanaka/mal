@@ -1,0 +1,205 @@
+\ProvidesExplPackage {reader} {2023/01/01} {0.0.1} {MAL~reader}
+\RequirePackage{types}
+
+% It would be convenient to output the forms in a list directly, but
+% this would require a fully expandable read_str.  \prop_set and
+% \regex_replace_once are too convenient.
+
+% \l_tmpa_str is used as a common buffer for the remaining input.
+
+% Compile the regular expressions once and for all.
+\regex_const:Nn \c_mal_space_regex { ^ (?: \s | , | ; \N* \n )* }
+\regex_const:Nn \c_mal_unescape_cr_regex { \\ n }
+\regex_const:Nn \c_mal_unescape_regex { \\ ([^n]) }
+\regex_const:Nn \c_mal_number_regex
+  { ^ ( -? \d+ )                                           (.*) }
+\regex_const:Nn \c_mal_symbol_regex
+  { ^   ( [^ " ' \( \) ,   ; @ \[ \] ^ ` \{ \} \~ \s ] + ) (.*) }
+\regex_const:Nn \c_mal_keyword_regex
+  { ^ : ( [^ " ' \( \) , : ; @ \[ \] ^ ` \{ \} \~ \s ] + ) (.*) }
+\regex_const:Nn \c_mal_string_regex
+  { ^ " ( (?: [^ \\ "] | \\ . )* ) "                       (.*) }
+
+\cs_new:Nn \mal_skip_spaces:
+  { \regex_replace_once:NnN \c_mal_space_regex {} \l_tmpa_str }
+
+\cs_new:Nn \mal_skip_char:
+  { \tl_set:Nx \l_tmpa_str { \tl_tail:V \l_tmpa_str } }
+
+% Read forms until a closing brace #1.
+% Return a tl of MAL forms or an error in \l_tmpa_tl.
+% accumulator    closing brace
+\cs_new:Nn \mal_reader_seq_loop:nN
+  {
+    % \iow_term:n {reader_seq_loop~#1~#2}
+    \mal_skip_spaces:
+    \tl_if_head_eq_charcode:VNTF \l_tmpa_str #2
+      {
+        \mal_skip_char:
+        \tl_set:Nn \l_tmpa_tl { #1 }
+      }
+      {
+        \mal_read_str:
+        \tl_if_head_eq_charcode:VNF \l_tmpa_tl e
+          { \mal_reader_seq_loop:xN { \exp_not:n {#1} { \exp_not:V \l_tmpa_tl } } #2 }
+      }
+  }
+\cs_generate_variant:Nn \mal_reader_seq_loop:nN { xN }
+
+% #1: a token list without leading y
+\cs_new:Nn \mal_reader_quote:n
+  {
+    % \iow_term:n {quote~#1}
+    \mal_skip_char:
+    \mal_read_str:
+    \tl_if_head_eq_charcode:VNF \l_tmpa_tl e
+      {
+        \tl_set:Nx \l_tmpa_tl
+          {
+            l n
+            { y \tl_to_str:n { #1 } }
+            { \exp_not:V \l_tmpa_tl } }
+      }
+  }
+
+% The only purpose of this macro is to store #1 during read_str.
+\cs_new:Nn \mal_reader_with_meta:n
+  {
+    % \iow_term:n {with_meta~#1}
+    \mal_read_str:
+    \tl_if_head_eq_charcode:VNF \l_tmpa_tl e
+      {
+        \tl_set:Nx \l_tmpa_tl {
+                                l n
+                                { y \tl_to_str:n { with-meta } }
+                                { \exp_not:V \l_tmpa_tl }
+                                \exp_not:n { { #1 } }
+                              }
+      }
+  }
+\cs_generate_variant:Nn \mal_reader_with_meta:n { V }
+
+% Input in \l_tmpa str (modified)
+% Write the MAL form to \l_tmpa_tl.
+\cs_new:Nn \mal_read_str:
+  {
+    % \iow_term:x {reader_read_str~\l_tmpa_str}
+    \mal_skip_spaces:
+    \str_case_e:nnF { \str_head:V \l_tmpa_str }
+      {
+        { ' }
+        { \mal_reader_quote:n { quote } }
+        { @ }
+        { \mal_reader_quote:n { deref } }
+        { ` }
+        { \mal_reader_quote:n { quasiquote } }
+        { ( }
+        {
+          \mal_skip_char:
+          \mal_reader_seq_loop:nN { l n } )
+        }
+        { [ }
+          {
+            \mal_skip_char:
+            \mal_reader_seq_loop:nN { v n } ]
+        }
+        \c_left_brace_str
+        {
+          \mal_skip_char:
+          \exp_args:NnV \mal_reader_seq_loop:nN { } \c_right_brace_str
+          \tl_if_head_eq_charcode:VNF \l_tmpa_tl e
+            { \mal_hash_map:V \l_tmpa_tl }
+        }
+        \c_tilde_str
+        {
+          \str_if_eq:xnTF { \str_item:Vn \l_tmpa_str 2 } { @ }
+            {
+              \mal_skip_char:
+              \mal_reader_quote:n { splice-unquote }
+            }
+            { \mal_reader_quote:n { unquote } }
+        }
+        { ^ }
+        {
+          \mal_skip_char:
+          \mal_read_str:
+          \tl_if_head_eq_charcode:VNF \l_tmpa_tl e
+            { \mal_reader_with_meta:V \l_tmpa_tl }
+        }
+      }
+      {
+        \regex_extract_once:NVNTF \c_mal_string_regex \l_tmpa_str \l_tmpa_seq
+          {
+            \seq_get_right:NN \l_tmpa_seq \l_tmpa_str
+            \tl_set:Nx \l_tmpa_tl { s \seq_item:Nn \l_tmpa_seq 2 }
+            \regex_replace_case_all:nN
+              {
+                \c_mal_unescape_cr_regex { \n }
+                \c_mal_unescape_regex    { \1 }
+              }
+              \l_tmpa_tl
+          }
+          {
+            \regex_extract_once:NVNTF \c_mal_keyword_regex \l_tmpa_str \l_tmpa_seq
+              {
+                \seq_get_right:NN \l_tmpa_seq \l_tmpa_str
+                \tl_set:Nx \l_tmpa_tl { k \seq_item:Nn \l_tmpa_seq 2 }
+              }
+              {
+                \regex_extract_once:NVNTF \c_mal_number_regex \l_tmpa_str \l_tmpa_seq
+                  {
+                    \seq_get_right:NN \l_tmpa_seq \l_tmpa_str
+                    \tl_set:Nx \l_tmpa_tl { i \seq_item:Nn \l_tmpa_seq 2 }
+                  }
+                  {
+                    \regex_extract_once:NVNTF \c_mal_symbol_regex \l_tmpa_str \l_tmpa_seq
+                      {
+                        \seq_get_right:NN \l_tmpa_seq \l_tmpa_str
+                        \tl_set:Nx \l_tmpa_tl { \seq_item:Nn \l_tmpa_seq 2 }
+                        \str_case:NnF \l_tmpa_tl
+                          {
+                            { nil   } { \tl_set:Nn \l_tmpa_tl { n } }
+                            { false } { \tl_set:Nn \l_tmpa_tl { f } }
+                            { true  } { \tl_set:Nn \l_tmpa_tl { t } }
+                          }
+                          { \tl_put_left:Nn \l_tmpa_tl { y } } % catcode is already Ok
+                      }
+                      {
+                        \tl_set:Nn \l_tmpa_tl { e s unbalanced~expression }
+                      }
+                  }
+              }
+          }
+      }
+    % \iow_term:n {__ read_str~returns}
+    % \iow_term:V \l_tmpa_tl
+  }
+
+% \str_set:Nn \l_tmpa_str { ~,           } \mal_read_str: \iow_term:V \l_tmpa_tl
+% \str_set:Nn \l_tmpa_str { ~12~a        } \mal_read_str: \iow_term:V \l_tmpa_tl
+% \str_set:Nn \l_tmpa_str { -12          } \mal_read_str: \iow_term:V \l_tmpa_tl
+% \str_set:Nn \l_tmpa_str { ab           } \mal_read_str: \iow_term:V \l_tmpa_tl
+% \str_set:Nn \l_tmpa_str { nil          } \mal_read_str: \iow_term:V \l_tmpa_tl
+% \str_set:Nn \l_tmpa_str { :ab          } \mal_read_str: \iow_term:V \l_tmpa_tl
+% \str_set:Nn \l_tmpa_str { "ab"w        } \mal_read_str: \iow_term:V \l_tmpa_tl
+% \str_set:Nn \l_tmpa_str { (,)          } \mal_read_str: \iow_term:V \l_tmpa_tl
+% \str_set:Nn \l_tmpa_str { (nil~:a)     } \mal_read_str: \iow_term:V \l_tmpa_tl
+% \str_set:Nn \l_tmpa_str { (nil,[:a])   } \mal_read_str: \iow_term:V \l_tmpa_tl
+% \str_set:Nn \l_tmpa_str { 'a           } \mal_read_str: \iow_term:V \l_tmpa_tl
+% \str_set:Nn \l_tmpa_str { ^a~b         } \mal_read_str: \iow_term:V \l_tmpa_tl
+
+% \str_set:Nx \l_tmpa_str { \c_left_brace_str "a"~1~:b~2 \c_right_brace_str }
+% \mal_read_str:
+% \iow_term:V \l_tmpa_tl
+
+% \str_set:Nx \l_tmpa_str
+%   {
+%     \c_left_brace_str
+%       "a"~1
+%       ~:b~\c_left_brace_str
+%             :c~3
+%           \c_right_brace_str
+%     \c_right_brace_str
+%   }
+% \mal_read_str:
+% \iow_term:V \l_tmpa_tl

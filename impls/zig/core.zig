@@ -1,22 +1,12 @@
 const std = @import("std");
-const warn = @import("std").debug.warn;
 
-const AllocatorType = @import("std").mem.Allocator;
-var Allocator: *AllocatorType = undefined;
+const Allocator = std.heap.c_allocator;
 
-pub fn set_allocator(alloc: *AllocatorType) void {
-    Allocator = alloc;
-}
-
-const Env = @import("env.zig").Env;
-const MalData = @import("types.zig").MalData;
 const MalType = @import("types.zig").MalType;
-const MalTypeValue = @import("types.zig").MalTypeValue;
 const printer = @import("printer.zig");
 const reader = @import("reader.zig");
-const getline_prompt = @import("readline.zig").getline_prompt;
-const string_eql = @import("utils.zig").string_eql;
-const string_copy = @import("utils.zig").string_copy;
+const getline_prompt = @import("readline.zig").getline;
+const string_eql = std.hash_map.eqlString;
 
 const MalError = @import("error.zig").MalError;
 
@@ -24,831 +14,943 @@ const hmap = @import("hmap.zig");
 
 const MalLinkedList = @import("linked_list.zig").MalLinkedList;
 const MalHashMap = @import("hmap.zig").MalHashMap;
-const linked_list = @import("linked_list.zig");
-const apply_function = @import("types.zig").apply_function;
+
+//  Set by the step file at startup.
+pub var apply_function: *const fn(f: MalType, args: []*MalType) MalError!*MalType = undefined;
 
 const safeAdd = @import("std").math.add;
 const safeSub = @import("std").math.sub;
 const safeMul = @import("std").math.mul;
 const safeDivFloor = @import("std").math.divFloor;
 
-fn int_plus(a1: *MalType, a2: *MalType) MalError!*MalType {
+const stdout_file = std.io.getStdOut();
+const throw = @import("error.zig").throw;
+
+fn int_plus(args: []*MalType) !*MalType {
+    if(args.len != 2) return MalError.ArgError;
+    const a1 = args[0];
+    const a2 = args[1];
     const x = try a1.as_int();
     const y = try a2.as_int();
-    const res = safeAdd(i64, x, y) catch return MalError.Overflow;
-    return MalType.new_int(Allocator, res);
+    const res = try safeAdd(i64, x, y);
+    return MalType.new_int(res);
 }
 
-fn int_minus(a1: *MalType, a2: *MalType) MalError!*MalType {
+fn int_minus(args: []*MalType) !*MalType {
+    if(args.len != 2) return MalError.ArgError;
+    const a1 = args[0];
+    const a2 = args[1];
     const x = try a1.as_int();
     const y = try a2.as_int();
-    const res = safeSub(i64, x, y) catch return MalError.Overflow;
-    return MalType.new_int(Allocator, res);
+    const res = try safeSub(i64, x, y);
+    return MalType.new_int(res);
 }
 
-fn int_mult(a1: *MalType, a2: *MalType) MalError!*MalType {
+fn int_mult(args: []*MalType) !*MalType {
+    if(args.len != 2) return MalError.ArgError;
+    const a1 = args[0];
+    const a2 = args[1];
     const x = try a1.as_int();
     const y = try a2.as_int();
-    const res = safeMul(i64, x, y) catch return MalError.Overflow;
-    return MalType.new_int(Allocator, res);
+    const res = try safeMul(i64, x, y);
+    return MalType.new_int(res);
 }
 
-fn int_div(a1: *MalType, a2: *MalType) MalError!*MalType {
+fn int_div(args: []*MalType) !*MalType {
+    if(args.len != 2) return MalError.ArgError;
+    const a1 = args[0];
+    const a2 = args[1];
     const x = try a1.as_int();
     const y = try a2.as_int();
-    const res = safeDivFloor(i64, x, y) catch |err| switch(err) {
-        error.DivisionByZero => return MalError.DivisionByZero,
-        else => return MalError.Overflow,
-    };
-    return MalType.new_int(Allocator, res);
+    const res = try safeDivFloor(i64, x, y);
+    return MalType.new_int(res);
 }
 
-fn int_lt(a1: *MalType, a2: *MalType) MalError!*MalType {
-    return MalType.new_bool(Allocator, (try a1.as_int()) < (try a2.as_int()));
+fn int_lt(args: []*MalType) !*MalType {
+    if(args.len != 2) return MalError.ArgError;
+    const a1 = args[0];
+    const a2 = args[1];
+    return MalType.new_bool((try a1.as_int()) < (try a2.as_int()));
 }
 
-fn int_leq(a1: *MalType, a2: *MalType) MalError!*MalType {
-    return MalType.new_bool(Allocator, (try a1.as_int()) <= (try a2.as_int()));
+fn int_leq(args: []*MalType) !*MalType {
+    if(args.len != 2) return MalError.ArgError;
+    const a1 = args[0];
+    const a2 = args[1];
+    return MalType.new_bool((try a1.as_int()) <= (try a2.as_int()));
 }
 
-fn int_gt(a1: *MalType, a2: *MalType) MalError!*MalType {
-    return MalType.new_bool(Allocator, (try a1.as_int()) > (try a2.as_int()));
+fn int_gt(args: []*MalType) !*MalType {
+    if(args.len != 2) return MalError.ArgError;
+    const a1 = args[0];
+    const a2 = args[1];
+    return MalType.new_bool((try a1.as_int()) > (try a2.as_int()));
 }
 
-fn int_geq(a1: *MalType, a2: *MalType) MalError!*MalType {
-    return MalType.new_bool(Allocator, (try a1.as_int()) >= (try a2.as_int()));
+fn int_geq(args: []*MalType) !*MalType {
+    if(args.len != 2) return MalError.ArgError;
+    const a1 = args[0];
+    const a2 = args[1];
+    return MalType.new_bool((try a1.as_int()) >= (try a2.as_int()));
 }
 
-fn _linked_list_equality(l1: MalLinkedList, l2: MalLinkedList) MalError!bool {
-    if(l1.count() != l2.count()) {
-        return false;
-    }
-    var it1 = l1.iterator();
-    var it2 = l2.iterator();
-    while(true) {
-        const m1 = it1.next() orelse return (it2.next() == null);
-        const m2 = it2.next() orelse return false;
-        const el_cmp = try equality(m1, m2);
-        if(MalTypeValue(el_cmp.data) == MalTypeValue.False) {
-            el_cmp.delete(Allocator);
+fn _linked_list_equality(l1: []const *MalType, l2:[]const  *MalType) bool {
+    if(l1.len != l2.len) return false;
+    for(l1, l2) |m1, m2| {
+        if(! _equality(m1.*, m2.*)) {
             return false;
         }
-        el_cmp.delete(Allocator);
     }
     return true;
 }
 
-fn _hashmap_equality(h1: MalHashMap, h2: MalHashMap) MalError!bool {
+fn _hashmap_equality(h1: MalHashMap, h2: MalHashMap) bool {
     if(h1.count() != h2.count()) {
         return false;
     }
 
     var iterator = h1.iterator();
-    var optional_pair = iterator.next();
-    while(optional_pair) |pair| {
-        const optional_val = h2.getValue(pair.key);
+    while(iterator.next()) |pair| {
+        const optional_val = h2.get(pair.key_ptr.*);
         if(optional_val) |val| {
-            const el_cmp = try equality(pair.value, val);
-            if(MalTypeValue(el_cmp.data) == MalTypeValue.False) {
-                el_cmp.delete(Allocator);
+            const el_cmp = _equality(pair.value_ptr.*.*, val.*);
+            if(! el_cmp) {
                 return false;
             }
-            el_cmp.delete(Allocator);
         }
         else {
             return false;
         }
-        optional_pair = iterator.next();
     }
     return true;
 }
 
-// TODO: make _equality -> bool
-fn equality(a1: *MalType, a2: *MalType) MalError!*MalType {
-    const a1_is_sequential = (MalTypeValue(a1.data) == MalTypeValue.List) or
-        (MalTypeValue(a1.data) == MalTypeValue.Vector);
-    const a2_is_sequential = (MalTypeValue(a2.data) == MalTypeValue.List) or
-        (MalTypeValue(a2.data) == MalTypeValue.Vector);
+fn equality(args: []*MalType) !*MalType {
+    if(args.len != 2) return MalError.ArgError;
+    const a1 = args[0];
+    const a2 = args[1];
+    return MalType.new_bool(_equality(a1.*, a2.*));
+}
 
-    if(a1_is_sequential and a2_is_sequential) {
-        const l1 = (try a1.sequence_linked_list()).*;
-        const l2 = (try a2.sequence_linked_list()).*;
-        return MalType.new_bool(Allocator, try _linked_list_equality(l1, l2));
-    }
-    
-    if(MalTypeValue(a1.data) != MalTypeValue(a2.data)) {
-        return MalType.new_bool(Allocator, false);
-    }
-    
-    switch(a1.data) {
-        .True, .False, .Nil => {            
-            return MalType.new_bool(Allocator, true);
+fn _equality(a1: MalType, a2: MalType) bool {
+    switch(a1) {
+        .Nil => {
+            switch(a2) {
+                .Nil => return true,
+                else => return false,
+            }
         },
-        .Int => |v1| {
-            return MalType.new_bool(Allocator, v1 == a2.data.Int);
+        .False => {
+            switch(a2) {
+                .False => return true,
+                else => return false,
+            }
         },
-        .List => |l1| {
-            const l2 = a2.data.List;
-            return MalType.new_bool(Allocator, try _linked_list_equality(l1, l2));
+        .True => {
+            switch(a2) {
+                .True => return true,
+                else => return false,
+            }
         },
-        .Vector => |v1| {
-            const v2 = a2.data.Vector;
-            return MalType.new_bool(Allocator, try _linked_list_equality(v1, v2));
+        .Int => |l1| {
+            switch(a2) {
+                .Int => |l2| return l1.data == l2.data,
+                else => return false,
+            }
         },
         .String => |s1| {
-            const s2 = a2.data.String;
-            return MalType.new_bool(Allocator, string_eql(s1, s2));
+            switch(a2) {
+                .String => |s2| return string_eql(s1.data, s2.data),
+                else => return false,
+            }
         },
-        .Generic => |v1| {
-            const v2 = a2.data.Generic;
-            return MalType.new_bool(Allocator, string_eql(v1, v2));
+        .Symbol => |s1| {
+            switch(a2) {
+                .Symbol => |s2| return string_eql(s1.data, s2.data),
+                else => return false,
+            }
         },
-        .Keyword => |k1| {
-            const k2 = a2.data.Keyword;
-            return MalType.new_bool(Allocator, string_eql(k1, k2));
+        .Keyword => |s1| {
+            switch(a2) {
+                .Keyword => |s2| return string_eql(s1.data, s2.data),
+                else => return false,
+            }
+        },
+        .List, .Vector => |l1| {
+            switch(a2) {
+                .List, .Vector => |l2| return _linked_list_equality(
+                    l1.data.items, l2.data.items),
+                else => return false,
+            }
         },
         .HashMap => |h1| {
-            const h2 = a2.data.HashMap;
-            return MalType.new_bool(Allocator, try _hashmap_equality(h1,h2));
+            switch(a2) {
+                .HashMap => |h2| return _hashmap_equality(h1.data, h2.data),
+                else => return false,
+            }
         },
-    // TODO: implement more types
-        else => return MalType.new_bool(Allocator, false),
+        else => {
+            return false;
+        },
     }
 }
 
-fn list(args: MalLinkedList) MalError!*MalType {
-    var new_mal = try MalType.new_list_empty(Allocator);
-    new_mal.data = MalData{.List = try linked_list.deepcopy(Allocator, args)};
-    return new_mal;
-}
-
-fn vector(args: MalLinkedList) MalError!*MalType {
-    var new_mal = try MalType.new_list_empty(Allocator);
-    new_mal.data = MalData{.Vector = try linked_list.deepcopy(Allocator, args)};
-    return new_mal;
-}
-
-fn map(args: MalLinkedList) MalError!*MalType {
-    if(args.count() < 2) return MalError.ArgError;
-    const func_mal = args.at(0);
-    var args_mal = args.at(1);
-    var new_ll = MalLinkedList.init(Allocator);
-    var to_map_ll = try args_mal.sequence_linked_list();
- 
-    var iterator = to_map_ll.iterator();
-    while(iterator.next()) |mal| {
-        var args_ll = MalLinkedList.init(Allocator);
-        // TODO: can be more efficient than this
-        try linked_list.append_mal(Allocator, &args_ll, try func_mal.copy(Allocator));
-        try linked_list.append_mal(Allocator, &args_ll, try mal.copy(Allocator));
-        const new_mal = try apply_function(Allocator, args_ll);
-        linked_list.destroy(Allocator, &args_ll, false);
-        try linked_list.append_mal(Allocator, &new_ll, new_mal);
+fn list(args: []*MalType) !*MalType {
+    const new_mal = try MalType.new_list();
+    errdefer new_mal.decref();
+    for(args) |x| {
+        try new_mal.List.data.append(Allocator, x);
+        x.incref();
     }
-    const new_list = try MalType.new_nil(Allocator);
-    new_list.data = MalData{.List = new_ll};
+    return new_mal;
+}
+
+fn vector(args: []*MalType) !*MalType {
+    const new_mal = try MalType.new_vector();
+    errdefer new_mal.decref();
+    for(args) |x| {
+        try new_mal.Vector.data.append(Allocator, x);
+        x.incref();
+    }
+    return new_mal;
+}
+
+fn map(args: []*MalType) !*MalType {
+    if(args.len != 2) return MalError.ArgError;
+    const func_mal = args[0];
+    const args_mal = args[1];
+    var to_map_ll = try args_mal.as_slice();
+    const new_list = try MalType.new_list();
+    errdefer new_list.decref();
+    for(0..to_map_ll.len) |i| {
+        const new_mal = try apply_function(func_mal.*, to_map_ll[i..i+1]);
+        try new_list.List.data.append(Allocator, new_mal);
+    }
     return new_list;
 }
 
-fn is_list(a1: *MalType) MalError!*MalType {
-    return MalType.new_bool(Allocator, MalTypeValue(a1.data) == MalTypeValue.List);
+fn is_list(args: []*MalType) !*MalType {
+    if(args.len != 1) return MalError.ArgError;
+    const a1 = args[0];
+    return switch(a1.*) {
+        .List => &MalType.TRUE,
+        else => &MalType.FALSE,
+    };
 }
 
-fn is_vector(a1: *MalType) MalError!*MalType {
-    return MalType.new_bool(Allocator, MalTypeValue(a1.data) == MalTypeValue.Vector);
+fn is_vector(args: []*MalType) !*MalType {
+    if(args.len != 1) return MalError.ArgError;
+    const a1 = args[0];
+    return switch(a1.*) {
+        .Vector => &MalType.TRUE,
+        else => &MalType.FALSE,
+    };
 }
 
-pub fn is_string(a1: *MalType) MalError!*MalType {
-    return MalType.new_bool(Allocator, MalTypeValue(a1.data) == MalTypeValue.String);
+fn is_string(args: []*MalType) !*MalType {
+    if(args.len != 1) return MalError.ArgError;
+    const a1 = args[0];
+    return switch(a1.*) {
+        .String => &MalType.TRUE,
+        else => &MalType.FALSE,
+    };
 }
 
-pub fn is_number(a1: *MalType) MalError!*MalType {
-    return MalType.new_bool(Allocator, MalTypeValue(a1.data) == MalTypeValue.Int);
+fn is_number(args: []*MalType) !*MalType {
+    if(args.len != 1) return MalError.ArgError;
+    const a1 = args[0];
+    return switch(a1.*) {
+        .Int => &MalType.TRUE,
+        else => &MalType.FALSE,
+    };
 }
 
-pub fn is_fn(a1: *MalType) MalError!*MalType {
-    const is_function = switch(a1.data) {
-        .Fn0 => true,
-        .Fn1 => true,
-        .Fn2 => true,
-        .Fn3 => true,
-        .Fn4 => true,
-        .FVar => true,
-        .Func => |func_data| !func_data.is_macro,
+fn is_fn(args: []*MalType) !*MalType {
+    if(args.len != 1) return MalError.ArgError;
+    const a1 = args[0];
+    const is_function = switch(a1.*) {
+        .FnCore => true,
+        .Func => |func_data| ! func_data.is_macro,
         else => false,
     };
-    return MalType.new_bool(Allocator, is_function);
+    return MalType.new_bool(is_function);
 }
 
-pub fn is_macro(a1: *MalType) MalError!*MalType {
-    const is_func_and_macro = switch(a1.data) {
+fn is_macro(args: []*MalType) !*MalType {
+    if(args.len != 1) return MalError.ArgError;
+    const a1 = args[0];
+    const is_func_and_macro = switch(a1.*) {
         .Func => |data| data.is_macro,
         else => false,
     };
-    return MalType.new_bool(Allocator, is_func_and_macro);
+    return MalType.new_bool(is_func_and_macro);
 }
 
-fn empty(a1: *MalType) MalError!*MalType {
-    return switch(a1.data) {
-        .List => |l| MalType.new_bool(Allocator, l.len == 0),
-        .Vector => |v| MalType.new_bool(Allocator, v.len == 0),
-        else => MalType.new_bool(Allocator, false),
-    };
+fn empty(args: []*MalType) !*MalType {
+    if(args.len != 1) return MalError.ArgError;
+    const a1 = args[0];
+    const slice = try a1.as_slice();
+    return MalType.new_bool(slice.len == 0);
 }
 
-fn prn(args: MalLinkedList) MalError!*MalType {
-    const s = try printer.print_mal_to_string(args, true, true);
-    const stdout_file = std.io.getStdOut() catch return MalError.SystemError;
-    stdout_file.write(s) catch return MalError.SystemError;
-    stdout_file.write("\n") catch return MalError.SystemError;
-    Allocator.free(s);
-    const mal = try MalType.new_nil(Allocator);
+fn prn(args: []*MalType) MalError!*MalType {
+    try printer.n_stdout(args, true, true);
+    try stdout_file.writeAll("\n");
+    const mal = &MalType.NIL;
     return mal;
 }
 
-fn println(args: MalLinkedList) MalError!*MalType {
-    const s = try printer.print_mal_to_string(args, false, true);
-    const stdout_file = std.io.getStdOut() catch return MalError.SystemError;
-    stdout_file.write(s) catch return MalError.SystemError;
-    stdout_file.write("\n") catch return MalError.SystemError;
-    Allocator.free(s);
-    const mal = try MalType.new_nil(Allocator);
+fn println(args: []*MalType) !*MalType {
+    try printer.n_stdout(args, false, true);
+    try stdout_file.writeAll("\n");
+    const mal = &MalType.NIL;
     return mal;
 }
 
-fn str(args: MalLinkedList) MalError!*MalType {
-    if(args.count() == 0) {
-        const s: []u8 = "";
-        return MalType.new_string(Allocator, s);
-    }
-    const s = try printer.print_mal_to_string(args, false, false);
-    return MalType.new_string(Allocator, s);
+fn str(args: []*MalType) !*MalType {
+    const items = try printer.print_mal_to_string(args, false, false);
+    errdefer Allocator.free(items);
+    return MalType.new_string(items, false);
 }
 
-fn pr_str(args: MalLinkedList) MalError!*MalType {
-    if(args.count() == 0) {
-        const s: []u8 = "";
-        return MalType.new_string(Allocator, s);
-    }
+fn pr_str(args: []*MalType) !*MalType {
     const s = try printer.print_mal_to_string(args, true, true);
-    return MalType.new_string(Allocator, s);
+    errdefer Allocator.free(s);
+    return MalType.new_string(s, false);
 }
 
-fn slurp(a1: *MalType) MalError!*MalType {
-    switch(a1.data) {
-        .String => |path| {
-            const file_contents = std.io.readFileAlloc(Allocator, path)
-                catch |err| return MalError.SystemError; // TODO: change this error
-            defer Allocator.free(file_contents);
-            return MalType.new_string(Allocator, file_contents);
-        },
-        else => {
-            return MalError.TypeError;
-        },
-    }
-    return unreachable;
+fn slurp(args: []*MalType) !*MalType {
+    if(args.len != 1) return MalError.ArgError;
+    const a1 = args[0];
+    const path = try a1.as_string();
+    const dir = std.fs.cwd();
+    const items = try dir.readFileAlloc(Allocator, path, 10000);
+    return MalType.new_string(items, false);
 }
 
-fn atom(a1: *MalType) MalError!*MalType {
-    return MalType.new_atom(Allocator, a1);
+fn atom(args: []*MalType) !*MalType {
+    if(args.len != 1) return MalError.ArgError;
+    const a1 = args[0];
+    const result = try MalType.new_atom(a1);
+    a1.incref();
+    return result;
 }
 
-fn is_atom(a1: *MalType) MalError!*MalType {
-    return MalType.new_bool(Allocator, MalTypeValue(a1.data) == MalTypeValue.Atom);
-}
-
-fn deref(a1: *MalType) MalError!*MalType {
-    return switch(a1.data) {
-        .Atom => |atom_val| atom_val.*.copy(Allocator),
-        else => MalError.TypeError,
+fn is_atom(args: []*MalType) !*MalType {
+    if(args.len != 1) return MalError.ArgError;
+    return switch(args[0].*) {
+        .Atom => &MalType.TRUE,
+        else => &MalType.FALSE,
     };
 }
 
-fn atom_reset(a1: *MalType, a2: *MalType) MalError!*MalType {
-    switch(a1.data) {
-        .Atom => |*atom_val| {
-            var new_target = try a2.copy(Allocator);
-            atom_val.*.*.delete(Allocator);
-            atom_val.*.* = new_target;
-            return new_target.copy(Allocator);
+fn deref(args: []*MalType) !*MalType {
+    if(args.len != 1) return MalError.ArgError;
+    const a1 = args[0];
+    switch(a1.*) {
+        .Atom => |atom_val| {
+            atom_val.data.incref();
+            return atom_val.data;
         },
         else => return MalError.TypeError,
     }
 }
 
-fn atom_swap(args: MalLinkedList) MalError!*MalType {
-    const args_arr = args.toSlice();
+fn atom_reset(args: []*MalType) !*MalType {
+    if(args.len != 2) return MalError.ArgError;
+    const a1 = args[0];
+    const a2 = args[1];
+    switch(a1.*) {
+        .Atom => |*atom_val| {
+            atom_val.data.decref();
+            atom_val.data = a2;
+            //  incref for the atom and for the result
+            a2.incref();
+            a2.incref();
+            return a2;
+        },
+        else => return MalError.TypeError,
+    }
+}
+
+fn atom_swap(args: []*MalType) !*MalType {
     const n = args.len;
     if(n < 2) return MalError.ArgError;
-    var new_args = MalLinkedList.init(Allocator);
-    defer linked_list.destroy(Allocator, &new_args, false);
-    try linked_list.append_mal(Allocator, &new_args, try args_arr[1].copy(Allocator));
-    try linked_list.append_mal(Allocator, &new_args, try deref(args_arr[0]));
-    var i: usize = 2;
-    while(i < n) {
-        try linked_list.append_mal(Allocator, &new_args, try args_arr[i].copy(Allocator));
+
+    const atom_val = switch(args[0].*) {
+        .Atom => |*a| a,
+        else => return MalError.TypeError,
+    };
+
+    var new_args = try Allocator.alloc(*MalType, args.len - 1);
+    defer Allocator.free(new_args);
+    var i:usize = 0;
+    new_args[i] = atom_val.data; i+=1;
+    for(args[2..args.len]) |x| {
+        new_args[i] = x;
         i += 1;
     }
-    const return_mal = try apply_function(Allocator, new_args);
-    const new_mal = atom_reset(args_arr[0], return_mal);
-    return_mal.delete(Allocator);
+    std.debug.assert(i == new_args.len);
+
+    const new_mal = try apply_function(args[1].*, new_args);
+    atom_val.data.decref(); // after the computation
+    atom_val.data = new_mal;
+    new_mal.incref();
     return new_mal;
 }
 
-pub fn vec(a1: *const MalType) MalError!*MalType {
-    const ll = switch(a1.data) {
-        .List   => |l| l,
-        .Vector => |v| v,
-        else    => return MalError.TypeError,
-    };
-    const copy = try linked_list.deepcopy(Allocator, ll);
-    return MalType.new_vector(Allocator, copy);
+fn vec(args: []*MalType) !*MalType {
+    if(args.len != 1) return MalError.ArgError;
+    const a1 = args[0];
+    switch(a1.*) {
+        .List => |l| {
+            const result = try MalType.new_vector();
+            errdefer result.decref();
+            for(l.data.items) |x| {
+                try result.Vector.data.append(Allocator, x);
+                x.incref();
+            }
+            return result;
+        },
+        .Vector => {
+            a1.incref();
+            return a1;
+        },
+        else => return MalError.TypeError,
+    }
 }
 
-pub fn cons(a1: *const MalType, a2: *const MalType) MalError!*MalType {
-    // TODO: do we need this for vectors?
-    const old_ll = try a2.const_sequence_linked_list();
-    var new_ll = try linked_list.deepcopy(Allocator, old_ll);
-    var new_list = try MalType.new_nil(Allocator);
-    new_list.data = MalData{.List = new_ll};
-    errdefer new_list.delete(Allocator);
-    var new_mal = try a1.copy(Allocator);
-    errdefer new_mal.delete(Allocator);
-    try linked_list.prepend_mal(Allocator, &new_list.data.List, new_mal);
+fn cons(args: []*MalType) !*MalType {
+    if(args.len != 2) return MalError.ArgError;
+    const a1 = args[0];
+    const a2 = args[1];
+    const old_ll = try a2.as_slice();
+    const new_list = try MalType.new_list();
+    errdefer new_list.decref();
+    try new_list.List.data.append(Allocator, a1);
+    a1.incref();
+    for(old_ll) |x| {
+        try new_list.List.data.append(Allocator, x);
+        x.incref();
+    }
     return new_list;
 }
 
-pub fn concat(args: MalLinkedList) MalError!*MalType {
-    // First we make a new array with shallow copies
-    var new_ll = MalLinkedList.init(Allocator);
-    errdefer linked_list.destroy(Allocator, &new_ll, false);
-    var iterator = args.iterator();
-    while(iterator.next()) |mal| {
-        const mal_seq = try mal.sequence_linked_list();
-        new_ll.appendSlice(mal_seq.toSlice()) catch return MalError.SystemError;
+pub fn concat(args: []*MalType) !*MalType {
+    const new_mal = try MalType.new_list();
+    errdefer new_mal.decref();
+    for(args) |x| {
+        for(try x.as_slice()) |y| {
+            try new_mal.List.data.append(Allocator, y);
+            y.incref();
+        }
     }
-
-    // Now we turn the shallow copies into deep copies
-    const new_arr = new_ll.toSlice();
-    var i: usize = 0;
-    while(i < new_arr.len) {
-        new_arr[i] = try new_arr[i].copy(Allocator);
-        i += 1;
-    }
-
-    // Wrap the list in a MalType, return
-    var new_mal = try MalType.new_nil(Allocator);
-    new_mal.data = MalData{.List = new_ll};
     return new_mal;
 }
 
-pub fn rest(a1: *const MalType) MalError!*MalType {
-    var old_list = switch(a1.data) {
-        .List => |l| l,
-        .Vector => |v| v,
-        .Nil => return MalType.new_list_empty(Allocator),
+fn rest(args: []*MalType) !*MalType {
+    if(args.len != 1) return MalError.ArgError;
+    const a1 = args[0];
+    const new_mal = try MalType.new_list();
+    errdefer new_mal.decref();
+    switch(a1.*) {
+        .List, .Vector => |l| {
+            const old_list = l.data.items;
+            if(old_list.len != 0) {
+                for(l.data.items[1..]) |x| {
+                    try new_mal.List.data.append(Allocator, x);
+                    x.incref();
+                }
+            }
+        },
+        .Nil => { },
         else => return MalError.TypeError,
-    };
-    var new_list = try linked_list.deepcopy(Allocator, old_list);
-    errdefer linked_list.destroy(Allocator, &new_list, false);
-
-    if(new_list.count() > 0) {
-        const mal = try linked_list.pop_first(Allocator, &new_list);
-        mal.delete(Allocator);
     }
-    var new_mal = try MalType.new_nil(Allocator);
-    new_mal.data = MalData{.List = new_list};
     return new_mal;
 }
 
-pub fn _nth(mal_list: *const MalType, pos: i64) MalError!*MalType {
-    // TODO: vectors?
-    const l = try mal_list.const_sequence_linked_list();
-    if(pos < 0 or pos >= @intCast(i64,l.count())) {
+fn nth(args: []*MalType) !*MalType {
+    if(args.len != 2) return MalError.ArgError;
+    const a1 = args[0];
+    const a2 = args[1];
+    const l = try a1.as_slice();
+    const i = try a2.as_int();
+    const pos: usize = @intCast(i);
+    if(pos < 0 or l.len <= pos)  {
         return MalError.OutOfBounds;
     }
-    return l.at(@intCast(usize,pos));
+    const result = l[pos];
+    result.incref();
+    return result;
 }
 
-pub fn nth(a1: *const MalType, a2: *const MalType) MalError!*MalType {
-    return switch(a2.data) {
-        .Int => |pos| (try _nth(a1, pos)).copy(Allocator),
-        else => MalError.TypeError,
-    };
-}
-
-pub fn first(a1: *const MalType) MalError!*MalType {
-    var l = switch(a1.data) {
-        .List => |l| l,
-        .Vector => |v| v,
-        .Nil => return MalType.new_nil(Allocator),
+fn first(args: []*MalType) !*MalType {
+    if(args.len != 1) return MalError.ArgError;
+    const a1 = args[0];
+    switch(a1.*) {
+        .List, .Vector => |l| {
+            if(l.data.items.len == 0) return &MalType.NIL;
+            const result = l.data.items[0];
+            result.incref();
+            return result;
+        },
+        .Nil => return &MalType.NIL,
         else => return MalError.TypeError,
-    };
-    if(l.count() == 0) return MalType.new_nil(Allocator);
-    return l.at(0).copy(Allocator);
-}
-
-fn check_type(mal: *const MalType, value_type: MalTypeValue) MalError!*MalType {
-    // TODO: use this everywhere
-    // TODO: do this more generically
-    return MalType.new_bool(Allocator, MalTypeValue(mal.data) == value_type);
-}
-
-pub fn is_nil(a1: *const MalType) MalError!*MalType {
-    return check_type(a1, MalTypeValue.Nil);
-}
-
-pub fn is_true(a1: *const MalType) MalError!*MalType {
-    return check_type(a1, MalTypeValue.True);
-}
-
-pub fn is_false(a1: *const MalType) MalError!*MalType {
-    return check_type(a1, MalTypeValue.False);
-}
-
-pub fn is_symbol(a1: *const MalType) MalError!*MalType {
-    return check_type(a1, MalTypeValue.Generic);
-}
-
-pub fn is_keyword(a1: *const MalType) MalError!*MalType {
-    return check_type(a1, MalTypeValue.Keyword);
-}
-
-pub fn is_map(a1: *const MalType) MalError!*MalType {
-    return check_type(a1, MalTypeValue.HashMap);
-}
-
-pub fn is_sequential(a1: *const MalType) MalError!*MalType {
-    const res = (MalTypeValue(a1.data) == MalTypeValue.Vector) or
-        (MalTypeValue(a1.data) == MalTypeValue.List);
-    return MalType.new_bool(Allocator, res);
-}
-
-pub fn symbol(a1: *const MalType) MalError!*MalType {
-    const string = switch(a1.data) {
-        .String => |s| s,
-        else => return MalError.TypeError,
-    };
-    return MalType.new_generic(Allocator, string);
-}
-
-pub fn hash_map(args: MalLinkedList) MalError!*MalType {
-    const new_mal = try MalType.new_hashmap(Allocator);
-    const args_arr = args.toSlice();
-    const n = args_arr.len;
-    if((n%2) != 0) return MalError.ArgError;
-    var i: usize = 0;
-
-    while(2*i+1 < n) {
-        const this_key = switch(args_arr[2*i].data) {
-            .String => |s| s,
-            .Keyword => |kwd| kwd,
-            else => return MalError.ArgError,
-        };
-        const this_key_cpy = string_copy(Allocator, this_key) catch return MalError.SystemError;
-        const this_val_cpy = try args_arr[2*i+1].copy(Allocator);
-        try new_mal.hashmap_insert(this_key_cpy, this_val_cpy);
-        i += 1;
     }
+}
+
+fn is_nil(args: []*MalType) !*MalType {
+    if(args.len != 1) return MalError.ArgError;
+    const a1 = args[0];
+    return switch(a1.*) {
+        .Nil => &MalType.TRUE,
+        else => &MalType.FALSE,
+    };
+}
+
+fn is_true(args: []*MalType) !*MalType {
+    if(args.len != 1) return MalError.ArgError;
+    const a1 = args[0];
+    return switch(a1.*) {
+        .True => &MalType.TRUE,
+        else => &MalType.FALSE,
+    };
+}
+
+fn is_false(args: []*MalType) !*MalType {
+    if(args.len != 1) return MalError.ArgError;
+    const a1 = args[0];
+    return switch(a1.*) {
+        .False => &MalType.TRUE,
+        else => &MalType.FALSE,
+    };
+}
+
+fn is_symbol(args: []*MalType) !*MalType {
+    if(args.len != 1) return MalError.ArgError;
+    const a1 = args[0];
+    return switch(a1.*) {
+        .Symbol => &MalType.TRUE,
+        else => &MalType.FALSE,
+    };
+}
+
+fn is_keyword(args: []*MalType) !*MalType {
+    if(args.len != 1) return MalError.ArgError;
+    const a1 = args[0];
+    return switch(a1.*) {
+        .Keyword => &MalType.TRUE,
+        else => &MalType.FALSE,
+    };
+}
+
+fn is_map(args: []*MalType) !*MalType {
+    if(args.len != 1) return MalError.ArgError;
+    const a1 = args[0];
+    return switch(a1.*) {
+        .HashMap => &MalType.TRUE,
+        else => &MalType.FALSE,
+    };
+}
+
+fn is_sequential(args: []*MalType) !*MalType {
+    if(args.len != 1) return MalError.ArgError;
+    const a1 = args[0];
+    return switch(a1.*) {
+        .List, .Vector => &MalType.TRUE,
+        else => &MalType.FALSE,
+    };
+}
+
+fn symbol(args: []*MalType) !*MalType {
+    if(args.len != 1) return MalError.ArgError;
+    const a1 = args[0];
+    const string = try a1.as_string();
+    return MalType.new_symbol(string, true);
+}
+
+pub fn hash_map(args: []*MalType) !*MalType {
+    const new_mal = try MalType.new_hashmap();
+    errdefer new_mal.decref();
+    try hmap.map_insert_from_kvs(&new_mal.HashMap.data, args);
     return new_mal;
 }
 
-pub fn hash_map_assoc(args: MalLinkedList) MalError!*MalType {
-    const args_arr = args.toSlice();
-    if(args_arr.len < 1) return MalError.ArgError;
-    const new_mal = try MalType.new_nil(Allocator);
-    errdefer new_mal.delete(Allocator);
-    const base_hmap = switch(args_arr[0].data) {
-        .HashMap => |hm| hm,
-        else => return MalError.TypeError,
-    };
-    const hmap_cpy = hmap.deepcopy(Allocator, base_hmap) catch return MalError.SystemError;
-    new_mal.data = MalData {.HashMap = hmap_cpy};
-
-    const assoc_arr = args_arr[1..args_arr.len];
-    if((assoc_arr.len % 2) != 0) return MalError.ArgError;
-    var i: usize = 0;
-    while(2*i+1 < assoc_arr.len) {
-        const this_key = switch(assoc_arr[2*i].data) {
-            .String => |s| s,
-            .Keyword => |kwd| kwd,
-            else => return MalError.ArgError,
-        };
-        const this_key_cpy = string_copy(Allocator, this_key) catch return MalError.SystemError;
-        const this_val_cpy = try assoc_arr[2*i+1].copy(Allocator);
-        try new_mal.hashmap_insert(this_key_cpy, this_val_cpy);
-        i += 1;
-    }
+pub fn hash_map_assoc(args: []*MalType) !*MalType {
+    if(args.len < 1) return MalError.ArgError;
+    const a1 = args[0];
+    const new_mal = try MalType.new_hashmap();
+    errdefer new_mal.decref();
+    const base_hmap = try a1.as_map();
+    try hmap.map_insert_from_map(&new_mal.HashMap.data, base_hmap);
+    try hmap.map_insert_from_kvs(&new_mal.HashMap.data, args[1..]);
     return new_mal;
 }
 
-pub fn hash_map_dissoc(args: MalLinkedList) MalError!*MalType {
-    const args_arr = args.toSlice();
-    if(args_arr.len < 1) return MalError.ArgError;
-    const new_mal = try MalType.new_nil(Allocator);
-    errdefer new_mal.delete(Allocator);
-    const base_hmap = switch(args_arr[0].data) {
-        .HashMap => |hm| hm,
-        else => return MalError.TypeError,
-    };
-    const hmap_cpy = hmap.deepcopy(Allocator, base_hmap) catch return MalError.SystemError;
-    new_mal.data = MalData {.HashMap = hmap_cpy};
-
-    var i: usize = 1;
-    while(i < args_arr.len) {
-        const this_key = switch(args_arr[i].data) {
-            .String => |s| s,
-            .Keyword => |kwd| kwd,
-            else => return MalError.ArgError,
-        };
-        try new_mal.hashmap_remove(this_key);
-        i += 1;
-    }
-    return new_mal;
-}
-
-pub fn hash_map_get(a1: *MalType, a2: *MalType) MalError!*MalType {
-    const key = switch(a2.data) {
-        .String => |s| s,
-        .Keyword => |kwd| kwd,
-        else => return MalError.TypeError,
-    };
-    const optional_val = try a1.hashmap_get(key);
-    if(optional_val) |val| {
-        return val.copy(Allocator);
-    }
-    else return MalType.new_nil(Allocator);
-}
-
-pub fn hash_map_contains(a1: *MalType, a2: *MalType) MalError!*MalType {
-    const key = switch(a2.data) {
-        .String => |s| s,
-        .Keyword => |kwd| kwd,
-        else => return MalError.TypeError,
-    };
-    const contains_bool = try a1.hashmap_contains(key);
-    return MalType.new_bool(Allocator, contains_bool);
-}
-
-pub fn hash_map_keys(a1: *MalType) MalError!*MalType {
-    const hm = switch(a1.data) {
-        .HashMap => |h| h,
-        else => return MalError.TypeError,
-    };
-    var new_ll = MalLinkedList.init(Allocator);
-    errdefer linked_list.destroy(Allocator, &new_ll, false);
-    var iterator = hm.iterator();
-    var optional_pair = iterator.next();
-
-    while(true) {
-        const pair = optional_pair orelse break;
-        const key = string_copy(Allocator, pair.key) catch return MalError.SystemError;
-        
-        var key_mal: *MalType = undefined;
-        if(key.len > 1 and key[0] == 255) {
-            key_mal = try MalType.new_keyword(Allocator, key[1..key.len]);
-        } else {
-            key_mal = try MalType.new_string(Allocator, key);
+pub fn hash_map_dissoc(args: []*MalType) !*MalType {
+    if(args.len < 1) return MalError.ArgError;
+    const a1 = args[0];
+    const new_mal = try MalType.new_hashmap();
+    errdefer new_mal.decref();
+    const base_hmap = try a1.as_map();
+    try hmap.map_insert_from_map(&new_mal.HashMap.data, base_hmap);
+    for(args[1..]) |k| {
+        switch(k.*) {
+            .Keyword, .String => {
+                if(new_mal.HashMap.data.fetchRemove(k)) |old| {
+                    old.key.decref();
+                    old.value.decref();
+                }
+            },
+            else => return MalError.TypeError,
         }
-        try linked_list.append_mal(Allocator, &new_ll, key_mal);
-        optional_pair = iterator.next();
     }
-    var new_mal = try MalType.new_nil(Allocator);
-    new_mal.data = MalData{.List = new_ll};
     return new_mal;
 }
 
-pub fn hash_map_vals(a1: *MalType) MalError!*MalType {
-    const hm = switch(a1.data) {
-        .HashMap => |h| h,
+fn hash_map_get(args: []*MalType) !*MalType {
+    if(args.len != 2) return MalError.ArgError;
+    const a1 = args[0];
+    const a2 = args[1];
+    const hm = switch(a1.*) {
+        .HashMap => |m| m.data,
+        .Nil => return &MalType.NIL,
         else => return MalError.TypeError,
     };
-    var new_ll = MalLinkedList.init(Allocator);
-    errdefer linked_list.destroy(Allocator, &new_ll, false);
-    var iterator = hm.iterator();
-    var optional_pair = iterator.next();
-
-    while(true) {
-        const pair = optional_pair orelse break;
-        const val = try pair.value.copy(Allocator);
-        try linked_list.append_mal(Allocator, &new_ll, val);
-        optional_pair = iterator.next();
+    switch(a2.*) {
+        .Keyword, .String => {},
+        else => return MalError.TypeError,
     }
-    var new_mal = try MalType.new_nil(Allocator);
-    new_mal.data = MalData{.List = new_ll};
+    if(hm.get(a2)) |value| {
+        value.incref();
+        return value;
+    }
+    return &MalType.NIL;
+}
+
+fn hash_map_contains(args: []*MalType) !*MalType {
+    if(args.len != 2) return MalError.ArgError;
+    const a1 = args[0];
+    const a2 = args[1];
+    switch(a2.*) {
+        .Keyword, .String => {
+            const hm = try a1.as_map();
+            return MalType.new_bool(hm.contains(a2));
+        },
+        else => return MalError.TypeError,
+    }
+}
+
+fn hash_map_keys(args: []*MalType) !*MalType {
+    if(args.len != 1) return MalError.ArgError;
+    const a1 = args[0];
+    const hm = try a1.as_map();
+    const new_mal = try MalType.new_list();
+    errdefer new_mal.decref();
+    var iterator = hm.keyIterator();
+    while(iterator.next()) |key_mal| {
+        try new_mal.List.data.append(Allocator, key_mal.*);
+        key_mal.*.incref();
+    }
     return new_mal;
 }
 
-pub fn sequence_length(a1: *MalType) MalError!*MalType {
-    const len = switch(a1.data) {
-        .List => |l| l.count(),
-        .Vector => |v| v.count(),
-        .String => |s| s.len,
+fn hash_map_vals(args: []*MalType) !*MalType {
+    if(args.len != 1) return MalError.ArgError;
+    const a1 = args[0];
+    const hm = try a1.as_map();
+    const new_mal = try MalType.new_list();
+    errdefer new_mal.decref();
+    var iterator = hm.valueIterator();
+    while(iterator.next()) |val| {
+        try new_mal.List.data.append(Allocator, val.*);
+        val.*.incref();
+    }
+    return new_mal;
+}
+
+fn sequence_length(args: []*MalType) !*MalType {
+    if(args.len != 1) return MalError.ArgError;
+    const a1 = args[0];
+    const len = switch(a1.*) {
+        .List, .Vector => |l| l.data.items.len,
+        .String => |s| s.data.len,
         .Nil => 0,
         else => return MalError.TypeError,
     };
-    return MalType.new_int(Allocator, @intCast(i64,len));
+    return MalType.new_int(@intCast(len));
 }
 
-pub fn keyword(a1: *MalType) MalError!*MalType {
-    const kwd = switch(a1.data) {
-        .String => |s| s,
-        .Keyword => |k| return a1.copy(Allocator),
-        else => return MalError.TypeError,
-    };
-    return MalType.new_keyword(Allocator, kwd);
-}
-
-pub fn readline(a1: *MalType) MalError!*MalType {
-    const prompt = try a1.as_string();
-    const optional_read_line = getline_prompt(Allocator, prompt)
-        catch return MalError.SystemError;
-    if(optional_read_line) |read_line| {
-        return MalType.new_string(Allocator, read_line);
-    }
-    const mal = try MalType.new_nil(Allocator);
-    return MalType.new_nil(Allocator);
-}
-
-pub fn time_ms() MalError!*MalType {
-    const itime: i64 = @intCast(i64, std.time.milliTimestamp());
-    return MalType.new_int(Allocator, itime);
-}
-
-pub fn meta(a1: *MalType) MalError!*MalType {
-    if(a1.meta) |mal_meta| {
-        return mal_meta.copy(Allocator);
-    }
-    return MalType.new_nil(Allocator);
-}
-
-pub fn with_meta(a1: *MalType, a2: *MalType) MalError!*MalType {
-    var new_mal = try a1.copy(Allocator);
-    if(new_mal.meta) |mal_meta| {
-        mal_meta.delete(Allocator);
-    }
-    new_mal.meta = try a2.copy(Allocator);
-    return new_mal;
-}
-
-pub fn seq(a1: *MalType) MalError!*MalType {
-    switch(a1.data) {
-        .List => |l| {
-            if(l.count() == 0) return MalType.new_nil(Allocator);
-            return a1.copy(Allocator);
+fn keyword(args: []*MalType) !*MalType {
+    if(args.len != 1) return MalError.ArgError;
+    const a1 = args[0];
+    switch(a1.*) {
+        .String => |s| {
+            return MalType.new_keyword(s.data, true);
         },
-        .Vector => |v| {
-            if(v.count() == 0) return MalType.new_nil(Allocator);
-            const mal_copy = try a1.copy(Allocator);
-            const ll = mal_copy.data.Vector;
-            mal_copy.data = MalData{.List = ll};
+        .Keyword => {
+            a1.incref();
+            return a1;
+        },
+        else => return MalError.TypeError,
+    }
+}
+
+fn core_readline(args: []*MalType) !*MalType {
+    if(args.len != 1) return MalError.ArgError;
+    const a1 = args[0];
+    const prompt = try a1.as_string();
+    const optional_read_line = try getline_prompt(prompt);
+    if(optional_read_line) |read_line| {
+        return MalType.new_string(read_line, false);
+    }
+    return &MalType.NIL;
+}
+
+fn time_ms(args: []*MalType) !*MalType {
+    if(args.len != 0) return MalError.ArgError;
+    const itime = std.time.milliTimestamp();
+    return try MalType.new_int(@intCast(itime));
+}
+
+fn meta(args: []*MalType) !*MalType {
+    if(args.len != 1) return MalError.ArgError;
+    const a1 = args[0];
+    const result = switch(a1.*) {
+        .List, .Vector => |l| l.metadata,
+        .FnCore        => |l| l.metadata,
+        .Func          => |l| l.metadata,
+        .HashMap       => |l| l.metadata,
+        else           => return MalError.TypeError,
+    };
+    result.incref();
+    return result;
+}
+
+fn with_meta(args: []*MalType) !*MalType {
+    if(args.len != 2) return MalError.ArgError;
+    const a1 = args[0];
+    const a2 = args[1];
+    switch(a1.*) {
+        .List => |l| {
+            const new_mal = try MalType.new_list();
+            errdefer new_mal.decref();
+            for(l.data.items) |x| {
+                try new_mal.List.data.append(Allocator, x);
+                x.incref();
+            }
+            new_mal.List.metadata = a2;
+            a2.incref();
+            return new_mal;
+        },
+        .Vector => |l| {
+            const new_mal = try MalType.new_vector();
+            errdefer new_mal.decref();
+            for(l.data.items) |x| {
+                try new_mal.Vector.data.append(Allocator, x);
+                x.incref();
+            }
+            new_mal.Vector.metadata = a2;
+            a2.incref();
+            return new_mal;
+        },
+        .FnCore => |l| {
+            const new_mal = try MalType.newFnCore(l.data);
+            new_mal.FnCore.metadata = a2;
+            a2.incref();
+            return new_mal;
+        },
+        .Func => |l| {
+            const new_mal = try MalType.newFunc(l.arg_list, l.body,
+                                                l.environment);
+            l.arg_list.incref();
+            l.body.incref();
+            l.environment.incref();
+            new_mal.Func.metadata = a2;
+            a2.incref();
+            return new_mal;
+        },
+        .HashMap => |l| {
+            const new_mal = try MalType.new_hashmap();
+            errdefer new_mal.decref();
+            try hmap.map_insert_from_map(&new_mal.HashMap.data, l.data);
+            new_mal.HashMap.metadata = a2;
+            a2.incref();
+            return new_mal;
+        },
+        else => return MalError.TypeError,
+    }
+}
+
+fn seq(args: []*MalType) !*MalType {
+    if(args.len != 1) return MalError.ArgError;
+    const a1 = args[0];
+    switch(a1.*) {
+        .List => |l| {
+            if(l.data.items.len == 0) return &MalType.NIL;
+            a1.incref();
+            return a1;
+        },
+        .Vector => |l| {
+            if(l.data.items.len == 0) return &MalType.NIL;
+            const mal_copy = try MalType.new_list();
+            errdefer mal_copy.decref();
+            for(l.data.items) |x| {
+                try mal_copy.List.data.append(Allocator, x);
+                x.incref();
+            }
             return mal_copy;
         },
         .String => |s| {
-            if(s.len == 0) return MalType.new_nil(Allocator);
-            const new_list = try MalType.new_list_empty(Allocator);
-            for(s) |letter| {
-                const new_char = try MalType.new_string(Allocator, [_]u8 {letter});
-                try new_list.sequence_append(Allocator, new_char);
+            if(s.data.len == 0) return &MalType.NIL;
+            const new_list = try MalType.new_list();
+            errdefer new_list.decref();
+            for(s.data) |x| {
+                const one_char = try Allocator.alloc(u8, 1);
+                one_char[0] = x;
+                const new_char = try MalType.new_string(one_char, false);
+                errdefer new_char.decref();
+                try new_list.List.data.append(Allocator, new_char);
             }
             return new_list;
         },
         .Nil => {
-            return MalType.new_nil(Allocator);
+            return &MalType.NIL;
         },
         else => {
             return MalError.TypeError;
         }
     }
-    return MalType.new_nil(Allocator);
 }
 
-pub fn conj(args: MalLinkedList) MalError!*MalType {
-    var iterator = args.iterator();
-    const container = iterator.next() orelse return MalError.ArgError;
-    const append = switch(container.data) {
-        .List => false,
-        .Vector => true,
+pub fn conj(args: []*MalType) !*MalType {
+    if(args.len == 0) return MalError.ArgError;
+    const container = args[0];
+    switch(container.*) {
+        .List => |l| {
+            const return_mal = try MalType.new_list();
+            errdefer return_mal.decref();
+            for(1..args.len) |j| {
+                const new_item = args[args.len-j];
+                try return_mal.List.data.append(Allocator, new_item);
+                new_item.incref();
+            }
+            for(l.data.items) |x| {
+                try return_mal.List.data.append(Allocator, x);
+                x.incref();
+            }
+            return return_mal;
+        },
+        .Vector => |l|{
+            const return_mal = try MalType.new_vector();
+            errdefer return_mal.decref();
+            for(l.data.items) |x| {
+                try return_mal.Vector.data.append(Allocator, x);
+                x.incref();
+            }
+            for(args[1..]) |x| {
+                try return_mal.Vector.data.append(Allocator, x);
+                x.incref();
+            }
+            return return_mal;
+        },
         else => return MalError.ArgError,
-    };
-
-    var return_mal = try container.copy(Allocator);    
-    while(iterator.next()) |mal| {
-        const mal_copy = try mal.copy(Allocator);
-        if(append) {
-            try return_mal.sequence_append(Allocator, mal_copy);
-        } else {
-            try return_mal.sequence_prepend(Allocator, mal_copy);
-        }
     }
-    return return_mal;
 }
 
-fn read_string(a1: *MalType) MalError!*MalType {
+fn read_string(args: []*MalType) !*MalType {
+    if(args.len != 1) return MalError.ArgError;
+    const a1 = args[0];
     const str_to_eval = try a1.as_string();
     var read = try reader.read_str(str_to_eval);
-    return (try reader.read_form(&read)) orelse return MalType.new_nil(Allocator);
+    return reader.read_form(&read);
 }
 
-pub fn do_apply(args: MalLinkedList) MalError!*MalType {
-    // TODO: not always safe to delete new_ll here
-    if(args.count() == 0) return MalError.ArgError;
-    var args_copy = args;
-    const list_node = args_copy.pop();
-    const list_ll = try list_node.sequence_linked_list();
-    var new_ll = try linked_list.deepcopy(Allocator, list_ll.*);
-    defer linked_list.destroy(Allocator, &new_ll, false);
-    var optional_node = args_copy.popOrNull();
-    while(optional_node) |node| {
-        try linked_list.prepend_mal(Allocator, &new_ll, try node.copy(Allocator));
-        optional_node = args_copy.popOrNull();
-    }
-    var return_mal = apply_function(Allocator, new_ll);
-    return return_mal;
+pub fn do_apply(args: []*MalType) !*MalType {
+    if(args.len < 2) return MalError.ArgError;
+    const a1 = args[0];
+    const last = args[args.len - 1];
+    const more_args = try last.as_slice();
+    var fargs = try Allocator.alloc(*MalType, args.len + more_args.len - 2);
+    defer Allocator.free(fargs);
+    var i:usize = 0;
+    for(args[1..args.len-1]) |x| { fargs[i] = x; i+=1; }
+    for(more_args)           |x| { fargs[i] = x; i+=1; }
+    std.debug.assert(i == fargs.len);
+    return apply_function(a1.*, fargs);
 }
 
-pub const CorePairType = enum {
-    Fn0,
-    Fn1,
-    Fn2,
-    Fn3,
-    Fn4,
-    FVar,
-};
-
-pub const CorePairData = union(CorePairType) {
-    Fn0: *const fn() MalError!*MalType,
-    Fn1: *const fn(a1: *MalType) MalError!*MalType,
-    Fn2: *const fn(a1: *MalType, a2: *MalType) MalError!*MalType,
-    Fn3: *const fn(a1: *MalType, a2: *MalType, a3: *MalType) MalError!*MalType,
-    Fn4: *const fn(a1: *MalType, a2: *MalType, a3: *MalType, a4: *MalType) MalError!*MalType,    
-    FVar: *const fn(args: MalLinkedList) MalError!*MalType,
-};
+pub fn core_throw(args: []*MalType) !*MalType {
+    if(args.len != 1) return MalError.ArgError;
+    const a1 = args[0];
+    return throw(a1);
+}
 
 pub const CorePair = struct {
     name: []const u8,
-    func: CorePairData,
+    func: *const fn(args: []*MalType) MalError!*MalType,
 };
 
-pub const core_namespace = [_] CorePair {
-    CorePair { .name = "+", .func = CorePairData {.Fn2 = &int_plus} },
-    CorePair { .name = "-", .func = CorePairData {.Fn2 = &int_minus} },
-    CorePair { .name = "*", .func = CorePairData {.Fn2 = &int_mult} },
-    CorePair { .name = "/", .func = CorePairData {.Fn2 = &int_div} },
-    CorePair { .name = "<",  .func = CorePairData {.Fn2 = &int_lt} },
-    CorePair { .name = "<=", .func = CorePairData {.Fn2 = &int_leq} },
-    CorePair { .name = ">",  .func = CorePairData {.Fn2 = &int_gt} },
-    CorePair { .name = ">=", .func = CorePairData {.Fn2 = &int_geq} },
-    CorePair { .name = "=",  .func = CorePairData {.Fn2 = &equality} },
-    CorePair { .name = "list?", .func = CorePairData {.Fn1 = &is_list} },
-    CorePair { .name = "vector?", .func = CorePairData {.Fn1 = &is_vector} },
-    CorePair { .name = "count", .func = CorePairData {.Fn1 = &sequence_length} },
-    CorePair { .name = "list",  .func = CorePairData {.FVar = &list} },
-    CorePair { .name = "vector",  .func = CorePairData {.FVar = &vector} },
-    CorePair { .name = "map",  .func = CorePairData {.FVar = &map} },
-    CorePair { .name = "empty?", .func = CorePairData {.Fn1 = &empty} },
-    CorePair { .name = "prn", .func = CorePairData {.FVar = &prn} },
-    CorePair { .name = "println", .func = CorePairData {.FVar = &println} },
-    CorePair { .name = "pr-str", .func = CorePairData {.FVar = &pr_str} },
-    CorePair { .name = "str", .func = CorePairData {.FVar = &str} },
-    CorePair { .name = "slurp", .func = CorePairData {.Fn1 = &slurp} },
-    CorePair { .name = "atom", .func = CorePairData {.Fn1 = &atom} },
-    CorePair { .name = "atom?", .func = CorePairData {.Fn1 = &is_atom} },
-    CorePair { .name = "deref", .func = CorePairData {.Fn1 = &deref} },
-    CorePair { .name = "reset!", .func = CorePairData {.Fn2 = &atom_reset} },
-    CorePair { .name = "swap!", .func = CorePairData {.FVar = &atom_swap} },
-    CorePair { .name = "vec", .func = CorePairData {.Fn1 = &vec} },
-    CorePair { .name = "cons", .func = CorePairData {.Fn2 = &cons} },
-    CorePair { .name = "concat", .func = CorePairData {.FVar = &concat} },
-    CorePair { .name = "rest", .func = CorePairData {.Fn1 = &rest } },
-    CorePair { .name = "nth", .func = CorePairData {.Fn2 = &nth } },
-    CorePair { .name = "first", .func = CorePairData {.Fn1 = &first } },
-    CorePair { .name = "nil?", .func = CorePairData {.Fn1 = &is_nil } },
-    CorePair { .name = "true?", .func = CorePairData {.Fn1 = &is_true } },
-    CorePair { .name = "false?", .func = CorePairData {.Fn1 = &is_false } },
-    CorePair { .name = "symbol", .func = CorePairData {.Fn1 = &symbol } },
-    CorePair { .name = "symbol?", .func = CorePairData {.Fn1 = &is_symbol } },
-    CorePair { .name = "keyword?", .func = CorePairData {.Fn1 = &is_keyword } },
-    CorePair { .name = "map?", .func = CorePairData {.Fn1 = &is_map } },
-    CorePair { .name = "sequential?", .func = CorePairData {.Fn1 = &is_sequential } },
-    CorePair { .name = "apply", .func = CorePairData {.FVar = &do_apply } },
-    CorePair { .name = "hash-map", .func = CorePairData {.FVar = &hash_map } },
-    CorePair { .name = "assoc", .func = CorePairData {.FVar = &hash_map_assoc } },
-    CorePair { .name = "dissoc", .func = CorePairData {.FVar = &hash_map_dissoc } },
-    CorePair { .name = "get", .func = CorePairData {.Fn2 = &hash_map_get } },
-    CorePair { .name = "contains?", .func = CorePairData {.Fn2 = &hash_map_contains } },
-    CorePair { .name = "keys", .func = CorePairData {.Fn1 = &hash_map_keys } },
-    CorePair { .name = "vals", .func = CorePairData {.Fn1 = &hash_map_vals } },
-    CorePair { .name = "keyword", .func = CorePairData {.Fn1 = &keyword } },
-    CorePair { .name = "read-string", .func = CorePairData {.Fn1 = &read_string } },
-    CorePair { .name = "readline", .func = CorePairData {.Fn1 = &readline } },
-    CorePair { .name = "time-ms", .func = CorePairData {.Fn0 = &time_ms } },
-    CorePair { .name = "meta", .func = CorePairData {.Fn1 = &meta } },
-    CorePair { .name = "with-meta", .func = CorePairData {.Fn2 = &with_meta } },
-    CorePair { .name = "fn?", .func = CorePairData {.Fn1 = &is_fn } },
-    CorePair { .name = "string?", .func = CorePairData {.Fn1 = &is_string } },
-    CorePair { .name = "number?", .func = CorePairData {.Fn1 = &is_number } },
-    CorePair { .name = "macro?", .func = CorePairData {.Fn1 = &is_macro } },
-    CorePair { .name = "seq", .func = CorePairData {.Fn1 = &seq } },
-    CorePair { .name = "conj", .func = CorePairData {.FVar = &conj } },
+pub const core_namespace = [_]CorePair {
+    .{ .name = "+", .func = &int_plus },
+    .{ .name = "-", .func = &int_minus },
+    .{ .name = "*", .func = &int_mult },
+    .{ .name = "/", .func = &int_div },
+    .{ .name = "<",  .func = &int_lt },
+    .{ .name = "<=", .func = &int_leq },
+    .{ .name = ">",  .func = &int_gt },
+    .{ .name = ">=", .func = &int_geq },
+    .{ .name = "=",  .func = &equality },
+    .{ .name = "list?", .func = &is_list },
+    .{ .name = "vector?", .func = &is_vector },
+    .{ .name = "count", .func = &sequence_length },
+    .{ .name = "list",  .func = &list, },
+    .{ .name = "vector",  .func = &vector, },
+    .{ .name = "map",  .func = &map },
+    .{ .name = "empty?", .func = &empty },
+    .{ .name = "prn", .func = &prn },
+    .{ .name = "println", .func = &println },
+    .{ .name = "pr-str", .func = &pr_str },
+    .{ .name = "str", .func = &str },
+    .{ .name = "slurp", .func = &slurp },
+    .{ .name = "atom", .func = &atom },
+    .{ .name = "atom?", .func = &is_atom },
+    .{ .name = "deref", .func = &deref },
+    .{ .name = "reset!", .func = &atom_reset },
+    .{ .name = "swap!", .func = &atom_swap },
+    .{ .name = "vec", .func = &vec },
+    .{ .name = "cons", .func = &cons },
+    .{ .name = "concat", .func = &concat },
+    .{ .name = "rest", .func = &rest },
+    .{ .name = "nth", .func = &nth },
+    .{ .name = "first", .func = &first },
+    .{ .name = "nil?", .func = &is_nil },
+    .{ .name = "true?", .func = &is_true },
+    .{ .name = "false?", .func = &is_false },
+    .{ .name = "symbol", .func = &symbol },
+    .{ .name = "symbol?", .func = &is_symbol },
+    .{ .name = "keyword?", .func = &is_keyword },
+    .{ .name = "map?", .func = &is_map },
+    .{ .name = "sequential?", .func = &is_sequential },
+    .{ .name = "apply", .func = &do_apply },
+    .{ .name = "hash-map", .func = &hash_map },
+    .{ .name = "assoc", .func = &hash_map_assoc },
+    .{ .name = "dissoc", .func = &hash_map_dissoc },
+    .{ .name = "get", .func = &hash_map_get },
+    .{ .name = "contains?", .func = &hash_map_contains },
+    .{ .name = "keys", .func = &hash_map_keys },
+    .{ .name = "vals", .func = &hash_map_vals },
+    .{ .name = "keyword", .func = &keyword },
+    .{ .name = "read-string", .func = &read_string },
+    .{ .name = "readline", .func = &core_readline },
+    .{ .name = "time-ms", .func = &time_ms },
+    .{ .name = "meta", .func = &meta },
+    .{ .name = "with-meta", .func = &with_meta },
+    .{ .name = "fn?", .func = &is_fn },
+    .{ .name = "string?", .func = &is_string },
+    .{ .name = "number?", .func = &is_number },
+    .{ .name = "macro?", .func = &is_macro },
+    .{ .name = "seq", .func = &seq },
+    .{ .name = "conj", .func = &conj },
+    .{ .name = "throw", .func = &core_throw },
 };

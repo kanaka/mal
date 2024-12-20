@@ -12,12 +12,22 @@ function READ([String] $str) {
 }
 
 # EVAL
-function eval_ast($ast, $env) {
+function EVAL($ast, $env) {
+
+    $dbgeval_env = ($env.find("DEBUG-EVAL"))
+    if ($dbgeval_env -ne $null) {
+        $dbgeval = $dbgeval_env.get("DEBUG-EVAL")
+        if ($dbgeval -ne $null -and
+            -not ($dbgeval -is [Boolean] -and $dbgeval -eq $false)) {
+            Write-Host "EVAL: $(pr_str $ast)"
+        }
+    }
+
     if ($ast -eq $null) { return $ast }
     switch ($ast.GetType().Name) {
-        "Symbol"  { return $env.get($ast) }
-        "List"    { return new-list ($ast.values | ForEach { EVAL $_ $env }) }
-        "Vector"  { return new-vector ($ast.values | ForEach { EVAL $_ $env }) }
+        "Symbol"  { return $env.get($ast.value) }
+        "List" { }  # continue after the switch
+        "Vector"  { return new-vector @($ast.values | ForEach-Object { EVAL $_ $env }) }
         "HashMap" {
             $hm = new-hashmap @()
             foreach ($k in $ast.values.Keys) {
@@ -27,29 +37,26 @@ function eval_ast($ast, $env) {
         }
         default   { return $ast }
     }
-}
 
-function EVAL($ast, $env) {
-    #Write-Host "EVAL $(pr_str $ast)"
-    if (-not (list? $ast)) {
-        return (eval_ast $ast $env)
-    }
     if (empty? $ast) { return $ast }
 
     $a0, $a1, $a2 = $ast.nth(0), $ast.nth(1), $ast.nth(2)
     switch -casesensitive ($a0.value) {
         "def!" {
-            return $env.set($a1, (EVAL $a2 $env)) 
+            return $env.set($a1.value, (EVAL $a2 $env))
         }
         "let*" {
             $let_env = new-env $env
             for ($i=0; $i -lt $a1.values.Count; $i+=2) {
-                $_ = $let_env.set($a1.nth($i), (EVAL $a1.nth(($i+1)) $let_env))
+                $_ = $let_env.set($a1.nth($i).value, (EVAL $a1.nth(($i+1)) $let_env))
             }
             return EVAL $a2 $let_env
         }
         "do" {
-            return (eval_ast $ast.rest() $env).last()
+            for ($i=1; $i -lt ($ast.values.Count - 1); $i+=1) {
+                $_ = (EVAL $ast.values[$i] $env)
+            }
+            return (EVAL $ast.values[$i] $env)
         }
         "if" {
             $cond = (EVAL $a1 $env)
@@ -68,8 +75,8 @@ function EVAL($ast, $env) {
             }.GetNewClosure()
         }
         default {
-            $el = (eval_ast $ast $env)
-            $f, $fargs = $el.first(), $el.rest().values
+            $f = ( EVAL $ast.first() $env )
+            $fargs = @($ast.rest().values | ForEach-Object { EVAL $_ $env })
             return &$f @fargs
         }
     }
@@ -89,7 +96,7 @@ function REP([String] $str) {
 
 # core.EXT: defined using PowerShell
 foreach ($kv in $core_ns.GetEnumerator()) {
-    $_ = $repl_env.set((new-symbol $kv.Key), $kv.Value)
+    $_ = $repl_env.set($kv.Key, $kv.Value)
 }
 
 # core.mal: defined using the language itself

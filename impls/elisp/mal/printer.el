@@ -1,59 +1,60 @@
-(require 'cl-lib)
+(require 'mal/types)
 
-(defun pr-str (form &optional print-readably)
-  (let ((value (mal-value form)))
-    (cl-ecase (mal-type form)
-     ('nil
+(defun pr-str (form print-readably)
+  (let (value)
+    (cond
+     ((eq mal-nil form)
       "nil")
-     (true
+     ((eq mal-true form)
       "true")
-     (false
+     ((eq mal-false form)
       "false")
-     (number
+     ((setq value (mal-number-value form))
       (number-to-string value))
-     (string
+     ((setq value (mal-string-value form))
       (if print-readably
           (let ((print-escape-newlines t))
             (prin1-to-string value))
         value))
-     ((symbol keyword)
+     ((setq value (mal-symbol-value form))
       (symbol-name value))
-     (list
+     ((setq value (mal-keyword-value form))
+      value)
+     ((setq value (mal-list-value form))
       (pr-list value print-readably))
-     (vector
+     ((mal-list-p form)
+      "()")
+     ((setq value (mal-vector-value form))
       (pr-vector value print-readably))
-     (map
+     ((setq value (mal-map-value form))
       (pr-map value print-readably))
-     (fn
-      "#<fn>")
-     (func
-      "#<func>")
-     (atom
-      (format "(atom %s)" (pr-str value print-readably))))))
+     ((or (mal-fn-core-value form) (mal-func-value form))
+      "#<function>")
+     ((mal-macro-value form)
+      "#<macro>")
+     ((setq value (mal-atom-value form))
+      (format "(atom %s)" (pr-str value print-readably)))
+     (t (error "pr-str: unknown type: %s" form)))))
 
 (defun pr-list (form print-readably)
-  (let ((items (mapconcat
-                (lambda (item) (pr-str item print-readably))
-                form " ")))
+  (let ((items (pr-join form print-readably " ")))
     (concat "(" items ")")))
 
 (defun pr-vector (form print-readably)
-  (let ((items (mapconcat
-                (lambda (item) (pr-str item print-readably))
-                (append form nil) " ")))
+  (let ((items (pr-join form print-readably " ")))
     (concat "[" items "]")))
 
 (defun pr-map (form print-readably)
   (let (pairs)
     (maphash
      (lambda (key value)
-       (push (cons (pr-str key print-readably)
-                   (pr-str value print-readably))
-             pairs))
+       (push value pairs)
+       (push key pairs))
      form)
-    (let ((items (mapconcat
-                  (lambda (item) (concat (car item) " " (cdr item)))
-                  (nreverse pairs) " ")))
+    (let ((items (pr-join pairs print-readably " ")))
       (concat "{" items "}"))))
+
+(defun pr-join (forms print-readably separator)
+  (mapconcat (lambda (item) (pr-str item print-readably)) forms separator))
 
 (provide 'mal/printer)

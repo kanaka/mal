@@ -21,7 +21,7 @@ read: procedure expose values. err /* read(str) */
 starts_with?: procedure expose values. /* starts_with?(lst, sym) */
   lst = arg(1)
   sym = arg(2)
-  if words(obj_val(lst)) != 2 then return 0
+  if words(obj_val(lst)) <> 2 then return 0
   a0 = word(obj_val(lst), 1)
   return symbol?(a0) & obj_val(a0) == sym
 
@@ -58,29 +58,26 @@ quasiquote: procedure expose values. env. err /* quasiquote(ast) */
       return ast
     end
 
-eval_ast: procedure expose values. env. err /* eval_ast(ast, env_idx) */
+eval: procedure expose values. env. err /* eval(ast) */
   ast = arg(1)
   env_idx = arg(2)
+  do forever
+
+  debug_eval = obj_type(env_get(env_idx, "DEBUG-EVAL"))
+  if  debug_eval <> "ERR" & debug_eval <> "nill" & debug_eval <> "fals" then,
+    call lineout , ("EVAL: " || print(ast))
+
   type = obj_type(ast)
-  val = obj_val(ast)
+  astval = obj_val(ast)
   select
-    when type == "symb" then return env_get(env_idx, val)
-    when type == "list" then do
-      res = ""
-      do i=1 to words(val)
-        element = eval(word(val, i), env_idx)
-        if element == "ERR" then return "ERR"
-        if i > 1 then
-          res = res || " " || element
-        else
-          res = element
-      end
-      return new_list(res)
+    when type == "symb" then return env_get(env_idx, astval)
+    when type == "list" & words(astval) > 0 then do
+      --  proceed after this select statement
     end
     when type == "vect" then do
       res = ""
-      do i=1 to words(val)
-        element = eval(word(val, i), env_idx)
+      do i=1 to words(astval)
+        element = eval(word(astval, i), env_idx)
         if element == "ERR" then return "ERR"
         if i > 1 then
           res = res || " " || element
@@ -91,8 +88,8 @@ eval_ast: procedure expose values. env. err /* eval_ast(ast, env_idx) */
     end
     when type == "hash" then do
       res = ""
-      do i=1 to words(val)
-        element = eval(word(val, i), env_idx)
+      do i=1 to words(astval)
+        element = eval(word(astval, i), env_idx)
         if element == "ERR" then return "ERR"
         if i > 1 then
           res = res || " " || element
@@ -105,14 +102,10 @@ eval_ast: procedure expose values. env. err /* eval_ast(ast, env_idx) */
       return ast
     end
 
-eval: procedure expose values. env. err /* eval(ast) */
-  ast = arg(1)
-  env_idx = arg(2)
-  do forever
-    if \list?(ast) then return eval_ast(ast, env_idx)
-    astval = obj_val(ast)
-    if words(astval) == 0 then return ast
-    a0sym = obj_val(word(astval, 1))
+    --  ast is a non-empty list
+
+    a0 = word(astval, 1)
+    a0sym = obj_val(a0)
     select
       when a0sym == "def!" then do
         a1sym = obj_val(word(astval, 2))
@@ -134,7 +127,6 @@ eval: procedure expose values. env. err /* eval(ast) */
         /* TCO */
       end
       when a0sym == "quote" then return word(astval, 2)
-      when a0sym == "quasiquoteexpand" then return quasiquote(word(astval, 2))
       when a0sym == "quasiquote" then do
         ast = quasiquote(word(astval, 2))
         /* TCO */
@@ -160,13 +152,23 @@ eval: procedure expose values. env. err /* eval(ast) */
       end
       when a0sym == "fn*" then return new_func(word(astval, 3), env_idx, word(astval, 2))
       otherwise
-        lst_obj = eval_ast(ast, env_idx)
-        if lst_obj == "ERR" then return "ERR"
-        lst = obj_val(lst_obj)
-        f = word(lst, 1)
+       f = eval(a0, env_idx)
+       if f == "ERR" then return "ERR"
+
+        --  Evaluate the arguments and store them to lst.
+        lst = ""
+        do i=2 to words(astval)
+          element = eval(word(astval, i), env_idx)
+          if element == "ERR" then return "ERR"
+          if i > 2 then
+            lst = lst || " " || element
+          else
+            lst = element
+        end
+
         select
           when nativefn?(f) then do
-            call_args = subword(lst, 2)
+            call_args = lst
             call_list = ""
             do i=1 to words(call_args)
               element = '"' || word(call_args, i) || '"'
@@ -180,7 +182,7 @@ eval: procedure expose values. env. err /* eval(ast) */
             return res
           end
           when func?(f) then do
-            call_args = new_list(subword(lst, 2))
+            call_args = new_list(lst)
             env_idx = new_env(func_env_idx(f), func_binds(f), call_args)
             ast = func_body_ast(f)
             /* TCO */

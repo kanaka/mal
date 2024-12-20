@@ -9,38 +9,30 @@ def READ(str)
 end
 
 # eval
-def eval_ast(ast, env)
-    return case ast
-        when Symbol
-            raise "'" + ast.to_s + "' not found" if not env.key? ast
-            env[ast]
-        when List   
-            List.new ast.map{|a| EVAL(a, env)}
-        when Vector
-            Vector.new ast.map{|a| EVAL(a, env)}
-        when Hash
-            new_hm = {}
-            ast.each{|k,v| new_hm[k] = EVAL(v, env)}
-            new_hm
-        else 
-            ast
-    end
-end
-
 def EVAL(ast, env)
     #puts "EVAL: #{_pr_str(ast, true)}"
 
-    if not ast.is_a? List
-        return eval_ast(ast, env)
-    end
-    if ast.empty?
-        return ast
-    end
+    case ast
+    in Symbol
+            raise "'" + ast.to_s + "' not found" if not env.key? ast
+            return env[ast]
+    in Vector
+            return Vector.new ast.map{|a| EVAL(a, env)}
+    in Hash
+            new_hm = {}
+            ast.each{|k,v| new_hm[k] = EVAL(v, env)}
+            return new_hm
 
     # apply list
-    el = eval_ast(ast, env)
-    f = el[0]
-    return f[*el.drop(1)]
+
+    in [a0, *]
+        f = EVAL(a0, env)
+        args = ast.drop(1)
+        return f[*args.map{|a| EVAL(a, env)}]
+
+    else                        # Empty list or scalar
+      return ast
+    end
 end
 
 # print

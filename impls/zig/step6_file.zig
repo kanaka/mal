@@ -1,371 +1,343 @@
 const std = @import("std");
-const warn = @import("std").debug.warn;
 
 const reader = @import("reader.zig");
-const pcre = reader.pcre;
 const printer = @import("printer.zig");
 const getline = @import("readline.zig").getline;
-const string_eql = @import("utils.zig").string_eql;
-const string_copy = @import("utils.zig").string_copy;
-const string_concat = @import("utils.zig").string_concat;
-const apply_function = @import("types.zig").apply_function;
-const linked_list = @import("linked_list.zig");
+const string_eql = std.hash_map.eqlString;
 const hash_map = @import("hmap.zig");
 const core = @import("core.zig");
 
 const Allocator = @import("std").heap.c_allocator;
 
 const MalType = @import("types.zig").MalType;
-const MalTypeValue = @import("types.zig").MalTypeValue;
-const MalData = @import("types.zig").MalData;
 const MalError = @import("error.zig").MalError;
-const MalFuncData = @import("types.zig").MalFuncData;
 const MalLinkedList = @import("linked_list.zig").MalLinkedList;
 const Env = @import("env.zig").Env;
+const get_error_data = @import("error.zig").get_error_data;
+const throw = @import("error.zig").throw;
+const stdout_file = std.io.getStdOut();
 
-var repl_environment: *Env = undefined;
+var repl_environment = Env.new_root();
 
-fn READ(a: []const u8) MalError!?*MalType {
+fn READ(a: []const u8) !*MalType {
     var read = try reader.read_str(a);
-    var optional_mal = reader.read_form(&read);
-    return optional_mal;
+    return reader.read_form(&read);
 }
 
-fn EVAL(mal_arg: *MalType, env_arg: *Env) MalError!*MalType {
+// Do not allocate this one on each EVAL run.
+// The string is static, but will never be deallocated.
+var DEBUG_EVAL = MalType { .Symbol = .{ .data = "DEBUG-EVAL" } };
+
+fn EVAL(mal_arg: *MalType, env_arg: *Env, finally_destroy_env: bool) MalError!*MalType {
     var mal = mal_arg;
     var env = env_arg;
+    var fde = finally_destroy_env;
+    defer if(fde) env.decref();
     while(true) {
-        switch(mal.data) {
+
+        if(try env.get(&DEBUG_EVAL)) |dbgeval| {
+            switch (dbgeval.*) {
+                .Nil, .False => {},
+                else => {
+                    try stdout_file.writeAll("EVAL: ");
+                    try PRINT(mal.*);
+                }
+            }
+        }
+
+        switch(mal.*) {
             .List => |ll| {
-                if(ll.len == 0) {
+                const items = ll.data.items;
+                if(items.len == 0) {
+                    mal.incref();
                     return mal;
                 }
-                var first_mal = linked_list.first(&ll) orelse return MalError.ArgError;
-                var symbol = switch(first_mal.data) {
-                    .Generic => |symbol| symbol,
+                const first_mal = items[0];
+                const symbol = switch(first_mal.*) {
+                    .Symbol => |symbol| symbol.data,
                     else => "",
                 };
                 if(string_eql(symbol, "def!")) {
-                    return EVAL_def(mal, env);
+                    return EVAL_def(items[1..], env);
                 }
                 else if(string_eql(symbol, "let*")) {
-                    try EVAL_let(&mal, &env);
+                    try EVAL_let(items[1..], &mal, &env, &fde);
                     continue;
                 }
                 else if(string_eql(symbol, "do")) {
-                    try EVAL_do(&mal, &env);
+                    try EVAL_do(items[1..], &mal, env);
                     continue;
                 }
                 else if(string_eql(symbol, "if")) {
-                    try EVAL_if(&mal, &env);
+                    try EVAL_if(items[1..], &mal, env);
                     continue;
                 }
                 else if(string_eql(symbol, "fn*")) {
-                    return EVAL_fn(mal, env);
+                    return EVAL_fn(items[1..], env);
                 }
                 else {
-                    var new_list = try eval_ast(mal, try env.copy(Allocator));
-
-                    if(MalTypeValue((try new_list.sequence_nth(0)).data) == MalTypeValue.Func) {
-                        try do_user_func(try new_list.sequence_linked_list(), &mal, &env);
-                        new_list.shallow_destroy(Allocator);
-                        continue;
+                    const evaluated_first = try EVAL(first_mal, env, false);
+                    defer evaluated_first.decref();
+                    // A slice would be sufficient, but a List is convenient
+                    // for partial deallocation in case of error.
+                    const args = try MalType.new_list();
+                    defer args.decref();
+                    for(items[1..]) |x| {
+                        const new_item = try EVAL(x, env, false);
+                        try args.List.data.append(Allocator, new_item);
                     }
-                    const res = try apply_function(Allocator, (try new_list.sequence_linked_list()).*);
-                    new_list.delete(Allocator);
-                    env.delete();
-                    return res;
+                   switch(evaluated_first.*) {
+                        .Func => |func_data| {
+                            if(fde) {
+                                env.decref();
+                            }
+                            else {
+                                fde = true;
+                            }
+                            env = try func_data.gen_env(args.List.data.items);
+                            mal = func_data.body;
+                            continue;
+                        },
+                        else => {},
+                    }
+                    return apply_function(evaluated_first.*, args.List.data.items);
                 }
             },
+            .Symbol => {
+                return EVAL_symbol(mal, env);
+            },
+            .Vector => |ll| {
+                return EVAL_vector(ll.data.items, env);
+            },
+            .HashMap => |hmap| {
+                return EVAL_map(hmap.data, env);
+            },
             else => {
-                return eval_ast(mal, env);
+                mal.incref();
+                return mal;
             },
         }
     }
 }
 
-fn eval(a1: *MalType) MalError!*MalType {
-    return EVAL(try a1.copy(Allocator), try repl_environment.copy(Allocator));
+fn eval(args: []*MalType) !*MalType {
+    if(args.len != 1) return MalError.ArgError;
+    const a1 = args[0];
+    return EVAL(a1, &repl_environment, false);
 }
 
-fn EVAL_def(mal: *MalType, env: *Env) MalError!*MalType {
-    const first_arg = try mal.sequence_nth(1);
-    const second_arg = try mal.sequence_nth(2);
-    const second_arg_copy = try second_arg.copy(Allocator);
-    const symbol_name = try first_arg.as_symbol();
-    const new_value = try EVAL(second_arg_copy, try env.copy(Allocator));
+fn EVAL_def(args: []*MalType, env: *Env) !*MalType {
+    if(args.len != 2) return MalError.ArgError;
+    const symbol_name = args[0];
+    const second_arg = args[1];
+    const new_value = try EVAL(second_arg, env, false);
     try env.set(symbol_name, new_value);
-    mal.delete(Allocator);
-    env.delete();
-    return new_value.copy(Allocator);
+    new_value.incref();
+    return new_value;
 }
 
-fn EVAL_let(mal_ptr: **MalType, env_ptr: **Env) MalError!void {
-    //TODO: make faster
-    const mal = mal_ptr.*;
+fn EVAL_let(args: []*MalType, mal_ptr: **MalType, env_ptr: **Env, fde: *bool) !void {
+    if(args.len != 2) return MalError.ArgError;
     const env = env_ptr.*;
-    (try mal.sequence_pop_first(Allocator)).delete(Allocator);
-    const binding_arg = try mal.sequence_pop_first(Allocator);
-    const eval_arg = try mal.sequence_pop_first(Allocator);
-    const new_env = try Env.new(Allocator, env);
-    var binding_ll = switch(binding_arg.data) {
-        .List => |l| l,
-        .Vector => |v| v,
-        else => return MalError.TypeError,
-    };
-    var iterator = binding_ll.iterator();
-    var optional_node = iterator.next();
-    while(optional_node) |node| {
-        const key_mal = node;
-        const key = try key_mal.as_symbol();
-        const val_mal = iterator.next() orelse return MalError.ArgError;
-        const evaled_mal = try EVAL(val_mal, try new_env.copy(Allocator));
-        try new_env.set(key, evaled_mal);
-        optional_node = iterator.next();
-        key_mal.delete(Allocator);
+    const binding_arg = args[0];
+    const eval_arg = args[1];
+    const binds = try binding_arg.as_slice();
+    if(binds.len % 2 != 0) return MalError.ArgError;
+    const new_env = try Env.new(env);
+    //  Change env and fde in case an error occurs later in this procedure
+    //  and fde triggers an env.decref() at the exit of EVAL.
+    if(!fde.*) {
+        env.incref();
+        fde.* = true;
     }
-    
-    linked_list.destroy(Allocator, &binding_ll, true);
-    binding_arg.data = MalData{.Nil=undefined};
-    binding_arg.delete(Allocator);
-    mal.delete(Allocator);
-
-    // We use eval_arg_copy, since we just deleted eval_arg above
-    mal_ptr.* = eval_arg;
-    env.delete();
     env_ptr.* = new_env;
+    for(0..binds.len / 2) |i| {
+        const key = binds[2*i];
+        const val_mal = binds[2*i + 1];
+        const evaled_mal = try EVAL(val_mal, new_env, false);
+        errdefer evaled_mal.decref();
+        try new_env.set(key, evaled_mal);
+        //  Do not increment the refcount for the value.
+    }
+    mal_ptr.* = eval_arg;
 }
 
-fn EVAL_do(mal_ptr: **MalType, env_ptr: **Env) MalError!void {
-    var mal = mal_ptr.*;
-    var env = env_ptr.*;
-    var ll = &mal.data.List;
-    (try mal.sequence_pop_first(Allocator)).delete(Allocator);
-    var last_mal = try mal.sequence_pop_last(Allocator);
-    var evaled_mal = try eval_ast(mal, try env.copy(Allocator));
-    evaled_mal.delete(Allocator);
+fn EVAL_do(args: []*MalType, mal_ptr: **MalType, env: *Env) !void {
+    if(args.len == 0) return MalError.ArgError;
+    const last_mal = args[args.len - 1];
+    for (args[0..args.len - 1]) |form| {
+        const item = try EVAL(form, env, false);
+        item.decref();
+    }
     mal_ptr.* = last_mal;
 }
 
-fn EVAL_if(mal_ptr: **MalType, env_ptr: **Env) MalError!void {
-    var mal = mal_ptr.*;
-    var env = env_ptr.*;
-    defer mal.delete(Allocator);
-    const first_arg = try mal.sequence_nth(1);
-    const first_arg_copy = try first_arg.copy(Allocator);
-    const evaled = try EVAL(first_arg_copy, try env.copy(Allocator));
-    const is_true = switch(evaled.data) {
+fn EVAL_if(args: []*MalType, mal_ptr: **MalType, env: *Env) !void {
+    if(args.len != 2 and args.len != 3) return MalError.ArgError;
+    const first_arg = args[0];
+    const evaled = try EVAL(first_arg, env, false);
+    const is_true = switch(evaled.*) {
         .False => false,
         .Nil => false,
         else => true,
     };
-    evaled.delete(Allocator);
+    evaled.decref();
     if(is_true) {
-        const second_arg = try mal.sequence_nth(2);
-        mal_ptr.* = try second_arg.copy(Allocator);
+        const second_arg = args[1];
+        mal_ptr.* = second_arg;
         return;
     }
-    if((try mal.sequence_length()) < 4) {
-        mal_ptr.* = try MalType.new_nil(Allocator);
+    if(args.len == 2) {
+        mal_ptr.* = &MalType.NIL;
         return;
     }
-    const third_arg = try mal.sequence_nth(3);
-    const third_arg_copy = try third_arg.copy(Allocator);
-    mal_ptr.* = third_arg_copy;
+    const third_arg = args[2];
+    mal_ptr.* = third_arg;
 }
 
-fn EVAL_fn(mal: *MalType, env: *Env) MalError!*MalType {
-    defer mal.delete(Allocator);
-    const arg_mal = try (try mal.sequence_nth(1)).copy(Allocator);
-    const body_mal = try (try mal.sequence_nth(2)).copy(Allocator);
-    const func_data = MalFuncData {
-        .arg_list = arg_mal,
-        .body = body_mal,
-        .environment = env,
-        .is_macro = false,
-        .eval_func = &EVAL,
-    };
-    const new_func = try MalType.new_nil(Allocator);
-    new_func.data = MalData{.Func = func_data};
+fn EVAL_fn(args: []*MalType, env: *Env) !*MalType {
+    if(args.len != 2) return MalError.ArgError;
+    const arg_mal = args[0];
+    const body_mal = args[1];
+    for (try arg_mal.as_slice()) |x| {
+        switch (x.*) {
+            .Symbol => {},
+            else => return MalError.TypeError,
+        }
+    }
+    const new_func = try MalType.newFunc(arg_mal, body_mal, env);
+    arg_mal.incref();
+    body_mal.incref();
+    env.incref();
     return new_func;
 }
 
-fn PRINT(optional_mal: ?*MalType) MalError![] u8 {
-    return printer.print_str(optional_mal);
+fn PRINT(mal: MalType) !void {
+    try printer.one_stdout(mal);
+    try stdout_file.writeAll("\n");
 }
 
-fn rep(environment: *Env, input: [] const u8) MalError!?[] u8 {
-    var read_input = (try READ(input)) orelse return null;
-    var eval_input = try EVAL(read_input, try environment.copy(Allocator));
-    var print_input = try PRINT(eval_input);
-    eval_input.delete(Allocator);
-    return print_input;
-}
-
-fn lookup(environment: *Env, symbol: []const u8, do_warn: bool) MalError!*MalType {
-     var mal = environment.get(symbol) catch |err| {
-        if(do_warn) {
-            const s1 = string_concat(Allocator, "'", symbol) catch return MalError.SystemError;
-            const s2 = string_concat(Allocator, s1, "' not found") catch return MalError.SystemError;
-            defer Allocator.free(s1);
-            defer Allocator.free(s2);
-            warn("'{}' not found.\n", symbol);
-        }
-        return MalError.KeyError;
-    };
-    var new_mal = try mal.copy(Allocator);
-    return new_mal;
-}
-
-fn eval_ast(mal: *MalType, env: *Env) MalError!*MalType {
-    defer env.delete();
-    switch(mal.data) {
-        .Generic => |symbol| {
-            defer mal.delete(Allocator);
-            return lookup(env, symbol, true);
-        },
-        .List => |*ll| {
-            var new_ll = MalLinkedList.init(Allocator);
-            var iterator = ll.iterator();
-            while(iterator.next()) |next_mal| {
-                const new_mal = try EVAL(next_mal, try env.copy(Allocator));
-                try linked_list.append_mal(Allocator, &new_ll, new_mal);
-            }
-            linked_list.destroy(Allocator, ll, true);
-            mal.shallow_destroy(Allocator);
-            const ret_mal = MalType.new_list(Allocator, new_ll);
-            return ret_mal;
-        },
-        .Vector => |*ll| {
-            var new_ll = MalLinkedList.init(Allocator);
-            var iterator = ll.iterator();
-            while(iterator.next()) |next_mal| {
-                const new_mal = try EVAL(next_mal, try env.copy(Allocator));
-                try linked_list.append_mal(Allocator, &new_ll, new_mal);
-            }
-            linked_list.destroy(Allocator, ll, true);
-            mal.shallow_destroy(Allocator);
-            const ret_mal = MalType.new_vector(Allocator, new_ll);
-            return ret_mal;
-        },
-        .HashMap => |hmap| {
-            var new_hashmap = try MalType.new_hashmap(Allocator);
-            var iterator = hmap.iterator();
-            var optional_pair = iterator.next();
-            while(true) {
-                const pair = optional_pair orelse break;
-                const key = pair.key;
-                const value = pair.value;
-                const evaled_value = try EVAL(value, try env.copy(Allocator));
-                try new_hashmap.hashmap_insert(key, evaled_value);
-                optional_pair = iterator.next();
-            }
-            hash_map.destroy(Allocator, hmap, true);
-            mal.shallow_destroy(Allocator);
-            return new_hashmap;
-        },
-        else => {
-            return mal;
-        }
+fn rep(print: bool, input: []const u8) !void {
+    const read_input = try READ(input);
+    defer read_input.decref();
+    const eval_input = try EVAL(read_input, &repl_environment, false);
+    defer eval_input.decref();
+    if(print) {
+        try PRINT(eval_input.*);
     }
 }
 
-fn make_environment() MalError!*Env {
-    repl_environment = try Env.new(Allocator, null);
-    var environment = try repl_environment.copy(Allocator);
+fn EVAL_symbol(mal: *MalType, env: *Env) !*MalType {
+    if(try env.get(mal)) |value| {
+        value.incref();
+        return value;
+    }
+    const err = try std.fmt.allocPrint(Allocator, "'{s}' not found",
+        .{mal.Symbol.data});
+    return throw(try MalType.new_string(err, false));
+}
+
+fn EVAL_vector(ll: []*MalType, env: *Env) !*MalType {
+            const ret_mal = try MalType.new_vector();
+            errdefer ret_mal.decref();
+            for(ll) |x| {
+                const new_mal = try EVAL(x, env, false);
+                try ret_mal.Vector.data.append(Allocator, new_mal);
+            }
+            return ret_mal;
+}
+
+fn EVAL_map(hmap: hash_map.MalHashMap, env: *Env) !*MalType {
+            const new_hashmap = try MalType.new_hashmap();
+            errdefer new_hashmap.decref();
+            var iterator = hmap.iterator();
+            while(iterator.next()) |pair| {
+                const key = pair.key_ptr.*;
+                const value = pair.value_ptr.*;
+                const evaled_value = try EVAL(value, env, false);
+                try hash_map.map_insert_incref_key(&new_hashmap.HashMap.data, key, evaled_value);
+            }
+            return new_hashmap;
+}
+
+fn make_environment() !void {
 
    for(core.core_namespace) |pair| {
-        const name = pair.name;
-        const func_mal: *MalType = try MalType.new_nil(Allocator);
-        func_mal.data = switch(pair.func) {
-            core.CorePairType.Fn0 => |func| MalData{.Fn0 = func},
-            core.CorePairType.Fn1 => |func| MalData{.Fn1 = func},
-            core.CorePairType.Fn2 => |func| MalData{.Fn2 = func},
-            core.CorePairType.FVar => |func| MalData{.FVar = func},
-            else => return MalError.TypeError,
-        };
-        try environment.set(name, func_mal);
+        const name = try MalType.new_symbol(pair.name, true);
+        const func_mal = try MalType.newFnCore(pair.func);
+        try repl_environment.set(name, func_mal);
+        name.decref();
     }
 
-    const eval_mal = try MalType.new_nil(Allocator);
-    eval_mal.data = MalData{.Fn1 = &eval};
-    try environment.set("eval", eval_mal);
-    
+    const eval_sym = try MalType.new_symbol("eval", true);
+    const eval_mal = try MalType.newFnCore(eval);
+    try repl_environment.set(eval_sym, eval_mal);
+    eval_sym.decref();
+
     const def_not_string: [] const u8 =
         \\(def! not (fn* (a) (if a false true)))
     ;
-    var optional_output = try rep(environment, def_not_string);
-    if(optional_output) |output| {
-        Allocator.free(output);
-    }
+    try rep(false, def_not_string);
 
     const load_file_string: [] const u8 =
         \\(def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) "\nnil)")))))
     ;
-    optional_output = try rep(environment, load_file_string);
-    if(optional_output) |output| {
-        Allocator.free(output);
-    }
-
-    return environment;
+    try rep(false, load_file_string);
 }
 
-fn do_user_func(args: *MalLinkedList, mal_ptr: **MalType, env_ptr: **Env) MalError!void {
-    const mal_func = try linked_list.pop_first(Allocator, args);
-    const env = env_ptr.*;
-    // First check if it is a user-defined Mal function
-    if(MalTypeValue(mal_func.data) == MalTypeValue.Func) {
-        const func_data = mal_func.data.Func;
-        const args_ll = try func_data.arg_list.sequence_linked_list();
-        const func_env = func_data.environment;
-        var new_env = try Env.new(Allocator, func_env);
-        func_env.delete();
-        try new_env.set_list(args_ll.*, args.*);
-        linked_list.destroy(Allocator, args, true);
-        func_data.arg_list.delete(Allocator);
-        mal_func.shallow_destroy(Allocator);
-        mal_ptr.* = func_data.body;
-        env.delete();
-        env_ptr.* = new_env;
-        return;
+pub fn apply_function(f: MalType, args: []*MalType) MalError!*MalType {
+
+    switch(f) {
+        .FnCore => |fncoredata| {
+            return fncoredata.data(args);
+        },
+        .Func => |funcdata| {
+            const apply_env = try funcdata.gen_env(args);
+            defer apply_env.decref();
+            return EVAL(funcdata.body, apply_env, false);
+        },
+        else => {
+            return MalError.ApplyError;
+        },
     }
-    return MalError.TypeError;
 }
 
 pub fn main() !void {
-    const stdout_file = try std.io.getStdOut();
-    core.set_allocator(Allocator);
-    var environment = try make_environment();
+
+    //  Break a circular dependency between modules.
+    core.apply_function = &apply_function;
+
+    try make_environment();
 
     const args = try std.process.argsAlloc(Allocator);
-    var arg_list = try MalType.new_list_empty(Allocator);
-    for(args) |arg,i| {
-        if(i < 2) continue;
-        const new_mal = try MalType.new_string(Allocator, arg);
-        try arg_list.sequence_append(Allocator, new_mal);
+    const arg_list = try MalType.new_list();
+    if(1 < args.len) {
+        for (args[2..]) |arg| {
+            const new_mal = try MalType.new_string(arg, false);
+            try arg_list.List.data.append(Allocator, new_mal);
+        }
     }
-    try environment.set("*ARGV*", arg_list);
+    const argv_sym = try MalType.new_symbol("*ARGV*", true);
+    try repl_environment.set(argv_sym, arg_list);
+    argv_sym.decref();
 
     if(args.len > 1) {
-        const run_cmd = try string_concat(Allocator, try string_concat(Allocator, "(load-file \"", args[1]), "\")");
-        var output = try rep(environment, run_cmd);
+        const run_cmd = try std.fmt.allocPrint(Allocator, "(load-file \"{s}\")", .{args[1]});
+        try rep(false, run_cmd);
         return;
     }
-    
-    while(true) {
-        var line = (try getline(Allocator)) orelse break;
-        var optional_output = rep(environment, line) catch |err| {
-            if(err == MalError.KeyError) {
-                continue;
-            } else {
-                return err;
+
+    while(try getline("user> ")) |line| {
+        defer Allocator.free(line);
+        rep(true, line) catch |err| {
+            try stdout_file.writeAll("Error: ");
+            try stdout_file.writeAll(@errorName(err));
+            try stdout_file.writeAll("\n");
+            if(get_error_data()) |mal| {
+                defer mal.decref();
+                try stdout_file.writeAll("MAL error object is: ");
+                try PRINT(mal.*);
             }
         };
-        if(optional_output) |output| {
-            try stdout_file.write(output);
-            Allocator.free(output);
-            Allocator.free(line);
-            try stdout_file.write("\n");
-        }
     }
 }

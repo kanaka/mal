@@ -10,6 +10,12 @@
   ["and", ["string?", "s"],
           ["not", ["=", ["`", "\u029e"], ["get", "s", 0]]]]]],
 
+["def", "_function?", ["fn", ["a"],
+  ["isa", "a", "Function"]]],
+
+["def", "_number?", ["fn", ["a"],
+  ["=", ["`", "[object Number]"], ["classOf", "a"]]]],
+
 ["def", "div", ["fn", ["a", "b"], ["parseInt", ["/", "a", "b"]]]],
 
 ["def", "time-ms", ["fn", [],
@@ -121,9 +127,9 @@
    ["`", "symbol?"], "symbol?",
    ["`", "keyword"], "keyword",
    ["`", "keyword?"], "keyword?",
-   ["`", "number?"], "number?",
+   ["`", "number?"], "_number?",
    ["`", "fn?"], ["fn", ["a"],
-                   ["or", ["function?", "a"],
+                   ["or", ["_function?", "a"],
                           ["and", ["malfunc?", "a"],
                                   ["not", ["get", "a", ["`", "macro?"]]]]]],
    ["`", "macro?"], ["fn", ["a"],

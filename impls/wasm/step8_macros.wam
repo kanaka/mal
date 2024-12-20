@@ -1,6 +1,7 @@
 (module $step8_macros
 
   (global $repl_env (mut i32) (i32.const 0))
+  (global $DEBUG_EVAL_S (mut i32) (i32.const 0)) ;; never $RELEASED
 
   ;; READ
   (func $READ (param $str i32) (result i32)
@@ -88,51 +89,10 @@
     (return $res))
 
 
-  (global $mac_stack (mut i32) (i32.const 0))
-  (global $mac_stack_top (mut i32) (i32.const -1))
-
-  (func $MACROEXPAND (param $orig_ast i32 $env i32) (result i32)
-    (local $mac_env i64)
-    (LET $ast $orig_ast
-         $mac 0)
-    (global.set $mac_stack (STATIC_ARRAY 2048)) ;; 512 * 4, TODO: move to init
-    (block $done
-      (loop $loop
-        (br_if $done
-               (OR (i32.ne ($TYPE $ast) (global.get $LIST_T)) ;; a list
-                   (i32.eqz ($VAL0 $ast))                     ;; non-empty
-                   (i32.ne ($TYPE ($MEM_VAL1_ptr $ast))       ;; leading symbol
-                           (global.get $SYMBOL_T))))
-	(local.set $mac_env ($ENV_FIND $env ($MEM_VAL1_ptr $ast)))
-	(local.set $mac (i32.wrap_i64 (i64.shr_u $mac_env (i64.const 32))))
-        (br_if $done (OR (i32.eqz (i32.wrap_i64 $mac_env))    ;; defined in env
-                         (i32.ne ($TYPE $mac)                 ;; a macro
-                                 (global.get $MACRO_T))))
-
-        (local.set $ast ($APPLY $mac ($MEM_VAL0_ptr $ast)))
-        ;; PEND_A_LV
-        ;; if ast is not the first ast that was passed in, then add it
-        ;; to the pending release list.
-        (if (i32.ne $ast $orig_ast)
-          (then
-            (global.set $mac_stack_top
-                        (i32.add (global.get $mac_stack_top) 1))
-            (if (i32.ge_s (i32.mul (global.get $mac_stack_top) 4) 2048) ;; 512 * 4
-              ($fatal 7 "Exhausted mac_stack!\n"))
-            (i32.store (i32.add
-                         (global.get $mac_stack)
-                         (i32.mul (global.get $mac_stack_top) 4))
-              $ast)))
-        (br_if $done (global.get $error_type))
-
-        (br $loop)
-      )
-    )
-    $ast
-  )
-
   (func $EVAL_AST (param $ast i32 $env i32 $skiplast i32) (result i32)
-    (LET $res 0 $val2 0 $val3 0 $type 0 $found 0
+    ;; Return a list/vector/map with evaluated elements
+    ;; of a list, vector or hashmap $ast
+    (LET $res 0 $val2 0 $val3 0 $type 0
          $ret 0 $empty 0 $current 0)
 
     (if (global.get $error_type) (return 0))
@@ -140,15 +100,6 @@
 
     ;;($PR_VALUE ">>> EVAL_AST ast: '%s'\n" $ast)
 
-    ;;; switch(type)
-    (block $done
-      (block $default (block (block
-      (br_table 2 2 2 2 2 0 1 1 1 2 2 2 2 2 2 2 $type))
-      ;; symbol
-      ;; found/res returned as hi 32/lo 32 of i64
-      (local.set $res ($ENV_GET $env $ast))
-      (br $done))
-      ;; list, vector, hashmap
       ;; MAP_LOOP_START
       (local.set $res ($MAP_LOOP_START $type))
       ;; push MAP_LOOP stack
@@ -157,13 +108,13 @@
       (local.set $current $res)
       (local.set $empty $res)
 
-      (block $done
         (loop $loop
           ;; check if we are done evaluating the source sequence
-          (br_if $done (i32.eq ($VAL0 $ast) 0))
-
-          (if $skiplast
-            (br_if $done (i32.eqz ($VAL0 ($MEM_VAL0_ptr $ast)))))
+          (if (OR (i32.eqz ($VAL0 $ast))
+                  (AND $skiplast
+                       (i32.eqz ($VAL0 ($MEM_VAL0_ptr $ast)))))
+            (then
+              (return $ret)))
 
           (if (i32.eq $type (global.get $HASHMAP_T))
             (then
@@ -176,8 +127,7 @@
           (if (global.get $error_type)
             (then
               ($RELEASE $res)
-              (local.set $res 0)
-              (br $done)))
+              (return 0)))
 
           ;; for hash-maps, copy the key (inc ref since we are going
           ;; to release it below)
@@ -199,16 +149,7 @@
 
           (br $loop)
         )
-      )
       ;; MAP_LOOP_DONE
-      (local.set $res $ret)
-      ;; EVAL_AST_RETURN: nothing to do
-      (br $done))
-      ;; default
-      (local.set $res ($INC_REF $ast))
-    )
-
-    $res
   )
 
   (func $MAL_GET_A1 (param $ast i32) (result i32)
@@ -218,41 +159,53 @@
   (func $MAL_GET_A3 (param $ast i32) (result i32)
     ($MEM_VAL1_ptr ($MEM_VAL0_ptr ($MEM_VAL0_ptr ($MEM_VAL0_ptr $ast)))))
 
+  (func $ECHO_IF_DEBUG_EVAL (param $ast i32 $env i32)
+    (LET $value ($ENV_GET $env (global.get $DEBUG_EVAL_S)))
+    (if (AND $value
+             (i32.ne $value (global.get $NIL))
+             (i32.ne $value (global.get $FALSE)))
+      (then
+        ($PR_VALUE "EVAL: %s\n" $ast))))
+
   (func $EVAL (param $orig_ast i32 $orig_env i32) (result i32)
     (LET $ast $orig_ast
          $env $orig_env
-         $orig_mac_stack_top (global.get $mac_stack_top)
          $prev_ast 0 $prev_env 0 $res 0 $el 0
-         $ftype 0 $f_args 0 $f 0 $args 0
-         $a0 0 $a0sym 0 $a1 0 $a2 0)
+         $ftype 0 $ast_type 0 $f 0 $args 0
+         $a0 0 $a0sym 0 $a1 0 $a2 0
+         $err 0)
 
     (block $EVAL_return
     (loop $TCO_loop
-
-    (local.set $f_args 0)
-    (local.set $f 0)
-    (local.set $args 0)
 
     (if (global.get $error_type)
       (then
         (local.set $res 0)
         (br $EVAL_return)))
 
-    ;;($PR_VALUE ">>> EVAL ast: '%s'\n" $ast)
+    ($ECHO_IF_DEBUG_EVAL $ast $env)
 
-    (if (i32.ne ($TYPE $ast) (global.get $LIST_T))
+    (local.set $ast_type ($TYPE $ast))
+
+    (if (i32.eq $ast_type (global.get $SYMBOL_T))
+      (then
+        (local.set $res ($ENV_GET $env $ast))
+        (if (i32.eqz $res)
+          ($THROW_STR_1 "'%s' not found" ($to_String $ast)))
+        (br $EVAL_return)))
+
+    (if (OR (i32.eq $ast_type (global.get $VECTOR_T))
+            (i32.eq $ast_type (global.get $HASHMAP_T)))
       (then
         (local.set $res ($EVAL_AST $ast $env 0))
+        (br $EVAL_return)))
+
+    (if (i32.ne $ast_type (global.get $LIST_T))
+      (then
+        (local.set $res ($INC_REF $ast))
         (br $EVAL_return)))
 
     ;; APPLY_LIST
-    (local.set $ast ($MACROEXPAND $ast $env))
-    ;;($PR_VALUE ">>> >>> EVAL ast: '%s'\n" $ast)
-
-    (if (i32.ne ($TYPE $ast) (global.get $LIST_T))
-      (then
-        (local.set $res ($EVAL_AST $ast $env 0))
-        (br $EVAL_return)))
 
     (if ($EMPTY_Q $ast)
       (then
@@ -274,7 +227,8 @@
         ;; set a1 in env to a2
         (local.set $res ($ENV_SET $env $a1 $res))
         (br $EVAL_return))
-    (else (if (i32.eqz ($strcmp "let*" $a0sym))
+    )
+    (if (i32.eqz ($strcmp "let*" $a0sym))
       (then
         (local.set $a1 ($MAL_GET_A1 $ast))
         (local.set $a2 ($MAL_GET_A2 $ast))
@@ -310,7 +264,8 @@
 
         (local.set $ast $a2)
         (br $TCO_loop))
-    (else (if (i32.eqz ($strcmp "do" $a0sym))
+    )
+    (if (i32.eqz ($strcmp "do" $a0sym))
       (then
         ;; EVAL the rest through second to last
         (local.set $el ($EVAL_AST ($MEM_VAL0_ptr $ast) $env 1))
@@ -318,15 +273,13 @@
         ($RELEASE $ast) ;; we already own it via ast
         ($RELEASE $el)
         (br $TCO_loop))
-    (else (if (i32.eqz ($strcmp "quote" $a0sym))
+    )
+    (if (i32.eqz ($strcmp "quote" $a0sym))
       (then
         (local.set $res ($INC_REF ($MEM_VAL1_ptr ($MEM_VAL0_ptr $ast))))
         (br $EVAL_return))
-    (else (if (i32.eqz ($strcmp "quasiquoteexpand" $a0sym))
-      (then
-        (local.set $res ($QUASIQUOTE ($MEM_VAL1_ptr ($MEM_VAL0_ptr $ast))))
-        (br $EVAL_return))
-    (else (if (i32.eqz ($strcmp "quasiquote" $a0sym))
+    )
+    (if (i32.eqz ($strcmp "quasiquote" $a0sym))
       (then
         (local.set $ast ($QUASIQUOTE ($MEM_VAL1_ptr ($MEM_VAL0_ptr $ast))))
 
@@ -334,24 +287,23 @@
         (if $prev_ast ($RELEASE $prev_ast))
         (local.set $prev_ast $ast)
         (br $TCO_loop))
-    (else (if (i32.eqz ($strcmp "defmacro!" $a0sym))
+    )
+    (if (i32.eqz ($strcmp "defmacro!" $a0sym))
       (then
         (local.set $a1 ($MAL_GET_A1 $ast))
         (local.set $a2 ($MAL_GET_A2 $ast))
-        (local.set $res ($EVAL $a2 $env))
+        (local.set $f ($EVAL $a2 $env))
+        (local.set $res ($MALFUNC ($MEM_VAL0_ptr $f)
+          ($MEM_VAL1_ptr $f) ($MEM_VAL2_ptr $f)))
         ($SET_TYPE $res (global.get $MACRO_T))
         (br_if $EVAL_return (global.get $error_type))
+        ($RELEASE $f)
 
         ;; set a1 in env to a2
-        (local.set $res ($ENV_SET $env $a1 $res))
+        (drop ($ENV_SET $env $a1 $res))
         (br $EVAL_return))
-    (else (if (i32.eqz ($strcmp "macroexpand" $a0sym))
-      (then
-        ;; since we are returning it unevaluated, inc the ref cnt
-        (local.set $res ($INC_REF ($MACROEXPAND
-                                    ($MEM_VAL1_ptr ($MEM_VAL0_ptr $ast))
-                                    $env))))
-    (else (if (i32.eqz ($strcmp "if" $a0sym))
+    )
+    (if (i32.eqz ($strcmp "if" $a0sym))
       (then
         (local.set $a1 ($MAL_GET_A1 $ast))
         (local.set $res ($EVAL $a1 $env))
@@ -373,27 +325,44 @@
           ($RELEASE $res)
           (local.set $ast ($MAL_GET_A2 $ast))))))
         (br $TCO_loop))
-    (else (if (i32.eqz ($strcmp "fn*" $a0sym))
+    )
+    (if (i32.eqz ($strcmp "fn*" $a0sym))
       (then
         (local.set $a1 ($MAL_GET_A1 $ast))
         (local.set $a2 ($MAL_GET_A2 $ast))
         (local.set $res ($MALFUNC $a2 $a1 $env))
         (br $EVAL_return))
-    (else
+    )
       ;; EVAL_INVOKE
-      (local.set $res ($EVAL_AST $ast $env 0))
-      (local.set $f_args $res)
 
+      ;; Evaluate the first element to find a function or macro.
+      (local.set $f ($EVAL $a0 $env))
+      (if (global.get $error_type)
+        (then
+          (local.set $res 0)
+          (br $EVAL_return)))
+
+      (local.set $ftype ($TYPE $f))
+
+      (if (i32.eq $ftype (global.get $MACRO_T))
+        (then
+          (local.set $ast ($APPLY $f ($MEM_VAL0_ptr $ast)))
+          ($RELEASE $f)
+          (if (global.get $error_type)
+            (then
+              (local.set $res 0)
+              (br $EVAL_return)))
+          (br $TCO_loop)))
+
+      ;; Evaluate the arguments.
+      (local.set $args ($EVAL_AST ($MEM_VAL0_ptr $ast) $env 0))
       ;; if error, return f/args for release by caller
       (if (global.get $error_type)
        (then
-         (local.set $res $f_args)
+         (local.set $res $f)
+         ($RELEASE $args)
          (br $EVAL_return)))
 
-      (local.set $args ($MEM_VAL0_ptr $f_args)) ;; rest
-      (local.set $f ($MEM_VAL1_ptr $f_args)) ;; value
-
-      (local.set $ftype ($TYPE $f))
       (if (i32.eq $ftype (global.get $FUNCTION_T))
         (then
           (if (i32.eq ($VAL0 $f) 0) ;; eval
@@ -403,9 +372,11 @@
             (else
               (local.set $res (call_indirect (type $fnT) $args ($VAL0 $f)))))
           ;; release f/args
-          ($RELEASE $f_args)
+          ($RELEASE $f)
+          ($RELEASE $args)
           (br $EVAL_return))
-      (else (if (i32.eq $ftype (global.get $MALFUNC_T))
+      )
+      (if (i32.eq $ftype (global.get $MALFUNC_T))
         (then
           ;; save the current environment for release
           (local.set $prev_env $env)
@@ -432,14 +403,16 @@
           (local.set $prev_ast $ast)
 
           ;; release f/args
-          ($RELEASE $f_args)
+          ($RELEASE $f)
+          ($RELEASE $args)
 
           (br $TCO_loop))
-      (else
+      )
         ($THROW_STR_1 "apply of non-function type: %d\n" $ftype)
         (local.set $res 0)
-        ($RELEASE $f_args)
-        (br $EVAL_return)))))))))))))))))))))))))
+        ($RELEASE $f)
+        ($RELEASE $args)
+        (br $EVAL_return)
 
     ) ;; end of TCO_loop
     ) ;; end of EVAL_return
@@ -447,20 +420,6 @@
     ;; EVAL_RETURN
     (if (i32.ne $env $orig_env) ($RELEASE $env))
     (if $prev_ast ($RELEASE $prev_ast))
-
-    ;; release memory from MACROEXPAND
-    ;; TODO: needs to happen here so self-hosting doesn't leak
-    (block $done
-      (loop $loop
-        (br_if $done (i32.le_s (global.get $mac_stack_top) $orig_mac_stack_top))
-        ($RELEASE (i32.load (i32.add
-                              (global.get $mac_stack)
-                              (i32.mul (global.get $mac_stack_top) 4))))
-        (global.set $mac_stack_top
-                    (i32.sub (global.get $mac_stack_top) 1))
-        (br $loop)
-      )
-    )
 
     $res
   )
@@ -514,6 +473,7 @@
 ;;    ($printf_1 "mem: 0x%x\n" (global.get $mem))
 ;;    ($printf_1 "string_mem: %d\n" (global.get $string_mem))
 
+    (global.set $DEBUG_EVAL_S ($STRING (global.get $SYMBOL_T) "DEBUG-EVAL"))
     (global.set $repl_env ($ENV_NEW (global.get $NIL)))
     (local.set $repl_env (global.get $repl_env))
 
@@ -527,7 +487,6 @@
     ($RELEASE ($RE "(def! not (fn* (a) (if a false true)))" $repl_env))
     ($RELEASE ($RE "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \"\nnil)\")))))" $repl_env))
     ($RELEASE ($RE "(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))" $repl_env))
-
 
     ;; Command line arguments
     (local.set $res ($MAP_LOOP_START (global.get $LIST_T)))

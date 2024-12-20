@@ -1,0 +1,4 @@
+#!/bin/bash
+MAL_VBS_IMPL_NO_STDERR=1 MAL_VBS_IMPL_ECHO_STDIN=1 \
+WSLENV=MAL_VBS_IMPL_NO_STDERR/w:MAL_VBS_IMPL_ECHO_STDIN/w \
+cscript.exe -nologo "`wslpath -w "$(dirname $0)/${STEP:-stepA_mal}.vbs"`" "${@}"

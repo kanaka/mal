@@ -347,6 +347,9 @@
         </value>
       </xsl:variable>
       <xsl:choose>
+        <xsl:when test="error">
+          <xsl:copy-of select="."/>
+        </xsl:when>
         <xsl:when test="$listkind = '{'">
           <xsl:choose>
             <xsl:when test="count($value/value/malval/lvalue/malval) mod 2 = 1">
@@ -419,7 +422,7 @@
       </xsl:when>
       <xsl:otherwise>
         <error>
-          <malval kind="error">EOF while reading list</malval>
+          <malval kind="error">EOF while reading sequence</malval>
         </error>
       </xsl:otherwise>
     </xsl:choose>

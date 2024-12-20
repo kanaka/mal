@@ -50,42 +50,41 @@ NSObject * quasiquote(NSObject *ast) {
     return res;
 }
 
-NSObject *eval_ast(NSObject *ast, Env *env) {
+NSObject *EVAL(NSObject *ast, Env *env) {
+  while (true) {
+    NSObject * dbgeval = [env get:[MalSymbol stringWithString:@"DEBUG-EVAL"]];
+    if (dbgeval != nil
+        && ! [dbgeval isKindOfClass:[NSNull class]]
+        && ! [dbgeval isKindOfClass:[MalFalse class]]) {
+      printf("EVAL: %s\n", [[_pr_str(ast, true) description] UTF8String]);
+    }
     if ([ast isMemberOfClass:[MalSymbol class]]) {
-        return [env get:(MalSymbol *)ast];
-    } else if ([ast isKindOfClass:[NSArray class]]) {
+        NSObject * value = [env get:(MalSymbol *)ast];
+        if (value == nil) {
+          @throw [NSString stringWithFormat:@"'%@' not found", ast];
+        }
+        return value;
+    } else if ([ast isKindOfClass:[MalVector class]]) {
         NSMutableArray *newLst = [NSMutableArray array];
         for (NSObject * x in (NSArray *)ast) {
             [newLst addObject:EVAL(x, env)];
         }
-        if ([ast isKindOfClass:[MalVector class]]) {
-            return [MalVector fromArray:newLst];
-        } else {
-            return newLst;
-        }
+        return [MalVector fromArray:newLst];
     } else if ([ast isKindOfClass:[NSDictionary class]]) {
         NSMutableDictionary *newDict = [NSMutableDictionary dictionary];
         for (NSString * k in (NSDictionary *)ast) {
             newDict[k] = EVAL(((NSDictionary *)ast)[k], env);
         }
         return newDict;
-    } else {
+    } else if (! [ast isKindOfClass:[NSArray class]]) {
         return ast;
-    }
-}
-
-NSObject *EVAL(NSObject *ast, Env *env) {
-  while (true) {
-    //NSLog(@"EVAL: %@ (%@)", _pr_str(ast, true), env);
-    if (!list_Q(ast)) {
-        return eval_ast(ast, env);
     }
 
     // apply list
-    if ([(NSArray *)ast count] == 0) {
+    NSArray * alst = (NSArray *)ast;
+    if ([alst count] == 0) {
         return ast;
     }
-    NSArray * alst = (NSArray *)ast;
     id a0 = alst[0];
     NSString * a0sym = [a0 isKindOfClass:[MalSymbol class]] ? (NSString *)a0
                                                             : @"__<*fn*>__";
@@ -102,13 +101,12 @@ NSObject *EVAL(NSObject *ast, Env *env) {
         ast = alst[2]; // TCO
     } else if ([(NSString *)a0 isEqualTo:@"quote"]) {
         return alst[1];
-    } else if ([(NSString *)a0 isEqualTo:@"quasiquoteexpand"]) {
-        return quasiquote(alst[1]);
     } else if ([(NSString *)a0 isEqualTo:@"quasiquote"]) {
         ast = quasiquote(alst[1]); // TCO
     } else if ([a0sym isEqualTo:@"do"]) {
-        NSRange r = NSMakeRange(1, [alst count] - 2);
-        eval_ast([alst subarrayWithRange:r], env);
+        for (int i=1; i < [alst count] - 1; i++) {
+          EVAL(alst[i], env);
+        }
         ast = [alst lastObject]; // TCO
     } else if ([a0sym isEqualTo:@"if"]) {
         NSObject * cond = EVAL(alst[1], env);
@@ -125,17 +123,17 @@ NSObject *EVAL(NSObject *ast, Env *env) {
     } else if ([a0sym isEqualTo:@"fn*"]) {
         return [[MalFunc alloc] init:alst[2] env:env params:alst[1]];
     } else {
-        NSArray * el = (NSArray *) eval_ast(ast, env);
-        NSArray * args = @[];
-        if ([el count] > 1) {
-            args = _rest(el);
+        id el0 = EVAL(a0, env);
+        NSMutableArray * args = [NSMutableArray array];
+        for (int i = 1; i < [alst count]; i++) {
+            [args addObject:EVAL(alst[i], env)];
         }
-        if ([el[0] isKindOfClass:[MalFunc class]]) {
-            MalFunc * mf = el[0];
+        if ([el0 isKindOfClass:[MalFunc class]]) {
+            MalFunc * mf = el0;
             env = [Env fromBindings:[mf env] binds:[mf params] exprs:args];
             ast = [mf ast]; // TCO
         } else {
-            NSObject * (^ f)(NSArray *) = el[0];
+            NSObject * (^ f)(NSArray *) = el0;
             return f(args);
         }
     }

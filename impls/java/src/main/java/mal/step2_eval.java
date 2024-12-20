@@ -5,7 +5,6 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
-import java.util.Iterator;
 import mal.types.*;
 import mal.readline;
 import mal.reader;
@@ -18,53 +17,42 @@ public class step2_eval {
     }
 
     // eval
-    public static MalVal eval_ast(MalVal ast, HashMap env) throws MalThrowable {
-        if (ast instanceof MalSymbol) {
-            MalSymbol sym = (MalSymbol)ast;
-            return (MalVal)env.get(sym.getName());
-        } else if (ast instanceof MalList) {
-            MalList old_lst = (MalList)ast;
-            MalList new_lst = ast.list_Q() ? new MalList()
-                                           : (MalList)new MalVector();
+    public static MalVal EVAL(MalVal orig_ast, Map<String, MalVal> env) throws MalThrowable {
+        // System.out.println("EVAL: " + printer._pr_str(orig_ast, true));
+
+        if (orig_ast instanceof MalSymbol) {
+            final String key = ((MalSymbol)orig_ast).getName();
+            final MalVal val = env.get(key);
+            if (val == null)
+                throw new MalException("'" + key + "' not found");
+            return val;
+        } else if (orig_ast instanceof MalVector) {
+            final MalList old_lst = (MalList)orig_ast;
+            final MalVector new_lst = new MalVector();
             for (MalVal mv : (List<MalVal>)old_lst.value) {
                 new_lst.conj_BANG(EVAL(mv, env));
             }
             return new_lst;
-        } else if (ast instanceof MalHashMap) {
+        } else if (orig_ast instanceof MalHashMap) {
+            final Map<String, MalVal> old_hm = ((MalHashMap)orig_ast).value;
             MalHashMap new_hm = new MalHashMap();
-            Iterator it = ((MalHashMap)ast).value.entrySet().iterator();
-            while (it.hasNext()) {
-                Map.Entry entry = (Map.Entry)it.next();
+            for (Map.Entry<String, MalVal> entry : old_hm.entrySet()) {
                 new_hm.value.put(entry.getKey(), EVAL((MalVal)entry.getValue(), env));
             }
             return new_hm;
-        } else {
-            return ast;
+        } else if (!orig_ast.list_Q()) {
+            return orig_ast;
         }
-    }
-
-    public static MalVal EVAL(MalVal orig_ast, HashMap env) throws MalThrowable {
-        MalVal a0;
-        //System.out.println("EVAL: " + printer._pr_str(orig_ast, true));
-        if (!orig_ast.list_Q()) {
-            return eval_ast(orig_ast, env);
-        }
-
+        final MalList ast = (MalList)orig_ast;
         // apply list
-        MalList ast = (MalList)orig_ast;
         if (ast.size() == 0) { return ast; }
-        a0 = ast.nth(0);
-        if (!(a0 instanceof MalSymbol)) {
-            throw new MalError("attempt to apply on non-symbol '"
-                    + printer._pr_str(a0,true) + "'");
-        }
-        MalVal args = eval_ast(ast.rest(), env);
-        MalSymbol fsym = (MalSymbol)a0;
-        ILambda f = (ILambda)env.get(fsym.getName());
-        if (f == null) {
-            throw new MalError("'" + fsym.getName() + "' not found");
-        }
-        return f.apply((MalList)args);
+        final MalVal f = EVAL(ast.nth(0), env);
+        if (!(f instanceof ILambda))
+            throw new MalError("cannot apply " + printer._pr_str(ast, true));
+        final MalList args = new MalList();
+        for (int i=1; i<ast.size(); i++)
+            args.conj_BANG(EVAL(ast.nth(i), env));
+        return ((ILambda)f).apply(args);
     }
 
     // print
@@ -73,7 +61,7 @@ public class step2_eval {
     }
 
     // repl
-    public static MalVal RE(HashMap env, String str) throws MalThrowable {
+    public static MalVal RE(Map<String, MalVal> env, String str) throws MalThrowable {
         return EVAL(READ(str), env);
     }
 
@@ -102,7 +90,7 @@ public class step2_eval {
     public static void main(String[] args) throws MalThrowable {
         String prompt = "user> ";
 
-        HashMap repl_env = new HashMap();
+        Map<String, MalVal> repl_env = new HashMap<String, MalVal>();
         repl_env.put("+", add);
         repl_env.put("-", subtract);
         repl_env.put("*", multiply);
@@ -125,13 +113,12 @@ public class step2_eval {
             try {
                 System.out.println(PRINT(RE(repl_env, line)));
             } catch (MalContinue e) {
-                continue;
+            } catch (MalException e) {
+                System.out.println("Error: " + printer._pr_str(e.getValue(), false));
             } catch (MalThrowable t) {
                 System.out.println("Error: " + t.getMessage());
-                continue;
             } catch (Throwable t) {
                 System.out.println("Uncaught " + t + ": " + t.getMessage());
-                continue;
             }
         }
     }

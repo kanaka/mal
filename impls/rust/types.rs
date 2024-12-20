@@ -8,7 +8,7 @@ use crate::env::{env_bind, Env};
 use crate::types::MalErr::{ErrMalVal, ErrString};
 use crate::types::MalVal::{Atom, Bool, Func, Hash, Int, List, MalFunc, Nil, Str, Sym, Vector};
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub enum MalVal {
     Nil,
     Bool(bool),
@@ -21,7 +21,7 @@ pub enum MalVal {
     Hash(Rc<FnvHashMap<String, MalVal>>, Rc<MalVal>),
     Func(fn(MalArgs) -> MalRet, Rc<MalVal>),
     MalFunc {
-        eval: fn(ast: MalVal, env: Env) -> MalRet,
+        eval: fn(ast: &MalVal, env: &Env) -> MalRet,
         ast: Rc<MalVal>,
         env: Env,
         params: Rc<MalVal>,
@@ -31,7 +31,6 @@ pub enum MalVal {
     Atom(Rc<RefCell<MalVal>>),
 }
 
-#[derive(Debug)]
 pub enum MalErr {
     ErrString(String),
     ErrMalVal(MalVal),
@@ -70,7 +69,7 @@ pub fn error(s: &str) -> MalRet {
 
 pub fn format_error(e: MalErr) -> String {
     match e {
-        ErrString(s) => s.clone(),
+        ErrString(s) => s,
         ErrMalVal(mv) => mv.pr_str(true),
     }
 }
@@ -82,7 +81,7 @@ pub fn atom(mv: &MalVal) -> MalVal {
 impl MalVal {
     pub fn keyword(&self) -> MalRet {
         match self {
-            Str(s) if s.starts_with("\u{29e}") => Ok(Str(s.to_string())),
+            Str(s) if s.starts_with('\u{29e}') => Ok(Str(s.to_string())),
             Str(s) => Ok(Str(format!("\u{29e}{}", s))),
             _ => error("invalid type for keyword"),
         }
@@ -105,29 +104,24 @@ impl MalVal {
     }
 
     pub fn apply(&self, args: MalArgs) -> MalRet {
-        match *self {
+        match self {
             Func(f, _) => f(args),
             MalFunc {
                 eval,
                 ref ast,
-                ref env,
+                env,
                 ref params,
                 ..
             } => {
-                let a = &**ast;
-                let p = &**params;
-                let fn_env = env_bind(Some(env.clone()), p.clone(), args)?;
-                Ok(eval(a.clone(), fn_env)?)
+                let fn_env = &env_bind(Some(env.clone()), params, args)?;
+                eval(ast, fn_env)
             }
             _ => error("attempt to call non-function"),
         }
     }
 
     pub fn keyword_q(&self) -> bool {
-        match self {
-            Str(s) if s.starts_with("\u{29e}") => true,
-            _ => false,
-        }
+        matches!(self, Str(s) if s.starts_with('\u{29e}'))
     }
 
     pub fn deref(&self) -> MalRet {
@@ -162,9 +156,9 @@ impl MalVal {
 
     pub fn get_meta(&self) -> MalRet {
         match self {
-            List(_, meta) | Vector(_, meta) | Hash(_, meta) => Ok((&**meta).clone()),
-            Func(_, meta) => Ok((&**meta).clone()),
-            MalFunc { meta, .. } => Ok((&**meta).clone()),
+            List(_, meta) | Vector(_, meta) | Hash(_, meta) => Ok((**meta).clone()),
+            Func(_, meta) => Ok((**meta).clone()),
+            MalFunc { meta, .. } => Ok((**meta).clone()),
             _ => error("meta not supported by type"),
         }
     }
@@ -176,7 +170,7 @@ impl MalVal {
             | Hash(_, ref mut meta)
             | Func(_, ref mut meta)
             | MalFunc { ref mut meta, .. } => {
-                *meta = Rc::new((&*new_meta).clone());
+                *meta = Rc::new(new_meta.clone());
             }
             _ => return error("with-meta not supported by type"),
         };
@@ -223,10 +217,10 @@ pub fn _assoc(mut hm: FnvHashMap<String, MalVal>, kvs: MalArgs) -> MalRet {
 }
 
 pub fn _dissoc(mut hm: FnvHashMap<String, MalVal>, ks: MalArgs) -> MalRet {
-    for k in ks.iter() {
+    for k in ks {
         match k {
             Str(ref s) => {
-                hm.remove(s);
+                let _ = hm.remove(s);
             }
             _ => return error("key is not string"),
         }

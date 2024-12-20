@@ -1,221 +1,121 @@
-load "../logo/types.lg
+; LOGO, variables defined in a procedure are visible from called
+; procedures.  Use this quirk to pass the current parser status.
+; str:  the parsed string (constant)
+; cnt:  its length        (constant)
+; idx:  the currently parsed index, or cnt + 1
 
-make "open_paren_char    char 40
-make "close_paren_char   char 41
-make "open_bracket_char  char 91
-make "close_bracket_char char 93
-make "open_brace_char    char 123
-make "close_brace_char   char 125
+make "new_line_char char 10
+make "forbidden_chars (word :new_line_char char 13 "| "(),;[\\]{}|)
+make "separator_chars (word :new_line_char "| ,|)
 
-to newlinep :char
-output case ascii :char [
-  [[10 13] "true]
-  [else "false]
-]
-end
-
-to whitespacep :char
-output case ascii :char [
-  [[9 10 13 32] "true]
-  [else "false]
-]
-end
-
-to singlechartokenp :char
-output case :char [
-  [[ ( ) \[ \] \{ \} ' ` \^ @ ] "true]
-  [else "false]
-]
-end
-
-to separatorp :char
-output ifelse whitespacep :char [
-  "true
-] [
-  case :char [
-    [[ ( ) \[ \] \{ \} ' \" ` , \; ] "true]
-    [else "false]
-  ]
-]
-end
-
-to read_comment_token :s
-localmake "rest :s
-while [not emptyp :rest] [
-  localmake "c first :rest
-  ifelse newlinep :c [
-    output list " butfirst :rest
-  ] [
-    make "rest butfirst :rest
-  ]
-]
-output list " :rest
-end
-
-to read_word_token :s
-localmake "w "
-localmake "rest :s
-while [not emptyp :rest] [
-  localmake "c first :rest
-  ifelse separatorp :c [
-    output list :w :rest
-  ] [
-    make "w word :w :c
-    make "rest butfirst :rest
-  ]
-]
-output list :w :rest
-end
-
-to read_string_token :s
-localmake "w first :s
-localmake "rest butfirst :s
-while [not emptyp :rest] [
-  localmake "c first :rest
-  if :c = "" [
-    make "w word :w :c
-    output list :w butfirst :rest
-  ]
-  if :c = "\\ [
-    make "w word :w :c
-    make "rest butfirst :rest
-    make "c first :rest
-  ]
-  make "w word :w :c
-  make "rest butfirst :rest
-]
-(throw "error [Expected closing quotes, not EOF])
-end
-
-to read_next_token :s
-localmake "c first :s
-localmake "rest butfirst :s
-output cond [
-  [[whitespacep :c]      list " :rest]
-  [[:c = ",]             list " :rest]
-  [[:c = "~]             ifelse ((first :rest) = "@) [list "~@ butfirst :rest] [list "~ :rest] ]
-  [[singlechartokenp :c] list :c :rest]
-  [[:c = "\;]            read_comment_token :s]
-  [[:c = ""]             read_string_token :s]
-  [else                  read_word_token :s]
-]
-output list first :s butfirst :s
-end
-
-to tokenize :str
-localmake "tokens []
-localmake "s :str
-while [not emptyp :s] [
-  localmake "res read_next_token :s
-  localmake "token first :res
-  make "s last :res
-  if not emptyp :token [
-    make "tokens lput :token :tokens
-  ]
-]
-output :tokens
-end
-
-to reader_new :tokens
-output listtoarray list :tokens 1
-end
-
-to reader_peek :reader
-localmake "tokens item 1 :reader
-localmake "pos item 2 :reader
-if :pos > count :tokens [output []]
-output item :pos :tokens
-end
-
-to reader_next :reader
-make "token reader_peek :reader
-localmake "pos item 2 :reader
-setitem 2 :reader (1 + :pos)
-output :token
-end
-
-to unescape_string :token
-localmake "s butfirst butlast :token ; remove surrounding double-quotes
-localmake "i 1
+to read_allowed_chars
 localmake "res "
-while [:i <= count :s] [
-  localmake "c item :i :s
-  ifelse :c = "\\ [
-    make "i (:i + 1)
-    make "c item :i :s
-    make "res word :res case :c [
-      [[ n ] char 10]
-      [[ " ] "\" ]
-      [[ \\ ] "\\ ]
-      [else :c]
-    ]
-  ] [
-    make "res word :res :c
-  ]
-  make "i (:i + 1)
+while [:idx <= :cnt] [
+  localmake "c item :idx :str
+  if memberp :c :forbidden_chars [output :res]
+  make "idx :idx + 1
+  make "res word :res :c
 ]
 output :res
 end
 
-to read_atom :reader
-localmake "token reader_next :reader
+to skip_separators
+while [:idx <= :cnt] [
+  localmake "c item :idx :str
+  cond [
+    [[:c = "|;|]
+      do.until [
+        make "idx :idx + 1
+        if :cnt < :idx "stop
+      ] [:new_line_char = item :idx :str]
+    ]
+    [[not memberp :c :separator_chars] stop]
+  ]
+  make "idx :idx + 1
+]
+end
+
+to read_string
+localmake "res "
+while [:idx <= :cnt] [
+  localmake "c item :idx :str
+  make "idx :idx + 1
+  if :c = "" [output :res]
+  if :c = "\\ [
+    if :cnt < :idx [(throw "error [unbalananced ""])]
+    make "c item :idx :str
+    make "idx :idx + 1
+    if :c = "n [make "c :new_line_char]
+  ]
+  make "res word :res :c
+]
+(throw "error [unbalanced ""])
+end
+
+to read_symbol
+localmake "token word :c read_allowed_chars
 output cond [
-  [[:token = "nil]         nil_new]
-  [[:token = "true]        true_new]
-  [[:token = "false]       false_new]
-  [[numberp :token]        obj_new "number :token]
-  [[(first :token) = ": ]  obj_new "keyword butfirst :token]
-  [[(first :token) = "\" ] obj_new "string unescape_string :token]
-  [else                    symbol_new :token]
+  [[:token = "nil]               nil_new]
+  [[memberp :token [false true]] bool_to_mal :token]
+  [[numberp :token]              number_new :token]
+  [else                          symbol_new :token]
 ]
 end
 
-to read_seq :reader :value_type :start_char :end_char
-localmake "token reader_next :reader
-if :token <> :start_char [(throw "error sentence "expected (word "' :start_char "'))]
-localmake "seq []
-make "token reader_peek :reader
-while [:token <> :end_char] [
-  if emptyp :token [(throw "error (sentence [expected] (word "' :end_char "',) [got EOF]))]
-  make "seq lput read_form :reader :seq
-  make "token reader_peek :reader
+to read_seq :end_char
+localmake "res []
+forever [
+  skip_separators
+  if :cnt < :idx [(throw "error (sentence "EOF, "expected :end_char))]
+  if :end_char = item :idx :str [
+    make "idx :idx + 1
+    ; reversing once is more efficient than successive lputs.
+    output reverse :res
+  ]
+  make "res fput read_form :res
 ]
-ignore reader_next :reader
-output obj_new :value_type :seq
 end
 
-to reader_macro :reader :symbol_name
-ignore reader_next :reader
-output obj_new "list list symbol_new :symbol_name read_form :reader
+to reader_macro :symbol_name
+output list_new list symbol_new :symbol_name read_form
 end
 
-to with_meta_reader_macro :reader
-ignore reader_next :reader
-localmake "meta read_form :reader
-output obj_new "list (list symbol_new "with-meta read_form :reader :meta)
+to with_meta_reader_macro
+localmake "meta read_form
+output list_new (list symbol_new "with-meta read_form :meta)
 end
 
-to read_form :reader
-output case reader_peek :reader [
-  [[ ' ]   reader_macro :reader "quote ]
-  [[ ` ]   reader_macro :reader "quasiquote ]
-  [[ ~ ]   reader_macro :reader "unquote ]
-  [[ ~@ ]  reader_macro :reader "splice-unquote ]
-  [[ \^ ]   with_meta_reader_macro :reader ]
-  [[ @ ]   reader_macro :reader "deref ]
-  [[ ( ]   read_seq :reader "list :open_paren_char :close_paren_char ]
-  [[ ) ]   (throw "error sentence [unexpected] (word "' :close_paren_char "')) ]
-  [[ \[ ]  read_seq :reader "vector :open_bracket_char :close_bracket_char ]
-  [[ \] ]  (throw "error sentence [unexpected] (word "' :close_bracket_char "')) ]
-  [[ \{ ]  read_seq :reader "hashmap :open_brace_char :close_brace_char ]
-  [[ \} ]  (throw "error sentence [unexpected] (word "' :close_brace_char "')) ]
-  [else    read_atom :reader]
+to read_unquote
+if :idx <= :cnt [if "@ = item :idx :str [
+  make "idx :idx + 1
+  output reader_macro "splice-unquote
+]]
+output reader_macro "unquote
+end
+
+to read_form
+skip_separators
+if :cnt < :idx [(throw "error [EOF, expected a form])]
+localmake "c item :idx :str
+make "idx :idx + 1
+output case :c [
+  ['     reader_macro "quote ]
+  [`     reader_macro "quasiquote ]
+  [~     read_unquote ]
+  [^     with_meta_reader_macro ]
+  [@     reader_macro "deref ]
+  [|(|   list_new read_seq "|)|]
+  [|[|   vector_new read_seq "|]|]
+  [|{|   map_assoc :map_empty read_seq "|}|]
+  [|)]}| (throw "error (sentence "unexpected "' :c "'))]
+  ["     string_new read_string]
+  [:     keyword_new read_allowed_chars]
+  [else  read_symbol ]
 ]
 end
 
 to read_str :str
-localmake "tokens tokenize :str
-if emptyp :tokens [output []]
-localmake "reader reader_new :tokens
-output read_form :reader
+localmake "idx 1
+localmake "cnt count :str
+output read_form
 end

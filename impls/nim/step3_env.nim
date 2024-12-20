@@ -2,25 +2,23 @@ import rdstdin, tables, sequtils, types, reader, printer, env
 
 proc read(str: string): MalType = str.read_str
 
-proc eval(ast: MalType, env: var Env): MalType
+proc eval(ast: MalType, env: Env): MalType =
 
-proc eval_ast(ast: MalType, env: var Env): MalType =
+  let dbgeval = env.get("DEBUG-EVAL")
+  if not (dbgeval.isNil or dbgeval.kind in {Nil, False}):
+    echo "EVAL: " & ast.pr_str
+
   case ast.kind
   of Symbol:
     result = env.get(ast.str)
-  of List:
-    result = list ast.list.mapIt(it.eval(env))
+    if result.isNil:
+      raise newException(ValueError, "'" & ast.str & "' not found")
   of Vector:
     result = vector ast.list.mapIt(it.eval(env))
   of HashMap:
     result = hash_map()
     for k, v in ast.hash_map.pairs:
       result.hash_map[k] = v.eval(env)
-  else:
-    result = ast
-
-proc eval(ast: MalType, env: var Env): MalType =
-  case ast.kind
   of List:
     if ast.list.len == 0: return ast
     let
@@ -32,26 +30,25 @@ proc eval(ast: MalType, env: var Env): MalType =
     of "def!":
       result = env.set(a1.str, a2.eval(env))
     of "let*":
-      var letEnv: Env
-      letEnv.deepCopy(env)
+      let let_env = initEnv(env)
       case a1.kind
       of List, Vector:
         for i in countup(0, a1.list.high, 2):
-          letEnv.set(a1.list[i].str, a1.list[i+1].eval(letEnv))
+          let_env.set(a1.list[i].str, a1.list[i+1].eval(let_env))
       else: discard
-      result = a2.eval(letEnv)
+      result = a2.eval(let_env)
     else:
-      let el = ast.eval_ast(env)
-      result = el.list[0].fun(el.list[1 .. ^1])
+      let el = ast.list.mapIt(it.eval(env))
+      result = el[0].fun(el[1 .. ^1])
   else:
-    result = ast.eval_ast(env)
+    result = ast
 
 proc print(exp: MalType): string = exp.pr_str
 
 template wrapNumberFun(op): untyped =
   fun proc(xs: varargs[MalType]): MalType = number op(xs[0].number, xs[1].number)
 
-var repl_env = initEnv()
+let repl_env = initEnv()
 
 repl_env.set("+", wrapNumberFun(`+`))
 repl_env.set("-", wrapNumberFun(`-`))
@@ -66,6 +63,7 @@ while true:
   try:
     let line = readLineFromStdin("user> ")
     echo line.rep
+  except IOError: quit()
   except:
     echo getCurrentExceptionMsg()
     echo getCurrentException().getStackTrace()

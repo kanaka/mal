@@ -4,11 +4,27 @@ import 'printer.dart' as printer;
 import 'reader.dart' as reader;
 import 'types.dart';
 
-final Map<MalSymbol, Function> replEnv = <MalSymbol, Function>{
-  new MalSymbol('+'): (MalInt a, MalInt b) => new MalInt(a.value + b.value),
-  new MalSymbol('-'): (MalInt a, MalInt b) => new MalInt(a.value - b.value),
-  new MalSymbol('*'): (MalInt a, MalInt b) => new MalInt(a.value * b.value),
-  new MalSymbol('/'): (MalInt a, MalInt b) => new MalInt(a.value ~/ b.value),
+final Map<String, MalType> replEnv = <String, MalType>{
+  '+': new MalBuiltin((List<MalType> args) {
+    var a = args[0] as MalInt;
+    var b = args[1] as MalInt;
+    return new MalInt(a.value + b.value);
+  }),
+  '-': new MalBuiltin((List<MalType> args) {
+    var a = args[0] as MalInt;
+    var b = args[1] as MalInt;
+    return new MalInt(a.value - b.value);
+  }),
+  '*': new MalBuiltin((List<MalType> args) {
+    var a = args[0] as MalInt;
+    var b = args[1] as MalInt;
+    return new MalInt(a.value * b.value);
+  }),
+  '/': new MalBuiltin((List<MalType> args) {
+    var a = args[0] as MalInt;
+    var b = args[1] as MalInt;
+    return new MalInt(a.value ~/ b.value);
+  })
 };
 
 MalType READ(String x) => reader.read_str(x);
@@ -20,19 +36,21 @@ class NotFoundException implements Exception {
   NotFoundException(this.value);
 }
 
-eval_ast(MalType ast, Map<MalSymbol, Function> env) {
+MalType EVAL(MalType ast, Map<String, MalType> env) {
+  // stdout.writeln("EVAL: ${printer.pr_str(ast)}");
+
   if (ast is MalSymbol) {
-    var result = env[ast];
+    var result = env[ast.value];
     if (result == null) {
       throw new NotFoundException(ast.value);
     }
     return result;
   } else if (ast is MalList) {
-    return new MalList(ast.elements.map((x) => EVAL(x, env)).toList());
+    // Exit this switch.
   } else if (ast is MalVector) {
     return new MalVector(ast.elements.map((x) => EVAL(x, env)).toList());
   } else if (ast is MalHashMap) {
-    var newMap = new Map.from(ast.value);
+    var newMap = new Map<MalType, MalType>.from(ast.value);
     for (var key in newMap.keys) {
       newMap[key] = EVAL(newMap[key], env);
     }
@@ -40,21 +58,15 @@ eval_ast(MalType ast, Map<MalSymbol, Function> env) {
   } else {
     return ast;
   }
-}
-
-EVAL(MalType ast, Map<MalSymbol, Function> env) {
-  if (ast is! MalList) {
-    return eval_ast(ast, env);
-  } else {
-    if ((ast as MalList).elements.isEmpty) {
+    // ast is a list. todo: indent left.
+    var forms = (ast as MalList).elements;
+    if (forms.isEmpty) {
       return ast;
     } else {
-      var newAst = eval_ast(ast, env) as MalList;
-      Function f = newAst.elements.first;
-      var args = newAst.elements.sublist(1);
-      return Function.apply(f, args);
+      MalBuiltin f = EVAL(forms.first, env);
+      List<MalType> args = forms.sublist(1).map((x) => EVAL(x, env)).toList();
+      return f.call(args);
     }
-  }
 }
 
 String PRINT(MalType x) => printer.pr_str(x);

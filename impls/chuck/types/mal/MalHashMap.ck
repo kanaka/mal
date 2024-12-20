@@ -1,23 +1,21 @@
 // HACK: it's hard to pull in util before data types
-fun string keyName(MalObject m)
-{
-    if( m.type == "string" )
-    {
-        return (m$MalString).value();
-    }
-    else if (m.type == "keyword" )
-    {
-        return (m$MalKeyword).value();
-    }
-}
 
 public class MalHashMap extends MalObject
 {
     "hashmap" => type;
 
-    fun MalObject[] value()
+
+    fun string keyName(MalObject m)
     {
-        return MalObject.toMalObjectArray(objects);
+        if( m.type == "string" || m.type == "keyword" )
+        {
+            return m.stringValue;
+        }
+        else
+        {
+            cherr <= "User error (non-string/keyword key)\n";
+            return "";
+        }
     }
 
     fun void init(MalObject values[])

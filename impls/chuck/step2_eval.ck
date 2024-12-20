@@ -1,13 +1,12 @@
 // @import readline.ck
-// @import types/boxed/*.ck
 // @import types/MalObject.ck
 // @import types/mal/MalAtom.ck
+// @import types/mal/MalString.ck
 // @import types/mal/MalError.ck
 // @import types/mal/MalNil.ck
 // @import types/mal/MalFalse.ck
 // @import types/mal/MalTrue.ck
 // @import types/mal/MalInt.ck
-// @import types/mal/MalString.ck
 // @import types/mal/MalSymbol.ck
 // @import types/mal/MalKeyword.ck
 // @import types/mal/MalList.ck
@@ -28,94 +27,89 @@ fun MalObject READ(string input)
 
 fun MalObject EVAL(MalObject m, MalSubr env[])
 {
-    if( m.type == "list" )
+
+    //  Util.println("EVAL: " + Printer.pr_str(m, true));
+
+    if( m.type == "symbol" )
     {
-        if( (m$MalList).value().size() == 0 )
-        {
-            return m;
-        }
-
-        eval_ast(m, env) @=> MalObject result;
-        if( result.type == "error" )
-        {
-            return result;
-        }
-
-        (result$MalList).value() @=> MalObject values[];
-        values[0]$MalSubr @=> MalSubr subr;
-        MalObject.slice(values, 1) @=> MalObject args[];
-
-        return subr.call(args);
-    }
-    else
-    {
-        return eval_ast(m, env);
-    }
-}
-
-fun MalObject eval_ast(MalObject m, MalSubr env[])
-{
-    m.type => string type;
-
-    if( type == "symbol" )
-    {
-        (m$MalSymbol).value() => string symbol;
+        m.stringValue => string symbol;
         env[symbol] @=> MalSubr subr;
 
         if( subr == null )
         {
-            return MalError.create(MalString.create("'" + symbol + "' not found"));
+            return MalError.create("'" + symbol + "' not found");
         }
         else
         {
             return subr;
         }
     }
-    else if( type == "list" || type == "vector" || type == "hashmap" )
+    else if( m.type == "vector" )
     {
-        (m$MalList).value() @=> MalObject values[];
+        m.malObjectValues() @=> MalObject values[];
         MalObject results[values.size()];
-
-        if( type != "hashmap" )
+        for( 0 => int i; i < values.size(); i++ )
         {
-            for( 0 => int i; i < values.size(); i++ )
+            EVAL(values[i], env) @=> MalObject result;
+            if( result.type == "error" )
             {
-                EVAL(values[i], env) @=> MalObject result;
-
-                if( result.type == "error" )
-                {
-                    return result;
-                }
-
-                result @=> results[i];
+                return result;
             }
+            result @=> results[i];
+        }
+        return MalVector.create(results);
+    }
+    else if( m.type == "hashmap" )
+    {
+        m.malObjectValues() @=> MalObject values[];
+        MalObject results[values.size()];
+        for( 0 => int i; i < values.size(); i++ )
+        {
+            if( i % 2 == 0 )
+            {
+                values[i] @=> results[i];
+            }
+            else
+            {
+                EVAL(values[i], env) @=> results[i];
+            }
+        }
+        return MalHashMap.create(results);
+    }
+    else if( m.type == "list" )
+    {
+        m.malObjectValues() @=> MalObject ast[];
+
+        if( ast.size() == 0 )
+        {
+            return m;
+        }
+
+        EVAL(ast[0], env) @=> MalObject first;
+        if( first.type == "error" )
+        {
+            return first;
+        }
+
+        MalObject args[ast.size() - 1];
+        for( 0 => int i; i < args.size(); i++ )
+        {
+            EVAL(ast[i + 1], env) @=> MalObject result;
+            if( result.type == "error" )
+            {
+                return result;
+            }
+            result @=> args[i];
+        }
+        if( first.type == "subr" )
+        {
+            first$MalSubr @=> MalSubr subr;
+            return subr.call(args);
         }
         else
         {
-            for( 0 => int i; i < values.size(); i++ )
-            {
-                if( i % 2 == 0 )
-                {
-                    values[i] @=> results[i];
-                }
-                else
-                {
-                    EVAL(values[i], env) @=> results[i];
-                }
-            }
-        }
-
-        if( type == "list" )
-        {
-            return MalList.create(results);
-        }
-        else if( type == "vector" )
-        {
-            return MalVector.create(results);
-        }
-        else if( type == "hashmap" )
-        {
-            return MalHashMap.create(results);
+            Util.panic("Programmer error: cannot apply");
+            return null;
         }
     }
     else
@@ -137,8 +131,7 @@ new MalDiv @=> repl_env["/"];
 
 fun string errorMessage(MalObject m)
 {
-    (m$MalError).value() @=> MalObject value;
-    return "exception: " + Printer.pr_str(value, true);
+    return "exception: " + String.repr(m.malObjectValue().stringValue);
 }
 
 fun string rep(string input)
@@ -171,7 +164,7 @@ fun void main()
         {
             rep(input) => string output;
 
-            if( output == "empty input" )
+            if( output == "exception: \"empty input\"" )
             {
                 // proceed immediately with prompt
             }

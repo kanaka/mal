@@ -38,30 +38,16 @@ classdef Env < handle
             env.data(k.name) = v;
             ret = v;
         end
-        function ret = find(env, k)
-            if env.data.isKey(k.name)
-                ret = env;
-            else
-                if ~islogical(env.outer) 
-                    ret = env.outer.find(k);
-                else
-                    ret = false;
-                end
-            end
-        end
+
         function ret = get(env, k)
-            fenv = env.find(k);
-            if ~islogical(fenv)
-                ret = fenv.data(k.name);
-            else
-                if exist('OCTAVE_VERSION', 'builtin') ~= 0
-                    error('ENV:notfound', ...
-                          sprintf('''%s'' not found', k.name));
-                else
-                    throw(MException('ENV:notfound', ...
-                                     sprintf('''%s'' not found', k.name)));
+            while ~env.data.isKey(k)
+                env = env.outer;
+                if islogical(env)
+                    ret = {};
+                    return;
                 end
             end
+            ret = env.data(k);
         end
     end
 end

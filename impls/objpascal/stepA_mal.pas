@@ -3,7 +3,6 @@ program Mal;
 {$H+} // Use AnsiString
 
 Uses sysutils,
-     CMem,
      fgl,
      math,
      mal_readline,
@@ -71,91 +70,6 @@ begin
         Exit(Res);
 end;
 
-function is_macro_call(Ast: TMal; Env: TEnv): Boolean;
-var
-    A0  : TMal;
-    Mac : TMal;
-begin
-    is_macro_call := false;
-    if (Ast.ClassType = TMalList) and
-       (Length((Ast as TMalList).Val) > 0) then
-    begin
-        A0 := (Ast as TMalList).Val[0];
-        if (A0 is TMalSymbol) and
-           (Env.Find(A0 as TMalSymbol) <> nil) then
-        begin
-            Mac := Env.Get((A0 as TMalSymbol));
-            if Mac is TMalFunc then
-                is_macro_call := (Mac as TMalFunc).isMacro;
-        end;
-    end;
-
-end;
-
-// Forward declation since eval_ast call it
-function EVAL(Ast: TMal; Env: TEnv) : TMal; forward;
-
-function macroexpand(Ast: TMal; Env: TEnv): TMal;
-var
-    A0   : TMal;
-    Arr  : TMalArray;
-    Args : TMalArray;
-    Mac  : TMalFunc;
-begin
-    while is_macro_call(Ast, Env) do
-    begin
-        Arr := (Ast as TMalList).Val;
-        A0 := Arr[0];
-        Mac := Env.Get((A0 as TMalSymbol)) as TMalFunc;
-        Args := (Ast as TMalList).Rest.Val;
-        if Mac.Ast = nil then
-            Ast := Mac.Val(Args)
-        else
-            Ast := EVAL(Mac.Ast,
-                        TEnv.Create(Mac.Env, Mac.Params, Args));
-    end;
-    macroexpand := Ast;
-end;
-
-function eval_ast(Ast: TMal; Env: TEnv) : TMal;
-var
-    OldArr, NewArr   : TMalArray;
-    OldDict, NewDict : TMalDict;
-    I                : longint;
-begin
-    if Ast is TMalSymbol then
-    begin
-        eval_ast := Env.Get((Ast as TMalSymbol));
-    end
-    else if Ast is TMalList then
-    begin
-        OldArr := (Ast as TMalList).Val;
-        SetLength(NewArr, Length(OldArr));
-        for I := 0 to Length(OldArr)-1 do
-        begin
-            NewArr[I] := EVAL(OldArr[I], Env);
-        end;
-        if Ast is TMalVector then
-            eval_ast := TMalVector.Create(NewArr)
-        else
-            eval_ast := TMalList.Create(NewArr);
-    end
-    else if Ast is TMalHashMap then
-    begin
-        OldDict := (Ast as TMalHashMap).Val;
-        NewDict := TMalDict.Create;
-        I := 0;
-        while I < OldDict.Count do
-        begin
-            NewDict[OldDict.Keys[I]] := EVAL(OldDict[OldDict.Keys[I]], Env);
-            I := I + 1;
-        end;
-        eval_ast := TMalHashMap.Create(NewDict);
-    end
-    else
-        eval_ast := Ast;
-end;
-
 function EVAL(Ast: TMal; Env: TEnv) : TMal;
 var
     Lst    : TMalList;
@@ -168,15 +82,41 @@ var
     Fn     : TMalFunc;
     Args   : TMalArray;
     Err    : TMalArray;
+    OldDict, NewDict :  TMalDict;
 begin
   while true do
   begin
-    if Ast.ClassType <> TMalList then
-        Exit(eval_ast(Ast, Env));
 
-    Ast := macroexpand(Ast, Env);
-    if Ast.ClassType <> TMalList then
-        Exit(eval_ast(Ast, Env));
+    Cond := Env.Get('DEBUG-EVAL');
+    if (Cond <> nil) and not (Cond is TMalNil) and not (Cond is TMalFalse) then
+       WriteLn('EVAL: ' + pr_str(Ast, True));
+
+    if Ast is TMalSymbol then
+    begin
+        A0Sym := (Ast as TMalSymbol).Val;
+        Cond := Env.Get(A0Sym);
+        if Cond = nil then
+            raise Exception.Create('''' + A0Sym+ ''' not found');
+        Exit(Cond);
+    end
+    else if Ast is TMalVector then
+    begin
+        Arr := (Ast as TMalVector).Val;
+        SetLength(Arr1, Length(Arr));
+        for I := 0 to Length(Arr)-1 do
+            Arr1[I]:= EVAL(Arr[I], Env);
+        Exit(TMalVector.Create(Arr1));
+    end
+    else if Ast is TMalHashMap then
+    begin
+        OldDict := (Ast as TMalHashMap).Val;
+        NewDict := TMalDict.Create;
+        for I := 0 to OldDict.Count-1 do
+            NewDict[OldDict.Keys[I]]:= EVAL(OldDict[OldDict.Keys[I]], Env);
+        Exit(TMalHashMap.Create(NewDict));
+    end
+    else if not (Ast is TMalList) then
+        Exit(Ast);
 
     // Apply list
     Lst := (Ast as TMalList);
@@ -206,8 +146,6 @@ begin
         end;
     'quote':
         Exit(Arr[1]);
-    'quasiquoteexpand':
-        Exit(quasiquote(Arr[1]));
     'quasiquote':
         Ast := quasiquote(Arr[1]);
     'defmacro!':
@@ -217,8 +155,6 @@ begin
         Fn.isMacro := true;
         Exit(Env.Add((Arr[1] as TMalSymbol), Fn));
     end;
-    'macroexpand':
-        Exit(macroexpand(Arr[1], Env));
     'try*':
     begin
         try
@@ -242,7 +178,8 @@ begin
     end;
     'do':
         begin
-            eval_ast(TMalList.Create(copy(Arr,1, Length(Arr)-2)), Env);
+            for I := 1 to Length(Arr) - 2 do
+                 Cond := EVAL(Arr[I], Env);
             Ast := Arr[Length(Arr)-1]; // TCO
         end;
     'if':
@@ -262,14 +199,21 @@ begin
         end;
     else
         begin
-            Arr := (eval_ast(Ast, Env) as TMalList).Val;
-            if Arr[0] is TMalFunc then
+            Cond := EVAL(Arr[0], Env);
+            Args := copy(Arr, 1, Length(Arr) - 1);
+            if Cond is TMalFunc then
             begin
-                Fn := Arr[0] as TMalFunc;
-                if Length(Arr) < 2 then
-                    SetLength(Args, 0)
-                else
-                    Args := copy(Arr, 1, Length(Arr)-1);
+                Fn := Cond as TMalFunc;
+                if Fn.isMacro then
+                begin
+                    if Fn.Ast =nil then
+                        Ast := Fn.Val(Args)
+                    else
+                        Ast := EVAL(Fn.Ast, Tenv.Create(Fn.Env, Fn.Params, Args));
+                    continue; // TCO
+                end;
+                for I := 0 to Length(Args) - 1 do
+                    Args[I]:= EVAL(Args[I], Env);
                 if Fn.Ast = nil then
                     Exit(Fn.Val(Args))
                 else

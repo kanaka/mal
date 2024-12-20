@@ -9,7 +9,7 @@ import (
 )
 
 import (
-	. "types"
+	. "mal/src/types"
 )
 
 type Reader interface {

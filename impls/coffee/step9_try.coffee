@@ -23,36 +23,25 @@ quasiquote = (ast) ->
   else if types._symbol_Q(ast) || types._hash_map_Q(ast) then [types._symbol('quote'), ast]
   else ast
 
-is_macro_call = (ast, env) ->
-  return types._list_Q(ast) && types._symbol_Q(ast[0]) &&
-         env.find(ast[0]) && env.get(ast[0]).__ismacro__
+EVAL = (ast, env) ->
+ loop
+  dbgenv = env.find("DEBUG-EVAL")
+  if dbgenv
+    dbgeval = dbgenv.get("DEBUG-EVAL")
+    if dbgeval != null and dbgeval != false
+      console.log "EVAL:", printer._pr_str ast
 
-macroexpand = (ast, env) ->
-  while is_macro_call(ast, env)
-    ast = env.get(ast[0])(ast[1..]...)
-  ast
-    
-    
-
-eval_ast = (ast, env) ->
-  if types._symbol_Q(ast) then env.get ast
-  else if types._list_Q(ast) then ast.map((a) -> EVAL(a, env))
+  if types._symbol_Q(ast) then return env.get ast.name
+  else if types._list_Q(ast) then # exit this switch
   else if types._vector_Q(ast)
-    types._vector(ast.map((a) -> EVAL(a, env))...)
+    return types._vector(ast.map((a) -> EVAL(a, env))...)
   else if types._hash_map_Q(ast)
     new_hm = {}
     new_hm[k] = EVAL(v, env) for k,v of ast
-    new_hm
-  else ast
-
-EVAL = (ast, env) ->
- loop
-  #console.log "EVAL:", printer._pr_str ast
-  if !types._list_Q ast then return eval_ast ast, env
+    return new_hm
+  else return ast
 
   # apply list
-  ast = macroexpand ast, env
-  if !types._list_Q ast then return eval_ast ast, env
   if ast.length == 0 then return ast
 
   [a0, a1, a2, a3] = ast
@@ -67,8 +56,6 @@ EVAL = (ast, env) ->
       env = let_env
     when "quote"
       return a1
-    when "quasiquoteexpand"
-      return quasiquote(a1)
     when "quasiquote"
       ast = quasiquote(a1)
     when "defmacro!"
@@ -76,8 +63,6 @@ EVAL = (ast, env) ->
       f = types._clone(f)
       f.__ismacro__ = true
       return env.set(a1, f)
-    when "macroexpand"
-      return macroexpand(a1, env)
     when "try*"
       try return EVAL(a1, env)
       catch exc
@@ -88,7 +73,7 @@ EVAL = (ast, env) ->
         else
           throw exc
     when "do"
-      eval_ast(ast[1..-2], env)
+      ast[1..-2].map((a) -> EVAL(a, env))
       ast = ast[ast.length-1]
     when "if"
       cond = EVAL(a1, env)
@@ -99,7 +84,11 @@ EVAL = (ast, env) ->
     when "fn*"
       return types._function(EVAL, a2, env, a1)
     else
-      [f, args...] = eval_ast ast, env
+      f = EVAL(a0, env)
+      if f.__ismacro__
+        ast = EVAL(f.__ast__, f.__gen_env__(ast[1..]))
+        continue
+      args = ast[1..].map((a) -> EVAL(a, env))
       if types._function_Q(f)
         ast = f.__ast__
         env = f.__gen_env__(args)

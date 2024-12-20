@@ -1,5 +1,9 @@
 name: Build and Test
 
+permissions:
+  contents: read
+  packages: write
+
 on:
   push: {}
   pull_request: {}
@@ -9,35 +13,56 @@ on:
         description: 'Space separated list of impls to test (or all)'
         required: true
         default: 'all'
+      self-hosted:
+        description: 'Include self-hosted tests'
+        required: true
+        default: 'yes'
+        options: ['yes', 'no']
 
 jobs:
   get-matrix:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     outputs:
-      do-linux: ${{ steps.get-matrix-step.outputs.do-linux }}
+      do-linux: ${{ steps.get-matrix-step.outputs.do_linux }}
       matrix-linux: ${{ steps.get-matrix-step.outputs.linux }}
-      do-macos: ${{ steps.get-matrix-step.outputs.do-macos }}
+      do-macos: ${{ steps.get-matrix-step.outputs.do_macos }}
       matrix-macos: ${{ steps.get-matrix-step.outputs.macos }}
+      do-windows: ${{ steps.get-matrix-step.outputs.do_windows }}
+      matrix-windows: ${{ steps.get-matrix-step.outputs.windows }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - id: files
         if: ${{ github.event_name != 'workflow_dispatch' }}
-        uses: kanaka/get-changed-files@v1
+        uses: kanaka/get-changed-files@v4
+        with:
+          default-base: master
       - id: get-matrix-step
         run: |
           export OVERRIDE_IMPLS="${{ github.event.inputs.impls }}" # "
           echo "OVERRIDE_IMPLS: ${OVERRIDE_IMPLS}"
-          ./get-ci-matrix.py ${{ steps.files.outputs.all }}
+          ./get-ci-matrix.py ${{ steps.files.outputs.all }} > "${GITHUB_OUTPUT}"
 
   linux:
     needs: get-matrix
     if: ${{ needs.get-matrix.outputs.do-linux == 'true' }}
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix: ${{ fromJson(needs.get-matrix.outputs.matrix-linux) }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Need full history for voom like versions
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Docker Build/Push
+        run: |
+          export ${{ matrix.IMPL }}
+          ./ci.sh docker-build-push ${IMPL}
       - name: Build
         run: |
           export ${{ matrix.IMPL }}
@@ -54,10 +79,24 @@ jobs:
         run: |
           export ${{ matrix.IMPL }}
           ./ci.sh perf ${IMPL}
+      - name: Self-hosted Tests
+        if: ${{ github.event.inputs.self-hosted != 'no' }}
+        run: |
+          export ${{ matrix.IMPL }}
+          if [ -n "${NO_SELF_HOST:-}" ]; then
+            echo "Skipping self-host for ${IMPL} due to NO_SELF_HOST variable"
+          else
+            DO_SELF_HOST=1 ./ci.sh test ${IMPL}
+            # Check that self-hosted mode really ran
+            [ "`grep -a "mal-user>" test-mal-*${IMPL}.debug | wc -l`" -gt 800 ]
+          fi
+      - name: Print debug log
+        if: failure()
+        run: cat *.debug
       - name: Archive logs and debug output
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
-          name: logs
+          name: logs.${{ matrix.IMPL }}
           path: |
             *.log
             *.debug
@@ -65,12 +104,12 @@ jobs:
   macos:
     needs: get-matrix
     if: ${{ needs.get-matrix.outputs.do-macos == 'true' }}
-    runs-on: macos-10.15
+    runs-on: macos-12
     strategy:
       fail-fast: false
       matrix: ${{ fromJson(needs.get-matrix.outputs.matrix-macos) }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Build
         run: |
           export ${{ matrix.IMPL }}
@@ -87,10 +126,86 @@ jobs:
         run: |
           export ${{ matrix.IMPL }}
           ./ci.sh perf ${IMPL}
+      - name: Self-hosted Tests
+        if: ${{ github.event.inputs.self-hosted != 'no' }}
+        run: |
+          export ${{ matrix.IMPL }}
+          if [ -n "${NO_SELF_HOST:-}" ]; then
+            echo "Skipping self-host for ${IMPL} due to NO_SELF_HOST variable"
+          else
+            DO_SELF_HOST=1 ./ci.sh test ${IMPL}
+            # Check that self-hosted mode really ran
+            [ "`grep -a "mal-user>" test-mal-*${IMPL}.debug | wc -l`" -gt 800 ]
+          fi
+      - name: Print debug log
+        if: failure()
+        run: cat *.debug
       - name: Archive logs and debug output
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
-          name: logs
+          name: logs.${{ matrix.IMPL }}
+          path: |
+            *.log
+            *.debug
+
+  windows:
+    needs: get-matrix
+    if: ${{ needs.get-matrix.outputs.do-windows == 'true' }}
+    runs-on: windows-2022
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.get-matrix.outputs.matrix-windows) }}
+    steps:
+      - uses: Vampire/setup-wsl@v3
+        with:
+            distribution: Ubuntu-24.04
+      - name: Install requirements for WSL
+        shell: wsl-bash {0}
+        run: |
+          sudo apt update -y
+          sudo apt install make -y
+          sudo apt install python3 -y
+          sudo ln -s /usr/bin/python3 /usr/bin/python
+      - uses: actions/checkout@v4
+      - name: Build
+        shell: wsl-bash {0}
+        run: |
+          export ${{ matrix.IMPL }}
+          ./ci.sh build ${IMPL}
+      - name: Step Tests
+        shell: wsl-bash {0}
+        run: |
+          export ${{ matrix.IMPL }}
+          ./ci.sh test ${IMPL}
+      - name: Regression Tests
+        shell: wsl-bash {0}
+        run: |
+          export ${{ matrix.IMPL }}
+          STEP=stepA REGRESS=1 HARD=1 OPTIONAL=0 ./ci.sh test ${IMPL}
+      - name: Performance Tests
+        shell: wsl-bash {0}
+        run: |
+          export ${{ matrix.IMPL }}
+          ./ci.sh perf ${IMPL}
+      - name: Self-hosted Tests
+        if: ${{ github.event.inputs.self-hosted != 'no' }}
+        shell: wsl-bash {0}
+        run: |
+          export ${{ matrix.IMPL }}
+          if [ -n "${NO_SELF_HOST:-}" ]; then
+            echo "Skipping self-host for ${IMPL} due to NO_SELF_HOST variable"
+          else
+            DO_SELF_HOST=1 ./ci.sh test ${IMPL}
+            # Check that self-hosted mode really ran
+            [ "`grep -a "mal-user>" test-mal-*${IMPL}.debug | wc -l`" -gt 800 ]
+          fi
+      - name: Print debug log
+        if: failure()
+        run: cat *.debug
+      - name: Archive logs and debug output
+        uses: actions/upload-artifact@v4
+        with:
+          name: logs.${{ matrix.IMPL }}
           path: |
             *.log
             *.debug

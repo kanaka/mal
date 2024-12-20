@@ -1,7 +1,7 @@
-const string_copy = @import("utils.zig").string_copy;
-const string_concat = @import("utils.zig").string_concat;
-const Allocator = @import("std").mem.Allocator;
-const warn = @import("std").debug.warn;
+const std = @import("std");
+
+const allocator = std.heap.c_allocator;
+const warn = std.log.warn;
 const Env = @import("env.zig").Env;
 const MalError = @import("error.zig").MalError;
 const MalHashMap = @import("hmap.zig").MalHashMap;
@@ -9,463 +9,317 @@ const MalLinkedList = @import("linked_list.zig").MalLinkedList;
 
 const linked_list = @import("linked_list.zig");
 const hash_map = @import("hmap.zig");
+const map_destroy = @import("hmap.zig").map_destroy;
 
-pub const MalTypeValue = enum {
-    List,
-    Vector,
-    Generic,
-    Int,
-    String,
-    Keyword,
-    Nil,
-    True,
-    False,
-    Fn0,
-    Fn1,
-    Fn2,
-    Fn3,
-    Fn4,
-    FVar,
-    Func,
-    Atom,
-    HashMap,
+pub const debug_alloc = false;
+
+pub const ListData = struct {
+    data: MalLinkedList,
+    reference_count: i32 = 1,
+    metadata: *MalType = &MalType.NIL,
+};
+
+pub const FnCoreData = struct {
+    data: *const fn (args: []*MalType) MalError!*MalType,
+    reference_count: i32 = 1,  //  May reach 0 when metadata.
+    metadata: *MalType = &MalType.NIL,
 };
 
 pub const MalFuncData = struct {
     arg_list: *MalType,
     body: *MalType,
     environment: *Env,
-    eval_func: ?(*const fn(o_mal: *MalType, env: *Env) MalError!*MalType),
-    is_macro: bool,
+    is_macro: bool = false,
+    reference_count: i32 = 1,
+    metadata: *MalType = &MalType.NIL,
+
+    pub fn gen_env(self: MalFuncData, args: []*MalType) !*Env {
+        const binds = try self.arg_list.as_slice();
+        var res = try Env.new(self.environment);
+        self.environment.incref();
+        errdefer res.decref();
+        if (2 <= binds.len
+            and std.hash_map.eqlString(binds[binds.len - 2].Symbol.data, "&"))
+        {
+            if (args.len < binds.len - 2)
+                return MalError.TypeError;
+            for (binds[0..binds.len-2], args[0..binds.len-2]) |k, v| {
+                try res.set(k, v);
+                v.incref();
+            }
+            const more = try MalType.new_list();
+            errdefer more.decref();
+            for (args[binds.len-2..args.len]) |x| {
+                try more.List.data.append(allocator, x);
+                x.incref();
+            }
+            try res.set(binds[binds.len - 1], more);
+            //  Do not increment the reference count for this value.
+        }
+        else {
+            if (args.len != binds.len) {
+                return MalError.TypeError;
+            }
+            for(binds, args) |k, v| {
+                try res.set(k, v);
+                v.incref();
+            }
+        }
+        return res;
+    }
 };
 
-pub const MalData = union(MalTypeValue) {
-    List: MalLinkedList,
-    Vector: MalLinkedList,
-    Generic: []const u8,
-    Int: i64,
-    String: []const u8,
-    Keyword: []const u8,
+pub const StringData = struct {
+    data: [] const u8,
+    reference_count: i32 = 1,
+};
+
+pub const HashMapData = struct {
+    data: MalHashMap,
+    reference_count: i32 = 1,
+    metadata: *MalType = &MalType.NIL,
+};
+
+pub const MalType = union(enum) {
+    List: ListData,
+    Vector: ListData,
+    Int: struct {
+        data: i64,
+        reference_count: i32 = 1,
+    },
+    Symbol: StringData,
+    String: StringData,
+    Keyword: StringData,
     Nil: void,
     True: void,
     False: void,
-    Fn0: *const fn () MalError!*MalType,
-    Fn1: *const fn (a1: *MalType) MalError!*MalType,
-    Fn2: *const fn (a1: *MalType, a2: *MalType) MalError!*MalType,
-    Fn3: *const fn (a1: *MalType, a2: *MalType, a3: *MalType) MalError!*MalType,
-    Fn4: *const fn (a1: *MalType, a2: *MalType, a3: *MalType, a4: *MalType) MalError!*MalType,
-    FVar: *const fn (args: MalLinkedList) MalError!*MalType,
+    FnCore: FnCoreData,
     Func: MalFuncData,
-    Atom: **MalType,
-    HashMap: MalHashMap,
-};
+    Atom: struct {
+        data: *MalType,
+        reference_count: i32 = 1,
+    },
+    HashMap: HashMapData,
 
-pub const MalType = struct {
-    reference_count: *i32,
-    data: MalData,
-    meta: ?*MalType,
+    //  Define some frequent values in advance.  They are not allocated
+    //  on the heap, but should never be deallocated anyway.
+    pub var NIL   = MalType { .Nil   = undefined };
+    pub var FALSE = MalType { .False = undefined };
+    pub var TRUE  = MalType { .True  = undefined };
 
-    pub fn new_nil(allocator: *Allocator) MalError!*MalType {
-        const mal: *MalType = allocator.create(MalType)
-            catch return MalError.SystemError;
+    pub fn new_symbol(value: []const u8, copy: bool) !*MalType {
+        const mal = try allocator.create(MalType);
         errdefer allocator.destroy(mal);
-        mal.reference_count = allocator.create(i32)
-            catch return MalError.SystemError;
-        mal.reference_count.* = 1;
-        mal.data = MalData { .Nil = undefined };
-        mal.meta = null;
-        return mal;
-    }
-    
-    pub fn new_generic(allocator: *Allocator, value: [] const u8) MalError!*MalType {
-        // TODO: should we free on errors?
-        const mal: *MalType = try MalType.new_nil(allocator);
-        errdefer mal.delete(allocator);
-        const value_copy = string_copy(allocator, value)
-            catch return MalError.SystemError;
-        errdefer allocator.destroy(value_copy);
-        mal.data = MalData { .Generic = value_copy };
+        const data = if (copy) try allocator.dupe(u8, value) else value;
+        mal.* = .{.Symbol=.{.data = data}};
+        if (debug_alloc) warn("Init {any}", .{mal});
         return mal;
     }
 
-    pub fn new_string(allocator: *Allocator, value: [] const u8) MalError!*MalType {
-        const mal = try MalType.new_nil(allocator);
-        const string_cpy = string_copy(allocator, value) catch return MalError.SystemError;
-        mal.data = MalData { .String = string_cpy };
+    pub fn new_string(value: []const u8, copy: bool) !*MalType {
+        const mal = try allocator.create(MalType);
+        errdefer allocator.destroy(mal);
+        const data = if (copy) try allocator.dupe(u8, value) else value;
+        mal.* = .{.String=.{.data = data}};
+        if (debug_alloc) warn("Init {any}", .{mal});
         return mal;
     }
 
-    pub fn new_keyword(allocator: *Allocator, value: [] const u8) MalError!*MalType {
-        const mal = try MalType.new_nil(allocator);
-        const kwd_prefix: [] const u8 = [_]u8 {255};
-        const kwd_cpy = string_concat(allocator, kwd_prefix, value)
-            catch return MalError.SystemError;
-        mal.data = MalData { .Keyword = kwd_cpy };
-        return mal;
-    }
-    
-    pub fn new_int(allocator: *Allocator, value: i64) MalError!*MalType {
-        const mal = try MalType.new_nil(allocator);
-        mal.data = MalData { .Int = value };
+    pub fn new_keyword(value: []const u8, copy: bool) !*MalType {
+        const mal = try allocator.create(MalType);
+        errdefer allocator.destroy(mal);
+        const data = if (copy) try allocator.dupe(u8, value) else value;
+        mal.* = .{.Keyword=.{.data = data}};
+        if (debug_alloc) warn("Init {any}", .{mal});
         return mal;
     }
 
-    pub fn new_bool(allocator: *Allocator, b: bool) MalError!*MalType {
-        const mal = try MalType.new_nil(allocator);
+    pub fn new_int(value: i64) !*MalType {
+        const mal = try allocator.create(MalType);
+        mal.* = .{.Int=.{.data = value}};
+        if (debug_alloc) warn("Init {any}", .{mal});
+        return mal;
+    }
+
+    pub fn new_bool(b: bool) *MalType {
         if(b) {
-            mal.data = MalData { .True = undefined };
+            return &TRUE;
         }
         else {
-            mal.data = MalData { .False = undefined };
+            return &FALSE;
         }
+    }
+
+    pub fn newFnCore(f: *const fn (args: []*MalType) MalError!*MalType) !*MalType {
+        const mal = try allocator.create(MalType);
+        mal.* = .{.FnCore=.{.data = f}};
+        if (debug_alloc) warn("Init core function", .{});
         return mal;
     }
 
-    pub fn new_list_empty(allocator: *Allocator) MalError!*MalType {
-        const mal = try MalType.new_nil(allocator);
-        mal.data = MalData {.List = MalLinkedList.init(allocator)};
+    pub fn newFunc(arg_list: *MalType,
+                   body: *MalType,
+                   environment: *Env,
+                  ) !*MalType
+    {
+        const mal = try allocator.create(MalType);
+        mal.* = .{.Func=.{
+            .arg_list = arg_list,
+            .body = body,
+            .environment = environment,
+        }};
+        if (debug_alloc) warn("Init {any}", .{mal});
         return mal;
     }
 
-    pub fn new_vector_empty(allocator: *Allocator) MalError!*MalType {
-        const mal = try MalType.new_nil(allocator);
-        mal.data = MalData {.Vector = MalLinkedList.init(allocator)};
+    pub fn new_list() !*MalType {
+        const mal = try allocator.create(MalType);
+        mal.* = .{.List=.{.data = MalLinkedList { }}};
+        if (debug_alloc) warn("Init {any}", .{mal});
         return mal;
     }
 
-    pub fn new_list(allocator: *Allocator, ll: MalLinkedList) MalError!*MalType {
-        const mal = try MalType.new_nil(allocator);
-        mal.data = MalData {.List = ll};
-        return mal;
-    }
-    
-    pub fn new_vector(allocator: *Allocator, ll: MalLinkedList) MalError!*MalType {
-        const mal = try MalType.new_nil(allocator);
-        mal.data = MalData {.Vector = ll};
+    pub fn new_vector() !*MalType {
+        const mal = try allocator.create(MalType);
+        errdefer allocator.destroy(mal);
+        mal.* = .{.Vector=.{.data = MalLinkedList { }}};
+        if (debug_alloc) warn("Init {any}", .{mal});
         return mal;
     }
 
-    pub fn new_atom(allocator: *Allocator, mal: *MalType) MalError!*MalType {
-        const new_mal = try MalType.new_nil(allocator);
-        errdefer new_mal.delete(allocator);
-        const atom_value = allocator.create(*MalType) catch return MalError.SystemError;
-        atom_value.* = try mal.copy(allocator);
-        new_mal.data = MalData { .Atom = atom_value };
+    pub fn new_atom(mal: *MalType) !*MalType {
+        const new_mal = try allocator.create(MalType);
+        errdefer allocator.destroy(new_mal);
+        new_mal.* = .{.Atom=.{.data = mal}};
+        if (debug_alloc) warn("Init {any}", .{new_mal});
         return new_mal;
     }
 
-    pub fn new_hashmap(allocator: *Allocator) MalError!*MalType {
-        const new_mal = try MalType.new_nil(allocator);
-        errdefer new_mal.delete(allocator);
-        const hmap = MalHashMap.init(allocator);
-        new_mal.data = MalData {.HashMap = hmap};
+    pub fn new_hashmap() !*MalType {
+        const new_mal = try allocator.create(MalType);
+        errdefer allocator.destroy(new_mal);
+        new_mal.* = .{.HashMap=.{.data = .{}}};
+        if (debug_alloc) warn("Init {any}", .{new_mal});
         return new_mal;
     }
 
-    pub fn hashmap_insert(mal: *MalType, key: []const u8, value: *MalType) MalError!void {
-        switch(mal.data) {
-            .HashMap => |*hmap| {
-                _ = hmap.*.put(key, value) catch return MalError.SystemError;
-            },
+    //  Trivial but convenient checkers/getters.
+
+    pub fn as_slice(self: MalType) ![]*MalType {
+        return switch (self) {
+            .List, .Vector => |x| x.data.items,
+            else => MalError.TypeError,
+        };
+    }
+
+    pub fn as_int(mal: MalType) !i64 {
+        return switch (mal) {
+            .Int => |val| val.data,
+            else => MalError.TypeError,
+        };
+    }
+
+    pub fn as_string(self: MalType) ![]const u8 {
+        return switch (self) {
+            .String => |s| s.data,
+            else => MalError.TypeError,
+        };
+    }
+
+    pub fn as_map(self: MalType) !MalHashMap {
+        switch (self) {
+            .HashMap => |x| return x.data,
             else => return MalError.TypeError,
         }
     }
 
-    pub fn hashmap_remove(mal: *MalType, key: []const u8) MalError!void {
-        switch(mal.data) {
-            .HashMap => |*hmap| {
-                _ = hmap.*.remove(key);
+    pub fn decref(mal: *MalType) void {
+        switch(mal.*) {
+            .List, .Vector => |*l| {
+                std.debug.assert (0 < l.reference_count);
+                l.reference_count -= 1;
+                if (l.reference_count == 0) {
+                    if (debug_alloc) warn("Free {any}", .{mal});
+                    linked_list.list_destroy(&l.data);
+                    l.metadata.decref();
+                    allocator.destroy(mal);
+                }
             },
-            else => return MalError.TypeError,
+            .Keyword, .String, .Symbol => |*l| {
+                std.debug.assert (0 < l.reference_count);
+                l.reference_count -= 1;
+                if (l.reference_count == 0) {
+                    if (debug_alloc) warn("Free {s} {any}", .{l.data, mal});
+                    allocator.free(l.data);
+                    allocator.destroy(mal);
+                }
+            },
+            .Atom => |*l| {
+                std.debug.assert (0 < l.reference_count);
+                l.reference_count -= 1;
+                if (l.reference_count == 0) {
+                    if (debug_alloc) warn("Free {any}", .{mal});
+                    l.data.decref();
+                    allocator.destroy(mal);
+                }
+            },
+            .HashMap => |*l| {
+                std.debug.assert (0 <= l.reference_count);
+                l.reference_count -= 1;
+                if (l.reference_count == 0) {
+                    if (debug_alloc) warn("Free {any}", .{mal});
+                    map_destroy(&l.data);
+                    l.metadata.decref();
+                    allocator.destroy(mal);
+                }
+            },
+            .Func => |*l| {
+                std.debug.assert (0 < l.reference_count);
+                l.reference_count -= 1;
+                if (l.reference_count == 0) {
+                    if (debug_alloc) warn("Free {any}", .{mal});
+                    l.arg_list.decref();
+                    l.body.decref();
+                    l.environment.decref();
+                    l.metadata.decref();
+                    allocator.destroy(mal);
+                }
+            },
+            .Int => |*l| {
+                std.debug.assert (0 < l.reference_count);
+                l.reference_count -= 1;
+                if (l.reference_count == 0) {
+                    if (debug_alloc) warn("Free {any}", .{mal});
+                    allocator.destroy(mal);
+                }
+            },
+            .FnCore => |*l| {
+                std.debug.assert (0 < l.reference_count);
+                l.reference_count -= 1;
+                if (l.reference_count == 0) {
+                    if (debug_alloc) warn("Free {any}", .{mal});
+                    l.metadata.decref();
+                    allocator.destroy(mal);
+                }
+            },
+            .Nil, .False, .True => {},
         }
     }
-    
-    pub fn hashmap_get(mal: *MalType, key: []const u8) MalError!?*MalType {
-        // TODO: should we copy the data here, or downstream?
-        switch(mal.data) {
-            .HashMap => |hmap| {
-                return hmap.getValue(key);
-            },
-            .Nil => {
-                return null;
-            },
-            else => return MalError.TypeError,
-        }        
-    }
 
-    pub fn hashmap_contains(mal: *MalType, key: []const u8) MalError!bool {
-        // TODO: should we copy the data here, or downstream?
-        return switch(mal.data) {
-            .HashMap => |hmap| (hmap.getValue(key) != null),
-            else => MalError.TypeError,
-        };
-    }
-
-    pub fn sequence_linked_list(mal: *MalType) MalError!*MalLinkedList {
-        return switch(mal.data) {
-            .List => |*l| l,
-            .Vector => |*v| v,
-            else => MalError.TypeError,
-        };
-    }
-
-    pub fn const_sequence_linked_list(mal: *const MalType) MalError!MalLinkedList {
-        return switch(mal.data) {
-            .List => |l| l,
-            .Vector => |v| v,
-            else => MalError.TypeError,
-        };
-    }
-    
-    pub fn sequence_append(mal: *MalType, allocator: *Allocator, new_el: *MalType) MalError!void {
-        var ll = try mal.sequence_linked_list();
-        try linked_list.append_mal(allocator, ll, new_el);
-    }
-
-    pub fn sequence_prepend(mal: *MalType, allocator: *Allocator, new_el: *MalType) MalError!void {
-        var ll = try mal.sequence_linked_list();
-        try linked_list.prepend_mal(allocator, ll, new_el);
-    }
-    
-    pub fn sequence_pop_first(mal: *MalType, allocator: *Allocator) MalError!*MalType {
-        var ll = try mal.sequence_linked_list();
-        return linked_list.pop_first(allocator, ll);
-    }
-
-    pub fn sequence_pop_last(mal: *MalType, allocator: *Allocator) MalError!*MalType {
-        var ll = try mal.sequence_linked_list();
-        if(ll.count() == 0) {
-            return MalError.OutOfBounds;
+    pub fn incref(mal: *MalType) void {
+        // A procedure instead of a function returning its argument
+        // because it must most of the time be applied *after* a
+        // successful assignment.
+        switch(mal.*) {
+            .List, .Vector             => |*l| l.reference_count += 1,
+            .Int                       => |*l| l.reference_count += 1,
+            .Keyword, .String, .Symbol => |*l| l.reference_count += 1,
+            .FnCore                    => |*l| l.reference_count += 1,
+            .Func                      => |*l| l.reference_count += 1,
+            .Atom                      => |*l| l.reference_count += 1,
+            .HashMap                   => |*l| l.reference_count += 1,
+            .Nil, .False, .True        => {},
         }
-        return ll.pop();
-    }
-    
-    pub fn sequence_length(mal: *MalType) MalError!i64 {
-        return switch(mal.data) {
-            .List => |l| @intCast(i64, l.count()),
-            .Vector => |v| @intCast(i64, v.count()),
-            else => MalError.TypeError,
-        };
     }
 
-    pub fn sequence_nth(mal: *MalType, pos: u32) MalError!*MalType {
-        var ll = try mal.sequence_linked_list();
-        if(ll.count() <= pos) {
-            return MalError.OutOfBounds;
-        }
-        return ll.at(pos);
-    }
-    
-    pub fn as_int(mal: *const MalType) MalError!i64 {
-        return switch(mal.data) {
-            .Int => |val| val,
-            else => MalError.TypeError,
-        };
-    }
-
-    pub fn as_symbol(mal: *const MalType) MalError![]const u8 {
-        return switch(mal.data) {
-            .Generic => |val| val,
-            else => MalError.TypeError,
-        };        
-    }
-
-    pub fn as_string(mal: *const MalType) MalError![]const u8 {
-        return switch(mal.data) {
-            .String => |s| s,
-            else => MalError.TypeError,
-        };        
-    }
-
-    pub fn shallow_destroy(mal: *MalType, allocator: *Allocator) void {
-        mal.reference_count.* -= 1;
-        if(mal.meta) |mal_meta| {
-            mal_meta.delete(allocator);
-        }
-        if(mal.reference_count.* <= 0) {
-            allocator.destroy(mal.reference_count);
-        }
-        allocator.destroy(mal);
-    }
-
-    pub fn delete(mal: *MalType, allocator: *Allocator) void {
-        const ref_count = mal.reference_count.*;
-        switch(mal.data) {
-            .List => |*l| {
-                linked_list.destroy(allocator, l, false);
-            },
-            .Vector => |*v| {
-                linked_list.destroy(allocator, v, false);
-            },
-            .String => |string| {
-                allocator.free(string);
-            },
-            .Generic => |string| {
-                allocator.free(string);
-            },
-            .Keyword => |string| {
-                allocator.free(string);
-            },
-            .Atom => |atom| {
-                if(ref_count <= 1)
-                    atom.*.delete(allocator);
-            },
-            .HashMap => |hm| {
-                hash_map.destroy(allocator, hm, false);
-            },
-            .Func => |func_data| {
-                func_data.arg_list.delete(allocator);
-                func_data.body.delete(allocator);
-                func_data.environment.delete();
-            },
-            else => {},
-        }
-        mal.shallow_destroy(allocator);
-    }
-
-    pub fn get_num_args(mal: *const MalType) i8 {
-        return switch(mal.data) {
-            .Fn0 => 0,
-            .Fn1 => 1,
-            .Fn2 => 2,
-            .Fn3 => 3,
-            .Fn4 => 4,
-            .FVar => -1,
-            else => -2,
-        };
-    }
-
-    pub fn copy(mal: *const MalType, allocator: *Allocator) MalError!*MalType {
-        var new_mal = allocator.create(MalType)
-            catch |err| return MalError.SystemError;
-
-        new_mal.reference_count = mal.reference_count;
-        mal.reference_count.* += 1;
-        new_mal.data = MalData {.Nil=undefined};
-
-        if(mal.meta) |mal_meta| {
-            new_mal.meta = try mal_meta.copy(allocator);
-        } else {
-            new_mal.meta = null;
-        }
-
-        switch(mal.data) {
-            .Generic => |val| {
-                const cpy_val = string_copy(allocator, val)
-                    catch return MalError.SystemError;
-                new_mal.data = MalData { .Generic = cpy_val };
-            },
-            .Int => |val| {
-                new_mal.data = MalData { .Int = val };
-            },
-            .Fn0 => |f0| {
-                new_mal.data = MalData { .Fn0 = f0 };
-            },
-            .Fn1 => |f1| {
-                new_mal.data = MalData { .Fn1 = f1 };
-            },
-            .Fn2 => |f2| {
-                new_mal.data = MalData { .Fn2 = f2 };
-            },
-            .Fn3 => |f3| {
-                new_mal.data = MalData { .Fn3 = f3 };
-            },
-            .Fn4 => |f4| {
-                new_mal.data = MalData { .Fn4 = f4 };
-            },
-            .FVar => |f| {
-                new_mal.data = MalData { .FVar = f };
-            },
-            .String => |string| {
-                const string_cpy = string_copy(allocator, string)
-                    catch return MalError.SystemError;
-                new_mal.data = MalData { .String = string_cpy };
-            },
-            .Keyword => |kwd| {
-                const kwd_cpy = string_copy(allocator, kwd)
-                    catch return MalError.SystemError;
-                new_mal.data = MalData { .Keyword = kwd_cpy };
-            },
-            .List => |l| {
-                new_mal.data = MalData { .List = try linked_list.deepcopy(allocator, l) };
-            },
-            .Vector => |v| {
-                new_mal.data = MalData { .Vector = try linked_list.deepcopy(allocator, v) };
-            },
-            .Func => |func_data| {
-                const al = try func_data.arg_list.copy(allocator);
-                const b = try func_data.body.copy(allocator);
-                const new_func_data = MalFuncData {
-                    .arg_list = al,
-                    .body = b,
-                    .environment = try func_data.environment.copy(allocator),
-                    .eval_func = func_data.eval_func,
-                    .is_macro = func_data.is_macro,
-                };
-                new_mal.data = MalData { .Func = new_func_data };
-            },
-            .Atom => |atom| {
-                new_mal.data = MalData { .Atom = atom };
-            },
-            .HashMap => |h| {
-                new_mal.data = MalData {.HashMap = try hash_map.deepcopy(allocator, h)};
-            },
-            else => {
-                new_mal.data = mal.data;
-            },
-        }
-        return new_mal;
-    }
 };
-
-pub fn apply_function(allocator: *Allocator, args: MalLinkedList) MalError!*MalType {
-    // TODO: this should take a MLL pointer
-    var args_copy = try linked_list.deepcopy(allocator, args); //TODO: could be more efficient
-    var args_arr = args_copy.toSlice();
-    const mal_func = args_arr[0];
-    
-    // First check if it is a user-defined Mal function
-    if(MalTypeValue(mal_func.data) == MalTypeValue.Func) {
-        const func_data = mal_func.data.Func;
-        const args_ll = try func_data.arg_list.sequence_linked_list();
-        const func_env = func_data.environment;
-        const eval_func = func_data.eval_func orelse return MalError.TypeError;
-        var new_env = try Env.new(allocator, func_env);
-        // TODO: make sure that set_list checks that first_arg and first_arg_value have same len
-        try new_env.set_slice(args_ll.toSlice(), args_arr[1..args_arr.len]);
-        
-        linked_list.destroy(allocator, &args_copy, true);
-        const new_body = try func_data.body.copy(allocator);
-        mal_func.delete(allocator);
-        return eval_func.*(new_body, new_env);
-    }
-
-    // Otherwise, it is a built-in Zig function
-    // TODO: safety?
-    const n = mal_func.get_num_args();
-
-    if(n <= -2) {
-        return MalError.ArgError;
-    }
-
-    if(n == -1) {
-        // Variable arg function
-        (try linked_list.pop_first(allocator, &args_copy)).delete(allocator);
-        defer linked_list.destroy(allocator, &args_copy, false);
-        return (mal_func.data.FVar.*)(args_copy);
-    }
-
-    var arg = args_arr[1..args_arr.len];
-    
-    // TODO: replace this
-    const ret = switch(n) {
-        0 => (mal_func.data.Fn0.*)(),
-        1 => (mal_func.data.Fn1.*)(arg[0]),
-        2 => (mal_func.data.Fn2.*)(arg[0], arg[1]),
-        3 => (mal_func.data.Fn3.*)(arg[0], arg[1], arg[2]),
-        4 => (mal_func.data.Fn4.*)(arg[0], arg[1], arg[2], arg[3]),
-        else => MalError.ArgError,
-    };
-    linked_list.destroy(allocator, &args_copy, false);
-    return ret;
-}

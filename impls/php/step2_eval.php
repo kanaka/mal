@@ -11,15 +11,13 @@ function READ($str) {
 }
 
 // eval
-function eval_ast($ast, $env) {
+function MAL_EVAL($ast, $env) {
+    // echo "EVAL: " . _pr_str($ast) . "\n";
+
     if (_symbol_Q($ast)) {
         return $env[$ast->value];
-    } elseif (_sequential_Q($ast)) {
-        if (_list_Q($ast)) {
-            $el = _list();
-        } else {
+    } elseif (_vector_Q($ast)) {
             $el = _vector();
-        }
         foreach ($ast as $a) { $el[] = MAL_EVAL($a, $env); }
         return $el;
     } elseif (_hash_map_Q($ast)) {
@@ -28,23 +26,20 @@ function eval_ast($ast, $env) {
             $new_hm[$key] = MAL_EVAL($ast[$key], $env);
         }
         return $new_hm;
-    } else {
+    } elseif (!_list_Q($ast)) {
         return $ast;
     }
-}
 
-function MAL_EVAL($ast, $env) {
-    if (!_list_Q($ast)) {
-        return eval_ast($ast, $env);
-    }
     if ($ast->count() === 0) {
         return $ast;
     }
 
     // apply list
-    $el = eval_ast($ast, $env);
+    $el = [];
+    foreach ($ast as $a) { $el[] = MAL_EVAL($a, $env); }
     $f = $el[0];
-    return call_user_func_array($f, array_slice($el->getArrayCopy(), 1));
+    $args = array_slice($el, 1);
+    return call_user_func_array($f, $args);
 }
 
 // print

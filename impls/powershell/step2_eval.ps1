@@ -10,11 +10,14 @@ function READ([String] $str) {
 }
 
 # EVAL
-function eval_ast($ast, $env) {
+function EVAL($ast, $env) {
+    # Write-Host "EVAL: $(pr_str $ast)"
+
+    if ($ast -eq $null) { return $ast }
     switch ($ast.GetType().Name) {
         "Symbol"  { return $env[$ast.value] }
-        "List"    { return new-list ($ast.values | ForEach { EVAL $_ $env }) }
-        "Vector"  { return new-vector ($ast.values | ForEach { EVAL $_ $env }) }
+        "List" { }  # continue after the switch
+        "Vector"  { return new-vector @($ast.values | ForEach-Object { EVAL $_ $env }) }
         "HashMap" {
             $hm = new-hashmap @()
             foreach ($k in $ast.values.Keys) {
@@ -24,17 +27,11 @@ function eval_ast($ast, $env) {
         }
         default   { return $ast }
     }
-}
 
-function EVAL($ast, $env) {
-    #Write-Host "EVAL $(pr_str $ast)"
-    if (-not (list? $ast)) {
-        return (eval_ast $ast $env)
-    }
     if (empty? $ast) { return $ast }
 
-    $el = (eval_ast $ast $env)
-    $f, $fargs = $el.first(), $el.rest().values
+    $f = ( EVAL $ast.first() $env )
+    $fargs = @($ast.rest().values | ForEach-Object { EVAL $_ $env })
     return &$f @fargs
 }
 

@@ -42,44 +42,8 @@ def childEnv(binds; exprs):
         ) | .value | map({(.[0]): .[1]}) | add 
     };
 
-def pureChildEnv:
-    {
-        parent: .,
-        environment: {},
-        fallback: null
-    };
-
-def rootEnv:
-    {
-        parent: null,
-        fallback: null,
-        environment: {}
-    };
-
-def inform_function(name):
-    (.names += [name]) | (.names |= unique);
-
-def inform_function_multi(names):
-    . as $dot | reduce names[] as $name(
-        $dot;
-        inform_function($name)
-    );
-
-def env_multiset(keys; value):
-    (if value.kind == "function" then # multiset not allowed on atoms
-        value | inform_function_multi(keys)
-    else
-        value
-    end) as $value | {
-        parent: .parent,
-        environment: (
-            .environment + (reduce keys[] as $key(.environment; .[$key] |= value))
-        ),
-        fallback: .fallback
-    };
-
-def env_multiset(env; keys; value):
-    env | env_multiset(keys; value);
+def env_multiset(fn):
+    .environment += (reduce fn.names[] as $key(.environment; .[$key] |= fn));
 
 def env_set($key; $value):
     (if $value.kind == "function" or $value.kind == "atom" then
@@ -87,7 +51,7 @@ def env_set($key; $value):
         ($value |
         if $value.kind == "atom" then
             # check if the one we have is newer
-            env_req(env; key) as $ours |
+            ($key | env_get(env)) as $ours |
             if $ours.last_modified > $value.last_modified then
                 $ours
             else
@@ -96,14 +60,15 @@ def env_set($key; $value):
             end
         else
             .
-        end) | inform_function($key)
+        end) |
+        .names += [$key] |
+        .names |= unique
+
     else 
         $value
-    end) as $value | {
-        parent: .parent,
-        environment: (.environment + (.environment | .[$key] |= $value)), # merge together, as .environment[key] |= value does not work
-        fallback: .fallback
-    };
+    end) as $value |
+    # merge together, as .environment[$key] |= value does not work
+    .environment += (.environment | .[$key] |= $value);
 
 def env_dump_keys:
     def _dump1:
@@ -123,6 +88,7 @@ def env_dump_keys:
         end | unique
     end;
 
+# Helper for env_get.
 def env_find(env):
     if env.environment[.] == null then
         if env.parent then
@@ -135,41 +101,14 @@ def env_find(env):
     end;
 
 def env_get(env):
-    . as $key | $key | env_find(env).environment[$key] as $value |
-    if $value == null then
-        jqmal_error("'\($key)' not found")
-    else
-        if $value.kind == "atom" then
-            $value.identity as $id |
-            $key | env_find(env.parent).environment[$key] as $possibly_newer |
-            if $possibly_newer.identity == $id and $possibly_newer.last_modified > $value.last_modified then
-                $possibly_newer
-            else
-                $value
-            end
-        else
-            $value
-        end
-    end;
-
-def env_get(env; key):
-    key | env_get(env);
-
-def env_req(env; key):
-    key as $key | key | env_find(env).environment[$key] as $value |
-    if $value == null then
-        null
-    else
-        if $value.kind == "atom" then
-            $value.identity as $id |
-            $key | env_find(env.parent).environment[$key] as $possibly_newer |
-            if $possibly_newer.identity == $id and $possibly_newer.last_modified > $value.last_modified then
-                $possibly_newer
-            else
-                $value
-            end
-        else
-            $value
+    # key -> value or null
+    . as $key | env_find(env).environment[$key] |
+    if . != null and .kind == "atom" then
+        ($key | env_find(env.parent).environment[$key]) as $possibly_newer |
+        if $possibly_newer.identity == .identity
+            and $possibly_newer.last_modified > .last_modified
+        then
+            $possibly_newer
         end
     end;
 
@@ -184,26 +123,6 @@ def env_set(env; $key; $value):
         environment: ((env.environment // jqmal_error("Environment empty in \(env | keys)")) + (env.environment | .[$key] |= $value)), # merge together, as env.environment[key] |= value does not work
         fallback: env.fallback
     };
-
-def env_setfallback(env; fallback):
-    {
-        parent: env.parent,
-        fallback: fallback,
-        environment: env.environment
-    };
-    
-def addEnv(env):
-    {
-        expr: .,
-        env: env
-    };
-
-def addToEnv(env; name; expr):
-    {
-        expr: expr,
-        env: env_set(env; name; expr)
-    };
-
 
 def wrapEnv(atoms):
     {
@@ -227,37 +146,33 @@ def unwrapReplEnv:
 def unwrapCurrentEnv:
     .currentEnv;
 
-def env_set6(env; key; value):
-    if env.isReplEnv then
-        env_set(env.currentEnv; key; value) | wrapEnv(env.atoms)
-    else
-        env_set(env.currentEnv; key; value) | wrapEnv(env.replEnv; env.atoms)
-    end;
-
 def env_set_(env; key; value):
     if env.currentEnv != null then
-        env_set6(env; key; value)
+        # Moving the common env_set before the if breaks something. ?
+        if env.isReplEnv then
+            env_set(env.currentEnv; key; value) | wrapEnv(env.atoms)
+        else
+            env_set(env.currentEnv; key; value) | wrapEnv(env.replEnv; env.atoms)
+        end
     else
         env_set(env; key; value)
     end;
 
-def addToEnv(envexp; name):
-    envexp.expr as $value
-    | envexp.env as $rawEnv
-    | (if $rawEnv.isReplEnv then
-        env_set_($rawEnv.currentEnv; name; $value) | wrapEnv($rawEnv.atoms)
-    else
-        env_set_($rawEnv.currentEnv; name; $value) | wrapEnv($rawEnv.replEnv; $rawEnv.atoms)
-    end) as $newEnv
-    | {
-        expr: $value,
-        env: $newEnv
-    };
+def addToEnv(name):
+    # { expr, env } -> { same expr, new env }
+    .expr as $value |
+    .env |= (
+        . as $rawEnv |
+        if .isReplEnv then
+            env_set_(.currentEnv; name; $value) | wrapEnv($rawEnv.atoms)
+        else
+            env_set_(.currentEnv; name; $value) | wrapEnv($rawEnv.replEnv; $rawEnv.atoms)
+        end);
 
 def _env_remove_references(refs):
     if . != null then
         if .environment == null then
-            _debug("This one broke the rules, officer: \(.)")
+            debug("This one broke the rules, officer: \(.)")
         else
             {
                 environment: (.environment | to_entries | map(select(.key as $key | refs | contains([$key]) | not)) | from_entries),

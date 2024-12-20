@@ -9,7 +9,7 @@ public class MalFirst extends MalSubr
             return Constants.NIL;
         }
 
-        Util.sequenceToMalObjectArray(arg) @=> MalObject list[];
+        arg.malObjectValues() @=> MalObject list[];
 
         if( list.size() > 0 )
         {

@@ -21,12 +21,6 @@ class Env():
                 else:
                     self.data[bind.value] = exprs[i]
 
-    def find(self, key):
-        assert isinstance(key, MalSym)
-        if key.value in self.data: return self
-        elif self.outer:           return self.outer.find(key)
-        else:                      return None
-
     def set(self, key, value):
         assert isinstance(key, MalSym)
         assert isinstance(value, MalType)
@@ -34,7 +28,10 @@ class Env():
         return value
 
     def get(self, key):
-        assert isinstance(key, MalSym)
-        env = self.find(key)
-        if not env: throw_str("'" + str(key.value) + "' not found")
-        return env.data[key.value]
+        assert isinstance(key, unicode)
+        env = self
+        while True:
+            value = env.data.get(key, None)
+            if value is not None: return value
+            env = env.outer
+            if env is None: return None

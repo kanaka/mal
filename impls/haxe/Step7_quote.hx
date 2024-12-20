@@ -39,31 +39,31 @@ class Step7_quote {
         }
     }
 
-    static function eval_ast(ast:MalType, env:Env) {
-        return switch (ast) {
-            case MalSymbol(s): env.get(ast);
+    static function EVAL(ast:MalType, env:Env):MalType {
+      while (true) {
+        var dbgeval = env.get("DEBUG-EVAL");
+        if (dbgeval != null && dbgeval != MalFalse && dbgeval != MalNil)
+            Compat.println("EVAL: " + PRINT(ast));
+        var alst;
+        switch (ast) {
+            case MalSymbol(s):
+                 var  res = env.get(s);
+                 if (res == null) throw "'" + s + "' not found";
+                 return res;
             case MalList(l):
-                MalList(l.map(function(x) { return EVAL(x, env); }));
+                 alst = l;
             case MalVector(l):
-                MalVector(l.map(function(x) { return EVAL(x, env); }));
+                return MalVector(l.map(function(x) { return EVAL(x, env); }));
             case MalHashMap(m):
                 var new_map = new Map<String,MalType>();
                 for (k in m.keys()) {
                     new_map[k] = EVAL(m[k], env);
                 }
-                MalHashMap(new_map);
-            case _: ast;
+                return MalHashMap(new_map);
+            case _: return ast;
         }
-    }
-
-    static function EVAL(ast:MalType, env:Env):MalType {
-      while (true) {
-        if (!list_Q(ast)) { return eval_ast(ast, env); }
-
         // apply
-        var alst = _list(ast);
         if (alst.length == 0) { return ast; }
-
         switch (alst[0]) {
         case MalSymbol("def!"):
             return env.set(alst[1], EVAL(alst[2], env));
@@ -82,14 +82,13 @@ class Step7_quote {
             continue; // TCO
         case MalSymbol("quote"):
             return alst[1];
-        case MalSymbol("quasiquoteexpand"):
-            return quasiquote(alst[1]);
         case MalSymbol("quasiquote"):
             ast = quasiquote(alst[1]);
             continue; // TCO
         case MalSymbol("do"):
-            var el = eval_ast(MalList(alst.slice(1, alst.length-1)), env);
-            ast = last(ast);
+            for (i in 1...alst.length-1)
+                EVAL(alst[i], env);
+            ast = alst[alst.length-1];
             continue; // TCO
         case MalSymbol("if"):
             var cond = EVAL(alst[1], env);
@@ -106,11 +105,9 @@ class Step7_quote {
                 return EVAL(alst[2], new Env(env, _list(alst[1]), args));
             },alst[2],env,alst[1],false,nil);
         case _:
-            var el = eval_ast(ast, env);
-            var lst = _list(el);
-            switch (first(el)) {
+            switch ( EVAL(alst[0], env)) {
                 case MalFunc(f,a,e,params,_,_):
-                    var args = _list(el).slice(1);
+                    var args = alst.slice(1).map(function(x) { return EVAL(x, env); });
                     if (a != null) {
                         ast = a;
                         env = new Env(e, _list(params), args);

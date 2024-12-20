@@ -1,0 +1,24 @@
+debug_alloc in types.zig may help with reference counting.
+
+
+TODO Simplify the printer with the new reader functions in the zig
+library.
+
+
+NOTE Before implementing any optimization or optional fix that would
+increase the complexity, please take into account that someone has to
+maintain the code, and the zig language evolves quickly.
+
+Some memory leaks are probably already present, especially when an
+error interrupts the normal execution flow.
+
+Examples of things that are deliberately not implemented...
+  * TCO for try*
+  * preallocate integers between 0 and 100 at startup
+  * use ArrayList.ensureTotalCapacityPrecise/HashMap.ensureTotalCapacity
+    after most calls to new_list/vector/map.
+  * store symbols in a global hash map,
+  * implement lists/vectors as slices/cons cells/whatever
+  * deallocate cyclic structures not detected by reference counting like
+    (let* (f (fn* () nil)))
+    (def! a (atom 2)) (def! v [a]) (reset! a v)

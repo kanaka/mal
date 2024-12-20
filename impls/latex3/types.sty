@@ -1,0 +1,92 @@
+\ProvidesExplPackage {types} {2023/01/01} {0.0.1} {MAL~types}
+
+% This file is included almost everywhere, it seems a good place to
+% define the variants we need.
+
+\cs_generate_variant:Nn \int_compare:nNnTF { oNoTF }
+\cs_generate_variant:Nn \int_const:Nn { NV }
+\cs_generate_variant:Nn \int_if_zero:nTF { VTF }
+\cs_generate_variant:Nn \int_set:Nn { Nx }
+\cs_generate_variant:Nn \int_to_alph:n { V }
+\cs_generate_variant:Nn \int_to_arabic:n { o, V }
+\cs_generate_variant:Nn \ior_open:Nn {Nx}
+\cs_generate_variant:Nn \iow_term:n { x, V }
+\cs_generate_variant:Nn \prop_put:Nnn { cxn, Nxn, NxV }
+\cs_generate_variant:Nn \regex_extract_once:NnNTF {NVNTF}
+\cs_generate_variant:Nn \str_head:n { V }
+\cs_generate_variant:Nn \str_if_eq:nnTF { eVTF, xnTF }
+\cs_generate_variant:Nn \str_if_eq_p:nn { eV }
+\cs_generate_variant:Nn \str_item:nn { Vn }
+\cs_generate_variant:Nn \str_map_function:nN { oN }
+\cs_generate_variant:Nn \str_map_inline:nn { on }
+\cs_generate_variant:Nn \str_set:Nn { Nx }
+\cs_generate_variant:Nn \str_tail:n { V}
+\cs_generate_variant:Nn \sys_get_shell:nnN { xnN }
+\cs_generate_variant:Nn \tl_const:Nn { cx }
+\cs_generate_variant:Nn \tl_if_eq:nnTF { xxTF }
+\cs_generate_variant:Nn \tl_if_head_eq_charcode:nNF { VNF }
+\cs_generate_variant:Nn \tl_if_head_eq_charcode:nNT { VNT }
+\cs_generate_variant:Nn \tl_if_head_eq_charcode:nNTF { VNTF }
+\cs_generate_variant:Nn \tl_if_head_eq_charcode_p:nN { VN }
+\cs_generate_variant:Nn \tl_item:nn { nV }
+\cs_generate_variant:Nn \tl_map_inline:nn { on }
+\cs_generate_variant:Nn \tl_map_tokens:nn { on }
+\cs_generate_variant:Nn \tl_range:nnn { Vnn }
+\cs_generate_variant:Nn \tl_tail:n { V }
+
+% A global stack is convenient for storage of local variables during
+% recursive computations.
+\seq_new:N \l_mal_stack_seq
+% TeX usually uses local assignments for this, but the number of
+% groups is limited to 255, which is not enough for MAL recursions.
+
+% A mal form is represented by a token list starting with a letter
+% defining the type (this sometimes allows f expansion).
+
+% n                         nil
+% f                         false
+% t                         true
+% y ..                      symbol    the rest is a str
+% s ..                      string    the rest is a str
+% k ..                      keyword   the rest is a str
+% i ..                      number    the rest is a tl/str of digits
+% l meta elt elt..          list
+% v meta elt elt..          vector
+% map_...                   map       \map_.. is a prop (may contain __meta__)
+% atom_..                   atom      \atom_.. tl var contains a mal form
+% e ..                      exception the rest is a mal form
+% u meta impl env arg arg.. function  the argument is a tl of mal forms
+% c meta impl env arg arg.. macro     (see function)
+% b n \mal_..:n             built-in function, expecting a tl of mal forms
+
+% Global counter used to create unique control sequences for atoms (in
+% core.sty) and environments (in env.sty).
+\int_new:N \l_mal_object_counter_int
+
+\cs_new:Nn \mal_map_new:
+  {
+    \int_incr:N \l_mal_object_counter_int
+    \tl_set:Nx \l_tmpa_tl { map_ \int_use:N \l_mal_object_counter_int }
+    \prop_new:c \l_tmpa_tl
+  }
+
+% Put keys and values read from a tl of MAL forms into \l_tmpa_tl,
+% which must be a prop variable.
+% Defined here because it is used by core.sty and reader.sty.
+\cs_new:Nn \mal_assoc_internal:n
+  {
+    % \iow_term:n {assoc_internal~#1}
+    \tl_if_empty:nF { #1 }
+      {
+        \prop_put:cxx \l_tmpa_tl { \tl_head:n { #1 } } { \tl_item:nn { #1 } 2 }
+        \mal_assoc_internal:o { \use_none:nn #1 }
+      }
+  }
+\cs_generate_variant:Nn \mal_assoc_internal:n { o }
+
+\cs_new:Nn \mal_hash_map:n
+  {
+    \mal_map_new:
+    \mal_assoc_internal:n { #1 }
+  }
+\cs_generate_variant:Nn \mal_hash_map:n { V }

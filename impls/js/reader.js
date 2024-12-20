@@ -30,7 +30,7 @@ function read_atom (reader) {
     if (token.match(/^-?[0-9]+$/)) {
         return parseInt(token,10)        // integer
     } else if (token.match(/^-?[0-9][0-9.]*$/)) {
-        return parseFloat(token,10);     // float
+        return parseFloat(token);     // float
     } else if (token.match(/^"(?:\\.|[^\\"])*"$/)) {
         return token.slice(1,token.length-1) 
             .replace(/\\(.)/g, function (_, c) { return c === "n" ? "\n" : c})

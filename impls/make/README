@@ -1,0 +1,11 @@
+It is often useful to add $(warning /$0/ /$1/ /$2/ /$3/) at the very
+start of each interesting macro.
+
+Recal that foreach does nothing when the list only contains spaces,
+and adds spaces between the results even if some results are empty.
+
+If debugging the reader:
+# export READER_DEBUG=1
+
+In order to get the equivalent of DEBUG_EVAL in step2:
+# export EVAL_DEBUG=1

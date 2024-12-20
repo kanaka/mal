@@ -4,7 +4,7 @@ public class MalFalse extends MalObject
 
     fun void init()
     {
-        Int.create(0) @=> object;
+        0 => intValue;
     }
 
     fun static MalFalse create()

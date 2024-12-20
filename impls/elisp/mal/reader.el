@@ -1,20 +1,20 @@
-(require 'cl-lib)
+(require 'mal/types)
 
 ;; HACK: `text-quoting-style' prettifies quotes in error messages on
 ;; Emacs 25, but no longer does from 26 upwards...
 (when (= emacs-major-version 25)
   (setq text-quoting-style 'grave))
 
-(defvar tokens nil)
+(defvar reader--tokens nil)
 
 (defun peek ()
-  (car tokens))
+  (car reader--tokens))
 
 (defun next ()
-  (pop tokens))
+  (pop reader--tokens))
 
 (defun read-str (input)
-  (setq tokens (tokenizer input))
+  (setq reader--tokens (tokenizer input))
   (read-form))
 
 (defun tokenizer (input)
@@ -149,7 +149,7 @@
               (mal-string (read token))
             (signal 'unterminated-sequence '(string))))
          ((= (aref token 0) ?:)
-          (mal-keyword (intern token)))
+          (mal-keyword token))
          (t
           ;; assume anything else is a symbol
           (mal-symbol (intern token))))

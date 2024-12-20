@@ -1,2 +1,2 @@
 #!/bin/bash
-exec logo $(dirname $0)/${STEP:-stepA_mal}.lg - "${@}"
+exec ucblogo $(dirname $0)/${STEP:-stepA_mal}.lg - "${@}"

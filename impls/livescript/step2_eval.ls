@@ -18,6 +18,9 @@ repl_env = do
         value: (a, b) -> {type: \int, value: parseInt(a.value / b.value)}
 
 eval_ast = (repl_env, {type, value}: ast) -->
+
+    # console.log "EVAL: #{pr_str ast}"
+
     switch type
     | \symbol =>
         result = repl_env[value]

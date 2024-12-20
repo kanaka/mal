@@ -11,37 +11,45 @@ include $(_TOP_DIR)types.mk
 
 # return a printable form of the argument, the second parameter is
 # 'print_readably' which backslashes quotes in string values
-_pr_str = $(if $(1),$(foreach ot,$(call _obj_type,$(1)),$(if $(call _EQ,make,$(ot)),$(call _error,_pr_str failed on $(1)),$(call $(ot)_pr_str,$(1),$(2)))),)
+_pr_str = $(call $(_obj_type)_pr_str,$1,$2)
 
 # Like _pr_str but takes multiple values in first argument, the second
 # parameter is 'print_readably' which backslashes quotes in string
 # values, the third parameter is the delimeter to use between each
 # _pr_str'd value
-_pr_str_mult = $(call _pr_str,$(word 1,$(1)),$(2))$(if $(word 2,$(1)),$(3)$(call _pr_str_mult,$(wordlist 2,$(words $(1)),$(1)),$(2),$(3)),)
+_pr_str_mult = $(subst $(SPACE),$3,$(foreach f,$1,$(call _pr_str,$f,$2)))
 
 
 # Type specific printing
 
-nil_pr_str = nil
-true_pr_str = true
-false_pr_str = false
+nil_pr_str := nil
+true_pr_str := true
+false_pr_str := false
 
-number_pr_str = $(call int_decode,$($(1)_value))
+number_pr_str = $(_number_val)
 
-symbol_pr_str = $($(1)_value)
+symbol_pr_str = $(_symbol_val)
 
-keyword_pr_str = $(COLON)$(patsubst $(__keyword)%,%,$(call str_decode,$($(1)_value)))
+keyword_pr_str = $(encoded_colon)$(_keyword_val)
 
-string_pr_str = $(if $(filter $(__keyword)%,$(call str_decode,$($(1)_value))),$(COLON)$(patsubst $(__keyword)%,%,$(call str_decode,$($(1)_value))),$(if $(2),"$(subst $(NEWLINE),$(ESC_N),$(subst $(DQUOTE),$(ESC_DQUOTE),$(subst $(SLASH),$(SLASH)$(SLASH),$(call str_decode,$($(1)_value)))))",$(call str_decode,$($(1)_value))))
+string_pr_str = $(if $2\
+  ,"$(subst $(_NL),$(encoded_slash)n,$(rem \
+   )$(subst ",$(encoded_slash)",$(rem \
+   )$(subst $(encoded_slash),$(encoded_slash)$(encoded_slash),$(rem \
+   )$(_string_val))))"$(rem \
+else \
+  ),$(_string_val))
 
-function_pr_str = <$(if $(word 6,$(value $(1)_value)),$(wordlist 1,5,$(value $(1)_value))...,$(value $(1)_value))>
+corefn_pr_str := <Core>
+function_pr_str := <Function>
+macro_pr_str := <Macro>
 
-list_pr_str = ($(foreach v,$(call __get_obj_values,$(1)),$(call _pr_str,$(v),$(2))))
+list_pr_str = $(_LP)$(call _pr_str_mult,$(_seq_vals),$2,$(_SP))$(_RP)
 
-vector_pr_str = [$(foreach v,$(call __get_obj_values,$(1)),$(call _pr_str,$(v),$(2)))]
+vector_pr_str = [$(call _pr_str_mult,$(_seq_vals),$2,$(_SP))]
 
-hash_map_pr_str = {$(foreach v,$(call __get_obj_values,$(1)),$(foreach vval,$(foreach hcode,$(word 3,$(subst _, ,$(1))),$(patsubst $(1)_%,%,$(v:%_value=%))),$(if $(filter $(__keyword)%,$(vval)),$(patsubst $(__keyword)%,$(COLON)%,$(vval)),"$(vval)")) $(call _pr_str,$($(v)),$(2)))}
+map_pr_str = {$(call _pr_str_mult,$(foreach k,$(_keys),$k $(call _get,$1,$k)),$2,$(_SP))}
 
-atom_pr_str = (atom $(call _pr_str,$($(1)_value),$(2)))
+atom_pr_str = $(_LP)atom$(_SP)$(call _pr_str,$(deref),$2)$(_RP)
 
 endif

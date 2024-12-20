@@ -8,65 +8,63 @@ require "./types"
 # Note:
 # Employed downcase names because Crystal prohibits uppercase names for methods
 
+def eval_error(msg)
+  raise Mal::EvalException.new msg
+end
+
+def num_func(func)
+  ->(args : Array(Mal::Type)) {
+    x, y = args[0].unwrap, args[1].unwrap
+    eval_error "invalid arguments" unless x.is_a?(Int64) && y.is_a?(Int64)
+    Mal::Type.new func.call(x, y)
+  }
+end
+
+REPL_ENV = {
+  "+" => Mal::Type.new(num_func(->(x : Int64, y : Int64) { x + y })),
+  "-" => Mal::Type.new(num_func(->(x : Int64, y : Int64) { x - y })),
+  "*" => Mal::Type.new(num_func(->(x : Int64, y : Int64) { x * y })),
+  "/" => Mal::Type.new(num_func(->(x : Int64, y : Int64) { x // y })),
+} of String => Mal::Type
+
 module Mal
   extend self
-
-  def eval_error(msg)
-    raise Mal::EvalException.new msg
-  end
-
-  def num_func(func)
-    ->(args : Array(Mal::Type)) {
-      x, y = args[0].unwrap, args[1].unwrap
-      eval_error "invalid arguments" unless x.is_a?(Int64) && y.is_a?(Int64)
-      Mal::Type.new func.call(x, y)
-    }
-  end
-
-  def eval_ast(a, env)
-    return a.map { |n| eval(n, env).as(Mal::Type) } if a.is_a? Mal::List
-    return a unless a
-
-    ast = a.unwrap
-    case ast
-    when Mal::Symbol
-      if env.has_key? ast.str
-        env[ast.str]
-      else
-        eval_error "'#{ast.str}' not found"
-      end
-    when Mal::List
-      ast.each_with_object(Mal::List.new) { |n, l| l << eval(n, env) }
-    when Mal::Vector
-      ast.each_with_object(Mal::Vector.new) { |n, l| l << eval(n, env) }
-    when Mal::HashMap
-      ast.each { |k, v| ast[k] = eval(v, env) }
-      ast
-    else
-      ast
-    end
-  end
 
   def read(str)
     read_str str
   end
 
-  def eval(t, env)
-    Mal::Type.new case ast = t.unwrap
+  def eval(ast, env)
+    # puts "EVAL: #{print(ast)}"
+
+    val = ast.unwrap
+
+    case val
+    when Mal::Symbol
+      eval_error "'#{val.str}' not found" unless env.has_key? val.str
+      return env[val.str]
+    when Mal::Vector
+      new_vec = val.each_with_object(Mal::Vector.new) { |n, l| l << eval(n, env) }
+      return Mal::Type.new new_vec
+    when Mal::HashMap
+      new_map = Mal::HashMap.new
+      val.each { |k, v| new_map[k] = eval(v, env) }
+      return Mal::Type.new new_map
     when Mal::List
-      return gen_type Mal::List if ast.empty?
+      list = val
+      return ast if list.empty?
 
-      f = eval_ast(ast.first, env)
-      ast.shift(1)
-      args = eval_ast(ast, env)
+        f = eval(list.first, env).unwrap
+        case f
+        when Mal::Func
+          args = list[1..-1].map { |n| eval(n, env).as(Mal::Type) }
+          return f.call args
+        else
+          eval_error "expected function as the first argument: #{f}"
+        end
 
-      if f.is_a?(Mal::Func)
-        f.call(args)
-      else
-        eval_error "expected function symbol as the first symbol of list"
-      end
     else
-      eval_ast(t, env)
+      return Mal::Type.new val
     end
   end
 
@@ -78,13 +76,6 @@ module Mal
     print(eval(read(str), REPL_ENV))
   end
 end
-
-REPL_ENV = {
-  "+" => Mal.num_func(->(x : Int64, y : Int64) { x + y }),
-  "-" => Mal.num_func(->(x : Int64, y : Int64) { x - y }),
-  "*" => Mal.num_func(->(x : Int64, y : Int64) { x * y }),
-  "/" => Mal.num_func(->(x : Int64, y : Int64) { x / y }),
-} of String => Mal::Func
 
 while line = Readline.readline("user> ", true)
   begin

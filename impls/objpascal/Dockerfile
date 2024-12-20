@@ -1,4 +1,4 @@
-FROM ubuntu:vivid
+FROM ubuntu:24.04
 MAINTAINER Joel Martin <github@martintribe.org>
 
 ##########################################################
@@ -9,10 +9,8 @@ MAINTAINER Joel Martin <github@martintribe.org>
 RUN apt-get -y update
 
 # Required for running tests
-RUN apt-get -y install make python
-
-# Some typical implementation and test requirements
-RUN apt-get -y install curl libreadline-dev libedit-dev
+RUN apt-get -y install make python3
+RUN ln -fs /usr/bin/python3 /usr/local/bin/python
 
 RUN mkdir -p /mal
 WORKDIR /mal
@@ -22,4 +20,4 @@ WORKDIR /mal
 ##########################################################
 
 # Free Pascal
-RUN apt-get -y install libc6-dev fp-compiler
+RUN apt-get -y install libc-dev fp-compiler libedit-dev

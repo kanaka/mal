@@ -1,7 +1,13 @@
 fun read s =
     readStr s
 
-fun eval e ast = eval' e (expandMacro e [ast])
+fun eval e ast = (
+  case lookup e "DEBUG-EVAL" of
+    SOME(x) => if truthy x
+               then TextIO.print ("EVAL: " ^ prReadableStr ast ^ "\n")
+               else ()
+    | NONE => ();
+  eval' e ast)
 
 and eval' e (LIST (a::args, _)) = (case specialEval a of SOME special => special e args | _ => evalApply e (eval e a) args)
   | eval' e (SYMBOL s)          = evalSymbol e s
@@ -16,9 +22,7 @@ and specialEval (SYMBOL "def!")             = SOME evalDef
   | specialEval (SYMBOL "fn*")              = SOME evalFn
   | specialEval (SYMBOL "quote")            = SOME evalQuote
   | specialEval (SYMBOL "quasiquote")       = SOME evalQuasiquote
-  | specialEval (SYMBOL "quasiquoteexpand") = SOME (fn _ => expandQuasiquote)
   | specialEval (SYMBOL "defmacro!")        = SOME evalDefmacro
-  | specialEval (SYMBOL "macroexpand")      = SOME expandMacro
   | specialEval (SYMBOL "try*")             = SOME evalTry
   | specialEval _                           = NONE
 
@@ -61,22 +65,20 @@ and evalDefmacro e [SYMBOL s, ast] = defMacro e s (eval e ast)
 and defMacro e s (FN (f,_)) = let val m = MACRO f in (def s m e; m) end
   | defMacro _ _ _ = raise NotApplicable "defmacro! needs a name, and a fn*"
 
-and expandMacro e [(ast as LIST (SYMBOL s::args, _))] = (case lookup e s of SOME (MACRO m) => m args | _ => ast)
-  | expandMacro _ [ast]                               = ast
-  | expandMacro _ _ = raise NotApplicable "macroexpand needs one argument"
-
 and evalTry e [a, LIST ([SYMBOL "catch*", b, c],_)] = (eval e a handle ex => evalCatch (inside e) b ex c)
   | evalTry e [a]                                   = eval e a
   | evalTry _ _ = raise NotApplicable "try* needs a form to evaluate"
 and evalCatch e b ex body = eval (bind [b, exnVal ex] e) body
 
 and exnVal (MalException x)    = x
+  | exnVal (SyntaxError msg)   = STRING msg
   | exnVal (NotDefined msg)    = STRING msg
   | exnVal (NotApplicable msg) = STRING msg
   | exnVal (OutOfBounds msg)   = STRING msg
   | exnVal exn                 = STRING (exnMessage exn)
 
 and evalApply e (FN (f,_)) args = f (map (eval e) args)
+  | evalApply e (MACRO m) args  = eval e (m args)
   | evalApply _ x args = raise NotApplicable (prStr x ^ " is not applicable on " ^ prStr (malList args))
 
 and evalSymbol e s = valOrElse (lookup e s)

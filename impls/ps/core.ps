@@ -21,7 +21,9 @@
   0 _nth
   dup _mal_function? { %if user defined function
     /macro? get true eq %if marked as macro
-  }{ false } ifelse
+  }{
+      pop false
+  } ifelse
 } def
 
 % Hash Map functions

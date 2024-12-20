@@ -10,29 +10,25 @@ exit
 read: procedure expose values. err /* read(str) */
   return read_str(arg(1))
 
-eval_ast: procedure expose values. env. err /* eval_ast(ast, env_idx) */
+eval: procedure expose values. env. err /* eval(ast) */
   ast = arg(1)
   env_idx = arg(2)
+
+  debug_eval = obj_type(env_get(env_idx, "DEBUG-EVAL"))
+  if  debug_eval <> "ERR" & debug_eval <> "nill" & debug_eval <> "fals" then,
+    call lineout , ("EVAL: " || print(ast))
+
   type = obj_type(ast)
-  val = obj_val(ast)
+  astval = obj_val(ast)
   select
-    when type == "symb" then return env_get(env_idx, val)
-    when type == "list" then do
-      res = ""
-      do i=1 to words(val)
-        element = eval(word(val, i), env_idx)
-        if element == "ERR" then return "ERR"
-        if i > 1 then
-          res = res || " " || element
-        else
-          res = element
-      end
-      return new_list(res)
+    when type == "symb" then return env_get(env_idx, astval)
+    when type == "list" & words(astval) > 0 then do
+      --  proceed after this select statement
     end
     when type == "vect" then do
       res = ""
-      do i=1 to words(val)
-        element = eval(word(val, i), env_idx)
+      do i=1 to words(astval)
+        element = eval(word(astval, i), env_idx)
         if element == "ERR" then return "ERR"
         if i > 1 then
           res = res || " " || element
@@ -43,8 +39,8 @@ eval_ast: procedure expose values. env. err /* eval_ast(ast, env_idx) */
     end
     when type == "hash" then do
       res = ""
-      do i=1 to words(val)
-        element = eval(word(val, i), env_idx)
+      do i=1 to words(astval)
+        element = eval(word(astval, i), env_idx)
         if element == "ERR" then return "ERR"
         if i > 1 then
           res = res || " " || element
@@ -57,13 +53,10 @@ eval_ast: procedure expose values. env. err /* eval_ast(ast, env_idx) */
       return ast
     end
 
-eval: procedure expose values. env. err /* eval(ast) */
-  ast = arg(1)
-  env_idx = arg(2)
-  if \list?(ast) then return eval_ast(ast, env_idx)
-  astval = obj_val(ast)
-  if words(astval) == 0 then return ast
-  a0sym = obj_val(word(astval, 1))
+  --  ast is a non-empty list
+
+  a0 = word(astval, 1)
+  a0sym = obj_val(a0)
   select
     when a0sym == "def!" then do
       a1sym = obj_val(word(astval, 2))
@@ -83,11 +76,21 @@ eval: procedure expose values. env. err /* eval(ast) */
       return eval(word(astval, 3), letenv_idx)
     end
     otherwise
-      lst_obj = eval_ast(ast, env_idx)
-      if lst_obj == "ERR" then return "ERR"
-      lst = obj_val(lst_obj)
-      f = word(lst, 1)
-      call_args = subword(lst, 2)
+     f = eval(a0, env_idx)
+     if f == "ERR" then return "ERR"
+
+      --  Evaluate the arguments and store them to lst.
+      lst = ""
+      do i=2 to words(astval)
+        element = eval(word(astval, i), env_idx)
+        if element == "ERR" then return "ERR"
+        if i > 2 then
+          lst = lst || " " || element
+        else
+          lst = element
+      end
+
+      call_args = lst
       call_list = ""
       do i=1 to words(call_args)
         element = '"' || word(call_args, i) || '"'

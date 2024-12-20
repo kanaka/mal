@@ -14,7 +14,14 @@ s" *" MalSymbol.  :noname args-as-native * MalInt. ; MalNativeFn.  repl-env env/
 s" /" MalSymbol.  :noname args-as-native / MalInt. ; MalNativeFn.  repl-env env/set
 
 : read read-str ;
-: eval ( env obj ) mal-eval ;
+s" DEBUG-EVAL" MalSymbol. constant debug-eval-sym
+: eval ( env obj )
+    over debug-eval-sym swap env/get-addr ?dup-if
+        @ dup mal-false <> swap mal-nil <> and if
+            ." EVAL: " dup pr-str safe-type cr
+        endif
+    endif
+    mal-eval ;
 : print
     \ ." Type: " dup mal-type @ type-name safe-type cr
     pr-str ;

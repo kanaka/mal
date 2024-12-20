@@ -1,4 +1,4 @@
-FROM ubuntu:wily
+FROM ubuntu:24.04
 MAINTAINER Joel Martin <github@martintribe.org>
 
 ##########################################################
@@ -9,10 +9,8 @@ MAINTAINER Joel Martin <github@martintribe.org>
 RUN apt-get -y update
 
 # Required for running tests
-RUN apt-get -y install make python
-
-# Some typical implementation and test requirements
-RUN apt-get -y install curl libreadline-dev libedit-dev
+RUN apt-get -y install make python3
+RUN ln -fs /usr/bin/python3 /usr/local/bin/python
 
 RUN mkdir -p /mal
 WORKDIR /mal
@@ -21,26 +19,25 @@ WORKDIR /mal
 # Specific implementation requirements
 ##########################################################
 
+RUN DEBIAN_FRONTEND=noninteractive apt-get -y install \
+    ca-certificates curl gcc g++ libasound2-dev \
+    libglu1-mesa-dev mesa-common-dev patch unzip wget \
+    xz-utils libncurses-dev
+
 # cbmbasic
-RUN apt-get install -y gcc unzip patch
+# Remove duplicate RAM (https://github.com/mist64/cbmbasic/commit/352a313313dd0a15a47288c8f8031b54ac8c92a2).
 RUN cd /tmp && \
     curl -L https://github.com/kanaka/cbmbasic/archive/master.zip -o cbmbasic.zip && \
     unzip cbmbasic.zip && \
     cd cbmbasic-master && \
+    sed -i '/unsigned char RAM.65536.;/d' runtime.c && \
     make && \
-    cp cbmbasic /usr/bin/cbmbasic && \
+    mv cbmbasic /usr/local/bin && \
     cd .. && \
     rm -r cbmbasic*
 
-RUN apt-get install -y g++ mesa-common-dev libglu1-mesa-dev libasound2-dev wget
-RUN cd /tmp && \
-    curl -L http://www.qb64.net/release/official/2017_02_09__02_14_38-1.1-20170120.51/linux/qb64-1.1-20170120.51-lnx.tar.gz | tar xzf - && \
-    cd qb64 && \
-    find . -name '*.sh' -exec sed -i "s/\r//g" {} \; && \
-    env EUID=1 ./setup_lnx.sh && \
-    mkdir -p /usr/share/qb64 && \
-    cp -a qb64 internal LICENSE programs source /usr/share/qb64/ && \
-    echo '#!/bin/sh\ncd /usr/share/qb64\n./qb64 "${@}"' > /usr/bin/qb64 && \
-    chmod +x /usr/bin/qb64
-
+# qbasic (using freebasic: `fbc -lang qb`)
+RUN cd /opt && \
+    curl -L https://sourceforge.net/projects/fbc/files/FreeBASIC-1.10.1/Binaries-Linux/FreeBASIC-1.10.1-ubuntu-22.04-x86_64.tar.xz | tar xvJf - && \
+    ln -sf /opt/FreeBASIC-1.10.1-ubuntu-22.04-x86_64/bin/fbc /usr/local/bin/fbc
 

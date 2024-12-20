@@ -15,10 +15,6 @@
 (dm set> (Key Value)
    (put (: data) Key Value) )
 
-(dm find> (Key)
-   (or (get (: data) Key)
-      (and (: outer) (find> @ Key)) ) )
-
 (dm get> (Key)
-   (or (find> This Key)
-      (throw 'err (MAL-error (MAL-string (pack "'" Key "' not found")))) ) )
+   (or (get (: data) Key)
+      (and (: outer) (get> @ Key)) ) )

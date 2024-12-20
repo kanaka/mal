@@ -15,45 +15,61 @@
 
 
 % eval
-/eval_ast { 2 dict begin
+/EVAL { 7 dict begin
     /env exch def
     /ast exch def
-    %(eval_ast: ) print ast ==
+
+    env (DEBUG-EVAL) env_get {
+        dup null ne    exch false ne    and {
+            (EVAL: ) print
+            ast true _pr_str print
+            (\n) print
+        } if
+    } if
+
     ast _symbol? { %if symbol
         env ast env_get
-    }{ ast _sequential? { %elseif list or vector
+        not {
+            (') ast
+            dup length string cvs
+            (' not found)
+            concatenate concatenate
+            _throw
+        } if
+    }{
+
+    ast _vector? {
         [
             ast /data get { %forall items
                 env EVAL
             } forall
-        ] ast _list? { _list_from_array }{ _vector_from_array } ifelse
-    }{ ast _hash_map? { %elseif list or vector
+        ] _vector_from_array
+    }{
+
+    ast _hash_map? {
         <<
             ast /data get { %forall entries
                 env EVAL
             } forall
         >> _hash_map_from_dict
-    }{ % else
+    }{
+
+    ast _list? not {
         ast
-    } ifelse } ifelse } ifelse
-end } def
+    }{
 
-/EVAL { 9 dict begin
-    /env exch def
-    /ast exch def
+    ast _count 0 eq {
+        ast
+    }{
 
-    %(EVAL: ) print ast true _pr_str print (\n) print
-    ast _list? not { %if not a list
-        ast env eval_ast
-    }{ %else apply the list
         /a0 ast 0 _nth def
-        a0 _nil? { %if ()
-            ast
-        }{ /def! a0 eq { %if def!
-            /a1 ast 1 _nth def
-            /a2 ast 2 _nth def
-            env a1  a2 env EVAL  env_set
-        }{ /let* a0 eq { %if let*
+
+        /def! a0 eq { %if def!
+            ast 2 _nth    env EVAL
+            env    ast 1 _nth    2 index    env_set
+        }{
+
+        /let* a0 eq { %if let*
             /a1 ast 1 _nth def
             /a2 ast 2 _nth def
             /let_env env null null env_new def
@@ -63,13 +79,22 @@ end } def
                     a1 idx _nth
                     a1 idx 1 add _nth let_env EVAL
                     env_set
-                    pop % discard the return value
             } for
-            a2 let_env EVAL
-        }{ /do a0 eq { %if do
-            /el ast _rest env eval_ast def
-            el el _count 1 sub _nth % return last value
-        }{ /if a0 eq { %if if
+            a2
+            let_env
+            EVAL
+        }{
+
+        /do a0 eq { %if do
+            ast _count 2 gt { %if ast has more than 2 elements
+                ast 1 ast _count 2 sub _slice /data get { env EVAL pop } forall
+            } if
+            ast ast _count 1 sub _nth % last ast becomes new ast
+            env
+            EVAL
+        }{
+
+        /if a0 eq { %if if
             /a1 ast 1 _nth def
             /cond a1 env EVAL def
             cond null eq cond false eq or { % if cond is nil or false
@@ -83,23 +108,31 @@ end } def
                 ast 2 _nth env
                 EVAL
             } ifelse
-        }{ /fn* a0 eq { %if fn*
+        }{
+
+        /fn* a0 eq { %if fn*
             /a1 ast 1 _nth def
             /a2 ast 2 _nth def
             a2 env a1 _mal_function
         }{
-            /el ast env eval_ast def
-            el _rest el _first % stack: ast function
+
+            a0 env EVAL
+
             dup _mal_function? { %if user defined function
-                fload % stack: ast new_env
-                EVAL
-            }{ dup _function? { %else if builtin function
+              [ ast _rest /data get { env EVAL } forall ] _list_from_array exch
+              fload % stack: ast new_env
+              EVAL
+            }{
+
+            dup _function? { %else if builtin function
+                [ ast _rest /data get { env EVAL } forall ] _list_from_array exch
                 /data get exec
-            }{ %else (regular procedure/function)
-                (cannot apply native proc!\n) print quit
-            } ifelse } ifelse
-        } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse
-    } ifelse
+            }{
+
+            %else (regular procedure/function)
+            (cannot apply native proc!\n) print quit
+
+            } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse
 end } def
 
 
@@ -116,8 +149,7 @@ end } def
 /REP { READ repl_env EVAL PRINT } def
 
 % core.ps: defined using postscript
-/_ref { repl_env 3 1 roll env_set pop } def
-core_ns { _function _ref } forall
+core_ns { _function    repl_env 3 1 roll env_set } forall
 
 % core.mal: defined using the language itself
 (\(def! not \(fn* \(a\) \(if a false true\)\)\)) RE pop

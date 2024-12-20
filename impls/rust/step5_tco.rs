@@ -26,146 +26,140 @@ mod core;
 
 // read
 fn read(str: &str) -> MalRet {
-    reader::read_str(str.to_string())
+    reader::read_str(str)
 }
 
 // eval
-fn eval_ast(ast: &MalVal, env: &Env) -> MalRet {
-    match ast {
-        Sym(_) => Ok(env_get(&env, &ast)?),
-        List(v, _) => {
-            let mut lst: MalArgs = vec![];
-            for a in v.iter() {
-                lst.push(eval(a.clone(), env.clone())?)
-            }
-            Ok(list!(lst))
+fn eval(orig_ast: &MalVal, orig_env: &Env) -> MalRet {
+    let mut ast = orig_ast;
+    let mut env = orig_env;
+    // These variables ensure a sufficient lifetime for the data
+    // referenced by ast and env.
+    let mut live_ast;
+    let mut live_env;
+
+    'tco: loop {
+        match env_get(env, "DEBUG-EVAL") {
+            None | Some(Bool(false)) | Some(Nil) => (),
+            _ => println!("EVAL: {}", print(ast)),
+        }
+        match ast {
+        Sym(s) => match env_get(env, s) {
+            Some(r) => return Ok(r),
+            None => return error(&format!("'{}' not found", s)),
         }
         Vector(v, _) => {
             let mut lst: MalArgs = vec![];
             for a in v.iter() {
-                lst.push(eval(a.clone(), env.clone())?)
+                lst.push(eval(a, env)?);
             }
-            Ok(vector!(lst))
+            return Ok(vector!(lst));
         }
         Hash(hm, _) => {
             let mut new_hm: FnvHashMap<String, MalVal> = FnvHashMap::default();
             for (k, v) in hm.iter() {
-                new_hm.insert(k.to_string(), eval(v.clone(), env.clone())?);
+                new_hm.insert(k.to_string(), eval(v, env)?);
             }
-            Ok(Hash(Rc::new(new_hm), Rc::new(Nil)))
+            return Ok(Hash(Rc::new(new_hm), Rc::new(Nil)));
         }
-        _ => Ok(ast.clone()),
-    }
-}
-
-fn eval(mut ast: MalVal, mut env: Env) -> MalRet {
-    let ret: MalRet;
-
-    'tco: loop {
-        ret = match ast.clone() {
-            List(l, _) => {
-                if l.len() == 0 {
-                    return Ok(ast);
+        List(l, _) => {
+                if l.is_empty() {
+                    return Ok(ast.clone());
                 }
                 let a0 = &l[0];
                 match a0 {
-                    Sym(ref a0sym) if a0sym == "def!" => {
-                        env_set(&env, l[1].clone(), eval(l[2].clone(), env.clone())?)
+                    Sym(a0sym) if a0sym == "def!" => {
+                        return env_set(env, &l[1], eval(&l[2], env)?);
                     }
-                    Sym(ref a0sym) if a0sym == "let*" => {
-                        env = env_new(Some(env.clone()));
-                        let (a1, a2) = (l[1].clone(), l[2].clone());
+                    Sym(a0sym) if a0sym == "let*" => {
+                        live_env = env_new(Some(env.clone()));
+                        env = &live_env;
+                        let (a1, a2) = (&l[1], &l[2]);
                         match a1 {
-                            List(ref binds, _) | Vector(ref binds, _) => {
+                            List(binds, _) | Vector(binds, _) => {
                                 for (b, e) in binds.iter().tuples() {
-                                    match b {
-                                        Sym(_) => {
-                                            let _ = env_set(
-                                                &env,
-                                                b.clone(),
-                                                eval(e.clone(), env.clone())?,
-                                            );
-                                        }
-                                        _ => {
-                                            return error("let* with non-Sym binding");
-                                        }
-                                    }
+                                    let val = eval(e, env)?;
+                                    env_set(env, b, val)?;
                                 }
                             }
                             _ => {
                                 return error("let* with non-List bindings");
                             }
                         };
-                        ast = a2;
+                        live_ast = a2.clone();
+                        ast = &live_ast;
                         continue 'tco;
                     }
-                    Sym(ref a0sym) if a0sym == "do" => {
-                        match eval_ast(&list!(l[1..l.len() - 1].to_vec()), &env)? {
-                            List(_, _) => {
-                                ast = l.last().unwrap_or(&Nil).clone();
-                                continue 'tco;
-                            }
-                            _ => error("invalid do form"),
+                    Sym(a0sym) if a0sym == "do" => {
+                        for i in 1..l.len() - 1 {
+                            let _ = eval(&l[i], env)?;
                         }
+                        live_ast = l.last().unwrap_or(&Nil).clone();
+                        ast = &live_ast;
+                        continue 'tco;
                     }
-                    Sym(ref a0sym) if a0sym == "if" => {
-                        let cond = eval(l[1].clone(), env.clone())?;
+                    Sym(a0sym) if a0sym == "if" => {
+                        let cond = eval(&l[1], env)?;
                         match cond {
                             Bool(false) | Nil if l.len() >= 4 => {
-                                ast = l[3].clone();
+                                live_ast = l[3].clone();
+                                ast = &live_ast;
                                 continue 'tco;
                             }
-                            Bool(false) | Nil => Ok(Nil),
+                            Bool(false) | Nil => return Ok(Nil),
                             _ if l.len() >= 3 => {
-                                ast = l[2].clone();
+                                live_ast = l[2].clone();
+                                ast = &live_ast;
                                 continue 'tco;
                             }
-                            _ => Ok(Nil),
+                            _ => return Ok(Nil),
                         }
                     }
-                    Sym(ref a0sym) if a0sym == "fn*" => {
+                    Sym(a0sym) if a0sym == "fn*" => {
                         let (a1, a2) = (l[1].clone(), l[2].clone());
-                        Ok(MalFunc {
-                            eval: eval,
+                        return Ok(MalFunc {
+                            eval,
                             ast: Rc::new(a2),
-                            env: env,
+                            env: env.clone(),
                             params: Rc::new(a1),
                             is_macro: false,
                             meta: Rc::new(Nil),
                         })
                     }
-                    _ => match eval_ast(&ast, &env)? {
-                        List(ref el, _) => {
-                            let ref f = el[0].clone();
-                            let args = el[1..].to_vec();
-                            match f {
-                                Func(_, _) => f.apply(args),
-                                MalFunc {
+                    _ => match eval(a0, env) {
+                                Ok(f @ Func(_, _)) => {
+                                    let mut args: MalArgs = vec![];
+                                    for i in 1..l.len() {
+                                        args.push(eval(&l[i], env)?);
+                                    }
+                                    return f.apply(args);
+                                }
+                                Ok(MalFunc {
                                     ast: mast,
                                     env: menv,
-                                    params,
+                                    params: mparams,
                                     ..
-                                } => {
-                                    let a = &**mast;
-                                    let p = &**params;
-                                    env = env_bind(Some(menv.clone()), p.clone(), args)?;
-                                    ast = a.clone();
+                                }) => {
+                                    let mut args: MalArgs = vec![];
+                                    for i in 1..l.len() {
+                                        args.push(eval(&l[i], env)?);
+                                    }
+                                    live_env = env_bind(Some(menv.clone()), &mparams, args.to_vec())?;
+                                    env = &live_env;
+                                    live_ast = (*mast).clone();
+                                    ast = &live_ast;
                                     continue 'tco;
                                 }
-                                _ => error("attempt to call non-function"),
-                            }
-                        }
-                        _ => error("expected a list"),
+                                Ok(_) => return error("attempt to call non-function"),
+                                e @ Err(_) => return e,
                     },
                 }
-            }
-            _ => eval_ast(&ast, &env),
+        }
+        _ => return Ok(ast.clone()),
         };
 
-        break;
     } // end 'tco loop
 
-    ret
 }
 
 // print
@@ -175,13 +169,22 @@ fn print(ast: &MalVal) -> String {
 
 fn rep(str: &str, env: &Env) -> Result<String, MalErr> {
     let ast = read(str)?;
-    let exp = eval(ast, env.clone())?;
+    let exp = eval(&ast, env)?;
     Ok(print(&exp))
+}
+
+fn re(str: &str, env: &Env) {
+    if let Ok(ast) = read(str) {
+        if eval(&ast, env).is_ok() {
+            return;
+        }
+    }
+    panic!("error during startup");
 }
 
 fn main() {
     // `()` can be used when no completer is required
-    let mut rl = Editor::<()>::new();
+    let mut rl = Editor::<(), rustyline::history::DefaultHistory>::new().unwrap();
     if rl.load_history(".mal-history").is_err() {
         eprintln!("No previous history.");
     }
@@ -193,16 +196,16 @@ fn main() {
     }
 
     // core.mal: defined using the language itself
-    let _ = rep("(def! not (fn* (a) (if a false true)))", &repl_env);
+    re("(def! not (fn* (a) (if a false true)))", &repl_env);
 
     // main repl loop
     loop {
         let readline = rl.readline("user> ");
         match readline {
             Ok(line) => {
-                rl.add_history_entry(&line);
+                let _ = rl.add_history_entry(&line);
                 rl.save_history(".mal-history").unwrap();
-                if line.len() > 0 {
+                if !line.is_empty() {
                     match rep(&line, &repl_env) {
                         Ok(out) => println!("{}", out),
                         Err(e) => println!("Error: {}", format_error(e)),

@@ -6,8 +6,6 @@ import java.io.StringWriter;
 import java.io.PrintWriter;
 import java.util.List;
 import java.util.Map;
-import java.util.HashMap;
-import java.util.Iterator;
 import mal.types.*;
 import mal.readline;
 import mal.reader;
@@ -54,74 +52,39 @@ public class stepA_mal {
         return res;
     }
 
-    public static Boolean is_macro_call(MalVal ast, Env env)
-            throws MalThrowable {
-        if (ast instanceof MalList) {
-            MalVal a0 = ((MalList)ast).nth(0);
-            if (a0 instanceof MalSymbol &&
-                env.find(((MalSymbol)a0)) != null) {
-                MalVal mac = env.get(((MalSymbol)a0));
-                if (mac instanceof MalFunction &&
-                    ((MalFunction)mac).isMacro()) {
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
+    public static MalVal EVAL(MalVal orig_ast, Env env) throws MalThrowable {
+        while (true) {
 
-    public static MalVal macroexpand(MalVal ast, Env env)
-            throws MalThrowable {
-        while (is_macro_call(ast, env)) {
-            MalSymbol a0 = (MalSymbol)((MalList)ast).nth(0);
-            MalFunction mac = (MalFunction) env.get(a0);
-            ast = mac.apply(((MalList)ast).rest());
-        }
-        return ast;
-    }
+        final MalVal dbgeval = env.get("DEBUG-EVAL");
+        if (dbgeval != null && dbgeval != types.Nil && dbgeval != types.False)
+            System.out.println("EVAL: " + printer._pr_str(orig_ast, true));
 
-    public static MalVal eval_ast(MalVal ast, Env env) throws MalThrowable {
-        if (ast instanceof MalSymbol) {
-            return env.get((MalSymbol)ast);
-        } else if (ast instanceof MalList) {
-            MalList old_lst = (MalList)ast;
-            MalList new_lst = ast.list_Q() ? new MalList()
-                                           : (MalList)new MalVector();
+        if (orig_ast instanceof MalSymbol) {
+            final String key = ((MalSymbol)orig_ast).getName();
+            final MalVal val = env.get(key);
+            if (val == null)
+                throw new MalException("'" + key + "' not found");
+            return val;
+        } else if (orig_ast instanceof MalVector) {
+            final MalList old_lst = (MalList)orig_ast;
+            final MalVector new_lst = new MalVector();
             for (MalVal mv : (List<MalVal>)old_lst.value) {
                 new_lst.conj_BANG(EVAL(mv, env));
             }
             return new_lst;
-        } else if (ast instanceof MalHashMap) {
+        } else if (orig_ast instanceof MalHashMap) {
+            final Map<String, MalVal> old_hm = ((MalHashMap)orig_ast).value;
             MalHashMap new_hm = new MalHashMap();
-            Iterator it = ((MalHashMap)ast).value.entrySet().iterator();
-            while (it.hasNext()) {
-                Map.Entry entry = (Map.Entry)it.next();
+            for (Map.Entry<String, MalVal> entry : old_hm.entrySet()) {
                 new_hm.value.put(entry.getKey(), EVAL((MalVal)entry.getValue(), env));
             }
             return new_hm;
-        } else {
-            return ast;
+        } else if (!orig_ast.list_Q()) {
+            return orig_ast;
         }
-    }
-
-    public static MalVal EVAL(MalVal orig_ast, Env env) throws MalThrowable {
+        final MalList ast = (MalList)orig_ast;
         MalVal a0, a1,a2, a3, res;
-        MalList el;
-
-        while (true) {
-
-        //System.out.println("EVAL: " + printer._pr_str(orig_ast, true));
-        if (!orig_ast.list_Q()) {
-            return eval_ast(orig_ast, env);
-        }
-        if (((MalList)orig_ast).size() == 0) { return orig_ast; }
-
         // apply list
-        MalVal expanded = macroexpand(orig_ast, env);
-        if (!expanded.list_Q()) {
-            return eval_ast(expanded, env);
-        }
-        MalList ast = (MalList) expanded;
         if (ast.size() == 0) { return ast; }
         a0 = ast.nth(0);
         String a0sym = a0 instanceof MalSymbol ? ((MalSymbol)a0).getName()
@@ -149,8 +112,6 @@ public class stepA_mal {
             break;
         case "quote":
             return ast.nth(1);
-        case "quasiquoteexpand":
-            return quasiquote(ast.nth(1));
         case "quasiquote":
             orig_ast = quasiquote(ast.nth(1));
             break;
@@ -162,9 +123,6 @@ public class stepA_mal {
             ((MalFunction)res).setMacro();
             env.set((MalSymbol)a1, res);
             return res;
-        case "macroexpand":
-            a1 = ast.nth(1);
-            return macroexpand(a1, env);
         case "try*":
             try {
                 return EVAL(ast.nth(1), env);
@@ -190,7 +148,8 @@ public class stepA_mal {
                 throw t;
             }
         case "do":
-            eval_ast(ast.slice(1, ast.size()-1), env);
+            for (int i=1; i<ast.size()-1; i++)
+                EVAL(ast.nth(i), env);
             orig_ast = ast.nth(ast.size()-1);
             break;
         case "if":
@@ -218,14 +177,20 @@ public class stepA_mal {
                 }
             };
         default:
-            el = (MalList)eval_ast(ast, env);
-            MalFunction f = (MalFunction)el.nth(0);
+            final MalFunction f = (MalFunction)EVAL(a0, env);
+            if (f.isMacro()) {
+                orig_ast = f.apply(ast.rest());
+                continue;
+            }
+            final MalList args = new MalList();
+            for (int i=1; i<ast.size(); i++)
+                args.conj_BANG(EVAL(ast.nth(i), env));
             MalVal fnast = f.getAst();
             if (fnast != null) {
                 orig_ast = fnast;
-                env = f.genEnv(el.slice(1));
+                env = f.genEnv(args);
             } else {
-                return f.apply(el.rest());
+                return f.apply(args);
             }
         }
 
@@ -295,16 +260,12 @@ public class stepA_mal {
             try {
                 System.out.println(PRINT(RE(repl_env, line)));
             } catch (MalContinue e) {
-                continue;
             } catch (MalException e) {
                 System.out.println("Error: " + printer._pr_str(e.getValue(), false));
-                continue;
             } catch (MalThrowable t) {
                 System.out.println("Error: " + t.getMessage());
-                continue;
             } catch (Throwable t) {
                 System.out.println("Uncaught " + t + ": " + t.getMessage());
-                continue;
             }
         }
     }

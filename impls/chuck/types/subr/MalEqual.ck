@@ -8,8 +8,8 @@ public class MalEqual extends MalSubr
         if( ( a.type == "list" || a.type == "vector" ) &&
             ( b.type == "list" || b.type == "vector" ) )
         {
-            Util.sequenceToMalObjectArray(a) @=> MalObject as[];
-            Util.sequenceToMalObjectArray(b) @=> MalObject bs[];
+            a.malObjectValues() @=> MalObject as[];
+            b.malObjectValues() @=> MalObject bs[];
 
             if( as.size() != bs.size() )
             {
@@ -30,8 +30,8 @@ public class MalEqual extends MalSubr
 
         if( a.type == "hashmap" && b.type == "hashmap" )
         {
-            (a$MalHashMap).value() @=> MalObject akvs[];
-            (b$MalHashMap).value() @=> MalObject bkvs[];
+            a.malObjectValues() @=> MalObject akvs[];
+            b.malObjectValues() @=> MalObject bkvs[];
 
             if( akvs.size() != bkvs.size() )
             {
@@ -42,7 +42,7 @@ public class MalEqual extends MalSubr
 
             for( 0 => int i; i < bkvs.size(); 2 +=> i )
             {
-                Util.keyName(bkvs[i]) => string keyName;
+                bkvs[i].stringValue => string keyName;
                 bkvs[i+1] @=> bmap[keyName];
             }
 
@@ -51,7 +51,7 @@ public class MalEqual extends MalSubr
             {
                 akvs[i] @=> MalObject key;
                 akvs[i+1] @=> MalObject value;
-                Util.keyName(key) => string keyName;
+                key.stringValue => string keyName;
 
                 if( bmap[keyName] == null ||
                     call([value, bmap[keyName]]).type != "true" )
@@ -77,7 +77,7 @@ public class MalEqual extends MalSubr
         }
         else if( kind == "int" )
         {
-            if( (a$MalInt).value() == (b$MalInt).value() )
+            if( a.intValue == b.intValue )
             {
                 return Constants.TRUE;
             }
@@ -88,7 +88,7 @@ public class MalEqual extends MalSubr
         }
         else if( kind == "string" )
         {
-            if( (a$MalString).value() == (b$MalString).value() )
+            if( a.stringValue == b.stringValue )
             {
                 return Constants.TRUE;
             }
@@ -99,7 +99,7 @@ public class MalEqual extends MalSubr
         }
         else if( kind == "symbol" )
         {
-            if( (a$MalSymbol).value() == (b$MalSymbol).value() )
+            if( a.stringValue == b.stringValue )
             {
                 return Constants.TRUE;
             }
@@ -110,7 +110,7 @@ public class MalEqual extends MalSubr
         }
         else if( kind == "keyword" )
         {
-            if( (a$MalKeyword).value() == (b$MalKeyword).value() )
+            if( a.stringValue == b.stringValue )
             {
                 return Constants.TRUE;
             }

@@ -1,5 +1,4 @@
 (ns mal.step9-try
-  (:refer-clojure :exclude [macroexpand])
   (:require [mal.readline :as readline]
             #?(:clj [clojure.repl])
             [mal.reader :as reader]
@@ -13,8 +12,6 @@
   (reader/read-string strng))
 
 ;; eval
-(declare EVAL)
-
 (declare quasiquote)
 (defn starts_with [ast sym]
   (and (seq? ast)
@@ -34,46 +31,28 @@
         (or (symbol? ast) (map? ast)) (list 'quote ast)
         :else                         ast))
 
-(defn is-macro-call [ast env]
-  (and (seq? ast)
-       (symbol? (first ast))
-       (env/env-find env (first ast))
-       (:ismacro (meta (env/env-get env (first ast))))))
-
-(defn macroexpand [ast env]
-  (loop [ast ast]
-    (if (is-macro-call ast env)
-      ;; Get original unadorned function because ClojureScript (1.10)
-      ;; limits functions with meta on them to arity 20
-      (let [mac (:orig (meta (env/env-get env (first ast))))]
-        (recur (apply mac (rest ast))))
-      ast)))
-
-(defn eval-ast [ast env]
-  (cond
-    (symbol? ast) (env/env-get env ast)
-
-    (seq? ast)    (doall (map #(EVAL % env) ast))
-
-    (vector? ast) (vec (doall (map #(EVAL % env) ast)))
-
-    (map? ast)    (apply hash-map (doall (map #(EVAL % env)
-                                              (mapcat identity ast))))
-
-    :else         ast))
-
 (defn EVAL [ast env]
   (loop [ast ast
          env env]
-    ;;(prn "EVAL" ast (keys @env)) (flush)
-    (if (not (seq? ast))
-      (eval-ast ast env)
 
+  (let [e (env/env-find env 'DEBUG-EVAL)]
+    (when e
+      (let [v (env/env-get e 'DEBUG-EVAL)]
+        (when (and (not= v nil)
+                   (not= v false))
+          (println "EVAL:" (printer/pr-str ast) (keys @env))
+          (flush)))))
+
+  (cond
+    (symbol? ast) (env/env-get env ast)
+
+    (vector? ast) (vec (map #(EVAL % env) ast))
+
+    (map? ast) (apply hash-map (map #(EVAL % env) (mapcat identity ast)))
+
+    (seq? ast)
       ;; apply list
-      (let [ast (macroexpand ast env)]
-        (if (not (seq? ast))
-          (eval-ast ast env)
-
+          ;; indented to match later steps
           (let [[a0 a1 a2 a3] ast]
             (condp = a0
               nil
@@ -91,9 +70,6 @@
               'quote
               a1
 
-              'quasiquoteexpand
-              (quasiquote a1)
-
               'quasiquote
               (recur (quasiquote a1) env)
 
@@ -104,9 +80,6 @@
                     mac (with-meta func {:orig (:orig (meta func))
                                          :ismacro true})]
                 (env/env-set env a1 mac))
-
-              'macroexpand
-              (macroexpand a1 env)
 
               'try*
               (if (= 'catch* (nth a2 0))
@@ -126,7 +99,7 @@
                 (EVAL a1 env))
 
               'do
-              (do (eval-ast (->> ast (drop-last) (drop 1)) env)
+              (do (doall (map #(EVAL % env) (->> ast (drop-last) (drop 1))))
                   (recur (last ast) env))
 
               'if
@@ -150,13 +123,19 @@
                    :parameters a1}))
 
               ;; apply
-              (let [el (eval-ast ast env)
-                    f (first el)
-                    args (rest el)
+              (let [f (EVAL a0 env)
+                    unevaluated_args (rest ast)]
+               (if (:ismacro (meta f))
+                (recur (apply (:orig (meta f)) unevaluated_args) env)
+                (let [args (map #(EVAL % env) unevaluated_args)
                     {:keys [expression environment parameters]} (meta f)]
                 (if expression
                   (recur expression (env/env environment parameters args))
-                  (apply f args))))))))))
+                  (apply f args)))))))
+
+    :else ;; not a list, map, symbol or vector
+    ast)))
+
 
 ;; print
 (defn PRINT [exp] (printer/pr-str exp))

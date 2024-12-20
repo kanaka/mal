@@ -14,6 +14,7 @@ class Mal.BuiltinFunctionEval : Mal.BuiltinFunction {
 
 class Mal.Main : GLib.Object {
     static bool eof;
+    static Mal.Sym dbgevalsym;
 
     static construct {
         eof = false;
@@ -38,41 +39,8 @@ class Mal.Main : GLib.Object {
         }
     }
 
-    public static Mal.Val eval_ast(Mal.Val ast, Mal.Env env)
-    throws Mal.Error {
-        var roota = new GC.Root(ast); (void)roota;
-        var roote = new GC.Root(env); (void)roote;
-        if (ast is Mal.Sym)
-            return env.get(ast as Mal.Sym);
-        if (ast is Mal.List) {
-            var result = new Mal.List.empty();
-            var root = new GC.Root(result); (void)root;
-            foreach (var elt in (ast as Mal.List).vs)
-                result.vs.append(EVAL(elt, env));
-            return result;
-        }
-        if (ast is Mal.Vector) {
-            var vec = ast as Mal.Vector;
-            var result = new Mal.Vector.with_size(vec.length);
-            var root = new GC.Root(result); (void)root;
-            for (var i = 0; i < vec.length; i++)
-                result[i] = EVAL(vec[i], env);
-            return result;
-        }
-        if (ast is Mal.Hashmap) {
-            var result = new Mal.Hashmap();
-            var root = new GC.Root(result); (void)root;
-            var map = (ast as Mal.Hashmap).vs;
-            foreach (var key in map.get_keys())
-                result.insert(key, EVAL(map[key], env));
-            return result;
-        }
-        return ast;
-    }
-
     private static Mal.Val define_eval(Mal.Val key, Mal.Val value,
-                                       Mal.Env env,
-                                       bool is_macro = false)
+                                       Mal.Env env)
     throws Mal.Error {
         var rootk = new GC.Root(key); (void)rootk;
         var roote = new GC.Root(env); (void)roote;
@@ -81,8 +49,6 @@ class Mal.Main : GLib.Object {
             throw new Mal.Error.BAD_PARAMS(
                 "let*: expected a symbol to define");
         var val = EVAL(value, env);
-        if (val is Mal.Function)
-            (val as Mal.Function).is_macro = is_macro;
         env.set(symkey, val);
         return val;
     }
@@ -151,33 +117,6 @@ class Mal.Main : GLib.Object {
         }
     }
 
-    public static bool is_macro_call(Mal.Val v, Mal.Env env) {
-        var list = v as Mal.List;
-        if (list == null || list.vs == null || !(list.vs.data is Mal.Sym))
-            return false;
-        try {
-            var fn = env.get(list.vs.data as Mal.Sym) as Mal.Function;
-            return (fn != null && fn.is_macro);
-        } catch (Mal.Error err) {
-            return false;
-        }
-    }
-
-    public static Mal.Val macroexpand(Mal.Val ast_, Mal.Env env)
-    throws Mal.Error {
-        Mal.Val ast = ast_;
-        while (is_macro_call(ast, env)) {
-            var call = ast as Mal.List;
-            var macro = (env.get(call.vs.data as Mal.Sym) as Mal.Function);
-            var macroargs = new Mal.List(call.vs.copy());
-            macroargs.vs.remove_link(macroargs.vs.first());
-            var fnenv = new Mal.Env.funcall(
-                macro.env, macro.parameters, macroargs);
-            ast = Mal.Main.EVAL(macro.body, fnenv);
-        }
-        return ast;
-    }
-
     public static Mal.Val EVAL(Mal.Val ast_, Mal.Env env_)
     throws Mal.Error {
         // Copy the implicitly 'unowned' function arguments into
@@ -193,8 +132,36 @@ class Mal.Main : GLib.Object {
             ast_root.obj = ast;
             env_root.obj = env;
             GC.Core.maybe_collect();
-            ast = macroexpand(ast, env);
-            ast_root.obj = ast;
+
+            if (dbgevalsym == null)
+                dbgevalsym = new Mal.Sym("DEBUG-EVAL");
+            var dbgeval = env.get(dbgevalsym);
+            if (dbgeval != null && dbgeval.truth_value())
+                stdout.printf("EVAL: %s\n", pr_str(ast));
+
+            if (ast is Mal.Sym) {
+                var key = ast as Mal.Sym;
+                var val = env.get(key);
+                if (val == null)
+                    throw new Error.ENV_LOOKUP_FAILED("'%s' not found", key.v);
+                return val;
+            }
+            if (ast is Mal.Vector) {
+                var vec = ast as Mal.Vector;
+                var result = new Mal.Vector.with_size(vec.length);
+                var root = new GC.Root(result); (void)root;
+                for (var i = 0; i < vec.length; i++)
+                    result[i] = EVAL(vec[i], env);
+                return result;
+            }
+            if (ast is Mal.Hashmap) {
+                var result = new Mal.Hashmap();
+                var root = new GC.Root(result); (void)root;
+                var map = (ast as Mal.Hashmap).vs;
+                foreach (var key in map.get_keys())
+                    result.insert(key, EVAL(map[key], env));
+                return result;
+            }
             if (ast is Mal.List) {
                 unowned GLib.List<Mal.Val> list = (ast as Mal.List).vs;
                 if (list.first() == null)
@@ -205,12 +172,27 @@ class Mal.Main : GLib.Object {
                     var sym = first as Mal.Sym;
                     switch (sym.v) {
                     case "def!":
-                    case "defmacro!":
                         if (list.length() != 3)
                             throw new Mal.Error.BAD_PARAMS(
                                 "def!: expected two values");
                         return define_eval(list.next.data, list.next.next.data,
-                                           env, sym.v == "defmacro!");
+                                           env);
+                    case "defmacro!":
+                        if (list.length() != 3)
+                            throw new Mal.Error.BAD_PARAMS(
+                                "defmacro!: expected two values");
+                        var symkey = list.next.data as Mal.Sym;
+                        if (symkey == null)
+                            throw new Mal.Error.BAD_PARAMS(
+                                "defmacro!: expects a symbol");
+                        var val = EVAL(list.next.next.data, env) as Mal.Function;
+                        if (val == null)
+                            throw new Mal.Error.BAD_PARAMS(
+                                "defmacro!: expected a function");
+                        val = val.copy() as Mal.Function;
+                        val.is_macro = true;
+                        env.set(symkey, val);
+                        return val;
                     case "let*":
                         if (list.length() != 3)
                             throw new Mal.Error.BAD_PARAMS(
@@ -286,34 +268,35 @@ class Mal.Main : GLib.Object {
                             throw new Mal.Error.BAD_PARAMS(
                                 "quote: expected one argument");
                         return list.next.data;
-                    case "quasiquoteexpand":
-                        if (list.length() != 2)
-                            throw new Mal.Error.BAD_PARAMS(
-                                "quasiquoteexpand: expected one argument");
-                        return quasiquote(list.next.data);
                     case "quasiquote":
                         if (list.length() != 2)
                             throw new Mal.Error.BAD_PARAMS(
                                 "quasiquote: expected one argument");
                         ast = quasiquote(list.next.data);
                         continue;      // tail-call optimisation
-                    case "macroexpand":
-                        if (list.length() != 2)
-                            throw new Mal.Error.BAD_PARAMS(
-                                "macroexpand: expected one argument");
-                        return macroexpand(list.next.data, env);
                     }
                 }
 
-                var newlist = eval_ast(ast, env) as Mal.List;
-                unowned GLib.List<Mal.Val> firstlink = newlist.vs.first();
-                Mal.Val firstdata = firstlink.data;
-                newlist.vs.remove_link(firstlink);
+                Mal.Val firstdata = EVAL(list.first().data, env);
+                var newlist = new Mal.List.empty();
+                var root = new GC.Root(newlist); (void)root;
+                var iter = (ast as Mal.Listlike).iter().step();
 
                 if (firstdata is Mal.BuiltinFunction) {
+                    for (; iter.nonempty(); iter.step())
+                        newlist.vs.append(EVAL(iter.deref(), env));
                     return (firstdata as Mal.BuiltinFunction).call(newlist);
                 } else if (firstdata is Mal.Function) {
                     var fn = firstdata as Mal.Function;
+                    if (fn.is_macro) {
+                        for (; iter.nonempty(); iter.step())
+                            newlist.vs.append(iter.deref());
+                        var fenv = new Mal.Env.funcall(fn.env, fn.parameters, newlist);
+                        ast = EVAL(fn.body, fenv);
+                        continue;
+                    }
+                    for (; iter.nonempty(); iter.step())
+                        newlist.vs.append(EVAL(iter.deref(), env));
                     env = new Mal.Env.funcall(fn.env, fn.parameters, newlist);
                     ast = fn.body;
                     continue;      // tail-call optimisation
@@ -322,7 +305,7 @@ class Mal.Main : GLib.Object {
                         "bad value at start of list");
                 }
             } else {
-                return eval_ast(ast, env);
+                return ast;
             }
         }
     }

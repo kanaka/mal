@@ -1,124 +1,114 @@
 const std = @import("std");
-const warn = @import("std").debug.warn;
 
 const reader = @import("reader.zig");
-const pcre = reader.pcre;
 const printer = @import("printer.zig");
 const getline = @import("readline.zig").getline;
-const string_copy = @import("utils.zig").string_copy;
-const string_concat = @import("utils.zig").string_concat;
-const apply_function = @import("types.zig").apply_function;
-const linked_list = @import("linked_list.zig");
 const hash_map = @import("hmap.zig");
 
 const Allocator = @import("std").heap.c_allocator;
 
 const MalType = @import("types.zig").MalType;
-const MalData = @import("types.zig").MalData;
 const MalError = @import("error.zig").MalError;
 const MalLinkedList = @import("linked_list.zig").MalLinkedList;
-const MalHashMap = hash_map.MalHashMap;
+const get_error_data = @import("error.zig").get_error_data;
+const throw = @import("error.zig").throw;
+const stdout_file = std.io.getStdOut();
 
-var repl_environment: *MalHashMap = undefined;
+var repl_environment = hash_map.MalHashMap { };
 
-fn READ(a: [] u8) MalError!?*MalType {
+fn READ(a: []const u8) !*MalType {
     var read = try reader.read_str(a);
-    var optional_mal = reader.read_form(&read);
-    return optional_mal;
+    return reader.read_form(&read);
 }
 
-fn EVAL(mal: *MalType) MalError!*MalType {
-    switch(mal.data) {
+fn EVAL(mal: *MalType, env: hash_map.MalHashMap) MalError!*MalType {
+
+    //  try stdout_file.writeAll("EVAL: ");
+    //  try PRINT(mal.*);
+
+    switch(mal.*) {
         .List => |ll| {
-            if(ll.len == 0) {
+            const items = ll.data.items;
+            if(items.len == 0) {
+                mal.incref();
                 return mal;
             }
-            var new_list = try eval_ast(mal);
-            return apply_function(Allocator, (try new_list.sequence_linked_list()).*);
-        },
-        else => {
-            return eval_ast(mal);
-        },
-    }
-}
-
-fn PRINT(optional_mal: ?*MalType) MalError![] u8 {
-    return printer.print_str(optional_mal);
-}
-
-fn rep(input: [] u8) MalError!?[] u8 {
-    var read_input = (try READ(input)) orelse return null;
-    var eval_input = try EVAL(read_input);
-    var print_input = try PRINT(eval_input);
-    eval_input.delete(Allocator);
-    return print_input;
-}
-
-fn lookup(symbol: []const u8, do_warn: bool) MalError!*MalType {
-    var optional_mal = repl_environment.getValue(symbol);
-    if(optional_mal) |mal| {
-        return mal.copy(Allocator);
-    }
-    if(do_warn) {
-        const s1 = string_concat(Allocator, "'", symbol) catch return MalError.SystemError;
-        const s2 = string_concat(Allocator, s1, "' not found") catch return MalError.SystemError;
-        defer Allocator.free(s1);
-        defer Allocator.free(s2);
-        warn("'{}' not found.\n", symbol);
-    }
-    return MalError.KeyError;
-}
-
-fn eval_ast(mal: *MalType) MalError!*MalType {
-    switch(mal.data) {
-        .Generic => |symbol| {
-            defer mal.delete(Allocator);
-            return lookup(symbol, true);
-        },
-        .List => |*ll| {
-            var new_ll = MalLinkedList.init(Allocator);
-            var iterator = ll.iterator();
-            while(iterator.next()) |next_mal| {
-                const new_mal = try EVAL(next_mal);
-                try linked_list.append_mal(Allocator, &new_ll, new_mal);
+            else {
+                const first_mal = items[0];
+                const evaluated_first = try EVAL(first_mal, env);
+                defer evaluated_first.decref();
+                // A slice would be sufficient, but a List is convenient
+                // for partial deallocation in case of error.
+                const args = try MalType.new_list();
+                defer args.decref();
+                for(items[1..]) |x| {
+                    const new_item = try EVAL(x, env);
+                    try args.List.data.append(Allocator, new_item);
+                }
+                return apply_function(evaluated_first.*, args.List.data.items);
             }
-            linked_list.destroy(Allocator, ll, true);
-            mal.shallow_destroy(Allocator);
-            const ret_mal = MalType.new_list(Allocator, new_ll);
-            return ret_mal;
         },
-        .Vector => |*ll| {
-            var new_ll = MalLinkedList.init(Allocator);
-            var iterator = ll.iterator();
-            while(iterator.next()) |next_mal| {
-                const new_mal = try EVAL(next_mal);
-                try linked_list.append_mal(Allocator, &new_ll, new_mal);
-            }
-            linked_list.destroy(Allocator, ll, true);
-            mal.shallow_destroy(Allocator);
-            const ret_mal = MalType.new_vector(Allocator, new_ll);
-            return ret_mal;
+        .Symbol => {
+            return EVAL_symbol(mal, env);
+        },
+        .Vector => |ll| {
+            return EVAL_vector(ll.data.items, env);
         },
         .HashMap => |hmap| {
-            var new_hashmap = try MalType.new_hashmap(Allocator);
-            var iterator = hmap.iterator();
-            var optional_pair = iterator.next();
-            while(true) {
-                const pair = optional_pair orelse break;
-                const key = pair.key;
-                const value = pair.value;
-                const evaled_value = try EVAL(value);
-                try new_hashmap.hashmap_insert(key, evaled_value);
-                optional_pair = iterator.next();
-            }
-            hash_map.destroy(Allocator, hmap, true);
-            mal.shallow_destroy(Allocator);
-            return new_hashmap;
+            return EVAL_map(hmap.data, env);
         },
         else => {
+            mal.incref();
             return mal;
-        }
+        },
     }
+}
+
+fn PRINT(mal: MalType) !void {
+    try printer.one_stdout(mal);
+    try stdout_file.writeAll("\n");
+}
+
+fn rep(input: []const u8) !void {
+    const read_input = try READ(input);
+    defer read_input.decref();
+    const eval_input = try EVAL(read_input, repl_environment);
+    defer eval_input.decref();
+    try PRINT(eval_input.*);
+}
+
+fn EVAL_symbol(mal: *MalType, env: hash_map.MalHashMap) !*MalType {
+    if(env.get(mal)) |value| {
+        value.incref();
+        return value;
+    }
+    const err = try std.fmt.allocPrint(Allocator, "'{s}' not found",
+        .{mal.Symbol.data});
+    return throw(try MalType.new_string(err, false));
+}
+
+fn EVAL_vector(ll: []*MalType, env: hash_map.MalHashMap) !*MalType {
+            const ret_mal = try MalType.new_vector();
+            errdefer ret_mal.decref();
+            for(ll) |x| {
+                const new_mal = try EVAL(x, env);
+                try ret_mal.Vector.data.append(Allocator, new_mal);
+            }
+            return ret_mal;
+}
+
+fn EVAL_map(hmap: hash_map.MalHashMap, env: hash_map.MalHashMap) !*MalType {
+            const new_hashmap = try MalType.new_hashmap();
+            errdefer new_hashmap.decref();
+            var iterator = hmap.iterator();
+            while(iterator.next()) |pair| {
+                const key = pair.key_ptr.*;
+                const value = pair.value_ptr.*;
+                const evaled_value = try EVAL(value, env);
+                // key *is* new in this map.
+                try hash_map.map_insert_incref_key(&new_hashmap.HashMap.data, key, evaled_value);
+            }
+            return new_hashmap;
 }
 
 const safeAdd = @import("std").math.add;
@@ -126,71 +116,88 @@ const safeSub = @import("std").math.sub;
 const safeMul = @import("std").math.mul;
 const safeDivFloor = @import("std").math.divFloor;
 
-fn int_plus(a1: *MalType, a2: *MalType) MalError!*MalType {
+fn int_plus(args: []*MalType) MalError!*MalType {
+    if (args.len != 2) return MalError.ArgError;
+    const a1 = args[0];
+    const a2 = args[1];
     const x = try a1.as_int();
     const y = try a2.as_int();
-    const res = safeAdd(i64, x, y) catch return MalError.Overflow;
-    return MalType.new_int(Allocator, res);
+    const res = try safeAdd(i64, x, y);
+    return MalType.new_int(res);
 }
 
-fn int_minus(a1: *MalType, a2: *MalType) MalError!*MalType {
+fn int_minus(args: []*MalType) MalError!*MalType {
+    if (args.len != 2) return MalError.ArgError;
+    const a1 = args[0];
+    const a2 = args[1];
     const x = try a1.as_int();
     const y = try a2.as_int();
-    const res = safeSub(i64, x, y) catch return MalError.Overflow;
-    return MalType.new_int(Allocator, res);
+    const res = try safeSub(i64, x, y);
+    return MalType.new_int(res);
 }
 
-fn int_mult(a1: *MalType, a2: *MalType) MalError!*MalType {
+fn int_mult(args: []*MalType) MalError!*MalType {
+    if (args.len != 2) return MalError.ArgError;
+    const a1 = args[0];
+    const a2 = args[1];
     const x = try a1.as_int();
     const y = try a2.as_int();
-    const res = safeMul(i64, x, y) catch return MalError.Overflow;
-    return MalType.new_int(Allocator, res);
+    const res = try safeMul(i64, x, y);
+    return MalType.new_int(res);
 }
 
-fn int_div(a1: *MalType, a2: *MalType) MalError!*MalType {
+fn int_div(args: []*MalType) MalError!*MalType {
+    if (args.len != 2) return MalError.ArgError;
+    const a1 = args[0];
+    const a2 = args[1];
     const x = try a1.as_int();
     const y = try a2.as_int();
-    const res = safeDivFloor(i64, x, y) catch |err| switch(err) {
-        error.DivisionByZero => return MalError.DivisionByZero,
-        else => return MalError.Overflow,
-    };
-    return MalType.new_int(Allocator, res);
+    const res = try safeDivFloor(i64, x, y);
+    return MalType.new_int(res);
 }
 
-fn make_environment() MalError!void {
-    repl_environment = Allocator.create(MalHashMap) catch return MalError.SystemError;
-    repl_environment.* = MalHashMap.init(Allocator);
+fn make_environment() !void {
 
-    const plus_mal = try MalType.new_nil(Allocator);
-    plus_mal.data = MalData{.Fn2 = &int_plus};
-    _ = repl_environment.put("+", plus_mal) catch return MalError.SystemError;
-    const minus_mal = try MalType.new_nil(Allocator);
-    minus_mal.data = MalData{.Fn2 = &int_minus};
-    _ = repl_environment.put("-", minus_mal) catch return MalError.SystemError;
-    const mult_mal = try MalType.new_nil(Allocator);
-    mult_mal.data = MalData{.Fn2 = &int_mult};
-    _ = repl_environment.put("*", mult_mal) catch return MalError.SystemError;
-    const div_mal = try MalType.new_nil(Allocator);
-    div_mal.data = MalData{.Fn2 = &int_div};
-    _ = repl_environment.put("/", div_mal) catch return MalError.SystemError;
+    const plus_sym = try MalType.new_symbol("+", true);
+    const plus_mal = try MalType.newFnCore(&int_plus);
+    try repl_environment.put(Allocator, plus_sym, plus_mal);
+    const minus_sym = try MalType.new_symbol("-", true);
+    const minus_mal = try MalType.newFnCore(&int_minus);
+    try repl_environment.put(Allocator, minus_sym, minus_mal);
+    const mult_sym = try MalType.new_symbol("*", true);
+    const mult_mal = try MalType.newFnCore(&int_mult);
+    try repl_environment.put(Allocator, mult_sym, mult_mal);
+    const div_sym = try MalType.new_symbol("/", true);
+    const div_mal = try MalType.newFnCore(&int_div);
+    try repl_environment.put(Allocator, div_sym, div_mal);
+}
+
+pub fn apply_function(f: MalType, args: []*MalType) MalError!*MalType {
+
+    switch(f) {
+        .FnCore => |fncoredata| {
+            return fncoredata.data(args);
+        },
+        else => {
+            return MalError.ApplyError;
+        },
+    }
 }
 
 pub fn main() !void {
-    const stdout_file = try std.io.getStdOut();
     try make_environment();
-    while(true) {
-        var line = (try getline(Allocator)) orelse break;
-        var optional_output = rep(line) catch |err| {
-            if(err == MalError.KeyError) {
-                continue;
-            } else {
-                return err;
+
+    while(try getline("user> ")) |line| {
+        defer Allocator.free(line);
+        rep(line) catch |err| {
+            try stdout_file.writeAll("Error: ");
+            try stdout_file.writeAll(@errorName(err));
+            try stdout_file.writeAll("\n");
+            if(get_error_data()) |mal| {
+                defer mal.decref();
+                try stdout_file.writeAll("MAL error object is: ");
+                try PRINT(mal.*);
             }
         };
-        if(optional_output) |output| {
-            try stdout_file.write(output);
-            Allocator.free(output);
-            try stdout_file.write("\n");
-        }
     }
 }

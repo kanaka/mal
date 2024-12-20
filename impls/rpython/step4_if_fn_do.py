@@ -3,6 +3,7 @@ import mal_readline
 import mal_types as types
 from mal_types import (MalSym, MalInt, MalStr,
                        nil, true, false, _symbol, _keywordu,
+                       throw_str,
                        MalList, _list, MalVector, MalHashMap, MalFunc)
 import reader, printer
 from env import Env
@@ -13,15 +14,15 @@ def READ(str):
     return reader.read_str(str)
 
 # eval
-def eval_ast(ast, env):
+def EVAL(ast, env):
+    if env.get(u"DEBUG-EVAL") not in (None, nil, false):
+        print(u"EVAL: " + printer._pr_str(ast))
     if types._symbol_Q(ast):
         assert isinstance(ast, MalSym)
-        return env.get(ast)
-    elif types._list_Q(ast):
-        res = []
-        for a in ast.values:
-            res.append(EVAL(a, env))
-        return MalList(res)
+        value = env.get(ast.value)
+        if value is None:
+            throw_str("'" + str(ast.value) + "' not found")
+        return value
     elif types._vector_Q(ast):
         res = []
         for a in ast.values:
@@ -32,14 +33,9 @@ def eval_ast(ast, env):
         for k in ast.dct.keys():
             new_dct[k] = EVAL(ast.dct[k], env)
         return MalHashMap(new_dct)
-    else:
+    elif not types._list_Q(ast):
         return ast  # primitive value, return unchanged
-
-def EVAL(ast, env):
-        #print("EVAL %s" % printer._pr_str(ast))
-        if not types._list_Q(ast):
-            return eval_ast(ast, env)
-
+    else:
         # apply list
         if len(ast) == 0: return ast
         a0 = ast[0]
@@ -59,8 +55,11 @@ def EVAL(ast, env):
                 let_env.set(a1[i], EVAL(a1[i+1], let_env))
             return EVAL(a2, let_env)
         elif u"do" == a0sym:
-            el = eval_ast(ast.rest(), env)
-            return el.values[-1]
+            if len(ast) == 0:
+                return nil
+            for i in range(1, len(ast) - 1):
+                EVAL(ast[i], env)
+            return EVAL(ast[-1], env)
         elif u"if" == a0sym:
             a1, a2 = ast[1], ast[2]
             cond = EVAL(a1, env)
@@ -73,10 +72,13 @@ def EVAL(ast, env):
             a1, a2 = ast[1], ast[2]
             return MalFunc(None, a2, env, a1, EVAL)
         else:
-            el = eval_ast(ast, env)
-            f = el.values[0]
+            f = EVAL(a0, env)
+            args_list = []
+            for i in range(1, len(ast)):
+                args_list.append(EVAL(ast[i], env))
+            args = MalList(args_list)
             if isinstance(f, MalFunc):
-                return f.apply(el.rest())
+                return f.apply(args)
             else:
                 raise Exception("%s is not callable" % f)
 

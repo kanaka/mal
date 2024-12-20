@@ -3,18 +3,12 @@
 USING: accessors arrays assocs combinators combinators.short-circuit
 continuations fry grouping hashtables io kernel lists locals lib.core lib.env
 lib.printer lib.reader lib.types math namespaces quotations readline sequences
-splitting ;
+splitting vectors ;
 IN: step5_tco
 
 SYMBOL: repl-env
 
 DEFER: EVAL
-
-GENERIC# eval-ast 1 ( ast env -- ast )
-M: malsymbol eval-ast env-get ;
-M: sequence  eval-ast '[ _ EVAL ] map ;
-M: assoc     eval-ast '[ _ EVAL ] assoc-map ;
-M: object    eval-ast drop ;
 
 :: eval-def! ( key value env -- maltype )
     value env EVAL [ key env env-set ] keep ;
@@ -28,7 +22,7 @@ M: object    eval-ast drop ;
     exprs [
         { } f
     ] [
-        unclip-last [ env eval-ast drop ] dip env
+        unclip-last [ '[ env EVAL drop ] each ] dip env
     ] if-empty ;
 
 :: eval-if ( params env -- maltype env/f )
@@ -59,8 +53,9 @@ M: callable apply call( x -- y ) f ;
 
 : READ ( str -- maltype ) read-str ;
 
-: EVAL ( maltype env -- maltype )
-    over { [ array? ] [ empty? not ] } 1&& [
+GENERIC#: EVAL-switch 1 ( maltype env -- maltype )
+M: array EVAL-switch
+    over empty? [ drop ] [
         over first dup malsymbol? [ name>> ] when {
             { "def!" [ [ rest first2 ] dip eval-def! f ] }
             { "let*" [ [ rest first2 ] dip eval-let* ] }
@@ -68,10 +63,21 @@ M: callable apply call( x -- y ) f ;
             { "if" [ [ rest ] dip eval-if ] }
             { "fn*" [ [ rest ] dip eval-fn* f ] }
             [ drop '[ _ EVAL ] map unclip apply ]
-        } case
-    ] [
-        eval-ast f
-    ] if [ EVAL ] when* ;
+        } case [ EVAL ] when*
+    ] if ;
+M: malsymbol EVAL-switch env-get ;
+M: vector    EVAL-switch '[ _ EVAL ] map ;
+M: hashtable EVAL-switch '[ _ EVAL ] assoc-map ;
+M: object    EVAL-switch drop ;
+
+: EVAL ( maltype env -- maltype )
+    "DEBUG-EVAL" <malsymbol> over env-find [
+        { f +nil+ } index not
+        [
+            "EVAL: " pick pr-str append print flush
+        ] when
+    ] [ drop ] if
+    EVAL-switch ;
 
 : PRINT ( maltype -- str ) pr-str ;
 

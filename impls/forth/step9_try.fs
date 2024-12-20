@@ -7,9 +7,14 @@ core MalEnv. constant repl-env
 99999999 constant TCO-eval
 
 : read read-str ;
+s" DEBUG-EVAL" MalSymbol. constant debug-eval-sym
 : eval ( env obj )
     begin
-        \ ." eval-> " dup pr-str safe-type cr
+        over debug-eval-sym swap env/get-addr ?dup-if
+            @ dup mal-false <> swap mal-nil <> and if
+                ." EVAL: " dup pr-str safe-type cr
+            endif
+        endif
         mal-eval
         dup TCO-eval =
     while
@@ -141,9 +146,6 @@ defer quasiquote
     endcase ;
 ' quasiquote0 is quasiquote
 
-defspecial quasiquoteexpand ( env list -- form )
-    nip MalList/start @ cell+ @ quasiquote ;;
-
 defspecial quasiquote ( env list )
     MalList/start @ cell+ @ ( ast )
     quasiquote TCO-eval ;;
@@ -157,8 +159,8 @@ defspecial def! { env list -- val }
 defspecial defmacro! { env list -- val }
     list MalList/start @ cell+ { arg0 }
     arg0 @ ( key )
-    env arg0 cell+ @ eval { val }
-    true val MalUserFn/is-macro? !
+    env arg0 cell+ @ eval
+    asMacro { val }
     val env env/set
     val ;;
 
@@ -259,14 +261,6 @@ defspecial fn* { env list -- val }
     env over MalUserFn/env !
     arg0 @ to-list over MalUserFn/formal-args !
     arg0 cell+ @ over MalUserFn/body ! ;;
-
-defspecial macroexpand ( env list[_,form] -- form )
-    MalList/start @ cell+ @ swap over ( form env form )
-    MalList/start @ @ ( form env macro-name-expr )
-    eval { macro-fn } ( form )
-    dup MalList/start @ cell+  swap MalList/count @ 1- macro-fn ( argv argc fn )
-    new-user-fn-env ( env )
-    macro-fn MalUserFn/body @   TCO-eval ;;
 
 5555555555 constant pre-try
 

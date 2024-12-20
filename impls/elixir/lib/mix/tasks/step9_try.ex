@@ -66,7 +66,7 @@ defmodule Mix.Tasks.Step9Try do
   end
 
   defp eval_ast({:list, ast, meta}, env) when is_list(ast) do
-    {:list, Enum.map(ast, fn elem -> eval(elem, env) end), meta}
+    eval_list(ast, env, meta)
   end
 
   defp eval_ast({:map, ast, meta}, env) do
@@ -117,38 +117,15 @@ defmodule Mix.Tasks.Step9Try do
   defp qq_loop({:list, [{:symbol, "splice-unquote"}|   _], _},   _), do: throw({:error, "splice-unquote: arg count"})
   defp qq_loop(elt, acc), do: list([{:symbol, "cons"}, quasiquote(elt), acc])
 
-  defp macro_call?({:list, [{:symbol, key} | _tail], _}, env) do
-    case Mal.Env.get(env, key) do
-      {:ok, %Function{macro: true}} -> true
-      _ -> false
+  defp eval(ast, env) do
+    case Mal.Env.get(env, "DEBUG-EVAL") do
+      :not_found   -> :ok
+      {:ok, nil}   -> :ok
+      {:ok, false} -> :ok
+      _            -> IO.puts("EVAL: #{Mal.Printer.print_str(ast)}")
     end
+    eval_ast(ast, env)
   end
-  defp macro_call?(_ast, _env), do: false
-
-  defp do_macro_call({:list, [{:symbol, key} | tail], _}, env) do
-    {:ok, %Function{value: macro, macro: true}} = Mal.Env.get(env, key)
-    macro.(tail)
-      |> macroexpand(env)
-  end
-
-  defp macroexpand(ast, env) do
-    if macro_call?(ast, env) do
-      do_macro_call(ast, env)
-    else
-      ast
-    end
-  end
-
-  defp eval({:list, [], _} = empty_ast, _env), do: empty_ast
-  defp eval({:list, _list, _meta} = ast, env) do
-    case macroexpand(ast, env) do
-      {:list, list, meta} -> eval_list(list, env, meta)
-      result -> eval_ast(result, env)
-    end
-  end
-  defp eval(ast, env), do: eval_ast(ast, env)
-
-  defp eval_list([{:symbol, "macroexpand"}, ast], env, _), do: macroexpand(ast, env)
 
   defp eval_list([{:symbol, "if"}, condition, if_true | if_false], env, _) do
     result = eval(condition, env)
@@ -165,8 +142,7 @@ defmodule Mix.Tasks.Step9Try do
   defp eval_list([{:symbol, "do"} | ast], env, _) do
     ast
       |> List.delete_at(-1)
-      |> list
-      |> eval_ast(env)
+      |> Enum.map(fn elem -> eval(elem, env) end)
     eval(List.last(ast), env)
   end
 
@@ -203,10 +179,6 @@ defmodule Mix.Tasks.Step9Try do
 
   defp eval_list([{:symbol, "quote"}, arg], _env, _), do: arg
 
-  defp eval_list([{:symbol, "quasiquoteexpand"}, ast], _, _) do
-    quasiquote(ast)
-  end
-
   defp eval_list([{:symbol, "quasiquote"}, ast], env, _) do
     ast |> quasiquote
       |> eval(env)
@@ -223,10 +195,15 @@ defmodule Mix.Tasks.Step9Try do
     throw({:error, "try* requires a list as the second parameter"})
   end
 
-  defp eval_list(ast, env, meta) do
-    {:list, [func | args], _} = eval_ast({:list, ast, meta}, env)
-    func.value.(args)
+  defp eval_list([a0 | args], env, _meta) do
+    func = eval(a0, env)
+    case func do
+      %Function{macro: true} -> func.value.(args) |> eval(env)
+      _ -> func.value.(Enum.map(args, fn elem -> eval(elem, env) end))
+    end
   end
+
+  defp eval_list([], _env, meta), do: {:list, [], meta}
 
   defp eval_try(try_form,
   [{:symbol, "catch*"}, {:symbol, exception}, catch_form], env) do

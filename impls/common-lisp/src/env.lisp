@@ -4,7 +4,6 @@
   (:export :undefined-symbol
            :create-mal-env
            :get-env
-           :find-env
            :set-env
            :mal-env-bindings))
 
@@ -30,16 +29,12 @@
   (bindings (make-hash-table :test 'equal) :read-only t)
   (parent nil :read-only t))
 
-(defun find-env (env symbol)
-  (when env
-    (or (gethash (mal-data-value symbol)
-                 (mal-env-bindings env))
-        (find-env (mal-env-parent env) symbol))))
-
 (defun get-env (env symbol)
-  (or (find-env env symbol)
-      (error 'undefined-symbol
-             :symbol (format nil "~a" (mal-data-value symbol)))))
+  (or (gethash symbol (mal-env-bindings env))
+      (let ((outer (mal-env-parent env)))
+        (if outer
+          (get-env outer symbol)
+          nil))))
 
 (defun set-env (env symbol value)
   (setf (gethash (mal-data-value symbol) (mal-env-bindings env)) value))

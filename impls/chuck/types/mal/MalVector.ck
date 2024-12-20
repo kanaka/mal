@@ -2,11 +2,6 @@ public class MalVector extends MalObject
 {
     "vector" => type;
 
-    fun MalObject[] value()
-    {
-        return MalObject.toMalObjectArray(objects);
-    }
-
     fun void init(MalObject values[])
     {
         MalObject.toObjectArray(values) @=> objects;

@@ -6,27 +6,23 @@ local utils = require('utils')
 local M = {}
 
 function M._pr_str(obj, print_readably)
-    local _r = print_readably
     if utils.instanceOf(obj, types.Symbol) then
         return obj.val
     elseif types._list_Q(obj) then
-        return "(" .. table.concat(utils.map(function(e)
-            return M._pr_str(e,_r) end, obj), " ") .. ")"
+        return "(" .. M._pr_seq(obj, print_readably, " ") .. ")"
     elseif types._vector_Q(obj) then
-        return "[" .. table.concat(utils.map(function(e)
-            return M._pr_str(e,_r) end, obj), " ") .. "]"
+        return "[" .. M._pr_seq(obj, print_readably, " ") .. "]"
     elseif types._hash_map_Q(obj) then
         local res = {}
         for k,v in pairs(obj) do
-            res[#res+1] = M._pr_str(k, _r)
-            res[#res+1] = M._pr_str(v, _r)
+            res[#res+1] = M._pr_str(k, print_readably)
+            res[#res+1] = M._pr_str(v, print_readably)
         end
         return "{".. table.concat(res, " ").."}"
-    elseif type(obj) == 'string' then
-        if string.sub(obj,1,2) == "\u{029e}" then
-            return ':' .. string.sub(obj,3)
-        else
-            if _r then
+    elseif types._keyword_Q(obj) then
+         return ':' .. types._lua_string_from_keyword(obj)
+    elseif types._string_Q(obj) then
+            if print_readably then
                 local sval = obj:gsub('\\', '\\\\')
                 sval = sval:gsub('"', '\\"')
                 sval = sval:gsub('\n', '\\n')
@@ -34,7 +30,6 @@ function M._pr_str(obj, print_readably)
             else
                 return obj
             end
-        end
     elseif obj == types.Nil then
         return "nil"
     elseif obj == true then
@@ -50,6 +45,13 @@ function M._pr_str(obj, print_readably)
     else
         return string.format("%s", obj)
     end
+end
+
+function M._pr_seq(obj, print_readably, separator)
+    return table.concat(
+        utils.map(function(e) return M._pr_str(e,print_readably) end,
+                  obj),
+        separator)
 end
 
 return M

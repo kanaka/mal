@@ -31,8 +31,8 @@ class env {
             data[key.value] = val
         }
 
-        def find(MalSymbol key) {
-            if (data.containsKey(key.value)) {
+        def find(String key) {
+            if (data.containsKey(key)) {
                 this
             } else if (outer != null) {
                 outer.find(key)
@@ -41,12 +41,12 @@ class env {
             }
         }
 
-        def get(MalSymbol key) {
+        def get(String key) {
             def e = find(key)
             if (e == null) {
-                throw new MalException("'${key.value}' not found")
+                throw new MalException("'${key}' not found")
             } else {
-                e.data.get(key.value)
+                e.data.get(key)
             }
         }
     }

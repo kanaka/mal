@@ -9,12 +9,6 @@ import Printer(_pr_list, _pr_str)
 import Env (Env, env_apply, env_get, env_let, env_put, env_repl, env_set)
 import Core (ns)
 
---
---  Set this to True for a trace of each call to Eval.
---
-traceEval :: Bool
-traceEval = False
-
 -- read
 
 mal_read :: String -> IOThrows MalVal
@@ -78,15 +72,18 @@ apply_ast first rest env = do
 
 eval :: Env -> MalVal -> IOThrows MalVal
 eval env ast = do
+    traceEval <- liftIO $ env_get env "DEBUG-EVAL"
     case traceEval of
-        True -> liftIO $ do
+      Nothing                 -> pure ()
+      Just Nil                -> pure ()
+      Just (MalBoolean False) -> pure ()
+      Just _                  -> liftIO $ do
             putStr "EVAL: "
             putStr =<< _pr_str True ast
             putStr "   "
             env_put env
             putStrLn ""
             hFlush stdout
-        False -> pure ()
     case ast of
         MalSymbol sym -> do
             maybeVal <- liftIO $ env_get env sym

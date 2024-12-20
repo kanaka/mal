@@ -10,162 +10,194 @@ catch "case.error [output case.helper :case.value :case.clauses]
 (throw "error [Empty CASE clause])
 end
 
-to obj_new :type :val
-output list :type :val
-end
-
-to obj_new_with_meta :type :val :meta
-output (list :type :val :meta)
-end
+; For efficiency of env_get and map_get, ensure that MAL equality
+; (equal_q) and LOGO equality (equalp/=) return the same result when
+; an argument is neither a list, map, vector or atom.
 
 to obj_type :obj
-output first :obj
+output ifelse wordp :obj ""number [item 1 :obj]
 end
 
-to obj_val :obj
+to list_new :val
+output list "list :val
+end
+
+to vector_new :val
+output list "vector :val
+end
+
+to seq_val :obj
 output item 2 :obj
 end
 
-to obj_meta :obj
-if (count :obj) < 3 [output []]
-output item 3 :obj
+to |mal_with-meta| :obj :meta
+output (listtoarray fput :meta ifelse listp :obj [
+  :obj
+] [
+  butfirst arraytolist :obj
+] 0)
 end
 
-make "global_nil obj_new "nil []
+to mal_meta :obj
+output ifelse listp :obj "nil_new [item 0 :obj]
+end
+
+; Convenient for map_get and env_get.
+
+make "global_notfound [notfound]
+
+to notfound_new
+output :global_notfound
+end
+
+make "global_nil [nil]
 
 to nil_new
 output :global_nil
 end
 
-make "global_true obj_new "true []
+make "global_false [false]
+make "global_true [true]
 
-to true_new
-output :global_true
+to bool_to_mal :bool
+output ifelse :bool ":global_true ":global_false
 end
 
-make "global_false obj_new "false []
+to number_new :val
+output :val
+end
 
-to false_new
-output :global_false
+to number_val :obj
+output :obj
 end
 
 to symbol_new :name
-output obj_new "symbol :name
+output list "symbol :name
 end
 
-to hashmap_get :h :key
-localmake "i 1
-while [:i < count :h] [
-  if equal_q item :i :h :key [
-    output item (:i + 1) :h
-  ]
-  make "i (:i + 2)
-]
-output []
+to symbol_value :obj
+output item 2 :obj
+end
+
+to keyword_new :val
+output list "keyword :val
+end
+
+to keyword_val :obj
+output item 2 :obj
+end
+
+to string_new :val
+output list "string :val
+end
+
+to string_val :obj
+output item 2 :obj
+end
+
+to nativefn_new :f
+output list "nativefn :f
+end
+
+to nativefn_apply :fn :args
+output apply item 2 :fn :args
+end
+
+make "map_empty [map [] []]
+
+to map_get :map :key
+foreach item 2 :map [if ? = :key [output item # item 3 :map]]
+output notfound_new
 end
 
 ; Returns a new list with the key-val pair set
-to hashmap_put :h :key :val
-localmake "res hashmap_delete :h :key
-make "res lput :key :res
-make "res lput :val :res
-output :res
+to map_assoc :map :pairs
+foreach :pairs [
+  if 1 = modulo # 2 [
+    if memberp ? item 2 :map [make "map (mal_dissoc :map ?)]
+    make "map (list "map fput ? item 2 :map fput first ?rest item 3 :map)
+  ]
+]
+output :map
 end
 
 ; Returns a new list without the key-val pair set
-to hashmap_delete :h :key
-localmake "res []
-localmake "i 1
-while [:i < count :h] [
-  if (item :i :h) <> :key [
-    make "res lput item :i :h :res
-    make "res lput item (:i + 1) :h :res
+to mal_dissoc :map [:removals]
+localmake "keys []
+localmake "vals []
+(foreach item 2 :map item 3 :map [
+  if not memberp ?1 :removals [
+    make "keys fput ?1 :keys
+    make "vals fput ?2 :vals
   ]
-  make "i (:i + 2)
-]
-output :res
+])
+output (list "map :keys :vals)
+end
+
+to map_keys :map
+output item 2 :map
+end
+
+to map_vals :map
+output item 3 :map
+end
+
+to map_map :fn :map
+output (list "map item 2 :map map :fn item 3 :map)
 end
 
 to fn_new :args :env :body
-output obj_new "fn (list :args :env :body "false)
+localmake "i difference count :args 1
+if 0 < :i [if equalp symbol_new "& item :i :args [
+  output (list "fn :env :body :i filter [# <> :i] :args)
+]]
+output (list "fn :env :body 0 :args)
 end
 
-to fn_args :fn
-output item 1 obj_val :fn
+to fn_gen_env :fn :args
+localmake "varargs item 4 :fn
+if :varargs = 0 [output env_new item 2 :fn item 5 :fn :args]
+if :varargs = 1 [output env_new item 2 :fn item 5 :fn (list list_new :args)]
+localmake "new_args array :varargs
+foreach :args [
+  .setitem # :new_args ?
+  if :varargs = # + 1 [
+    .setitem :varargs :new_args list_new ?rest
+    output env_new item 2 :fn item 5 :fn :new_args
+  ]
+]
+(throw "error [not enough arguments for vararg function])
+end
+
+to fn_apply :fn :args
+output _eval item 3 :fn fn_gen_env :fn :args
 end
 
 to fn_env :fn
-output item 2 obj_val :fn
+output item 2 :fn
 end
 
 to fn_body :fn
-output item 3 obj_val :fn
+output item 3 :fn
 end
 
-to fn_is_macro :fn
-output item 4 obj_val :fn
+to macro_new :fn
+output list "macro :fn
 end
 
-to fn_set_macro :fn
-.setfirst butfirst butfirst butfirst obj_val :fn "true
+to macro_apply :fn :args
+output fn_apply item 2 :fn :args
 end
 
-; zero-based sequence addressing
-to nth :seq :index
-output item (:index + 1) obj_val :seq
+to mal_atom :value
+output listtoarray list "atom :value
 end
 
-to _count :seq
-output count obj_val :seq
+to mal_deref :a
+output item 2 :a
 end
 
-to rest :seq
-output obj_new obj_type :seq butfirst obj_val :seq
-end
-
-to drop :seq :num
-if or :num = 0 (_count :seq) = 0 [output :seq]
-foreach obj_val :seq [
-  if # >= :num [output obj_new obj_type :seq ?rest]
-]
-end
-
-to sequentialp :obj
-output memberp obj_type :obj [list vector]
-end
-
-to equal_sequential_q :a :b
-if (_count :a) <> (_count :b) [output "false]
-(foreach obj_val :a obj_val :b [
-  if not equal_q ?1 ?2 [output "false]
-])
-output "true
-end
-
-to equal_hashmap_q :a :b
-if (_count :a) <> (_count :b) [output "false]
-localmake "a_keys obj_val mal_keys :a
-foreach :a_keys [
-  localmake "a_val hashmap_get obj_val :a ?
-  localmake "b_val hashmap_get obj_val :b ?
-  if emptyp :b_val [output "false]
-  if not equal_q :a_val :b_val [output "false]
-]
-output "true
-end
-
-to equal_q :a :b
-output cond [
-  [[and sequentialp :a sequentialp :b]
-    equal_sequential_q :a :b]
-  [[((obj_type :a) = (obj_type :b))]
-    case obj_type :a [
-      [[true false nil] "true]
-      [[number string keyword symbol] ((obj_val :a) = (obj_val :b))]
-      [[hashmap] equal_hashmap_q :a :b]
-      [[atom] equal_q obj_val :a obj_val :b]
-      [else "false]
-    ]]
-  [else "false]
-]
+to mal_reset! :a :val
+.setitem 2 :a :val
+output :val
 end

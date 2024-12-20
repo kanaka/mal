@@ -30,23 +30,14 @@ public class env {
             }
         }
         
-        public Env find(MalSymbol key) {
-            if (data.containsKey(key.getName())) {
-                return this;
+        public MalVal get(String key) {
+            MalVal res = data.get(key);
+            if (res != null) {
+                return res;
             } else if (outer != null) {
-                return outer.find(key);
+                return outer.get(key);
             } else {
                 return null;
-            }
-        }
-
-        public MalVal get(MalSymbol key) throws MalThrowable {
-            Env e = find(key);
-            if (e == null) {
-                throw new MalException(
-                        "'" + key.getName() + "' not found");
-            } else {
-                return e.data.get(key.getName());
             }
         }
 

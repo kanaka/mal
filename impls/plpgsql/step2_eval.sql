@@ -18,40 +18,45 @@ BEGIN
 END; $$ LANGUAGE plpgsql;
 
 -- eval
-CREATE FUNCTION mal.eval_ast(ast integer, env hstore) RETURNS integer AS $$
-DECLARE
-    type           integer;
-    symkey         varchar;
-    seq            integer[];
-    eseq           integer[];
-    hash           hstore;
-    ehash          hstore;
-    kv             RECORD;
-    e              integer;
-    result         integer;
-BEGIN
-    SELECT type_id INTO type FROM types.value WHERE value_id = ast;
-    CASE
-    WHEN type = 7 THEN
+
+CREATE FUNCTION mal.eval_symbol(ast integer, env hstore) RETURNS integer
+AS $$
+    DECLARE
+        symkey constant varchar := types._valueToString(ast);
     BEGIN
-        symkey := types._valueToString(ast);
         IF env ? symkey THEN
-            result := env -> symkey;
+            RETURN env -> symkey;
         ELSE
             RAISE EXCEPTION '''%'' not found', symkey;
         END IF;
     END;
-    WHEN type IN (8, 9) THEN
+$$ LANGUAGE plpgsql;
+
+CREATE FUNCTION mal.eval_vector(ast integer, env hstore) RETURNS integer
+AS $$
+    DECLARE
+        seq    constant integer[] := types._valueToArray(ast);
+        eseq            integer[];
+        result          integer;
     BEGIN
-        SELECT val_seq INTO seq FROM types.value WHERE value_id = ast;
         -- Evaluate each entry creating a new sequence
         FOR i IN 1 .. COALESCE(array_length(seq, 1), 0) LOOP
             eseq[i] := mal.EVAL(seq[i], env);
         END LOOP;
-        INSERT INTO types.value (type_id, val_seq) VALUES (type, eseq)
+        INSERT INTO types.value (type_id, val_seq) VALUES (9, eseq)
             RETURNING value_id INTO result;
+        RETURN result;
     END;
-    WHEN type = 10 THEN
+$$ LANGUAGE plpgsql;
+
+CREATE FUNCTION mal.eval_map(ast integer, env hstore) RETURNS integer
+AS $$
+    DECLARE
+        hash   hstore;
+        ehash  hstore;
+        kv     RECORD;
+        e      integer;
+        result integer;
     BEGIN
         SELECT val_hash INTO hash FROM types.value WHERE value_id = ast;
         -- Evaluate each value for every key/value
@@ -63,36 +68,39 @@ BEGIN
                 ehash := ehash || hstore(kv.key, CAST(e AS varchar));
             END IF;
         END LOOP;
-        INSERT INTO types.value (type_id, val_hash) VALUES (type, ehash)
+        INSERT INTO types.value (type_id, val_hash) VALUES (10, ehash)
             RETURNING value_id INTO result;
+        RETURN result;
     END;
-    ELSE
-        result := ast;
-    END CASE;
-
-    RETURN result;
-END; $$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql;
 
 CREATE FUNCTION mal.EVAL(ast integer, env hstore) RETURNS integer AS $$
 DECLARE
-    type     integer;
-    el       integer;
+    a0       integer;
     fname    varchar;
-    args     integer[];
+    args     integer[] := ARRAY[]::integer[];
+    evda0    integer;
     result   integer;
 BEGIN
-    SELECT type_id INTO type FROM types.value WHERE value_id = ast;
-    IF type <> 8 THEN
-        RETURN mal.eval_ast(ast, env);
-    END IF;
+    CASE type_id FROM types.value WHERE value_id = ast
+    WHEN 7  THEN RETURN mal.eval_symbol(ast, env);
+    WHEN 8  THEN NULL;    --  List, proceed after this case statement.
+    WHEN 9  THEN RETURN mal.eval_vector(ast, env);
+    WHEN 10 THEN RETURN mal.eval_map(ast, env);
+    ELSE         RETURN ast;
+    END CASE;
+
     IF types._count(ast) = 0 THEN
         RETURN ast;
     END IF;
 
-    el := mal.eval_ast(ast, env);
+    a0 := types._first(ast);
+    evda0  := mal.EVAL(a0, env);
     SELECT val_string INTO fname FROM types.value
-        WHERE value_id = types._first(el);
-    args := types._restArray(el);
+        WHERE value_id = evda0;
+    FOR i in 1 .. types._count(ast) - 1 LOOP
+        args[i] := mal.EVAL(types._nth(ast, i), env);
+    END LOOP;
     EXECUTE format('SELECT %s($1);', fname) INTO result USING args;
     RETURN result;
 END; $$ LANGUAGE plpgsql;

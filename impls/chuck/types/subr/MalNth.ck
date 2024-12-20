@@ -2,8 +2,8 @@ public class MalNth extends MalSubr
 {
     fun MalObject call(MalObject args[])
     {
-        Util.sequenceToMalObjectArray(args[0]) @=> MalObject list[];
-        (args[1]$MalInt).value() @=> int n;
+        args[0].malObjectValues() @=> MalObject list[];
+        args[1].intValue => int n;
 
         if( n < list.size() )
         {
@@ -11,7 +11,7 @@ public class MalNth extends MalSubr
         }
         else
         {
-            return MalError.create(MalString.create("out of bounds"));
+            return MalError.create("out of bounds");
         }
     }
 }

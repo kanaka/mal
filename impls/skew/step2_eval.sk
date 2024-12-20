@@ -2,7 +2,9 @@ def READ(str string) MalVal {
   return read_str(str)
 }
 
-def eval_ast(ast MalVal, env StringMap<MalVal>) MalVal {
+def EVAL(ast MalVal, env StringMap<MalVal>) MalVal {
+  # printLn("EVAL: " + PRINT(ast))
+
   if ast is MalSymbol {
     const name = (ast as MalSymbol).val
     if !(name in env) {
@@ -10,7 +12,7 @@ def eval_ast(ast MalVal, env StringMap<MalVal>) MalVal {
     }
     return env[name]
   } else if ast is MalList {
-    return MalList.new((ast as MalList).val.map<MalVal>(e => EVAL(e, env)))
+    # proceed further after this conditional
   } else if ast is MalVector {
     return MalVector.new((ast as MalVector).val.map<MalVal>(e => EVAL(e, env)))
   } else if ast is MalHashMap {
@@ -23,15 +25,12 @@ def eval_ast(ast MalVal, env StringMap<MalVal>) MalVal {
   } else {
     return ast
   }
-}
 
-def EVAL(ast MalVal, env StringMap<MalVal>) MalVal {
-  if !(ast is MalList) { return eval_ast(ast, env) }
   var astList = ast as MalList
   if astList.isEmpty { return ast }
-  var evaledList = eval_ast(ast, env) as MalList
+  const evaledList = astList.val.map<MalVal>(e => EVAL(e, env))
   var fn = evaledList[0] as MalNativeFunc
-  return fn.call(evaledList.val.slice(1))
+  return fn.call(evaledList.slice(1))
 }
 
 def PRINT(exp MalVal) string {

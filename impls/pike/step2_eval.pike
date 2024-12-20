@@ -8,8 +8,10 @@ Val READ(string str)
   return read_str(str);
 }
 
-Val eval_ast(Val ast, mapping(string:function) env)
+Val EVAL(Val ast, mapping(string:function) env)
 {
+  // write(({ "EVAL: ", PRINT(ast), "\n" }));
+
   switch(ast.mal_type)
   {
     case MALTYPE_SYMBOL:
@@ -17,7 +19,7 @@ Val eval_ast(Val ast, mapping(string:function) env)
       if(!f) throw("'" + ast.value + "' not found");
       return f;
     case MALTYPE_LIST:
-      return List(map(ast.data, lambda(Val e) { return EVAL(e, env); }));
+      break;
     case MALTYPE_VECTOR:
       return Vector(map(ast.data, lambda(Val e) { return EVAL(e, env); }));
     case MALTYPE_MAP:
@@ -29,16 +31,13 @@ Val eval_ast(Val ast, mapping(string:function) env)
       return Map(elements);
     default:
       return ast;
-  }
-}
+    }
 
-Val EVAL(Val ast, mapping(string:function) env)
-{
-  if(ast.mal_type != MALTYPE_LIST) return eval_ast(ast, env);
   if(ast.emptyp()) return ast;
-  Val evaled_ast = eval_ast(ast, env);
-  function f = evaled_ast.data[0];
-  return f(@evaled_ast.data[1..]);
+  Val f = EVAL(ast.data[0], env);
+  array(Val) args = ast.data[1..];
+  args = map(args, lambda(Val e) { return EVAL(e, env);});
+  return f(@args);
 }
 
 string PRINT(Val exp)

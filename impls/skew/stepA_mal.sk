@@ -33,33 +33,21 @@ def quasiquote(ast MalVal) MalVal {
   }
 }
 
-def isMacro(ast MalVal, env Env) bool {
-  if !(ast is MalList) { return false }
-  const astList = ast as MalList
-  if astList.isEmpty { return false }
-  const a0 = astList[0]
-  if !(a0 is MalSymbol) { return false }
-  const a0Sym = a0 as MalSymbol
-  if env.find(a0Sym) == null { return false }
-  const f = env.get(a0Sym)
-  if !(f is MalFunc) { return false }
-  return (f as MalFunc).isMacro
-}
+def EVAL(ast MalVal, env Env) MalVal {
+  while true {
 
-def macroexpand(ast MalVal, env Env) MalVal {
-  while isMacro(ast, env) {
-    const astList = ast as MalList
-    const mac = env.get(astList[0] as MalSymbol) as MalFunc
-    ast = mac.call((astList.rest as MalSequential).val)
+  const dbgeval = env.get("DEBUG-EVAL")
+  if dbgeval != null && !(dbgeval is MalNil) && !(dbgeval is MalFalse) {
+    printLn("EVAL: " + PRINT(ast))
   }
-  return ast
-}
 
-def eval_ast(ast MalVal, env Env) MalVal {
   if ast is MalSymbol {
-    return env.get(ast as MalSymbol)
+    const key = (ast as MalSymbol).val
+    const val = env.get(key)
+    if val == null { throw MalError.new("'" + key + "' not found") }
+    return val
   } else if ast is MalList {
-    return MalList.new((ast as MalList).val.map<MalVal>(e => EVAL(e, env)))
+    # proceed further after this conditional
   } else if ast is MalVector {
     return MalVector.new((ast as MalVector).val.map<MalVal>(e => EVAL(e, env)))
   } else if ast is MalHashMap {
@@ -72,13 +60,7 @@ def eval_ast(ast MalVal, env Env) MalVal {
   } else {
     return ast
   }
-}
 
-def EVAL(ast MalVal, env Env) MalVal {
-  while true {
-    if !(ast is MalList) { return eval_ast(ast, env) }
-    ast = macroexpand(ast, env)
-    if !(ast is MalList) { return eval_ast(ast, env) }
     const astList = ast as MalList
     if astList.isEmpty { return ast }
     const a0sym = astList[0] as MalSymbol
@@ -95,8 +77,6 @@ def EVAL(ast MalVal, env Env) MalVal {
       continue # TCO
     } else if a0sym.val == "quote" {
       return astList[1]
-    } else if a0sym.val == "quasiquoteexpand" {
-      return quasiquote(astList[1])
     } else if a0sym.val == "quasiquote" {
       ast = quasiquote(astList[1])
       continue # TCO
@@ -105,8 +85,6 @@ def EVAL(ast MalVal, env Env) MalVal {
       var macro = MalFunc.new(fn.ast, fn.params, fn.env, fn.func)
       macro.setAsMacro
       return env.set(astList[1] as MalSymbol, macro)
-    } else if a0sym.val == "macroexpand" {
-      return macroexpand(astList[1], env)
     } else if a0sym.val == "try*" {
       if astList.count < 3 {
         return EVAL(astList[1], env)
@@ -122,9 +100,10 @@ def EVAL(ast MalVal, env Env) MalVal {
       var catchEnv = Env.new(env, [catchClause[1] as MalSymbol], [exc])
       return EVAL(catchClause[2], catchEnv)
     } else if a0sym.val == "do" {
-      const parts = astList.val.slice(1)
-      eval_ast(MalList.new(parts.slice(0, parts.count - 1)), env)
-      ast = parts[parts.count - 1]
+      for i = 1; i < astList.count - 1; i += 1 {
+         EVAL(astList[i], env)
+      }
+      ast = astList[astList.count - 1]
       continue # TCO
     } else if a0sym.val == "if" {
       const condRes = EVAL(astList[1], env)
@@ -138,9 +117,13 @@ def EVAL(ast MalVal, env Env) MalVal {
       const argsNames = astList[1] as MalSequential
       return MalFunc.new(astList[2], argsNames, env, (args List<MalVal>) => EVAL(astList[2], Env.new(env, argsNames.val, args)))
     } else {
-      const evaledList = eval_ast(ast, env) as MalList
-      const fn = evaledList[0]
-      const callArgs = evaledList.val.slice(1)
+      const fn = EVAL(astList[0], env)
+      const args = astList.val.slice(1)
+      if fn is MalFunc && (fn as MalFunc).isMacro {
+        ast = (fn as MalFunc).call(args)
+        continue # TCO
+      }
+      const callArgs = args.map<MalVal>(e => EVAL(e, env))
       if fn is MalNativeFunc {
         return (fn as MalNativeFunc).call(callArgs)
       } else if fn is MalFunc {

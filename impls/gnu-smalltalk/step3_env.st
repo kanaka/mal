@@ -19,35 +19,38 @@ Object subclass: MAL [
         ^Reader readStr: input
     ]
 
-    MAL class >> evalAst: sexp env: env [
-        sexp type = #symbol ifTrue: [
-            ^env get: sexp value
-        ].
-
-        sexp type = #list ifTrue: [
-            ^self evalList: sexp env: env class: MALList
-        ].
-        sexp type = #vector ifTrue: [
-            ^self evalList: sexp env: env class: MALVector
-        ].
-        sexp type = #map ifTrue: [
-            ^self evalList: sexp env: env class: MALMap
-        ].
-
-        ^sexp
-    ]
-
-    MAL class >> evalList: sexp env: env class: aClass [
-        | items |
-        items := sexp value collect:
+    MAL class >> evalList: list env: env [
+        ^list collect:
             [ :item | self EVAL: item env: env ].
-        ^aClass new: items
     ]
 
     MAL class >> EVAL: sexp env: env [
-        | ast a0_ a1_ a2 forms function args |
+        | ast a0_ a1 a1_ a2 forms function args |
+
+        a2 := env get: #'DEBUG-EVAL'.
+        (a2 isNil or: [ a2 type = #false or: [ a2 type = #nil ] ] )
+        ifFalse: [
+            ('EVAL: ' , (Printer prStr: sexp printReadably: true))
+            displayNl.
+        ].
+
+        sexp type = #symbol ifTrue: [
+            | key value |
+            key := sexp value.
+            value := env get: key.
+            value isNil ifTrue: [
+                ^MALUnknownSymbol new signal: key
+            ].
+            ^value
+        ].
+        sexp type = #vector ifTrue: [
+            ^MALVector new: (self evalList: sexp value env: env)
+        ].
+        sexp type = #map ifTrue: [
+            ^MALMap new: (self evalList: sexp value env: env)
+        ].
         sexp type ~= #list ifTrue: [
-            ^self evalAst: sexp env: env
+            ^sexp
         ].
         sexp value isEmpty ifTrue: [
             ^sexp
@@ -75,7 +78,7 @@ Object subclass: MAL [
             ^self EVAL: a2 env: env_
         ].
 
-        forms := (self evalAst: sexp env: env) value.
+        forms := self evalList: sexp value env: env.
         function := forms first.
         args := forms allButFirst asArray.
         ^function valueWithArguments: args

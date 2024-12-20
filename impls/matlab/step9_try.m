@@ -43,39 +43,36 @@ function ret = quasiquote(ast)
     end
 end
 
-function ret = is_macro_call(ast, env)
-    if type_utils.list_Q(ast) && isa(ast.get(1), 'types.Symbol') && ...
-       ~islogical(env.find(ast.get(1)))
-        f = env.get(ast.get(1));
-        ret = isa(f,'types.Function') && f.is_macro;
-    else
-        ret = false;
-    end
-end
+function ret = EVAL(ast, env)
+  while true
 
-function ret = macroexpand(ast, env)
-    while is_macro_call(ast, env)
-        mac = env.get(ast.get(1));
-        args = ast.slice(2);
-        ast = mac.fn(args.data{:});
+    dbgeval = env.get('DEBUG-EVAL');
+    if ~isequal(dbgeval, {}) ...
+       && ~strcmp(class(dbgeval), 'types.Nil') ...
+       && (~islogical(dbgeval) || dbgeval)
+      fprintf('EVAL: %s\n', printer.pr_str(ast, true));
     end
-    ret = ast;
-end
 
-function ret = eval_ast(ast, env)
     switch class(ast)
     case 'types.Symbol'
-        ret = env.get(ast);
-    case 'types.List'
-        ret = types.List();
-        for i=1:length(ast)
-            ret.append(EVAL(ast.get(i), env));
+        ret = env.get(ast.name);
+        if isequal(ret, {})
+            msg = sprintf('''%s'' not found', ast.name);
+            if exist('OCTAVE_VERSION', 'builtin') ~= 0
+                error('ENV:notfound', msg);
+            else
+                throw(MException('ENV:notfound', msg));
+            end
         end
+        return;
+    case 'types.List'
+        %  Proceed after this switch.
     case 'types.Vector'
         ret = types.Vector();
         for i=1:length(ast)
             ret.append(EVAL(ast.get(i), env));
         end
+        return;
     case 'types.HashMap'
         ret = types.HashMap();
         ks = ast.keys();
@@ -83,27 +80,15 @@ function ret = eval_ast(ast, env)
             k = ks{i};
             ret.set(k, EVAL(ast.get(k), env));
         end
+        return;
     otherwise
         ret = ast;
-    end
-end
-
-function ret = EVAL(ast, env)
-  while true
-    %fprintf('EVAL: %s\n', printer.pr_str(ast, true));
-    if ~type_utils.list_Q(ast)
-        ret = eval_ast(ast, env);
         return;
     end
 
     % apply
     if length(ast) == 0
         ret = ast;
-        return;
-    end
-    ast = macroexpand(ast, env);
-    if ~type_utils.list_Q(ast)
-        ret = eval_ast(ast, env);
         return;
     end
 
@@ -126,17 +111,11 @@ function ret = EVAL(ast, env)
     case 'quote'
         ret = ast.get(2);
         return;
-    case 'quasiquoteexpand'
-        ret = quasiquote(ast.get(2));
-        return;
     case 'quasiquote'
         ast = quasiquote(ast.get(2)); % TCO
     case 'defmacro!'
-        ret = env.set(ast.get(2), EVAL(ast.get(3), env));
+        ret = env.set(ast.get(2), EVAL(ast.get(3), env).clone());
         ret.is_macro = true;
-        return;
-    case 'macroexpand'
-        ret = macroexpand(ast.get(2), env);
         return;
     case 'try*'
         try
@@ -163,7 +142,9 @@ function ret = EVAL(ast, env)
             end
         end
     case 'do'
-        el = eval_ast(ast.slice(2,length(ast)-1), env);
+        for i=2:(length(ast) -1)
+            ret = EVAL(ast.get(i), env);
+        end
         ast = ast.get(length(ast)); % TCO
     case 'if'
         cond = EVAL(ast.get(2), env);
@@ -184,9 +165,14 @@ function ret = EVAL(ast, env)
         ret = types.Function(fn, ast.get(3), env, ast.get(2));
         return;
     otherwise
-        el = eval_ast(ast, env);
-        f = el.get(1);
-        args = el.slice(2);
+      f = EVAL(ast.get(1), env);
+      if isa(f,'types.Function') && f.is_macro
+          ast = f.fn(ast.slice(2).data{:}); % TCO
+      else
+        args = types.List();
+        for i=2:length(ast)
+            args.append(EVAL(ast.get(i), env));
+        end
         if isa(f, 'types.Function')
             env = Env({f.env}, f.params, args);
             ast = f.ast; % TCO
@@ -194,6 +180,7 @@ function ret = EVAL(ast, env)
             ret = f(args.data{:});
             return
         end
+      end
     end
   end
 end

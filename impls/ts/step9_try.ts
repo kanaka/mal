@@ -57,56 +57,25 @@ function quasiquote(ast: MalType): MalType {
     }
 }
 
-function isMacro(ast: MalType, env: Env): boolean {
-    if (!isSeq(ast)) {
-        return false;
-    }
-    const s = ast.list[0];
-    if (s.type !== Node.Symbol) {
-        return false;
-    }
-    const foundEnv = env.find(s);
-    if (!foundEnv) {
-        return false;
-    }
-
-    const f = foundEnv.get(s);
-    if (f.type !== Node.Function) {
-        return false;
-    }
-
-    return f.isMacro;
-}
-
-function macroexpand(ast: MalType, env: Env): MalType {
-    while (isMacro(ast, env)) {
-        if (!isSeq(ast)) {
-            throw new Error(`unexpected token type: ${ast.type}, expected: list or vector`);
-        }
-        const s = ast.list[0];
-        if (s.type !== Node.Symbol) {
-            throw new Error(`unexpected token type: ${s.type}, expected: symbol`);
-        }
-        const f = env.get(s);
-        if (f.type !== Node.Function) {
-            throw new Error(`unexpected token type: ${f.type}, expected: function`);
-        }
-        ast = f.func(...ast.list.slice(1));
-    }
-
-    return ast;
-}
-
-function evalAST(ast: MalType, env: Env): MalType {
+// EVAL
+function evalMal(ast: MalType, env: Env): MalType {
+    loop: while (true) {
+    // Output a debug line if the option is enabled.
+    const dbgeval : MalType | null = env.get("DEBUG-EVAL");
+    if (dbgeval !== null
+        && dbgeval.type !== Node.Nil
+        && (dbgeval.type !== Node.Boolean || dbgeval.v))
+      console.log("EVAL:", prStr(ast));
+    // Deal with non-list types.
     switch (ast.type) {
         case Node.Symbol:
-            const f = env.get(ast);
+            const f : MalType | null = env.get(ast.v);
             if (!f) {
-                throw new Error(`unknown symbol: ${ast.v}`);
+                throw new Error(`'${ast.v}' not found`);
             }
             return f;
         case Node.List:
-            return new MalList(ast.list.map(ast => evalMal(ast, env)));
+            break;
         case Node.Vector:
             return new MalVector(ast.list.map(ast => evalMal(ast, env)));
         case Node.HashMap:
@@ -118,24 +87,7 @@ function evalAST(ast: MalType, env: Env): MalType {
             return new MalHashMap(list);
         default:
             return ast;
-    }
-}
-
-// EVAL
-function evalMal(ast: MalType, env: Env): MalType {
-    loop: while (true) {
-        if (ast.type !== Node.List) {
-            return evalAST(ast, env);
         }
-        if (ast.list.length === 0) {
-            return ast;
-        }
-
-        ast = macroexpand(ast, env);
-        if (!isSeq(ast)) {
-            return evalAST(ast, env);
-        }
-
         if (ast.list.length === 0) {
             return ast;
         }
@@ -151,7 +103,7 @@ function evalMal(ast: MalType, env: Env): MalType {
                         if (!value) {
                             throw new Error(`unexpected syntax`);
                         }
-                        return env.set(key, evalMal(value, env));
+                        return env.set(key.v, evalMal(value, env));
                     }
                     case "let*": {
                         env = new Env(env);
@@ -169,16 +121,13 @@ function evalMal(ast: MalType, env: Env): MalType {
                                 throw new Error(`unexpected syntax`);
                             }
 
-                            env.set(key, evalMal(value, env));
+                            env.set(key.v, evalMal(value, env));
                         }
                         ast = ast.list[2];
                         continue loop;
                     }
                     case "quote": {
                         return ast.list[1];
-                    }
-                    case "quasiquoteexpand": {
-                        return quasiquote(ast.list[1]);
                     }
                     case "quasiquote": {
                         ast = quasiquote(ast.list[1]);
@@ -196,10 +145,7 @@ function evalMal(ast: MalType, env: Env): MalType {
                         if (f.type !== Node.Function) {
                             throw new Error(`unexpected token type: ${f.type}, expected: function`);
                         }
-                        return env.set(key, f.toMacro());
-                    }
-                    case "macroexpand": {
-                        return macroexpand(ast.list[1], env);
+                        return env.set(key.v, f.toMacro());
                     }
                     case "try*": {
                         try {
@@ -227,8 +173,8 @@ function evalMal(ast: MalType, env: Env): MalType {
                         }
                     }
                     case "do": {
-                        const list = ast.list.slice(1, -1);
-                        evalAST(new MalList(list), env);
+                        for (let i = 1; i < ast.list.length - 1; i++)
+                            evalMal(ast.list[i], env);
                         ast = ast.list[ast.list.length - 1];
                         continue loop;
                     }
@@ -265,14 +211,15 @@ function evalMal(ast: MalType, env: Env): MalType {
                     }
                 }
         }
-        const result = evalAST(ast, env);
-        if (!isSeq(result)) {
-            throw new Error(`unexpected return type: ${result.type}, expected: list or vector`);
-        }
-        const [f, ...args] = result.list;
+        const f : MalType = evalMal(first, env);
         if (f.type !== Node.Function) {
             throw new Error(`unexpected token: ${f.type}, expected: function`);
         }
+        if (f.isMacro) {
+            ast = f.func(...ast.list.slice(1));
+            continue loop;
+        }
+        const args : Array<MalType> = ast.list.slice(1).map(x => evalMal(x, env));
         if (f.ast) {
             ast = f.ast;
             env = f.newEnv(args);
@@ -297,13 +244,13 @@ function rep(str: string): string {
 core.ns.forEach((value, key) => {
     replEnv.set(key, value);
 });
-replEnv.set(MalSymbol.get("eval"), MalFunction.fromBootstrap(ast => {
+replEnv.set("eval", MalFunction.fromBootstrap(ast => {
     if (!ast) {
         throw new Error(`undefined argument`);
     }
     return evalMal(ast, replEnv);
 }));
-replEnv.set(MalSymbol.get("*ARGV*"), new MalList([]));
+replEnv.set("*ARGV*", new MalList([]));
 
 // core.mal: defined using the language itself
 rep("(def! not (fn* (a) (if a false true)))");
@@ -311,7 +258,7 @@ rep(`(def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) "\nnil)")
 rep(`(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw "odd number of forms to cond")) (cons 'cond (rest (rest xs)))))))`);
 
 if (typeof process !== "undefined" && 2 < process.argv.length) {
-    replEnv.set(MalSymbol.get("*ARGV*"), new MalList(process.argv.slice(3).map(s => new MalString(s))));
+    replEnv.set("*ARGV*", new MalList(process.argv.slice(3).map(s => new MalString(s))));
     rep(`(load-file "${process.argv[2]}")`);
     process.exit(0);
 }

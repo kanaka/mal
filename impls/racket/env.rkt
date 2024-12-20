@@ -28,20 +28,6 @@
     (define/public (set k v)
       (hash-set! data k v)
       v)
-    (define/public (find k)
-      (cond
-        [(hash-has-key? data k) this]
-        [(not (null? _outer)) (send _outer find k)]
-        [else null]))
-    (define/public (_get k)
-      (hash-ref data k))
     (define/public (get k)
-      (let ([e (find k)])
-        (if (null? e)
-          (raise (string-append "'"
-                                (symbol->string k)
-                                "' not found"))
-          (send e _get k))))))
-
-      
-
+      (hash-ref data k
+        (lambda () (unless (null? _outer) (send _outer get k)))))))

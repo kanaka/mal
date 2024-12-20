@@ -17,11 +17,21 @@ function READ(str)
 end
 
 -- eval
-function eval_ast(ast, env)
+
+function EVAL(ast, env)
+
+    local dbgeval = env:get("DEBUG-EVAL")
+    if dbgeval ~= nil and dbgeval ~= types.Nil and dbgeval ~= false then
+        print("EVAL: " .. printer._pr_str(ast, true))
+        env:debug()
+    end
+
     if types._symbol_Q(ast) then
-        return env:get(ast)
-    elseif types._list_Q(ast) then
-        return List:new(utils.map(function(x) return EVAL(x,env) end,ast))
+        local result = env:get(ast.val)
+        if result == nil then
+            types.throw("'" .. ast.val .. "' not found")
+        end
+        return result
     elseif types._vector_Q(ast) then
         return Vector:new(utils.map(function(x) return EVAL(x,env) end,ast))
     elseif types._hash_map_Q(ast) then
@@ -30,28 +40,22 @@ function eval_ast(ast, env)
             new_hm[k] = EVAL(v, env)
         end
         return HashMap:new(new_hm)
-    else
+    elseif not types._list_Q(ast) or #ast == 0 then
         return ast
     end
-end
-
-function EVAL(ast, env)
-    --print("EVAL: "..printer._pr_str(ast,true))
-    if not types._list_Q(ast) then return eval_ast(ast, env) end
 
     local a0,a1,a2,a3 = ast[1], ast[2],ast[3],ast[4]
-    if not a0 then return ast end
     local a0sym = types._symbol_Q(a0) and a0.val or ""
     if 'def!' == a0sym then
-        return env:set(a1, EVAL(a2, env))
+        return env:set(a1.val, EVAL(a2, env))
     elseif 'let*' == a0sym then
         local let_env = Env:new(env)
         for i = 1,#a1,2 do
-            let_env:set(a1[i], EVAL(a1[i+1], let_env))
+            let_env:set(a1[i].val, EVAL(a1[i+1], let_env))
         end
         return EVAL(a2, let_env)
     elseif 'do' == a0sym then
-        local el = eval_ast(ast:slice(2,#ast), env)
+        local el = utils.map(function(x) return EVAL(x, env) end, types.slice(ast, 2))
         return el[#el]
     elseif 'if' == a0sym then
         local cond = EVAL(a1, env)
@@ -65,8 +69,9 @@ function EVAL(ast, env)
             return EVAL(a2, Env:new(env, a1, table.pack(...)))
         end
     else
-        local args = eval_ast(ast, env)
-        local f = table.remove(args, 1)
+        local f = EVAL(a0, env)
+        local args = types.slice(ast, 2)
+        args = utils.map(function(x) return EVAL(x,env) end, args)
         return f(table.unpack(args))
     end
 end
@@ -84,7 +89,7 @@ end
 
 -- core.lua: defined using Lua
 for k,v in pairs(core.ns) do
-    repl_env:set(types.Symbol:new(k), v)
+    repl_env:set(k, v)
 end
 
 -- core.mal: defined using mal

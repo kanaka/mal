@@ -42,22 +42,15 @@
 (defvar mal-fn* (make-mal-symbol "fn*"))
 (defvar mal-quote (make-mal-symbol "quote"))
 (defvar mal-quasiquote (make-mal-symbol "quasiquote"))
-(defvar mal-quasiquoteexpand (make-mal-symbol "quasiquoteexpand"))
 (defvar mal-unquote (make-mal-symbol "unquote"))
 (defvar mal-splice-unquote (make-mal-symbol "splice-unquote"))
 (defvar mal-vec (make-mal-symbol "vec"))
 (defvar mal-cons (make-mal-symbol "cons"))
 (defvar mal-concat (make-mal-symbol "concat"))
 (defvar mal-defmacro! (make-mal-symbol "defmacro!"))
-(defvar mal-macroexpand (make-mal-symbol "macroexpand"))
 (defvar mal-try* (make-mal-symbol "try*"))
 (defvar mal-catch* (make-mal-symbol "catch*"))
 (defvar mal-throw (make-mal-symbol "throw"))
-
-(defun eval-sequence (sequence env)
-  (map 'list
-       (lambda (ast) (mal-eval ast env))
-       (mal-data-value sequence)))
 
 (defun eval-hash-map (hash-map env)
   (let ((hash-map-value (mal-data-value hash-map))
@@ -67,14 +60,6 @@
                              (mal-eval value env)))
                      hash-map-value)
     (make-mal-hash-map new-hash-table)))
-
-(defun eval-ast (ast env)
-  (switch-mal-type ast
-    (types:symbol (env:get-env env ast))
-    (types:list (eval-sequence ast env))
-    (types:vector (make-mal-vector (apply 'vector (eval-sequence ast env))))
-    (types:hash-map (eval-hash-map ast env))
-    (types:any ast)))
 
 (defun qq-reducer (elt acc)
   (make-mal-list
@@ -94,47 +79,38 @@
     (types:symbol   (make-mal-list (list mal-quote ast)))
     (types:any      ast)))
 
-(defun is-macro-call (ast env)
-  (when (mal-list-p ast)
-    (let* ((func-symbol (first (mal-data-value ast)))
-           (func (when (mal-symbol-p func-symbol)
-                   (env:find-env env func-symbol))))
-      (and func
-           (mal-fn-p func)
-           (cdr (assoc :is-macro (mal-data-attrs func)))))))
-
-(defun mal-macroexpand (ast env)
-  (loop
-     while (is-macro-call ast env)
-     do (let* ((forms (mal-data-value ast))
-               (func (env:get-env env (first forms))))
-          (setf ast (apply (mal-data-value func)
-                           (cdr forms)))))
-  ast)
-
 (defun mal-read (string)
   (reader:read-str string))
 
 (defun mal-eval (ast env)
   (loop
-     do (setf ast (mal-macroexpand ast env))
-     do (cond
-          ((null ast) (return mal-nil))
-          ((not (mal-list-p ast)) (return (eval-ast ast env)))
-          ((zerop (length (mal-data-value ast))) (return ast))
-          (t (let ((forms (mal-data-value ast)))
+     do (let ((debug-eval (env:get-env env "DEBUG-EVAL")))
+          (when (and debug-eval
+                     (not (mal-data-value= debug-eval mal-false))
+                     (not (mal-data-value= debug-eval mal-false)))
+            (write-line (format nil "EVAL: ~a" (pr-str ast)))
+            (force-output *standard-output*)))
+     do (switch-mal-type ast
+          (types:symbol
+           (return
+             (let ((key (mal-data-value ast)))
+               (or (env:get-env env key)
+                   (error 'undefined-symbol :symbol (format nil "~a" key))))))
+          (types:vector
+           (return (make-mal-vector (map 'vector (lambda (x) (mal-eval x env))
+                                         (mal-data-value ast)))))
+          (types:hash-map (return (eval-hash-map ast env)))
+          (types:list
+            (let ((forms (mal-data-value ast)))
                (cond
+                 ((null forms)
+                  (return ast))
+
                  ((mal-data-value= mal-quote (first forms))
                   (return (second forms)))
 
-                 ((mal-data-value= mal-quasiquoteexpand (first forms))
-                  (return (quasiquote (second forms))))
-
                  ((mal-data-value= mal-quasiquote (first forms))
                   (setf ast (quasiquote (second forms))))
-
-                 ((mal-data-value= mal-macroexpand (first forms))
-                  (return (mal-macroexpand (second forms) env)))
 
                  ((mal-data-value= mal-def! (first forms))
                   (return (env:set-env env (second forms) (mal-eval (third forms) env))))
@@ -177,7 +153,7 @@
                   (let ((predicate (mal-eval (second forms) env)))
                     (setf ast (if (or (mal-data-value= predicate mal-nil)
                                       (mal-data-value= predicate mal-false))
-                                  (fourth forms)
+                                  (or (fourth forms) mal-nil)
                                   (third forms)))))
 
                  ((mal-data-value= mal-fn* (first forms))
@@ -206,25 +182,28 @@
                                                                   :binds (list (second catch-forms))
                                                                   :exprs (list (if (typep condition 'mal-user-exception)
                                                                                    (mal-exception-data condition)
-                                                                                   (make-mal-string (format nil "~a" condition)))))))))))))
+                                                                                 (make-mal-string (format nil "~a" condition)))))))))))))
 
-                 (t (let* ((evaluated-list (eval-ast ast env))
-                           (function (car evaluated-list)))
+                 (t (let ((function (mal-eval (car forms) env))
+                          (args     (cdr forms)))
                       ;; If first element is a mal function unwrap it
                       (cond ((mal-fn-p function)
-                             (let* ((attrs (mal-data-attrs function)))
+                             (let ((attrs (mal-data-attrs function)))
+                              (if (cdr (assoc :is-macro attrs))
+                               (setf ast (apply (mal-data-value function) args))
                                (setf ast (cdr (assoc :ast attrs))
                                      env (env:create-mal-env :parent (cdr (assoc :env attrs))
                                                              :binds (map 'list
                                                                          #'identity
                                                                          (mal-data-value (cdr (assoc :params attrs))))
-                                                             :exprs (cdr evaluated-list)))))
+                                                             :exprs (map 'list (lambda (x) (mal-eval x env)) args))))))
                             ((mal-builtin-fn-p function)
                              (return (apply (mal-data-value function)
-                                            (cdr evaluated-list))))
+                                            (map 'list (lambda (x) (mal-eval x env)) args))))
                             (t (error 'invalid-function
                                       :form function
-                                      :context "apply")))))))))))
+                                      :context "apply"))))))))
+          (types:any (return ast)))))
 
 (defun mal-print (expression)
   (printer:pr-str expression))

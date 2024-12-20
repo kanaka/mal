@@ -1,46 +1,48 @@
-const std = @import("std");
-const warn = @import("std").debug.warn;
-
 const reader = @import("reader.zig");
-const pcre = reader.pcre;
 const printer = @import("printer.zig");
 const getline = @import("readline.zig").getline;
 
 const Allocator = @import("std").heap.c_allocator;
 
 const MalType = @import("types.zig").MalType;
+const get_error_data = @import("error.zig").get_error_data;
+const stdout_file = @import("std").io.getStdOut();
 
-fn READ(a: [] u8) !?*MalType {
+fn READ(a: []const u8) !*MalType {
     var read = try reader.read_str(a);
-    var optional_mal = reader.read_form(&read);
-    return optional_mal;
+    return reader.read_form(&read);
 }
 
-fn EVAL(a: ?*MalType) ?*MalType {
+fn EVAL(a: *MalType) *MalType {
+    a.incref();
     return a;
 }
 
-fn PRINT(optional_mal: ?*MalType) ![] u8 {
-    return printer.print_str(optional_mal);
+fn PRINT(mal: MalType) !void {
+    try printer.one_stdout(mal);
+    try stdout_file.writeAll("\n");
 }
 
-fn rep(input: [] u8) ![] u8 {
-    var read_input = READ(input) catch null;
-    var eval_input = EVAL(read_input);
-    var print_input = PRINT(eval_input);
-    if(eval_input) |mal| {
-        mal.delete(Allocator);
-    }
-    return print_input;
+fn rep(input: []const u8) !void {
+    const read_input = try READ(input);
+    defer read_input.decref();
+    const eval_input = EVAL(read_input);
+    defer eval_input.decref();
+    try PRINT(eval_input.*);
 }
 
 pub fn main() !void {
-    const stdout_file = try std.io.getStdOut();
-    while(true) {
-        var line = (try getline(Allocator)) orelse break;
-        var output = try rep(line);
-        try stdout_file.write(output);
-        Allocator.free(output);
-        try stdout_file.write("\n");
+    while(try getline("user> ")) |line| {
+        defer Allocator.free(line);
+        rep(line) catch |err| {
+            try stdout_file.writeAll("Error: ");
+            try stdout_file.writeAll(@errorName(err));
+            try stdout_file.writeAll("\n");
+            if(get_error_data()) |mal| {
+                defer mal.decref();
+                try stdout_file.writeAll("MAL error object is: ");
+                try PRINT(mal.*);
+            }
+        };
     }
 }

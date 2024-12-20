@@ -36,7 +36,7 @@ fn_p([_]) ->
 fn_p(_) ->
     {error, "fn? takes a single argument"}.
 
-macro_p([{macro, _, _, _}]) ->
+macro_p([{macro, _, _, _, _}]) ->
     true;
 macro_p([_]) ->
     false;
@@ -303,6 +303,10 @@ flatten_args(Args) ->
     lists:flatten(lists:map(Delist, lists:flatten(Args))).
 
 apply_f([{closure, Eval, Binds, Body, CE, _M1}|Args]) ->
+    NewEnv = env:new(CE),
+    env:bind(NewEnv, Binds, flatten_args(Args)),
+    Eval(Body, NewEnv);
+apply_f([{macro, Eval, Binds, Body, CE}|Args]) ->
     NewEnv = env:new(CE),
     env:bind(NewEnv, Binds, flatten_args(Args)),
     Eval(Body, NewEnv);

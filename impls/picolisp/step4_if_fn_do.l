@@ -16,9 +16,12 @@
 (for Bind *Ns (set> *ReplEnv (car Bind) (cdr Bind)))
 
 (de EVAL (Ast Env)
-   (if (= (MAL-type Ast) 'list)
-      (if (not (MAL-value Ast))
-         Ast
+   (when (and (get> Env 'DEBUG-EVAL)
+              (not (memq (MAL-type @) '(nil false))))
+      (prinl "EVAL: " (pr-str Ast T)))
+
+   (case (MAL-type Ast)
+      (list
          (let (Ast* (MAL-value Ast)
                A0* (MAL-value (car Ast*))
                A1 (cadr Ast*)
@@ -26,6 +29,8 @@
                A2 (caddr Ast*)
                A3 (cadddr Ast*) )
             (cond
+               ((not Ast*)
+                Ast)
                ((= A0* 'def!)
                 (set> Env A1* (EVAL A2 Env)) )
                ((= A0* 'let*)
@@ -52,20 +57,17 @@
                          (let Env* (MAL-env Env Binds (rest))
                             (EVAL Body Env*) ) ) ) ) )
                (T
-                  (let (Ast* (MAL-value (eval-ast Ast Env))
+                  (let (Ast* (mapcar '((Form) (EVAL Form Env)) Ast*)
                         Fn (MAL-value (car Ast*))
                         Args (cdr Ast*))
                      (apply Fn Args) ) ) ) ) )
-      (eval-ast Ast Env) ) )
-
-(de eval-ast (Ast Env)
-   (let Value (MAL-value Ast)
-      (case (MAL-type Ast)
-         (symbol (get> Env Value))
-         (list (MAL-list (mapcar '((Form) (EVAL Form Env)) Value)))
-         (vector (MAL-vector (mapcar '((Form) (EVAL Form Env)) Value)))
-         (map (MAL-map (mapcar '((Form) (EVAL Form Env)) Value)))
-         (T Ast) ) ) )
+      (symbol
+       (let (Key (MAL-value Ast))
+          (or (get> Env Key)
+              (throw 'err (MAL-error (MAL-string (pack "'" Key "' not found")))))))
+      (vector (MAL-vector (mapcar '((Form) (EVAL Form Env)) (MAL-value Ast))))
+      (map (MAL-map (mapcar '((Form) (EVAL Form Env)) (MAL-value Ast))))
+      (T Ast)))
 
 (de PRINT (Ast)
    (pr-str Ast T) )

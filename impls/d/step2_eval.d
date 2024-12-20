@@ -14,18 +14,17 @@ MalType READ(string str)
     return read_str(str);
 }
 
-MalType eval_ast(MalType ast, Env env)
+MalType EVAL(MalType ast, Env env)
 {
+    if (auto dbgeval = ("DEBUG-EVAL" in env))
+        if (dbgeval.is_truthy())
+            writeln("EVAL: ", pr_str(ast));
+
     if (auto sym = cast(MalSymbol)ast)
     {
         auto v = (sym.name in env);
         if (v is null) throw new Exception("'" ~ sym.name ~ "' not found");
         return *v;
-    }
-    else if (auto lst = cast(MalList)ast)
-    {
-        auto el = array(lst.elements.map!(e => EVAL(e, env)));
-        return new MalList(el);
     }
     else if (auto lst = cast(MalVector)ast)
     {
@@ -41,27 +40,21 @@ MalType eval_ast(MalType ast, Env env)
         }
         return new MalHashmap(new_data);
     }
-    else
+  // todo: indent right
+  else if (auto ast_list = cast(MalList)ast)
+  {
+    if (ast_list.elements.length == 0)
     {
         return ast;
     }
-}
-
-MalType EVAL(MalType ast, Env env)
-{
-    if (typeid(ast) != typeid(MalList))
-    {
-        return eval_ast(ast, env);
-    }
-    if ((cast(MalList) ast).elements.length == 0)
-    {
-        return ast;
-    }
-
-    auto el = verify_cast!MalList(eval_ast(ast, env));
-    auto fobj = verify_cast!MalBuiltinFunc(el.elements[0]);
-    auto args = el.elements[1..$];
+    auto fobj = verify_cast!MalBuiltinFunc(EVAL(ast_list.elements[0], env));
+    auto args = array(ast_list.elements[1..$].map!(e => EVAL(e, env)));
     return fobj.fn(args);
+  }
+  else
+  {
+        return ast;
+  }
 }
 
 string PRINT(MalType ast)

@@ -2,14 +2,9 @@ public class MalInt extends MalObject
 {
     "int" => type;
 
-    fun int value()
-    {
-        return (object$Int).value;
-    }
-
     fun void init(int value)
     {
-        Int.create(value) @=> object;
+        value => intValue;
     }
 
     fun static MalInt create(int value)

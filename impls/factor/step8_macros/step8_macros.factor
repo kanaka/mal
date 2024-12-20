@@ -11,12 +11,6 @@ SYMBOL: repl-env
 
 DEFER: EVAL
 
-GENERIC# eval-ast 1 ( ast env -- ast )
-M: malsymbol eval-ast env-get ;
-M: sequence  eval-ast '[ _ EVAL ] map ;
-M: assoc     eval-ast '[ _ EVAL ] assoc-map ;
-M: object    eval-ast drop ;
-
 :: eval-def! ( key value env -- maltype )
     value env EVAL [ key env env-set ] keep ;
 
@@ -32,7 +26,7 @@ M: object    eval-ast drop ;
     exprs [
         { } f
     ] [
-        unclip-last [ env eval-ast drop ] dip env
+        unclip-last [ '[ env EVAL drop ] each ] dip env
     ] if-empty ;
 
 :: eval-if ( params env -- maltype env/f )
@@ -52,7 +46,7 @@ M: object    eval-ast drop ;
     swapd [ over length cut [ zip ] dip ] dip
     [ swap 2array suffix ] [ drop ] if* >hashtable ;
 
-GENERIC# apply 0 ( args fn -- maltype newenv/f )
+GENERIC: apply ( args fn -- maltype newenv/f )
 
 M: malfn apply
     [ exprs>> nip ]
@@ -89,23 +83,14 @@ M: array     quasiquote
     [ second ] [ qq_foldr ] if ;
 M: vector    quasiquote qq_foldr "vec" <malsymbol> swap 2array ;
 M: malsymbol quasiquote "quote" <malsymbol> swap 2array ;
-M: assoc     quasiquote "quote" <malsymbol> swap 2array ;
+M: hashtable quasiquote "quote" <malsymbol> swap 2array ;
 M: object    quasiquote ;
-
-:: macro-expand ( maltype env -- maltype )
-    maltype dup array? [
-        dup first { [ malsymbol? ] [ env env-find drop ] } 1&& [
-            dup { [ malfn? ] [ macro?>> ] } 1&& [
-                [ rest ] dip apply [ EVAL ] keep macro-expand
-            ] [ drop ] if
-        ] when*
-    ] when ;
 
 : READ ( str -- maltype ) read-str ;
 
-: EVAL ( maltype env -- maltype )
-    over { [ array? ] [ empty? not ] } 1&& [
-        [ macro-expand ] keep over array? [
+GENERIC#: EVAL-switch 1 ( maltype env -- maltype )
+M: array EVAL-switch
+    over empty? [ drop ] [
             over first dup malsymbol? [ name>> ] when {
                 { "def!" [ [ rest first2 ] dip eval-def! f ] }
                 { "defmacro!" [ [ rest first2 ] dip eval-defmacro! f ] }
@@ -114,17 +99,33 @@ M: object    quasiquote ;
                 { "if" [ [ rest ] dip eval-if ] }
                 { "fn*" [ [ rest ] dip eval-fn* f ] }
                 { "quote" [ drop second f ] }
-                { "quasiquoteexpand" [ drop second quasiquote f ] }
                 { "quasiquote" [ [ second quasiquote ] dip ] }
-                { "macroexpand" [ [ second ] dip macro-expand f ] }
-                [ drop '[ _ EVAL ] map unclip apply ]
+                [ drop swap                                 ! env ast
+                  unclip                                    ! env rest first
+                  pick EVAL                                 ! env rest fn
+                  dup { [ malfn? ] [ macro?>> ] } 1&& [
+                      apply                                 ! env maltype newenv
+                      EVAL swap
+                  ] [
+                      [ swap '[ _ EVAL ] map ] dip          ! args fn
+                      apply
+                  ] if
+                ]
             } case [ EVAL ] when*
-        ] [
-            eval-ast
-        ] if
-    ] [
-        eval-ast
     ] if ;
+M: malsymbol EVAL-switch env-get ;
+M: vector    EVAL-switch '[ _ EVAL ] map ;
+M: hashtable EVAL-switch '[ _ EVAL ] assoc-map ;
+M: object    EVAL-switch drop ;
+
+: EVAL ( maltype env -- maltype )
+    "DEBUG-EVAL" <malsymbol> over env-find [
+        { f +nil+ } index not
+        [
+            "EVAL: " pick pr-str append print flush
+        ] when
+    ] [ drop ] if
+    EVAL-switch ;
 
 [ apply [ EVAL ] when* ] mal-apply set-global
 

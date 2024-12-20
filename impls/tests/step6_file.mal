@@ -24,7 +24,6 @@
 ;;; Differing output, but make sure no fatal error
 (read-string ";; comment")
 
-
 (eval (read-string "(+ 2 3)"))
 ;=>5
 
@@ -87,6 +86,12 @@
 (swap! a + 3)
 ;=>123
 
+;; Test that do only evals each slot once
+(def! b (atom 0))
+(do (swap! b + 1) (swap! b + 10) (swap! b + 100))
+(deref b)
+;=>111
+
 ;; Testing swap!/closure interaction
 (def! inc-it (fn* (a) (+ 1 a)))
 (def! atm (atom 7))
@@ -105,6 +110,14 @@
 ;>>> deferrable=True
 ;;
 ;; -------- Deferrable Functionality --------
+
+;; Testing read-string parsing errors
+(read-string "(+ 1")
+;/.*(EOF|end of input|unbalanced).*
+(read-string "[+ 1")
+;/.*(EOF|end of input|unbalanced).*
+(read-string "{:a 1")
+;/.*(EOF|end of input|unbalanced).*
 
 ;; Testing reading of large files
 (load-file "../tests/computations.mal")

@@ -54,7 +54,7 @@ function M.read_atom(rdr)
     elseif string.sub(token,1,1) == '"' then
         throw("expected '\"', got EOF")
     elseif string.sub(token,1,1) == ':' then
-        return "\u{029e}" .. string.sub(token,2)
+        return types._keyword_from_lua_string(string.sub(token,2))
     elseif token == "nil" then       return Nil
     elseif token == "true" then      return true
     elseif token == "false" then     return false
@@ -87,7 +87,7 @@ end
 
 function M.read_hash_map(rdr)
     local seq = M.read_sequence(rdr, '{', '}')
-    return types._assoc_BANG(types.HashMap:new(), table.unpack(seq))
+    return types.hash_map(table.unpack(seq))
 end
 
 function M.read_form(rdr)

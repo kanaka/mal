@@ -40,56 +40,30 @@ class StepA_mal {
         }
     }
 
-    static function is_macro(ast:MalType, env:Env) {
-        return switch(ast) {
-            case MalList([]): false;
-            case MalList(a):
-                var a0 = a[0];
-                return symbol_Q(a0) &&
-                       env.find(a0) != null &&
-                       _macro_Q(env.get(a0));
-            case _: false;
-        }
-    }
-
-    static function macroexpand(ast:MalType, env:Env) {
-        while (is_macro(ast, env)) {
-            var mac = env.get(first(ast));
-            switch (mac) {
-                case MalFunc(f,_,_,_,_,_):
-                    ast = f(_list(ast).slice(1));
-                case _: break;
-            }
-        }
-        return ast;
-    }
-
-    static function eval_ast(ast:MalType, env:Env) {
-        return switch (ast) {
-            case MalSymbol(s): env.get(ast);
+    static function EVAL(ast:MalType, env:Env):MalType {
+      while (true) {
+        var dbgeval = env.get("DEBUG-EVAL");
+        if (dbgeval != null && dbgeval != MalFalse && dbgeval != MalNil)
+            Compat.println("EVAL: " + PRINT(ast));
+        var alst;
+        switch (ast) {
+            case MalSymbol(s):
+                 var  res = env.get(s);
+                 if (res == null) throw "'" + s + "' not found";
+                 return res;
             case MalList(l):
-                MalList(l.map(function(x) { return EVAL(x, env); }));
+                 alst = l;
             case MalVector(l):
-                MalVector(l.map(function(x) { return EVAL(x, env); }));
+                return MalVector(l.map(function(x) { return EVAL(x, env); }));
             case MalHashMap(m):
                 var new_map = new Map<String,MalType>();
                 for (k in m.keys()) {
                     new_map[k] = EVAL(m[k], env);
                 }
-                MalHashMap(new_map);
-            case _: ast;
+                return MalHashMap(new_map);
+            case _: return ast;
         }
-    }
-
-    static function EVAL(ast:MalType, env:Env):MalType {
-      while (true) {
-        if (!list_Q(ast)) { return eval_ast(ast, env); }
-
         // apply
-        ast = macroexpand(ast, env);
-        if (!list_Q(ast)) { return eval_ast(ast, env); }
-
-        var alst = _list(ast);
         if (alst.length == 0) { return ast; }
         switch (alst[0]) {
         case MalSymbol("def!"):
@@ -109,8 +83,6 @@ class StepA_mal {
             continue; // TCO
         case MalSymbol("quote"):
             return alst[1];
-        case MalSymbol("quasiquoteexpand"):
-            return quasiquote(alst[1]);
         case MalSymbol("quasiquote"):
             ast = quasiquote(alst[1]);
             continue; // TCO
@@ -122,8 +94,6 @@ class StepA_mal {
                 case _:
                     throw "Invalid defmacro! call";
             }
-        case MalSymbol("macroexpand"):
-            return macroexpand(alst[1], env);
         case MalSymbol("try*"):
             try {
                 return EVAL(alst[1], env);
@@ -146,8 +116,9 @@ class StepA_mal {
                 }
             }
         case MalSymbol("do"):
-            var el = eval_ast(MalList(alst.slice(1, alst.length-1)), env);
-            ast = last(ast);
+            for (i in 1...alst.length-1)
+                EVAL(alst[i], env);
+            ast = alst[alst.length-1];
             continue; // TCO
         case MalSymbol("if"):
             var cond = EVAL(alst[1], env);
@@ -164,11 +135,13 @@ class StepA_mal {
                 return EVAL(alst[2], new Env(env, _list(alst[1]), args));
             },alst[2],env,alst[1],false,nil);
         case _:
-            var el = eval_ast(ast, env);
-            var lst = _list(el);
-            switch (first(el)) {
-                case MalFunc(f,a,e,params,_,_):
-                    var args = _list(el).slice(1);
+            switch ( EVAL(alst[0], env)) {
+                case MalFunc(f,a,e,params,ismacro,_):
+                    if (ismacro) {
+                        ast = f(alst.slice(1));
+                        continue; // TCO
+                    }
+                    var args = alst.slice(1).map(function(x) { return EVAL(x, env); });
                     if (a != null) {
                         ast = a;
                         env = new Env(e, _list(params), args);

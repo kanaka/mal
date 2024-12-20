@@ -35,8 +35,15 @@ eval_ast := method(ast, env,
    )
 )
 
+debugEvalSymbol := MalSymbol with("DEBUG-EVAL")
+
 EVAL := method(ast, env,
     loop(
+
+        debugEvalEnv := env find(debugEvalSymbol)
+        if((debugEvalEnv isNil not) and (debugEvalEnv get(debugEvalSymbol)),
+            ("EVAL: " .. PRINT(ast)) println)
+
         if(ast type != "MalList", return(eval_ast(ast, env)))
         if(ast isEmpty, return ast)
         if(ast at(0) type == "MalSymbol",
@@ -66,8 +73,6 @@ EVAL := method(ast, env,
                     continue, // TCO
                 "quote",
                     return(ast at(1)),
-                "quasiquoteexpand",
-                    return quasiquote(ast at(1)),
                 "quasiquote",
                     ast = quasiquote(ast at(1))
                     continue // TCO

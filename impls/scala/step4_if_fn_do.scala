@@ -9,22 +9,24 @@ object step4_if_fn_do {
   }
 
   // eval
-  def eval_ast(ast: Any, env: Env): Any = {
-    ast match {
-      case s : Symbol    => env.get(s)
-      case v: MalVector  => v.map(EVAL(_, env))
-      case l: MalList    => l.map(EVAL(_, env))
-      case m: MalHashMap => {
-        m.map{case (k,v) => (k, EVAL(v, env))}
-      }
-      case _             => ast
-    }
-  }
-
   def EVAL(ast: Any, env: Env): Any = {
-    //println("EVAL: " + printer._pr_str(ast,true))
-    if (!_list_Q(ast))
-      return eval_ast(ast, env)
+
+    if (env.find(Symbol("DEBUG-EVAL")) != null) {
+      val dbgeval = env.get(Symbol("DEBUG-EVAL"))
+      if (dbgeval != null && dbgeval != false) {
+        println("EVAL: " + printer._pr_str(ast,true))
+      }
+    }
+
+    ast match {
+      case s : Symbol    => return env.get(s)
+      case v: MalVector  => return v.map(EVAL(_, env))
+      case l: MalList    => {}
+      case m: MalHashMap => {
+        return m.map{case (k,v) => (k, EVAL(v, env))}
+      }
+      case _             => return ast
+    }
 
     // apply list
     ast.asInstanceOf[MalList].value match {
@@ -42,8 +44,8 @@ object step4_if_fn_do {
         return EVAL(a2, let_env)
       }
       case Symbol("do") :: rest => {
-        val el = eval_ast(_list(rest:_*), env)
-        return el.asInstanceOf[MalList].value.last
+        val el = rest.map(EVAL(_, env))
+        return el.last
       }
       case Symbol("if") :: a1 :: a2 :: rest => {
         val cond = EVAL(a1, env)
@@ -61,7 +63,7 @@ object step4_if_fn_do {
       }
       case _ => {
         // function call
-        eval_ast(ast, env).asInstanceOf[MalList].value match {
+        ast.asInstanceOf[MalList].map(EVAL(_, env)).value match {
           case f :: el => {
             var fn: Func = null
             try {

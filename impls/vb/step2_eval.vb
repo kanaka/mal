@@ -18,40 +18,31 @@ Namespace Mal
         End Function
 
         ' eval
-        Shared Function eval_ast(ast As MalVal, env As Dictionary(Of String, MalVal)) As MalVal
-            If TypeOf ast Is MalSymbol Then
-                Dim sym As MalSymbol = DirectCast(ast, MalSymbol)
+        Shared Function EVAL(orig_ast As MalVal, env As Dictionary(Of String, MalVal)) As MalVal
+
+            'Console.WriteLine("EVAL: {0}", printer._pr_str(orig_ast, true))
+
+            If TypeOf orig_ast Is MalSymbol Then
+                Dim sym As MalSymbol = DirectCast(orig_ast, MalSymbol)
                 return env.Item(sym.getName())
-            Else If TypeOf ast Is MalList Then
-                Dim old_lst As MalList = DirectCast(ast, MalList)
+            Else If TypeOf orig_ast Is MalVector Then
+                Dim old_lst As MalList = DirectCast(orig_ast, MalList)
                 Dim new_lst As MalList
-                If ast.list_Q() Then
-                    new_lst = New MalList
-                Else
                     new_lst = DirectCast(New MalVector, MalList)
-                End If
                 Dim mv As MalVal
                 For Each mv in old_lst.getValue()
                     new_lst.conj_BANG(EVAL(mv, env))
                 Next
                 return new_lst
-            Else If TypeOf ast Is MalHashMap Then
+            Else If TypeOf orig_ast Is MalHashMap Then
                 Dim new_dict As New Dictionary(Of String, MalVal)
                 Dim entry As KeyValuePair(Of String, MalVal)
-                For Each entry in DirectCast(ast,MalHashMap).getValue()
+                For Each entry in DirectCast(orig_ast,MalHashMap).getValue()
                     new_dict.Add(entry.Key, EVAL(DirectCast(entry.Value,MalVal), env))
                 Next
                 return New MalHashMap(new_dict)
-            Else
-                return ast
-            End If
-            return ast
-        End Function
-
-        Shared Function EVAL(orig_ast As MalVal, env As Dictionary(Of String, MalVal)) As MalVal
-            'Console.WriteLine("EVAL: {0}", printer._pr_str(orig_ast, true))
-            If not orig_ast.list_Q() Then
-                return eval_ast(orig_ast, env)
+            Else If not orig_ast.list_Q() Then
+                return orig_ast
             End If
 
             ' apply list
@@ -59,8 +50,11 @@ Namespace Mal
             If ast.size() = 0  Then
                 return ast
             End If
-            Dim a0 As MalVal = ast(0)
-            Dim el As MalList = DirectCast(eval_ast(ast, env), MalList)
+            Dim el As MalList = New MalList
+            Dim mv As MalVal
+            For Each mv In ast.getValue()
+                el.conj_BANG(EVAL(mv, env))
+            Next
             Dim f As MalFunc = DirectCast(el(0), MalFunc)
             Return f.apply(el.rest())
         End Function

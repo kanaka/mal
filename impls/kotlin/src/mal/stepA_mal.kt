@@ -9,9 +9,14 @@ fun eval(_ast: MalType, _env: Env): MalType {
     var env = _env
 
     while (true) {
-        ast = macroexpand(ast, env)
 
-        if (ast is MalList) {
+      val dbgeval = env.get("DEBUG-EVAL")
+      if (dbgeval !== null && dbgeval !== NIL && dbgeval !== FALSE) {
+          println ("EVAL: ${print(ast)}")
+      }
+
+      when (ast) {
+        is MalList -> {
             if (ast.count() == 0) return ast
             when ((ast.first() as? MalSymbol)?.value) {
                 "def!" -> return env.set(ast.nth(1) as MalSymbol, eval(ast.nth(2), env))
@@ -31,7 +36,9 @@ fun eval(_ast: MalType, _env: Env): MalType {
                 }
                 "fn*" -> return fn_STAR(ast, env)
                 "do" -> {
-                    eval_ast(ast.slice(1, ast.count() - 1), env)
+                    for (i in 1..ast.count() - 2) {
+                        eval(ast.nth(i), env)
+                    }
                     ast = ast.seq().last()
                 }
                 "if" -> {
@@ -44,37 +51,34 @@ fun eval(_ast: MalType, _env: Env): MalType {
                     } else return NIL
                 }
                 "quote" -> return ast.nth(1)
-                "quasiquoteexpand" -> return quasiquote(ast.nth(1))
                 "quasiquote" -> ast = quasiquote(ast.nth(1))
                 "defmacro!" -> return defmacro(ast, env)
-                "macroexpand" -> return macroexpand(ast.nth(1), env)
                 "try*" -> return try_catch(ast, env)
                 else -> {
-                    val evaluated = eval_ast(ast, env) as ISeq
-                    val firstEval = evaluated.first()
-
+                  val firstEval = eval(ast.first(), env)
+                  if (firstEval is MalFunction && firstEval.is_macro) {
+                      ast = firstEval.apply(ast.rest())
+                  } else {
+                    val args = ast.elements.drop(1).fold(MalList(), { a, b -> a.conj_BANG(eval(b, env)); a })
                     when (firstEval) {
                         is MalFnFunction -> {
                             ast = firstEval.ast
-                            env = Env(firstEval.env, firstEval.params, evaluated.rest().seq())
+                            env = Env(firstEval.env, firstEval.params, args.seq())
                         }
-                        is MalFunction -> return firstEval.apply(evaluated.rest())
+                        is MalFunction -> return firstEval.apply(args)
                         else -> throw MalException("cannot execute non-function")
                     }
+                  }
                 }
             }
-        } else return eval_ast(ast, env)
+        }
+        is MalSymbol -> return env.get(ast.value) ?: throw MalException("'${ast.value}' not found")
+        is MalVector -> return ast.elements.fold(MalVector(), { a, b -> a.conj_BANG(eval(b, env)); a })
+        is MalHashMap -> return ast.elements.entries.fold(MalHashMap(), { a, b -> a.assoc_BANG(b.key, eval(b.value, env)); a })
+        else -> return ast
+      }
     }
 }
-
-fun eval_ast(ast: MalType, env: Env): MalType =
-        when (ast) {
-            is MalSymbol -> env.get(ast)
-            is MalList -> ast.elements.fold(MalList(), { a, b -> a.conj_BANG(eval(b, env)); a })
-            is MalVector -> ast.elements.fold(MalVector(), { a, b -> a.conj_BANG(eval(b, env)); a })
-            is MalHashMap -> ast.elements.entries.fold(MalHashMap(), { a, b -> a.assoc_BANG(b.key, eval(b.value, env)); a })
-            else -> ast
-        }
 
 private fun fn_STAR(ast: MalList, env: Env): MalType {
     val binds = ast.nth(1) as? ISeq ?: throw MalException("fn* requires a binding list as first parameter")
@@ -122,27 +126,9 @@ private fun quasiquote_loop(elt: MalType, acc: MalList): MalList {
     return result
 }
 
-private fun is_macro_call(ast: MalType, env: Env): Boolean {
-    val ast_list = ast as? MalList ?: return false
-    if (ast_list.count() == 0) return false
-    val symbol = ast_list.first() as? MalSymbol ?: return false
-    val function = env.find(symbol) as? MalFunction ?: return false
-
-    return function.is_macro
-}
-
-private fun macroexpand(_ast: MalType, env: Env): MalType {
-    var ast = _ast
-    while (is_macro_call(ast, env)) {
-        val symbol = (ast as MalList).first() as MalSymbol
-        val function = env.find(symbol) as MalFunction
-        ast = function.apply(ast.rest())
-    }
-    return ast
-}
-
 private fun defmacro(ast: MalList, env: Env): MalType {
-    val macro = eval(ast.nth(2), env) as MalFunction
+    val f = eval(ast.nth(2), env) as MalFunction
+    val macro = MalFunction(f.lambda)
     macro.is_macro = true
 
     return env.set(ast.nth(1) as MalSymbol, macro)

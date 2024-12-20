@@ -1,4 +1,4 @@
-FROM ubuntu:vivid
+FROM ubuntu:24.04 AS base
 MAINTAINER Joel Martin <github@martintribe.org>
 
 ##########################################################
@@ -9,25 +9,49 @@ MAINTAINER Joel Martin <github@martintribe.org>
 RUN apt-get -y update
 
 # Required for running tests
-RUN apt-get -y install make python
+RUN apt-get -y install make python3
+RUN ln -fs /usr/bin/python3 /usr/local/bin/python
 
 # Some typical implementation and test requirements
 RUN apt-get -y install curl libreadline-dev libedit-dev
+
+RUN apt-get -y install libpcre3-dev
 
 RUN mkdir -p /mal
 WORKDIR /mal
 
 ##########################################################
+# Compile the io interpreter
+##########################################################
+
+FROM base AS builder
+
+RUN apt-get -y install git cmake gcc
+
+RUN cd /tmp \
+    && git clone --recursive -q --depth=1 https://github.com/IoLanguage/io.git \
+    && cd /tmp/io \
+    && mkdir build && cd build \
+    && cmake -DCMAKE_BUILD_TYPE=release .. && make && make install
+
+# Force eerie (Io package manager) to install itself and the packages in /opt/.eerie
+ENV HOME=/opt
+
+RUN cd /tmp/io/eerie \
+    && mkdir -p /opt \
+    && . ./install_unix.sh --notouch \
+    && eerie install https://github.com/IoLanguage/Range.git \
+    && eerie install https://github.com/IoLanguage/ReadLine.git \
+    && eerie install https://github.com/IoLanguage/Regex.git
+
+##########################################################
 # Specific implementation requirements
 ##########################################################
 
-# Zip
-RUN apt-get -y install unzip
+FROM base AS io
 
-RUN cd /tmp && curl -O -J -L http://iobin.suspended-chord.info/linux/iobin-linux-x64-deb-current.zip \
-    && unzip iobin-linux-x64-deb-current.zip IoLanguage-2013.11.04-Linux-x64.deb \
-    && dpkg -i IoLanguage-2013.11.04-Linux-x64.deb \
-    && ldconfig \
-    && rm -f iobin-linux-x64-deb-current.zip IoLanguage-2013.11.04-Linux-x64.deb
+COPY --from=builder /usr/local/lib/ /usr/lib/
+COPY --from=builder /usr/local/bin/ /usr/bin/
+COPY --from=builder /opt/.eerie/ /opt/.eerie/
 
-ENV HOME /mal
+ENV HOME=/mal

@@ -23,31 +23,6 @@ module Mal
     }.as(Mal::Func)
   end
 
-  def eval_ast(ast, env)
-    return ast.map { |n| eval(n, env).as(Mal::Type) } if ast.is_a? Array
-
-    val = ast.unwrap
-
-    Mal::Type.new case val
-    when Mal::Symbol
-      if e = env.get(val.str)
-        e
-      else
-        eval_error "'#{val.str}' not found"
-      end
-    when Mal::List
-      val.each_with_object(Mal::List.new) { |n, l| l << eval(n, env) }
-    when Mal::Vector
-      val.each_with_object(Mal::Vector.new) { |n, l| l << eval(n, env) }
-    when Mal::HashMap
-      new_map = Mal::HashMap.new
-      val.each { |k, v| new_map[k] = eval(v, env) }
-      new_map
-    else
-      val
-    end
-  end
-
   def read(str)
     read_str str
   end
@@ -98,86 +73,45 @@ module Mal
     end
   end
 
-  def macro_call?(ast, env)
-    list = ast.unwrap
-    return false unless list.is_a? Mal::List
-    return false if list.empty?
-
-    sym = list.first.unwrap
-    return false unless sym.is_a? Mal::Symbol
-
-    func = env.find(sym.str).try(&.data[sym.str])
-    return false unless func && func.macro?
-
-    true
-  end
-
-  def macroexpand(ast, env)
-    while macro_call?(ast, env)
-      # Already checked in macro_call?
-      list = ast.unwrap.as(Mal::List)
-      func_sym = list[0].unwrap.as(Mal::Symbol)
-      func = env.get(func_sym.str).unwrap
-
-      case func
-      when Mal::Func
-        ast = func.call(list[1..-1])
-      when Mal::Closure
-        ast = func.fn.call(list[1..-1])
-      else
-        eval_error "macro '#{func_sym.str}' must be function: #{ast}"
-      end
-    end
-
-    ast
-  end
-
-  macro invoke_list(l, env)
-    f = eval({{l}}.first, {{env}}).unwrap
-    args = eval_ast({{l}}[1..-1], {{env}}).as(Array)
-
-    case f
-    when Mal::Closure
-      ast = f.ast
-      {{env}} = Mal::Env.new(f.env, f.params, args)
-      next # TCO
-    when Mal::Func
-      return f.call args
-    else
-      eval_error "expected function as the first argument: #{f}"
-    end
-  end
-
   def debug(ast)
     puts print(ast).colorize.red
   end
 
   def eval(ast, env)
-    # 'next' in 'do...end' has a bug in crystal 0.7.1
-    # https://github.com/manastech/crystal/issues/659
-    while true
-      list = ast.unwrap
+   while true
 
-      return eval_ast(ast, env) unless list.is_a? Mal::List
-      return ast if list.empty?
+    puts "EVAL: #{print(ast)}" if env.get("DEBUG-EVAL")
 
-      ast = macroexpand(ast, env)
+    val = ast.unwrap
 
-      list = ast.unwrap
-
-      return eval_ast(ast, env) unless list.is_a? Mal::List
+    case val
+    when Mal::Symbol
+      e = env.get(val.str)
+      eval_error "'#{val.str}' not found" unless e
+      return e
+    when Mal::Vector
+      new_vec = val.each_with_object(Mal::Vector.new) { |n, l| l << eval(n, env) }
+      return Mal::Type.new new_vec
+    when Mal::HashMap
+      new_map = Mal::HashMap.new
+      val.each { |k, v| new_map[k] = eval(v, env) }
+      return Mal::Type.new new_map
+    when Mal::List
+      list = val
       return ast if list.empty?
 
       head = list.first.unwrap
-
-      return invoke_list(list, env) unless head.is_a? Mal::Symbol
-
-      return Mal::Type.new case head.str
+      if head.is_a? Mal::Symbol
+         a0sym = head.str
+      else
+         a0sym = ""
+      end
+      case a0sym
       when "def!"
         eval_error "wrong number of argument for 'def!'" unless list.size == 3
         a1 = list[1].unwrap
         eval_error "1st argument of 'def!' must be symbol: #{a1}" unless a1.is_a? Mal::Symbol
-        env.set(a1.str, eval(list[2], env))
+        return Mal::Type.new env.set(a1.str, eval(list[2], env))
       when "let*"
         eval_error "wrong number of argument for 'def!'" unless list.size == 3
 
@@ -201,7 +135,7 @@ module Mal
           next
         end
 
-        eval_ast(list[1..-2].to_mal, env)
+        list[1..-2].map { |n| eval(n, env) }
         ast = list.last
         next # TCO
       when "if"
@@ -216,11 +150,9 @@ module Mal
         unless params.is_a? Array
           eval_error "'fn*' parameters must be list or vector: #{params}"
         end
-        Mal::Closure.new(list[2], params, env, func_of(env, params, list[2]))
+        return Mal::Type.new Mal::Closure.new(list[2], params, env, func_of(env, params, list[2]))
       when "quote"
-        list[1]
-      when "quasiquoteexpand"
-        quasiquote list[1]
+        return Mal::Type.new list[1]
       when "quasiquote"
         ast = quasiquote list[1]
         next # TCO
@@ -228,9 +160,9 @@ module Mal
         eval_error "wrong number of argument for 'defmacro!'" unless list.size == 3
         a1 = list[1].unwrap
         eval_error "1st argument of 'defmacro!' must be symbol: #{a1}" unless a1.is_a? Mal::Symbol
-        env.set(a1.str, eval(list[2], env).tap { |n| n.is_macro = true })
-      when "macroexpand"
-        macroexpand(list[1], env)
+        mac = eval(list[2], env).dup
+        mac.is_macro = true
+        return Mal::Type.new env.set(a1.str, mac)
       when "try*"
         catch_list = list.size >= 3 ? list[2].unwrap : Mal::Type.new(nil)
         return eval(list[1], env) unless catch_list.is_a? Mal::List
@@ -240,18 +172,42 @@ module Mal
         return eval(list[1], env) unless catch_head.str == "catch*"
 
         begin
-          eval(list[1], env)
+          return eval(list[1], env)
         rescue e : Mal::RuntimeException
           new_env = Mal::Env.new(env, [catch_list[1]], [e.thrown])
-          eval(catch_list[2], new_env)
+          return Mal::Type.new eval(catch_list[2], new_env)
         rescue e
           new_env = Mal::Env.new(env, [catch_list[1]], [Mal::Type.new e.message])
-          eval(catch_list[2], new_env)
+          return Mal::Type.new eval(catch_list[2], new_env)
         end
       else
-        invoke_list(list, env)
+        evaluated_first = eval(list.first, env)
+        f = evaluated_first.unwrap
+        case f
+        when Mal::Closure
+          if evaluated_first.macro?
+            ast = f.fn.call(list[1..-1])
+            next # TCO
+          end
+          args = list[1..-1].map { |n| eval(n, env).as(Mal::Type) }
+          ast = f.ast
+          env = Mal::Env.new(f.env, f.params, args)
+          next # TCO
+        when Mal::Func
+          if evaluated_first.macro?
+            ast = f.call(list[1..-1])
+            next # TCO
+          end
+          args = list[1..-1].map { |n| eval(n, env).as(Mal::Type) }
+          return f.call args
+        else
+          eval_error "expected function as the first argument: #{f}"
+        end
       end
+    else
+      return Mal::Type.new val
     end
+   end
   end
 
   def print(result)

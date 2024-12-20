@@ -1,0 +1,512 @@
+\ProvidesExplPackage {core} {2023/01/01} {0.0.1} {MAL~core~functions}
+\RequirePackage{types}
+\RequirePackage{printer}
+\RequirePackage{reader}
+
+\cs_new:Nn \mal_def_builtin:nN
+  { \prop_put:Nxn \l_mal_repl_env_prop { y \tl_to_str:n { #1 } } { b n #2 } }
+\cs_generate_variant:Nn \mal_def_builtin:nN { nc }
+\cs_new:Nn \mal_def_builtin:nnn
+  {
+    \cs_new:cn { mal_ #2 :n } { #3 }
+    \mal_def_builtin:nc { #1 } { mal_ #2 :n }
+  }
+
+% Integer operations
+
+\cs_new:Nn \mal_int_op:nnN
+  {
+    % \iow_term:n {int_op~left=#1~right=#2~operator=#3}
+    \tl_set:Nx \l_tmpa_tl
+      { i \int_eval:n { \use_none:n #1 #3 \use_none:n #2 } }
+  }
+
+\mal_def_builtin:nnn { + } { add } { \mal_int_op:nnN #1 + }
+\mal_def_builtin:nnn { - } { sub } { \mal_int_op:nnN #1 - }
+\mal_def_builtin:nnn { * } { mul } { \mal_int_op:nnN #1 * }
+\mal_def_builtin:nnn { / } { div } { \mal_int_op:nnN #1 / }
+
+% Integer comparisons
+
+\cs_new:Nn \mal_int_comp:nnNnn
+  {
+    \tl_set:Nx \l_tmpa_tl
+       { \int_compare:oNoTF { \use_none:n #1 } #3 { \use_none:n #2 } #4 #5 }
+  }
+
+\mal_def_builtin:nnn { < } { lt} { \mal_int_comp:nnNnn #1 < { t } { f } }
+\mal_def_builtin:nnn { > } { gt} { \mal_int_comp:nnNnn #1 > { t } { f } }
+\mal_def_builtin:nnn { <= } { le} { \mal_int_comp:nnNnn #1 > { f } { t } }
+\mal_def_builtin:nnn { >= } { ge} { \mal_int_comp:nnNnn #1 < { f } { t } }
+
+% Type tests
+
+\cs_new:Nn \mal_type_p:nN
+  {
+    \tl_set:Nx \l_tmpa_tl { \tl_if_head_eq_charcode:nNTF {#1} #2 { t } { f } }
+  }
+
+\mal_def_builtin:nnn { list? }    { list_p }    { \mal_type_p:nN #1 l }
+\mal_def_builtin:nnn { atom? }    { atom_p }    { \mal_type_p:nN #1 a }
+\mal_def_builtin:nnn { nil? }     { nil_p }     { \mal_type_p:nN #1 n }
+\mal_def_builtin:nnn { true? }    { true_p }    { \mal_type_p:nN #1 t }
+\mal_def_builtin:nnn { false? }   { false_p }   { \mal_type_p:nN #1 f }
+\mal_def_builtin:nnn { symbol? }  { symbol_p }  { \mal_type_p:nN #1 y }
+\mal_def_builtin:nnn { keyword? } { keyword_p } { \mal_type_p:nN #1 k }
+\mal_def_builtin:nnn { vector? }  { vector_p }  { \mal_type_p:nN #1 v }
+\mal_def_builtin:nnn { map? }     { map_p }     { \mal_type_p:nN #1 m }
+\mal_def_builtin:nnn { string? }  { string_p }  { \mal_type_p:nN #1 s }
+\mal_def_builtin:nnn { number? }  { number_p }  { \mal_type_p:nN #1 i }
+\mal_def_builtin:nnn { macro? }   { macro_p }   { \mal_type_p:nN #1 c }
+\mal_def_builtin:nnn { fn? } { fn_p }
+  {
+    \bool_lazy_or:nnTF
+      { \tl_if_head_eq_charcode_p:nN #1 b }
+      { \tl_if_head_eq_charcode_p:nN #1 u }
+      { \tl_set:Nn \l_tmpa_tl { t } }
+      { \tl_set:Nn \l_tmpa_tl { f } }
+  }
+\mal_def_builtin:nnn { sequential? } { sequential_p }
+  {
+    \bool_lazy_or:nnTF
+      { \tl_if_head_eq_charcode_p:nN #1 l }
+      { \tl_if_head_eq_charcode_p:nN #1 v }
+      { \tl_set:Nn \l_tmpa_tl { t } }
+      { \tl_set:Nn \l_tmpa_tl { f } }
+  }
+
+% Other functions, in the order of the process guide.
+
+\mal_def_builtin:nnn { prn } { prn }
+  {
+    \iow_term:x { \mal_printer_tl:nVN {#1} \c_space_tl \c_true_bool }
+    \tl_set:Nn \l_tmpa_tl { n }
+  }
+
+\mal_def_builtin:nnn { list } { list } { \tl_set:Nn \l_tmpa_tl { l n #1 } }
+
+\cs_new:Nn \mal_empty_p_aux:n
+  {
+    \tl_set:Nx \l_tmpa_tl
+      { \tl_if_empty:oTF { \use_none:nn #1 } { t } { f } }
+  }
+\mal_def_builtin:nnn { empty? } { empty_p } { \mal_empty_p_aux:n #1 }
+
+\cs_new:Nn \mal_equal_token_lists:nn
+  {
+    % \iow_term:n {equal_token_lists~#1~#2}
+    \tl_if_empty:nTF {#1}
+      {
+        \tl_if_empty:nTF {#2}
+          { \tl_set:Nn \l_tmpa_tl { t } }
+          { \tl_set:Nn \l_tmpa_tl { f } }
+      }
+      {
+        \tl_if_empty:nTF {#2}
+          { \tl_set:Nn \l_tmpa_tl { f } }
+          {
+            \mal_equal_form:xx { \tl_head:n {#1} } { \tl_head:n {#2} }
+            \tl_if_head_eq_charcode:VNT \l_tmpa_tl t
+              {
+                \mal_equal_token_lists:oo
+                  { \use_none:n #1 }
+                  { \use_none:n #2 }
+              }
+              % nothing to do if already false
+          }
+      }
+  }
+\cs_generate_variant:Nn \mal_equal_token_lists:nn { oo }
+
+\cs_new:Nn \mal_equal_map:nn
+  {
+    \prop_set_eq:Nc \l_tmpa_prop { #1 }
+    \prop_set_eq:Nc \l_tmpb_prop { #2 }
+    \prop_remove:Nn \l_tmpa_prop { __meta__ }
+    \prop_remove:Nn \l_tmpb_prop { __meta__ }
+    \tl_if_eq:xxTF
+      { \prop_count:N \l_tmpa_prop }
+      { \prop_count:N \l_tmpb_prop }
+      {
+        \prop_if_empty:NTF \l_tmpa_prop
+          { \tl_set:Nn \l_tmpa_tl { t } }
+          {
+            \prop_map_inline:Nn \l_tmpa_prop
+              {
+                \prop_get:NnNTF \l_tmpb_prop {##1} \l_tmpb_tl
+                  {
+                    \mal_equal_form:Vn \l_tmpb_tl {##2}
+                    \tl_if_head_eq_charcode:VNT \l_tmpa_tl f
+                      { \prop_map_break: }
+                  }
+                  {
+                    \tl_set:Nn \l_tmpa_tl { f }
+                    \prop_map_break:
+                  }
+              }
+              % Finish with true if not interrupted
+          }
+      }
+      { \tl_set:Nn \l_tmpa_tl { f } }
+  }
+
+\cs_new:Nn \mal_equal_form:nn
+  {
+    % \iow_term:n {equal_form~#1~#2}
+    \bool_lazy_or:nnTF
+      { \tl_if_head_eq_charcode_p:nN {#1} l }
+      { \tl_if_head_eq_charcode_p:nN {#1} v }
+      {
+        \bool_lazy_or:nnTF
+          { \tl_if_head_eq_charcode_p:nN {#2} l }
+          { \tl_if_head_eq_charcode_p:nN {#2} v }
+          { \mal_equal_token_lists:oo { \use_none:nn #1 } { \use_none:nn #2 } }
+          { \tl_set:Nn \l_tmpa_tl { f } }
+      }
+      {
+        % \iow_term:n {not~a~sequence}
+        \tl_if_head_eq_charcode:nNTF {#1} m
+          {
+            \tl_if_head_eq_charcode:nNTF {#2} m
+              { \mal_equal_map:nn { #1 } { #2 } }
+              { \tl_set:Nn \l_tmpa_tl { f } }
+          }
+          {
+            % \iow_term:n {neither~a~sequence~nor~a~map}
+            \str_if_eq:nnTF {#1} {#2}
+              { \tl_set:Nn \l_tmpa_tl { t } }
+              { \tl_set:Nn \l_tmpa_tl { f } }
+          }
+      }
+  }
+\cs_generate_variant:Nn \mal_equal_form:nn { Vn, xx }
+
+\mal_def_builtin:nnn { = } { equal_p } { \mal_equal_form:nn #1 }
+
+\mal_def_builtin:nnn { count } { count }
+  {
+    \tl_if_head_eq_charcode:nNTF #1 n
+      { \tl_set:Nn \l_tmpa_tl { i 0 } }
+      { \tl_set:Nx \l_tmpa_tl { i \int_eval:n { \tl_count:n #1 - 2 } } }
+  }
+
+\mal_def_builtin:nnn { pr-str } { pr_str }
+  {
+    % \iow_term:n {pr_str~#1}
+    \tl_set:Nx \l_tmpa_tl
+      { s \mal_printer_tl:nVN { #1 } \c_space_tl \c_true_bool }
+  }
+
+\mal_def_builtin:nnn { str } { str }
+  { \tl_set:Nx \l_tmpa_tl { s \mal_printer_tl:nnN { #1 } { } \c_false_bool } }
+
+\mal_def_builtin:nnn { println } { println }
+  {
+    \iow_term:x { \mal_printer_tl:nVN {#1} \c_space_tl \c_false_bool }
+    \tl_set:Nn \l_tmpa_tl n
+  }
+
+\cs_new:Nn \mal_read_string_aux:n
+  {
+    \tl_set:No \l_tmpa_str { \use_none:n #1 }
+    \mal_read_str:
+  }
+\mal_def_builtin:nnn { read-string } { read_string }
+  { \mal_read_string_aux:n #1 }
+
+\cs_new:Nn \mal_slurp_aux:n
+  {
+    \tl_set:Nn \l_tmpa_tl { s }
+    \ior_open:Nx \g_tmpa_ior { \use_none:n #1 }
+    \ior_str_map_inline:Nn \g_tmpa_ior
+      {
+        \tl_put_right:Nn \l_tmpa_tl { ##1 }
+        \tl_put_right:NV \l_tmpa_tl \c_new_line_str
+      }
+    \ior_close:N \g_tmpa_ior
+  }
+\mal_def_builtin:nnn { slurp } { slurp } { \mal_slurp_aux:n #1 }
+
+\mal_def_builtin:nnn { atom } { atom }
+  {
+    % \iow_term:n {atom~#1}
+    \int_incr:N \l_mal_object_counter_int
+    \tl_set:Nx \l_tmpa_tl { atom_ \int_use:N \l_mal_object_counter_int }
+    \tl_new:c \l_tmpa_tl
+    \tl_set:cn \l_tmpa_tl #1
+  }
+
+\mal_def_builtin:nnn { deref } { deref } { \tl_set_eq:Nc \l_tmpa_tl #1 }
+
+\cs_new:Nn \mal_reset_aux:Nn
+  {
+    \tl_set:Nn #1 { #2 }
+    \tl_set:Nn \l_tmpa_tl { #2 }
+  }
+\cs_generate_variant:Nn \mal_reset_aux:Nn { cn }
+\mal_def_builtin:nnn { reset! } { reset } { \mal_reset_aux:cn #1 }
+
+\mal_def_builtin:nnn { swap! } { swap }
+  {
+    % \iow_term:n {swap~#1}
+    \mal_fn_apply:xx { \tl_item:nn { #1 }{ 2 } }
+      { { \exp_not:v { \tl_head:n { #1 } } } \exp_not:o { \use_none:nn #1 } }
+    \tl_if_head_eq_charcode:VNF \l_tmpa_tl e
+      { \tl_set_eq:cN { \tl_head:n { #1 } } \l_tmpa_tl }
+  }
+
+\cs_new:Nn \mal_cons_aux:nn
+  {
+    % \iow_term:n {cons~#1~#2}
+    \tl_set:No \l_tmpa_tl { \use_none:nn #2 }
+    \tl_put_left:Nn \l_tmpa_tl { l n {#1} }
+  }
+\mal_def_builtin:nnn { cons } { cons } { \mal_cons_aux:nn #1 }
+
+\cs_new:Nn \mal_concat_fn:n { \use_none:nn #1 }
+\mal_def_builtin:nnn { concat } { concat }
+  { \tl_set:Nx \l_tmpa_tl { l n \tl_map_function:nN {#1} \mal_concat_fn:n } }
+
+\cs_new:Nn \mal_vec_aux:n
+  {
+    % \iow_term:n {vec~#1}
+    \tl_set:No \l_tmpa_tl { \use_none:nn #1 }
+    \tl_put_left:Nn \l_tmpa_tl { v n }
+  }
+\mal_def_builtin:nnn { vec } { vec } { \mal_vec_aux:n #1 }
+
+\cs_new:Nn \mal_nth_aux:nn
+  {
+    % \iow_term:n {nth~#1~#2}
+    \int_set:Nn \l_tmpa_int { 3 + \use_none:n #2 }
+    \tl_set:Nx \l_tmpa_tl { \tl_item:nV {#1} \l_tmpa_int }
+    \tl_if_empty:VT \l_tmpa_tl
+      { \tl_set:Nx \l_tmpa_tl { e s \tl_to_str:n {nth:~index~out~of~range} } }
+  }
+\mal_def_builtin:nnn { nth } { nth } { \mal_nth_aux:nn #1 }
+
+\mal_def_builtin:nnn { first } { first }
+  {
+    % \iow_term:n {first~#1}
+    \tl_set:Nx \l_tmpa_tl { \tl_item:nn #1 {3} }
+    \tl_if_empty:NT \l_tmpa_tl
+      { \tl_set:Nn \l_tmpa_tl {n} }
+  }
+
+% This returns () for nil (unlike \use_none:nnn).
+\mal_def_builtin:nnn { rest } { rest }
+  { \tl_set:Nx \l_tmpa_tl { l n \tl_range:nnn #1 4 {-1} } }
+
+\mal_def_builtin:nnn { throw } { throw }
+  {
+    % \iow_term:n {throw~#1}
+    \tl_set:Nn \l_tmpa_tl #1
+    \tl_put_left:Nn \l_tmpa_tl {e}
+  }
+
+\mal_def_builtin:nnn { apply } { apply }
+  {
+    % \iow_term:n {apply~#1}
+    \tl_set:Nx \l_tmpb_tl { \tl_item:nn { #1 } { -1 } } % mal sequence
+    \mal_fn_apply:xx
+      { \tl_head:n { #1 } }
+      {
+        \tl_range:nnn { #1 } { 2 } { -2 }
+        \tl_range:Vnn \l_tmpb_tl { 3 } { -1 } % the same as a tl
+      }
+  }
+
+\cs_new:Nn \mal_map_rec:nnn
+  {
+    % \iow_term:n {map~acc=#1~forms=#2~func=#3}
+    \tl_if_empty:nTF {#2}
+      { \tl_set:Nn \l_tmpa_tl {#1} }
+      {
+        \mal_fn_apply:nx { #3 } { { \tl_head:n {#2} } }
+        \tl_if_head_eq_charcode:VNF \l_tmpa_tl e
+          {
+            \mal_map_rec:xon
+                { \exp_not:n {#1} { \exp_not:V \l_tmpa_tl } }
+                { \use_none:n #2 }
+                { #3 }
+          }
+      }
+  }
+\cs_generate_variant:Nn \mal_map_rec:nnn { non, xon }
+\cs_new:Nn \mal_map_aux:nn
+  { \mal_map_rec:non { l n } { \use_none:nn #2 } { #1 } }
+\mal_def_builtin:nnn { map } { map } { \mal_map_aux:nn #1 }
+
+\cs_new:Nn \mal_symbol_aux:n { \tl_set:Nx \l_tmpa_tl { y \use_none:n #1 } }
+\mal_def_builtin:nnn { symbol } { symbol } { \mal_symbol_aux:n #1 }
+
+\cs_new:Nn \mal_keyword_aux:n { \tl_set:Nx \l_tmpa_tl { k \use_none:n #1 } }
+\mal_def_builtin:nnn { keyword } { keyword } { \mal_keyword_aux:n #1 }
+
+\mal_def_builtin:nnn { vector } { vector } { \tl_set:Nn \l_tmpa_tl { v n #1 } }
+
+\mal_def_builtin:nN { hash-map } \mal_hash_map:n
+
+\mal_def_builtin:nnn { assoc } { assoc }
+  {
+    % \iow_term:n {assoc~#1}
+    \mal_map_new:
+    \prop_set_eq:cc \l_tmpa_tl { \tl_head:n { #1 } }
+    \mal_assoc_internal:o { \use_none:n #1 }
+  }
+
+\mal_def_builtin:nnn { dissoc } { dissoc }
+  {
+    % \iow_term:n {dissoc~prop=#1~keys=#2}
+    \mal_map_new:
+    \prop_set_eq:cc \l_tmpa_tl { \tl_head:n { #1 } }
+    \tl_map_inline:on { \use_none:n #1 } { \prop_remove:cn \l_tmpa_tl { ##1 } }
+  }
+
+\cs_new:Nn \mal_get_aux:nn
+  {
+    % \iow_term:n {get~#1~#2}
+    \tl_if_head_eq_charcode:nNTF { #1 } n
+      { \tl_set:Nn \l_tmpa_tl { n } }
+      {
+        \prop_get:cnNF { #1 } { #2 } \l_tmpa_tl
+          { \tl_set:Nn \l_tmpa_tl { n } }
+      }
+  }
+\mal_def_builtin:nnn { get } { get } { \mal_get_aux:nn #1 }
+
+\mal_def_builtin:nnn { contains? } { contains }
+  {
+    % \iow_term:n {contains?~#1~#2}
+    \prop_if_in:cnTF #1
+      { \tl_set:Nn \l_tmpa_tl { t } }
+      { \tl_set:Nn \l_tmpa_tl { f } }
+  }
+
+\cs_new:Nn \mal_keys_fn:nn
+  { \str_if_eq:nnF { #1 } { __meta__ } { \exp_not:n { { #1 } } } }
+\mal_def_builtin:nnn { keys } { keys }
+  { \tl_set:Nx \l_tmpa_tl { l n \prop_map_function:cN #1 \mal_keys_fn:nn } }
+
+\cs_new:Nn \mal_vals_fn:nn
+  { \str_if_eq:nnF { #1 } { __meta__ } { \exp_not:n { { #2 } } } }
+\mal_def_builtin:nnn { vals } { vals }
+  { \tl_set:Nx \l_tmpa_tl { l n \prop_map_function:cN #1 \mal_vals_fn:nn } }
+
+\mal_def_builtin:nnn { readline } { readline }
+  {
+    % \iow_term:n {readline:~|#1|}
+    \tl_set:Nx \l_tmpa_tl { \tl_head:n {#1} }
+    \str_set:Nx \l_tmpa_str { \str_tail:V \l_tmpa_tl }
+    \iow_term:V \l_tmpa_str
+    \ior_str_get_term:nN {} \l_tmpa_str
+    \tl_set:Nx \l_tmpa_tl { s \l_tmpa_str }
+  }
+
+% Seconds since the UNIX epoch * on first call to time-ms *.
+\int_gzero_new:N \g_mal_first_epoch_int
+
+\mal_def_builtin:nnn { time-ms } { time_ms }
+  {
+    % Seconds are not accurate enough for MAL tests, so use %s%N.
+    % The raw nanosecond count overflows LaTeX integers.
+    % Even the millisecond count since 2024 overflows.
+    \iow_term:n {MAL_LATEX3_STRIP_ON}
+    \sys_get_shell:xnN { date ~ + \c_percent_str s \c_percent_str N} {}
+      \l_tmpa_str
+    \iow_term:n {MAL_LATEX3_STRIP_OFF}
+    % Extract the digits representing seconds.
+    \int_set:Nx \l_tmpa_int { \tl_range:Vnn \l_tmpa_str 1 { -10 } }
+    % If this is the first time this function is called,
+    \int_if_zero:VTF \g_mal_first_epoch_int {
+      % then store the seconds since the epoch for later use
+      \int_gset_eq:NN \g_mal_first_epoch_int \l_tmpa_int
+      % and return 0 seconds
+      \int_zero:N \l_tmpa_int
+    } {
+      % else return the duration in seconds since first call
+      \int_set:Nn \l_tmpa_int { \l_tmpa_int - \g_mal_first_epoch_int }
+    }
+    % ... in both cases, append the three digits for millisecond.
+    \tl_set:Nx \l_tmpa_tl { i \int_to_arabic:V \l_tmpa_int
+      \tl_range:Vnn \l_tmpa_str { -9 } { -7 } }
+  }
+
+\mal_def_builtin:nnn { meta } { meta }
+  {
+    % \iow_term:n {meta~#1}
+    \tl_if_head_eq_charcode:nNTF #1 m
+      {
+        \prop_get:cnNF #1 { __meta__ } \l_tmpa_tl
+          { \tl_set:Nx \l_tmpa_tl { n } }
+      }
+      { \tl_set:Nx \l_tmpa_tl { \tl_item:nn #1 { 2 } } }
+  }
+
+\cs_new:Nn \mal_with_meta_aux:nn
+  {
+    % \iow_term:n {with-meta~#1~#2}
+    \tl_if_head_eq_charcode:nNTF { #1 } m
+      {
+        \mal_map_new:
+        \prop_set_eq:cc \l_tmpa_tl { #1 }
+        \prop_put:cnn \l_tmpa_tl { __meta__ } { #2 }
+      }
+      {
+        \tl_set:Nx \l_tmpa_tl
+          {
+            \tl_head:n { #1 }
+            \exp_not:n { { #2 } }
+            \exp_not:o { \use_none:nn #1 }
+          }
+      }
+  }
+\mal_def_builtin:nnn { with-meta } { with_meta } { \mal_with_meta_aux:nn #1 }
+
+\cs_new:Nn \mal_seq_fn:N { { s #1 } }
+\cs_new:Nn \mal_seq_aux:n
+  {
+    % \iow_term:n {seq:~#1}
+    \exp_args:Nx \token_case_charcode:Nn { \tl_head:n {#1} }
+      {
+        n
+        { \tl_clear:N \l_tmpa_tl }
+        l
+        { \tl_set:No \l_tmpa_tl { \use_none:nn #1 } }
+        v
+        { \tl_set:No \l_tmpa_tl { \use_none:nn #1 } }
+        s
+        {
+          \tl_set:Nx \l_tmpa_tl
+            { \str_map_function:oN { \use_none:n #1 } \mal_seq_fn:N }
+        }
+      }
+    \tl_if_empty:NTF \l_tmpa_tl
+      { \tl_set:Nn \l_tmpa_tl n }
+      { \tl_put_left:Nn \l_tmpa_tl { l n } }
+  }
+\mal_def_builtin:nnn { seq } { seq } { \mal_seq_aux:n #1 }
+
+\mal_def_builtin:nnn { conj } { conj }
+  {
+    % \iow_term:n {conj~#1}
+    \tl_set:Nx \l_tmpa_tl { \tl_head:n {#1} }
+    \tl_set:Nx \l_tmpb_tl { \tl_tail:n {#1} }
+    \tl_if_head_eq_charcode:VNTF \l_tmpa_tl v
+      {
+        \tl_set:Nx \l_tmpa_tl
+          {
+            v n
+            \tl_range:Vnn \l_tmpa_tl 3 {-1}
+            \exp_not:V \l_tmpb_tl
+          }
+      }
+      {
+        \tl_set:Nx \l_tmpa_tl
+          {
+            l n
+            \tl_reverse:V \l_tmpb_tl
+            \tl_range:Vnn \l_tmpa_tl 3 {-1}
+          }
+      }
+  }

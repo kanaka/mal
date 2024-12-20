@@ -46,54 +46,37 @@ quasiquote <- function(ast) {
     }
 }
 
-is_macro_call <- function(ast, env) {
-    if(.list_q(ast) &&
-      .symbol_q(ast[[1]]) &&
-      (!.nil_q(Env.find(env, ast[[1]])))) {
-        exp <- Env.get(env, ast[[1]])
-        return(.malfunc_q(exp) && exp$ismacro)
-    }
-    FALSE
-}
+EVAL <- function(ast, env) {
 
-macroexpand <- function(ast, env) {
-    while(is_macro_call(ast, env)) {
-        mac <- Env.get(env, ast[[1]])
-        ast <- fapply(mac, slice(ast, 2))
-    }
-    ast
-}
+    repeat {
 
-eval_ast <- function(ast, env) {
+    dbgevalenv <- Env.find(env, "DEBUG-EVAL")
+    if (!.nil_q(dbgevalenv)) {
+        dbgeval <- Env.get(dbgevalenv, "DEBUG-EVAL")
+        if (!.nil_q(dbgeval) && !identical(dbgeval, FALSE))
+            cat("EVAL: ", .pr_str(ast,TRUE), "\n", sep="")
+    }
+
     if (.symbol_q(ast)) {
-        Env.get(env, ast)
+        return(Env.get(env, ast))
     } else if (.list_q(ast)) {
-        new.listl(lapply(ast, function(a) EVAL(a, env)))
+        # exit this switch
     } else if (.vector_q(ast)) {
-        new.vectorl(lapply(ast, function(a) EVAL(a, env)))
+        return(new.vectorl(lapply(ast, function(a) EVAL(a, env))))
     } else if (.hash_map_q(ast)) {
         lst <- list()
         for(k in ls(ast)) {
             lst[[length(lst)+1]] = k
             lst[[length(lst)+1]] = EVAL(ast[[k]], env)
         }
-        new.hash_mapl(lst)
+        return(new.hash_mapl(lst))
     } else {
-        ast
+        return(ast)
     }
-}
 
-EVAL <- function(ast, env) {
-    repeat {
-
-    #cat("EVAL: ", .pr_str(ast,TRUE), "\n", sep="")
-    if (!.list_q(ast)) { return(eval_ast(ast, env)) }
     if (length(ast) == 0) { return(ast) }
 
     # apply list
-    ast <- macroexpand(ast, env)
-    if (!.list_q(ast)) return(eval_ast(ast, env))
-
     switch(paste("l",length(ast),sep=""),
            l0={ return(ast) },
            l1={ a0 <- ast[[1]]; a1 <- NULL;     a2 <- NULL },
@@ -113,18 +96,16 @@ EVAL <- function(ast, env) {
         env <- let_env
     } else if (a0sym == "quote") {
         return(a1)
-    } else if (a0sym == "quasiquoteexpand") {
-        return(quasiquote(a1))
     } else if (a0sym == "quasiquote") {
         ast <- quasiquote(a1)
     } else if (a0sym == "defmacro!") {
         func <- EVAL(a2, env)
         func$ismacro = TRUE
         return(Env.set(env, a1, func))
-    } else if (a0sym == "macroexpand") {
-        return(macroexpand(a1, env))
     } else if (a0sym == "do") {
-        eval_ast(slice(ast,2,length(ast)-1), env)
+        if (2 < length(ast))
+            for(i in seq(2, length(ast) - 1))
+                EVAL(ast[[i]], env)
         ast <- ast[[length(ast)]]
     } else if (a0sym == "if") {
         cond <- EVAL(a1, env)
@@ -137,13 +118,17 @@ EVAL <- function(ast, env) {
     } else if (a0sym == "fn*") {
         return(malfunc(EVAL, a2, env, a1))
     } else {
-        el <- eval_ast(ast, env)
-        f <- el[[1]]
+        f <- EVAL(a0, env)
+        if (.macro_q(f)) {
+            ast <- fapply(f, slice(ast, 2))
+            next
+        }
+        args <- new.listl(lapply(slice(ast, 2), function(a) EVAL(a, env)))
         if (class(f) == "MalFunc") {
             ast <- f$ast
-            env <- f$gen_env(slice(el,2))
+            env <- f$gen_env(args)
         } else {
-            return(do.call(f,slice(el,2)))
+            return(do.call(f, args))
         }
     }
 

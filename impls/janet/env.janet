@@ -34,17 +34,8 @@
   (put-in env [:data sym]
               value))
 
-(defn env-find
-  [env sym]
-  (if (get-in env [:data sym])
-    env
-    (when-let [outer (get env :outer)]
-      (env-find outer sym))))
-
 (defn env-get
   [env sym]
-  (if-let [goal-env (env-find env sym)]
-    (get-in goal-env [:data sym])
-    (u/throw*
-      (t/make-string
-        (string "'" (t/get-value sym) "'" " not found" )))))
+  (or (get-in env [:data sym])
+      (if-let [outer (get env :outer)]
+        (env-get outer sym))))

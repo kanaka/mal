@@ -3,14 +3,13 @@ STEPS = step0_repl step1_read_print step2_eval step3_env step4_if_fn_do step5_tc
 
 all: $(STEPS)
 
-dist: mal
+zig_opts += --release=safe
+zig_opts += -Doptimize=Debug
+$(STEPS):
+	zig build $(zig_opts) -Dname=$@ -Droot_source_file=$@.zig
 
-
-%: %.zig
-	zig build -Drelease-fast=true
-	ln -sf zig-cache/bin/$* .
-
-.PHONY: clean
+.PHONY: all $(STEPS) clean
 
 clean:
-	rm -f $(STEPS)
+	rm -fr .zig-cache/ zig-out/
+	rm -f *~

@@ -1,4 +1,3 @@
-with Ada.Environment_Variables;
 with Ada.Text_IO.Unbounded_IO;
 
 with Core;
@@ -15,7 +14,7 @@ with Types.Strings;
 
 procedure Step4_If_Fn_Do is
 
-   Dbgeval : constant Boolean := Ada.Environment_Variables.Exists ("dbgeval");
+   Dbgeval : constant Types.String_Ptr := Types.Strings.Alloc ("DEBUG-EVAL");
 
    use type Types.T;
    use all type Types.Kind_Type;
@@ -47,8 +46,7 @@ procedure Step4_If_Fn_Do is
    is
       First          : Types.T;
    begin
-      if Dbgeval then
-         Ada.Text_IO.New_Line;
+      if Types.To_Boolean (Env.all.Get_Or_Nil (Dbgeval)) then
          Ada.Text_IO.Put ("EVAL: ");
          Print (Ast);
          Envs.Dump_Stack (Env.all);
@@ -81,17 +79,13 @@ procedure Step4_If_Fn_Do is
          if First.Str.all = "if" then
             Err.Check (Ast.Sequence.all.Length in 3 .. 4,
                        "expected 2 or 3 parameters");
-            declare
-               Tst : constant Types.T := Eval (Ast.Sequence.all.Data (2), Env);
-            begin
-               if Tst /= Types.Nil and Tst /= (Kind_Boolean, False) then
-                  return Eval (Ast.Sequence.all.Data (3), Env);
-               elsif Ast.Sequence.all.Length = 3 then
-                  return Types.Nil;
-               else
-                  return Eval (Ast.Sequence.all.Data (4), Env);
-               end if;
-            end;
+            if Types.To_Boolean (Eval (Ast.Sequence.all.Data (2), Env)) then
+               return Eval (Ast.Sequence.all.Data (3), Env);
+            elsif Ast.Sequence.all.Length = 3 then
+               return Types.Nil;
+            else
+               return Eval (Ast.Sequence.all.Data (4), Env);
+            end if;
          elsif First.Str.all = "let*" then
             Err.Check (Ast.Sequence.all.Length = 3
                and then Ast.Sequence.all.Data (2).Kind in Types.Kind_Sequence,
@@ -251,6 +245,7 @@ begin
       --  Collect garbage.
       Err.Data := Types.Nil;
       Repl.all.Keep;
+      Dbgeval.Keep;
       Garbage_Collected.Clean;
    end loop;
    Ada.Text_IO.New_Line;

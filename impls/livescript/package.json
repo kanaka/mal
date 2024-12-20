@@ -1,18 +1,7 @@
 {
-  "name": "livescript",
+  "name": "make-a-lisp",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
   "dependencies": {
-    "ffi-napi": "2.4.x",
-    "prelude-ls": "^1.1.2"
-  },
-  "devDependencies": {
-    "livescript": "^1.6.0"
-  },
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "author": "",
-  "license": "ISC"
+    "koffi": "^2.9.0"
+  }
 }

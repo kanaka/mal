@@ -132,7 +132,7 @@ MalVal *read_list(Reader *reader, MalType type, char start, char end) {
     MalVal *ast, *form;
     char *token = reader_next(reader);
     //g_print("read_list start token: %s\n", token);
-    if (token[0] != start) { abort("expected '(' or '['"); }
+    if (token[0] != start) { abort("expected '(', '[', or '{'"); }
 
     ast = malval_new_list(type, g_array_new(TRUE, TRUE, sizeof(MalVal*)));
 
@@ -148,7 +148,7 @@ MalVal *read_list(Reader *reader, MalType type, char start, char end) {
         }
         g_array_append_val(ast->val.array, form);
     }
-    if (!token) { abort("expected ')' or ']', got EOF"); }
+    if (!token) { abort("expected ')', ']', or '}', got EOF"); }
     reader_next(reader);
     //g_print("read_list end token: %s\n", token);
     return ast;
@@ -156,6 +156,7 @@ MalVal *read_list(Reader *reader, MalType type, char start, char end) {
 
 MalVal *read_hash_map(Reader *reader) {
     MalVal *lst = read_list(reader, MAL_LIST, '{', '}');
+    if (!lst) { return NULL; }
     MalVal *hm = _hash_map(lst);
     malval_free(lst);
     return hm;

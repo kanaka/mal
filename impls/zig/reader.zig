@@ -1,23 +1,23 @@
 const fmt = @import("std").fmt;
-const warn = @import("std").debug.warn;
 
-pub const pcre = @cImport({
+const pcre = @cImport({
     @cInclude("pcre.h");
 });
 
 const MalType = @import("types.zig").MalType;
-const MalData = @import("types.zig").MalData;
-const MalTypeValue = @import("types.zig").MalTypeValue;
 const MalError = @import("error.zig").MalError;
 const MalLinkedList = @import("linked_list.zig").MalLinkedList;
-const printer = @import("printer.zig");
 
 const Allocator = @import("std").heap.c_allocator;
-const string_eql = @import("utils.zig").string_eql;
+const string_eql = @import("std").hash_map.eqlString;
 const linked_list = @import("linked_list.zig");
+const assert = @import("std").debug.assert;
+const throw = @import("error.zig").throw;
+const MalHashMap = @import("hmap.zig").MalHashMap;
+const map_insert_incref_key = @import("hmap.zig").map_insert_incref_key;
 
 const match: [*]const u8 =
-    c\\[\s,]*(~@|[\[\]{}()'`~^@]|"(?:\\.|[^\\"])*"?|;.*|[^\s\[\]{}('"`,;)]*)
+    \\[\s,]*(~@|[\[\]{}()'`~^@]|"(?:\\.|[^\\"])*"?|;.*|[^\s\[\]{}('"`,;)]*)
 ;
 var error_msg: [*c]const u8 = undefined;
 var erroroffset: c_int = 0;
@@ -36,13 +36,11 @@ const Reader = struct {
         };
     }
 
-    pub fn next(self: *Reader) []const u8 {
-        const this_token = self.peek();
+    pub fn next(self: *Reader) void {
         self.position += 1;
-        return this_token;
     }
 
-    pub fn peek(self: *Reader) []const u8 {
+    pub fn peek(self: *Reader) ?[]const u8 {
         while(!self.eol()) {
             const start = self.tokens[2*self.position];
             const end = self.tokens[2*self.position+1];
@@ -52,7 +50,7 @@ const Reader = struct {
             }
             return self.string[start..end];
         }
-        return "";
+        return null;
     }
 
     pub fn eol(self: *Reader) bool {
@@ -75,14 +73,9 @@ const alias_pairs = [_] AliasPair {
     AliasPair {.name="^", .value="with-meta", .count=2},
 };
 
-pub fn read_form(reader: *Reader) MalError!?*MalType {
-    if(reader.eol()) {
-        return null;
-    }
-    const token = reader.peek();
-    if(token.len == 0) {
-        return MalType.new_nil(Allocator);
-    }
+pub fn read_form(reader: *Reader) MalError!*MalType {
+    const token = reader.peek() orelse return MalError.ArgError;
+    reader.next();
     if(token[0] == '(') {
         return try read_list(reader);
     }
@@ -90,109 +83,92 @@ pub fn read_form(reader: *Reader) MalError!?*MalType {
         return try read_vector(reader);
     }
     else if(token[0] == ':') {
-        const keyword = reader.next();
-        return MalType.new_keyword(Allocator, keyword[1..keyword.len]);
+        return MalType.new_keyword(token[1..], true);
     }
     else if(token[0] == '{') {
         return try read_hashmap(reader);
     }
-
     for(alias_pairs) |pair| {
         const name = pair.name;
         const value = pair.value;
         const count = pair.count;
-        if(!string_eql(token, name)) {
-            continue;
+        if(string_eql(token, name)) {
+            assert (count == 1 or count == 2);
+            const result = try MalType.new_list();
+            errdefer result.decref();
+            const first = try MalType.new_symbol(value, true);
+            try result.List.data.append(Allocator, first);
+            for(0..count) |_| {
+                const second = try read_form(reader);
+                errdefer second.decref();
+                try result.List.data.insert(Allocator, 1, second);
+            }
+            return result;
         }
-        var new_ll = MalLinkedList.init(Allocator);
-        const new_generic = try MalType.new_generic(Allocator, value);
-        const tmp = reader.next();
-        var num_read: u8 = 0;
-        while(num_read < count) {
-            const next_read = (try read_form(reader)) orelse return MalError.ArgError;
-            try linked_list.prepend_mal(Allocator, &new_ll, next_read);
-            num_read += 1;
-        }
-        try linked_list.prepend_mal(Allocator, &new_ll, new_generic);
-        const new_list = try MalType.new_nil(Allocator);
-        new_list.data = MalData {.List = new_ll};
-        return new_list;
     }
-
-    return try read_atom(reader);
+    if(token_is_int(token)) {
+        const value = try fmt.parseInt(i32, token, 10);
+        return try MalType.new_int(value);
+    }
+    else if(string_eql(token, "nil")) {
+        return &MalType.NIL;
+    }
+    else if(string_eql(token, "true")) {
+        return &MalType.TRUE;
+    }
+    else if(string_eql(token, "false")) {
+        return &MalType.FALSE;
+    }
+    else if(token[0] == '"') {
+        return try read_atom_string(token);
+    }
+    else {
+        return try MalType.new_symbol(token, true);
+    }
 }
 
-pub fn read_list(reader: *Reader) MalError!*MalType {
-    const first_token = reader.next();
-    var new_ll = MalLinkedList.init(Allocator);
-    const mal_list: *MalType = try MalType.new_nil(Allocator);
-    
-    while(!reader.eol()) {
-        var next_token = reader.peek();
-
-        if(next_token.len == 0) {
-            return MalError.ReaderUnmatchedParen;
-        }
-        if(next_token[0] == ')') {
-            const right_paren = reader.next();
-            mal_list.data = MalData{.List = new_ll};
-            return mal_list;
-        }
-        const mal = (try read_form(reader)) orelse return MalError.ArgError;
-        try linked_list.append_mal(Allocator, &new_ll, mal);
+fn read_list(reader: *Reader) !*MalType {
+    const result = try MalType.new_list();
+    errdefer result.decref();
+    while(try read_list_element(reader, ')', "unbalanced '('")) |mal| {
+        try result.List.data.append(Allocator, mal);
     }
-    return MalError.ReaderUnmatchedParen;
+    return result;
 }
 
-pub fn read_vector(reader: *Reader) MalError!*MalType {
-    const first_token = reader.next();
-    var new_ll = MalLinkedList.init(Allocator);
-    const mal_list: *MalType = try MalType.new_nil(Allocator);
-    
-    while(!reader.eol()) {
-        var next_token = reader.peek();
-
-        if(next_token.len == 0) {
-            return MalError.ReaderUnmatchedParen;
-        }
-        if(next_token[0] == ']') {
-            const right_paren = reader.next();
-            mal_list.data = MalData{.Vector = new_ll};
-            return mal_list;
-        }
-        const mal = (try read_form(reader)) orelse return MalError.ArgError;
-        try linked_list.append_mal(Allocator, &new_ll, mal);
+fn read_vector(reader: *Reader) !*MalType {
+    const result = try MalType.new_vector();
+    errdefer result.decref();
+    while(try read_list_element(reader, ']', "unbalanced '['")) |mal| {
+        try result.Vector.data.append(Allocator, mal);
     }
-    return MalError.ReaderUnmatchedParen;
+    return result;
 }
 
-
-pub fn read_hashmap(reader: *Reader) MalError!*MalType {
-    const first_token = reader.next();
-    const new_hashmap = try MalType.new_hashmap(Allocator);
-    while(!reader.eol()) {
-        var next_token = reader.peek();
-
-        if(next_token.len == 0) {
-            return MalError.ReaderUnmatchedParen;
-        }
-        if(next_token[0] == '}') {
-            const right_paren = reader.next();
-            return new_hashmap;
-        }
-        const mal = (try read_form(reader)) orelse return MalError.ArgError;
-        const key = switch(mal.data) {
-            .String => |s| s,
-            .Keyword => |kwd| kwd,
-            else => return MalError.TypeError,
-        };
-        if(next_token.len == 0 or next_token[0] == '}') {
-            return MalError.ReaderBadHashmap;
-        }
-        const val = (try read_form(reader)) orelse return MalError.ArgError;
-        try new_hashmap.hashmap_insert(key, val);
+fn read_hashmap(reader: *Reader) !*MalType {
+    const result = try MalType.new_hashmap();
+    errdefer result.decref();
+    while(try read_list_element(reader, '}', "unbalanced '{'")) |key| {
+        const value = try read_form(reader);
+        errdefer value.decref();
+        try map_insert_incref_key(&result.HashMap.data, key, value);
+        key.decref();
     }
-    return MalError.ReaderUnmatchedParen;
+    return result;
+}
+
+fn read_list_element(reader: *Reader,
+                     comptime closer: u8,
+                     comptime unbalanced: []const u8,
+                    ) !?*MalType {
+    if(reader.peek()) |next_token| {
+        if(next_token[0] == closer) {
+            reader.next();
+            return null;
+        }
+        return try read_form(reader);
+    }
+    return throw(try MalType.new_string(unbalanced, true));
 }
 
 fn char_is_int(c: u8) bool {
@@ -207,56 +183,14 @@ fn token_is_int(token: []const u8) bool {
     return false;
 }
 
-pub fn read_atom(reader: *Reader) MalError!*MalType {
-    const token = reader.next();
-    
-    if(token_is_int(token)) {
-        var mal_atom = try MalType.new_nil(Allocator);
-        try read_atom_int(mal_atom, token);
-        return mal_atom;
-    }
-    else if(string_eql(token, "nil")) {
-        return MalType.new_nil(Allocator);
-    }
-    else if(string_eql(token, "true")) {
-        return MalType.new_bool(Allocator, true);
-    }
-    else if(string_eql(token, "false")) {
-        return MalType.new_bool(Allocator, false);
-    }
-    else if(token[0] == '"') {
-        var mal_atom = try MalType.new_nil(Allocator);
-        try read_atom_string(mal_atom, token);
-        return mal_atom;
-    }
-    else {
-        var mal_atom = try MalType.new_generic(Allocator, token);
-        return mal_atom;
-    }
-}
-
-fn read_atom_int(mal_atom: *MalType, token: []const u8) MalError!void {
-    // TODO: extract int type from union
-    mal_atom.data = MalData {.Int = fmt.parseInt(i32, token, 10)
-                                 catch |err| return MalError.SystemError };
-}
-
-fn read_atom_string(mal_atom: *MalType, token: []const u8) MalError!void {
+fn read_atom_string(token: []const u8) MalError!*MalType {
     const n = token.len;
     if(token[0] != '"' or token[n-1] != '"' or n <= 1) {
-        return MalError.ReaderUnmatchedString;
+        return throw(try MalType.new_string("unbalanced '\"'", true));
     }
 
-    if(n <= 2) {
-        // We get here when the token is an empty string.
-        // We encode this as MalTypeValue.String, with null .string_value
-        var string = Allocator.alloc(u8, 0) catch return MalError.SystemError;
-        mal_atom.data = MalData {.String = string};
-        return;
-    }
-    
-    var tmp_buffer = Allocator.alloc(u8, n-2) catch return MalError.SystemError;
-    defer Allocator.free(tmp_buffer);
+    var tmp_buffer = try Allocator.alloc(u8, n-2);
+    errdefer Allocator.free(tmp_buffer);
     var i: usize = 1;
     var j: usize = 0;
     const escape_char: u8 = '\\'; //TODO: remove this comment required by bad emacs config '
@@ -268,7 +202,7 @@ fn read_atom_string(mal_atom: *MalType, token: []const u8) MalError!void {
         }
         else {
             if(i==n-2) {
-                return MalError.ReaderUnmatchedString;
+                return throw(try MalType.new_string("unbalanced '\"'", true));
             }
             if(token[i+1] == 'n') {
                 tmp_buffer[j] = '\n';
@@ -280,14 +214,7 @@ fn read_atom_string(mal_atom: *MalType, token: []const u8) MalError!void {
         }
     }
 
-    var string = Allocator.alloc(u8, j) catch return MalError.SystemError;
-    i = 0;
-    while(i < j) {
-        string[i] = tmp_buffer[i];
-        i += 1;
-    }
-
-    mal_atom.data = MalData {.String = string};
+    return try MalType.new_string(tmp_buffer[0..j], false);
 }
 
 pub fn read_str(string: [] const u8) MalError!Reader {
@@ -299,14 +226,12 @@ pub fn read_str(string: [] const u8) MalError!Reader {
 }
 
 // Allocates an array of matches.  Caller is becomes owner of memory.
-pub fn tokenize(regex: ?*pcre.pcre, string: [] const u8) MalError![] usize {
+fn tokenize(regex: ?*pcre.pcre, string: [] const u8) MalError![] usize {
     // TODO: pass in allocator
     const buffer_size: usize = 3 * string.len + 10;
-    var indices: [] c_int = Allocator.alloc(c_int, buffer_size)
-        catch return MalError.SystemError;
+    var indices: [] c_int = try Allocator.alloc(c_int, buffer_size);
     defer Allocator.free(indices);
-    var match_buffer: [] usize = Allocator.alloc(usize, buffer_size)
-        catch return MalError.SystemError;
+    var match_buffer: [] usize = try Allocator.alloc(usize, buffer_size);
     defer Allocator.free(match_buffer);
     var current_match: usize = 0;
     var start_pos: c_int = 0;
@@ -314,27 +239,24 @@ pub fn tokenize(regex: ?*pcre.pcre, string: [] const u8) MalError![] usize {
     var rc: c_int = 0;
     var start_match: usize = 0;
     var end_match: usize = 0;
-    const subject_size: c_int = @intCast(c_int, string.len);
+    const subject_size: c_int = @intCast(string.len);
 
     while(start_pos < subject_size) {
         rc = pcre.pcre_exec(regex, 0, &string[0], subject_size, start_pos, 0,
-                            &indices[0], @intCast(c_int,buffer_size));
+                            &indices[0], @intCast(buffer_size));
         if(rc <= 0)
             break;
         start_pos = indices[1];
-        start_match = @intCast(usize, indices[2]);
-        end_match = @intCast(usize, indices[3]);
+        start_match = @intCast(indices[2]);
+        end_match = @intCast(indices[3]);
         match_buffer[current_match] = start_match;
         match_buffer[current_match+1] = end_match;
         current_match += 2;
     }
 
-    var matches: [] usize = Allocator.alloc(usize, current_match)
-        catch return MalError.SystemError;
-    var i: usize = 0;
-    while(i < current_match) {
+    var matches: [] usize = try Allocator.alloc(usize, current_match);
+    for(0..current_match) |i| {
         matches[i] = match_buffer[i];
-        i += 1;
     }
 
     return matches;

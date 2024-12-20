@@ -8,12 +8,12 @@ import (
 )
 
 import (
-	"core"
-	. "env"
-	"printer"
-	"reader"
-	"readline"
-	. "types"
+	"mal/src/core"
+	. "mal/src/env"
+	"mal/src/printer"
+	"mal/src/reader"
+	"mal/src/readline"
+	. "mal/src/types"
 )
 
 // read

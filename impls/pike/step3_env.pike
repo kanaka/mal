@@ -9,14 +9,22 @@ Val READ(string str)
   return read_str(str);
 }
 
-Val eval_ast(Val ast, Env env)
+Val EVAL(Val ast, Env env)
 {
+  Val dbgeval = env.get("DEBUG-EVAL");
+  if(dbgeval && dbgeval.mal_type != MALTYPE_FALSE
+     && dbgeval.mal_type != MALTYPE_NIL)
+    write(({ "EVAL: ", PRINT(ast), "\n" }));
+
   switch(ast.mal_type)
   {
     case MALTYPE_SYMBOL:
-      return env.get(ast);
+      Val key = ast.value;
+      Val val = env.get(ast.value);
+      if(!val) throw("'" + key + "' not found");
+      return val;
     case MALTYPE_LIST:
-      return List(map(ast.data, lambda(Val e) { return EVAL(e, env); }));
+      break;
     case MALTYPE_VECTOR:
       return Vector(map(ast.data, lambda(Val e) { return EVAL(e, env); }));
     case MALTYPE_MAP:
@@ -28,12 +36,8 @@ Val eval_ast(Val ast, Env env)
       return Map(elements);
     default:
       return ast;
-  }
-}
+    }
 
-Val EVAL(Val ast, Env env)
-{
-  if(ast.mal_type != MALTYPE_LIST) return eval_ast(ast, env);
   if(ast.emptyp()) return ast;
   if(ast.data[0].mal_type == MALTYPE_SYMBOL) {
     switch(ast.data[0].value)
@@ -50,9 +54,10 @@ Val EVAL(Val ast, Env env)
         return EVAL(ast.data[2], let_env);
     }
   }
-  Val evaled_ast = eval_ast(ast, env);
-  function f = evaled_ast.data[0];
-  return f(@evaled_ast.data[1..]);
+  Val f = EVAL(ast.data[0], env);
+  array(Val) args = ast.data[1..];
+  args = map(args, lambda(Val e) { return EVAL(e, env);});
+  return f(@args);
 }
 
 string PRINT(Val exp)

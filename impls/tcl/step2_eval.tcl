@@ -7,7 +7,7 @@ proc READ str {
     read_str $str
 }
 
-proc eval_ast {ast env} {
+proc EVAL {ast env} {
     switch [obj_type $ast] {
         "symbol" {
             set varname [obj_val $ast]
@@ -18,11 +18,6 @@ proc eval_ast {ast env} {
             }
         }
         "list" {
-            set res {}
-            foreach element [obj_val $ast] {
-                lappend res [EVAL $element $env]
-            }
-            return [list_new $res]
         }
         "vector" {
             set res {}
@@ -39,19 +34,16 @@ proc eval_ast {ast env} {
             return [hashmap_new $res]
         }
         default { return $ast }
-    }
-}
+        }
 
-proc EVAL {ast env} {
-    if {![list_q $ast]} {
-        return [eval_ast $ast $env]
-    }
     set a0 [lindex [obj_val $ast] 0]
     if {$a0 == ""} {
         return $ast
     }
-    set lst_obj [eval_ast $ast $env]
-    set lst [obj_val $lst_obj]
+    set lst {}
+    foreach element [obj_val $ast] {
+        lappend lst [EVAL $element $env]
+    }
     set f [lindex $lst 0]
     set call_args [lrange $lst 1 end]
     apply $f $call_args

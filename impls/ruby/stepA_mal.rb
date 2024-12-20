@@ -11,15 +11,11 @@ def READ(str)
 end
 
 # eval
-def starts_with(ast, sym)
-    return ast.is_a?(List) && ast.size == 2 && ast[0] == sym
-end
-
 def qq_loop(ast)
   acc = List.new []
   ast.reverse_each do |elt|
-    if starts_with(elt, :"splice-unquote")
-      acc = List.new [:concat, elt[1], acc]
+    if elt in List and elt in :"splice-unquote", quoted
+      acc = List.new [:concat, quoted, acc]
     else
       acc = List.new [:cons, quasiquote(elt), acc]
     end
@@ -30,103 +26,63 @@ end
 def quasiquote(ast)
   return case ast
   when List
-    if starts_with(ast, :unquote)
-      ast[1]
+    if ast in :unquote, quoted
+      quoted
     else
       qq_loop(ast)
     end
   when Vector
     List.new [:vec, qq_loop(ast)]
-  when Hash
-    List.new [:quote, ast]
-  when Symbol
+  when Hash, Symbol
     List.new [:quote, ast]
   else
     ast
   end
 end
 
-def macro_call?(ast, env)
-    return (ast.is_a?(List) &&
-            ast[0].is_a?(Symbol) &&
-            env.find(ast[0]) &&
-            env.get(ast[0]).is_a?(Function) &&
-            env.get(ast[0]).is_macro)
-end
-
-def macroexpand(ast, env)
-    while macro_call?(ast, env)
-        mac = env.get(ast[0])
-        ast = mac[*ast.drop(1)]
-    end
-    return ast
-end
-
-def eval_ast(ast, env)
-    return case ast
-        when Symbol
-            env.get(ast)
-        when List   
-            List.new ast.map{|a| EVAL(a, env)}
-        when Vector
-            Vector.new ast.map{|a| EVAL(a, env)}
-        when Hash
-            new_hm = {}
-            ast.each{|k,v| new_hm[k] = EVAL(v, env)}
-            new_hm
-        else 
-            ast
-    end
-end
-
 def EVAL(ast, env)
     while true
 
-    #puts "EVAL: #{_pr_str(ast, true)}"
-
-    if not ast.is_a? List
-        return eval_ast(ast, env)
+    if env.get_or_nil(:"DEBUG-EVAL")
+        puts "EVAL: #{_pr_str(ast, true)}"
     end
+
+    case ast
+    in Symbol
+            return env.get(ast)
+    in Vector
+            return Vector.new ast.map{|a| EVAL(a, env)}
+    in Hash
+            new_hm = {}
+            ast.each{|k,v| new_hm[k] = EVAL(v, env)}
+            return new_hm
 
     # apply list
-    ast = macroexpand(ast, env)
-    if not ast.is_a? List
-        return eval_ast(ast, env)
-    end
-    if ast.empty?
-        return ast
-    end
 
-    a0,a1,a2,a3 = ast
-    case a0
-    when :def!
+    in :def!, a1, a2
         return env.set(a1, EVAL(a2, env))
-    when :"let*"
+    in :"let*", a1, a2
         let_env = Env.new(env)
         a1.each_slice(2) do |a,e|
             let_env.set(a, EVAL(e, let_env))
         end
         env = let_env
         ast = a2 # Continue loop (TCO)
-    when :quote
+    in :quote, a1
         return a1
-    when :quasiquoteexpand
-        return quasiquote(a1);
-    when :quasiquote
+    in :quasiquote, a1
         ast = quasiquote(a1); # Continue loop (TCO)
-    when :defmacro!
+    in :defmacro!, a1, a2
         func = EVAL(a2, env).clone
         func.is_macro = true
         return env.set(a1, func)
-    when :macroexpand
-        return macroexpand(a1, env)
-    when :"rb*"
+    in :"rb*", a1
         res = eval(a1)
         return case res
             when Array; List.new res
             else; res
         end
-    when :"try*"
+    in [:"try*", a1, [:"catch*", key, handler]]
         begin
             return EVAL(a1, env)
         rescue Exception => exc
@@ -135,36 +91,42 @@ def EVAL(ast, env)
             else
                 exc = exc.message
             end
-            if a2 && a2[0] == :"catch*"
-                return EVAL(a2[2], Env.new(env, [a2[1]], [exc]))
-            else
-                raise exc
-            end
+            ast = handler
+            env = Env.new(env, [key], [exc]) # Continue loop (TCO)
         end
-    when :do
-        eval_ast(ast[1..-2], env)
+    in [:"try*", a1]
+        ast = a1 # Continue loop (TCO)
+    in [:do, *]
+        ast[1..-2].map{|a| EVAL(a, env)}
         ast = ast.last # Continue loop (TCO)
-    when :if
+    in [:if, a1, a2, *]
         cond = EVAL(a1, env)
-        if not cond
-            return nil if a3 == nil
-            ast = a3 # Continue loop (TCO)
-        else
+        if cond
             ast = a2 # Continue loop (TCO)
+        else
+            ast = ast[3] # Continue loop (TCO)
         end
-    when :"fn*"
+    in :"fn*", a1, a2
         return Function.new(a2, env, a1) {|*args|
             EVAL(a2, Env.new(env, a1, List.new(args)))
         }
-    else
-        el = eval_ast(ast, env)
-        f = el[0]
+    in [a0, *]
+        f = EVAL(a0, env)
+        args = ast.drop(1)
         if f.class == Function
+            if f.is_macro
+              ast = f[*args]
+              next # Continue loop (TCO)
+            end
             ast = f.ast
-            env = f.gen_env(el.drop(1)) # Continue loop (TCO)
+            env = f.gen_env(List.new args.map{|a| EVAL(a, env)})
+            # Continue loop (TCO)
         else
-            return f[*el.drop(1)]
+            return f[*args.map{|a| EVAL(a, env)}]
         end
+
+    else                        # Empty list or scalar
+      return ast
     end
 
     end
@@ -207,6 +169,6 @@ while line = _readline("user> ")
         else
             puts "Error: #{e}" 
         end
-        puts "\t#{e.backtrace.join("\n\t")}"
+        puts "\t#{e.backtrace[0..100].join("\n\t")}"
     end
 end

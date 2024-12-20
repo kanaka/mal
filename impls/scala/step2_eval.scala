@@ -7,27 +7,24 @@ object step2_eval {
   }
 
   // eval
-  def eval_ast(ast: Any, env: Map[Symbol,Any]): Any = {
-    ast match {
-      case s : Symbol    => env(s)
-      case v: MalVector  => v.map(EVAL(_, env))
-      case l: MalList    => l.map(EVAL(_, env))
-      case m: MalHashMap => {
-        m.map{case (k,v) => (k, EVAL(v, env))}
-      }
-      case _             => ast
-    }
-  }
-
   def EVAL(ast: Any, env: Map[Symbol,Any]): Any = {
-    //println("EVAL: " + printer._pr_str(ast,true))
-    if (!_list_Q(ast))
-      return eval_ast(ast, env)
+
+    //  println("EVAL: " + printer._pr_str(ast,true))
+
+    ast match {
+      case s : Symbol    => return env(s)
+      case v: MalVector  => return v.map(EVAL(_, env))
+      case l: MalList    => {}
+      case m: MalHashMap => {
+        return m.map{case (k,v) => (k, EVAL(v, env))}
+      }
+      case _             => return ast
+    }
 
     // apply list
     if (ast.asInstanceOf[MalList].value.length == 0)
       return ast
-    eval_ast(ast, env).asInstanceOf[MalList].value match {
+    ast.asInstanceOf[MalList].map(EVAL(_, env)).value match {
       case f :: el => {
         var fn: List[Any] => Any = null
         try {

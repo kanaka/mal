@@ -15,7 +15,6 @@ static void installFunctions(malEnvPtr env);
 static void makeArgv(malEnvPtr env, int argc, char* argv[]);
 static String safeRep(const String& input, malEnvPtr env);
 static malValuePtr quasiquote(malValuePtr obj);
-static malValuePtr macroExpand(malValuePtr obj, malEnvPtr env);
 
 static ReadLine s_readLine("~/.mal-history");
 
@@ -83,13 +82,13 @@ malValuePtr EVAL(malValuePtr ast, malEnvPtr env)
         env = replEnv;
     }
     while (1) {
-        const malList* list = DYNAMIC_CAST(malList, ast);
-        if (!list || (list->count() == 0)) {
-            return ast->eval(env);
-        }
 
-        ast = macroExpand(ast, env);
-        list = DYNAMIC_CAST(malList, ast);
+       const malEnvPtr dbgenv = env->find("DEBUG-EVAL");
+       if (dbgenv && dbgenv->get("DEBUG-EVAL")->isTrue()) {
+           std::cout << "EVAL: " << PRINT(ast) << "\n";
+       }
+
+        const malList* list = DYNAMIC_CAST(malList, ast);
         if (!list || (list->count() == 0)) {
             return ast->eval(env);
         }
@@ -167,16 +166,6 @@ malValuePtr EVAL(malValuePtr ast, malEnvPtr env)
                 continue; // TCO
             }
 
-            if (special == "macroexpand") {
-                checkArgsIs("macroexpand", 1, argCount);
-                return macroExpand(list->item(1), env);
-            }
-
-            if (special == "quasiquoteexpand") {
-                checkArgsIs("quasiquote", 1, argCount);
-                return quasiquote(list->item(1));
-            }
-
             if (special == "quasiquote") {
                 checkArgsIs("quasiquote", 1, argCount);
                 ast = quasiquote(list->item(1));
@@ -192,7 +181,7 @@ malValuePtr EVAL(malValuePtr ast, malEnvPtr env)
                 malValuePtr tryBody = list->item(1);
 
                 if (argCount == 1) {
-                    ast = EVAL(tryBody, env);
+                    ast = tryBody;
                     continue; // TCO
                 }
                 checkArgsIs("try*", 2, argCount);
@@ -212,7 +201,7 @@ malValuePtr EVAL(malValuePtr ast, malEnvPtr env)
                 malValuePtr excVal;
 
                 try {
-                    ast = EVAL(tryBody, env);
+                    return EVAL(tryBody, env);
                 }
                 catch(String& s) {
                     excVal = mal::string(s);
@@ -236,15 +225,20 @@ malValuePtr EVAL(malValuePtr ast, malEnvPtr env)
         }
 
         // Now we're left with the case of a regular list to be evaluated.
-        std::unique_ptr<malValueVec> items(list->evalItems(env));
-        malValuePtr op = items->at(0);
+        malValuePtr op = EVAL(list->item(0), env);
         if (const malLambda* lambda = DYNAMIC_CAST(malLambda, op)) {
+            if (lambda->isMacro()) {
+                ast = lambda->apply(list->begin()+1, list->end());
+                continue; // TCO
+            }
+            malValueVec* items = STATIC_CAST(malList, list->rest())->evalItems(env);
             ast = lambda->getBody();
-            env = lambda->makeEnv(items->begin()+1, items->end());
+            env = lambda->makeEnv(items->begin(), items->end());
             continue; // TCO
         }
         else {
-            return APPLY(op, items->begin()+1, items->end());
+            malValueVec* items = STATIC_CAST(malList, list->rest())->evalItems(env);
+            return APPLY(op, items->begin(), items->end());
         }
     }
 }
@@ -304,31 +298,6 @@ static malValuePtr quasiquote(malValuePtr obj)
     if (DYNAMIC_CAST(malVector, obj))
         res = mal::list(mal::symbol("vec"), res);
     return res;
-}
-
-static const malLambda* isMacroApplication(malValuePtr obj, malEnvPtr env)
-{
-    const malList* seq = DYNAMIC_CAST(malList, obj);
-    if (seq && !seq->isEmpty()) {
-        if (malSymbol* sym = DYNAMIC_CAST(malSymbol, seq->item(0))) {
-            if (malEnvPtr symEnv = env->find(sym->value())) {
-                malValuePtr value = sym->eval(symEnv);
-                if (malLambda* lambda = DYNAMIC_CAST(malLambda, value)) {
-                    return lambda->isMacro() ? lambda : NULL;
-                }
-            }
-        }
-    }
-    return NULL;
-}
-
-static malValuePtr macroExpand(malValuePtr obj, malEnvPtr env)
-{
-    while (const malLambda* macro = isMacroApplication(obj, env)) {
-        const malSequence* seq = STATIC_CAST(malSequence, obj);
-        obj = macro->apply(seq->begin() + 1, seq->end());
-    }
-    return obj;
 }
 
 static const char* malFunctionTable[] = {

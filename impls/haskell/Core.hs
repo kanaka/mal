@@ -270,6 +270,7 @@ concatLast _ = throwStr "last argument of apply must be a sequence"
 
 apply :: Fn
 apply (MalFunction _ f : xs) = f =<< concatLast xs
+apply (MalMacro      f : xs) = f =<< concatLast xs
 apply _ = throwStr "Illegal call to apply"
 
 do_map :: Fn

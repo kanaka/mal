@@ -50,37 +50,25 @@ Val quasiquote(Val ast)
   }
 }
 
-bool is_macro_call(Val ast, Env env)
+Val EVAL(Val ast, Env env)
 {
-  if(ast.mal_type == MALTYPE_LIST &&
-     !ast.emptyp() &&
-     ast.data[0].mal_type == MALTYPE_SYMBOL &&
-     env.find(ast.data[0]))
+  while(true)
   {
-    Val v = env.get(ast.data[0]);
-    if(objectp(v) && v.macro) return true;
-  }
-  return false;
-}
 
-Val macroexpand(Val ast, Env env)
-{
-  while(is_macro_call(ast, env))
-  {
-    Val macro = env.get(ast.data[0]);
-    ast = macro(@ast.data[1..]);
-  }
-  return ast;
-}
+  Val dbgeval = env.get("DEBUG-EVAL");
+  if(dbgeval && dbgeval.mal_type != MALTYPE_FALSE
+     && dbgeval.mal_type != MALTYPE_NIL)
+    write(({ "EVAL: ", PRINT(ast), "\n" }));
 
-Val eval_ast(Val ast, Env env)
-{
   switch(ast.mal_type)
   {
     case MALTYPE_SYMBOL:
-      return env.get(ast);
+      Val key = ast.value;
+      Val val = env.get(ast.value);
+      if(!val) throw("'" + key + "' not found");
+      return val;
     case MALTYPE_LIST:
-      return List(map(ast.data, lambda(Val e) { return EVAL(e, env); }));
+      break;
     case MALTYPE_VECTOR:
       return Vector(map(ast.data, lambda(Val e) { return EVAL(e, env); }));
     case MALTYPE_MAP:
@@ -92,16 +80,8 @@ Val eval_ast(Val ast, Env env)
       return Map(elements);
     default:
       return ast;
-  }
-}
+    }
 
-Val EVAL(Val ast, Env env)
-{
-  while(true)
-  {
-    if(ast.mal_type != MALTYPE_LIST) return eval_ast(ast, env);
-    ast = macroexpand(ast, env);
-    if(ast.mal_type != MALTYPE_LIST) return eval_ast(ast, env);
     if(ast.emptyp()) return ast;
     if(ast.data[0].mal_type == MALTYPE_SYMBOL) {
       switch(ast.data[0].value)
@@ -120,16 +100,12 @@ Val EVAL(Val ast, Env env)
           continue; // TCO
         case "quote":
           return ast.data[1];
-        case "quasiquoteexpand":
-          return quasiquote(ast.data[1]);
         case "quasiquote":
           ast = quasiquote(ast.data[1]);
           continue; // TCO
         case "defmacro!":
           Val macro = EVAL(ast.data[2], env).clone_as_macro();
           return env.set(ast.data[1], macro);
-        case "macroexpand":
-          return macroexpand(ast.data[1], env);
         case "do":
           Val result;
           foreach(ast.data[1..(sizeof(ast.data) - 2)], Val element)
@@ -155,15 +131,20 @@ Val EVAL(Val ast, Env env)
                     lambda(Val ... a) { return EVAL(ast.data[2], Env(env, ast.data[1], List(a))); });
       }
     }
-    Val evaled_ast = eval_ast(ast, env);
-    Val f = evaled_ast.data[0];
+    Val f = EVAL(ast.data[0], env);
+    array(Val) args = ast.data[1..];
     switch(f.mal_type)
     {
       case MALTYPE_BUILTINFN:
-        return f(@evaled_ast.data[1..]);
+        return f(@map(args, lambda(Val e) { return EVAL(e, env);}));
       case MALTYPE_FN:
+        if(f.macro)
+        {
+          ast = f(@args);
+          continue; // TCO
+        }
         ast = f.ast;
-        env = Env(f.env, f.params, List(evaled_ast.data[1..]));
+        env = Env(f.env, f.params, List(map(args, lambda(Val e) { return EVAL(e, env);})));
         continue; // TCO
       default:
         throw("Unknown function type");

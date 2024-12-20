@@ -6,6 +6,8 @@
 ;=>()
 (list? (list))
 ;=>true
+(list? nil)
+;=>false
 (empty? (list))
 ;=>true
 (empty? (list 1))
@@ -69,10 +71,6 @@
 ;=>false
 (= 2 (+ 1 1))
 ;=>true
-(= nil 1)
-;=>false
-(= nil nil)
-;=>true
 
 (> 2 1)
 ;=>true
@@ -103,19 +101,60 @@
 ;=>true
 
 
-;; Testing equality
+;; Testing equality and the representation of nil false true
 (= 1 1)
 ;=>true
 (= 0 0)
 ;=>true
 (= 1 0)
 ;=>false
-(= true true)
-;=>true
-(= false false)
-;=>true
+
 (= nil nil)
 ;=>true
+(= nil false)
+;=>false
+(= nil true)
+;=>false
+(= nil 0)
+;=>false
+(= nil 1)
+;=>false
+(= nil "")
+;=>false
+(= nil ())
+;=>false
+(= nil [])
+;=>false
+
+(= false nil)
+;=>false
+(= false false)
+;=>true
+(= false true)
+;=>false
+(= false 0)
+;=>false
+(= false 1)
+;=>false
+(= false "")
+;=>false
+(= false ())
+;=>false
+
+(= true nil)
+;=>false
+(= true false)
+;=>false
+(= true true)
+;=>true
+(= true 0)
+;=>false
+(= true 1)
+;=>false
+(= true "")
+;=>false
+(= true ())
+;=>false
 
 (= (list) (list))
 ;=>true
@@ -142,6 +181,8 @@
 ;=>7
 ( (fn* () 4) )
 ;=>4
+( (fn* () ()) )
+;=>()
 
 ( (fn* (f x) (f x)) (fn* (a) (+ 1 a)) 7)
 ;=>8
@@ -160,6 +201,12 @@
 (def! plus7 (gen-plusX 7))
 (plus7 8)
 ;=>15
+
+(let* [b 0 f (fn* [] b)] (let* [b 1] (f)))
+;=>0
+
+((let* [b 0] (fn* [] b)))
+;=>0
 
 ;; Testing do form
 (do (prn 101))

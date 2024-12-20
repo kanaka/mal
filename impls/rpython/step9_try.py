@@ -3,6 +3,7 @@ import mal_readline
 import mal_types as types
 from mal_types import (MalSym, MalInt, MalStr,
                        nil, true, false, _symbol, _keywordu,
+                       throw_str,
                        MalList, _list, MalVector, MalHashMap, MalFunc)
 import reader, printer
 from env import Env
@@ -40,30 +41,16 @@ def quasiquote(ast):
     else:
         return ast
 
-def is_macro_call(ast, env):
-    if types._list_Q(ast):
-        a0 = ast[0]
-        if isinstance(a0, MalSym):
-            if not env.find(a0) is None:
-                return env.get(a0).ismacro
-    return False
-
-def macroexpand(ast, env):
-    while is_macro_call(ast, env):
-        assert isinstance(ast[0], MalSym)
-        mac = env.get(ast[0])
-        ast = macroexpand(mac.apply(ast.rest()), env)
-    return ast
-
-def eval_ast(ast, env):
+def EVAL(ast, env):
+  while True:
+    if env.get(u"DEBUG-EVAL") not in (None, nil, false):
+        print(u"EVAL: " + printer._pr_str(ast))
     if types._symbol_Q(ast):
         assert isinstance(ast, MalSym)
-        return env.get(ast)
-    elif types._list_Q(ast):
-        res = []
-        for a in ast.values:
-            res.append(EVAL(a, env))
-        return MalList(res)
+        value = env.get(ast.value)
+        if value is None:
+            throw_str("'" + str(ast.value) + "' not found")
+        return value
     elif types._vector_Q(ast):
         res = []
         for a in ast.values:
@@ -74,20 +61,10 @@ def eval_ast(ast, env):
         for k in ast.dct.keys():
             new_dct[k] = EVAL(ast.dct[k], env)
         return MalHashMap(new_dct)
-    else:
+    elif not types._list_Q(ast):
         return ast  # primitive value, return unchanged
-
-def EVAL(ast, env):
-    while True:
-        #print("EVAL %s" % printer._pr_str(ast))
-        if not types._list_Q(ast):
-            return eval_ast(ast, env)
-        if len(ast) == 0: return ast
-
+    else:
         # apply list
-        ast = macroexpand(ast, env)
-        if not types._list_Q(ast):
-            return eval_ast(ast, env)
         if len(ast) == 0: return ast
         a0 = ast[0]
         if isinstance(a0, MalSym):
@@ -108,16 +85,14 @@ def EVAL(ast, env):
             env = let_env # Continue loop (TCO)
         elif u"quote" == a0sym:
             return ast[1]
-        elif u"quasiquoteexpand" == a0sym:
-            return quasiquote(ast[1])
         elif u"quasiquote" == a0sym:
             ast = quasiquote(ast[1]) # Continue loop (TCO)
         elif u"defmacro!" == a0sym:
             func = EVAL(ast[2], env)
-            func.ismacro = True
-            return env.set(ast[1], func)
-        elif u"macroexpand" == a0sym:
-            return macroexpand(ast[1], env)
+            return env.set(ast[1],
+                           MalFunc(func.fn, ast=func.ast, env=func.env,
+                           params=func.params, EvalFunc=func.EvalFunc,
+                           ismacro=True))
         elif u"try*" == a0sym:
             if len(ast) < 3:
                 return EVAL(ast[1], env);
@@ -139,8 +114,8 @@ def EVAL(ast, env):
         elif u"do" == a0sym:
             if len(ast) == 0:
                 return nil
-            elif len(ast) > 1:
-                eval_ast(ast.slice2(1, len(ast)-1), env)
+            for i in range(1, len(ast) - 1):
+                EVAL(ast[i], env)
             ast = ast[-1] # Continue loop (TCO)
         elif u"if" == a0sym:
             a1, a2 = ast[1], ast[2]
@@ -154,14 +129,20 @@ def EVAL(ast, env):
             a1, a2 = ast[1], ast[2]
             return MalFunc(None, a2, env, a1, EVAL)
         else:
-            el = eval_ast(ast, env)
-            f = el.values[0]
+            f = EVAL(a0, env)
+            if f.ismacro:
+                ast = f.apply(ast.rest()) # Continue loop (TCO)
+                continue
+            args_list = []
+            for i in range(1, len(ast)):
+                args_list.append(EVAL(ast[i], env))
+            args = MalList(args_list)
             if isinstance(f, MalFunc):
                 if f.ast:
                     ast = f.ast
-                    env = f.gen_env(el.rest()) # Continue loop (TCO)
+                    env = f.gen_env(args) # Continue loop (TCO)
                 else:
-                    return f.apply(el.rest())
+                    return f.apply(args)
             else:
                 raise Exception("%s is not callable" % f)
 

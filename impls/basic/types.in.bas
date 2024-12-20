@@ -286,10 +286,9 @@ ASSOC1_S:
   AY=K:GOSUB RELEASE: REM map took ownership of key
   RETURN
 
-REM HASHMAP_GET(H, K) -> R
+REM HASHMAP_GET(H, B$) -> R
 REM   - returns R3 with whether we found it or not
 HASHMAP_GET:
-  B$=S$(Z%(K+1)): REM search key string
   R3=0: REM whether found or not (for HASHMAP_CONTAINS)
   R=0
   HASHMAP_GET_LOOP:

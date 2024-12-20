@@ -9,12 +9,19 @@ function READ(str)
   return ReadStr(a:str)
 endfunction
 
-function EvalAst(ast, env)
+function EVAL(ast, env)
+  let dbgeval = a:env.get("DEBUG-EVAL")
+  if !(empty(dbgeval) || FalseQ(dbgeval) || NilQ(dbgeval))
+    call PrintLn("EVAL: " . PrStr(a:ast, 1))
+  endif
+
   if SymbolQ(a:ast)
     let varname = a:ast.val
-    return a:env.get(varname)
-  elseif ListQ(a:ast)
-    return ListNew(map(copy(a:ast.val), {_, e -> EVAL(e, a:env)}))
+    let val = a:env.get(varname)
+    if empty(val)
+      throw "'" . varname . "' not found"
+    endif
+    return val
   elseif VectorQ(a:ast)
     return VectorNew(map(copy(a:ast.val), {_, e -> EVAL(e, a:env)}))
   elseif HashQ(a:ast)
@@ -24,14 +31,9 @@ function EvalAst(ast, env)
       let ret[k] = newval
     endfor
     return HashNew(ret)
-  else
-    return a:ast
-  end
-endfunction
-
-function EVAL(ast, env)
+  endif
   if !ListQ(a:ast)
-    return EvalAst(a:ast, a:env)
+    return a:ast
   end
   if EmptyQ(a:ast)
     return a:ast
@@ -67,14 +69,17 @@ function EVAL(ast, env)
       return EVAL(a:ast.val[2], a:env)
     endif
   elseif first_symbol == "do"
-    let el = EvalAst(ListRest(a:ast), a:env)
-    return el.val[-1]
+    let astlist = a:ast.val
+    for elt in astlist[1:-2]
+      let ignored = EVAL(elt, a:env)
+    endfor
+    return EVAL(astlist[-1], a:env)
   elseif first_symbol == "fn*"
     let fn = NewFn(ListNth(a:ast, 2), a:env, ListNth(a:ast, 1))
     return fn
   else
     " apply list
-    let el = EvalAst(a:ast, a:env)
+    let el = ListNew(map(copy(a:ast.val), {_, e -> EVAL(e, a:env)}))
     let funcobj = ListFirst(el)
     let args = ListRest(el)
     if NativeFunctionQ(funcobj)

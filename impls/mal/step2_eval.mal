@@ -7,35 +7,33 @@
 
 
 ;; eval
-(def! eval-ast (fn* [ast env]
-  ;; (do (prn "eval-ast" ast "/" (keys env)) )
-  (cond
-    (symbol? ast) (let* [res (get env (str ast))]
-                    (if res res (throw (str ast " not found"))))
-
-    (list? ast)   (map (fn* [exp] (EVAL exp env)) ast)
-
-    (vector? ast) (vec (map (fn* [exp] (EVAL exp env)) ast))
-
-    (map? ast)    (apply hash-map
-                    (apply concat
-                      (map (fn* [k] [k (EVAL (get ast k) env)])
-                           (keys ast))))
-
-    "else"        ast)))
-
-
 (def! EVAL (fn* [ast env]
-  ;; (do (prn "EVAL" ast) )
+  ;; (do (prn "EVAL:" ast))
   (try*
-    (if (not (list? ast))
-      (eval-ast ast env)
+    (cond
+      (symbol? ast)
+      (let* [res (get env (str ast))]
+        (if res res (throw (str ast " not found"))))
 
-      ;; apply list
+      (vector? ast)
+      (vec (map (fn* [exp] (EVAL exp env)) ast))
+
+      (map? ast)
+      (apply hash-map
+        (apply concat (map (fn* [k] [k (EVAL (get ast k) env)]) (keys ast))))
+
+      (list? ast)
       (if (empty? ast)
-        ast
-        (let* [el (eval-ast ast env)]
-           (apply (first el) (rest el)))))
+        ()
+        (let* [a0  (first ast)
+               f    (EVAL a0 env)
+               args (rest ast)]
+          (if (fn? f)
+            (apply f (map (fn* [exp] (EVAL exp env)) args))
+            (throw "can only apply functions"))))
+
+      "else"
+      ast)
 
     (catch* exc
       (do

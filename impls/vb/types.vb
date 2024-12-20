@@ -465,9 +465,11 @@ namespace Mal
             Public Function isMacro() As Boolean
                 return macro
             End Function
-            Public Sub setMacro()
-                macro = true
-            End Sub
+            Public Function asMacro() As MalVal
+                Dim res As new MalFunc (ast, env, fparams, fn)
+                res.macro = true
+                return res
+            End Function
         End Class
     End Class
 End Namespace

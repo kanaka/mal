@@ -1,2 +1,2 @@
-#!/bin/bash
-exec $(dirname $0)/${STEP:-stepA_mal} "${@}"
+#!/bin/sh
+exec $(dirname $0)/zig-out/bin/${STEP:-stepA_mal} "${@}"

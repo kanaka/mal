@@ -11,10 +11,10 @@ final Env replEnv = new Env();
 void setupEnv(List<String> argv) {
   ns.forEach((sym, fun) => replEnv.set(sym, fun));
 
-  replEnv.set(new MalSymbol('eval'),
+  replEnv.set('eval',
       new MalBuiltin((List<MalType> args) => EVAL(args.single, replEnv)));
 
-  replEnv.set(new MalSymbol('*ARGV*'),
+  replEnv.set('*ARGV*',
       new MalList(argv.map((s) => new MalString(s)).toList()));
 
   rep('(def! not (fn* (a) (if a false true)))');
@@ -27,35 +27,6 @@ void setupEnv(List<String> argv) {
       "          (nth xs 1) "
       "          (throw \"odd number of forms to cond\")) "
       "      (cons 'cond (rest (rest xs)))))))");
-}
-
-/// Returns `true` if [ast] is a macro call.
-///
-/// This checks that [ast] is a list whose first element is a symbol that refers
-/// to a function in the current [env] that is a macro.
-bool isMacroCall(MalType ast, Env env) {
-  if (ast is MalList) {
-    if (ast.isNotEmpty && ast.first is MalSymbol) {
-      try {
-        var value = env.get(ast.first);
-        if (value is MalCallable) {
-          return value.isMacro;
-        }
-      } on NotFoundException {
-        return false;
-      }
-    }
-  }
-  return false;
-}
-
-MalType macroexpand(MalType ast, Env env) {
-  while (isMacroCall(ast, env)) {
-    var macroSymbol = (ast as MalList).first;
-    var macro = env.get(macroSymbol) as MalCallable;
-    ast = macro((ast as MalList).sublist(1));
-  }
-  return ast;
 }
 
 bool starts_with(MalType ast, String sym) {
@@ -90,11 +61,23 @@ MalType quasiquote(MalType ast) {
 
 MalType READ(String x) => reader.read_str(x);
 
-MalType eval_ast(MalType ast, Env env) {
+MalType EVAL(MalType ast, Env env) {
+  while (true) {
+
+  var dbgeval = env.get("DEBUG-EVAL");
+  if (dbgeval != null && !(dbgeval is MalNil)
+      && !(dbgeval is MalBool && dbgeval.value == false)) {
+      stdout.writeln("EVAL: ${printer.pr_str(ast)}");
+  }
+
   if (ast is MalSymbol) {
-    return env.get(ast);
+    var result = env.get(ast.value);
+    if (result == null) {
+      throw new NotFoundException(ast.value);
+    }
+    return result;
   } else if (ast is MalList) {
-    return new MalList(ast.elements.map((x) => EVAL(x, env)).toList());
+    // Exit this switch.
   } else if (ast is MalVector) {
     return new MalVector(ast.elements.map((x) => EVAL(x, env)).toList());
   } else if (ast is MalHashMap) {
@@ -106,18 +89,7 @@ MalType eval_ast(MalType ast, Env env) {
   } else {
     return ast;
   }
-}
-
-MalType EVAL(MalType ast, Env env) {
-  while (true) {
-    if (ast is! MalList) {
-      return eval_ast(ast, env);
-    } else {
-      if ((ast as MalList).elements.isEmpty) {
-        return ast;
-      } else {
-        ast = macroexpand(ast, env);
-        if (ast is! MalList) return eval_ast(ast, env);
+        // ast is a list. todo: indent left.
         if ((ast as MalList).isEmpty) return ast;
 
         var list = ast as MalList;
@@ -128,13 +100,13 @@ MalType EVAL(MalType ast, Env env) {
           if (symbol.value == "def!") {
             MalSymbol key = args.first;
             MalType value = EVAL(args[1], env);
-            env.set(key, value);
+            env.set(key.value, value);
             return value;
           } else if (symbol.value == "defmacro!") {
             MalSymbol key = args.first;
-            MalClosure macro = EVAL(args[1], env) as MalClosure;
+            MalClosure macro = (EVAL(args[1], env) as MalClosure).clone();
             macro.isMacro = true;
-            env.set(key, macro);
+            env.set(key.value, macro);
             return macro;
           } else if (symbol.value == "let*") {
             // TODO(het): If elements.length is not even, give helpful error
@@ -149,13 +121,15 @@ MalType EVAL(MalType ast, Env env) {
             for (var pair in pairs(bindings.elements)) {
               MalSymbol key = pair[0];
               MalType value = EVAL(pair[1], newEnv);
-              newEnv.set(key, value);
+              newEnv.set(key.value, value);
             }
             ast = args[1];
             env = newEnv;
             continue;
           } else if (symbol.value == "do") {
-            eval_ast(new MalList(args.sublist(0, args.length - 1)), env);
+            for (var elt in args.sublist(0, args.length - 1)) {
+              EVAL(elt, env);
+            }
             ast = args.last;
             continue;
           } else if (symbol.value == "if") {
@@ -186,13 +160,9 @@ MalType EVAL(MalType ast, Env env) {
                     EVAL(args[1], new Env(env, params, funcArgs)));
           } else if (symbol.value == "quote") {
             return args.single;
-          } else if (symbol.value == "quasiquoteexpand") {
-            return quasiquote(args.first);
           } else if (symbol.value == "quasiquote") {
             ast = quasiquote(args.first);
             continue;
-          } else if (symbol.value == 'macroexpand') {
-            return macroexpand(args.first, env);
           } else if (symbol.value == 'try*') {
             var body = args.first;
             if (args.length < 2) {
@@ -201,7 +171,7 @@ MalType EVAL(MalType ast, Env env) {
             }
             var catchClause = args[1] as MalList;
             try {
-              ast = EVAL(body, env);
+              return EVAL(body, env);
             } catch (e) {
               assert((catchClause.first as MalSymbol).value == 'catch*');
               var exceptionSymbol = catchClause[1] as MalSymbol;
@@ -220,9 +190,12 @@ MalType EVAL(MalType ast, Env env) {
             continue;
           }
         }
-        var newAst = eval_ast(ast, env) as MalList;
-        var f = newAst.elements.first;
-        var args = newAst.elements.sublist(1);
+        var f = EVAL(list.elements.first, env);
+        if (f is MalCallable && f.isMacro) {
+          ast = f.call(list.elements.sublist(1));
+          continue;
+        }
+        var args = list.elements.sublist(1).map((x) => EVAL(x, env)).toList();
         if (f is MalBuiltin) {
           return f.call(args);
         } else if (f is MalClosure) {
@@ -232,8 +205,6 @@ MalType EVAL(MalType ast, Env env) {
         } else {
           throw 'bad!';
         }
-      }
-    }
   }
 }
 

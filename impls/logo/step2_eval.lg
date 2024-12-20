@@ -7,23 +7,33 @@ to _read :str
 output read_str :str
 end
 
-to eval_ast :ast :env
-output case (obj_type :ast) [
-  [[symbol]  localmake "val hashmap_get :env :ast
-             if emptyp :val [(throw "error sentence (word "' obj_val :ast "' ) [not found])]
-             :val ]
-  [[list]    obj_new "list    map [_eval ? :env] obj_val :ast]
-  [[vector]  obj_new "vector  map [_eval ? :env] obj_val :ast]
-  [[hashmap] obj_new "hashmap map [_eval ? :env] obj_val :ast]
-  [else :ast]
-]
-end
-
 to _eval :ast :env
-if (obj_type :ast) <> "list [output eval_ast :ast :env]
-if emptyp obj_val :ast [output :ast]
-make "el obj_val eval_ast :ast :env
-output apply first :el butfirst :el
+; (print "EVAL: _print :ast)
+
+case obj_type :ast [
+
+  [[symbol]
+    localmake "val map_get :env :ast
+    if "notfound = obj_type :val [
+      (throw "error sentence (word "' symbol_value :ast "') [not found])
+    ]
+    output :val
+  ]
+
+  [[vector] output vector_new map [_eval ? :env] seq_val :ast]
+
+  [[map] output map_map [_eval ? :env] :ast]
+
+  [[list]
+    make "ast seq_val :ast
+    if emptyp :ast [output list_new []]
+    localmake "a0 first :ast
+    make "ast butfirst :ast
+    localmake "f _eval :a0 :env
+    output nativefn_apply :f map [_eval ? :env] :ast ]
+
+  [else output :ast]
+]
 end
 
 to _print :exp
@@ -35,44 +45,43 @@ output _print _eval _read :str :repl_env
 end
 
 to mal_add :a :b
-output obj_new "number ((obj_val :a) + (obj_val :b))
+output number_new ((number_val :a) + (number_val :b))
 end
 
 to mal_sub :a :b
-output obj_new "number ((obj_val :a) - (obj_val :b))
+output number_new ((number_val :a) - (number_val :b))
 end
 
 to mal_mul :a :b
-output obj_new "number ((obj_val :a) * (obj_val :b))
+output number_new ((number_val :a) * (number_val :b))
 end
 
 to mal_div :a :b
-output obj_new "number ((obj_val :a) / (obj_val :b))
+output number_new ((number_val :a) / (number_val :b))
 end
 
-to repl
-localmake "running "true
-while [:running] [
-  localmake "line readline word "user> :space_char
-  ifelse :line=[] [
-    print "
-    make "running "false
-  ] [
-    if not emptyp :line [
-      catch "error [print rep :line]
-      localmake "exception error
-      if not emptyp :exception [
-        (print "Error: first butfirst :exception)
-      ]
-    ]
-  ]
+to print_exception :exception
+if not emptyp :exception [
+  (print "Error: item 2 :exception)
 ]
 end
 
-make "repl_env []
-make "repl_env hashmap_put :repl_env symbol_new "+ "mal_add
-make "repl_env hashmap_put :repl_env symbol_new "- "mal_sub
-make "repl_env hashmap_put :repl_env symbol_new "* "mal_mul
-make "repl_env hashmap_put :repl_env symbol_new "/ "mal_div
+to repl
+do.until [
+    localmake "line readline "|user> |
+    if not emptyp :line [
+      catch "error [print rep :line]
+      print_exception error
+    ]
+] [:line = []]
+(print)
+end
+
+make "repl_env map_assoc :map_empty (list
+  symbol_new "+ nativefn_new "mal_add
+  symbol_new "- nativefn_new "mal_sub
+  symbol_new "* nativefn_new "mal_mul
+  symbol_new "/ nativefn_new "mal_div)
+
 repl
 bye

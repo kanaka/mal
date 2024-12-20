@@ -1,4 +1,4 @@
-FROM ubuntu:vivid
+FROM ubuntu:20.04
 MAINTAINER Joel Martin <github@martintribe.org>
 
 ##########################################################
@@ -9,10 +9,8 @@ MAINTAINER Joel Martin <github@martintribe.org>
 RUN apt-get -y update
 
 # Required for running tests
-RUN apt-get -y install make python
-
-# Some typical implementation and test requirements
-RUN apt-get -y install curl libreadline-dev libedit-dev
+RUN apt-get -y install make python3
+RUN ln -fs /usr/bin/python3 /usr/local/bin/python
 
 RUN mkdir -p /mal
 WORKDIR /mal
@@ -22,13 +20,8 @@ WORKDIR /mal
 ##########################################################
 
 # To build the readline plugin
-RUN apt-get -y install g++
+RUN apt-get -y install gcc libreadline-dev
 
-# Vim 8.0
-RUN apt-get -y install bzip2
-RUN cd /tmp && curl -O ftp://ftp.vim.org/pub/vim/unix/vim-8.0.tar.bz2 \
-    && tar xjf /tmp/vim-8.0.tar.bz2 \
-    && cd vim80 && make && make install \
-    && cd /tmp && rm -r /tmp/vim-8.0.tar.bz2 /tmp/vim80
+RUN apt-get -y install vim
 
 ENV HOME /mal

@@ -3,7 +3,7 @@
     "version": "0.0.1",
     "description": "Make a Lisp (mal) language implemented in CoffeeScript",
     "dependencies": {
-        "ffi-napi": "2.4.x",
+        "ffi-napi": "4.0.3",
         "coffeescript": "~1.8"
     }
 }

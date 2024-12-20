@@ -8,20 +8,23 @@ Env = require("./env.coffee").Env
 READ = (str) -> reader.read_str str
 
 # eval
-eval_ast = (ast, env) ->
-  if types._symbol_Q(ast) then env.get ast
-  else if types._list_Q(ast) then ast.map((a) -> EVAL(a, env))
+EVAL = (ast, env) ->
+  dbgenv = env.find("DEBUG-EVAL")
+  if dbgenv
+    dbgeval = dbgenv.get("DEBUG-EVAL")
+    if dbgeval != null and dbgeval != false
+      console.log "EVAL:", printer._pr_str ast
+
+  if types._symbol_Q(ast) then return env.get ast.name
+  else if types._list_Q(ast) then # exit this switch
   else if types._vector_Q(ast)
-    types._vector(ast.map((a) -> EVAL(a, env))...)
+    return types._vector(ast.map((a) -> EVAL(a, env))...)
   else if types._hash_map_Q(ast)
     new_hm = {}
     new_hm[k] = EVAL(v, env) for k,v of ast
-    new_hm
-  else ast
+    return new_hm
+  else return ast
 
-EVAL = (ast, env) ->
-  #console.log "EVAL:", printer._pr_str ast
-  if !types._list_Q ast then return eval_ast ast, env
   if ast.length == 0 then return ast
 
   # apply list
@@ -35,7 +38,7 @@ EVAL = (ast, env) ->
         let_env.set(a1[i], EVAL(a1[i+1], let_env))
       EVAL(a2, let_env)
     else
-      [f, args...] = eval_ast ast, env
+      [f, args...] = ast.map((a) -> EVAL(a, env))
       f(args...)
 
 

@@ -5,7 +5,7 @@ class Env
         @outer = outer
         binds.each_index do |i|
             if binds[i] == :"&"
-                data[binds[i+1]] = exprs.drop(i)
+                data[binds[i+1]] = List.new exprs.drop(i)
                 break
             else
                 data[binds[i]] = exprs[i]
@@ -32,6 +32,12 @@ class Env
     def get(key)
         env = find(key)
         raise "'" + key.to_s + "' not found" if not env
+        env.data[key]
+    end
+
+    def get_or_nil(key)
+        env = find(key)
+        return nil if not env
         env.data[key]
     end
 end

@@ -48,32 +48,8 @@ class Env {
         }
     }
 
-    func find(_ key: MalVal) throws -> Env? {
-        switch key {
-        case MalVal.MalSymbol(let str):
-            if data[str] != nil {
-                return self
-            } else if outer != nil {
-                return try outer!.find(key)
-            } else {
-                return nil
-            }
-        default:
-            throw MalError.General(msg: "invalid Env.find call")
-        }
-    }
-
-    func get(_ key: MalVal) throws -> MalVal {
-        switch key {
-        case MalVal.MalSymbol(let str):
-            let env = try self.find(key)
-            if env == nil {
-                throw MalError.General(msg: "'\(str)' not found")
-            }
-            return env!.data[str]!
-        default:
-            throw MalError.General(msg: "invalid Env.find call")
-        }
+    func get(_ str: String) -> MalVal? {
+        return data[str] ?? outer?.get(str)
     }
 
     @discardableResult

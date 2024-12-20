@@ -2,7 +2,7 @@ public class MalConj extends MalSubr
 {
     fun MalObject call(MalObject args[])
     {
-        Util.sequenceToMalObjectArray(args[0]) @=> MalObject list[];
+        args[0].malObjectValues() @=> MalObject list[];
         MalObject.slice(args, 1) @=> MalObject rest[];
 
         if( args[0].type == "list" )

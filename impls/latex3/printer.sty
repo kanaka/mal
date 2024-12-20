@@ -1,0 +1,111 @@
+\ProvidesExplPackage {printer} {2023/01/01} {0.0.1} {MAL~printer}
+\RequirePackage{types}
+
+\str_const:Nx \c_new_line_str { \char_generate:nn {10} {12} }
+
+% \str_map_function:oN { \use_none:n #1 } skips space characters bug?
+% It does not in core.sty... why?
+% \str_map_inline does not, but is not expandable.
+\cs_new:Nn \mal_printer_string:n
+  {
+    \tl_if_empty:nF { #1 }
+      {
+        \tl_if_head_is_space:nTF { #1 }
+          { \c_space_tl }
+          {
+            \exp_args:NnV \tl_if_head_eq_charcode:nNTF { #1 } \c_new_line_str
+              { \c_backslash_str \tl_to_str:n { n } }
+              {
+                \bool_lazy_or:nnT
+                  { \tl_if_head_eq_charcode_p:nN { #1 } " }
+                  { \exp_args:NnV \tl_if_head_eq_charcode_p:nN { #1 } \c_backslash_str }
+                  { \c_backslash_str }
+                \tl_head:n { #1 }
+              }
+          }
+        \mal_printer_string:e { \str_tail:n { #1 } }
+      }
+  }
+
+\cs_generate_variant:Nn \mal_printer_string:n { e, o }
+
+\cs_new:Nn \mal_printer_pr_str_flip:Nn { \mal_printer_pr_str:nN { #2 } #1 }
+
+\cs_new:Nn \mal_printer_tl:nnN
+  {
+    % \iow_term:n {printer_tl~forms=#1~separator=#2~readably=#3}
+    \tl_if_empty:nF {#1}
+      {
+        \mal_printer_pr_str:fN { \tl_head:n { #1 } } #3
+        \tl_map_tokens:on { \use_none:n #1 }
+          { #2 \mal_printer_pr_str_flip:Nn #3 }
+      }
+  }
+\cs_generate_variant:Nn \mal_printer_tl:nnN { nVN, oVN, VVN, eVN }
+
+\cs_new:Nn \mal_printer_map_fn:nn
+  { \str_if_eq:nnF { #1 } { __meta__ } { \exp_not:n { { #1 } { #2 } } } }
+
+\cs_new:Nn \mal_printer_pr_str:nN
+  {
+    \exp_args:Nf \token_case_charcode:NnF { \tl_head:n {#1} }
+      {
+        n { \tl_to_str:n { nil } }
+        f { \tl_to_str:n { false } }
+        t { \tl_to_str:n { true } }
+
+        i { \int_to_arabic:o { \use_none:n #1 } }
+
+        y { \use_none:n #1 }
+        k { \c_colon_str \use_none:n #1 }
+        s
+        {
+          \bool_if:NTF #2
+            { " \mal_printer_string:o { \use_none:n #1 } " }
+            { \use_none:n #1 }
+        }
+
+        l { ( \mal_printer_tl:oVN { \use_none:nn #1 } \c_space_tl #2 ) }
+        v { [ \mal_printer_tl:oVN { \use_none:nn #1 } \c_space_tl #2 ] }
+        m
+        {
+          \c_left_brace_str
+          \mal_printer_tl:eVN
+            { \prop_map_function:cN { #1 } \mal_printer_map_fn:nn }
+            \c_space_tl #2
+          \c_right_brace_str
+        }
+
+        b { \tl_to_str:n { <builtin~function> } }
+        u { \tl_to_str:n { <fn*~function> } }
+        c { \tl_to_str:n { <macro> } }
+        a { \tl_to_str:n { (atom~ } \mal_printer_pr_str:vN { #1 } #2 ) }
+        e
+        { \tl_to_str:n { Error:~ } \mal_printer_pr_str:oN { \use_none:n #1 } #2 }
+      }
+      { \tl_to_str:n { Error:~invalid~print~argument~#1 } }
+  }
+\cs_generate_variant:Nn \mal_printer_pr_str:nN { fN, oN, VN, vN }
+
+%% \mal_printer_pr_str:nN { n }                                       \c_true_bool
+%% \mal_printer_pr_str:nN { i 23 }                                    \c_true_bool
+%% \mal_printer_pr_str:oN { y \tl_to_str:n { symbol } }               \c_true_bool
+%% \mal_printer_pr_str:oN { k \tl_to_str:n { keyword } }              \c_true_bool
+%% \mal_printer_pr_str:nN { s }                                       \c_false_bool
+%% \mal_printer_pr_str:oN { s \tl_to_str:n { unreadable"string } }    \c_false_bool
+%% \mal_printer_pr_str:nN { l n }                                     \c_true_bool
+%% \mal_printer_pr_str:nN { l n n t }                                 \c_true_bool
+%% \mal_printer_pr_str:nN { l n { i 1 } { i 2 } }                     \c_true_bool
+%% \mal_printer_pr_str:nN { v n { i 1 } { i 2 } }                     \c_true_bool
+%% \mal_printer_pr_str:nN { l n { l n { i 1 } { i 2 } } t }           \c_true_bool
+%% \mal_printer_pr_str:oN { s \tl_to_str:n { d " q } }                \c_true_bool
+%% \mal_printer_pr_str:oN { s \tl_to_str:n { b } \c_backslash_str \tl_to_str:n { s } } \c_true_bool
+%% \mal_printer_pr_str:oN { s \tl_to_str:n { n } \c_new_line_str  \tl_to_str:n { l } } \c_true_bool
+
+%% \tl_set:Nn \l_tmpa_tl { i 3 }
+%% \mal_printer_pr_str:nN { a \l_tmpa_tl }                            \c_true_bool
+
+%% \prop_clear:N \l_tmpa_prop
+%% \prop_put:Nxn \l_tmpa_prop { k \tl_to_str:n {a} } { i 12 }
+%% \prop_put:Nxn \l_tmpa_prop { s \tl_to_str:n {b} } { n }
+%% \mal_printer_pr_str:xN { m n \exp_not:V \l_tmpa_prop }             \c_true_bool

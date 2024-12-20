@@ -1,32 +1,45 @@
-In process/stepA.gliffy, add inc and remove *gensym-counter*.
-Then refresh the .png files.
+General:
+    * update language graph code and data
+        - pull from GHA instead of Travis
+
+    * Add self-hosted CI mode/variable
+
+    * Go through PRs. Close or update.
+
+    * Add quick checklist for merging upstream to FAQ:
+
+    * Add PR template/checklist.
+
+    * Update diagrams to reflect the merged eval-ast/macroexpand
+      process.
+
+    * Check that implementations are actually running self-hosted.
+      Check for "mal-user>" prompt or something.
+
+    * update language graph code and data
+        * pull from GHA instead of Travis
+
+    * update get-changed-files
+        * use GITHUB_OUTPUT instead of set-output
+        * update version of node
+
+    - Fix self-hosted implementations #662
+
+    - Fix wasm modes wax and wace_libc
+
+    - Fix wasm perf3 hang/OOM
+
+All/multiple Implementations:
+    - Add step3 and step4 tests. Fix powershell, jq, and xslt with
+      binding/closures. https://github.com/kanaka/mal/issues/645
 
 ---------------------------------------------
 
-General:
-    - add chat bot for #mal
-    - move tokenizer.mal and reader.mal from malc to ./lib directory
-
-    - Finish guide.md
-        - mention that identifier names are suggested. some have run
-          into collisions with READ,EVAL,PRINT in case insensitive
-          languages
-        - simplify: "X argument (list element Y)" -> ast[Y]
-        - more clarity about when to peek and poke in read_list and
-          read_form
-        - tokenizer: use first group rather than whole match (to
-          eliminate whitespace/commas)
-
-All Implementations:
-    - regular expression matching in runtest
-    - add re (use in rep) everywhere and use that (to avoid printing)
-    - fix stepA soft failures: lua matlab miniMAL perl racket
-
 Other ideas for All:
-    - propagate/print errors when self-hosted
-    - redefine (defmacro!) as (def! (macro*))
+    - redefine (defmacro!) as (def! foo (macro*))
     - Fix/implement interop in more implementations
 
+    - propagate/print errors when self-hosted
     - metadata on symbols (as per Clojure)
     - metadata as a map only. ^ merges metadata in the reader itself.
       Line numbers in metadata from reader.
@@ -44,9 +57,9 @@ Other ideas for All:
           the namespace environment. Need protocols first probably.
 
     - multi-line REPL read
-    - loop/recur ?
+    - explicit recur in loops (for error checking)
     - gensym reader inside quasiquote
-    - standalone executable
+    - standalone executables
 
 
 ---------------------------------------------
@@ -54,6 +67,7 @@ Other ideas for All:
 Bash:
     - explore using ${!prefix*} syntax (more like make impl)
     - GC
+    - maybe make it work more like basic/wasm
 
 C:
     - come up with better way to do 20 vararg code

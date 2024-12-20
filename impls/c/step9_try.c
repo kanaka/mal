@@ -12,7 +12,6 @@
 // Declarations
 MalVal *EVAL(MalVal *ast, Env *env);
 MalVal *quasiquote(MalVal *ast);
-MalVal *macroexpand(MalVal *ast, Env *env);
 
 // read
 MalVal *READ(char prompt[], char *str) {
@@ -70,31 +69,24 @@ MalVal *quasiquote(MalVal *ast) {
     }
 }
 
-int is_macro_call(MalVal *ast, Env *env) {
-    if (!ast || ast->type != MAL_LIST || _count(ast) == 0) { return 0; }
-    MalVal *a0 = _nth(ast, 0);
-    return (a0->type & MAL_SYMBOL) &&
-            env_find(env, a0) &&
-            env_get(env, a0)->ismacro;
-}
+MalVal *EVAL(MalVal *ast, Env *env) {
+    while (TRUE) {
 
-MalVal *macroexpand(MalVal *ast, Env *env) {
     if (!ast || mal_error) return NULL;
-    while (is_macro_call(ast, env)) {
-        MalVal *a0 = _nth(ast, 0);
-        MalVal *mac = env_get(env, a0);
-        // TODO: this is weird and limits it to 20. FIXME
-        ast = _apply(mac, _rest(ast));
+
+    MalVal *dbgeval = env_get(env, "DEBUG-EVAL");
+    if (dbgeval && !(dbgeval->type & (MAL_FALSE|MAL_NIL))) {
+        g_print("EVAL: %s\n", _pr_str(ast,1));
     }
-    return ast;
-}
 
-MalVal *eval_ast(MalVal *ast, Env *env) {
-    if (!ast || mal_error) return NULL;
     if (ast->type == MAL_SYMBOL) {
         //g_print("EVAL symbol: %s\n", ast->val.string);
-        return env_get(env, ast);
-    } else if ((ast->type == MAL_LIST) || (ast->type == MAL_VECTOR)) {
+        MalVal *res = env_get(env, ast->val.string);
+        assert(res, "'%s' not found", ast->val.string);
+        return res;
+    } else if (ast->type == MAL_LIST) {
+        // Proceed after this conditional.
+    } else if (ast->type == MAL_VECTOR) {
         //g_print("EVAL sequential: %s\n", _pr_str(ast,1));
         MalVal *el = _map2((MalVal *(*)(void*, void*))EVAL, ast, env);
         if (!el || mal_error) return NULL;
@@ -119,25 +111,8 @@ MalVal *eval_ast(MalVal *ast, Env *env) {
         //g_print("EVAL scalar: %s\n", _pr_str(ast,1));
         return ast;
     }
-}
-
-MalVal *EVAL(MalVal *ast, Env *env) {
-    while (TRUE) {
-
-    if (!ast || mal_error) return NULL;
-    //g_print("EVAL: %s\n", _pr_str(ast,1));
-    if (ast->type != MAL_LIST) {
-        return eval_ast(ast, env);
-    }
-    if (!ast || mal_error) return NULL;
 
     // apply list
-    //g_print("EVAL apply list: %s\n", _pr_str(ast,1));
-    ast = macroexpand(ast, env);
-    if (!ast || mal_error) return NULL;
-    if (ast->type != MAL_LIST) {
-        return eval_ast(ast, env);
-    }
     if (_count(ast) == 0) { return ast; }
 
     int i, len;
@@ -149,7 +124,7 @@ MalVal *EVAL(MalVal *ast, Env *env) {
                *a2 = _nth(ast, 2);
         MalVal *res = EVAL(a2, env);
         if (mal_error) return NULL;
-        env_set(env, a1, res);
+        env_set(env, a1->val.string, res);
         return res;
     } else if ((a0->type & MAL_SYMBOL) &&
                strcmp("let*", a0->val.string) == 0) {
@@ -166,7 +141,7 @@ MalVal *EVAL(MalVal *ast, Env *env) {
             key = g_array_index(a1->val.array, MalVal*, i);
             val = g_array_index(a1->val.array, MalVal*, i+1);
             assert_type(key, MAL_SYMBOL, "let* bind to non-symbol");
-            env_set(let_env, key, EVAL(val, let_env));
+            env_set(let_env, key->val.string, EVAL(val, let_env));
         }
         ast = a2;
         env = let_env;
@@ -175,9 +150,6 @@ MalVal *EVAL(MalVal *ast, Env *env) {
                strcmp("quote", a0->val.string) == 0) {
         //g_print("eval apply quote\n");
         return _nth(ast, 1);
-    } else if ((a0->type & MAL_SYMBOL) &&
-               strcmp("quasiquoteexpand", a0->val.string) == 0) {
-        return quasiquote(_nth(ast, 1));
     } else if ((a0->type & MAL_SYMBOL) &&
                strcmp("quasiquote", a0->val.string) == 0) {
         //g_print("eval apply quasiquote\n");
@@ -189,16 +161,13 @@ MalVal *EVAL(MalVal *ast, Env *env) {
         //g_print("eval apply defmacro!\n");
         MalVal *a1 = _nth(ast, 1),
                *a2 = _nth(ast, 2);
-        MalVal *res = EVAL(a2, env);
+        MalVal *old = EVAL(a2, env);
         if (mal_error) return NULL;
+        MalVal *res = malval_new(MAL_FUNCTION_MAL, NULL);
+        res->val.func = old->val.func;
         res->ismacro = TRUE;
-        env_set(env, a1, res);
+        env_set(env, a1->val.string, res);
         return res;
-    } else if ((a0->type & MAL_SYMBOL) &&
-               strcmp("macroexpand", a0->val.string) == 0) {
-        //g_print("eval apply macroexpand\n");
-        MalVal *a1 = _nth(ast, 1);
-        return macroexpand(a1, env);
     } else if ((a0->type & MAL_SYMBOL) &&
                strcmp("try*", a0->val.string) == 0) {
         //g_print("eval apply try*\n");
@@ -226,7 +195,7 @@ MalVal *EVAL(MalVal *ast, Env *env) {
     } else if ((a0->type & MAL_SYMBOL) &&
                strcmp("do", a0->val.string) == 0) {
         //g_print("eval apply do\n");
-        eval_ast(_slice(ast, 1, _count(ast)-1), env);
+        _map2((MalVal *(*)(void*, void*))EVAL, _slice(ast, 1, _count(ast)-1), env);
         ast = _last(ast);
         // Continue loop
     } else if ((a0->type & MAL_SYMBOL) &&
@@ -259,10 +228,15 @@ MalVal *EVAL(MalVal *ast, Env *env) {
         return mf;
     } else {
         //g_print("eval apply\n");
-        MalVal *el = eval_ast(ast, env);
-        if (!el || mal_error) { return NULL; }
-        MalVal *f = _first(el),
-               *args = _rest(el);
+        MalVal *f = EVAL(a0, env);
+        if (!f || mal_error) { return NULL; }
+        MalVal *rest = _rest(ast);
+        if (f->ismacro) {
+            ast = _apply(f, rest);
+            continue;
+        }
+        MalVal *args = _map2((MalVal *(*)(void*, void*))EVAL, rest, env);
+        if (!args || mal_error) { return NULL; }
         assert_type(f, MAL_FUNCTION_C|MAL_FUNCTION_MAL,
                     "cannot apply '%s'", _pr_str(f,1));
         if (f->type & MAL_FUNCTION_MAL) {
@@ -310,12 +284,10 @@ void init_repl_env(int argc, char *argv[]) {
     // core.c: defined using C
     int i;
     for(i=0; i < (sizeof(core_ns) / sizeof(core_ns[0])); i++) {
-        env_set(repl_env,
-                malval_new_symbol(core_ns[i].name),
+        env_set(repl_env, core_ns[i].name,
                 malval_new_function(core_ns[i].func, core_ns[i].arg_cnt));
     }
-    env_set(repl_env,
-            malval_new_symbol("eval"),
+    env_set(repl_env, "eval",
             malval_new_function((void*(*)(void *))do_eval, 1));
 
     MalVal *_argv = _listX(0);
@@ -323,7 +295,7 @@ void init_repl_env(int argc, char *argv[]) {
         MalVal *arg = malval_new_string(argv[i]);
         g_array_append_val(_argv->val.array, arg);
     }
-    env_set(repl_env, malval_new_symbol("*ARGV*"), _argv);
+    env_set(repl_env, "*ARGV*", _argv);
 
     // core.mal: defined using the language itself
     RE(repl_env, "", "(def! not (fn* (a) (if a false true)))");

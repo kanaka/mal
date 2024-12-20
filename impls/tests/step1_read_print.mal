@@ -142,6 +142,8 @@ false
 ;/.*(EOF|end of input|unbalanced).*
 [1 2
 ;/.*(EOF|end of input|unbalanced).*
+{"a" 2
+;/.*(EOF|end of input|unbalanced).*
 
 ;;; These should throw some error with no return value
 "abc
@@ -166,6 +168,8 @@ false
 ;=>(quasiquote 1)
 `(1 2 3)
 ;=>(quasiquote (1 2 3))
+`(a (b) c)
+;=>(quasiquote (a (b) c))
 ~1
 ;=>(unquote 1)
 ~(1 2 3)
@@ -233,6 +237,10 @@ false
 @a
 ;=>(deref a)
 
+;; Colon character inside a symbol
+a:
+;=>a:
+
 ;>>> soft=True
 ;>>> optional=True
 ;;
@@ -241,9 +249,10 @@ false
 ;; Testing read of ^/metadata
 ^{"a" 1} [1 2 3]
 ;=>(with-meta [1 2 3] {"a" 1})
+^2 [1 2 3]
+;=>(with-meta [1 2 3] 2)
 
-
-;; Non alphanumerice characters in strings
+;; Non alphanumeric characters in strings
 ;;; \t is not specified enough to be tested
 "\n"
 ;=>"\n"

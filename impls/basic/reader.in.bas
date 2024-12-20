@@ -9,6 +9,7 @@ READ_TOKEN:
   IF C$=";" THEN GOSUB SKIP_TO_EOL:GOTO READ_TOKEN
   T$=C$
   IF T$="(" OR T$=")" OR T$="[" OR T$="]" OR T$="{" OR T$="}" OR T$="'" OR T$="`" OR T$="@" THEN RETURN
+  IF T$="^" THEN RETURN
   GOSUB PEEK_CHAR: REM peek at next character
   IF T$="~" AND C$<>"@" THEN RETURN
   S1=0:S2=0: REM S1: INSTRING?, S2: ESCAPED?
@@ -266,8 +267,8 @@ READ_FILE:
   SD=0: REM sequence read depth
   D$="": REM pending read/peek character
   #cbm OPEN 2,8,0,A$
-  #qbasic IF NOT _FILEEXISTS(A$) THEN ER=-1:E$="File not found":RETURN
   #qbasic OPEN A$ FOR INPUT AS #2
+  #qbasic IF ERR()<>0 THEN ER=-1:E$="File not found":RETURN
   REM READ_TOKEN adds "(do ... )"
   CALL READ_FORM
   CLOSE 2

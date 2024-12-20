@@ -11,15 +11,13 @@ proc initEnv*(outer: Env = nil, binds, exprs: MalType = nilObj): Env =
       else:
         result.data[e.str] = exprs.list[i]
 
-proc set*(e: var Env, key: string, value: MalType): MalType {.discardable.} =
+proc set*(e: Env, key: string, value: MalType): MalType {.discardable.} =
   e.data[key] = value
   value
 
-proc find*(e: Env, key: string): Env =
-  if e.data.hasKey(key): return e
-  if e.outer != nil:     return e.outer.find(key)
-
 proc get*(e: Env, key: string): MalType =
-  let env = e.find(key)
-  if env == nil: raise newException(ValueError, "'" & key & "' not found")
-  env.data[key]
+  var env = e
+  while not env.data.hasKey(key):
+    env = env.outer
+    if env.isNil: return nil
+  return env.data[key]

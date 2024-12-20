@@ -15,17 +15,21 @@ fmap-ast = (fn, {type, value}: ast) -->
     {type: type, value: fn value}
 
 
-eval_simple = (env, {type, value}: ast) ->
-    switch type
-    | \symbol => env.get value
-    | \list, \vector => ast |> fmap-ast map eval_ast env
-    | \map => ast |> fmap-ast Obj.map eval_ast env
-    | otherwise => ast
-
-
 eval_ast = (env, {type, value}: ast) -->
-    if type != \list then eval_simple env, ast
-    else if value.length == 0 then ast
+
+    dbgeval = env.get "DEBUG-EVAL"
+    if dbgeval and is-thruthy dbgeval then console.log "EVAL: #{pr_str ast}"
+
+    switch type
+    | \symbol => return (env.get value
+                         or throw new Error "'#{value}' not found")
+    | \list =>
+        # Proceed after this switch
+    | \vector => return (ast |> fmap-ast map eval_ast env)
+    | \map => return (ast |> fmap-ast Obj.map eval_ast env)
+    | otherwise => return ast
+
+    if value.length == 0 then ast
     else if value[0].type == \symbol
         params = value[1 to]
         switch value[0].value

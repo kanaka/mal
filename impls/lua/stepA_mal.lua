@@ -51,28 +51,21 @@ function quasiquote(ast)
     end
 end
 
-function is_macro_call(ast, env)
-    if types._list_Q(ast) and
-       types._symbol_Q(ast[1]) and
-       env:find(ast[1]) then
-        local f = env:get(ast[1])
-        return types._malfunc_Q(f) and f.ismacro
-    end
-end
+function EVAL(ast, env)
+  while true do
 
-function macroexpand(ast, env)
-    while is_macro_call(ast, env) do
-        local mac = env:get(ast[1])
-        ast = mac.fn(table.unpack(ast:slice(2)))
+    local dbgeval = env:get("DEBUG-EVAL")
+    if dbgeval ~= nil and dbgeval ~= types.Nil and dbgeval ~= false then
+        print("EVAL: " .. printer._pr_str(ast, true))
+        env:debug()
     end
-    return ast
-end
 
-function eval_ast(ast, env)
     if types._symbol_Q(ast) then
-        return env:get(ast)
-    elseif types._list_Q(ast) then
-        return List:new(utils.map(function(x) return EVAL(x,env) end,ast))
+        local result = env:get(ast.val)
+        if result == nil then
+            types.throw("'" .. ast.val .. "' not found")
+        end
+        return result
     elseif types._vector_Q(ast) then
         return Vector:new(utils.map(function(x) return EVAL(x,env) end,ast))
     elseif types._hash_map_Q(ast) then
@@ -81,64 +74,52 @@ function eval_ast(ast, env)
             new_hm[k] = EVAL(v, env)
         end
         return HashMap:new(new_hm)
-    else
+    elseif not types._list_Q(ast) or #ast == 0 then
         return ast
     end
-end
-
-function EVAL(ast, env)
-  while true do
-    --print("EVAL: "..printer._pr_str(ast,true))
-    if not types._list_Q(ast) then return eval_ast(ast, env) end
 
     -- apply list
-    ast = macroexpand(ast, env)
-    if not types._list_Q(ast) then return eval_ast(ast, env) end
 
     local a0,a1,a2,a3 = ast[1], ast[2],ast[3],ast[4]
-    if not a0 then return ast end
     local a0sym = types._symbol_Q(a0) and a0.val or ""
     if 'def!' == a0sym then
-        return env:set(a1, EVAL(a2, env))
+        return env:set(a1.val, EVAL(a2, env))
     elseif 'let*' == a0sym then
         local let_env = Env:new(env)
         for i = 1,#a1,2 do
-            let_env:set(a1[i], EVAL(a1[i+1], let_env))
+            let_env:set(a1[i].val, EVAL(a1[i+1], let_env))
         end
         env = let_env
         ast = a2 -- TCO
     elseif 'quote' == a0sym then
         return a1
-    elseif 'quasiquoteexpand' == a0sym then
-        return quasiquote(a1)
     elseif 'quasiquote' == a0sym then
         ast = quasiquote(a1) -- TCO
     elseif 'defmacro!' == a0sym then
-        local mac = EVAL(a2, env)
+        local mac = types.copy(EVAL(a2, env))
         mac.ismacro = true
-        return env:set(a1, mac)
-    elseif 'macroexpand' == a0sym then
-        return macroexpand(a1, env)
+        return env:set(a1.val, mac)
     elseif 'try*' == a0sym then
+      if a2 == nil or a2[1].val ~= 'catch*' then
+        ast = a1 -- TCO
+      else
         local exc, result = nil, nil
         xpcall(function()
             result = EVAL(a1, env)
         end, function(err)
             exc = err
         end)
-        if exc ~= nil then
+        if exc == nil then
+            return result
+        else
             if types._malexception_Q(exc) then
                 exc = exc.val
             end
-            if a2 and a2[1].val == 'catch*' then
-                result = EVAL(a2[3], Env:new(env, {a2[2]}, {exc}))
-            else
-                types.throw(exc)
-            end
+            ast, env = a2[3], Env:new(env, {a2[2]}, {exc}) -- TCO
         end
-        return result
+      end
     elseif 'do' == a0sym then
-        local el = eval_ast(ast:slice(2,#ast-1), env)
+        utils.map(function(x) return EVAL(x, env) end, types.slice(ast, 2, #ast - 1))
         ast = ast[#ast]  -- TCO
     elseif 'if' == a0sym then
         local cond = EVAL(a1, env)
@@ -152,14 +133,19 @@ function EVAL(ast, env)
             return EVAL(a2, Env:new(env, a1, table.pack(...)))
         end, a2, env, a1)
     else
-        local args = eval_ast(ast, env)
-        local f = table.remove(args, 1)
+      local f = EVAL(a0, env)
+      local args = types.slice(ast, 2)
+      if types._macro_Q(f) then
+        ast = f.fn(table.unpack(args)) -- TCO
+      else
+        args = utils.map(function(x) return EVAL(x,env) end, args)
         if types._malfunc_Q(f) then
             ast = f.ast
             env = Env:new(f.env, f.params, args) -- TCO
         else
             return f(table.unpack(args))
         end
+      end
     end
   end
 end
@@ -177,11 +163,11 @@ end
 
 -- core.lua: defined using Lua
 for k,v in pairs(core.ns) do
-    repl_env:set(types.Symbol:new(k), v)
+    repl_env:set(k, v)
 end
-repl_env:set(types.Symbol:new('eval'),
+repl_env:set('eval',
              function(ast) return EVAL(ast, repl_env) end)
-repl_env:set(types.Symbol:new('*ARGV*'), types.List:new(types.slice(arg,2)))
+repl_env:set('*ARGV*', types.List:new(types.slice(arg,2)))
 
 -- core.mal: defined using mal
 rep("(def! *host-language* \"lua\")")

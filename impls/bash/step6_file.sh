@@ -12,18 +12,30 @@ READ () {
 }
 
 # eval
-EVAL_AST () {
+_symbol DEBUG-EVAL; debug_eval="$r"
+
+EVAL () {
     local ast="${1}" env="${2}"
-    #_pr_str "${ast}"; echo "EVAL_AST '${ast}:${r} / ${env}'"
+    while true; do
+    r=
+
+    ENV_GET "$env" "$debug_eval"
+    if [ -n "$__ERROR" ]; then
+        __ERROR=
+    elif [ "$r" != "$__false" -a "$r" != "$__nil" ]; then
+        _pr_str "$ast" yes; echo "EVAL: $r / $env"
+    fi
+
     _obj_type "${ast}"; local ot="${r}"
     case "${ot}" in
     symbol)
         ENV_GET "${env}" "${ast}"
         return ;;
     list)
-        _map_with_type _list EVAL "${ast}" "${env}" ;;
+        ;;
     vector)
-        _map_with_type _vector EVAL "${ast}" "${env}" ;;
+        _map_with_type _vector EVAL "${ast}" "${env}"
+        return ;;
     hash_map)
         local res="" key= val="" hm="${ANON["${ast}"]}"
         _hash_map; local new_hm="${r}"
@@ -33,23 +45,12 @@ EVAL_AST () {
             EVAL "${val}" "${env}"
             _assoc! "${new_hm}" "${key}" "${r}"
         done
-        r="${new_hm}" ;;
+        r="${new_hm}"
+        return ;;
     *)
-        r="${ast}" ;;
+        r="${ast}"
+        return ;;
     esac
-}
-
-EVAL () {
-    local ast="${1}" env="${2}"
-    while true; do
-    r=
-    [[ "${__ERROR}" ]] && return 1
-    #_pr_str "${ast}"; echo "EVAL '${r} / ${env}'"
-    _obj_type "${ast}"; local ot="${r}"
-    if [[ "${ot}" != "list" ]]; then
-        EVAL_AST "${ast}" "${env}"
-        return
-    fi
 
     # apply list
     _empty? "${ast}" && r="${ast}" && return
@@ -77,7 +78,7 @@ EVAL () {
               ;;
         do)   _count "${ast}"
               _slice "${ast}" 1 $(( ${r} - 2 ))
-              EVAL_AST "${r}" "${env}"
+              _map_with_type _list EVAL "${r}" "${env}"
               [[ "${__ERROR}" ]] && r= && return 1
               _last "${ast}"
               ast="${r}"
@@ -104,7 +105,7 @@ EVAL () {
                          EVAL \"${a2}\" \"\${r}\"" \
                         "${a2}" "${env}" "${a1}"
               return ;;
-        *)    EVAL_AST "${ast}" "${env}"
+        *)    _map_with_type _list EVAL "${ast}" "${env}"
               [[ "${__ERROR}" ]] && r= && return 1
               local el="${r}"
               _first "${el}"; local f="${ANON["${r}"]}"

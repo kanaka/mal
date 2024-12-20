@@ -36,7 +36,7 @@ Calling arguments/temporaries:
 A   : common call argument (especially EVAL, EVAL_AST)
 A$  : common call argument (READLINE, reader, string temp, key value)
 B   : common call argument
-B$  : STRING arg (HASHMAP_GET temp), PR_STR_SEQ separator
+B$  : STRING arg for HASHMAP_GET, PR_STR_SEQ separator
     : INIT_CORE_SET_FUNCTION, ENV_SET_S, ASSOC1_S
 C   : common call argument, DO_TCO_FUNCTION temp in DO_APPLY
 E   : environment (EVAL, EVAL_AST)
@@ -60,7 +60,6 @@ P3  : PR_OBJECT, PR_MEMORY_VALUE
 R1  : REP, RE - MAL_READ result temp
 R2  : REP, RE - EVAL result temp
 R3  : HASHMAP_GET, DO_HASH_MAP, DO_KEYS_VALS temp and return value
-R4  : ENV_FIND temp and return value
 R6  : SLICE return value (last element)
 SZ  : size argument to ALLOC
 S1$ : REPLACE needle

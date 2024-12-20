@@ -8,12 +8,19 @@ function READ(str)
   return ReadStr(a:str)
 endfunction
 
-function EvalAst(ast, env)
+function EVAL(ast, env)
+  let dbgeval = a:env.get("DEBUG-EVAL")
+  if !(empty(dbgeval) || FalseQ(dbgeval) || NilQ(dbgeval))
+    call PrintLn("EVAL: " . PrStr(a:ast, 1))
+  endif
+
   if SymbolQ(a:ast)
     let varname = a:ast.val
-    return a:env.get(varname)
-  elseif ListQ(a:ast)
-    return ListNew(map(copy(a:ast.val), {_, e -> EVAL(e, a:env)}))
+    let Val = a:env.get(varname)
+    if empty(Val)
+      throw "'" . varname . "' not found"
+    endif
+    return Val
   elseif VectorQ(a:ast)
     return VectorNew(map(copy(a:ast.val), {_, e -> EVAL(e, a:env)}))
   elseif HashQ(a:ast)
@@ -23,14 +30,9 @@ function EvalAst(ast, env)
       let ret[k] = newval
     endfor
     return HashNew(ret)
-  else
-    return a:ast
-  end
-endfunction
-
-function EVAL(ast, env)
+  endif
   if !ListQ(a:ast)
-    return EvalAst(a:ast, a:env)
+    return a:ast
   end
   if EmptyQ(a:ast)
     return a:ast
@@ -54,7 +56,7 @@ function EVAL(ast, env)
     return EVAL(a2, let_env)
   else
     " apply list
-    let el = EvalAst(a:ast, a:env)
+    let el = ListNew(map(copy(a:ast.val), {_, e -> EVAL(e, a:env)}))
     let Fn = el.val[0]
     return Fn(el.val[1:-1])
   endif

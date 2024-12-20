@@ -20,13 +20,11 @@ d_MODE = gdc
 haxe_MODE = neko
 # octave or matlab
 matlab_MODE = octave
-# python, python2 or python3
-python_MODE = python
 # scheme (chibi, kawa, gauche, chicken, sagittarius, cyclone, foment)
 scheme_MODE = chibi
 # sml (polyml, mlton, mosml)
 sml_MODE = polyml
-# wasmtime wasmer lucet wax  node warpy  wace_libc
+# wasmtime wasmer wax node warpy wace_libc direct js wace_fooboot
 wasm_MODE = wasmtime
 
 
@@ -36,16 +34,15 @@ wasm_MODE = wasmtime
 
 IMPLS = ada ada.2 awk bash basic bbc-basic c c.2 chuck clojure coffee common-lisp cpp crystal cs d dart \
 	elisp elixir elm erlang es6 factor fantom fennel forth fsharp go groovy gnu-smalltalk \
-	guile haskell haxe hy io janet java java-truffle js jq julia kotlin livescript logo lua make mal \
+	guile haskell haxe hy io janet java java-truffle js jq julia kotlin latex3 livescript logo lua make mal \
 	matlab miniMAL nasm nim objc objpascal ocaml perl perl6 php picolisp pike plpgsql \
-	plsql powershell prolog ps purs python python.2 r racket rexx rpython ruby ruby.2 rust scala scheme skew sml \
-	swift swift3 swift4 swift5 tcl ts vala vb vhdl vimscript wasm wren yorick xslt zig \
-	python-compile
-
+	plsql powershell prolog ps purs python2 python3 r racket rexx rpython ruby ruby.2 rust scala scheme skew sml \
+	swift swift3 swift4 swift6 tcl ts vala vb vbs vhdl vimscript wasm wren yorick xslt zig \
+    python-compile
 
 step5_EXCLUDES += bash        # never completes at 10,000
 step5_EXCLUDES += basic       # too slow, and limited to ints of 2^16
-step5_EXCLUDES += logo        # too slow for 10,000
+step5_EXCLUDES += latex3      # no iteration, limited native stack
 step5_EXCLUDES += make        # no TCO capability (iteration or recursion)
 step5_EXCLUDES += mal         # host impl dependent
 step5_EXCLUDES += matlab      # never completes at 10,000
@@ -56,6 +53,7 @@ step5_EXCLUDES += prolog      # no iteration (but interpreter does TCO implicitl
 step5_EXCLUDES += sml         # not implemented :(
 step5_EXCLUDES += $(if $(filter cpp,$(haxe_MODE)),haxe,) # cpp finishes 10,000, segfaults at 100,000
 step5_EXCLUDES += xslt		  # iteration cannot be expressed
+step5_EXCLUDES += vbs         # too slow for 10,000
 
 dist_EXCLUDES += mal
 # TODO: still need to implement dist
@@ -78,8 +76,11 @@ ifeq ($(MAL_IMPL),vimscript)
 mal_TEST_OPTS = --start-timeout 60 --test-timeout 180
 else ifeq ($(MAL_IMPL),powershell)
 mal_TEST_OPTS = --start-timeout 60 --test-timeout 180
+else ifeq ($(MAL_IMPL),vbs)
+mal_TEST_OPTS = --start-timeout 60 --test-timeout 180 --no-pty
 endif
 xslt_TEST_OPTS = --test-timeout 120
+vbs_TEST_OPTS = --no-pty
 
 
 #
@@ -148,6 +149,7 @@ js_STEP_TO_PROG =            impls/js/$($(1)).js
 jq_STEP_PROG =               impls/jq/$($(1)).jq
 julia_STEP_TO_PROG =         impls/julia/$($(1)).jl
 kotlin_STEP_TO_PROG =        impls/kotlin/$($(1)).jar
+latex3_STEP_TO_PROG =        impls/latex3/$($(1)).tex
 livescript_STEP_TO_PROG =    impls/livescript/$($(1)).js
 logo_STEP_TO_PROG =          impls/logo/$($(1)).lg
 lua_STEP_TO_PROG =           impls/lua/$($(1)).lua
@@ -171,16 +173,16 @@ powershell_STEP_TO_PROG =    impls/powershell/$($(1)).ps1
 prolog_STEP_TO_PROG =        impls/prolog/$($(1)).pl
 ps_STEP_TO_PROG =            impls/ps/$($(1)).ps
 purs_STEP_TO_PROG =          impls/purs/$($(1)).js
-python_STEP_TO_PROG =        impls/python/$($(1)).py
+python2_STEP_TO_PROG =       impls/python2/$($(1)).py
+python3_STEP_TO_PROG =       impls/python3/$($(1)).py
 python-compile_STEP_TO_PROG = impls/python-compile/$($(1)).py
-python.2_STEP_TO_PROG =      impls/python.2/$($(1)).py
 r_STEP_TO_PROG =             impls/r/$($(1)).r
 racket_STEP_TO_PROG =        impls/racket/$($(1)).rkt
 rexx_STEP_TO_PROG =          impls/rexx/$($(1)).rexxpp
 rpython_STEP_TO_PROG =       impls/rpython/$($(1))
 ruby_STEP_TO_PROG =          impls/ruby/$($(1)).rb
 ruby.2_STEP_TO_PROG =        impls/ruby.2/$($(1)).rb
-rust_STEP_TO_PROG =          impls/rust/$($(1))
+rust_STEP_TO_PROG =          impls/rust/target/release/$($(1))
 scala_STEP_TO_PROG =         impls/scala/target/scala-2.11/classes/$($(1)).class
 scheme_STEP_TO_PROG =        $(scheme_STEP_TO_PROG_$(scheme_MODE))
 skew_STEP_TO_PROG =          impls/skew/$($(1)).js
@@ -188,14 +190,15 @@ sml_STEP_TO_PROG =           impls/sml/$($(1))
 swift_STEP_TO_PROG =         impls/swift/$($(1))
 swift3_STEP_TO_PROG =        impls/swift3/$($(1))
 swift4_STEP_TO_PROG =        impls/swift4/$($(1))
-swift5_STEP_TO_PROG =        impls/swift5/$($(1))
+swift6_STEP_TO_PROG =        impls/swift6/$($(1))
 tcl_STEP_TO_PROG =           impls/tcl/$($(1)).tcl
 ts_STEP_TO_PROG =            impls/ts/$($(1)).js
 vala_STEP_TO_PROG =          impls/vala/$($(1))
 vb_STEP_TO_PROG =            impls/vb/$($(1)).exe
+vbs_STEP_TO_PROG =           impls/vbs/$($(1)).vbs
 vhdl_STEP_TO_PROG =          impls/vhdl/$($(1))
 vimscript_STEP_TO_PROG =     impls/vimscript/$($(1)).vim
-wasm_STEP_TO_PROG =          impls/wasm/$($(1)).$(if $(filter lucet,$(wasm_MODE)),so,wasm)
+wasm_STEP_TO_PROG =          impls/wasm/$($(1)).wasm
 wren_STEP_TO_PROG =          impls/wren/$($(1)).wren
 yorick_STEP_TO_PROG =        impls/yorick/$($(1)).i
 xslt_STEP_TO_PROG =          impls/xslt/$($(1))

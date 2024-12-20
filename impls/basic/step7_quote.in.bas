@@ -10,56 +10,51 @@ REM $INCLUDE: 'core.in.bas'
 
 REM $INCLUDE: 'debug.in.bas'
 
-REM READ(A$) -> R
-MAL_READ:
-  GOSUB READ_STR
-  RETURN
+REM READ is inlined in RE
 
 REM QUASIQUOTE(A) -> R
 SUB QUASIQUOTE
   GOSUB TYPE_A
-  IF T<5 OR T>8 THEN GOTO QQ_UNCHANGED
-  IF T=5 OR T=8 THEN GOTO QQ_QUOTE
-  IF T=7 THEN GOTO QQ_VECTOR
-  IF (Z%(A+1)=0) THEN GOTO QQ_LIST
-  R=Z%(A+2)
-  IF (Z%(R)AND 31)<>5 THEN GOTO QQ_LIST
-  IF S$(Z%(R+1))<>"unquote" THEN GOTO QQ_LIST
-  GOTO QQ_UNQUOTE
+  T=T-4
+  IF 0<T THEN ON T GOTO QQ_SYMBOL,QQ_LIST,QQ_VECTOR,QQ_MAP
 
-  QQ_UNCHANGED:
+  REM Return other types unchanged.
     R=A
     GOSUB INC_REF_R
-
     GOTO QQ_DONE
 
-  QQ_QUOTE:
-    REM ['quote, ast]
+  QQ_MAP:
+  QQ_SYMBOL:
+    REM Return a list containing 'quote and A.
     B$="quote":T=5:GOSUB STRING
     B=R:GOSUB LIST2
     AY=B:GOSUB RELEASE
-
     GOTO QQ_DONE
 
   QQ_VECTOR:
-    REM ['vec, (qq_foldr ast)]
+    REM Return a list containing 'vec and the result of QQ_FOLDR on A.
     CALL QQ_FOLDR
     A=R
     B$="vec":T=5:GOSUB STRING:B=R
     GOSUB LIST2
     AY=A:GOSUB RELEASE
     AY=B:GOSUB RELEASE
-
-    GOTO QQ_DONE
-
-  QQ_UNQUOTE:
-    REM [ast[1]]
-    R=Z%(Z%(A+1)+2)
-    GOSUB INC_REF_R
-
     GOTO QQ_DONE
 
   QQ_LIST:
+    REM Check if A contains 'unquote and a form.
+    IF (Z%(A+1)=0) THEN GOTO QQ_LIST_NORMAL
+    R=Z%(A+2)
+    IF (Z%(R)AND 31)<>5 THEN GOTO QQ_LIST_NORMAL
+    IF S$(Z%(R+1))<>"unquote" THEN GOTO QQ_LIST_NORMAL
+
+  REM Indeed.  Return a list containing 'unquote and the form.
+    R=Z%(Z%(A+1)+2)
+    GOSUB INC_REF_R
+    GOTO QQ_DONE
+
+  QQ_LIST_NORMAL:
+    REM Normal list, process with QQ_FOLDR.
     CALL QQ_FOLDR
 
 QQ_DONE:
@@ -127,7 +122,6 @@ SUB QQ_FOLDR
 QQ_FOLDR_DONE:
 END SUB
 
-
 REM EVAL_AST(A, E) -> R
 SUB EVAL_AST
   REM push A and E on the stack
@@ -137,20 +131,8 @@ SUB EVAL_AST
   IF ER<>-2 THEN GOTO EVAL_AST_RETURN
 
   GOSUB TYPE_A
-  IF T=5 THEN GOTO EVAL_AST_SYMBOL
-  IF T>=6 AND T<=8 THEN GOTO EVAL_AST_SEQ
+  IF T<6 OR 8<T THEN R=-1:ER=-1:E$="EVAL_AST: bad type":GOTO EVAL_AST_RETURN
 
-  REM scalar: deref to actual value and inc ref cnt
-  R=A
-  GOSUB INC_REF_R
-  GOTO EVAL_AST_RETURN
-
-  EVAL_AST_SYMBOL:
-    K=A:GOTO ENV_GET
-    ENV_GET_RETURN:
-    GOTO EVAL_AST_RETURN
-
-  EVAL_AST_SEQ:
     REM setup the stack for the loop
     GOSUB MAP_LOOP_START
 
@@ -181,7 +163,6 @@ SUB EVAL_AST
       REM for hash-maps, copy the key (inc ref since we are going to
       REM release it below)
       IF T=8 THEN N=M:M=Z%(A+2):Z%(M)=Z%(M)+32
-
 
       REM update the return sequence structure
       REM release N (and M if T=8) since seq takes full ownership
@@ -216,16 +197,34 @@ SUB EVAL
 
   IF ER<>-2 THEN GOTO EVAL_RETURN
 
-  REM AZ=A:B=1:GOSUB PR_STR
-  REM PRINT "EVAL: "+R$+" [A:"+STR$(A)+", LV:"+STR$(LV)+"]"
+  B$="DEBUG-EVAL":CALL ENV_GET
+  IF R3=0 OR R=0 OR R=2 THEN GOTO DEBUG_EVAL_DONE
+    AZ=A:B=1:GOSUB PR_STR
+    PRINT "EVAL: "+R$+" [A:"+STR$(A)+", LV:"+STR$(LV)+"]"
+  DEBUG_EVAL_DONE:
 
-  GOSUB LIST_Q
-  IF R THEN GOTO APPLY_LIST
+  GOSUB TYPE_A
+  T=T-4
+  IF 0<T THEN ON T GOTO EVAL_SYMBOL,APPLY_LIST,EVAL_VECTOR,EVAL_MAP
+
   REM ELSE
+    R=A
+    GOSUB INC_REF_R
+    GOTO EVAL_RETURN
+
+  EVAL_SYMBOL:
+    B$=S$(Z%(A+1)):CALL ENV_GET
+    IF R3=0 THEN R=-1:ER=-1:E$="'"+B$+"' not found":GOTO EVAL_RETURN
+    GOSUB INC_REF_R
+    GOTO EVAL_RETURN
+
+  EVAL_MAP:
+  EVAL_VECTOR:
     CALL EVAL_AST
     GOTO EVAL_RETURN
 
   APPLY_LIST:
+
     GOSUB EMPTY_Q
     IF R THEN R=A:GOSUB INC_REF_R:GOTO EVAL_RETURN
 
@@ -238,7 +237,6 @@ SUB EVAL
     IF A$="def!" THEN GOTO EVAL_DEF
     IF A$="let*" THEN GOTO EVAL_LET
     IF A$="quote" THEN GOTO EVAL_QUOTE
-    IF A$="quasiquoteexpand" THEN GOTO EVAL_QUASIQUOTEEXPAND
     IF A$="quasiquote" THEN GOTO EVAL_QUASIQUOTE
     IF A$="do" THEN GOTO EVAL_DO
     IF A$="if" THEN GOTO EVAL_IF
@@ -331,11 +329,6 @@ SUB EVAL
       GOSUB INC_REF_R
       GOTO EVAL_RETURN
 
-    EVAL_QUASIQUOTEEXPAND:
-      R=Z%(Z%(A+1)+2)
-      A=R:CALL QUASIQUOTE
-      GOTO EVAL_RETURN
-
     EVAL_QUASIQUOTE:
       R=Z%(Z%(A+1)+2)
       A=R:CALL QUASIQUOTE
@@ -382,11 +375,9 @@ SUB EVAL
       AR=Z%(R+1): REM rest
       F=Z%(R+2)
 
-      REM if metadata, get the actual object
       GOSUB TYPE_F
-      IF T=14 THEN F=Z%(F+1):GOSUB TYPE_F
-
-      ON T-8 GOTO EVAL_DO_FUNCTION,EVAL_DO_MAL_FUNCTION,EVAL_DO_MAL_FUNCTION
+      T=T-8
+      IF 0<T THEN ON T GOTO EVAL_DO_FUNCTION,EVAL_DO_MAL_FUNCTION
 
       REM if error, pop and return f/args for release by caller
       GOSUB POP_R
@@ -453,24 +444,21 @@ SUB EVAL
 
 END SUB
 
-REM PRINT(A) -> R$
-MAL_PRINT:
-  AZ=A:B=1:GOSUB PR_STR
-  RETURN
+REM PRINT is inlined in REP
 
 REM RE(A$) -> R
 REM Assume D has repl_env
 REM caller must release result
 RE:
   R1=-1
-  GOSUB MAL_READ
+  GOSUB READ_STR: REM inlined READ
   R1=R
   IF ER<>-2 THEN GOTO RE_DONE
 
   A=R:E=D:CALL EVAL
 
   RE_DONE:
-    REM Release memory from MAL_READ
+    REM Release memory from READ
     AY=R1:GOSUB RELEASE
     RETURN: REM caller must release result of EVAL
 
@@ -483,10 +471,10 @@ SUB REP
   R2=R
   IF ER<>-2 THEN GOTO REP_DONE
 
-  A=R:GOSUB MAL_PRINT
+  AZ=R:B=1:GOSUB PR_STR: REM inlined PRINT
 
   REP_DONE:
-    REM Release memory from MAL_READ and EVAL
+    REM Release memory from EVAL
     AY=R2:GOSUB RELEASE
 END SUB
 
@@ -526,9 +514,19 @@ MAIN:
   GOSUB RE
 
   REM no arguments, start REPL loop
-  IF R<16 THEN GOTO REPL_LOOP
-
   REM if there is an argument, then run it as a program
+  IF 15<R THEN GOTO RUN_PROG
+
+  REPL_LOOP:
+    A$="user> ":GOSUB READLINE: REM call input parser
+    IF EZ=1 THEN GOTO QUIT
+    IF R$="" THEN GOTO REPL_LOOP
+
+    A$=R$:CALL REP
+
+    IF ER<>-2 THEN GOSUB PRINT_ERROR:GOTO REPL_LOOP
+    PRINT R$
+    GOTO REPL_LOOP
 
   RUN_PROG:
     REM free up first arg because we get it again
@@ -537,21 +535,13 @@ MAIN:
     A$="(load-file (first -*ARGS*-))"
     GOSUB RE
     IF ER<>-2 THEN GOSUB PRINT_ERROR
-    GOTO QUIT
-
-  REPL_LOOP:
-    A$="user> ":GOSUB READLINE: REM call input parser
-    IF EZ=1 THEN GOTO QUIT
-    IF R$="" THEN GOTO REPL_LOOP
-
-    A$=R$:CALL REP: REM call REP
-
-    IF ER<>-2 THEN GOSUB PRINT_ERROR:GOTO REPL_LOOP
-    PRINT R$
-    GOTO REPL_LOOP
 
   QUIT:
     REM GOSUB PR_MEMORY_SUMMARY_SMALL
+    REM GOSUB PR_MEMORY_MAP
+    REM P1=0:P2=ZI:GOSUB PR_MEMORY
+    REM P1=D:GOSUB PR_OBJECT
+    REM P1=ZK:GOSUB PR_OBJECT
     #cbm END
     #qbasic SYSTEM
 
@@ -559,4 +549,3 @@ MAIN:
     PRINT "Error: "+E$
     ER=-2:E$=""
     RETURN
-

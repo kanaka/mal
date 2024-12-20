@@ -11,29 +11,21 @@ local M = {}
 -- string functions
 
 function pr_str(...)
-    return table.concat(
-        utils.map(function(e) return _pr_str(e, true) end,
-                  table.pack(...)), " ")
+    return printer._pr_seq(table.pack(...), true, " ")
 end
 
 function str(...)
-    return table.concat(
-        utils.map(function(e) return _pr_str(e, false) end,
-                  table.pack(...)), "")
+    return printer._pr_seq(table.pack(...), false, "")
 end
 
 function prn(...)
-    print(table.concat(
-        utils.map(function(e) return _pr_str(e, true) end,
-                  table.pack(...)), " "))
+    print(printer._pr_seq(table.pack(...), true, " "))
     io.flush()
     return Nil
 end
 
 function println(...)
-    print(table.concat(
-        utils.map(function(e) return _pr_str(e, false) end,
-                  table.pack(...)), " "))
+    print(printer._pr_seq(table.pack(...), false, " "))
     io.flush()
     return Nil
 end
@@ -107,7 +99,7 @@ function concat(...)
 end
 
 function vec(a)
-    return types.Vector:new(a)
+    return types.Vector:new(types.copy(a))
 end
 
 function nth(seq, idx)
@@ -253,12 +245,12 @@ M.ns = {
     ['number?'] = function(a) return types._number_Q(a) end,
     symbol = function(a) return types.Symbol:new(a) end,
     ['symbol?'] = function(a) return types._symbol_Q(a) end,
-    ['string?'] = function(a) return types._string_Q(a) and "\u{029e}" ~= string.sub(a,1,2) end,
+    ['string?'] = function(a) return types._string_Q(a) end,
     keyword = function(a)
         if types._keyword_Q(a) then
             return a
         else
-            return "\u{029e}"..a
+            return types._keyword_from_lua_string(a)
         end
     end,
     ['keyword?'] = function(a) return types._keyword_Q(a) end,

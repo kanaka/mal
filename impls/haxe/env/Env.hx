@@ -40,23 +40,9 @@ class Env {
         return val;
     }
 
-    public function find(key:MalType):Env {
-        return switch (key) {
-            case MalSymbol(s):
-                if (data.exists(s))     { this; }
-                else if (outer != null) { outer.find(key); }
-                else                    { null; }
-            case _: throw "Invalid Env.find call";
-        }
-    }
-
-    public function get(key:MalType):MalType {
-        return switch (key) {
-            case MalSymbol(s):
-                var e = find(key);
-                if (e == null) { throw "'" + s + "' not found"; }
-                return e.data.get(s);
-            case _: throw "Invalid Env.get call";
-        }
+    public function get(key:String):MalType {
+        if (data.exists(key))   return data.get(key);
+        else if (outer != null) return outer.get(key);
+        else                    return null;
     }
 }

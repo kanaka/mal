@@ -10,7 +10,7 @@ public class MalSeq extends MalSubr
         }
         else if( arg.type == "list" || arg.type == "vector" )
         {
-            Util.sequenceToMalObjectArray(args[0]) @=> MalObject list[];
+            args[0].malObjectValues() @=> MalObject list[];
 
             if( list.size() > 0 )
             {
@@ -23,7 +23,7 @@ public class MalSeq extends MalSubr
         }
         else if( arg.type == "string" )
         {
-            (args[0]$MalString).value() => string value;
+            args[0].stringValue => string value;
 
             if( value.length() > 0 )
             {
@@ -40,6 +40,10 @@ public class MalSeq extends MalSubr
             {
                 return Constants.NIL;
             }
+        }
+        else
+        {
+            return MalError.create("Invalid argument");
         }
     }
 }

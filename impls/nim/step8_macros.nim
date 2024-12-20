@@ -7,7 +7,7 @@ proc quasiquote(ast: MalType): MalType
 proc quasiquote_loop(xs: seq[MalType]): MalType =
   result = list()
   for i in countdown(xs.high, 0):
-    var elt = xs[i]
+    let elt = xs[i]
     if elt.kind == List and 0 < elt.list.len and elt.list[0] == symbol "splice-unquote":
       result = list(symbol "concat", elt.list[1], result)
     else:
@@ -29,57 +29,38 @@ proc quasiquote(ast: MalType): MalType =
   else:
     result = ast
 
-proc is_macro_call(ast: MalType, env: Env): bool =
-  ast.kind == List and ast.list.len > 0 and ast.list[0].kind == Symbol and
-    env.find(ast.list[0].str) != nil and env.get(ast.list[0].str).fun_is_macro
-
-proc macroexpand(ast: MalType, env: Env): MalType =
-  result = ast
-  while result.is_macro_call(env):
-    let mac = env.get(result.list[0].str)
-    result = mac.malfun.fn(result.list[1 .. ^1]).macroexpand(env)
-
-proc eval(ast: MalType, env: Env): MalType
-
-proc eval_ast(ast: MalType, env: var Env): MalType =
-  case ast.kind
-  of Symbol:
-    result = env.get(ast.str)
-  of List:
-    result = list ast.list.mapIt(it.eval(env))
-  of Vector:
-    result = vector ast.list.mapIt(it.eval(env))
-  of HashMap:
-    result = hash_map()
-    for k, v in ast.hash_map.pairs:
-      result.hash_map[k] = v.eval(env)
-  else:
-    result = ast
-
 proc eval(ast: MalType, env: Env): MalType =
   var ast = ast
   var env = env
 
-  template defaultApply =
-    let el = ast.eval_ast(env)
-    let f = el.list[0]
-    case f.kind
-    of MalFun:
-      ast = f.malfun.ast
-      env = initEnv(f.malfun.env, f.malfun.params, list(el.list[1 .. ^1]))
-    else:
-      return f.fun(el.list[1 .. ^1])
-
   while true:
-    if ast.kind != List: return ast.eval_ast(env)
 
-    ast = ast.macroexpand(env)
-    if ast.kind != List: return ast.eval_ast(env)
+    let dbgeval = env.get("DEBUG-EVAL")
+    if not (dbgeval.isNil or dbgeval.kind in {Nil, False}):
+      echo "EVAL: " & ast.pr_str
+
+    case ast.kind
+    of Symbol:
+      let val = env.get(ast.str)
+      if val.isNil:
+        raise newException(ValueError, "'" & ast.str & "' not found")
+      return val
+    of List:
+      discard(nil) # Proceed after the case statement
+    of Vector:
+      return vector ast.list.mapIt(it.eval(env))
+    of HashMap:
+      result = hash_map()
+      for k, v in ast.hash_map.pairs:
+        result.hash_map[k] = v.eval(env)
+      return result
+    else:
+      return ast
+
     if ast.list.len == 0: return ast
 
     let a0 = ast.list[0]
-    case a0.kind
-    of Symbol:
+    if a0.kind == Symbol:
       case a0.str
       of "def!":
         let
@@ -91,7 +72,7 @@ proc eval(ast: MalType, env: Env): MalType =
         let
           a1 = ast.list[1]
           a2 = ast.list[2]
-        var let_env = initEnv(env)
+        let let_env = initEnv(env)
         case a1.kind
         of List, Vector:
           for i in countup(0, a1.list.high, 2):
@@ -99,31 +80,25 @@ proc eval(ast: MalType, env: Env): MalType =
         else: raise newException(ValueError, "Illegal kind in let*")
         ast = a2
         env = let_env
-        # Continue loop (TCO)
+        continue # TCO
 
       of "quote":
         return ast.list[1]
 
-      of "quasiquoteexpand":
-        return ast.list[1].quasiquote
-
       of "quasiquote":
         ast = ast.list[1].quasiquote
-        # Continue loop (TCO)
+        continue # TCO
 
       of "defmacro!":
-        var fun = ast.list[2].eval(env)
-        fun = malfun(fun.malfun.fn, fun.malfun.ast, fun.malfun.params, fun.malfun.env, true)
-        return env.set(ast.list[1].str, fun)
-
-      of "macroexpand":
-        return ast.list[1].macroexpand(env)
+        let fun = ast.list[2].eval(env)
+        let mac = malfun(fun.malfun.fn, fun.malfun.ast, fun.malfun.params, fun.malfun.env, true)
+        return env.set(ast.list[1].str, mac)
 
       of "do":
         let last = ast.list.high
-        discard (list ast.list[1 ..< last]).eval_ast(env)
+        discard (ast.list[1 ..< last].mapIt(it.eval(env)))
         ast = ast.list[last]
-        # Continue loop (TCO)
+        continue # TCO
 
       of "if":
         let
@@ -132,34 +107,43 @@ proc eval(ast: MalType, env: Env): MalType =
           cond = a1.eval(env)
 
         if cond.kind in {Nil, False}:
-          if ast.list.len > 3: ast = ast.list[3]
-          else: ast = nilObj
-        else: ast = a2
+          if ast.list.len > 3:
+            ast = ast.list[3]
+            continue # TCO
+          else:
+            return nilObj
+        else:
+          ast = a2
+          continue # TCO
 
       of "fn*":
         let
           a1 = ast.list[1]
           a2 = ast.list[2]
-        var env2 = env
         let fn = proc(a: varargs[MalType]): MalType =
-          var newEnv = initEnv(env2, a1, list(a))
-          a2.eval(newEnv)
+          a2.eval(initEnv(env, a1, list(a)))
         return malfun(fn, a2, a1, env)
 
-      else:
-        defaultApply()
+    let f = eval(a0, env)
+    if f.fun_is_macro:
+      ast = f.malfun.fn(ast.list[1 .. ^1])
+      continue # TCO
+    let args = ast.list[1 .. ^1].mapIt(it.eval(env))
+    if f.kind == MalFun:
+      ast = f.malfun.ast
+      env = initEnv(f.malfun.env, f.malfun.params, list(args))
+      continue # TCO
 
-    else:
-      defaultApply()
+    return f.fun(args)
 
 proc print(exp: MalType): string = exp.pr_str
 
-var repl_env = initEnv()
+let repl_env = initEnv()
 
 for k, v in ns.items:
   repl_env.set(k, v)
 repl_env.set("eval", fun(proc(xs: varargs[MalType]): MalType = eval(xs[0], repl_env)))
-var ps = commandLineParams()
+let ps = commandLineParams()
 repl_env.set("*ARGV*", list((if paramCount() > 1: ps[1..ps.high] else: @[]).map(str)))
 
 
@@ -181,6 +165,7 @@ while true:
     let line = readLineFromStdin("user> ")
     echo line.rep
   except Blank: discard
+  except IOError: quit()
   except:
     echo getCurrentExceptionMsg()
     echo getCurrentException().getStackTrace()

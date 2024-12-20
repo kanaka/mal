@@ -14,6 +14,9 @@ const VERBOSE = process.env['VERBOSE'] || false
 const BASE_PATH = process.env['BASE_PATH'] || 'base_data.yaml'
 const README_PATH = process.env['README_PATH'] || '../../README.md'
 const MAL_PATH = process.env['MAL_PATH'] || '../../'
+// Refresh this file using this Query page:
+// https://data.stackexchange.com/stackoverflow/query/edit/1013465
+const SO_TAGS_PATH = process.env['SO_TAGS_PATH'] || 'so-tags.csv'
 
 // GitHut 2.0 Pull Requests
 const GITHUT_PULL_URL = process.env['GITHUT_PULL_URL'] || 'https://raw.githubusercontent.com/madnight/githut/master/src/data/gh-pull-request.json'
@@ -22,15 +25,14 @@ const GITHUT_PUSH_URL = process.env['GITHUT_PUSH_URL'] || 'https://raw.githubuse
 // GitHut 2.0 Stars
 const GITHUT_STAR_URL = process.env['GITHUT_STAR_URL'] || 'https://raw.githubusercontent.com/madnight/githut/master/src/data/gh-star-event.json'
 
-// Refresh this link using this Query page:
-// https://data.stackexchange.com/stackoverflow/query/edit/1013465
-const SO_TAG_CSV_URL = process.env['SO_TAG_CSV_URL'] || 'https://data.stackexchange.com/stackoverflow/csv/1252107'
-
+const ignoreLanguages = {"Swift 2":1, "Swift 3":1, "Swift 4":1}
 
 const githutToNames = {
     'Awk':          ['GNU Awk'],
     'Ada':          ['Ada', 'Ada #2'],
+    'C':            ['C', 'C #2'],
     'Shell':        ['Bash 4'],
+    'Java':         ['Java', 'Java Truffle'],
     'JavaScript':   ['JavaScript', 'ES6'],
     'Makefile':     ['GNU Make'],
     'Matlab':       ['MATLAB'],
@@ -39,10 +41,11 @@ const githutToNames = {
     'Objective-C':  ['Objective C'],
     'PLpgSQL':      ['PL/pgSQL'],
     'PLSQL':        ['PL/SQL'],
-    'Python':       ['Python', 'Python #2'],
+    'Python':       ['Python2', 'Python3'],
+    'Ruby':         ['Ruby', 'Ruby #2'],
     'Scheme':       ['Scheme (R7RS)'],
     'Smalltalk':    ['GNU Smalltalk'],
-    'Swift':        ['Swift 2', 'Swift 3', 'Swift 4', 'Swift 5'],
+    'Swift':        ['Swift 5'],
     'Vim script':   ['Vimscript'],
     'Visual Basic': ['Visual Basic.NET'],
 }
@@ -53,24 +56,40 @@ const dirToSOTags = {
     'coffee':    ['coffeescript'],
     'crystal':   ['crystal-lang'],
     'cs':        ['c#', 'c#-2.0', 'c#-3.0', 'c#-4.0'],
+    'c.2':       ['c'],
     'es6':       ['ecmascript-6', 'es6-promise', 'es6-modules', 'es6-class', 'reactjs'],
     'fsharp':    ['f#', 'f#-interactive', 'f#-data', 'f#-3.0'],
     'factor':    ['factor-lang'],
+    'java-truffle': ['graalvm'],
     'js':        ['javascript', 'node.js', 'jquery', 'angular'],
+    'latex3':    ['latex'],
     'logo':      ['logo-lang'],
     'make':      ['makefile'],
+    'nim':       ['nim-lang'],
     'objpascal': ['delphi', 'freepascal', 'delphi-7', 'delphi-2007', 'delphi-2009', 'delphi-2010', 'delphi-xe', 'delphi-xe2', 'delphi-xe3', 'delphi-xe4', 'delphi-xe5', 'delphi-xe7'],
     'objc':      ['objective-c'],
-    'python':    ['python', 'python-3.x', 'python-2.7'],
-    'python.2':  ['python', 'python-3.x', 'python-2.7'],
-    'swift':     ['swift2'],
-    'swift3':    ['swift3'],
-    'swift4':    ['swift4'],
+    'perl6':     ['raku'],
+    'purs':      ['purescript'],
+    'python2':   ['python', 'python-2.7'],
+    'python3':   ['python', 'python-3.x'],
+    'ruby.2':    ['ruby'],
     'swift5':    ['swift', 'swift4', 'swift5'],
     'ts':        ['typescript', 'typescript-generics', 'typescript2.0'],
     'vimscript': ['viml'],
     'vb':        ['vb.net'],
+    'vbs':       ['vbscript'],
     'wasm':      ['webassembly'],
+}
+
+const soMapOverrides = {
+  'mal':       0,  // StackOverflow mal is something else
+  'miniMAL':   0,
+  'bbc-micro': 9,  // outside 50,000 query limit
+  'fennel':    3,  // outside 50,000 query limit
+  'janet':     3,  // outside 50,000 query limit
+  'picolisp':  8,  // outside 50,000 query limit
+  'wren':      4,  // outside 50,000 query limit
+  'yorick':    1,  // outside 50,000 query limit
 }
 
 function vlog(...args) {
@@ -98,17 +117,19 @@ async function main() {
     const githutPushText = (await request(GITHUT_PUSH_URL))
     vlog(`Downloading GitHut Stars HTML from '${GITHUT_STAR_URL}`)
     const githutStarText = (await request(GITHUT_STAR_URL))
-    vlog(`Downloading StackOverflow Tag CSV from '${SO_TAG_CSV_URL}`)
-    const soTagList = await csv().fromStream(request.get(SO_TAG_CSV_URL))
+    vlog(`Loading StackOverflow Tags CSV from '${SO_TAGS_PATH}`)
+    const soTagList = await csv().fromFile(SO_TAGS_PATH)
     vlog(`Loading log data from '${logsPath}'`)
-    const logFiles = (await readdir(logsPath))
-        .map(x => parseInt(x))
-        .sort((a, b) => a - b)
+    const logDirs = (await readdir(logsPath)).sort()
     let logData = []
-    for (const f of logFiles) {
-        if (!(/^[0-9]+$/.exec(f))) { continue }
-        const path = logsPath + "/" + f
-        logData.push([await readFile(path, 'utf8'), path, f])
+    for (const d of logDirs) {
+        let dir = /IMPL=([^ ]*)/.exec(d)[1]
+        if (!dir) { console.log("ignoring log dir:", d); continue }
+        let logPath = `${logsPath}/${d}`
+        const logFiles = (await readdir(logPath))
+            .filter(f => /^perf-.*\.log/.exec(f))
+        const path = `${logPath}/${logFiles[0]}`
+        logData.push([await readFile(path, 'utf8'), path, dir])
     }
 
     let dirs = []
@@ -148,7 +169,9 @@ async function main() {
     for (let row of readmeLines.filter(l => /^\| [\[]/.exec(l))) {
         t = readme_re.exec(row)
         if (t) {
-            if (t[1] in dataByName) {
+            if (t[1] in ignoreLanguages) {
+              vlog(`  ${t[1]}: ignoring (in ignoreLanguages list)`)
+            } else if (t[1] in dataByName) {
                 let data = dataByName[t[1]]
                 data.author_name = t[2]
                 data.author_url  = t[3]
@@ -161,41 +184,12 @@ async function main() {
     }
 
 
-    function githutProcess(textData, kind) {
-        const gMap = JSON.parse(textData)
-            .reduce((m, d) => (m[d.name] = parseInt(d.count) + (m[d.name] || 0), m), {})
-        const gdata = Object.entries(gMap)
-            .sort(([k1,v1],[k2,v2]) => v2 - v1)
-        let curRank = 1
-        for (let [gname, gcount] of gdata) {
-            const names = githutToNames[gname] || [gname]
-            for (let name of names) {
-                if (name in dataByName) {
-                    dataByName[name][kind + '_count'] = gcount
-                    dataByName[name][kind + '_rank'] = curRank
-                    vlog(`  ${dataByName[name].dir} count: ${gcount}, rank: ${curRank}`)
-                    curRank += 1
-                } else {
-                    vlog(`  ignoring GitHut language ${name}`)
-                }
-            }
-        }
-        return curRank;
-    }
-    vlog(`Processing GitHut Pull Request data`)
-    githutProcess(githutPullText, 'pull')
-    vlog(`Processing GitHut Push data`)
-    githutProcess(githutPushText, 'push')
-    vlog(`Processing GitHut Stars data`)
-    githutProcess(githutStarText, 'star')
-
-
     vlog(`Processing StackOverflow tag data`)
-    const soMap = soTagList
-        //.map(d => ({tag: d.TagName, count: parseInt(d.Rate)}))
-        //.sort((a,b) => b.count - a.count)
-        .reduce((m,d) => (m[d.TagName] = parseInt(d.Rate), m), {})
-    soMap['mal'] = 0 // NOTE/TODO: StackOverflow mal is something else
+    const soMap = {
+        ...soTagList
+             .reduce((m,d) => (m[d.TagName] = parseInt(d.Rate), m), {}),
+        ...soMapOverrides
+    }
     for (let dir of dirs) {
         if (!('so_count' in dataByDir[dir])) {
             dataByDir[dir]['so_count'] = 0
@@ -218,7 +212,6 @@ async function main() {
             }
         }
     }
-    vlog()
     let curRank = 1
     let soSort = Object.values(dataByDir).sort((a,b) => b.so_count - a.so_count)
     for (let data of soSort) {
@@ -232,10 +225,7 @@ async function main() {
     vlog(`Processing log file data`)
     const perf_run_re = /Running:.*\.\.\/tests\/(perf[0-9])\.mal/
     const perf_num_re = /Elapsed time: ([0-9.]+) msecs|iters over 10 seconds: ([0-9]+)/
-    for (let [log, file, idx] of logData) {
-        const dir_match = (/export IMPL=(\S+)/i).exec(log)
-        if (!dir_match) { die(1, `no IMPL found in ${file}`) }
-        const dir = dir_match[1]
+    for (let [log, file, dir] of logData) {
         const data = dataByDir[dir]
 //        if (data.perf1 !== null) {
 //            vlog(`  ${dir} already has perf data, ignoring ${file}`)
@@ -258,15 +248,51 @@ async function main() {
                 } while ((!match_num) && i < logLines.length)
             }
         }
-        if ((perfs.perf3 > data.perf3) || !data.perf3) {
+        if ((!data.perf3) || (perfs.perf3 > data.perf3)) {
             data.perf1 = perfs.perf1
             data.perf2 = perfs.perf2
             data.perf3 = perfs.perf3
             vlog(`  ${dir}: ${perfs.perf1}, ${perfs.perf2}, ${perfs.perf3}`)
         } else {
-            vlog(`  ${dir}: ${perfs.perf1}, ${perfs.perf2}, ${perfs.perf3} (perf3 is worse, ignoring log ${idx})`)
+            vlog(`  ${dir}: ${perfs.perf1}, ${perfs.perf2}, ${perfs.perf3} (perf3 is worse, ignoring log ${file})`)
         }
     }
+
+
+    function githutProcess(textData, kind) {
+        const gMap = JSON.parse(textData)
+            .reduce((m, d) => (m[d.name] = parseInt(d.count) + (m[d.name] || 0), m), {})
+        const gdata = Object.entries(gMap)
+            .sort(([k1,v1],[k2,v2]) => v2 - v1)
+        let curRank = 1
+        for (let [gname, gcount] of gdata) {
+            const names = githutToNames[gname] || [gname]
+            for (let name of names) {
+                if (name in dataByName) {
+                    dataByName[name][kind + '_count'] = gcount
+                    dataByName[name][kind + '_rank'] = curRank
+                    vlog(`  ${dataByName[name].dir} count: ${gcount}, rank: ${curRank}`)
+                    curRank += 1
+                } else if (gname in githutToNames) {
+                    vlog(`  ignoring known GitHut language ${name} (${gname})`)
+                } else {
+                    //vlog(`  ignoring GitHut language ${name}`)
+                }
+            }
+        }
+        for (let name in dataByName) {
+          if (!dataByName[name][kind + '_count']) {
+            vlog(`  ${dataByName[name].dir} no GitHut data`)
+          }
+        }
+        return curRank;
+    }
+    vlog(`Processing GitHut Pull Request data`)
+    githutProcess(githutPullText, 'pull')
+    vlog(`Processing GitHut Push data`)
+    githutProcess(githutPushText, 'push')
+    vlog(`Processing GitHut Stars data`)
+    githutProcess(githutStarText, 'star')
 
 
     vlog(`Gathering LOC stats`)

@@ -1,0 +1,11 @@
+(throw (list 1 2 3))
+;/.*([Ee][Rr][Rr][Oo][Rr]|[Ee]xception).*\(1 2 3\).*
+
+(try* (throw {}) (catch* e (do (throw e))))
+;/.*([Ee][Rr][Rr][Oo][Rr]|[Ee]xception).*{}.*
+
+(try* (throw (list 1 2 3)) (catch* exc (do 7)))
+;=>7
+
+(try* (map throw (list "my err")) (catch* exc exc))
+;=>"my err"

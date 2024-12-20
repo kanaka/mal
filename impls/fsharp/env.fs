@@ -14,18 +14,13 @@ module Env
         | head::_ -> head.[key] <- node
         | _ -> raise <| Error.noEnvironment ()
 
-    let rec find (chain : EnvChain) key =
+    let rec get (chain : EnvChain) key =
         match chain with
         | [] -> None
         | env::rest ->
             match env.TryGetValue(key) with
             | true, v -> Some(v)
-            | false, _ -> find rest key
-
-    let get chain key =
-        match find chain key with
-        | Some(v) -> v
-        | None -> raise <| Error.symbolNotFound key
+            | false, _ -> get rest key
 
     let private getNextValue =
         let counter = ref 0
@@ -122,11 +117,3 @@ module Env
             | [], _ -> raise <| Error.tooManyValues ()
             | _, _ -> raise <| Error.errExpectedX "symbol"
         loop symbols nodes
-
-    (* Active Patterns to help with pattern matching nodes *)
-    let inline (|IsMacro|_|) env = function
-        | List(_, Symbol(sym)::rest) ->
-            match find env sym with
-            | Some(Macro(_, _, _, _, _, _) as m) -> Some(IsMacro m, rest)
-            | _ -> None
-        | _ -> None

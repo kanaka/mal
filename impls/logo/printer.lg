@@ -1,54 +1,44 @@
-load "../logo/types.lg
-
 to pr_str :exp :readable
-if emptyp :exp [output []]
 output case obj_type :exp [
   [[nil]      "nil]
   [[true]     "true]
   [[false]    "false]
-  [[number]   obj_val :exp]
-  [[symbol]   obj_val :exp]
-  [[keyword]  word ": obj_val :exp]
-  [[string]   print_string :exp :readable]
-  [[list]     pr_seq obj_val :exp :readable "\( "\) :space_char]
-  [[vector]   pr_seq obj_val :exp :readable "\[ "\] :space_char]
-  [[hashmap]  pr_seq obj_val :exp :readable "\{ "\} :space_char]
-  [[atom]     (word "\(atom :space_char pr_str obj_val :exp :readable "\) ) ]
-  [[nativefn] (word "#<NativeFunction: obj_val :exp ">) ]
-  [[fn]       (word "#<Function:args= pr_str fn_args :exp :readable ", :space_char "macro= fn_is_macro :exp ">) ]
+  [[number]   number_val :exp]
+  [[symbol]   symbol_value :exp]
+  [[keyword]  word ": keyword_val :exp]
+  [[string]   print_string string_val :exp :readable]
+  [[list]     (word "\( pr_seq seq_val :exp :readable "| | "\) ) ]
+  [[vector]   (word "\[ pr_seq seq_val :exp :readable "| | "\] ) ]
+  [[map]      (word "\{ pr_seq (map.se [list ?1 ?2] map_keys :exp
+                map_vals :exp) :readable "| | "\} ) ]
+  [[atom]     (word "|(atom | pr_str mal_deref :exp "true "\) ) ]
+  [[nativefn] "#<NativeFunction>]
+  [[fn]       "#<Function> ]
+  [[macro]    "#<Macro> ]
   [else       (throw "error (sentence [unknown type] obj_type :exp))]
 ]
 end
 
 to escape_string :s
-localmake "i 1
-localmake "res "
-while [:i <= count :s] [
-  localmake "c item :i :s
-  make "res word :res cond [
-    [[ :c = "\\ ]     "\\\\ ]
-    [[ :c = char 10 ] "\\n  ]
-    [[ :c = "\" ]     "\\\" ]
-    [else             :c    ]
-  ]
-  make "i (:i + 1)
-]
-output :res
+output map [
+    case rawascii ? [
+      [[34 92] word "\\ ?]
+      [[10]    "\\n]
+      [else    ?]
+    ]
+  ] :s
 end
 
 to print_string :exp :readable
 ifelse :readable [
-  output (word "\" escape_string obj_val :exp "\" )
+  output (word "\" escape_string :exp "\" )
 ] [
-  output obj_val :exp
+  output :exp
 ]
 end
 
-to pr_seq :seq :readable :start_char :end_char :delim_char
-localmake "res :start_char
-foreach :seq [
-  if # > 1 [make "res word :res :delim_char]
-  make "res word :res pr_str ? :readable
-]
-output word :res :end_char
+to pr_seq :seq :readable :delim_char
+output apply "word map [
+  ifelse # = 1 [pr_str ? :readable] [word :delim_char pr_str ? :readable]
+] :seq
 end

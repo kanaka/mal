@@ -35,9 +35,9 @@ typedef struct Env {
 } Env;
 
 Env *new_env(Env *outer, struct MalVal* binds, struct MalVal *exprs);
-Env *env_find(Env *env, struct MalVal *key);
-struct MalVal *env_get(Env *env, struct MalVal *key);
-Env *env_set(Env *env, struct MalVal *key, struct MalVal *val);
+struct MalVal *env_get(Env *env, const char *key);
+//  Returns NULL if the key is missing.
+void env_set(Env *env, char *key, struct MalVal *val);
 
 
 // Utility functiosn

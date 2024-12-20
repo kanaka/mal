@@ -6,31 +6,28 @@ func READ(_ str: String) throws -> MalVal {
 }
 
 // eval
-func eval_ast(_ ast: MalVal, _ env: Env) throws -> MalVal {
+func EVAL(_ ast: MalVal, _ env: Env) throws -> MalVal {
+    if let dbgeval = env.get("DEBUG-EVAL") {
+        switch dbgeval {
+        case MalVal.MalFalse, MalVal.MalNil: break
+        default: print("EVAL: " + PRINT(ast))
+        }
+    }
     switch ast {
-    case MalVal.MalSymbol:
-        return try env.get(ast)
-    case MalVal.MalList(let lst, _):
-        return list(try lst.map { try EVAL($0, env) })
+    case MalVal.MalSymbol(let sym):
+        if let value = env.get(sym) {
+            return value
+        } else {
+            throw MalError.General(msg: "'\(sym)' not found")
+        }
     case MalVal.MalVector(let lst, _):
         return vector(try lst.map { try EVAL($0, env) })
     case MalVal.MalHashMap(let dict, _):
         var new_dict = Dictionary<String,MalVal>()
         for (k,v) in dict { new_dict[k] = try EVAL(v, env) }
         return hash_map(new_dict)
-    default:
-        return ast
-    }
-}
-
-func EVAL(_ ast: MalVal, _ env: Env) throws -> MalVal {
-    switch ast {
-    case MalVal.MalList(let lst, _): if lst.count == 0 { return ast }
-    default: return try eval_ast(ast, env)
-    }
-
-    switch ast {
     case MalVal.MalList(let lst, _):
+        if lst.count == 0 { return ast }
         switch lst[0] {
         case MalVal.MalSymbol("def!"):
             return try env.set(lst[1], try EVAL(lst[2], env))
@@ -51,20 +48,17 @@ func EVAL(_ ast: MalVal, _ env: Env) throws -> MalVal {
             }
             return try EVAL(lst[2], let_env)
         default:
-            switch try eval_ast(ast, env) {
-            case MalVal.MalList(let elst, _):
-                switch elst[0] {
-                case MalVal.MalFunc(let fn,_,_,_,_,_):
-                    let args = Array(elst[1..<elst.count])
+                let raw_args = lst[1..<lst.count]
+                switch try EVAL(lst[0], env) {
+                case MalVal.MalFunc(let fn, nil, _, _, _, _):
+                    let args = try raw_args.map { try EVAL($0, env) }
                     return try fn(args)
                 default:
-                    throw MalError.General(msg: "Cannot apply on '\(elst[0])'")
+                    throw MalError.General(msg: "Cannot apply on '\(lst[0])'")
                 }
-            default: throw MalError.General(msg: "Invalid apply")
-            }
         }
     default:
-        throw MalError.General(msg: "Invalid apply")
+        return ast
     }
 }
 

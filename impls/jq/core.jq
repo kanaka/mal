@@ -4,6 +4,31 @@ include "reader";
 
 def core_identify:
     {
+        "+": {
+            kind: "fn", # native function
+            inputs: 2,
+            function: "number_add"
+        },
+        "-": {
+            kind: "fn", # native function
+            inputs: 2,
+            function: "number_sub"
+        },
+        "*": {
+            kind: "fn", # native function
+            inputs: 2,
+            function: "number_mul"
+        },
+        "/": {
+            kind: "fn", # native function
+            inputs: 2,
+            function: "number_div"
+        },
+        "eval": {
+            kind: "fn",
+            inputs: 1,
+            function: "eval"
+        },
         "env": {
             kind: "fn",
             function: "env",
@@ -369,9 +394,9 @@ def core_interp(arguments; env):
     ) // (
         select(.function == ">=") | null | wrap(arguments[0].value >= arguments[1].value | tostring)
     ) // (
-        select(.function == "slurp") | arguments | map(.value) | issue_extern("read") | wrap("string")
+        select(.function == "slurp") | arguments[0].value | slurp | wrap("string")
     ) // (
-        select(.function == "read-string") | arguments | first.value | read_str | read_form.value
+        select(.function == "read-string") | arguments | first.value | read_form
     ) // (
         select(.function == "atom?") | null | wrap(arguments | first.kind == "atom" | tostring)
     ) // (
@@ -382,7 +407,6 @@ def core_interp(arguments; env):
         select(.function == "vec") | {kind:"vector", value:arguments[0].value}
     ) // (
         select(.function == "nth")
-            | _debug(arguments)
             | arguments[0].value as $lst
             | arguments[1].value as $idx
             | if ($lst|length < $idx) or ($idx < 0) then

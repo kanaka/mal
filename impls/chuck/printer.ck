@@ -10,31 +10,30 @@ public class Printer
         }
         else if( type == "int" )
         {
-            return Std.itoa((m$MalInt).value());
+            return Std.itoa(m.intValue);
         }
         else if( type == "string" )
         {
-            (m$MalString).value() => string value;
             if( print_readably )
             {
-                return String.repr(value);
+                return String.repr(m.stringValue);
             }
             else
             {
-                return value;
+                return m.stringValue;
             }
         }
         else if( type == "symbol" )
         {
-            return (m$MalSymbol).value();
+            return m.stringValue;
         }
         else if( type == "keyword" )
         {
-            return ":" + (m$MalKeyword).value();
+            return ":" + m.stringValue;
         }
         else if( type == "atom" )
         {
-            return "(atom " + pr_str((m$MalAtom).value(), print_readably) + ")";
+            return "(atom " + pr_str(m.malObjectValue(), print_readably) + ")";
         }
         else if( type == "subr" )
         {
@@ -46,15 +45,15 @@ public class Printer
         }
         else if( type == "list" )
         {
-            return pr_list((m$MalList).value(), print_readably, "(", ")");
+            return pr_list(m.malObjectValues(), print_readably, "(", ")");
         }
         else if( type == "vector" )
         {
-            return pr_list((m$MalVector).value(), print_readably, "[", "]");
+            return pr_list(m.malObjectValues(), print_readably, "[", "]");
         }
         else if( type == "hashmap" )
         {
-            return pr_list((m$MalHashMap).value(), print_readably, "{", "}");
+            return pr_list(m.malObjectValues(), print_readably, "{", "}");
         }
         else
         {

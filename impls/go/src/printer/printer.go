@@ -6,7 +6,7 @@ import (
 )
 
 import (
-	"types"
+	"mal/src/types"
 )
 
 func Pr_list(lst []types.MalType, pr bool,

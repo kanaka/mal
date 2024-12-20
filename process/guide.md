@@ -310,7 +310,7 @@ expression support.
 
 * Add a `reader.qx` file to hold functions related to the reader.
 
-* If the target language has objects types (OOP), then the next step
+* If the target language has object types (OOP), then the next step
   is to create a simple stateful Reader object in `reader.qx`. This
   object will store the tokens and a position. The Reader object will
   have two methods: `next` and `peek`. `next` returns the token at
@@ -368,7 +368,7 @@ expression support.
 
 * Add the function `read_list` to `reader.qx`. This function will
   repeatedly call `read_form` with the Reader object until it
-  encounters a ')' token (if it reach EOF before reading a ')' then
+  encounters a ')' token (if it reaches EOF before reading a ')' then
   that is an error). It accumulates the results into a List type.  If
   your language does not have a sequential data type that can hold mal
   type values you may need to implement one (in `types.qx`).  Note
@@ -384,7 +384,7 @@ expression support.
   the other fundamental mal types: nil, true, false, and string. The
   remaining scalar mal type, keyword does not
   need to be implemented until step A (but can be implemented at any
-  point between this step and that). BTW, symbols types are just an
+  point between this step and that). BTW, symbol types are just an
   object that contains a single string name value (some languages have
   symbol types already).
 
@@ -522,7 +522,7 @@ functionality to the evaluator (`EVAL`).
 Compare the pseudocode for step 1 and step 2 to get a basic idea of
 the changes that will be made during this step:
 ```
-diff -urp ../process/step1_read_print.txt ../process/step2_eval.txt
+diff -u ../process/step1_read_print.txt ../process/step2_eval.txt
 ```
 
 * Copy `step1_read_print.qx` to `step2_eval.qx`.
@@ -541,23 +541,17 @@ repl_env = {'+': lambda a,b: a+b,
 * Modify the `rep` function to pass the REPL environment as the second
   parameter for the `EVAL` call.
 
-* Create a new function `eval_ast` which takes `ast` (mal data type)
-  and an associative structure (the environment from above).
-  `eval_ast` switches on the type of `ast` as follows:
+* In `EVAL`, switch on the type of the first parameter `ast` as follows:
 
   * symbol: lookup the symbol in the environment structure and return
-    the value or raise an error if no value is found
-  * list: return a new list that is the result of calling `EVAL` on
-    each of the members of the list
-  * otherwise just return the original `ast` value
+    the value.
+    If the key is missing, throw/raise a "not found" error.
 
-* Modify `EVAL` to check if the first parameter `ast` is a list.
-  * `ast` is not a list: then return the result of calling `eval_ast`
-    on it.
-  * `ast` is a empty list: return ast unchanged.
-  * `ast` is a list: call `eval_ast` to get a new evaluated list. Take
-    the first item of the evaluated list and call it as function using
-    the rest of the evaluated list as its arguments.
+  * `ast` is a non-empty list:
+    call `EVAL` on each of the members of the list.
+    Take the first evaluated item and call it as function using
+    the rest of the evaluated items as its arguments.
+  * otherwise just return the original `ast` value
 
 If your target language does not have full variable length argument
 support (e.g. variadic, vararg, splats, apply) then you will need to
@@ -574,7 +568,7 @@ Try some simple expressions:
   * `(+ 2 (* 3 4))` -> `14`
 
 The most likely challenge you will encounter is how to properly call
-a function references using an arguments list.
+a function reference using an arguments list.
 
 Now go to the top level, run the step 2 tests and fix the errors.
 ```
@@ -585,8 +579,17 @@ You now have a simple prefix notation calculator!
 
 #### Deferrable:
 
-* `eval_ast` should evaluate elements of vectors and hash-maps.  Add the
-  following cases in `eval_ast`:
+* Add a print statement at the top of the main `eval` function, for
+  debugging issues or simply figuring how evaluation works.
+  The statement should be active when `env` contains the `DEBUG-EVAL`
+  key and the associated value is neither `nil` nor `false`.
+  For consistency, it should print "EVAL: " followed by the current
+  value of `ast` formatted with `pr_str` with the readably flag set.
+  Feel free to add any information you see fit, for example the
+  contents of `env`.
+
+* `EVAL` should evaluate elements of vectors and hash-maps.  Add the
+  following cases in `EVAL`:
   * If `ast` is a vector: return a new vector that is the result of calling
     `EVAL` on each of the members of the vector.
   * If `ast` is a hash-map: return a new hash-map which consists of key-value
@@ -620,7 +623,7 @@ chain).
 Compare the pseudocode for step 2 and step 3 to get a basic idea of
 the changes that will be made during this step:
 ```
-diff -urp ../process/step2_eval.txt ../process/step3_env.txt
+diff -u ../process/step2_eval.txt ../process/step3_env.txt
 ```
 
 * Copy `step2_eval.qx` to `step3_env.qx`.
@@ -634,19 +637,19 @@ diff -urp ../process/step2_eval.txt ../process/step3_env.txt
 * Define three methods for the Env object:
   * set: takes a symbol key and a mal value and adds to the `data`
     structure
-  * find: takes a symbol key and if the current environment contains
-    that key then return the environment. If no key is found and outer
-    is not `nil` then call find (recurse) on the outer environment.
-  * get: takes a symbol key and uses the `find` method to locate the
-    environment with the key, then returns the matching value. If no
-    key is found up the outer chain, then throws/raises a "not found"
-    error.
+  * get: takes a symbol key and if the current environment contains
+    that key then return the matching value. If no key is found and outer
+    is not `nil` then call get (recurse) on the outer environment.
+    Depending on the host language, a loop structure may be more
+    simple or efficient than a recursion.
+    If no key is found up the outer chain, then report that the key is
+    missing with the most idiomatic mechanism.
 
 * Update `step3_env.qx` to use the new `Env` type to create the
   repl_env (with a `nil` outer value) and use the `set` method to add
   the numeric functions.
 
-* Modify `eval_ast` to call the `get` method on the `env` parameter.
+* Modify `EVAL` to call the `get` method on the `env` parameter.
 
 * Modify the apply section of `EVAL` to switch on the first element of
   the list:
@@ -667,8 +670,7 @@ diff -urp ../process/step2_eval.txt ../process/step3_env.txt
     original `let*` form is evaluated using the new "let\*" environment
     and the result is returned as the result of the `let*` (the new
     let environment is discarded upon completion).
-  * otherwise: call `eval_ast` on the list and apply the first element
-    to the rest as before.
+  * otherwise: proceed as before.
 
 `def!` and `let*` are Lisp "specials" (or "special atoms") which means
 that they are language level features and more specifically that the
@@ -739,7 +741,7 @@ In some Lisps, this special form is named "lambda".
 Compare the pseudocode for step 3 and step 4 to get a basic idea of
 the changes that will be made during this step:
 ```
-diff -urp ../process/step3_env.txt ../process/step4_if_fn_do.txt
+diff -u ../process/step3_env.txt ../process/step4_if_fn_do.txt
 ```
 
 * Copy `step3_env.qx` to `step4_if_fn_do.qx`.
@@ -750,14 +752,14 @@ diff -urp ../process/step3_env.txt ../process/step4_if_fn_do.txt
 
 * Update the constructor/initializer for environments to take two new
   parameters: `binds` and `exprs`. Bind (`set`) each element (symbol)
-  of the binds list to the respective element of the `exprs` list.
+  of the `binds` list to the respective element of the `exprs` list.
 
 * Add support to `printer.qx` to print function values. A string
   literal like "#\<function>" is sufficient.
 
 * Add the following special forms to `EVAL`:
 
-  * `do`: Evaluate all the elements of the list using `eval_ast`
+  * `do`: Evaluate all the elements of the list
     and return the final evaluated element.
   * `if`: Evaluate the first parameter (second element). If the result
     (condition) is anything other than `nil` or `false`, then evaluate
@@ -802,7 +804,7 @@ Try out the basic functionality you have implemented:
 
 * Add the following functions to `core.ns`:
   * `prn`: call `pr_str` on the first parameter with `print_readably`
-    set to true, prints the result to the screen and then return
+    set to true, print the result to the screen and then return
     `nil`. Note that the full version of `prn` is a deferrable below.
   * `list`: take the parameters and return them as a list.
   * `list?`: return true if the first parameter is a list, false
@@ -846,7 +848,7 @@ from a neat toy to a full featured language.
   call the `rep` function with this string:
   "(def! not (fn* (a) (if a false true)))".
 
-* Implement the strings functions in `core.qx`. To implement these
+* Implement the string functions in `core.qx`. To implement these
   functions, you will need to implement the string support in the
   reader and printer (deferrable section of step 1). Each of the string
   functions takes multiple mal values, prints them (`pr_str`) and
@@ -890,7 +892,7 @@ iteration.
 Compare the pseudocode for step 4 and step 5 to get a basic idea of
 the changes that will be made during this step:
 ```
-diff -urp ../process/step4_if_fn_do.txt ../process/step5_tco.txt
+diff -u ../process/step4_if_fn_do.txt ../process/step5_tco.txt
 ```
 
 * Copy `step4_if_fn_do.qx` to `step5_tco.qx`.
@@ -905,7 +907,7 @@ diff -urp ../process/step4_if_fn_do.txt ../process/step5_tco.txt
     `ast` (i.e. the local variable passed in as first parameter of
     `EVAL`) to be the second `ast` argument. Continue at the beginning
     of the loop (no return).
-  * `do`: change the `eval_ast` call to evaluate all the parameters
+  * `do`: change the implementation to evaluate all the parameters
     except for the last (2nd list element up to but not including
     last). Set `ast` to the last element of `ast`. Continue
     at the beginning of the loop (`env` stays unchanged).
@@ -930,15 +932,15 @@ diff -urp ../process/step4_if_fn_do.txt ../process/step5_tco.txt
 
 * The default "apply"/invoke case of `EVAL` must now be changed to
   account for the new object/structure returned by the `fn*` form.
-  Continue to call `eval_ast` on `ast`. The first element of the 
+  Once each element of `ast` is evaluated, the first element of the
   result of `eval_ast` is `f` and the remaining elements are in `args`.
   Switch on the type of `f`:
   * regular function (not one defined by `fn*`): apply/invoke it as
     before (in step 4).
   * a `fn*` value: set `ast` to the `ast` attribute of `f`. Generate
     a new environment using the `env` and `params` attributes of `f`
-    as the `outer` and `binds` arguments and `args` as the `exprs` 
-    argument. Set `env` to the new environment. Continue at the 
+    as the `outer` and `binds` arguments and `args` as the `exprs`
+    argument. Set `env` to the new environment. Continue at the
     beginning of the loop.
 
 Run some manual tests from previous steps to make sure you have not
@@ -980,7 +982,7 @@ holding off on that you will need to go back and do so.
 Compare the pseudocode for step 5 and step 6 to get a basic idea of
 the changes that will be made during this step:
 ```
-diff -urp ../process/step5_tco.txt ../process/step6_file.txt
+diff -u ../process/step5_tco.txt ../process/step6_file.txt
 ```
 
 * Copy `step5_tco.qx` to `step6_file.qx`.
@@ -1054,7 +1056,7 @@ You'll need to add 5 functions to the core namespace to support atoms:
 
 Optionally, you can add a reader macro `@` which will serve as a short form for
 `deref`, so that `@a` is equivalent to `(deref a)`.  In order to do that, modify
-the conditional in reader `read_form` function and add a case which deals with
+the conditional in reader function `read_form` and add a case which deals with
 the `@` token: if the token is `@` (at sign) then return a new list that
 contains the symbol `deref` and the result of reading the next form
 (`read_form`).
@@ -1119,7 +1121,7 @@ value that it evaluates to. Likewise with lists. For example, consider
 the following:
 
 * `(prn abc)`: this will lookup the symbol `abc` in the current
-  evaluation environment and print it. This will result in error if
+  evaluation environment and print it. This will result in an error if
   `abc` is not defined.
 * `(prn (quote abc))`: this will print "abc" (prints the symbol
   itself). This will work regardless of whether `abc` is defined in
@@ -1152,7 +1154,7 @@ manifest when it is used together with macros (in the next step).
 Compare the pseudocode for step 6 and step 7 to get a basic idea of
 the changes that will be made during this step:
 ```
-diff -urp ../process/step6_file.txt ../process/step7_quote.txt
+diff -u ../process/step6_file.txt ../process/step7_quote.txt
 ```
 
 * Copy `step6_file.qx` to `step7_quote.qx`.
@@ -1182,7 +1184,7 @@ Mal borrows most of its syntax and feature-set).
   following conditional.
   - If `ast` is a list starting with the "unquote" symbol, return its
     second element.
-  - If `ast` is a list failing previous test, the result will be a
+  - If `ast` is a list failing the previous test, the result will be a
     list populated by the following process.
 
     The result is initially an empty list.
@@ -1216,15 +1218,10 @@ Mal borrows most of its syntax and feature-set).
     Such forms are not affected by evaluation, so you may quote them
     as in the previous case if implementation is easier.
 
-* Optionally, add a the `quasiquoteexpand` special form.
-  This form calls the `quasiquote` function using the first `ast`
-  argument (second list element) and returns the result.
-  It has no other practical purpose than testing your implementation
-  of the `quasiquote` internal function.
-
 * Add the `quasiquote` special form.
-  This form does the same than `quasiquoteexpand`,
-  but evaluates the result in the current environment before returning it,
+  This form calls the `quasiquote` function using the first `ast`
+  argument (second list element),
+  then evaluates the result in the current environment,
   either by recursively calling `EVAL` with the result and `env`,
   or by assigning `ast` with the result and continuing execution at
   the top of the loop (TCO).
@@ -1233,6 +1230,11 @@ Now go to the top level, run the step 7 tests:
 ```
 make "test^quux^step7"
 ```
+
+If some tests do not pass, it may be convenient to enable the debug
+print statement at the top of your main `eval` function (inside the
+TCO loop).  The quasiquoted but yet unevaluated AST will often reveal
+the source of the issue.
 
 Quoting is one of the more mundane functions available in mal, but do
 not let that discourage you. Your mal implementation is almost
@@ -1247,8 +1249,8 @@ macros.
   short-hand syntaxes are known as reader macros because they allow us
   to manipulate mal code during the reader phase. Macros that run
   during the eval phase are just called "macros" and are described in
-  the next section. Expand the conditional with reader `read_form`
-  function to add the following four cases:
+  the next section. Expand the conditional in reader function
+  `read_form` to add the following four cases:
   * token is "'" (single quote): return a new list that contains the
     symbol "quote" and the result of reading the next form
     (`read_form`).
@@ -1296,7 +1298,7 @@ the mal language itself.
 Compare the pseudocode for step 7 and step 8 to get a basic idea of
 the changes that will be made during this step:
 ```
-diff -urp ../process/step7_quote.txt ../process/step8_macros.txt
+diff -u ../process/step7_quote.txt ../process/step8_macros.txt
 ```
 
 * Copy `step7_quote.qx` to `step8_macros.qx`.
@@ -1313,35 +1315,28 @@ simple.
   `def!` form, but before the evaluated value (mal function) is set in
   the environment, the `is_macro` attribute should be set to true.
 
-* Add a `is_macro_call` function: This function takes arguments `ast`
-  and `env`. It returns true if `ast` is a list that contains a symbol
-  as the first element and that symbol refers to a function in the
-  `env` environment and that function has the `is_macro` attribute set
-  to true. Otherwise, it returns false.
+* In `EVAL`,
+  when `ast` is a non-empty list without leading special form,
+  the normal apply phase evaluates all elements of `ast`.
 
-* Add a `macroexpand` function: This function takes arguments `ast`
-  and `env`. It calls `is_macro_call` with `ast` and `env` and loops
-  while that condition is true. Inside the loop, the first element of
-  the `ast` list (a symbol), is looked up in the environment to get
-  the macro function. This macro function is then called/applied with
-  the rest of the `ast` elements (2nd through the last) as arguments.
-  The return value of the macro call becomes the new value of `ast`.
-  When the loop completes because `ast` no longer represents a macro
-  call, the current value of `ast` is returned.
+  Start by evaluating the first element separately.
+  The result must be a function.
+  If this function does have the `is_macro` attribute set,
 
-* In the evaluator (`EVAL`) before the special forms switch (apply
-  section), perform macro expansion by calling the `macroexpand`
-  function with the current value of `ast` and `env`. Set `ast` to the
-  result of that call. If the new value of `ast` is no longer a list
-  after macro expansion, then return the result of calling `eval_ast`
-  on it, otherwise continue with the rest of the apply section
-  (special forms switch).
+  * apply the function to the (unevaluated) remaining elements of
+    `ast`, producing a new form.
 
-* Add a new special form condition for `macroexpand`. Call the
-  `macroexpand` function using the first `ast` argument (second list
-  element) and `env`. Return the result. This special form allows
-  a mal program to do explicit macro expansion without applying the
-  result (which can be useful for debugging macro expansion).
+  * evaluate the new form in the `env` environment.
+    Of course, instead of recursively calling `EVAL`, replace `ast`
+    with the new form and restart the TCO loop.
+
+  For functions without the attribute, proceed as before: evaluate the
+  remaining elements of `ast`, then apply the function to them.
+
+
+If you check existing implementations, be warned that former versions
+of this guide were describing a slightly different macro expansion
+mechanism.
 
 Now go to the top level, run the step 8 tests:
 ```
@@ -1352,14 +1347,15 @@ There is a reasonably good chance that the macro tests will not pass
 the first time. Although the implementation of macros is fairly
 simple, debugging runtime bugs with macros can be fairly tricky. If
 you do run into subtle problems that are difficult to solve, let me
-recommend a couple of approaches:
 
-* Use the macroexpand special form to eliminate one of the layers of
-  indirection (to expand but skip evaluate). This will often reveal
-  the source of the issue.
-* Add a debug print statement to the top of your main `eval` function
-  (inside the TCO loop) to print the current value of `ast` (hint use
-  `pr_str` to get easier to debug output). Pull up the step8
+recommend an approach:
+
+* Enable the debug print statement at the top of your main `eval`
+  function (inside the TCO loop).
+  The expanded but yet unevaluated AST will often reveal the source of
+  the issue.
+
+* Pull up the step8
   implementation from another language and uncomment its `eval`
   function (yes, I give you permission to violate the rule this once).
   Run the two side-by-side. The first difference is likely to point to
@@ -1388,11 +1384,11 @@ implementation. Let us continue!
     as arguments, returns the element of the list at the given index.
     If the index is out of range, this function raises an exception.
   * `first`: this function takes a list (or vector) as its argument
-    and return the first element. If the list (or vector) is empty or
+    and returns the first element. If the list (or vector) is empty or
     is `nil` then `nil` is returned.
   * `rest`: this function takes a list (or vector) as its argument and
     returns a new list containing all the elements except the first. If
-    the list (or vector) is empty or is `nil` then `()` (empty list) 
+    the list (or vector) is empty or is `nil` then `()` (empty list)
     is returned.
 
 * In the main program, call the `rep` function with the following
@@ -1421,7 +1417,7 @@ functional programming pedigree of your implementation by adding the
 Compare the pseudocode for step 8 and step 9 to get a basic idea of
 the changes that will be made during this step:
 ```
-diff -urp ../process/step8_macros.txt ../process/step9_try.txt
+diff -u ../process/step8_macros.txt ../process/step9_try.txt
 ```
 
 * Copy `step8_macros.qx` to `step9_try.qx`.
@@ -1470,6 +1466,9 @@ diff -urp ../process/step8_macros.txt ../process/step9_try.txt
   `fn*`, then you will need to do so now.
   * `apply`: takes at least two arguments. The first argument is
     a function and the last argument is a list (or vector). The
+    function may be either a built-in core function,
+    an user function constructed with the `fn*` special form,
+    or a macro, not distinguished from the underlying user function). The
     arguments between the function and the last argument (if there are
     any) are concatenated with the final argument to create the
     arguments that are used to call the function. The apply
@@ -1480,7 +1479,7 @@ diff -urp ../process/step8_macros.txt ../process/step9_try.txt
     function against every element of the list (or vector) one at
     a time and returns the results as a list.
 
-* Add some type predicates core functions. In Lisp, predicates are
+* Add some type predicate core functions. In Lisp, predicates are
   functions that return true/false (or true value/nil) and typically
   end in "?" or "p".
   * `nil?`: takes a single argument and returns true (mal true value)
@@ -1575,7 +1574,7 @@ implementation to self-host.
 Compare the pseudocode for step 9 and step A to get a basic idea of
 the changes that will be made during this step:
 ```
-diff -urp ../process/step9_try.txt ../process/stepA_mal.txt
+diff -u ../process/step9_try.txt ../process/stepA_mal.txt
 ```
 
 * Copy `step9_try.qx` to `stepA_mal.qx`.
@@ -1608,7 +1607,7 @@ make "test^quux^stepA"
 
 Once you have passed all the non-optional step A tests, it is time to
 try self-hosting. Run your step A implementation as normal, but use
-the file argument mode you added in step 6 to run a each of the step
+the file argument mode you added in step 6 to run each step
 from the mal implementation:
 ```
 ./stepA_mal.qx ../mal/step1_read_print.mal
@@ -1662,17 +1661,17 @@ implementation.
   * `meta`: this takes a single mal function/list/vector/hash-map argument
     and returns the value of the metadata attribute.
   * `with-meta`: this function takes two arguments. The first argument
-    is a mal function/list/vector/hash-map and the second argument is
-    another mal value/type to set as metadata. A copy of the mal function is
-    returned that has its `meta` attribute set to the second argument.
-    Note that it is important that the environment and macro attribute
-    of mal function are retained when it is copied.
+    is a mal value and the second argument is another mal value/type
+    to set as metadata. A copy of the mal value is returned that has
+    its `meta` attribute set to the second argument.  Note that when
+    copying a mal function, it is important that the environment and
+    macro attribute are retained.
   * Add a reader-macro that expands the token "^" to
     return a new list that contains the symbol "with-meta" and the
     result of reading the next next form (2nd argument) (`read_form`) and the
     next form (1st argument) in that order
     (metadata comes first with the ^ macro and the function second).
-  * If you implemented as `defmacro!` to mutate an existing function
+  * If you implemented `defmacro!` as mutating an existing function
     without copying it, you can now use the function copying mechanism
     used for metadata to make functions immutable even in the
     defmacro! case...
@@ -1699,7 +1698,7 @@ implementation.
   * `seq`: takes a list, vector, string, or nil. If an empty list,
     empty vector, or empty string ("") is passed in then nil is
     returned. Otherwise, a list is returned unchanged, a vector is
-    converted into a list, and a string is converted to a list that
+    converted into a list, and a string is converted to a list
     containing the original string split into single character
     strings.
 * For interop with the target language, add this core function:
@@ -1716,9 +1715,7 @@ implementation.
 
 ### Next Steps
 
-* Join the #mal IRC channel. It's fairly quiet but there are bursts of
-  interesting conversation related to mal, Lisps, esoteric programming
-  languages, etc.
+* Join our [Discord](https://discord.gg/CKgnNbJBpF) channel.
 * If you have created an implementation for a new target language (or
   a unique and interesting variant of an existing implementation),
   consider sending a pull request to add it into the main mal

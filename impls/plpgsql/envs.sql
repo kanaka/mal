@@ -91,43 +91,21 @@ BEGIN
     RETURN envs.vset(env, symkey, val);
 END; $$ LANGUAGE plpgsql;
 
--- envs.find
-CREATE FUNCTION envs.find(env integer, symkey varchar) RETURNS integer AS $$
+-- envs.get
+CREATE FUNCTION envs.get(env integer, symkey varchar) RETURNS integer AS $$
 DECLARE
     outer_id  integer;
     d         hstore;
-    val       integer;
 BEGIN
+  LOOP
     SELECT e.data, e.outer_id INTO d, outer_id FROM envs.env e
         WHERE e.env_id = env;
     IF d ? symkey THEN
-        RETURN env;
-    ELSIF outer_id IS NOT NULL THEN
-        RETURN envs.find(outer_id, symkey);
-    ELSE
+        RETURN d -> symkey;
+    END IF;
+    env := outer_id;
+    IF env IS NULL THEN
         RETURN NULL;
     END IF;
-END; $$ LANGUAGE plpgsql;
-
-
--- envs.vget
-CREATE FUNCTION envs.vget(env integer, symkey varchar) RETURNS integer AS $$
-DECLARE
-    result  integer;
-    e       integer;
-BEGIN
-    e := envs.find(env, symkey);
-    --RAISE NOTICE 'envs.find env: %, symkey: % -> e: %', env, symkey, e;
-    IF e IS NULL THEN
-        RAISE EXCEPTION '''%'' not found', symkey;
-    ELSE
-        SELECT data -> symkey INTO result FROM envs.env WHERE env_id = e;
-    END IF;
-    RETURN result;
-END; $$ LANGUAGE plpgsql;
-
--- envs.get
-CREATE FUNCTION envs.get(env integer, key integer) RETURNS integer AS $$
-BEGIN
-    RETURN envs.vget(env, types._valueToString(key));
+  END LOOP;
 END; $$ LANGUAGE plpgsql;

@@ -9,30 +9,33 @@ READ <- function(str) {
     return(read_str(str))
 }
 
-eval_ast <- function(ast, env) {
+EVAL <- function(ast, env) {
+
+    dbgevalenv <- Env.find(env, "DEBUG-EVAL")
+    if (!.nil_q(dbgevalenv)) {
+        dbgeval <- Env.get(dbgevalenv, "DEBUG-EVAL")
+        if (!.nil_q(dbgeval) && !identical(dbgeval, FALSE))
+            cat("EVAL: ", .pr_str(ast,TRUE), "\n", sep="")
+    }
+
     if (.symbol_q(ast)) {
-        Env.get(env, ast)
+        return(Env.get(env, ast))
     } else if (.list_q(ast)) {
-        new.listl(lapply(ast, function(a) EVAL(a, env)))
+        # exit this switch
     } else if (.vector_q(ast)) {
-        new.vectorl(lapply(ast, function(a) EVAL(a, env)))
+        return(new.vectorl(lapply(ast, function(a) EVAL(a, env))))
     } else if (.hash_map_q(ast)) {
         lst <- list()
         for(k in ls(ast)) {
             lst[[length(lst)+1]] = k
             lst[[length(lst)+1]] = EVAL(ast[[k]], env)
         }
-        new.hash_mapl(lst)
+        return(new.hash_mapl(lst))
     } else {
-        ast
+        return(ast)
     }
-}
 
-EVAL <- function(ast, env) {
-    #cat("EVAL: ", .pr_str(ast,TRUE), "\n", sep="")
-    if (!.list_q(ast)) {
-        return(eval_ast(ast, env))
-    }
+    if (length(ast) == 0) { return(ast) }
 
     # apply list
     switch(paste("l",length(ast),sep=""),
@@ -52,8 +55,10 @@ EVAL <- function(ast, env) {
         }
         return(EVAL(a2, let_env))
     } else if (a0sym == "do") {
-        el <- eval_ast(slice(ast,2), env)
-        return(el[[length(el)]])
+        if (2 < length(ast))
+            for(i in seq(2, length(ast) - 1))
+                EVAL(ast[[i]], env)
+        return(EVAL(ast[[length(ast)]], env))
     } else if (a0sym == "if") {
         cond <- EVAL(a1, env)
         if (.nil_q(cond) || identical(cond, FALSE)) {
@@ -67,9 +72,9 @@ EVAL <- function(ast, env) {
             EVAL(a2, new.Env(env, a1, list(...)))
         })
     } else {
-        el <- eval_ast(ast, env)
-        f <- el[[1]]
-        return(do.call(f,slice(el,2)))
+        f <- EVAL(a0, env)
+        args <- new.listl(lapply(slice(ast, 2), function(a) EVAL(a, env)))
+        return(do.call(f, args))
     }
 }
 

@@ -9,33 +9,34 @@
   (read-str str))
 
 ;; eval
-(defn eval-ast [ast env]
-  (if
-    (symbol? ast)         (if (.has_key env ast) (get env ast)
-                              (raise (Exception (+ ast " not found"))))
-    (instance? dict ast)  (dict (map (fn [k]
-                                       [k (EVAL (get ast k) env)])
-                                     ast))
-    (instance? tuple ast) (tuple (map (fn [x] (EVAL x env)) ast))
-    (instance? list ast)  (list (map (fn [x] (EVAL x env)) ast))
-    True                  ast))
-
 (defn EVAL [ast env]
   ;; indented to match later steps
-      (if (not (instance? tuple ast))
-        (eval-ast ast env)
+      (if
+        (symbol? ast)
+        (if (.has_key env ast) (get env ast)
+          (raise (Exception (+ ast " not found"))))
+
+        (instance? dict ast)
+        (dict (map (fn [k]
+                     [k (EVAL (get ast k) env)])
+                   ast))
+
+        (instance? list ast)
+        (list (map (fn [x] (EVAL x env)) ast))
+
+        (not (instance? tuple ast))
+        ast
+
+        (empty? ast)
+        ast
 
         ;; apply list
-              (if
-                (empty? ast)
-                ast
-
                 ;; apply
                 (do
-                  (setv el (eval-ast ast env)
+                  (setv el (list (map (fn [x] (EVAL x env)) ast))
                         f (first el)
                         args (list (rest el)))
-                  (apply f args)))))
+                  (apply f args))))
 
 ;; print
 (defn PRINT [exp]

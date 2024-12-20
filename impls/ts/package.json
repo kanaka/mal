@@ -19,7 +19,7 @@
     "test:stepA": "cd .. && make 'test^ts^stepA'"
   },
   "dependencies": {
-    "ffi-napi": "^2.4.0"
+    "ffi-napi": "^4.0.3"
   },
   "devDependencies": {
     "@types/ffi-napi": "4.0.4",

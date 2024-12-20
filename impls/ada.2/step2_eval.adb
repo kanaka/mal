@@ -1,4 +1,3 @@
-with Ada.Environment_Variables;
 with Ada.Containers.Indefinite_Hashed_Maps;
 with Ada.Strings.Hash;
 with Ada.Text_IO.Unbounded_IO;
@@ -13,8 +12,6 @@ with Types.Sequences;
 with Types.Strings;
 
 procedure Step2_Eval is
-
-   Dbgeval : constant Boolean := Ada.Environment_Variables.Exists ("dbgeval");
 
    use type Types.T;
    use all type Types.Kind_Type;
@@ -52,12 +49,8 @@ procedure Step2_Eval is
    is
       First          : Types.T;
    begin
-      if Dbgeval then
-         Ada.Text_IO.New_Line;
-         Ada.Text_IO.Put ("EVAL: ");
-         Print (Ast);
-      end if;
-
+      --  Ada.Text_IO.Put ("EVAL: ");
+      --  Print (Ast);
       case Ast.Kind is
       when Kind_Nil | Kind_Atom | Kind_Boolean | Kind_Number | Types.Kind_Key
         | Kind_Macro | Types.Kind_Function =>

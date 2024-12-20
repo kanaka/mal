@@ -1,2 +1,2 @@
-#!/bin/bash
+#!/bin/sh
 exec powershell $(dirname $0)/${STEP:-stepA_mal}.ps1 "${@}"

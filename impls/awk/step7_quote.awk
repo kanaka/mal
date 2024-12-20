@@ -89,19 +89,20 @@ function quasiquote(ast,    new_idx, ret, ast_idx, elt_i, elt, previous)
 }
 
 function eval_ast(ast, env,    i, idx, len, new_idx, ret)
+# This function has two distinct purposes.
+# non empty list: a0 a1 .. an  ->  list: nil (eval a1) .. (eval an)
+# vector: a0 a1 .. an          ->  vector: (eval a0) (eval a1) .. (eval an)
 {
-	switch (ast) {
-	case /^'/:
-		ret = env_get(env, ast)
-		if (ret !~ /^!/) {
-			types_addref(ret)
-		}
-		return ret
-	case /^[([]/:
 		idx = substr(ast, 2)
 		len = types_heap[idx]["len"]
 		new_idx = types_allocate()
-		for (i = 0; i < len; ++i) {
+		if (ast ~ /^\(/) {
+			types_heap[new_idx][0] = "#nil"
+			i = 1
+		} else {
+			i = 0
+		}
+		for (; i < len; ++i) {
 			ret = EVAL(types_addref(types_heap[idx][i]), env)
 			if (ret ~ /^!/) {
 				types_heap[new_idx]["len"] = i
@@ -112,7 +113,10 @@ function eval_ast(ast, env,    i, idx, len, new_idx, ret)
 		}
 		types_heap[new_idx]["len"] = len
 		return substr(ast, 1, 1) new_idx
-	case /^\{/:
+}
+
+function eval_map(ast, env,    i, idx, new_idx, ret)
+{
 		idx = substr(ast, 2)
 		new_idx = types_allocate()
 		for (i in types_heap[idx]) {
@@ -126,9 +130,6 @@ function eval_ast(ast, env,    i, idx, len, new_idx, ret)
 			}
 		}
 		return "{" new_idx
-	default:
-		return ast
-	}
 }
 
 function EVAL_def(ast, env,    idx, sym, ret, len)
@@ -293,15 +294,43 @@ function EVAL_fn(ast, env,    idx, params, params_idx, params_len, i, sym, f_idx
 	return "$" f_idx
 }
 
-function EVAL(ast, env,    body, new_ast, ret, idx, len, f, f_idx, ret_env)
+function EVAL(ast, env,    body, new_ast, ret, idx, len, f, f_idx, ret_body, ret_env)
 {
 	env_addref(env)
 	for (;;) {
-		if (ast !~ /^\(/) {
+
+		switch (env_get(env, "'DEBUG-EVAL")) {
+		case /^!/:
+		case "#nil":
+		case "#false":
+			break
+		default:
+			print "EVAL: " printer_pr_str(ast, 1)
+		}
+
+		switch (ast) {
+		case /^'/:      # symbol
+			ret = env_get(env, ast)
+			if (ret !~ /^!/) {
+				types_addref(ret)
+			}
+			types_release(ast)
+			env_release(env)
+			return ret
+		case /^\[/:     # vector
 			ret = eval_ast(ast, env)
 			types_release(ast)
 			env_release(env)
 			return ret
+		case /^\{/:     # map
+			ret = eval_map(ast, env)
+			types_release(ast)
+			env_release(env)
+			return ret
+		case /^[^(]/:    # not a list
+			types_release(ast)
+			env_release(env)
+			return ast
 		}
 		idx = substr(ast, 2)
 		len = types_heap[idx]["len"]
@@ -329,15 +358,6 @@ function EVAL(ast, env,    body, new_ast, ret, idx, len, f, f_idx, ret_env)
 			types_release(ast)
 			env_release(env)
 			return body
-		case "'quasiquoteexpand":
-			env_release(env)
-			if (len != 2) {
-				types_release(ast)
-				return "!\"Invalid argument length for 'quasiquoteexpand'. Expects exactly 1 argument, supplied " (len - 1) "."
-			}
-			types_addref(body = types_heap[idx][1])
-			types_release(ast)
-			return quasiquote(body)
 		case "'quasiquote":
 			if (len != 2) {
 				types_release(ast)
@@ -368,6 +388,12 @@ function EVAL(ast, env,    body, new_ast, ret, idx, len, f, f_idx, ret_env)
 		case "'fn*":
 			return EVAL_fn(ast, env)
 		default:
+			f = EVAL(types_addref(types_heap[idx][0]), env)
+			if (f ~ /^!/) {
+				types_release(ast)
+				env_release(env)
+				return f
+			}
 			new_ast = eval_ast(ast, env)
 			types_release(ast)
 			env_release(env)
@@ -375,7 +401,6 @@ function EVAL(ast, env,    body, new_ast, ret, idx, len, f, f_idx, ret_env)
 				return new_ast
 			}
 			idx = substr(new_ast, 2)
-			f = types_heap[idx][0]
 			f_idx = substr(f, 2)
 			switch (f) {
 			case /^\$/:
@@ -385,6 +410,7 @@ function EVAL(ast, env,    body, new_ast, ret, idx, len, f, f_idx, ret_env)
 					return env
 				}
 				types_addref(ast = types_heap[f_idx]["body"])
+				types_release(f)
 				types_release(new_ast)
 				continue
 			case /^&/:
@@ -393,7 +419,9 @@ function EVAL(ast, env,    body, new_ast, ret, idx, len, f, f_idx, ret_env)
 				return ret
 			default:
 				types_release(new_ast)
-				return "!\"First element of list must be function, supplied " types_typename(f) "."
+				ret = "!\"First element of list must be function, supplied " types_typename(f) "."
+				types_release(f)
+				return ret
 			}
 		}
 	}
@@ -469,7 +497,7 @@ function main(str, ret, i, idx)
 BEGIN {
 	main()
 	env_check(0)
-	env_dump()
-	types_dump()
+	#env_dump()
+	#types_dump()
 	exit(0)
 }

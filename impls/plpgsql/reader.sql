@@ -5,7 +5,7 @@ CREATE SCHEMA reader;
 
 CREATE FUNCTION reader.tokenize(str varchar) RETURNS varchar[] AS $$
 DECLARE
-    re varchar = E'[[:space:] ,]*(~@|[\\[\\]{}()\'`~@]|"(?:[\\\\].|[^\\\\"])*"?|;[^\n]*|[^\\s \\[\\]{}()\'"`~@,;]*)';
+    re varchar = E'[[:space:] ,]*(~@|[\\[\\]{}()\'`~@^]|"(?:[\\\\].|[^\\\\"])*"?|;[^\n]*|[^\\s \\[\\]{}()\'"`~@,;^]*)';
 BEGIN
     RETURN ARRAY(SELECT tok FROM
         (SELECT (regexp_matches(str, re, 'g'))[1] AS tok) AS x

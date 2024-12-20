@@ -1,4 +1,4 @@
-FROM ubuntu:18.04
+FROM ubuntu:24.04
 MAINTAINER Joel Martin <github@martintribe.org>
 
 ##########################################################
@@ -9,10 +9,8 @@ MAINTAINER Joel Martin <github@martintribe.org>
 RUN apt-get -y update
 
 # Required for running tests
-RUN apt-get -y install make python
-
-# Some typical implementation and test requirements
-RUN apt-get -y install curl libreadline-dev libedit-dev
+RUN apt-get -y install make python3
+RUN ln -fs /usr/bin/python3 /usr/local/bin/python
 
 RUN mkdir -p /mal
 WORKDIR /mal
@@ -21,14 +19,7 @@ WORKDIR /mal
 # Specific implementation requirements
 ##########################################################
 
-# For building node modules
-RUN apt-get -y install g++
-
-# Add nodesource apt repo config for 10.x stable
-RUN apt-get -y install gnupg
-RUN curl -sL https://deb.nodesource.com/setup_10.x | bash -
-
-# Install nodejs
-RUN apt-get -y install nodejs
+RUN DEBIAN_FRONTEND=noninteractive \
+    apt-get -y install libreadline-dev libedit-dev livescript npm
 
 ENV NPM_CONFIG_CACHE /mal/.npm

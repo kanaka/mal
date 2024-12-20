@@ -69,8 +69,8 @@ module Mal
     eval_error "argument of slurp must be string" unless head.is_a? String
     begin
       File.read head
-    rescue e : Errno
-      eval_error "no such file"
+    rescue
+      nil
     end
   end
 
@@ -185,6 +185,9 @@ module Mal
   def self.keyword(args)
     head = args.first.unwrap
     eval_error "1st argument of symbol function must be string" unless head.is_a? String
+    if ! head.empty? && head[0] == '\u029e'
+       return head
+    end
     "\u029e" + head
   end
 
@@ -381,7 +384,7 @@ module Mal
   end
 
   def self.time_ms(args)
-    Time.now.epoch_ms.to_i64
+    Time.utc.to_unix_ms
   end
 
   # Note:
@@ -398,7 +401,7 @@ module Mal
     "+"           => calc_op(:+),
     "-"           => calc_op(:-),
     "*"           => calc_op(:*),
-    "/"           => calc_op(:/),
+    "/"           => calc_op(://),
     "list"        => func(:list),
     "list?"       => func(:list?),
     "empty?"      => func(:empty?),

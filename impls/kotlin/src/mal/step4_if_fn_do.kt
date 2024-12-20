@@ -2,20 +2,34 @@ package mal
 
 fun read(input: String?): MalType = read_str(input)
 
-fun eval(ast: MalType, env: Env): MalType =
-    if (ast is MalList && ast.count() > 0) {
+fun eval(ast: MalType, env: Env): MalType {
+
+    val dbgeval = env.get("DEBUG-EVAL")
+    if (dbgeval !== null && dbgeval !== NIL && dbgeval !== FALSE) {
+        println ("EVAL: ${print(ast)}")
+    }
+
+    when (ast) {
+      is MalList -> {
+        if (ast.count() == 0) return ast
         val first = ast.first()
         if (first is MalSymbol) {
             when (first.value) {
-                "def!" -> eval_def_BANG(ast, env)
-                "let*" -> eval_let_STAR(ast, env)
-                "fn*"  -> eval_fn_STAR(ast, env)
-                "do"   -> eval_do(ast, env)
-                "if"   -> eval_if(ast, env)
-                else   -> eval_function_call(ast, env)
+                "def!" -> return eval_def_BANG(ast, env)
+                "let*" -> return eval_let_STAR(ast, env)
+                "fn*"  -> return eval_fn_STAR(ast, env)
+                "do"   -> return eval_do(ast, env)
+                "if"   -> return eval_if(ast, env)
             }
-        } else eval_function_call(ast, env)
-    } else eval_ast(ast, env)
+        }
+        return eval_function_call(ast, env)
+      }
+      is MalSymbol -> return env.get(ast.value) ?: throw MalException("'${ast.value}' not found")
+      is MalVector -> return ast.elements.fold(MalVector(), { a, b -> a.conj_BANG(eval(b, env)); a })
+      is MalHashMap -> return ast.elements.entries.fold(MalHashMap(), { a, b -> a.assoc_BANG(b.key, eval(b.value, env)); a })
+      else -> return ast
+    }
+}
 
 private fun eval_def_BANG(ast: ISeq, env: Env): MalType =
         env.set(ast.nth(1) as MalSymbol, eval(ast.nth(2), env))
@@ -46,8 +60,12 @@ private fun eval_fn_STAR(ast: ISeq, env: Env): MalType {
     })
 }
 
-private fun eval_do(ast: ISeq, env: Env): MalType =
-        (eval_ast(MalList(ast.rest()), env) as ISeq).seq().last()
+private fun eval_do(ast: ISeq, env: Env): MalType {
+    for (i in 1..ast.count() - 2) {
+        eval(ast.nth(i), env)
+    }
+    return eval(ast.seq().last(), env)
+}
 
 private fun eval_if(ast: ISeq, env: Env): MalType {
     val check = eval(ast.nth(1), env)
@@ -59,20 +77,11 @@ private fun eval_if(ast: ISeq, env: Env): MalType {
     } else NIL
 }
 
-private fun eval_function_call(ast: ISeq, env: Env): MalType {
-    val evaluated = eval_ast(ast, env) as ISeq
+private fun eval_function_call(ast: MalList, env: Env): MalType {
+    val evaluated = ast.elements.fold(MalList(), { a, b -> a.conj_BANG(eval(b, env)); a })
     val first = evaluated.first() as? MalFunction ?: throw MalException("cannot execute non-function")
     return first.apply(evaluated.rest())
 }
-
-fun eval_ast(ast: MalType, env: Env): MalType =
-        when (ast) {
-            is MalSymbol -> env.get(ast)
-            is MalList -> ast.elements.fold(MalList(), { a, b -> a.conj_BANG(eval(b, env)); a })
-            is MalVector -> ast.elements.fold(MalVector(), { a, b -> a.conj_BANG(eval(b, env)); a })
-            is MalHashMap -> ast.elements.entries.fold(MalHashMap(), { a, b -> a.assoc_BANG(b.key, eval(b.value, env)); a })
-            else -> ast
-        }
 
 fun print(result: MalType) = pr_str(result, print_readably = true)
 

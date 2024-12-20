@@ -51,6 +51,8 @@ malValuePtr READ(const String& input)
 
 malValuePtr EVAL(malValuePtr ast, malEnvPtr env)
 {
+    // std::cout << "EVAL: " << PRINT(ast) << "\n";
+
     return ast->eval(env);
 }
 

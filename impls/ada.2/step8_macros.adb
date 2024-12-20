@@ -1,5 +1,4 @@
 with Ada.Command_Line;
-with Ada.Environment_Variables;
 with Ada.Text_IO.Unbounded_IO;
 
 with Core;
@@ -16,7 +15,7 @@ with Types.Strings;
 
 procedure Step8_Macros is
 
-   Dbgeval : constant Boolean := Ada.Environment_Variables.Exists ("dbgeval");
+   Dbgeval : constant Types.String_Ptr := Types.Strings.Alloc ("DEBUG-EVAL");
 
    use type Types.T;
    use all type Types.Kind_Type;
@@ -55,16 +54,10 @@ procedure Step8_Macros is
       --  optimization goes to <<Restart>>.
       Ast            : Types.T  := Ast0;
       Env            : Envs.Ptr := Env0;
-      Env_Reusable   : Boolean  := False;
-      --  True when the environment has been created in this recursion
-      --  level, and has not yet been referenced by a closure. If so,
-      --  we can reuse it instead of creating a subenvironment.
-      Macroexpanding : Boolean  := False;
       First          : Types.T;
    begin
       <<Restart>>
-      if Dbgeval then
-         Ada.Text_IO.New_Line;
+      if Types.To_Boolean (Env.all.Get_Or_Nil (Dbgeval)) then
          Ada.Text_IO.Put ("EVAL: ");
          Print (Ast);
          Envs.Dump_Stack (Env.all);
@@ -97,19 +90,15 @@ procedure Step8_Macros is
          if First.Str.all = "if" then
             Err.Check (Ast.Sequence.all.Length in 3 .. 4,
                        "expected 2 or 3 parameters");
-            declare
-               Tst : constant Types.T := Eval (Ast.Sequence.all.Data (2), Env);
-            begin
-               if Tst /= Types.Nil and Tst /= (Kind_Boolean, False) then
-                  Ast := Ast.Sequence.all.Data (3);
-                  goto Restart;
-               elsif Ast.Sequence.all.Length = 3 then
-                  return Types.Nil;
-               else
-                  Ast := Ast.Sequence.all.Data (4);
-                  goto Restart;
-               end if;
-            end;
+            if Types.To_Boolean (Eval (Ast.Sequence.all.Data (2), Env)) then
+               Ast := Ast.Sequence.all.Data (3);
+               goto Restart;
+            elsif Ast.Sequence.all.Length = 3 then
+               return Types.Nil;
+            else
+               Ast := Ast.Sequence.all.Data (4);
+               goto Restart;
+            end if;
          elsif First.Str.all = "let*" then
             Err.Check (Ast.Sequence.all.Length = 3
                and then Ast.Sequence.all.Data (2).Kind in Types.Kind_Sequence,
@@ -119,10 +108,7 @@ procedure Step8_Macros is
                  renames Ast.Sequence.all.Data (2).Sequence.all.Data;
             begin
                Err.Check (Bindings'Length mod 2 = 0, "expected even binds");
-               if not Env_Reusable then
-                  Env := Envs.New_Env (Outer => Env);
-                  Env_Reusable := True;
-               end if;
+               Env := Envs.New_Env (Outer => Env);
                for I in 0 .. Bindings'Length / 2 - 1 loop
                   Env.all.Set (Bindings (Bindings'First + 2 * I),
                          Eval (Bindings (Bindings'First + 2 * I + 1), Env));
@@ -177,20 +163,11 @@ procedure Step8_Macros is
             begin
                Err.Check (Params.Kind in Types.Kind_Sequence,
                           "first argument of fn* must be a sequence");
-               Env_Reusable := False;
                return (Kind_Fn, Types.Fns.New_Function
                  (Params => Params.Sequence,
                   Ast    => Ast.Sequence.all.Data (3),
                   Env    => Env));
             end;
-         elsif First.Str.all = "macroexpand" then
-            Err.Check (Ast.Sequence.all.Length = 2, "expected 1 parameter");
-            Macroexpanding := True;
-            Ast := Ast.Sequence.all.Data (2);
-            goto Restart;
-         elsif First.Str.all = "quasiquoteexpand" then
-            Err.Check (Ast.Sequence.all.Length = 2, "expected 1 parameter");
-            return Quasiquote (Ast.Sequence.all.Data (2));
          elsif First.Str.all = "quasiquote" then
             Err.Check (Ast.Sequence.all.Length = 2, "expected 1 parameter");
             Ast := Quasiquote (Ast.Sequence.all.Data (2));
@@ -217,24 +194,10 @@ procedure Step8_Macros is
       case First.Kind is
       when Kind_Macro =>
          --  Use the unevaluated arguments.
-         if Macroexpanding then
-            --  Evaluate the macro with tail call optimization.
-            if not Env_Reusable then
-               Env := Envs.New_Env (Outer => First.Fn.all.Env);
-               Env_Reusable := True;
-            end if;
-            Env.all.Set_Binds
-              (Binds => First.Fn.all.Params.all.Data,
-               Exprs => Ast.Sequence.all.Data (2 .. Ast.Sequence.all.Length));
-            Ast := First.Fn.all.Ast;
-            goto Restart;
-         else
-            --  Evaluate the macro normally.
-            Ast := First.Fn.all.Apply
-              (Ast.Sequence.all.Data (2 .. Ast.Sequence.all.Length));
-            --  Then evaluate the result with TCO.
-            goto Restart;
-         end if;
+         Ast := First.Fn.all.Apply
+           (Ast.Sequence.all.Data (2 .. Ast.Sequence.all.Length));
+         --  Then evaluate the result with TCO.
+         goto Restart;
       when Types.Kind_Function =>
          null;
       when others =>
@@ -252,7 +215,6 @@ procedure Step8_Macros is
          end if;
          --  Like Types.Fns.Apply, except that we use TCO.
          Env := Envs.New_Env (Outer => First.Fn.all.Env);
-         Env_Reusable := True;
          Env.all.Set_Binds (Binds => First.Fn.all.Params.all.Data,
                             Exprs => Args);
          Ast := First.Fn.all.Ast;
@@ -260,11 +222,7 @@ procedure Step8_Macros is
       end;
    exception
       when Err.Error =>
-         if Macroexpanding then
-            Err.Add_Trace_Line ("macroexpand", Ast);
-         else
-            Err.Add_Trace_Line ("eval", Ast);
-         end if;
+         Err.Add_Trace_Line ("eval", Ast);
          raise;
    end Eval;
 
@@ -434,6 +392,7 @@ begin
          --  Collect garbage.
          Err.Data := Types.Nil;
          Repl.all.Keep;
+         Dbgeval.Keep;
          Garbage_Collected.Clean;
       end loop;
       Ada.Text_IO.New_Line;

@@ -28,7 +28,7 @@ pr_str(Value, Readably) ->
             BodyStr = pr_str(Body, Readably),
             io_lib:format("(fn* ~s ~s)", [BindsStr, BodyStr]);
         {function, _Func, _Meta} -> "#<function>";
-        {macro, _Binds, _Body, _Env} -> "#<macro>";
+        {macro, _Eval, _Binds, _Body, _Env} -> "#<macro>";
         {error, Reason} -> io_lib:format("error: ~s", [Reason])
 	end.
 

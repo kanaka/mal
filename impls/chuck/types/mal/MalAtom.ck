@@ -2,11 +2,6 @@ public class MalAtom extends MalObject
 {
     "atom" => type;
 
-    fun MalObject value()
-    {
-        return object$MalObject;
-    }
-
     fun void init(MalObject value)
     {
         value @=> object;

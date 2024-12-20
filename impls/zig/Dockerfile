@@ -1,4 +1,4 @@
-FROM ubuntu:bionic
+FROM ubuntu:24.04
 MAINTAINER Joel Martin <github@martintribe.org>
 
 ##########################################################
@@ -9,10 +9,8 @@ MAINTAINER Joel Martin <github@martintribe.org>
 RUN apt-get -y update
 
 # Required for running tests
-RUN apt-get -y install make python
-
-# Some typical implementation and test requirements
-RUN apt-get -y install curl libreadline-dev libedit-dev libpcre3-dev
+RUN apt-get -y install make python3
+RUN ln -fs /usr/bin/python3 /usr/local/bin/python
 
 RUN mkdir -p /mal
 WORKDIR /mal
@@ -20,14 +18,9 @@ WORKDIR /mal
 ##########################################################
 # Specific implementation requirements
 ##########################################################
+RUN apt-get -y install ca-certificates curl gcc libc6-dev libpcre3-dev libreadline-dev xz-utils
 
-RUN apt-get -y install gcc gdc ldc gpg wget
-
-RUN wget https://ziglang.org/download/0.5.0/zig-linux-x86_64-0.5.0.tar.xz && \
-    echo `pwd`  && \
-    tar -xf zig-linux-x86_64-0.5.0.tar.xz && \
-    cp -r zig-linux-x86_64-0.5.0 /usr/local/bin && \
-    ln -sf /usr/local/bin/zig-linux-x86_64-0.5.0/zig /usr/local/bin/zig && \
-    chmod +x /usr/local/bin/zig
+RUN curl https://ziglang.org/download/0.13.0/zig-linux-x86_64-0.13.0.tar.xz | tar -xJC/opt
+RUN ln -fst/usr/local/bin /opt/zig-linux-x86_64-0.13.0/zig
 
 ENV HOME /mal

@@ -11,17 +11,21 @@
 ;=>123
 
 (try* abc (catch* exc (prn "exc is:" exc)))
-;/"exc is:" "'abc' not found"
+;/"exc is:" "'?abc'? not found"
 ;=>nil
 
 (try* (abc 1 2) (catch* exc (prn "exc is:" exc)))
-;/"exc is:" "'abc' not found"
+;/"exc is:" "'?abc'? not found"
 ;=>nil
 
 ;; Make sure error from core can be caught
 (try* (nth () 1) (catch* exc (prn "exc is:" exc)))
 ;/"exc is:".*(length|range|[Bb]ounds|beyond).*
 ;=>nil
+
+;; Make sure no double eval (no TCO from try block)
+(try* (list 1) (catch* exc (prn "exc is:" exc)))
+;=>(1)
 
 (try* (throw "my exception") (catch* exc (do (prn "exc:" exc) 7)))
 ;/"exc:" "my exception"
@@ -48,19 +52,43 @@
 
 (nil? nil)
 ;=>true
+(nil? false)
+;=>false
 (nil? true)
 ;=>false
+(nil? ())
+;=>false
+(nil? 0)
+;=>false
 
+(true? nil)
+;=>false
+(true? false)
+;=>false
 (true? true)
 ;=>true
-(true? false)
+(true? 1)
 ;=>false
 (true? true?)
 ;=>false
 
+(false? nil)
+;=>false
 (false? false)
 ;=>true
 (false? true)
+;=>false
+(false? "")
+;=>false
+(false? 0)
+;=>false
+(false? ())
+;=>false
+(false? [])
+;=>false
+(false? {})
+;=>false
+(false? nil)
 ;=>false
 
 ;; Testing apply function with core functions
@@ -85,6 +113,13 @@
 (apply (fn* (a b) (+ a b)) 4 (list 5))
 ;=>9
 
+;; Testing apply function with macros
+(defmacro! m (fn* [a b] (+ a b)))
+(apply m (list 2 3))
+;=>5
+(apply m 4 (list 5))
+;=>9
+
 ;; Testing map function
 (def! nums (list 1 2 3))
 (def! double (fn* (a) (* 2 a)))
@@ -101,6 +136,14 @@
 ;;
 ;; ------- Deferrable Functionality ----------
 ;; ------- (Needed for self-hosting) -------
+
+;; Test catch of reader errors
+(try* (eval (read-string "(+ 1")) (catch* e (prn :e e)))
+;/.*(EOF|end of input|unbalanced).*
+(try* (eval (read-string "[+ 1")) (catch* e (prn :e e)))
+;/.*(EOF|end of input|unbalanced).*
+(try* (eval (read-string "{:a 1")) (catch* e (prn :e e)))
+;/.*(EOF|end of input|unbalanced).*
 
 ;; Testing symbol and keyword functions
 (symbol? :abc)
@@ -338,7 +381,7 @@
 ;;
 ;; Testing try* without catch*
 (try* xyz)
-;/.*\'?xyz\'? not found.*
+;/.*'?xyz'? not found.*
 
 ;;
 ;; Testing throwing non-strings
@@ -401,4 +444,5 @@
 (def! bar (fn* [a] {:foo (get a :foo)}))
 (bar {:foo (fn* [x] x)})
 (bar {:foo 3})
+;=>{:foo 3}
 ;; shouldn't give an error

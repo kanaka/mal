@@ -1,0 +1,32 @@
+*host-language*
+;=>"python3"
+
+;; Testing Python interop
+
+;; Testing Python expressions
+
+(py* "7")
+;=>7
+
+(py* "'7'")
+;=>"7"
+
+(py* "[7,8,9]")
+;=>(7 8 9)
+
+(py* "' '.join(f'X{c}Y' for c in 'abc')")
+;=>"XaY XbY XcY"
+
+(py* "list(1 + x for x in range(1, 4))")
+;=>(2 3 4)
+
+;; Testing Python statements
+
+(py!* "print('hello')")
+;/hello
+;=>nil
+
+(py!* "foo = 19 % 4")
+;=>nil
+(py* "foo")
+;=>3

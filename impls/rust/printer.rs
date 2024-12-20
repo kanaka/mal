@@ -22,8 +22,8 @@ impl MalVal {
             Int(i) => format!("{}", i),
             //Float(f)    => format!("{}", f),
             Str(s) => {
-                if s.starts_with("\u{29e}") {
-                    format!(":{}", &s[2..])
+                if let Some(keyword) = s.strip_prefix('\u{29e}') {
+                    format!(":{}", keyword)
                 } else if print_readably {
                     format!("\"{}\"", escape_str(s))
                 } else {
@@ -31,8 +31,8 @@ impl MalVal {
                 }
             }
             Sym(s) => s.clone(),
-            List(l, _) => pr_seq(&**l, print_readably, "(", ")", " "),
-            Vector(l, _) => pr_seq(&**l, print_readably, "[", "]", " "),
+            List(l, _) => pr_seq(l, print_readably, "(", ")", " "),
+            Vector(l, _) => pr_seq(l, print_readably, "[", "]", " "),
             Hash(hm, _) => {
                 let l: Vec<MalVal> = hm
                     .iter()
@@ -40,7 +40,7 @@ impl MalVal {
                     .collect();
                 pr_seq(&l, print_readably, "{", "}", " ")
             }
-            Func(f, _) => format!("#<fn {:?}>", f),
+            Func(_, _) => String::from("#<builtin>"),
             MalFunc {
                 ast: a, params: p, ..
             } => format!("(fn* {} {})", p.pr_str(true), a.pr_str(true)),
@@ -50,11 +50,11 @@ impl MalVal {
 }
 
 pub fn pr_seq(
-    seq: &Vec<MalVal>,
+    seq: &[MalVal],
     print_readably: bool,
     start: &str,
     end: &str,
-    join: &str,
+    join: &str
 ) -> String {
     let strs: Vec<String> = seq.iter().map(|x| x.pr_str(print_readably)).collect();
     format!("{}{}{}", start, strs.join(join), end)

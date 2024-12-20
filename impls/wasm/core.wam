@@ -333,6 +333,67 @@
                      (i32.eq ($TYPE ($MEM_VAL1_ptr $args))
                              (global.get $VECTOR_T)))))
 
+  (func $seq (param $args i32) (result i32)
+    (LET $mv ($MEM_VAL1_ptr $args)
+        $type ($TYPE $mv)
+        $res 0
+        $ret 0
+        $empty 0
+        $current 0
+        $i 0
+        $char 0)
+
+    (if (i32.eq $type (global.get $NIL_T))
+      (then (return (global.get $NIL))))
+
+    (if (AND (i32.ne $type (global.get $LIST_T))
+            (i32.ne $type (global.get $VECTOR_T))
+            (i32.ne $type (global.get $STRING_T)))
+      (then (return (global.get $NIL))))
+
+    (if (i32.eqz ($VAL0 $mv)) (then (return (global.get $NIL))))
+
+    (if (i32.eq $type (global.get $LIST_T))
+      (then (return ($FORCE_SEQ_TYPE (global.get $LIST_T) $mv))))
+
+    (if (i32.eq $type (global.get $VECTOR_T))
+      (then (return ($FORCE_SEQ_TYPE (global.get $LIST_T) $mv))))
+
+    (if (i32.eq $type (global.get $STRING_T))
+      (then
+        (local.set $mv ($to_String $mv))
+        (if (i32.eqz ($strlen $mv)) (then (return (global.get $NIL))))
+        (local.set $res ($MAP_LOOP_START (global.get $LIST_T)))
+        (local.set $empty $res)
+        (local.set $current $res)
+        (local.set $ret $res)
+        (local.set $i 0)
+        (block $done
+          (loop $loop
+            (local.set $char (i32.load8_u (i32.add $mv $i)))
+            (br_if $done (i32.eq $char 0))
+
+            (i32.store8 (global.get $token_buf) $char)
+            (i32.store8 (i32.add (global.get $token_buf) 1) 0)
+
+            (local.set $res
+                      ($MAP_LOOP_UPDATE (global.get $LIST_T)
+                                      $empty $current ($STRING (global.get $STRING_T) (global.get $token_buf)) 0))
+            (if (i32.le_u $current (global.get $EMPTY_LIST))
+              ;; if first element, set return to new element
+              (local.set $ret $res))
+
+            (local.set $i (i32.add $i 1))
+            (local.set $current $res)
+            (br $loop)
+          )
+        )
+        (return $ret)
+      )
+    )
+    (global.get $NIL)
+  )
+
   (func $cons (param $args i32) (result i32)
     ($LIST ($MEM_VAL1_ptr ($MEM_VAL0_ptr $args)) ($MEM_VAL1_ptr $args)))
 
@@ -468,7 +529,7 @@
     (LET $f         ($MEM_VAL1_ptr $args)
          $rest_args ($MEM_VAL1_ptr ($MEM_VAL0_ptr $args))
          $f_args    0
-         $res       ($MAP_LOOP_START (global.get $LIST_T)) 
+         $res       ($MAP_LOOP_START (global.get $LIST_T))
          ;; push MAP_LOOP stack
          $ret       $res
          $current   $res
@@ -641,7 +702,7 @@
           $apply
           $map
           $nop ;; $conj
-          $nop ;; $seq
+          $seq
 
           ;; 54
           $with_meta

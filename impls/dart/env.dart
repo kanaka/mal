@@ -3,7 +3,7 @@ import 'types.dart';
 class Env {
   final Env outer;
 
-  final data = <MalSymbol, MalType>{};
+  final data = <String, MalType>{};
 
   Env([this.outer, List<MalSymbol> binds, List<MalType> exprs]) {
     if (binds == null) {
@@ -12,35 +12,28 @@ class Env {
       assert(exprs != null &&
           (binds.length == exprs.length || binds.contains(new MalSymbol('&'))));
       for (var i = 0; i < binds.length; i++) {
-        if (binds[i] == new MalSymbol('&')) {
-          set(binds[i + 1], new MalList(exprs.sublist(i)));
+        if (binds[i].value == '&') {
+          set(binds[i + 1].value, new MalList(exprs.sublist(i)));
           break;
         }
-        set(binds[i], exprs[i]);
+        set(binds[i].value, exprs[i]);
       }
     }
   }
 
-  void set(MalSymbol key, MalType value) {
+  void set(String key, MalType value) {
     data[key] = value;
   }
 
-  Env find(MalSymbol key) {
-    if (data[key] != null) {
-      return this;
+  MalType get(String key) {
+    var value = data[key];
+    if (value != null) {
+      return value;
     }
     if (outer != null) {
-      return outer.find(key);
+      return outer.get(key);
     }
     return null;
-  }
-
-  MalType get(MalSymbol key) {
-    var env = find(key);
-    if (env != null) {
-      return env.data[key];
-    }
-    throw new NotFoundException(key.value);
   }
 }
 
