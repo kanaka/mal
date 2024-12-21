@@ -1,13 +1,19 @@
 # A Compiler from MAL to Python
 
-This ongoing project aims to implement a compiler for [MAL (Make
-a Lisp)](https://github.com/kanaka/mal/tree/master) to Python.
-The code resides in `./impls/python/compile/`. Please note that
-the reader and some primary functions were adopted from the MAL
-implementation in Python by Joel Martin, whose code still resides
-in `./impls/python/`.
+[Make a Lisp (MAL)](https://github.com/kanaka/mal/tree/master) is a Lisp
+programming language designed for educational purposes, aimed at teaching
+people how to implement a programming language from scratch. It currently has
+multiple implementations across various programming languages, including
+[`python3`](https://github.com/kanaka/mal/tree/master/impls/python3), which
+interprets MAL code but does not include a compiler.
 
-## Passed All Official Tests (2,3,4,5,6,7,8,9,A)
+This project is a fork of an earlier version of the official `python3`
+implementation, with additional enhancements to include a compiler. As a
+result, it achieves performance approximately 16 times faster than the
+original interpreter. The source code for this implementation is located in
+`./impls/python-compile/`.
+
+## Passed All[^1] Official Tests 
 
 Quickly test them by running:
 
@@ -51,3 +57,5 @@ iters over 10 seconds: 148519
 + Finish implementing `compile_file`.
 
 + Wait for pull request decision: https://github.com/kanaka/mal/pull/653
+
+[^1]: It current only passes test suites: 2, 3, 4, 5, 6, 7, 8, 9, A.
