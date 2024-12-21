@@ -25,7 +25,7 @@ for ((i=2; i<=10; i++)); do
 done
 ```
 
-## ~16 Times Faster Than The Interpreted Version
+## 16 Times Faster Than The Interpreted Version
 
 Per the official performance test suite, `python-compile` is near
 16 times faster than the interpreted version.
@@ -54,8 +54,6 @@ iters over 10 seconds: 148519
 
 + Document how the design of the compiler.
 
-+ Finish implementing `compile_file`.
-
-+ Wait for pull request decision: https://github.com/kanaka/mal/pull/653
+## Footnotes
 
 [^1]: It current only passes test suites: 2, 3, 4, 5, 6, 7, 8, 9, A.
