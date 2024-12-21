@@ -53,7 +53,8 @@ iters over 10 seconds: 148519
 ## TODO
 
 + Document how the design of the compiler.
-+ Wait for being mentioned in the official MAL main page, and write a section here.
++ [Wait](https://github.com/kanaka/mal/pull/653) for being mentioned in the
+  official MAL main page, and write a section here.
 
 ## Footnotes
 
