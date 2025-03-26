@@ -34,7 +34,7 @@ wasm_MODE = wasmtime
 
 IMPLS = ada ada.2 awk bash basic bbc-basic c c.2 chuck clojure coffee common-lisp cpp crystal cs d dart \
 	elisp elixir elm erlang es6 factor fantom fennel forth fsharp go groovy gnu-smalltalk \
-	guile haskell haxe hy io janet java java-truffle js jq julia kotlin latex3 livescript logo lua make mal \
+	guile hare haskell haxe hy io janet java java-truffle js jq julia kotlin latex3 livescript logo lua make mal \
 	matlab miniMAL nasm nim objc objpascal ocaml perl perl6 php picolisp pike plpgsql \
 	plsql powershell prolog ps purs python2 python3 r racket rexx rpython ruby ruby.2 rust scala scheme skew sml \
 	swift swift3 swift4 swift6 tcl ts vala vb vbs vhdl vimscript wasm wren yorick xslt zig
@@ -137,6 +137,7 @@ go_STEP_TO_PROG =            impls/go/$($(1))
 groovy_STEP_TO_PROG =        impls/groovy/$($(1)).groovy
 gnu-smalltalk_STEP_TO_PROG = impls/gnu-smalltalk/$($(1)).st
 guile_STEP_TO_PROG =         impls/guile/$($(1)).scm
+hare_STEP_TO_PROG =          impls/hare/$($(1))
 haskell_STEP_TO_PROG =       impls/haskell/$($(1))
 haxe_STEP_TO_PROG =          $(haxe_STEP_TO_PROG_$(haxe_MODE))
 hy_STEP_TO_PROG =            impls/hy/$($(1)).hy
