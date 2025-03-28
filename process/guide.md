@@ -634,7 +634,7 @@ diff -u ../process/step2_eval.txt ../process/step3_env.txt
   parameter and starts with an empty associative data structure
   property `data`.
 
-* Define three methods for the Env object:
+* Define two methods for the Env object:
   * set: takes a symbol key and a mal value and adds to the `data`
     structure
   * get: takes a symbol key and if the current environment contains
