@@ -1,0 +1,178 @@
+use io;
+use fmt;
+use memio;
+use strings;
+
+export fn read_str(input: []u8) (MalType | error | io::EOF) = {
+
+	const tk: tokenizer = tokenizer_init(input);
+
+	match(read_form(&tk)?){
+	case let res: MalType =>
+		return res;
+	case let e: coll_end =>
+		return unbalanced;
+	case let res: io::EOF =>
+		return io::EOF;
+	};
+
+};
+
+fn read_form(tk: *tokenizer) (...MalType | ...coll_end | io::EOF | error) = {
+	for(true){
+		match(tokenizer_next(tk)?) {
+		case let t: coll_beg =>
+			return read_collection(tk, t);
+		case let t: coll_end =>
+			return t;
+		case let s: str =>
+			return read_string(s);
+		case let c: comment => void;
+		case let a: word =>
+			return read_symbol(a);
+		case let q: quote_tk =>
+			return read_quote(tk, q);
+		case let i: int =>
+			return i: number;
+		case io::EOF =>
+			return io::EOF;
+		case => continue;
+		};
+	};
+};
+
+fn read_quote(tk: *tokenizer, t: quote_tk) (list | error) = {
+
+	let res: list = [];
+
+	const qs:symbol = match(t){
+	case quote =>
+	     yield "quote";
+	case unquote =>
+	     yield "unquote";
+	case quasiquote =>
+	     yield "quasiquote";
+	case unquote_splice =>
+	     yield "splice-unquote";
+	case at =>
+	     yield "deref";
+	};
+
+	append(res, qs);
+
+	match(read_form(tk)?){
+	case let l: MalType =>
+		append(res, l);
+		return res;
+	case coll_end =>
+		return unbalanced;
+	case io::EOF =>
+		return unexpectedEOF;
+	};
+
+};
+
+fn read_hashmap(tk: *tokenizer) (hashmap | error) = {
+
+	let res = hm_init();
+
+	for(true){
+		let key = match(read_form(tk)?){
+		case hash_end =>
+			break;
+		case let key: (string | symbol) =>
+			yield key;
+		case io::EOF =>
+			return unexpectedEOF;
+		};
+
+		let val = match(read_form(tk)?){
+		case hash_end =>
+			return unbalanced;
+		case let form: MalType =>
+			yield form;
+		case io::EOF =>
+			return unexpectedEOF;
+		};
+		hm_add(res, key, val);
+	};
+
+	return res;
+};
+
+fn read_collection(tk: *tokenizer, t: coll_beg) (...collection | error) = {
+
+	if(t is hash_beg){
+		return read_hashmap(tk);
+	};
+
+	let res: []MalType = [];
+
+	for(true){
+		match(read_form(tk)?){
+		case list_end =>
+			if(!(t is list_beg)){
+				return unbalanced;
+			};
+			return res:list;
+		case vec_end =>
+			if(!(t is vec_beg)){
+				return unbalanced;
+			};
+			return res:vector;
+		case  hash_end =>
+			return unbalanced;
+		case let form: MalType =>
+			append(res, form);
+			continue;
+		case io::EOF =>
+		     return unexpectedEOF;
+		};
+	};
+};
+
+//todo: read nil
+//todo: keywords as a distinct type
+fn read_symbol(s: word) symbol = {
+	return strings::dup(s);
+};
+
+fn read_string(s: str) (string | error) = {
+
+	let strbuf = memio::dynamic();
+	let runes = strings::torunes(s);
+
+	for (let i:size = 0; i < len(runes); i += 1) {
+		let rn = switch (runes[i]) {
+		case '\\' =>
+		     i += 1;
+		     yield scan_escape(runes[i]);
+		case =>
+		     yield runes[i];
+		};
+		memio::appendrune(&strbuf, rn)!;
+	};
+
+	return memio::string(&strbuf)!;
+};
+
+fn scan_escape(rn: rune) rune = {
+	switch (rn) {
+	case '\"' =>
+		return '\"';
+	case '\\' =>
+		return '\\';
+	case 'b' =>
+		return '\b';
+	case 'f' =>
+		return '\f';
+	case 'n' =>
+		return '\n';
+	case 'r' =>
+		return '\r';
+	case 't' =>
+		return '\t';
+	case =>
+		return rn;
+	};
+};
