@@ -1,5 +1,5 @@
 CC= hare build
 
-%: %.ha
+%: %.ha $(wildcard mal/*.ha)
 	$(CC) -o $@ $< 
 
