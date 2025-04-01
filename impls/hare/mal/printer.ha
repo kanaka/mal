@@ -20,6 +20,8 @@ export fn print_form(form: MalType)  void = {
 		fmt::print(s)!;
 	case let i: number =>
 		fmt::print(i: int)!;
+	case let func: intrinsic =>
+		fmt::print("function")!;
 	case => void;
 	};
 };
