@@ -9,4 +9,4 @@ export type list = []MalType;
 export type vector = []MalType;
 export type collection = (list | vector | hashmap);
 export type intrinsic = *fn(MalType...) MalType;
-export type MalType = (string | intrinsic | ...collection | ...atom | nil);
+export type MalType = (bool | string | intrinsic | ...collection | ...atom | nil);
