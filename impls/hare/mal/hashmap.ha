@@ -25,7 +25,7 @@ fn keycmp(x: (symbol | string), y: (symbol | string)) bool = {
 	const ky: str = match(y){
 	case let k: symbol =>
 		yield k:str;
-	case let k: symbol =>
+	case let k: string =>
 		yield k:str;
 	};
 

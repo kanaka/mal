@@ -16,6 +16,8 @@ export fn print_form(form: MalType)  void = {
 		print_string(s, true);
 	case nil =>
 		fmt::print("nil")!;
+	case let b: bool =>
+		fmt::print(b)!;
 	case let s: symbol =>
 		fmt::print(s)!;
 	case let i: number =>

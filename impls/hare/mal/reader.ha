@@ -133,8 +133,18 @@ fn read_collection(tk: *tokenizer, t: coll_beg) (...collection | error) = {
 
 //todo: read nil
 //todo: keywords as a distinct type
-fn read_symbol(s: word) symbol = {
-	return strings::dup(s);
+fn read_symbol(s: word) MalType = {
+	switch(s){
+	case "true" =>
+		return true;
+	case "false" =>
+		return false;
+	case "nil" =>
+		return nil;
+	case =>
+		return strings::dup(s): symbol;
+	};
+
 };
 
 fn read_string(s: str) (string | error) = {
@@ -153,7 +163,7 @@ fn read_string(s: str) (string | error) = {
 		memio::appendrune(&strbuf, rn)!;
 	};
 
-	return memio::string(&strbuf)!;
+	return memio::string(&strbuf)!: string;
 };
 
 fn scan_escape(rn: rune) rune = {
