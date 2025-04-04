@@ -23,7 +23,7 @@ fn eval_list(ls: mal::list, env: mal::hashmap) mal::MalType = {
 		ls[i] = eval(ls[i], env);
 	};
 
-	return func(ls[1..]...);
+	return func(ls[1..])!;
 };
 
 
@@ -71,7 +71,7 @@ fn eval (ast: mal::MalType, env: mal::hashmap) mal::MalType = {
 };
 
 fn print (input: mal::MalType) void = {
-	mal::print_form(input);
+	mal::print_form(os::stdout, input);
 	fmt::print("\n")!;
 };
 

@@ -95,6 +95,7 @@ export fn hm_set(hm: hashmap, key: (symbol | string), elm: MalType) void = {
 	match(*map){
 	case null =>
 		*map = hm_new_node(key, elm);
+		hm.count += 1;
 	case let map: *hm_map =>
 		map.key = key;
 		map.val = elm;

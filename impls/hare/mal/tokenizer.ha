@@ -283,8 +283,10 @@ fn iswordrn(rn: rune) bool = {
 
 	switch(rn){
 	case '-' => return true;
+	case '?' => return true;
 	case '!' => return true;
 	case '>' => return true;
+	case '=' => return true;
 	case '<' => return true;
 	case '*' => return true;
 	case '/' => return true;

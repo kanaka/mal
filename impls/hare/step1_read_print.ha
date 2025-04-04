@@ -14,7 +14,7 @@ fn eval (input: mal::MalType) mal::MalType = {
 };
 
 fn print (input: mal::MalType) void = {
-	mal::print_form(input);
+	mal::print_form(os::stdout, input);
 	fmt::print("\n")!;
 };
 

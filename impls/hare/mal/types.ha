@@ -7,6 +7,13 @@ export type atom = (number | symbol);
 export type string = str;
 export type list = []MalType;
 export type vector = []MalType;
-export type collection = (list | vector | hashmap);
-export type intrinsic = *fn(MalType...) MalType;
-export type MalType = (bool | string | intrinsic | ...collection | ...atom | nil);
+export type collection = (list | vector);
+export type intrinsic = *fn(list) (MalType | error);
+export type MalValue = (bool | string | hashmap | ...collection | ...atom | nil);
+export type MalType = (bool | string | function | hashmap | intrinsic | ...collection | ...atom | nil);
+
+export type function = struct {
+	env: *env,
+	args: (list | vector),
+	body: MalValue,
+};

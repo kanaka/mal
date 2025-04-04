@@ -100,7 +100,7 @@ fn read_hashmap(tk: *tokenizer) (hashmap | error) = {
 	return res;
 };
 
-fn read_collection(tk: *tokenizer, t: coll_beg) (...collection | error) = {
+fn read_collection(tk: *tokenizer, t: coll_beg) (hashmap | ...collection | error) = {
 
 	if(t is hash_beg){
 		return read_hashmap(tk);
@@ -131,7 +131,6 @@ fn read_collection(tk: *tokenizer, t: coll_beg) (...collection | error) = {
 	};
 };
 
-//todo: read nil
 //todo: keywords as a distinct type
 fn read_symbol(s: word) MalType = {
 	switch(s){

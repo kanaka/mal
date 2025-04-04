@@ -3,92 +3,104 @@ use memio;
 use fmt;
 use strings;
 
-export fn print_form(form: MalType)  void = {
+export fn print_form(strbuf: io::handle, form: MalType, print_readably: bool = true) void = {
 
 	match(form){
 	case let l: list =>
-		print_list(l, list_beg);
+		print_list(strbuf, l, list_beg, print_readably);
 	case let r: vector =>
-		print_list(r, vec_beg);
+		print_list(strbuf, r, vec_beg, print_readably);
 	case let h: hashmap =>
-		print_hash(h);
+		print_hash(strbuf, h, print_readably);
 	case let s: string =>
-		print_string(s, true);
+		print_string(strbuf, s, print_readably);
 	case nil =>
-		fmt::print("nil")!;
+		memio::concat(strbuf, "nil")!;
 	case let b: bool =>
-		fmt::print(b)!;
+		fmt::fprint(strbuf, b)!;
 	case let s: symbol =>
-		fmt::print(s)!;
+		memio::concat(strbuf, s:str)!;
 	case let i: number =>
-		fmt::print(i: int)!;
-	case let func: intrinsic =>
-		fmt::print("function")!;
+		fmt::fprint(strbuf, i: int)!;
+	case let func: (intrinsic | function) =>
+		memio::concat(strbuf, "#<function>")!;
 	case => void;
 	};
 };
 
-fn print_string(s: string, print_readable: bool) void = {
+fn print_string(strbuf: io::handle ,s: string, print_readable: bool) void = {
 
-	let strbuf = memio::dynamic();
 	let runes = strings::torunes(s);
 
+
 	if(!print_readable){
-		fmt::printf("\"{}\"", s)!;
-		return void;
+		memio::concat(strbuf, s)!;
+	} else {
+		memio::appendrune(strbuf, '"')!;
+		for(let rn .. runes){
+			let ret = switch (rn) {
+			case '"' =>
+				yield "\\\"";
+			case '\\' =>
+				yield "\\\\";
+			case '\b' =>
+				yield "\\b";
+			case '\f' =>
+				yield "\\f";
+			case '\n' =>
+				yield "\\n";
+			case '\r' =>
+				yield "\\r";
+			case '\t' =>
+				yield "\\t";
+			case =>
+				yield rn;
+			};
+
+			match(ret) {
+			case let rn: rune =>
+				memio::appendrune(strbuf, rn)!;
+			case let rn: str =>
+				memio::concat(strbuf, rn)!;
+			};
+		};
+		memio::appendrune(strbuf, '"')!;
 	};
 
-	for(let rn .. runes){
-		let ret = switch (rn) {
-		case '"' =>
-			yield "\\\"";
-		case '\\' =>
-			yield "\\\\";
-		case '\b' =>
-			yield "\\b";
-		case '\f' =>
-			yield "\\f";
-		case '\n' =>
-			yield "\\n";
-		case '\r' =>
-			yield "\\r";
-		case '\t' =>
-			yield "\\t";
-		case =>
-			yield rn;
-		};
-
-		match(ret) {
-		case let rn: rune =>
-			memio::appendrune(&strbuf, rn)!;
-		case let rn: str =>
-			memio::concat(&strbuf, rn)!;
-		};
-
-	};
-	fmt::printf("\"{}\"", memio::string(&strbuf)!)!;
 };
 
-fn print_hm(map: *hm_map, i:size) void = {
-	print_form(map.key);
-	fmt::print(" ")!;
-	print_form(map.val);
-	if(i != 0){
-		fmt::print(" ")!;
+fn hm_print_rec(strbuf: io::handle, map: * nullable *hm_map, entry: bool, pp:bool) void = {
+
+	match(*map){
+	case null => return void;
+	case let map:*hm_map =>
+		for(let child .. map.child){
+			hm_print_rec(strbuf, &child, false, pp);
+		};
+
+		print_form(strbuf, map.key, pp);
+		fmt::fprint(strbuf, " ")!;
+		print_form(strbuf, map.val, pp);
+
+		if(!entry){
+			fmt::fprint(strbuf, " ")!;
+		};
 	};
 };
 
-fn print_hash(hm: hashmap) void ={
+
+fn print_hash(strbuf: io::handle, hm: hashmap, pp:bool) void ={
 
 	const open = '{';
 	const close = '}';
 
-	fmt::print(open)!;
-	hm_traverse(hm, &print_hm);
-	fmt::print(close)!;
+	fmt::fprint(strbuf, open)!;
+	hm_print_rec(strbuf, hm.map, true, pp);
+	fmt::fprint(strbuf, close)!;
 };
 
-fn print_list(ls: []MalType, t: coll_beg) void = {
+
+fn print_list(strbuf: io::handle, ls: []MalType, t: coll_beg, pp: bool) void = {
 
 	let open = '(';
 	let close = ')';
@@ -98,12 +110,12 @@ fn print_list(ls: []MalType, t: coll_beg) void = {
 		close = ']';
 	};
 
-	fmt::print(open)!;
+	memio::appendrune(strbuf, open)!;
 	for(let i:size = 0; i < len(ls); i += 1) {
-		print_form(ls[i]);
+		let form = print_form(strbuf, ls[i], pp);
 		if(!(i == len(ls)-1)){
-			fmt::print(" ")!;
+			fmt::fprint(strbuf, " ")!;
 		};
 	};
-	fmt::print(close)!;
+	memio::appendrune(strbuf, close)!;
 };
