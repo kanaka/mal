@@ -107,6 +107,7 @@ fn read_collection(tk: *tokenizer, t: coll_beg) (hashmap | ...collection | error
 	};
 
 	let res: []MalType = [];
+	defer free(res);
 
 	for(true){
 		match(read_form(tk)?){
@@ -114,12 +115,12 @@ fn read_collection(tk: *tokenizer, t: coll_beg) (hashmap | ...collection | error
 			if(!(t is list_beg)){
 				return unbalanced;
 			};
-			return res:list;
+			return make_list(len(res), res);
 		case vec_end =>
 			if(!(t is vec_beg)){
 				return unbalanced;
 			};
-			return res:vector;
+			return make_vec(len(res), res);
 		case  hash_end =>
 			return unbalanced;
 		case let form: MalType =>
@@ -141,7 +142,7 @@ fn read_symbol(s: word) MalType = {
 	case "nil" =>
 		return nil;
 	case =>
-		return strings::dup(s): symbol;
+		return make_symbol(s);
 	};
 
 };
@@ -149,6 +150,7 @@ fn read_symbol(s: word) MalType = {
 fn read_string(s: str) (string | error) = {
 
 	let strbuf = memio::dynamic();
+	defer io::close(&strbuf)!;
 	let runes = strings::torunes(s);
 
 	for (let i:size = 0; i < len(runes); i += 1) {
@@ -162,7 +164,7 @@ fn read_string(s: str) (string | error) = {
 		memio::appendrune(&strbuf, rn)!;
 	};
 
-	return memio::string(&strbuf)!: string;
+	return make_string(memio::string(&strbuf)!);
 };
 
 fn scan_escape(rn: rune) rune = {

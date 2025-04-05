@@ -72,7 +72,7 @@ fn eval_list(ls: mal::list, env: *mal::env) (mal::MalType | mal::error) = {
 
 fn eval_vec(vec: mal::vector, env: *mal::env) (mal::vector | mal::error) ={
 
-	let res:mal::vector = alloc([mal::nil...], len(vec));
+	let res:mal::vector = mal::make_vec(len(vec));
 
 	if(len(vec) == 0) return vec;
 	for(let i:size = 0; i < len(vec); i += 1){

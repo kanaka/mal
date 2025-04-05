@@ -49,13 +49,12 @@ export fn div (args: list) (MalType | error) = {
 };
 
 export fn mallist (args: list) (MalType | error) = {
-	return args:list;
+	return make_list(len(args), args:list);
 };
 
 export fn listp (args: list) (MalType | error) = {
 	return args[0] is list;
 };
-
 
 export fn emptyp (args: list) (MalType | error) = {
 
@@ -103,7 +102,7 @@ export fn greq_than (args: list) (MalType | error) = {
 
 export fn seq_than (args: list) (MalType | error) = {
 	if(len(args) != 2)
-	  return ("<= expected exactly 2 args, got:", args):syntaxError;
+		return ("<= expected exactly 2 args, got:", args):syntaxError;
 	return args[0] as number <= args[1] as number;
 };
 
@@ -188,7 +187,6 @@ export fn prn (args: list) (MalType | error) = {
 	return nil;
 };
 
-
 export fn prn_line (args: list) (MalType | error) = {
 
 	for(let i:size = 0; i < len(args); i += 1) {
@@ -252,8 +250,8 @@ export fn slurp(args: list) (MalType | error) = {
 	return strings::fromutf8(fcontent)!:string;
 };
 
-export fn make_atom (args: list) (MalType | error) = {
-	return alloc(args[0]):atom;
+export fn mal_atom (args: list) (MalType | error) = {
+	return make_atom(args[0]);
 };
 
 export fn atomp  (args: list) (MalType | error) = {
@@ -297,27 +295,91 @@ export fn atom_swap (args: list) (MalType | error) = {
 		return ("expected atom", args[0]):typeerror;
 	};
 
-	let ls:list = alloc([nil...], len(args));
 
 	let res = match(args[1]){
 	case  let func: function =>
+		let ls:list = make_list(len(args));
 		ls[0] = func;
 		ls[1] = *a;
-		for (let i:size = 2; i < len(ls); i += 1){
-			ls[i]=args[i];
-		};
+		ls[2..] = args[2..];
 		yield func.evaluator(ls, func.env)?;
 	case let func: intrinsic =>
+		let ls:list = make_list(len(args)-1);
 		ls[0] = *a;
-		let i:size = 2;
-		for (i < len(args); i += 1){
-			ls[i - 1]=args[i];
-		};
-		yield func(ls[..i-1])?;
+		ls[1..] = args[2..];
+		yield func(ls)?;
 	case =>
 		return ("expected function", args[0]):typeerror;
 	};
 
 	*a = res;
 	return *a;
+};
+
+export fn cons(args: list) (MalType | error) = {
+	let ls: []MalType = match(args[1]){
+	case let ls: list =>
+		yield ls;
+	case let ls: vector =>
+		yield ls;
+	case =>
+		return("expected list", args[1]):typeerror;
+	};
+
+	let new:list = make_list(len(ls)+1);
+	new[0] = args[0];
+	new[1..] = ls;
+	return new;
+};
+
+export fn concat(args: list) (MalType | error) = {
+
+	let length:size = 0;
+	for(let i:size = 0; i < len(args); i += 1){
+		match(args[i]){
+		case let ls: list =>
+			length += len(ls);
+		case let ls: vector =>
+			length += len(ls);
+		case =>
+			return("expected list", args[1]):typeerror;
+		};
+	};
+
+	if(length == 0) return []:list;
+
+	let new:list = make_list(length);
+	let nlen: size = 0;
+	for(let i: size = 0; i < len(args); i += 1){
+		let ls:[]MalType = match(args[i]){
+		case let ls: list =>
+			yield ls;
+		case let ls: vector =>
+			yield ls;
+		};
+		
+		const n = nlen + len(ls);
+		new[nlen..n] = ls;
+		nlen = n;
+	};
+	return new;
+};
+
+export fn vec (args: list) (MalType | error) = {
+	let ls = match(args[0]){
+		case let ls: vector =>
+			return ls;
+		case let ls: list =>
+			yield ls;
+		case =>
+			return ("expected list or vector", args[0]):typeerror;
+	};
+
+	let new: vector = [];
+	if(len(ls) > 0){
+		new = make_list(len(ls));
+		new[0..] = ls;
+	};
+
+	return new;
 };

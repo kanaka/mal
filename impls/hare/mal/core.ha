@@ -3,7 +3,7 @@ export type namespace = []ns_entry;
 
 export fn load_namespace(ns: namespace, env: *env) void = {
 	for(let e.. ns){
-		env_set(env, e.0, e.1);
+		env_set(env, make_symbol(e.0), e.1);
 	};
 };
 
@@ -29,10 +29,12 @@ export let core: namespace = [
 	("str", &pr_str_ugly),
 	("read-string", &r_string),
 	("slurp", &slurp),
-	("atom", &make_atom),
+	("atom", &mal_atom),
 	("atom?", &atomp),
 	("deref", &atom_deref),
 	("reset!", &atom_reset),
 	("swap!", &atom_swap),
+	("cons", &cons),
+	("concat", &concat),
+	("vec", &vec),
 ];
-
