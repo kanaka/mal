@@ -76,7 +76,7 @@ for(true){
 	match(ls[0]){
 
 	case let sym: mal::symbol =>
-	     
+
 	switch(sym){
 	case "def!" =>
 		if(len(ls) != 3)
@@ -186,9 +186,9 @@ for(true){
 fn print (input: mal::MalType) void = {
 	mal::print_form(os::stdout, input);
 	fmt::print("\n")!;
-};
+	};
 
-fn rep (input: []u8, env: *mal::env) void = {
+fn rep (input: []u8, env: *mal::env, printp:bool = true) void = {
 	let ast = match(read(input)){
 	case let e:mal::error =>
 		return mal::handle_error(e);
@@ -205,16 +205,57 @@ fn rep (input: []u8, env: *mal::env) void = {
 		yield form;
 	};
 
-	print(result);
+	if(printp) print(result);
+};
+
+
+let repl_env: nullable *mal::env = null;
+
+fn do_eval(args: mal::list) (mal::MalType | mal::error) = {
+	const env = match(repl_env){
+	case let env: *mal::env =>
+		yield env;
+	case =>
+		return (void, "repl_env":mal::symbol):mal::undefinedSymbol;
+	};
+	return eval(args[0], env);
 };
 
 export fn main() void = {
 
-	const env = mal::env_init();
+	repl_env = mal::env_init();
+	const env = match(repl_env){
+	case let env: *mal::env =>
+		yield env;
+	case =>
+		fmt::fatal("No repl environment initialized!");
+	};
+
+	mal::env_set(env, "eval", &do_eval:mal::intrinsic);
 	mal::load_namespace(mal::core, env);
+	let load_file = "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \"\nnil)\")))))";
+
+	rep(strings::toutf8(load_file), env, false);
+
+	const args = os::args;
+	let argv:mal::list = [];
+
+	if (len(args) > 2){
+		for(let i:size = 2; i < len(args); i += 1){
+			append(argv, args[i]:mal::string);
+		};
+	};
+
+	mal::env_set(env, "*ARGV*", argv);
+
+	if(len(args) > 1){
+		let exec_str = strings::join("", "(load-file \"", args[1], "\")");
+		rep(strings::toutf8(exec_str), env, false);
+		free(exec_str);
+		os::exit(0);
+	};
 
 	for(true){
-
 		fmt::printf("user> ")!;
 		bufio::flush(os::stdout)!;
 
@@ -227,7 +268,7 @@ export fn main() void = {
 			break;
 		};
 
-		defer free(input);
 		rep(input, env);
+		free(input);
 	};
 };
