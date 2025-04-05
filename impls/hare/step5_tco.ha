@@ -12,7 +12,7 @@ fn read (input: []u8) (mal::MalType | io::EOF | mal::error) = {
 fn eval_vec(vec: mal::vector, env: *mal::env) (mal::vector | mal::error) ={
 
 	if(len(vec) == 0) return vec;
-	let res:mal::vector = alloc([mal::nil...], len(vec));
+	let res:mal::vector = mal::make_vec(len(vec));
 
 	for(let i:size = 0; i < len(vec); i += 1){
 		res[i] = eval(vec[i], env)?;
@@ -166,6 +166,7 @@ for(true){
 	match(eval(ls[0], env)?){
 	case let func: mal::intrinsic =>
 		let args: mal::list = [];
+		defer free(args);
 		for(let arg .. ls[1..]){
 			append(args, eval(arg, env)?);
 		};
@@ -178,6 +179,7 @@ for(true){
 		env = mal::env_init(func.env);
 		mal::env_bind(env, func.args, args);
 		ast = func.body;
+		free(args);
 		continue;
 	case => return ("not a function:", ls[0]):mal::syntaxError;
 	};

@@ -1,5 +1,6 @@
 use io;
 use fmt;
+use strings;
 
 export type nil = void;
 export type symbol = str;
@@ -22,3 +23,39 @@ export type function = struct {
 	body: MalValue,
 };
 
+
+// Any mal object that is supposed to persist, should be created by one of these
+// functions. Any allocations done by other functions should be freed manually.
+// Hopefully this will make it easier to add garbage collection later.
+
+export fn make_list(s: size, init: list = []) list = {
+
+	if (s == 0) return [];
+
+	let new: list = alloc([nil...], s);
+	new[0..len(init)] = init;
+
+	return new;
+};
+
+export fn make_vec(s: size, init: list = []) vector = {
+
+	if (s == 0) return [];
+
+	let new: vector = alloc([nil...], s);
+	new[0..len(init)] = init;
+
+	return new;
+};
+
+export fn make_symbol(name: str) symbol = {
+	return strings::dup(name);
+};
+
+export fn make_string(s: str) string = {
+	return strings::dup(s);
+};
+
+export fn make_atom(ref: MalType) atom = {
+	return alloc(ref);
+};

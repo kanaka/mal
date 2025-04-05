@@ -114,34 +114,6 @@ export fn hm_get(hm: hashmap, key: (symbol | string))  MalType ={
 	};
 };
 
-fn hashmapToList(hm: hashmap) (void | []*hm_map) = {
-
-	let q: []*hm_map = [];
-
-	match(*hm.map){
-	case null =>
-		free(q);
-		return void;
-	case let hm:*hm_map =>
-		append(q, hm);
-	};
-
-	for(let i:size = 0; i < len(q); i += 1){
-		for(let child .. q[i].child){
-			match(child){
-			case null =>
-				continue;
-			case let map:*hm_map =>
-				append(q, map);
-			};
-		};
-	};
-
-	assert(len(q) == hm.count);
-	return q;
-};
-
-
 fn hm_traverse(hm: hashmap, act: *fn(*hm_map, size) void) void = {
 
 	hm_traverse_rec(hm.map, hm.count, act);

@@ -37,6 +37,52 @@ fn eval_hash(map: * nullable *mal::hm_map, env: *mal::env)
 	return res;
 };
 
+fn starts_with(ast: mal::MalType, sym: str) bool = {
+	match(ast){
+	case let ls: mal::list=>
+		if(len(ls) < 1) return false;
+		match(ls[0]){
+		case let s: mal::symbol =>
+		     return s == sym;
+		case =>
+		     return false;
+		};
+	case =>
+		return false;
+	};
+};
+
+fn qq_iter(ast: []mal::MalType) (mal::MalType | mal::error) = {
+	let acc:mal::list = [];
+	for(let i: size = len(ast); 0 < i ; i -= 1){
+		let elt: mal::MalType = ast[i - 1];
+		if(starts_with(elt, "splice-unquote")){
+			acc = mal::make_list(3, ["concat":mal::symbol, (elt as mal::list)[1], acc]);
+		} else {
+			acc = mal::make_list(3, ["cons":mal::symbol, quasiquote(elt)?, acc]);
+		};
+	};
+	return acc;
+};
+
+fn quasiquote(ast: mal::MalType) (mal::MalType | mal::error) = {
+	match(ast) {
+	case let ls: mal::list =>
+		if(starts_with(ls, "unquote")) {
+			return ls[1];
+		} else {
+			return qq_iter(ls);
+		};
+	case let ls: mal::vector =>
+		let res: mal::list = mal::make_list(2, ["vec":mal::symbol, qq_iter(ls)?]);
+		return res;
+	case let hm: (mal::symbol | mal::hashmap) =>
+		let res: mal::list = mal::make_list(2, ["quote":mal::symbol, ast]);
+		return res;
+	case =>
+		return ast;
+	};
+};
 fn eval (ast: mal::MalType, env: *mal::env) (mal::MalType | mal::error) = {
 
 for(true){
@@ -78,6 +124,11 @@ for(true){
 	case let sym: mal::symbol =>
 
 	switch(sym){
+	case "quasiquote" =>
+		ast = quasiquote(ls[1])?;
+		continue;
+	case "quote" =>
+		return ls[1];
 	case "def!" =>
 		if(len(ls) != 3)
 			return ("def! expects 2 arguments", ls):mal::syntaxError;
@@ -166,6 +217,7 @@ for(true){
 	match(eval(ls[0], env)?){
 	case let func: mal::intrinsic =>
 		let args: mal::list = [];
+		defer free(args);
 		for(let arg .. ls[1..]){
 			append(args, eval(arg, env)?);
 		};
@@ -177,6 +229,7 @@ for(true){
 		};
 		env = mal::env_init(func.env);
 		mal::env_bind(env, func.args, args);
+		free(args);
 		ast = func.body;
 		continue;
 	case => return ("not a function:", ls[0]):mal::syntaxError;
@@ -231,12 +284,13 @@ export fn main() void = {
 		fmt::fatal("No repl environment initialized!");
 	};
 
-	mal::env_set(env, "eval", &do_eval:mal::intrinsic);
+	mal::env_set(env, mal::make_symbol("eval"), &do_eval:mal::intrinsic);
 	mal::load_namespace(mal::core, env);
 	let load_file = "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \"\nnil)\")))))";
 
 	rep(strings::toutf8(load_file), env, false);
 
+	// handle command line arguments
 	const args = os::args;
 	let argv:mal::list = [];
 
@@ -246,7 +300,7 @@ export fn main() void = {
 		};
 	};
 
-	mal::env_set(env, "*ARGV*", argv);
+	mal::env_set(env, mal::make_symbol("*ARGV*"), argv);
 
 	if(len(args) > 1){
 		let exec_str = strings::join("", "(load-file \"", args[1], "\")");
