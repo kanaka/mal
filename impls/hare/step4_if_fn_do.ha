@@ -92,6 +92,7 @@ fn eval_list(ls: mal::list, env: *mal::env) (mal::MalType | mal::error) = {
 			case => return mal::nil;
 			};
 			return mal::function {
+				evaluator = &eval,
 				env = env,
 				args = args,
 				body = body,

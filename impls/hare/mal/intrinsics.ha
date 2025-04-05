@@ -1,6 +1,8 @@
 use fmt;
 use os;
+use io;
 use memio;
+use strings;
 
 export fn plus (args: list) (MalType | error) = {
 
@@ -217,4 +219,105 @@ export fn pr_str_ugly(args: list) (MalType | error) = {
 		print_form(&strbuf, args[i], false);
 	};
 	return memio::string(&strbuf):string;
+};
+
+export fn r_string(args: list) (MalType | error) = {
+
+	let input: str = match(args[0]){
+	case let s: string =>
+		yield s;
+	case =>
+		return ("expected string", args[0]):typeerror;
+	};
+
+	match(read_str(strings::toutf8(input))) {
+	case io::EOF =>
+		return unexpectedEOF;
+	case let res: (MalType | error) =>
+		return res;
+	};
+};
+
+export fn slurp(args: list) (MalType | error) = {
+	let file_name: str = match(args[0]) {
+	case let s: string =>
+		yield s;
+	case =>
+		return ("expected string", args[0]):typeerror;
+	};
+
+	let file = os::open(file_name)?;
+	let fcontent = io::drain(file)?;
+	io::close(file)?;
+	return strings::fromutf8(fcontent)!:string;
+};
+
+export fn make_atom (args: list) (MalType | error) = {
+	return alloc(args[0]):atom;
+};
+
+export fn atomp  (args: list) (MalType | error) = {
+	return args[0] is atom;
+};
+
+export fn atom_deref (args: list) (MalType | error) = {
+	match(args[0]){
+	case let a: atom =>
+		return *a;
+	case =>
+		return ("expected atom", args[0]):typeerror;
+	};
+};
+
+export fn atom_reset (args: list) (MalType | error) ={
+	let a: atom = match(args[0]){
+	case let a: atom =>
+		yield a;
+	case =>
+		return ("expected atom", args[0]):typeerror;
+	};
+
+	let v: MalType = match(args[1]){
+	case let v: MalType =>
+		yield v;
+	case =>
+		return ("expected atom", args[0]):typeerror;
+	};
+
+	*a = v;
+	return v;
+};
+
+export fn atom_swap (args: list) (MalType | error) = {
+
+	let a: atom = match(args[0]){
+	case let a: atom =>
+		yield a;
+	case =>
+		return ("expected atom", args[0]):typeerror;
+	};
+
+	let ls:list = alloc([nil...], len(args));
+
+	let res = match(args[1]){
+	case  let func: function =>
+		ls[0] = func;
+		ls[1] = *a;
+		for (let i:size = 2; i < len(ls); i += 1){
+			ls[i]=args[i];
+		};
+		yield func.evaluator(ls, func.env)?;
+	case let func: intrinsic =>
+		ls[0] = *a;
+		let i:size = 2;
+		for (i < len(args); i += 1){
+			ls[i - 1]=args[i];
+		};
+		yield func(ls[..i-1])?;
+	case =>
+		return ("expected function", args[0]):typeerror;
+	};
+
+	*a = res;
+	return *a;
 };

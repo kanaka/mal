@@ -1,6 +1,7 @@
 use io;
 use fmt;
 use os;
+use fs;
 
 export type NotImplemented = !void;
 export type unexpectedEOF = !void;
@@ -10,7 +11,7 @@ export type undefinedSymbol = !(void, symbol);
 export type syntaxError = !(str, MalType);
 export type typeerror = !(str, MalType);
 
-export type error = !(io::error | unexpectedEOF | unbalanced | NotImplemented | undefinedSymbol | syntaxError | typeerror);
+export type error = !(fs::error | io::error | unexpectedEOF | unbalanced | NotImplemented | undefinedSymbol | syntaxError | typeerror);
 
 export fn handle_error(e: error) void = {
 	match(e){

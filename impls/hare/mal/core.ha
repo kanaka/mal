@@ -27,5 +27,12 @@ export let core: namespace = [
 	("println", &prn_line),
 	("pr-str", &pr_str),
 	("str", &pr_str_ugly),
+	("read-string", &r_string),
+	("slurp", &slurp),
+	("atom", &make_atom),
+	("atom?", &atomp),
+	("deref", &atom_deref),
+	("reset!", &atom_reset),
+	("swap!", &atom_swap),
 ];
 

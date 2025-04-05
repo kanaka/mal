@@ -24,6 +24,8 @@ export fn print_form(strbuf: io::handle, form: MalType, print_readably: bool = t
 		fmt::fprint(strbuf, i: int)!;
 	case let func: (intrinsic | function) =>
 		memio::concat(strbuf, "#<function>")!;
+	case let a: atom =>
+		print_list(strbuf, ["atom":symbol, *a]:list, list_beg, print_readably);
 	case => void;
 	};
 };
