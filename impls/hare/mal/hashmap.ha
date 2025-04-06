@@ -102,7 +102,7 @@ export fn hm_set(hm: hashmap, key: (symbol | string), elm: MalType) void = {
 	};
 };
 
-export fn hm_get(hm: hashmap, key: (symbol | string))  MalType ={
+export fn hm_get(hm: hashmap, key: (symbol | string)) MalType = {
 
 	let map = hm_find(hm, key);
 	

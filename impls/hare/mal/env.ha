@@ -36,7 +36,7 @@ export fn env_bind(env: *env, bindings: collection, exprs: collection) void = {
 			let new = make_list(len(tail), tail);
 			env_set(env, bindings[i] as symbol, new);
 			break;
-		} else if (bindings[i] as symbol == "&":symbol){
+		} else if (bindings[i] as symbol == make_symbol("&")){
 			more = true;
 			continue;
 		} else {

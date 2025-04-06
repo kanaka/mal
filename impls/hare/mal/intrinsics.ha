@@ -201,22 +201,29 @@ export fn prn_line (args: list) (MalType | error) = {
 export fn pr_str(args: list) (MalType | error) = {
 
 	let strbuf = memio::dynamic();
+	defer io::close(&strbuf)!;
 	for(let i:size = 0; i < len(args); i += 1) {
 		print_form(&strbuf, args[i]);
 		if (i < len(args) - 1)
 			fmt::fprint(&strbuf, " ")!;
 	};
-	return memio::string(&strbuf):string;
+
+	let s: str = memio::string(&strbuf)!;
+	return make_string(s);
 };
 
 
 export fn pr_str_ugly(args: list) (MalType | error) = {
 
 	let strbuf = memio::dynamic();
+	defer io::close(&strbuf)!;
+
 	for(let i:size = 0; i < len(args); i += 1) {
 		print_form(&strbuf, args[i], false);
 	};
-	return memio::string(&strbuf):string;
+
+	let s: str = memio::string(&strbuf)!;
+	return make_string(s);
 };
 
 export fn r_string(args: list) (MalType | error) = {
@@ -247,7 +254,9 @@ export fn slurp(args: list) (MalType | error) = {
 	let file = os::open(file_name)?;
 	let fcontent = io::drain(file)?;
 	io::close(file)?;
-	return strings::fromutf8(fcontent)!:string;
+
+	let s:str = strings::fromutf8(fcontent)!;
+	return make_string(s);
 };
 
 export fn mal_atom (args: list) (MalType | error) = {
@@ -298,13 +307,11 @@ export fn atom_swap (args: list) (MalType | error) = {
 
 	let res = match(args[1]){
 	case  let func: function =>
-		let ls:list = make_list(len(args));
-		ls[0] = func;
-		ls[1] = *a;
-		ls[2..] = args[2..];
-		yield func.evaluator(ls, func.env)?;
+		args[0] = func;
+		args[1] = *a;
+		yield func.evaluator(args, func.env)?;
 	case let func: intrinsic =>
-		let ls:list = make_list(len(args)-1);
+		let ls = args[..len(args)-1];
 		ls[0] = *a;
 		ls[1..] = args[2..];
 		yield func(ls)?;
@@ -365,7 +372,7 @@ export fn concat(args: list) (MalType | error) = {
 	return new;
 };
 
-export fn vec (args: list) (MalType | error) = {
+export fn vec(args: list) (MalType | error) = {
 	let ls = match(args[0]){
 		case let ls: vector =>
 			return ls;
@@ -382,4 +389,68 @@ export fn vec (args: list) (MalType | error) = {
 	};
 
 	return new;
+};
+
+export fn nth(args: list) (MalType | error) = {
+	let ls: []MalType = match(args[0]){
+	case let ls:list => 
+		yield ls;
+	case let ls:vector => 
+		yield ls;
+	case =>
+		return ("expected list", args):typeerror;
+	};
+
+	let index: number = match(args[1]){
+	case let i: number =>
+		yield i;
+	case =>
+		return ("expected number", args):typeerror;
+	};
+
+	if(index >= len(ls):int)
+		return ("index too big", args):syntaxError;
+
+	return ls[index];
+};
+
+export fn first(args: list) (MalType | error) = {
+	let ls: []MalType = match(args[0]){
+	case let ls:list => 
+		yield ls;
+	case let ls:vector => 
+		yield ls;
+	case let ls:nil =>
+		return nil;
+	case =>
+		return ("expected list", args):typeerror;
+	};
+
+	if(0 == len(ls))
+		return nil;
+
+	return ls[0];
+};
+
+
+export fn rest(args: list) (MalType | error) = {
+	let ls: []MalType = match(args[0]){
+	case let ls:list => 
+		yield ls;
+	case let ls:vector => 
+		yield ls;
+	case let ls:nil =>
+		return []:list;
+	case =>
+		return ("expected list", args):typeerror;
+	};
+
+	if(0 == len(ls) || 0 == len(ls[1..]))
+		return []:list;
+
+	return make_list(len(ls[1..]), ls[1..]);
+};
+
+export fn macrop(args: list) (MalType | error) = {
+	return args[0] is macro;
 };

@@ -1,6 +1,7 @@
 use io;
 use fmt;
 use strings;
+use types;
 
 export type nil = void;
 export type symbol = str;
@@ -12,7 +13,7 @@ export type collection = (list | vector);
 export type intrinsic = *fn(list) (MalType | error);
 
 export type MalValue = (atom | bool | string | hashmap | ...collection | number | symbol | nil);
-export type MalType = (...MalValue | function | intrinsic);
+export type MalType = (...MalValue | macro | function | intrinsic);
 
 export type atom = *MalType;
 
@@ -23,6 +24,7 @@ export type function = struct {
 	body: MalValue,
 };
 
+export type macro = function;
 
 // Any mal object that is supposed to persist, should be created by one of these
 // functions. Any allocations done by other functions should be freed manually.
@@ -49,7 +51,24 @@ export fn make_vec(s: size, init: list = []) vector = {
 };
 
 export fn make_symbol(name: str) symbol = {
-	return strings::dup(name);
+
+	static let pool_ptr: nullable *hashmap = null;
+	let pool = match(pool_ptr){
+	case null =>
+		pool_ptr = alloc(hm_init());
+		yield *(pool_ptr as *hashmap);
+	case let pp: *hashmap =>
+		yield *pp;
+	};
+
+	match(hm_get(pool, name:symbol)){
+	case let s:symbol =>
+		return s;
+	case nil=> void;
+	};
+	const new = strings::dup(name):symbol;
+	hm_add(pool, new, new);
+	return new;
 };
 
 export fn make_string(s: str) string = {
@@ -58,4 +77,14 @@ export fn make_string(s: str) string = {
 
 export fn make_atom(ref: MalType) atom = {
 	return alloc(ref);
+};
+
+// check if two strings share the same buffer in memory
+// Does not check for substrings!
+export fn str_memeq(s1: str, s2: str) bool = {
+
+	const ts1 = &s1: *types::string;
+	const ts2 = &s2: *types::string;
+
+	return ts1.data == ts2.data;
 };
