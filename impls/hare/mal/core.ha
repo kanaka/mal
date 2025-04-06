@@ -37,4 +37,8 @@ export let core: namespace = [
 	("cons", &cons),
 	("concat", &concat),
 	("vec", &vec),
+	("nth", &nth),
+	("first", &first),
+	("rest", &rest),
+	("macro?", &macrop),
 ];

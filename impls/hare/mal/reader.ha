@@ -58,7 +58,7 @@ fn read_quote(tk: *tokenizer, t: quote_tk) (list | error) = {
 	     yield "deref";
 	};
 
-	append(res, qs);
+	append(res, make_symbol(qs));
 
 	match(read_form(tk)?){
 	case let l: MalType =>
@@ -164,7 +164,8 @@ fn read_string(s: str) (string | error) = {
 		memio::appendrune(&strbuf, rn)!;
 	};
 
-	return make_string(memio::string(&strbuf)!);
+	let s: str = memio::string(&strbuf)!;
+	return make_string(s);
 };
 
 fn scan_escape(rn: rune) rune = {
