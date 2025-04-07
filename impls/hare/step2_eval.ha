@@ -78,7 +78,7 @@ fn print (input: mal::MalType) void = {
 fn rep (input: []u8, env: mal::hashmap) void = {
 	match (read(input)){
 	case let e: mal::error =>
-	     mal::handle_error(e);
+	     mal::handle_error(os::stderr, e);
 	case let form: mal::MalType =>
 		print(eval(form, env));
 	case io::EOF =>

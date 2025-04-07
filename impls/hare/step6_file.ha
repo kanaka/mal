@@ -191,7 +191,7 @@ fn print (input: mal::MalType) void = {
 fn rep (input: []u8, env: *mal::env, printp:bool = true) void = {
 	let ast = match(read(input)){
 	case let e:mal::error =>
-		return mal::handle_error(e);
+		return mal::handle_error(os::stderr, e);
 	case let form: mal::MalType =>
 		yield form;
 	case io::EOF =>
@@ -200,7 +200,7 @@ fn rep (input: []u8, env: *mal::env, printp:bool = true) void = {
 
 	let result = match(eval(ast, env)){
 	case let e:mal::error =>
-		return mal::handle_error(e);
+		return mal::handle_error(os::stderr, e);
 	case let form: mal::MalType =>
 		yield form;
 	};

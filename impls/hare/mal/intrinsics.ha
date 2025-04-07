@@ -133,6 +133,45 @@ fn list_cmp (ls: collection, ls2: collection) bool = {
 	return true;
 };
 
+fn hash_cmp(hm1: hashmap, hm2:hashmap) bool = {
+
+	if(hm1.count != hm2.count) return false;
+
+	let q: []*hm_map= [];
+	defer free(q);
+
+	match(*hm1.map){
+	case null =>
+		if (*hm2.map is null) {
+			return true;
+		} else {
+			return false;
+		};
+	case let hm:*hm_map =>
+		append(q, hm);
+	};
+	for(let i:size = 0; i < len(q); i += 1){
+		match(hm_get(hm2, q[i].key)){
+		case nil =>
+			return false;
+		case let val: MalType =>
+			if(!(mal_eq([q[i].val, val]) as bool))
+				return false;
+		};
+		for(let child .. q[i].child){
+			match(child){
+			case null =>
+				continue;
+			case let map:*hm_map =>
+				append(q, map);
+			};
+		};
+	};
+
+	assert(len(q) == hm1.count);
+	return true;
+};
+
 export fn mal_eq (args: list) (MalType | error) = {
 
 	match(args[0]){
@@ -159,6 +198,10 @@ export fn mal_eq (args: list) (MalType | error) = {
 	case let s:symbol =>
 		if(args[1] is symbol){
 			return s == args[1] as symbol;
+		};
+	case let hm: hashmap =>
+		if(args[1] is hashmap){
+			return hash_cmp(hm, args[1] as hashmap);
 		};
 	case => void;
 	};
@@ -364,7 +407,7 @@ export fn concat(args: list) (MalType | error) = {
 		case let ls: vector =>
 			yield ls;
 		};
-		
+
 		const n = nlen + len(ls);
 		new[nlen..n] = ls;
 		nlen = n;
@@ -379,7 +422,8 @@ export fn vec(args: list) (MalType | error) = {
 		case let ls: list =>
 			yield ls;
 		case =>
-			return ("expected list or vector", args[0]):typeerror;
+			return ("expected list or vector",
+				args[0]):typeerror;
 	};
 
 	let new: vector = [];
@@ -393,9 +437,9 @@ export fn vec(args: list) (MalType | error) = {
 
 export fn nth(args: list) (MalType | error) = {
 	let ls: []MalType = match(args[0]){
-	case let ls:list => 
+	case let ls:list =>
 		yield ls;
-	case let ls:vector => 
+	case let ls:vector =>
 		yield ls;
 	case =>
 		return ("expected list", args):typeerror;
@@ -409,16 +453,16 @@ export fn nth(args: list) (MalType | error) = {
 	};
 
 	if(index >= len(ls):int)
-		return ("index too big", args):syntaxError;
+		return ("bounds error", args):syntaxError;
 
 	return ls[index];
 };
 
 export fn first(args: list) (MalType | error) = {
 	let ls: []MalType = match(args[0]){
-	case let ls:list => 
+	case let ls:list =>
 		yield ls;
-	case let ls:vector => 
+	case let ls:vector =>
 		yield ls;
 	case let ls:nil =>
 		return nil;
@@ -435,9 +479,9 @@ export fn first(args: list) (MalType | error) = {
 
 export fn rest(args: list) (MalType | error) = {
 	let ls: []MalType = match(args[0]){
-	case let ls:list => 
+	case let ls:list =>
 		yield ls;
-	case let ls:vector => 
+	case let ls:vector =>
 		yield ls;
 	case let ls:nil =>
 		return []:list;
@@ -453,4 +497,397 @@ export fn rest(args: list) (MalType | error) = {
 
 export fn macrop(args: list) (MalType | error) = {
 	return args[0] is macro;
+};
+
+export fn throw(args: list) (MalType | error) ={
+	return ("error", args[0]):malerror;
+};
+
+
+export fn map(args: list) (MalType | error) = {
+
+	let ls:[]MalType = match(args[1]){
+	case let l: list =>
+		yield l;
+	case let l: vector =>
+		yield l;
+	case =>
+		return ("expected list", args):syntaxError;
+	};
+
+	const length = len(ls);
+
+	let new = make_list(length);
+
+
+	for(let i:size = 0; i < len(ls); i += 1){
+		new[i] = apply([args[0], [ls[i]]:list]:list)?;
+	};
+
+	return new;
+};
+
+export fn apply(args: list) (MalType | error) = {
+
+	if(len(args) < 2)
+		return ("to few args", args):syntaxError;
+
+
+	const last = args[len(args)-1];
+	const rest = args[1..len(args)-1];
+
+
+	const last:[]MalType = match(args[len(args)-1]){
+	case let l: list =>
+		yield l;
+	case let l: vector =>
+		yield l;
+	case =>
+		return ("expected list", args):syntaxError;
+	};
+
+	let length: size = len(rest) + len(last);
+
+	let ls = make_list(length);
+	ls[0 .. len(rest)] = rest;
+	ls[len(rest)..] = last;
+
+	match(args[0]){
+	case let func: function =>
+		let env = env_init(func.env);
+		env_bind(env, func.args, ls);
+		return func.evaluator(func.body, env);
+	case let func: macro =>
+		let env = env_init(func.env);
+		env_bind(env, func.args, ls);
+		return func.evaluator(func.body, env);
+	case let func: intrinsic =>
+		return func(ls);
+	case =>
+		return ("expected function", args):syntaxError;
+	};
+};
+
+export fn nilp(args:list) (MalType | error) = {
+	return args[0] is nil;
+};
+
+export fn symbolp(args:list) (MalType | error) = {
+	match(args[0]){
+	case let s: symbol =>
+	     if (!(strings::hasprefix(s, ":")))
+			return true;
+	case => void;
+	};
+	return false;
+};
+
+export fn keywordp(args:list) (MalType | error) = {
+	match(args[0]){
+	case let s: symbol =>
+	     if (strings::hasprefix(s, ":"))
+			return true;
+	case => void;
+	};
+	return false;
+};
+
+export fn vectorp(args:list) (MalType | error) = {
+	return args[0] is vector;
+};
+
+export fn sequentialp(args:list) (MalType | error) = {
+	return args[0] is collection;
+};
+
+export fn mapp(args:list) (MalType | error) = {
+	return args[0] is hashmap;
+};
+
+export fn truep(args:list) (MalType | error) = {
+	match(args[0]){
+	case let b:bool =>
+		return b;
+	case =>
+		return false;
+	};
+};
+
+export fn falsep(args:list) (MalType | error) = {
+	match(args[0]){
+	case let b:bool =>
+		return !b;
+	case =>
+		return false;
+	};
+};
+
+export fn malvector(args:list) (MalType | error) = {
+	return make_vec(len(args), args);
+};
+
+export fn malsymbol(args:list) (MalType | error) = {
+	return make_symbol(args[0] as string);
+};
+
+export fn malkeyword(args:list) (MalType | error) = {
+	match(args[0]){
+	case let s: string =>
+		let name = strings::lpad(s, ':', len(s) + 1);
+		defer free(name);
+		return make_symbol(name);
+	case let k: symbol =>
+		if(strings::hasprefix(k, ':'))
+			return k;
+		return false;
+	case =>
+		return ("expected string", args):typeerror;
+	};
+};
+
+export fn malhash_map(args:list) (MalType | error) = {
+	let new = hm_init();
+
+	if (len(args) % 2 != 0)
+		return ("odd number of arguments", args):syntaxError;
+
+	for(let i: size = 0; i < len(args); i += 2){
+		match(args[i]){
+		case let s: (symbol | string) =>
+			hm_add(new, s, args[i+1]);
+		case =>
+			return ("expected symbol or string",
+				args):typeerror;
+		};
+	};
+
+	return new;
+};
+
+fn malhmget(args: list) (MalType | error) = {
+	const hm = match(args[0]){
+	case let hm: hashmap =>
+		yield hm;
+	case nil => return nil;
+	case =>
+		return ("expected hashmap", args):typeerror;
+	};
+
+	const key = match(args[1]){
+	case let hm: (string | symbol) =>
+		yield hm;
+	case =>
+		return ("expected symbol or string", args):typeerror;
+	};
+
+	return hm_get(hm, key);
+};
+
+fn containsp(args: list) (MalType | error) = {
+	const hm = match(args[0]){
+	case let hm: hashmap =>
+		yield hm;
+	case =>
+		return ("expected hashmap", args):typeerror;
+	};
+
+	const key = match(args[1]){
+	case let hm: (string | symbol) =>
+		yield hm;
+	case =>
+		return ("expected symbol or string", args):typeerror;
+	};
+
+	match(*hm_find(hm, key)){
+	case null => return false;
+	case => return true;
+	};
+};
+
+fn assoc(args: list) (MalType | error) = {
+
+	let hm: hashmap = match(args[0]){
+	case let hm: hashmap =>
+		yield hm;
+	case =>
+		return ("expected hashmap", args):typeerror;
+	};
+
+	let new: hashmap = hm_init();
+
+	let q: []*hm_map = [];
+	defer free(q);
+
+	let map = match(*hm.map){
+	case null =>
+		void;
+	case let map: *hm_map =>
+		append(q, map);
+	};
+
+	for(let i:size = 0; i < len(q); i += 1){
+
+		hm_add(new, q[i].key, q[i].val);
+
+		for(let child .. q[i].child){
+			match(child){
+			case null =>
+				continue;
+			case let map:*hm_map =>
+				append(q, map);
+			};
+		};
+	};
+
+	assert(len(q) == hm.count);
+	assert(len(q) == new.count);
+
+	let ls = args[1..];
+	for(let i:size = 0; i < len(ls); i += 2){
+		match(ls[i]){
+		case let s: (symbol | string) =>
+			hm_set(new, s, ls[i+1]);
+		case =>
+		     return ("expected symbol or string",
+			     args):typeerror;
+		};
+	};
+
+	return new;
+};
+
+fn dissoc(args: list) (MalType | error) = {
+
+	let hm: hashmap = match(args[0]){
+	case let hm: hashmap =>
+		yield hm;
+	case =>
+		return ("expected hashmap", args):typeerror;
+	};
+
+	let new: hashmap = hm_init();
+
+	let q: []*hm_map = [];
+	defer free(q);
+
+	let map = match(*hm.map){
+	case null =>
+		void;
+	case let map: *hm_map =>
+		append(q, map);
+	};
+
+
+	let ls = args[1..];
+
+	for(let i:size = 0; i < len(q); i += 1){
+
+		let j:size = 0;
+		for(j < len(ls)) {
+			let s = match(ls[j]){
+			case let s: (symbol | string) =>
+				yield s;
+			case =>
+				return ("expected symbol or string",
+					args):typeerror;
+			};
+			if(keycmp(s, q[i].key)) break;
+			j += 1;
+		};
+
+		if(len(ls) == j) hm_add(new, q[i].key, q[i].val);
+
+		for(let child .. q[i].child){
+			match(child){
+			case null =>
+				continue;
+			case let map:*hm_map =>
+				append(q, map);
+			};
+		};
+	};
+
+	return new;
+};
+
+fn vals(args: list) (MalType | error) = {
+
+	let hm: hashmap = match(args[0]){
+	case let hm: hashmap =>
+		yield hm;
+	case =>
+		return ("expected hashmap", args):typeerror;
+	};
+
+	let new: list = make_list(hm.count);
+
+	let q: []*hm_map = [];
+	defer free(q);
+
+	let map = match(*hm.map){
+	case null =>
+		void;
+	case let map: *hm_map =>
+		append(q, map);
+	};
+
+	for(let i:size = 0; i < len(q); i += 1){
+
+		new[i] = q[i].val;
+
+		for(let child .. q[i].child){
+			match(child){
+			case null =>
+				continue;
+			case let map:*hm_map =>
+				append(q, map);
+			};
+		};
+	};
+
+	assert(len(q) == hm.count);
+	assert(len(q) == len(new));
+
+	return new;
+};
+
+fn keys(args: list) (MalType | error) = {
+
+	let hm: hashmap = match(args[0]){
+	case let hm: hashmap =>
+		yield hm;
+	case =>
+		return ("expected hashmap", args):typeerror;
+	};
+
+	let new: list = make_list(hm.count);
+
+	let q: []*hm_map = [];
+	defer free(q);
+
+	let map = match(*hm.map){
+	case null =>
+		void;
+	case let map: *hm_map =>
+		append(q, map);
+	};
+
+	for(let i:size = 0; i < len(q); i += 1){
+
+		new[i] = q[i].key;
+
+		for(let child .. q[i].child){
+			match(child){
+			case null =>
+				continue;
+			case let map:*hm_map =>
+				append(q, map);
+			};
+		};
+	};
+
+	assert(len(q) == hm.count);
+	assert(len(q) == len(new));
+
+	return new;
 };

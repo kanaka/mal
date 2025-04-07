@@ -2,7 +2,7 @@ use hash::fnv;
 use fmt;
 use strings;
 
-export type hashmap = struct {
+export type hashmap = *struct {
 	count: size,
 	map: * nullable *hm_map,
 };
@@ -64,7 +64,10 @@ fn hm_find(hm: hashmap, key: (symbol | string)) * nullable *hm_map = {
 };
 
 export fn hm_init() hashmap = {
-	return hashmap {count = 0, map = alloc(null: nullable *hm_map)};
+	return alloc(struct {
+		count:size = 0,
+		map:* nullable *hm_map = alloc(null: nullable *hm_map)
+	});
 };
 
 fn hm_new_node(key: (symbol | string), val: MalType) *hm_map = {
