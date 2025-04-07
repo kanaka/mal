@@ -1,5 +1,7 @@
 use fmt;
+use io;
 use bufio;
+use memio;
 use os;
 use strings;
 use io;
@@ -20,21 +22,19 @@ fn eval_vec(vec: mal::vector, env: *mal::env) (mal::vector | mal::error) ={
 	return res;
 };
 
-fn eval_hash(map: * nullable *mal::hm_map, env: *mal::env)
+fn eval_hash(new: mal::hashmap, map: * nullable *mal::hm_map, env: *mal::env)
 	(mal::hashmap | mal::error) = {
-
-	let res = mal::hm_init();
 
 	match(*map){
 	case null => void;
 	case let map:*mal::hm_map =>
 		for(let child .. map.child){
-			eval_hash(&child, env)?;
+			eval_hash(new, &child, env)?;
 		};
-	mal::hm_add(res, map.key, eval(map.val, env)?);
+	mal::hm_add(new, map.key, eval(map.val, env)?);
 	};
 
-	return res;
+	return new;
 };
 
 fn starts_with(ast: mal::MalType, sym: str) bool = {
@@ -57,9 +57,11 @@ fn qq_iter(ast: []mal::MalType) (mal::MalType | mal::error) = {
 	for(let i: size = len(ast); 0 < i ; i -= 1){
 		let elt: mal::MalType = ast[i - 1];
 		if(starts_with(elt, "splice-unquote")){
-			acc = mal::make_list(3, ["concat":mal::symbol, (elt as mal::list)[1], acc]);
+			acc = mal::make_list(3, ["concat":mal::symbol,
+					(elt as mal::list)[1], acc]);
 		} else {
-			acc = mal::make_list(3, ["cons":mal::symbol, quasiquote(elt)?, acc]);
+			acc = mal::make_list(3, ["cons":mal::symbol,
+					quasiquote(elt)?, acc]);
 		};
 	};
 	return acc;
@@ -74,10 +76,12 @@ fn quasiquote(ast: mal::MalType) (mal::MalType | mal::error) = {
 			return qq_iter(ls);
 		};
 	case let ls: mal::vector =>
-		let res: mal::list = mal::make_list(2, ["vec":mal::symbol, qq_iter(ls)?]);
+		let res: mal::list =
+			mal::make_list(2, ["vec":mal::symbol, qq_iter(ls)?]);
 		return res;
 	case let hm: (mal::symbol | mal::hashmap) =>
-		let res: mal::list = mal::make_list(2, ["quote":mal::symbol, ast]);
+		let res: mal::list =
+			mal::make_list(2, ["quote":mal::symbol, ast]);
 		return res;
 	case =>
 		return ast;
@@ -85,14 +89,14 @@ fn quasiquote(ast: mal::MalType) (mal::MalType | mal::error) = {
 };
 fn eval (ast: mal::MalType, env: *mal::env) (mal::MalType | mal::error) = {
 
-for(true){
+	for(true){
 
-	match(mal::env_get(env, "DEBUG-EVAL")){
-	case mal::undefinedSymbol => void;
-	case mal::nil => void;
-	case =>
-		fmt::print("EVAL: ")!;
-		mal::print_form(os::stdout, ast);
+		match(mal::env_get(env, "DEBUG-EVAL")){
+			case mal::undefinedSymbol => void;
+		case mal::nil => void;
+		case =>
+		     fmt::print("EVAL: ")!;
+		     mal::print_form(os::stdout, ast);
 		fmt::print("\n")!;
 		mal::print_form(os::stdout, env.data);
 		fmt::print("\n")!;
@@ -108,8 +112,8 @@ for(true){
 	case let vec: mal::vector =>
 		return eval_vec(vec, env)?;
 	case let hash: mal::hashmap =>
-		eval_hash(hash.map, env)?;
-		return hash;
+		let res = mal::hm_init();
+		return eval_hash(res, hash.map, env)?;
 	case let ls: mal::list =>
 		yield ls;
 	case =>
@@ -118,28 +122,84 @@ for(true){
 
 	if(len(ls) == 0) return ast;
 
-	// handle special cases of 'if' 'fn*', 'do', 'let*' and 'def!' forms
+	// handle special cases of 'if' 'fn*', 'do', 'let*', 'defmacro!' and
+	// 'def!' forms.
 	match(ls[0]){
 
 	case let sym: mal::symbol =>
 
 	switch(sym){
+	case "try*" =>
+		match(eval(ls[1], env)){
+		case let e: mal::error =>
+			let buf = memio::dynamic();
+			mal::handle_error(&buf, e);
+			let s = memio::string(&buf)!;
+			s = mal::make_string(s);
+			io::close(&buf)!;
+
+			env = mal::env_init(env);
+
+			if (len(ls) < 3)
+				return e;
+
+			match(ls[2]){
+			case let l: mal::list =>
+				mal::env_set(env, l[1] as mal::symbol,
+					     s:mal::string);
+				ast = l[2];
+				continue;
+			case =>
+				return ("expected list",
+					mal::nil):mal::typeerror;
+			};
+		case let c: mal::MalType=>
+			return c;
+		};
 	case "quasiquote" =>
 		ast = quasiquote(ls[1])?;
 		continue;
 	case "quote" =>
 		return ls[1];
+	case "defmacro!" =>
+		if(len(ls) != 3)
+			return ("defmacro! expects 2 arguments",
+				ls):mal::syntaxError;
+		let name: mal::symbol = match(ls[1]){
+		case let name: mal::symbol =>
+			yield name;
+		case =>
+			return ("expected symbol", ls[1]):mal::typeerror;
+		};
+		let res:mal::macro = match(eval(ls[2], env)) {
+		case let func: mal::function =>
+			yield func;
+		case =>
+			return ("expected function", ls[2]):mal::typeerror;
+		};
+		mal::env_set(env, name, res);
+		return res;
 	case "def!" =>
 		if(len(ls) != 3)
-			return ("def! expects 2 arguments", ls):mal::syntaxError;
+			return ("def! expects 2 arguments",
+				ls):mal::syntaxError;
 
 		let val = eval(ls[2], env)?;
-		mal::env_set(env, ls[1] as mal::symbol, val);
+
+		let name: mal::symbol = match(ls[1]){
+		case let name: mal::symbol =>
+			yield name;
+		case =>
+			return ("expected symbol", ls[1]):mal::typeerror;
+		};
+
+		mal::env_set(env, name, val);
 		return val;
 
 	case "let*" =>
 		if(len(ls) != 3)
-			return ("let*: too few arguments", ls):mal::syntaxError;
+			return ("let*: too few arguments",
+				ls):mal::syntaxError;
 
 		let bindings: []mal::MalType = match(ls[1]){
 		case let b: mal::list =>
@@ -153,8 +213,17 @@ for(true){
 		let let_env = mal::env_init(env);
 
 		for(let i:size = 0; i < len(bindings); i += 2){
-			mal::env_set(let_env, bindings[i] as mal::symbol,
-			eval(bindings[i+1], let_env)?);
+
+			let name: mal::symbol = match(bindings[i]){
+			case let name: mal::symbol =>
+				yield name;
+			case =>
+				return ("expected symbol",
+					ls[1]):mal::typeerror;
+			};
+
+			mal::env_set(let_env, name, eval(bindings[i+1],
+							 let_env)?);
 		};
 
 		env = let_env;
@@ -169,7 +238,8 @@ for(true){
 		continue;
 	case "if" =>
 		if(len(ls) > 4 || len(ls) < 3)
-			return ("if expects 2 or 3 arguments", ls):mal::syntaxError;
+			return ("if expects 2 or 3 arguments",
+				ls):mal::syntaxError;
 		match(eval(ls[1], env)?){
 		case mal::nil =>
 			if(len(ls) == 4){
@@ -213,6 +283,7 @@ for(true){
 	case => void;
 	};
 
+	// apply
 
 	match(eval(ls[0], env)?){
 	case let func: mal::intrinsic =>
@@ -222,6 +293,9 @@ for(true){
 			append(args, eval(arg, env)?);
 		};
 		return func(args);
+	case let mac: mal::macro =>
+		ast = _apply(mac, ls[1..])?;
+		continue;
 	case let func: mal::function =>
 		let args: mal::list = [];
 		for(let arg .. ls[1..]){
@@ -236,6 +310,19 @@ for(true){
 	};
 };};
 
+fn _apply(func: (mal::function | mal::intrinsic), args: mal::list)
+	(mal::MalType | mal::error) = {
+
+	match(func){
+	case let func: mal::function =>
+		let env = mal::env_init(func.env);
+		mal::env_bind(env, func.args, args);
+		return func.evaluator(func.body, env);
+	case let func: mal::intrinsic =>
+		return func(args);
+	};
+};
+
 fn print (input: mal::MalType) void = {
 	mal::print_form(os::stdout, input);
 	fmt::print("\n")!;
@@ -244,6 +331,7 @@ fn print (input: mal::MalType) void = {
 fn rep (input: []u8, env: *mal::env, printp:bool = true) void = {
 	let ast = match(read(input)){
 	case let e:mal::error =>
+		fmt::errorln("Exception:")!;
 		return mal::handle_error(os::stderr, e);
 	case let form: mal::MalType =>
 		yield form;
@@ -253,6 +341,7 @@ fn rep (input: []u8, env: *mal::env, printp:bool = true) void = {
 
 	let result = match(eval(ast, env)){
 	case let e:mal::error =>
+		fmt::errorln("Exception:")!;
 		return mal::handle_error(os::stderr, e);
 	case let form: mal::MalType =>
 		yield form;
@@ -288,6 +377,8 @@ export fn main() void = {
 	mal::load_namespace(mal::core, env);
 	let load_file = "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \"\nnil)\")))))";
 
+	let cond = "(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))";
+	rep(strings::toutf8(cond), env, false);
 	rep(strings::toutf8(load_file), env, false);
 
 	// handle command line arguments
@@ -303,7 +394,8 @@ export fn main() void = {
 	mal::env_set(env, mal::make_symbol("*ARGV*"), argv);
 
 	if(len(args) > 1){
-		let exec_str = strings::join("", "(load-file \"", args[1], "\")");
+		let exec_str = strings::join("", "(load-file \"", args[1],
+					     "\")");
 		rep(strings::toutf8(exec_str), env, false);
 		free(exec_str);
 		os::exit(0);

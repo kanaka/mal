@@ -36,7 +36,6 @@ fn read_form(tk: *tokenizer) (...MalType | ...coll_end | io::EOF | error) = {
 			return i: number;
 		case io::EOF =>
 			return io::EOF;
-		case => continue;
 		};
 	};
 };
@@ -74,7 +73,7 @@ fn read_quote(tk: *tokenizer, t: quote_tk) (list | error) = {
 
 fn read_hashmap(tk: *tokenizer) (hashmap | error) = {
 
-	let res = hm_init();
+	const res = hm_init();
 
 	for(true){
 		let key = match(read_form(tk)?){
@@ -86,6 +85,7 @@ fn read_hashmap(tk: *tokenizer) (hashmap | error) = {
 			return unexpectedEOF;
 		};
 
+
 		let val = match(read_form(tk)?){
 		case hash_end =>
 			return unbalanced;
@@ -94,7 +94,8 @@ fn read_hashmap(tk: *tokenizer) (hashmap | error) = {
 		case io::EOF =>
 			return unexpectedEOF;
 		};
-		hm_add(res, key, val);
+
+		let d = hm_add(res, key, val);
 	};
 
 	return res;

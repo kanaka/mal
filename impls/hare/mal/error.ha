@@ -1,7 +1,10 @@
+use bufio;
 use io;
 use fmt;
 use os;
 use fs;
+
+export type malerror = !(str, MalType);
 
 export type NotImplemented = !void;
 export type unexpectedEOF = !void;
@@ -11,24 +14,31 @@ export type undefinedSymbol = !(void, symbol);
 export type syntaxError = !(str, MalType);
 export type typeerror = !(str, MalType);
 
-export type error = !(fs::error | io::error | unexpectedEOF | unbalanced | NotImplemented | undefinedSymbol | syntaxError | typeerror);
+export type error = !(malerror | fs::error | io::error | unexpectedEOF |
+		      unbalanced | NotImplemented | undefinedSymbol |
+		      syntaxError | typeerror);
 
-export fn handle_error(e: error) void = {
+export fn handle_error(strbuf: io::handle, e: error) void = {
+
 	match(e){
 	case let e: typeerror =>
-		fmt::error("Type Error: expected:", e.0, "got:")!;
-		print_form(os::stderr, e.1);
-		fmt::error("\n")!;
+		fmt::fprint(strbuf, "Type Error: expected:", e.0, "got:")!;
+		print_form(strbuf, e.1, false);
+		fmt::fprint(strbuf, "\n")!;
 	case let e: syntaxError =>
-		fmt::errorln("Syntax Error", e.0)!;
-		print_form(os::stderr, e.1);
-		fmt::error("\n")!;
+		fmt::fprintln(strbuf, "Syntax Error", e.0)!;
+		print_form(strbuf, e.1, false);
+		fmt::fprint(strbuf, "\n")!;
 	case let e: undefinedSymbol =>
-		fmt::errorln("Symbol", e.1, "not found")!;
+		fmt::fprintf(strbuf, "'{}' not found", e.1)!;
+		fmt::print("\n")!;
 	case unexpectedEOF =>
-		fmt::errorln("Unexpected EOF!")!;
+		fmt::fprintln(strbuf, "Unexpected EOF!")!;
+	case let e: malerror =>
+		print_form(strbuf, e.1, false);
+		fmt::print("\n")!;
 	case unbalanced =>
-		fmt::errorln("Unbalanced Delimiters")!;
+		fmt::fprintln(strbuf, "Unbalanced Delimiters")!;
 	case =>
 		fmt::fatal("unknown error");
 	};
