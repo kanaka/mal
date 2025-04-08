@@ -77,6 +77,7 @@ FAQ](docs/FAQ.md) where I attempt to answer some common questions.
 | [GNU Smalltalk](#gnu-smalltalk) | [Vasilij Schneidermann](https://github.com/wasamasa) |
 | [Go](#go) | [Joel Martin](https://github.com/kanaka)  |
 | [Groovy](#groovy) | [Joel Martin](https://github.com/kanaka)  |
+| [Hare](#hare) | [Lou Woell](http://github.com/einsiedlerspiel) |
 | [Haskell](#haskell) | [Joel Martin](https://github.com/kanaka)  |
 | [Haxe](#haxe-neko-python-c-and-javascript) (Neko, Python, C++, &amp; JS) | [Joel Martin](https://github.com/kanaka) |
 | [Hy](#hy) | [Joel Martin](https://github.com/kanaka)  |
@@ -567,6 +568,16 @@ tested with Groovy 1.8.6.
 cd impls/groovy
 make
 groovy ./stepX_YYY.groovy
+```
+
+### Hare
+
+The hare implementation was tested against Hare 0.24.2.
+
+```
+cd impls/hare
+make
+./stepX_YYY
 ```
 
 ### Haskell
