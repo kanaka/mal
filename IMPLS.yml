@@ -34,6 +34,7 @@ IMPL:
   - {IMPL: groovy}
   - {IMPL: gnu-smalltalk}
   - {IMPL: guile}
+  - {IMPL: hare}
   - {IMPL: haskell}
   - {IMPL: haxe, haxe_MODE: neko}
   - {IMPL: haxe, haxe_MODE: python}
