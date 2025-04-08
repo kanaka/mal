@@ -157,10 +157,7 @@ export fn main() void = {
 	const env = mal::env_init();
 
 	mal::env_set(env, "nil":mal::symbol, mal::nil);
-	mal::env_set(env, "+":mal::symbol, &mal::plus:mal::intrinsic);
-	mal::env_set(env, "-":mal::symbol, &mal::minus:mal::intrinsic);
-	mal::env_set(env, "*":mal::symbol, &mal::mult:mal::intrinsic);
-	mal::env_set(env, "/":mal::symbol, &mal::div:mal::intrinsic);
+	mal::load_namespace(mal::core, env);
 
 	for(true){
 

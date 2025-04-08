@@ -10,13 +10,14 @@ export type NotImplemented = !void;
 export type unexpectedEOF = !void;
 export type unbalanced = !void;
 
+export type undefinedKey = !(void, (symbol | string));
 export type undefinedSymbol = !(void, symbol);
 export type syntaxError = !(str, MalType);
 export type typeerror = !(str, MalType);
 
 export type error = !(malerror | fs::error | io::error | unexpectedEOF |
 		      unbalanced | NotImplemented | undefinedSymbol |
-		      syntaxError | typeerror);
+		      undefinedKey | syntaxError | typeerror);
 
 export fn handle_error(strbuf: io::handle, e: error) void = {
 
@@ -39,6 +40,12 @@ export fn handle_error(strbuf: io::handle, e: error) void = {
 		fmt::print("\n")!;
 	case unbalanced =>
 		fmt::fprintln(strbuf, "Unbalanced Delimiters")!;
+	case NotImplemented =>
+		fmt::fprintln(strbuf, "not implemented")!;
+	case let e: io::error =>
+		fmt::fprintln(strbuf, io::strerror(e))!;
+	case let e: fs::error =>
+		fmt::fprintln(strbuf, fs::strerror(e))!;
 	case =>
 		fmt::fatal("unknown error");
 	};

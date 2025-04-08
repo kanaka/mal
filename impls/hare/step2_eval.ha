@@ -55,7 +55,13 @@ fn eval (ast: mal::MalType, env: mal::hashmap) mal::MalType = {
 
 	let res: mal::MalType = match(ast){
 	case let key: mal::symbol =>
-		yield eval(mal::hm_get(env, key), env);
+		let v: mal::MalType = match(mal::hm_get(env, key)){
+		case let v: mal::MalType =>
+			yield v;
+		case =>
+			yield mal::nil;
+		};
+		yield eval(v, env);
 	case let ls: mal::list =>
 		yield eval_list(ls, env);
 	case let vec: mal::vector =>
