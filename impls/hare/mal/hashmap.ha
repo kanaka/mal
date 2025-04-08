@@ -1,8 +1,18 @@
+// The hashmap implmentation follows this idea:
+// https://nullprogram.com/blog/2023/09/30/
+
+// I decided for this implementation when creating the reader, because of the
+// ease of appending, no need for reallocations. In hindsight an array based
+// solution would have been a better fit for mal, because immutability means
+// lots of copying and that's a pretty heavy operation with this here
+// implementation.
+
 use hash::fnv;
 use fmt;
 use strings;
 
 export type hashmap = *struct {
+	meta: MalType,
 	count: size,
 	map: * nullable *hm_map,
 };
@@ -65,6 +75,7 @@ fn hm_find(hm: hashmap, key: (symbol | string)) * nullable *hm_map = {
 
 export fn hm_init() hashmap = {
 	return alloc(struct {
+		meta: MalType = nil,
 		count:size = 0,
 		map:* nullable *hm_map = alloc(null: nullable *hm_map)
 	});
@@ -105,13 +116,13 @@ export fn hm_set(hm: hashmap, key: (symbol | string), elm: MalType) void = {
 	};
 };
 
-export fn hm_get(hm: hashmap, key: (symbol | string)) MalType = {
+export fn hm_get(hm: hashmap, key: (symbol | string)) (MalType | undefinedKey) = {
 
 	let map = hm_find(hm, key);
 	
 	match(*map){
 	case null =>
-	     return nil;
+	     return (void, key):undefinedKey;
 	case let m:*hm_map =>
 	     return m.val;
 	};

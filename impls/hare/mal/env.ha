@@ -54,7 +54,7 @@ export fn env_set(env: *env, key: symbol, val: MalType) void = {
 export fn env_get(envi: *env, key: symbol) (MalType | undefinedSymbol) = {
 
 	match(hm_get(envi.data, key)) {
-	case nil =>
+	case undefinedKey =>
 		match(envi.outer){
 		case null =>
 			return (void, key):undefinedSymbol;

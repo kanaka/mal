@@ -151,12 +151,7 @@ for(true){
 			yield b;
 		case => return mal::nil;
 		};
-		return mal::function {
-			evaluator = &eval,
-			env = env,
-			args = args,
-			body = body,
-		};
+		return mal::make_func(&eval, env, args, body);
 	case => void;
 	};
 	case => void;

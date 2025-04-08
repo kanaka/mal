@@ -87,6 +87,7 @@ fn quasiquote(ast: mal::MalType) (mal::MalType | mal::error) = {
 		return ast;
 	};
 };
+
 fn eval (ast: mal::MalType, env: *mal::env) (mal::MalType | mal::error) = {
 
 	for(true){
@@ -132,26 +133,32 @@ fn eval (ast: mal::MalType, env: *mal::env) (mal::MalType | mal::error) = {
 	case "try*" =>
 		match(eval(ls[1], env)){
 		case let e: mal::error =>
-			let buf = memio::dynamic();
-			mal::handle_error(&buf, e);
-			let s = memio::string(&buf)!;
-			s = mal::make_string(s);
-			io::close(&buf)!;
+			let s:mal::MalType = match(e){
+			case let e: mal::malerror =>
+				yield e.1;
+			case =>
+				let buf = memio::dynamic();
+				mal::handle_error(&buf, e);
+				let s = memio::string(&buf)!;
+				s = mal::make_string(s);
+				io::close(&buf)!;
+				yield s:mal::string;
+			};
 
 			env = mal::env_init(env);
 
-			if (len(ls) < 3)
-				return e;
+			if (len(ls) < 3) return e;
 
 			match(ls[2]){
 			case let l: mal::list =>
-				mal::env_set(env, l[1] as mal::symbol,
-					     s:mal::string);
+				if(!(starts_with(l, "catch*")))
+					return ("expected catch* phrase",
+						l):mal::syntaxError;
+				mal::env_set(env, l[1] as mal::symbol, s);
 				ast = l[2];
 				continue;
 			case =>
-				return ("expected list",
-					mal::nil):mal::typeerror;
+				return ("expected list", ls):mal::typeerror;
 			};
 		case let c: mal::MalType=>
 			return c;
@@ -272,12 +279,7 @@ fn eval (ast: mal::MalType, env: *mal::env) (mal::MalType | mal::error) = {
 			yield b;
 		case => return mal::nil;
 		};
-		return mal::function {
-			evaluator = &eval,
-			env = env,
-			args = args,
-			body = body,
-		};
+		return mal::make_func(&eval, env, args, body);
 	case => void;
 	};
 	case => void;
