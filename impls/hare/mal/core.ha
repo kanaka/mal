@@ -269,8 +269,10 @@ fn mal_eq (args: list) (MalType | error) = {
 			return true;
 		};
 	case let x: string =>
-		if(args[1] is string) {
-			return x == args[1] as string;
+		match(args[1]){
+		case let y: string =>
+		     return *(x: *str) == *(y: *str);
+		case => void;
 		};
 	case let s:symbol =>
 		if(args[1] is symbol){
@@ -350,7 +352,7 @@ fn r_string(args: list) (MalType | error) = {
 
 	let input: str = match(args[0]){
 	case let s: string =>
-		yield s;
+		yield *(s: *str);
 	case =>
 		return ("expected string", args[0]):typeerror;
 	};
@@ -366,7 +368,7 @@ fn r_string(args: list) (MalType | error) = {
 fn slurp(args: list) (MalType | error) = {
 	let file_name: str = match(args[0]) {
 	case let s: string =>
-		yield s;
+		yield *(s: *str);
 	case =>
 		return ("expected string", args[0]):typeerror;
 	};
@@ -694,13 +696,20 @@ fn malvector(args:list) (MalType | error) = {
 };
 
 fn malsymbol(args:list) (MalType | error) = {
-	return make_symbol(args[0] as string);
+	let s: str = match(args[0]){
+	case let s: string =>
+		yield *(s: *str);
+	case =>
+		return ("expected string", args):typeerror;
+	};
+	return make_symbol(s);
 };
 
 fn malkeyword(args:list) (MalType | error) = {
 	match(args[0]){
 	case let s: string =>
-		let name = strings::lpad(s, ':', len(s) + 1);
+		let s: *str = s;
+		let name = strings::lpad(*s, ':', len(s) + 1);
 		defer free(name);
 		return make_symbol(name);
 	case let k: symbol =>
@@ -967,7 +976,7 @@ fn keys(args: list) (MalType | error) = {
 fn readline (args: list) (MalType | error) = {
 	const prompt:str =  match(args[0]){
 	case let p: string =>
-		yield p;
+		yield *(p: *str);
 	case =>
 		return ("expected string", args):typeerror;
 	};
@@ -1012,13 +1021,14 @@ fn fnp (args: list) (MalType | error) = {
 fn seq (args: list) (MalType | error) = {
 	match(args[0]){
 	case let s: string =>
+		let s: *str = s;
 		if(len(s) == 0) return nil;
 
-		let new = make_list(len(s));
+		let new = make_list(len(*s));
 
-		let it = strings::iter(s);
+		let it = strings::iter(*s);
 
-		for(let i: size = 0; i < len(s); i += 1){
+		for(let i: size = 0; i < len(*s); i += 1){
 			match(strings::next(&it)){
 			case let rn: rune =>
 				let s: str = strings::fromutf8([rn:u8])!;
@@ -1071,6 +1081,8 @@ fn meta (args: list) (MalType | error) = {
 		return func.meta;
 	case let hm: hashmap =>
 		return hm.meta;
+	case let s: string =>
+		return s.meta;
 	case =>
 		return NotImplemented;
 	};
@@ -1085,6 +1097,10 @@ fn with_meta (args: list) (MalType | error) = {
 		return new;
 	case let hm: hashmap =>
 		let new = assoc([hm])?:hashmap;
+		new.meta = args[1];
+		return new;
+	case let s: string =>
+		let new = make_string(*(s: *str));
 		new.meta = args[1];
 		return new;
 	case =>

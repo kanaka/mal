@@ -32,11 +32,12 @@ export fn print_form(strbuf: io::handle, form: MalType, print_readably: bool = t
 
 fn print_string(strbuf: io::handle ,s: string, print_readable: bool) void = {
 
-	let runes = strings::torunes(s);
+	let s: *str = s;
+	let runes = strings::torunes(*s);
 
 
 	if(!print_readable){
-		memio::concat(strbuf, s)!;
+		memio::concat(strbuf, *s)!;
 	} else {
 		memio::appendrune(strbuf, '"')!;
 		for(let rn .. runes){

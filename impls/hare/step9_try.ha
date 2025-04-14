@@ -140,9 +140,9 @@ fn eval (ast: mal::MalType, env: *mal::env) (mal::MalType | mal::error) = {
 				let buf = memio::dynamic();
 				mal::handle_error(&buf, e);
 				let s = memio::string(&buf)!;
-				s = mal::make_string(s);
+				let ret = mal::make_string(s);
 				io::close(&buf)!;
-				yield s:mal::string;
+				yield ret;
 			};
 
 			env = mal::env_init(env);
@@ -389,7 +389,7 @@ export fn main() void = {
 
 	if (len(args) > 2){
 		for(let i:size = 2; i < len(args); i += 1){
-			append(argv, args[i]:mal::string);
+			append(argv, &args[i]:mal::string);
 		};
 	};
 

@@ -14,9 +14,9 @@ fn eval_list(ls: mal::list, env: mal::hashmap) mal::MalType = {
 	if(len(ls) == 0) return ls;
 
 	const func = match(eval(ls[0], env)){
-		case let func: mal::intrinsic =>
-			yield func;
-		case => return ls;
+	case let func: mal::intrinsic =>
+		yield func;
+	case => return ls;
 	};
 
 	for(let i:size = 1; i < len(ls); i += 1){
@@ -28,7 +28,9 @@ fn eval_list(ls: mal::list, env: mal::hashmap) mal::MalType = {
 
 
 fn eval_vec(vec: mal::vector, env: mal::hashmap) mal::vector ={
+
 	if(len(vec) == 0) return vec;
+
 	for(let i:size = 0; i < len(vec); i += 1){
 		vec[i] = eval(vec[i],env);
 	};
@@ -41,7 +43,7 @@ fn eval_hash(map: * nullable *mal::hm_map, env: mal::hashmap) mal::hashmap = {
 
 	match(*map){
 	case null => void;
-	case let map:*mal::hm_map =>
+	case let map: *mal::hm_map =>
 		for(let child .. map.child){
 			eval_hash(&child, env);
 		};
@@ -70,7 +72,8 @@ fn eval (ast: mal::MalType, env: mal::hashmap) mal::MalType = {
 		yield eval_hash(hash.map, env);
 	case let func: mal::intrinsic =>
 		yield func;
-	case => yield ast;
+	case =>
+		yield ast;
 	};
 
 	return res;
@@ -96,10 +99,10 @@ export fn main() void = {
 
 	const env = mal::hm_init();
 
-	mal::hm_add(env, "+":mal::symbol, &mal::plus:mal::intrinsic);
-	mal::hm_add(env, "-":mal::symbol, &mal::minus:mal::intrinsic);
-	mal::hm_add(env, "*":mal::symbol, &mal::mult:mal::intrinsic);
-	mal::hm_add(env, "/":mal::symbol, &mal::div:mal::intrinsic);
+	mal::hm_add(env, "+": mal::symbol, &mal::plus: mal::intrinsic);
+	mal::hm_add(env, "-": mal::symbol, &mal::minus: mal::intrinsic);
+	mal::hm_add(env, "*": mal::symbol, &mal::mult: mal::intrinsic);
+	mal::hm_add(env, "/": mal::symbol, &mal::div: mal::intrinsic);
 
 	for(true){
 
