@@ -23,7 +23,7 @@ fn eval_list(ls: mal::list, env: mal::hashmap) mal::MalType = {
 		ls[i] = eval(ls[i], env);
 	};
 
-	return func(ls[1..])!;
+	return func.eval(ls[1..])!;
 };
 
 
@@ -99,10 +99,10 @@ export fn main() void = {
 
 	const env = mal::hm_init();
 
-	mal::hm_add(env, "+": mal::symbol, &mal::plus: mal::intrinsic);
-	mal::hm_add(env, "-": mal::symbol, &mal::minus: mal::intrinsic);
-	mal::hm_add(env, "*": mal::symbol, &mal::mult: mal::intrinsic);
-	mal::hm_add(env, "/": mal::symbol, &mal::div: mal::intrinsic);
+	mal::hm_add(env, "+": mal::symbol, mal::make_intrinsic(&mal::plus));
+	mal::hm_add(env, "-": mal::symbol, mal::make_intrinsic(&mal::minus));
+	mal::hm_add(env, "*": mal::symbol, mal::make_intrinsic(&mal::mult));
+	mal::hm_add(env, "/": mal::symbol, mal::make_intrinsic(&mal::div));
 
 	for(true){
 

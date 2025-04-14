@@ -294,7 +294,7 @@ fn eval (ast: mal::MalType, env: *mal::env) (mal::MalType | mal::error) = {
 		for(let arg .. ls[1..]){
 			append(args, eval(arg, env)?);
 		};
-		return func(args);
+		return func.eval(args);
 	case let mac: mal::macro =>
 		ast = _apply(mac, ls[1..])?;
 		continue;
@@ -321,7 +321,7 @@ fn _apply(func: (mal::function | mal::intrinsic), args: mal::list)
 		mal::env_bind(env, func.args, args);
 		return func.evaluator(func.body, env);
 	case let func: mal::intrinsic =>
-		return func(args);
+		return func.eval(args);
 	};
 };
 
@@ -375,8 +375,8 @@ export fn main() void = {
 		fmt::fatal("No repl environment initialized!");
 	};
 
-	mal::env_set(env, mal::make_symbol("eval"), &do_eval:mal::intrinsic);
-	mal::load_namespace(mal::core, env);
+	mal::env_set(env, "eval", mal::make_intrinsic(&do_eval));
+	mal::load_namespace(mal::core, env)!;
 	let load_file = "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \"\nnil)\")))))";
 
 	let cond = "(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))";

@@ -16,7 +16,12 @@ export type string = * struct {
 
 export type collection = (list | vector);
 export type atom = *MalType;
-export type intrinsic = *fn(list) (MalType | error);
+
+export type intrinsic = *struct {
+	eval: *fn(list) (MalType | error),
+	meta: MalType,
+};
+
 export type function = *struct {
 	evaluator:  *fn(MalType, *env) (MalType | error),
 	env: *env,
@@ -34,6 +39,14 @@ export type MalType = (...MalValue | macro | function | intrinsic);
 // Hopefully this will make it easier to add garbage collection later.
 //
 // TODO: Make hashmaps and envs adhere to this.
+
+export fn make_intrinsic(func: *fn(list) (MalType | error)) intrinsic = {
+	let new = alloc(struct {
+		eval: *fn(list) (MalType | error) = func,
+		meta: MalType = nil,
+	});
+	return new;
+};
 
 export fn make_func (evaluator:  *fn(MalType, *env) (MalType | error),
 		envi: *env, args: (list | vector), body: MalType)

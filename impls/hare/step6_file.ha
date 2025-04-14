@@ -164,7 +164,7 @@ for(true){
 		for(let arg .. ls[1..]){
 			append(args, eval(arg, env)?);
 		};
-		return func(args);
+		return func.eval(args);
 	case let func: mal::function =>
 		let args: mal::list = [];
 		for(let arg .. ls[1..]){
@@ -226,8 +226,8 @@ export fn main() void = {
 		fmt::fatal("No repl environment initialized!");
 	};
 
-	mal::env_set(env, "eval", &do_eval:mal::intrinsic);
-	mal::load_namespace(mal::core, env);
+	mal::env_set(env, "eval", mal::make_intrinsic(&do_eval));
+	mal::load_namespace(mal::core, env)!;
 	let load_file = "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \"\nnil)\")))))";
 
 	rep(strings::toutf8(load_file), env, false);
