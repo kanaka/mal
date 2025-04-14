@@ -32,6 +32,8 @@ fn read_form(tk: *tokenizer) (...MalType | ...coll_end | io::EOF | error) = {
 			return read_symbol(a);
 		case let q: quote_tk =>
 			return read_quote(tk, q);
+		case let m: mal_meta =>
+			return read_meta(tk);
 		case let i: int =>
 			return i: number;
 		case io::EOF =>
@@ -40,9 +42,33 @@ fn read_form(tk: *tokenizer) (...MalType | ...coll_end | io::EOF | error) = {
 	};
 };
 
-fn read_quote(tk: *tokenizer, t: quote_tk) (list | error) = {
+fn read_meta(tk: *tokenizer) (list | error) = {
 
 	let res: list = [];
+	defer free(res);
+
+	const meta = match(read_form(tk)?){
+	case let l: MalType =>
+		yield l;
+	case coll_end =>
+		return unbalanced;
+	case io::EOF =>
+		return unexpectedEOF;
+	};
+
+	const next_form = match(read_form(tk)?){
+	case let l: MalType =>
+		yield l;
+	case coll_end =>
+		return unbalanced;
+	case io::EOF =>
+		return unexpectedEOF;
+	};
+
+	return make_list(3, [make_symbol("with-meta"), next_form, meta]);
+};
+
+fn read_quote(tk: *tokenizer, t: quote_tk) (list | error) = {
 
 	const qs:symbol = match(t){
 	case quote =>
@@ -57,17 +83,16 @@ fn read_quote(tk: *tokenizer, t: quote_tk) (list | error) = {
 	     yield "deref";
 	};
 
-	append(res, make_symbol(qs));
-
-	match(read_form(tk)?){
+	const form: MalType = match(read_form(tk)?){
 	case let l: MalType =>
-		append(res, l);
-		return res;
+		yield l;
 	case coll_end =>
 		return unbalanced;
 	case io::EOF =>
 		return unexpectedEOF;
 	};
+
+	return make_list(2, [make_symbol(qs), form]);
 
 };
 

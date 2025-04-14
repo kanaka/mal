@@ -18,6 +18,8 @@ type vec_end = void;
 type hash_end = void;
 type coll_end = (list_end | vec_end | hash_end);
 
+type mal_meta = void;
+
 type at = void;
 type unquote = void;
 type unquote_splice = void;
@@ -27,7 +29,7 @@ type quote_tk = ( unquote_splice | unquote | quote | quasiquote | at);
 
 type word = str;
 
-type token = (int | str | io::EOF | undefined | ...coll_beg |
+type token = (int | str | io::EOF | undefined | ...coll_beg | mal_meta |
 	      ...quote_tk | vec_beg | ...coll_end | comment | word);
 
 type tokenizer = struct {
@@ -196,6 +198,7 @@ fn tokenizer_next(tk: *tokenizer) (token | error) = {
 	case '}' => return hash_end;
 	case '"' => return scan_string(tk);
 	case ';' => return scan_comment(tk);
+	case '^' => return mal_meta;
 	case '\'' => return quote;
 	case '`' => return quasiquote;
 	case '~' => return scan_quote(tk);

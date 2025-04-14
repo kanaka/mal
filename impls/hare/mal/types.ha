@@ -9,7 +9,7 @@ export type number = i64;
 export type list = []MalType;
 export type vector = []MalType;
 
-export type string = * struct {
+export type string = *struct {
 		data: str,
 		meta: MalType,
 };
