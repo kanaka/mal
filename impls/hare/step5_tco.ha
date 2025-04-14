@@ -165,7 +165,7 @@ for(true){
 		for(let arg .. ls[1..]){
 			append(args, eval(arg, env)?);
 		};
-		return func(args);
+		return func.eval(args);
 	case let func: mal::function =>
 		let args: mal::list = [];
 		for(let arg .. ls[1..]){
@@ -208,7 +208,7 @@ fn rep (input: []u8, env: *mal::env) void = {
 export fn main() void = {
 
 	const env = mal::env_init();
-	mal::load_namespace(mal::core, env);
+	mal::load_namespace(mal::core, env)!;
 
 	for(true){
 

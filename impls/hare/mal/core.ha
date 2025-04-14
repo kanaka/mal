@@ -6,12 +6,20 @@ use strings;
 use bufio;
 use time;
 
-export type ns_entry = (str, (intrinsic | function));
+export type ns_entry = (str, (MalType | *fn(list) (MalType | error)));
 export type namespace = []ns_entry;
 
-export fn load_namespace(ns: namespace, env: *env) void = {
+export fn load_namespace(ns: namespace, env: *env) (void | error) = {
 	for(let e.. ns){
-		env_set(env, make_symbol(e.0), e.1);
+		let v: MalType = match(e.1){
+		case let v: MalType =>
+			yield v;
+		case let f: *fn(list) (MalType | error) =>
+			yield make_intrinsic(f);
+		case =>
+			return ("expected MalType", nil):typeerror;
+		};
+		env_set(env, make_symbol(e.0), v);
 	};
 };
 
@@ -630,8 +638,8 @@ fn apply(args: list) (MalType | error) = {
 		let env = env_init(func.env);
 		env_bind(env, func.args, ls);
 		return func.evaluator(func.body, env);
-	case let func: intrinsic =>
-		return func(ls);
+	case let f: intrinsic =>
+		return f.eval(ls);
 	case =>
 		return ("expected function", args):syntaxError;
 	};
@@ -1079,6 +1087,8 @@ fn meta (args: list) (MalType | error) = {
 	match(args[0]){
 	case let func: function =>
 		return func.meta;
+	case let func: intrinsic =>
+		return func.meta;
 	case let hm: hashmap =>
 		return hm.meta;
 	case let s: string =>
@@ -1101,6 +1111,10 @@ fn with_meta (args: list) (MalType | error) = {
 		return new;
 	case let s: string =>
 		let new = make_string(*(s: *str));
+		new.meta = args[1];
+		return new;
+	case let f: intrinsic =>
+		let new = make_intrinsic(f.eval);
 		new.meta = args[1];
 		return new;
 	case =>

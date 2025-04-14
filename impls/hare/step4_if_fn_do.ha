@@ -105,7 +105,7 @@ fn eval_list(ls: mal::list, env: *mal::env) (mal::MalType | mal::error) = {
 		for(let arg .. ls[1..]){
 			append(args, eval(arg, env)?);
 		};
-		return func(args);
+		return func.eval(args);
 	case let func: mal::function =>
 		let args: mal::list = [];
 		defer free(args);
@@ -210,7 +210,7 @@ fn rep (input: []u8, env: *mal::env) void = {
 export fn main() void = {
 
 	const env = mal::env_init();
-	mal::load_namespace(mal::core, env);
+	mal::load_namespace(mal::core, env)!;
 
 	for(true){
 
