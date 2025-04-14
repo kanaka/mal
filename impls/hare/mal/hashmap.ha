@@ -29,14 +29,14 @@ fn keycmp(x: (symbol | string), y: (symbol | string)) bool = {
 	case let k: symbol =>
 		yield k:str;
 	case let k: string =>
-		yield k:str;
+		yield *(k: *str);
 	};
 
 	const ky: str = match(y){
 	case let k: symbol =>
 		yield k:str;
 	case let k: string =>
-		yield k:str;
+		yield *(k: *str);
 	};
 
 	return kx == ky;
@@ -48,7 +48,7 @@ fn hm_find(hm: hashmap, key: (symbol | string)) * nullable *hm_map = {
 	case let k: symbol =>
 		yield k:str;
 	case let k: string =>
-		yield k:str;
+		yield *(k: *str);
 	};
 
 	let hash: u32 = fnv::string32(k);

@@ -9,12 +9,17 @@ fn read (input: []u8) (mal::MalType | io::EOF | mal::error) = {
 	return mal::read_str(input)?;
 };
 
-fn eval_let(env: *mal::env, bindings: mal::list, body: mal::MalType...) (mal::MalType | mal::error) = {
+fn eval_let(
+	env: *mal::env,
+	bindings: mal::list,
+	body: mal::MalType...
+) (mal::MalType | mal::error) = {
 
 	let let_env = mal::env_init(env);
 	
 	for(let i:size = 0; i < len(bindings); i += 2){
-		mal::env_set(let_env, bindings[i] as mal::symbol, eval(bindings[i+1], let_env)?);
+		mal::env_set(let_env, bindings[i] as mal::symbol,
+			     eval(bindings[i+1], let_env)?);
 	};
 
 	let result: mal::MalType = mal::nil;
@@ -33,7 +38,8 @@ fn eval_list(ls: mal::list, env: *mal::env) (mal::MalType | mal::error) = {
 	case let sym: mal::symbol =>
 		if(sym == "def!"){
 			if(len(ls) != 3)
-				return ("def! expects 2 arguments", ls):mal::syntaxError;
+				return ("def! expects 2 arguments",
+					ls): mal::syntaxError;
 
 			let val = eval(ls[2], env)?;
 			mal::env_set(env, ls[1] as mal::symbol, val);
@@ -41,7 +47,8 @@ fn eval_list(ls: mal::list, env: *mal::env) (mal::MalType | mal::error) = {
 
 		} else if(sym == "let*"){
 			if(len(ls) < 3)
-				return ("let*: too few arguments", ls):mal::syntaxError;
+				return ("let*: too few arguments",
+					ls): mal::syntaxError;
 
 			let bindings: []mal::MalType = match(ls[1]){
 			case let b: mal::list =>
@@ -62,7 +69,7 @@ fn eval_list(ls: mal::list, env: *mal::env) (mal::MalType | mal::error) = {
 		case => return ls;
 	};
 
-	for(let i:size = 1; i < len(ls); i += 1){
+	for(let i: size = 1; i < len(ls); i += 1){
 		ls[i] = eval(ls[i], env)?;
 	};
 
@@ -81,7 +88,10 @@ fn eval_vec(vec: mal::vector, env: *mal::env) (mal::vector | mal::error) ={
 	return res;
 };
 
-fn eval_hash(map: * nullable *mal::hm_map, env: *mal::env) (mal::hashmap | mal::error) = {
+fn eval_hash(
+	map: * nullable *mal::hm_map,
+	env: *mal::env
+) (mal::hashmap | mal::error) = {
 
 	let res = mal::hm_init();
 
@@ -100,8 +110,10 @@ fn eval_hash(map: * nullable *mal::hm_map, env: *mal::env) (mal::hashmap | mal::
 fn eval (ast: mal::MalType, env: *mal::env) (mal::MalType | mal::error) = {
 
 	match(mal::env_get(env, "DEBUG-EVAL")){
-	case mal::undefinedSymbol => void;
-	case mal::nil => void;
+	case mal::undefinedSymbol =>
+		void;
+	case mal::nil =>
+		void;
 	case => 
 		fmt::print("EVAL: ")!;
 		mal::print_form(os::stdout, ast);
@@ -134,16 +146,16 @@ fn print (input: mal::MalType) void = {
 
 fn rep (input: []u8, env: *mal::env) void = {
 	let ast = match (read(input)){
-	case let e:mal::error =>
+	case let e: mal::error =>
 		return mal::handle_error(os::stderr, e);
 	case let form: mal::MalType =>
 		yield form;
 	case io::EOF =>
-	     return void;
+		return void;
 	};
 
 	let result = match(eval(ast, env)){
-	case let e:mal::error =>
+	case let e: mal::error =>
 		return mal::handle_error(os::stderr, e);
 	case let form: mal::MalType =>
 		yield form;
@@ -164,7 +176,7 @@ export fn main() void = {
 		fmt::printf("user> ")!;
 		bufio::flush(os::stdout)!;
 
-		const input =  match(bufio::read_line(os::stdin)){
+		const input = match(bufio::read_line(os::stdin)){
 		case let input: []u8 =>
 			yield input;
 		case io::EOF =>

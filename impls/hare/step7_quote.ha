@@ -291,7 +291,7 @@ export fn main() void = {
 
 	if (len(args) > 2){
 		for(let i:size = 2; i < len(args); i += 1){
-			append(argv, args[i]:mal::string);
+			append(argv, &args[i]:mal::string);
 		};
 	};
 

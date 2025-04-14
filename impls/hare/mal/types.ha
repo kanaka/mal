@@ -6,9 +6,14 @@ use types;
 export type nil = void;
 export type symbol = str;
 export type number = i64;
-export type string = str;
 export type list = []MalType;
 export type vector = []MalType;
+
+export type string = * struct {
+		data: str,
+		meta: MalType,
+};
+
 export type collection = (list | vector);
 export type atom = *MalType;
 export type intrinsic = *fn(list) (MalType | error);
@@ -84,7 +89,10 @@ export fn make_symbol(name: str) symbol = {
 };
 
 export fn make_string(s: str) string = {
-	return strings::dup(s);
+	return alloc(struct {
+		data:str = strings::dup(s),
+		meta:MalType = nil,
+		});
 };
 
 export fn make_atom(ref: MalType) atom = {
