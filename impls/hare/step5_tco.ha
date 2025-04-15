@@ -11,11 +11,11 @@ fn read (input: []u8) (mal::MalType | io::EOF | mal::error) = {
 
 fn eval_vec(vec: mal::vector, env: *mal::env) (mal::vector | mal::error) ={
 
-	if(len(vec) == 0) return vec;
-	let res:mal::vector = mal::make_vec(len(vec));
+	if(len(vec.data) == 0) return vec;
+	let res: mal::vector = mal::make_vec(len(vec.data));
 
-	for(let i:size = 0; i < len(vec); i += 1){
-		res[i] = eval(vec[i], env)?;
+	for(let i: size = 0; i < len(vec.data); i += 1){
+		res.data[i] = eval(vec.data[i], env)?;
 	};
 	return res;
 };
@@ -27,7 +27,7 @@ fn eval_hash(map: * nullable *mal::hm_map, env: *mal::env)
 
 	match(*map){
 	case null => void;
-	case let map:*mal::hm_map =>
+	case let map: *mal::hm_map =>
 		for(let child .. map.child){
 			eval_hash(&child, env)?;
 		};
@@ -70,84 +70,89 @@ for(true){
 		return ast;
 	};
 
-	if(len(ls) == 0) return ast;
+	if(len(ls.data) == 0) return ast;
 
 	// handle special cases of 'if' 'fn*', 'do', 'let*' and 'def!' forms
-	match(ls[0]){
+	match(ls.data[0]){
 
 	case let sym: mal::symbol =>
 	     
 	switch(sym){
 	case "def!" =>
-		if(len(ls) != 3)
-			return ("def! expects 2 arguments", ls):mal::syntaxError;
+		if(len(ls.data) != 3)
+			return ("def! expects 2 arguments",
+				ls):mal::syntaxError;
 
-		let val = eval(ls[2], env)?;
-		mal::env_set(env, ls[1] as mal::symbol, val);
+		let val = eval(ls.data[2], env)?;
+		mal::env_set(env, ls.data[1] as mal::symbol, val);
 		return val;
 
 	case "let*" =>
-		if(len(ls) != 3)
-			return ("let*: too few arguments", ls):mal::syntaxError;
+		if(len(ls.data) != 3)
+			return ("let*: too few arguments",
+				ls):mal::syntaxError;
 
-		let bindings: []mal::MalType = match(ls[1]){
+		let bindings: []mal::MalType = match(ls.data[1]){
 		case let b: mal::list =>
-			yield b;
+			yield b.data;
 		case let b: mal::vector =>
-			yield b;
+			yield b.data;
 		case =>
 			return ("let*", ls):mal::syntaxError;
 		};
 
 		let let_env = mal::env_init(env);
 
-		for(let i:size = 0; i < len(bindings); i += 2){
+		for(let i: size = 0; i < len(bindings); i += 2){
 			mal::env_set(let_env, bindings[i] as mal::symbol,
 			eval(bindings[i+1], let_env)?);
 		};
 
 		env = let_env;
-		ast = ls[2];
+		ast = ls.data[2];
 		continue;
 	case "do" =>
 		let result: mal::MalType = mal::nil;
-		for(let form .. ls[1..len(ls)-1]){
+		for(let form .. ls.data[1..len(ls.data)-1]){
 			result = eval(form, env)?;
 		};
-		ast = ls[len(ls)-1];
+		ast = ls.data[len(ls.data)-1];
 		continue;
 	case "if" =>
-		if(len(ls) > 4 || len(ls) < 3)
-			return ("if expects 2 or 3 arguments", ls):mal::syntaxError;
-		match(eval(ls[1], env)?){
+		if(len(ls.data) > 4 || len(ls.data) < 3)
+			return ("if expects 2 or 3 arguments",
+				ls):mal::syntaxError;
+		match(eval(ls.data[1], env)?){
 		case mal::nil =>
-			if(len(ls) == 4){
-			ast = ls[3];
+			if(len(ls.data) == 4){
+			ast = ls.data[3];
 				continue;
 			} else {
 				return mal::nil;
 			};
 		case let b: bool =>
 			if(b){
-				ast = ls[2];
+				ast = ls.data[2];
 				continue;
-			} else if(len(ls) == 4){
-				ast = ls[3];
+			} else if(len(ls.data) == 4){
+				ast = ls.data[3];
 				continue;
 			} else {
 				return mal::nil;
 			};
 		case =>
-			ast = ls[2];
+			ast = ls.data[2];
 			continue;
 		};
 	case "fn*" =>
-		let args = match(ls[1]){
-		case let a: (mal::list | mal::vector) =>
-			yield a;
+		let args = match(ls.data[1]){
+		case let a: mal::list =>
+			yield a.data;
+		case let a: mal::vector =>
+			yield a.data;
 		};
-		let body = match(ls[2]){
-		case let b: mal::MalValue =>
+		let body = match(ls.data[2]){
+		case let b: mal::MalType =>
 			yield b;
 		case => return mal::nil;
 		};
@@ -158,17 +163,17 @@ for(true){
 	};
 
 
-	match(eval(ls[0], env)?){
+	match(eval(ls.data[0], env)?){
 	case let func: mal::intrinsic =>
-		let args: mal::list = [];
+		let args: []mal::MalType = [];
 		defer free(args);
-		for(let arg .. ls[1..]){
+		for(let arg .. ls.data[1..]){
 			append(args, eval(arg, env)?);
 		};
 		return func.eval(args);
 	case let func: mal::function =>
-		let args: mal::list = [];
-		for(let arg .. ls[1..]){
+		let args: []mal::MalType = [];
+		for(let arg .. ls.data[1..]){
 			append(args, eval(arg, env)?);
 		};
 		env = mal::env_init(func.env);
@@ -176,7 +181,7 @@ for(true){
 		ast = func.body;
 		free(args);
 		continue;
-	case => return ("not a function:", ls[0]):mal::syntaxError;
+	case => return ("not a function:", ls.data[0]):mal::syntaxError;
 	};
 };};
 
@@ -187,7 +192,7 @@ fn print (input: mal::MalType) void = {
 
 fn rep (input: []u8, env: *mal::env) void = {
 	let ast = match(read(input)){
-	case let e:mal::error =>
+	case let e: mal::error =>
 		return mal::handle_error(os::stderr, e);
 	case let form: mal::MalType =>
 		yield form;
@@ -196,7 +201,7 @@ fn rep (input: []u8, env: *mal::env) void = {
 	};
 
 	let result = match(eval(ast, env)){
-	case let e:mal::error =>
+	case let e: mal::error =>
 		return mal::handle_error(os::stderr, e);
 	case let form: mal::MalType =>
 		yield form;

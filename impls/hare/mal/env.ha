@@ -10,21 +10,11 @@ export fn env_init(outer: nullable * env = null) *env ={
 	});
 };
 
-export fn env_bind(env: *env, bindings: collection, exprs: collection) void = {
-
-	let bindings: []MalType = match(bindings){
-	case let b: list =>
-		yield b;
-	case let b: vector =>
-		yield b;
-	};
-
-	let exprs: []MalType = match (exprs) {
-	case let b: list =>
-		yield b;
-	case let b: vector =>
-		yield b;
-	};
+export fn env_bind(
+	env: *env,
+	bindings: []MalType,
+	exprs: []MalType
+) void = {
 
 	let more: bool = false;
 	for(let i: size = 0; i < len(bindings); i += 1){

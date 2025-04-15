@@ -12,8 +12,8 @@ export type unbalanced = !void;
 
 export type undefinedKey = !(void, (symbol | string));
 export type undefinedSymbol = !(void, symbol);
-export type syntaxError = !(str, MalType);
-export type typeerror = !(str, MalType);
+export type syntaxError = !(str, (MalType | []MalType));
+export type typeerror = !(str, (MalType | []MalType));
 
 export type error = !(malerror | fs::error | io::error | unexpectedEOF |
 		      unbalanced | NotImplemented | undefinedSymbol |

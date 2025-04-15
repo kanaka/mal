@@ -3,13 +3,19 @@ use memio;
 use fmt;
 use strings;
 
-export fn print_form(strbuf: io::handle, form: MalType, print_readably: bool = true) void = {
+export fn print_form(
+	strbuf: io::handle,
+	form: (MalType | []MalType),
+	print_readably: bool = true
+) void = {
 
 	match(form){
 	case let l: list =>
-		print_list(strbuf, l, list_beg, print_readably);
-	case let r: vector =>
-		print_list(strbuf, r, vec_beg, print_readably);
+		print_list(strbuf, l.data, list_beg, print_readably);
+	case let v: vector =>
+		print_list(strbuf, v.data, vec_beg, print_readably);
+	case let c: []MalType =>
+		print_list(strbuf, c, list_beg, print_readably);
 	case let h: hashmap =>
 		print_hash(strbuf, h, print_readably);
 	case let s: string =>
@@ -22,10 +28,11 @@ export fn print_form(strbuf: io::handle, form: MalType, print_readably: bool = t
 		memio::concat(strbuf, s:str)!;
 	case let i: number =>
 		fmt::fprint(strbuf, i: int)!;
+	case let a: atom =>
+		print_list(strbuf, [make_symbol("atom"):MalType, *a],
+			   list_beg, print_readably);
 	case let func: (intrinsic | function) =>
 		memio::concat(strbuf, "#<function>")!;
-	case let a: atom =>
-		print_list(strbuf, [make_symbol("atom"), *a]:list, list_beg, print_readably);
 	case => void;
 	};
 };
@@ -72,11 +79,16 @@ fn print_string(strbuf: io::handle ,s: string, print_readable: bool) void = {
 
 };
 
-fn hm_print_rec(strbuf: io::handle, map: * nullable *hm_map, entry: bool, pp:bool) void = {
+fn hm_print_rec(
+	strbuf: io::handle,
+	map: * nullable *hm_map,
+	entry: bool,
+	pp:bool
+) void = {
 
 	match(*map){
 	case null => return void;
-	case let map:*hm_map =>
+	case let map: *hm_map =>
 		for(let child .. map.child){
 			hm_print_rec(strbuf, &child, false, pp);
 		};
@@ -103,7 +115,12 @@ fn print_hash(strbuf: io::handle, hm: hashmap, pp:bool) void ={
 };
 
 
-fn print_list(strbuf: io::handle, ls: []MalType, t: coll_beg, pp: bool) void = {
+fn print_list(
+	strbuf: io::handle,
+	ls: []MalType,
+	t: coll_beg,
+	pp: bool
+) void = {
 
 	let open = '(';
 	let close = ')';
@@ -114,7 +131,7 @@ fn print_list(strbuf: io::handle, ls: []MalType, t: coll_beg, pp: bool) void = {
 	};
 
 	memio::appendrune(strbuf, open)!;
-	for(let i:size = 0; i < len(ls); i += 1) {
+	for(let i: size = 0; i < len(ls); i += 1) {
 		let form = print_form(strbuf, ls[i], pp);
 		if(!(i == len(ls)-1)){
 			fmt::fprint(strbuf, " ")!;

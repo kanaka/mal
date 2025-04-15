@@ -11,11 +11,11 @@ fn read (input: []u8) (mal::MalType | io::EOF | mal::error) = {
 
 fn eval_vec(vec: mal::vector, env: *mal::env) (mal::vector | mal::error) ={
 
-	if(len(vec) == 0) return vec;
-	let res:mal::vector = mal::make_vec(len(vec));
+	if(len(vec.data) == 0) return vec;
+	let res: mal::vector = mal::make_vec(len(vec.data));
 
-	for(let i:size = 0; i < len(vec); i += 1){
-		res[i] = eval(vec[i], env)?;
+	for(let i: size = 0; i < len(vec.data); i += 1){
+		res.data[i] = eval(vec.data[i], env)?;
 	};
 	return res;
 };
@@ -27,7 +27,7 @@ fn eval_hash(map: * nullable *mal::hm_map, env: *mal::env)
 
 	match(*map){
 	case null => void;
-	case let map:*mal::hm_map =>
+	case let map: *mal::hm_map =>
 		for(let child .. map.child){
 			eval_hash(&child, env)?;
 		};
@@ -40,8 +40,8 @@ fn eval_hash(map: * nullable *mal::hm_map, env: *mal::env)
 fn starts_with(ast: mal::MalType, sym: str) bool = {
 	match(ast){
 	case let ls: mal::list=>
-		if(len(ls) < 1) return false;
-		match(ls[0]){
+		if(len(ls.data) < 1) return false;
+		match(ls.data[0]){
 		case let s: mal::symbol =>
 		     return s == sym;
 		case =>
@@ -53,15 +53,30 @@ fn starts_with(ast: mal::MalType, sym: str) bool = {
 };
 
 fn qq_iter(ast: []mal::MalType) (mal::MalType | mal::error) = {
-	let acc:mal::list = [];
+
+	let acc = mal::make_list(0);
+
 	for(let i: size = len(ast); 0 < i ; i -= 1){
-		let elt: mal::MalType = ast[i - 1];
+
+		let elt: mal::MalType  = ast[i - 1];
+
 		if(starts_with(elt, "splice-unquote")){
-			acc = mal::make_list(3, ["concat":mal::symbol, (elt as mal::list)[1], acc]);
+			let elt: mal::list = match(elt){
+			case let l: mal::list =>
+				yield l;
+			case =>
+				return ("expected list",
+					ast):mal::typeerror;
+			};
+
+			acc = mal::make_list(3, ["concat":mal::symbol,
+						 elt.data[1], acc]);
 		} else {
-			acc = mal::make_list(3, ["cons":mal::symbol, quasiquote(elt)?, acc]);
+			acc = mal::make_list(3, ["cons":mal::symbol,
+						 quasiquote(elt)?, acc]);
 		};
 	};
+
 	return acc;
 };
 
@@ -69,15 +84,17 @@ fn quasiquote(ast: mal::MalType) (mal::MalType | mal::error) = {
 	match(ast) {
 	case let ls: mal::list =>
 		if(starts_with(ls, "unquote")) {
-			return ls[1];
+			return ls.data[1];
 		} else {
-			return qq_iter(ls);
+			return qq_iter(ls.data);
 		};
 	case let ls: mal::vector =>
-		let res: mal::list = mal::make_list(2, ["vec":mal::symbol, qq_iter(ls)?]);
+		let res: mal::list = mal::make_list(2, ["vec":mal::symbol,
+							qq_iter(ls.data)?]);
 		return res;
 	case let hm: (mal::symbol | mal::hashmap) =>
-		let res: mal::list = mal::make_list(2, ["quote":mal::symbol, ast]);
+		let res: mal::list = mal::make_list(2, ["quote":mal::symbol,
+							ast]);
 		return res;
 	case =>
 		return ast;
@@ -116,36 +133,38 @@ for(true){
 		return ast;
 	};
 
-	if(len(ls) == 0) return ast;
+	if(len(ls.data) == 0) return ast;
 
 	// handle special cases of 'if' 'fn*', 'do', 'let*' and 'def!' forms
-	match(ls[0]){
+	match(ls.data[0]){
 
 	case let sym: mal::symbol =>
 
 	switch(sym){
 	case "quasiquote" =>
-		ast = quasiquote(ls[1])?;
+		ast = quasiquote(ls.data[1])?;
 		continue;
 	case "quote" =>
-		return ls[1];
+		return ls.data[1];
 	case "def!" =>
-		if(len(ls) != 3)
-			return ("def! expects 2 arguments", ls):mal::syntaxError;
+		if(len(ls.data) != 3)
+			return ("def! expects 2 arguments",
+				ls):mal::syntaxError;
 
-		let val = eval(ls[2], env)?;
-		mal::env_set(env, ls[1] as mal::symbol, val);
+		let val = eval(ls.data[2], env)?;
+		mal::env_set(env, ls.data[1] as mal::symbol, val);
 		return val;
 
 	case "let*" =>
-		if(len(ls) != 3)
-			return ("let*: too few arguments", ls):mal::syntaxError;
+		if(len(ls.data) != 3)
+			return ("let*: too few arguments",
+				ls):mal::syntaxError;
 
-		let bindings: []mal::MalType = match(ls[1]){
+		let bindings: []mal::MalType = match(ls.data[1]){
 		case let b: mal::list =>
-			yield b;
+			yield b.data;
 		case let b: mal::vector =>
-			yield b;
+			yield b.data;
 		case =>
 			return ("let*", ls):mal::syntaxError;
 		};
@@ -158,47 +177,50 @@ for(true){
 		};
 
 		env = let_env;
-		ast = ls[2];
+		ast = ls.data[2];
 		continue;
 	case "do" =>
 		let result: mal::MalType = mal::nil;
-		for(let form .. ls[1..len(ls)-1]){
+		for(let form .. ls.data[1..len(ls.data)-1]){
 			result = eval(form, env)?;
 		};
-		ast = ls[len(ls)-1];
+		ast = ls.data[len(ls.data)-1];
 		continue;
 	case "if" =>
-		if(len(ls) > 4 || len(ls) < 3)
-			return ("if expects 2 or 3 arguments", ls):mal::syntaxError;
-		match(eval(ls[1], env)?){
+		if(len(ls.data) > 4 || len(ls.data) < 3)
+			return ("if expects 2 or 3 arguments",
+				ls):mal::syntaxError;
+		match(eval(ls.data[1], env)?){
 		case mal::nil =>
-			if(len(ls) == 4){
-			ast = ls[3];
+			if(len(ls.data) == 4){
+			ast = ls.data[3];
 				continue;
 			} else {
 				return mal::nil;
 			};
 		case let b: bool =>
 			if(b){
-				ast = ls[2];
+				ast = ls.data[2];
 				continue;
-			} else if(len(ls) == 4){
-				ast = ls[3];
+			} else if(len(ls.data) == 4){
+				ast = ls.data[3];
 				continue;
 			} else {
 				return mal::nil;
 			};
 		case =>
-			ast = ls[2];
+			ast = ls.data[2];
 			continue;
 		};
 	case "fn*" =>
-		let args = match(ls[1]){
-		case let a: (mal::list | mal::vector) =>
-			yield a;
+		let args = match(ls.data[1]){
+		case let a: mal::vector =>
+			yield a.data;
+		case let a: mal::list =>
+			yield a.data;
 		};
-		let body = match(ls[2]){
-		case let b: mal::MalValue =>
+		let body = match(ls.data[2]){
+		case let b: mal::MalType =>
 			yield b;
 		case => return mal::nil;
 		};
@@ -209,17 +231,17 @@ for(true){
 	};
 
 
-	match(eval(ls[0], env)?){
+	match(eval(ls.data[0], env)?){
 	case let func: mal::intrinsic =>
-		let args: mal::list = [];
+		let args: []mal::MalType = [];
 		defer free(args);
-		for(let arg .. ls[1..]){
+		for(let arg .. ls.data[1..]){
 			append(args, eval(arg, env)?);
 		};
 		return func.eval(args);
 	case let func: mal::function =>
-		let args: mal::list = [];
-		for(let arg .. ls[1..]){
+		let args: []mal::MalType = [];
+		for(let arg .. ls.data[1..]){
 			append(args, eval(arg, env)?);
 		};
 		env = mal::env_init(func.env);
@@ -227,7 +249,7 @@ for(true){
 		free(args);
 		ast = func.body;
 		continue;
-	case => return ("not a function:", ls[0]):mal::syntaxError;
+	case => return ("not a function:", ls.data[0]):mal::syntaxError;
 	};
 };};
 
@@ -238,7 +260,7 @@ fn print (input: mal::MalType) void = {
 
 fn rep (input: []u8, env: *mal::env, printp:bool = true) void = {
 	let ast = match(read(input)){
-	case let e:mal::error =>
+	case let e: mal::error =>
 		return mal::handle_error(os::stderr, e);
 	case let form: mal::MalType =>
 		yield form;
@@ -247,7 +269,7 @@ fn rep (input: []u8, env: *mal::env, printp:bool = true) void = {
 	};
 
 	let result = match(eval(ast, env)){
-	case let e:mal::error =>
+	case let e: mal::error =>
 		return mal::handle_error(os::stderr, e);
 	case let form: mal::MalType =>
 		yield form;
@@ -259,7 +281,7 @@ fn rep (input: []u8, env: *mal::env, printp:bool = true) void = {
 
 let repl_env: nullable *mal::env = null;
 
-fn do_eval(args: mal::list) (mal::MalType | mal::error) = {
+fn do_eval(args: []mal::MalType) (mal::MalType | mal::error) = {
 	const env = match(repl_env){
 	case let env: *mal::env =>
 		yield env;
@@ -281,24 +303,33 @@ export fn main() void = {
 
 	mal::env_set(env, "eval", mal::make_intrinsic(&do_eval));
 	mal::load_namespace(mal::core, env)!;
-	let load_file = "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \"\nnil)\")))))";
+	let load_file = "(def! load-file (fn* (f)
+ (eval (read-string (str \"(do \" (slurp f) \"\nnil)\")))))";
 
 	rep(strings::toutf8(load_file), env, false);
 
 	// handle command line arguments
 	const args = os::args;
-	let argv:mal::list = [];
+
+	let argvlen: size = if (len(args) > 2) {
+		yield len(args)-2;
+	} else {
+		yield 0;
+	};
+
+	let argv = mal::make_list(argvlen);
 
 	if (len(args) > 2){
-		for(let i:size = 2; i < len(args); i += 1){
-			append(argv, &args[i]:mal::string);
+		for(let i: size = 2; i < len(args); i += 1){
+			argv.data[i-2] = &args[i]:mal::string;
 		};
 	};
 
 	mal::env_set(env, mal::make_symbol("*ARGV*"), argv);
 
 	if(len(args) > 1){
-		let exec_str = strings::join("", "(load-file \"", args[1], "\")");
+		let exec_str = strings::join("", "(load-file \"", args[1],
+					     "\")");
 		rep(strings::toutf8(exec_str), env, false);
 		free(exec_str);
 		os::exit(0);

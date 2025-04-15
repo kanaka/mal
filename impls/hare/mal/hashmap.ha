@@ -46,9 +46,9 @@ fn hm_find(hm: hashmap, key: (symbol | string)) * nullable *hm_map = {
 
 	let k: str = match(key){
 	case let k: symbol =>
-		yield k:str;
+		yield k: str;
 	case let k: string =>
-		yield *(k: *str);
+		yield k.data;
 	};
 
 	let hash: u32 = fnv::string32(k);
@@ -123,7 +123,7 @@ export fn hm_get(hm: hashmap, key: (symbol | string)) (MalType | undefinedKey) =
 	match(*map){
 	case null =>
 	     return (void, key):undefinedKey;
-	case let m:*hm_map =>
+	case let m: *hm_map =>
 	     return m.val;
 	};
 };
@@ -137,7 +137,7 @@ fn hm_traverse_rec(map: * nullable *hm_map, count:size , act: *fn(*hm_map,size) 
 
 	match(*map){
 	case null => return void;
-	case let map:*hm_map =>
+	case let map: *hm_map =>
 		for(let child .. map.child){
 			hm_traverse_rec(&child, count - 1, act);
 		};

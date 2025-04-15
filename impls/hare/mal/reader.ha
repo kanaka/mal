@@ -44,7 +44,7 @@ fn read_form(tk: *tokenizer) (...MalType | ...coll_end | io::EOF | error) = {
 
 fn read_meta(tk: *tokenizer) (list | error) = {
 
-	let res: list = [];
+	let res: []MalType = [];
 	defer free(res);
 
 	const meta = match(read_form(tk)?){
@@ -126,7 +126,10 @@ fn read_hashmap(tk: *tokenizer) (hashmap | error) = {
 	return res;
 };
 
-fn read_collection(tk: *tokenizer, t: coll_beg) (hashmap | ...collection | error) = {
+fn read_collection(
+	tk: *tokenizer,
+	t: coll_beg
+) (hashmap | list | vector | error) = {
 
 	if(t is hash_beg){
 		return read_hashmap(tk);
@@ -179,7 +182,7 @@ fn read_string(s: str) (string | error) = {
 	defer io::close(&strbuf)!;
 	let runes = strings::torunes(s);
 
-	for (let i:size = 0; i < len(runes); i += 1) {
+	for (let i: size = 0; i < len(runes); i += 1) {
 		let rn = switch (runes[i]) {
 		case '\\' =>
 		     i += 1;
