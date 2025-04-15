@@ -17,7 +17,7 @@ export fn load_namespace(ns: namespace, env: *env) (void | error) = {
 		case let f: *fn([]MalType) (MalType | error) =>
 			yield make_intrinsic(f);
 		case =>
-			return ("expected MalType", nil):typeerror;
+			return ("MalType", nil): type_error;
 		};
 		env_set(env, make_symbol(e.0), v);
 	};
@@ -92,42 +92,75 @@ export let core: namespace = [
 export fn plus (args: []MalType) (MalType | error) = {
 
 	let result: number = 0;
+
 	for(let n .. args) {
-		result += n as number;
+		match(n){
+		case let n: number =>
+			result += n;
+		case =>
+			return ("number", args): type_error;
+		};
 	};
+
 	return result;
 };
 
 export fn minus (args: []MalType) (MalType | error) = {
 
 	let result: number = args[0] as number;
+
 	for(let n .. args[1..]) {
-		result -= n as number;
+		match(n){
+		case let n: number =>
+			result -= n;
+		case =>
+			return ("number", args): type_error;
+		};
 	};
+
 	return result;
 };
 
 export fn mult (args: []MalType) (MalType | error) = {
 
 	let result: number = 1;
+
 	for(let n .. args) {
-		result *= n as number;
+		match(n){
+		case let n: number =>
+			result *= n;
+		case =>
+			return ("number", args): type_error;
+		};
 	};
+
 	return result;
 };
 
 
 export fn div (args: []MalType) (MalType | error) = {
-	let x = args[0] as number;
+
+	let x = match(args[0]){
+	case let x: number =>
+		yield x;
+	case =>
+		return ("number", args): type_error;
+	};
+
 	let y = switch(len(args)){
 	case 2 =>
-	     yield args[1] as number;
+		yield match(args[1]){
+		case let y: number =>
+			yield y;
+		case =>
+			return ("number", args): type_error;
+		};
 	case 1 =>
-		yield 1:number;
+		yield 1: number;
 	case 0 =>
-	     yield 1:number;
+		yield 1: number;
 	case =>
-	     yield div(args[1..]) as number;
+		yield div(args[1..])? as number;
 	};
 
 	return x / y;
@@ -138,10 +171,17 @@ fn mallist (args: []MalType) (MalType | error) = {
 };
 
 fn listp (args: []MalType) (MalType | error) = {
+
+	if(len(args) == 0)
+		return ("'listp': Too few arguments", args): syntax_error;
+
 	return args[0] is list;
 };
 
 fn emptyp (args: []MalType) (MalType | error) = {
+
+	if(len(args) == 0)
+		return ("'emptyp': Too few arguments", args): syntax_error;
 
 	let a: []MalType = match(args[0]){
 	case let a: vector =>
@@ -155,40 +195,109 @@ fn emptyp (args: []MalType) (MalType | error) = {
 };
 
 fn count (args: []MalType) (MalType | error) = {
-	let arg: []MalType = match(args[0]) {
+
+	if(len(args) == 0)
+		return ("'count': Too few arguments", args): syntax_error;
+
+	const arg: []MalType = match(args[0]) {
 	case let a: list =>
 		yield a.data;
 	case let a: vector =>
 		yield a.data;
-	case nil => return 0;
+	case nil =>
+		return 0;
+	case =>
+		return ("list", args): type_error;
 	};
-	return len(arg):number;
+	return len(arg): number;
 };
 
 fn greater_than (args: []MalType) (MalType | error) = {
-	if(len(args) != 2)
-		return ("> expected exactly 2 args, got:", args):syntaxError;
 
-	return args[0] as number > args[1] as number;
+	if(len(args) != 2)
+		return ("> expected exactly 2 args, got:", args): syntax_error;
+
+	const x = match(args[0]){
+	case let x: number =>
+		yield x;
+	case =>
+		return ("number", args): type_error;
+	};
+
+	const y = match(args[1]){
+	case let y: number =>
+		yield y;
+	case =>
+		return ("number", args): type_error;
+	};
+
+	return x > y;
 };
 
 fn smaller_than (args: []MalType) (MalType | error) = {
+
 	if(len(args) != 2)
-		return ("< expected exactly 2 args, got:", args):syntaxError;
-	return args[0] as number < args[1] as number;
+		return ("< expected exactly 2 args, got:", args): syntax_error;
+
+	const x = match(args[0]){
+	case let x: number =>
+		yield x;
+	case =>
+		return ("number", args): type_error;
+	};
+
+	const y = match(args[1]){
+	case let y: number =>
+		yield y;
+	case =>
+		return ("number", args): type_error;
+	};
+
+	return x < y;
 };
 
 
 fn greq_than (args: []MalType) (MalType | error) = {
+
 	if(len(args) != 2)
-		return (">= expected exactly 2 args, got:", args):syntaxError;
-	return args[0] as number >= args[1] as number;
+		return (">= expected exactly 2 args, got:", args): syntax_error;
+
+	const x = match(args[0]){
+	case let x: number =>
+		yield x;
+	case =>
+		return ("number", args): type_error;
+	};
+
+	const y = match(args[1]){
+	case let y: number =>
+		yield y;
+	case =>
+		return ("number", args): type_error;
+	};
+
+	return x >= y;
 };
 
 fn seq_than (args: []MalType) (MalType | error) = {
 	if(len(args) != 2)
-		return ("<= expected exactly 2 args, got:", args):syntaxError;
-	return args[0] as number <= args[1] as number;
+		return ("<= expected exactly 2 args, got:", args): syntax_error;
+
+	const x = match(args[0]){
+	case let x: number =>
+		yield x;
+	case =>
+		return ("number", args): type_error;
+	};
+
+	const y = match(args[1]){
+	case let y: number =>
+		yield y;
+	case =>
+		return ("number", args): type_error;
+	};
+
+	return x <= y;
 };
 
 fn list_cmp (ls: []MalType, ls2: []MalType) bool = {
@@ -196,7 +305,7 @@ fn list_cmp (ls: []MalType, ls2: []MalType) bool = {
 		return false;
 
 	for(let i: size = 0; i < len(ls); i += 1){
-		if(!(mal_eq(([ls[i], ls2[i]]:[]MalType)) as bool)){
+		if(!(mal_eq(([ls[i], ls2[i]]: []MalType)) as bool)){
 			return false;
 		};
 	};
@@ -244,6 +353,10 @@ fn hash_cmp(hm1: hashmap, hm2:hashmap) bool = {
 
 fn mal_eq (args: []MalType) (MalType | error) = {
 
+	if(len(args) != 2)
+		return ("'=': expected exactly 2 args, got:", args):
+		syntax_error;
+
 	match(args[0]){
 	case let x: number =>
 		if(args[1] is number) {
@@ -253,7 +366,6 @@ fn mal_eq (args: []MalType) (MalType | error) = {
 		if(args[1] is bool) {
 			return x == args[1] as bool;
 		};
-
 	case let x: list =>
 		match(args[1]){
 		case let y: vector =>
@@ -270,7 +382,6 @@ fn mal_eq (args: []MalType) (MalType | error) = {
 			return list_cmp(x.data, y.data);
 		case => void;
 		};
-
 	case let x: nil =>
 		if(args[1] is nil) {
 			return true;
@@ -278,7 +389,7 @@ fn mal_eq (args: []MalType) (MalType | error) = {
 	case let x: string =>
 		match(args[1]){
 		case let y: string =>
-		     return *(x: *str) == *(y: *str);
+		     return x.data == y.data;
 		case => void;
 		};
 	case let s: symbol =>
@@ -295,6 +406,9 @@ fn mal_eq (args: []MalType) (MalType | error) = {
 };
 
 fn not (args: []MalType) (MalType | error) = {
+	if(len(args) == 0)
+		return ("'not': too few arguments", args): syntax_error;
+
 	match(args[0]){
 	case let b: bool =>
 		return !b;
@@ -357,27 +471,34 @@ fn pr_str_ugly(args: []MalType) (MalType | error) = {
 
 fn r_string(args: []MalType) (MalType | error) = {
 
+	if(len(args) == 0)
+		return ("'read-string': too few arguments", args): syntax_error;
+
 	let input: str = match(args[0]){
 	case let s: string =>
-		yield *(s: *str);
+		yield s.data;
 	case =>
-		return ("expected string", args[0]):typeerror;
+		return ("string", args[0]): type_error;
 	};
 
 	match(read_str(strings::toutf8(input))) {
 	case io::EOF =>
-		return unexpectedEOF;
+		return unexpected_eof;
 	case let res: (MalType | error) =>
 		return res;
 	};
 };
 
 fn slurp(args: []MalType) (MalType | error) = {
+
+	if(len(args) == 0)
+		return ("'slurp': too few arguments", args): syntax_error;
+
 	let file_name: str = match(args[0]) {
 	case let s: string =>
-		yield *(s: *str);
+		yield s.data;
 	case =>
-		return ("expected string", args[0]):typeerror;
+		return ("string", args[0]): type_error;
 	};
 
 	let file = os::open(file_name)?;
@@ -389,35 +510,51 @@ fn slurp(args: []MalType) (MalType | error) = {
 };
 
 fn mal_atom (args: []MalType) (MalType | error) = {
+
+	if(len(args) == 0)
+		return ("'atom': too few arguments", args): syntax_error;
+
 	return make_atom(args[0]);
 };
 
 fn atomp  (args: []MalType) (MalType | error) = {
+
+	if(len(args) == 0)
+		return ("'atomp': too few arguments", args): syntax_error;
+
 	return args[0] is atom;
 };
 
 fn atom_deref (args: []MalType) (MalType | error) = {
+	
+	if(len(args) == 0)
+		return ("'deref': too few arguments", args): syntax_error;
+
 	match(args[0]){
 	case let a: atom =>
 		return *a;
 	case =>
-		return ("expected atom", args[0]):typeerror;
+		return ("atom", args[0]): type_error;
 	};
 };
 
 fn atom_reset (args: []MalType) (MalType | error) ={
+
+	if(len(args) < 2)
+		return ("'reset': too few arguments", args): syntax_error;
+
 	let a: atom = match(args[0]){
 	case let a: atom =>
 		yield a;
 	case =>
-		return ("expected atom", args[0]):typeerror;
+		return ("atom", args[0]): type_error;
 	};
 
 	let v: MalType = match(args[1]){
 	case let v: MalType =>
 		yield v;
 	case =>
-		return ("expected atom", args[0]):typeerror;
+		return ("atom", args[0]): type_error;
 	};
 
 	*a = v;
@@ -426,11 +563,14 @@ fn atom_reset (args: []MalType) (MalType | error) ={
 
 fn atom_swap (args: []MalType) (MalType | error) = {
 
+	if(len(args) < 2)
+		return ("'swap': too few arguments", args): syntax_error;
+
 	let a: atom = match(args[0]){
 	case let a: atom =>
 		yield a;
 	case =>
-		return ("expected atom", args[0]):typeerror;
+		return ("atom", args[0]): type_error;
 	};
 
 
@@ -438,7 +578,7 @@ fn atom_swap (args: []MalType) (MalType | error) = {
 	case let f: (function | intrinsic) =>
 		yield f;
 	case =>
-		return ("expected function", args[1]):typeerror;
+		return ("function", args[1]): type_error;
 	};
 
 	let appls: list = make_list(len(args[1..]), args[1..]);
@@ -451,6 +591,9 @@ fn atom_swap (args: []MalType) (MalType | error) = {
 
 fn cons(args: []MalType) (MalType | error) = {
 
+	if(len(args) < 2)
+		return ("'cons': too few arguments", args): syntax_error;
+
 	let ls: []MalType = match(args[1]){
 
 	case let ls: list =>
@@ -458,7 +601,7 @@ fn cons(args: []MalType) (MalType | error) = {
 	case let ls: vector =>
 		yield ls.data;
 	case =>
-		return("expected list", args[1]):typeerror;
+		return("list", args[1]): type_error;
 	};
 
 	let new: list = make_list(len(ls)+1);
@@ -477,7 +620,7 @@ fn concat(args: []MalType) (MalType | error) = {
 		case let ls: vector =>
 			length += len(ls.data);
 		case =>
-			return("expected list", args[1]):typeerror;
+			return("list", args[1]): type_error;
 		};
 	};
 
@@ -502,14 +645,17 @@ fn concat(args: []MalType) (MalType | error) = {
 
 fn vec(args: []MalType) (MalType | error) = {
 
+	if(len(args) == 0)
+		return ("'vec': too few arguments", args): syntax_error;
+
 	let ls: []MalType = match(args[0]){
 		case let ls: vector =>
 			return ls;
 		case let ls: list =>
 			yield ls.data;
 		case =>
-			return ("expected list or vector",
-				args[0]):typeerror;
+			return ("list or vector",
+				args[0]): type_error;
 	};
 
 	let new: vector = make_vec(len(ls));
@@ -522,29 +668,37 @@ fn vec(args: []MalType) (MalType | error) = {
 };
 
 fn nth(args: []MalType) (MalType | error) = {
+
+	if(len(args) < 2)
+		return ("'nth': too few arguments", args): syntax_error;
+
 	let ls: []MalType = match(args[0]){
 	case let ls: list =>
 		yield ls.data;
 	case let ls: vector =>
 		yield ls.data;
 	case =>
-		return ("expected list", args):typeerror;
+		return ("list", args): type_error;
 	};
 
 	let index: number = match(args[1]){
 	case let i: number =>
 		yield i;
 	case =>
-		return ("expected number", args):typeerror;
+		return ("number", args): type_error;
 	};
 
-	if(index >= len(ls):int)
-		return ("bounds error", args):syntaxError;
+	if(index >= len(ls): int)
+		return ("bounds error", args): syntax_error;
 
 	return ls[index];
 };
 
 fn first(args: []MalType) (MalType | error) = {
+
+	if(len(args) == 0)
+		return ("'first': too few arguments", args): syntax_error;
+
 	let ls: []MalType = match(args[0]){
 	case let ls: list =>
 		yield ls.data;
@@ -553,17 +707,20 @@ fn first(args: []MalType) (MalType | error) = {
 	case let ls: nil =>
 		return nil;
 	case =>
-		return ("expected list", args):typeerror;
+		return ("list", args): type_error;
 	};
 
-	if(0 == len(ls))
-		return nil;
+	if(0 == len(ls)) return nil;
 
 	return ls[0];
 };
 
 
 fn rest(args: []MalType) (MalType | error) = {
+
+	if(len(args) == 0)
+		return ("'rest': too few arguments", args): syntax_error;
+
 	let ls: []MalType = match(args[0]){
 	case let ls: list =>
 		yield ls.data;
@@ -572,7 +729,7 @@ fn rest(args: []MalType) (MalType | error) = {
 	case let ls: nil =>
 		return make_list(0);
 	case =>
-		return ("expected list", args):typeerror;
+		return ("list", args): type_error;
 	};
 
 	if(0 == len(ls) || 0 == len(ls[1..]))
@@ -582,34 +739,45 @@ fn rest(args: []MalType) (MalType | error) = {
 };
 
 fn macrop(args: []MalType) (MalType | error) = {
+
+	if(len(args) == 0)
+		return ("'macrop': too few arguments", args): syntax_error;
+
 	return args[0] is macro;
 };
 
 fn throw(args: []MalType) (MalType | error) ={
-	return ("error", args[0]):malerror;
+
+	if(len(args) == 0)
+		return ("'throw': too few arguments", args): syntax_error;
+
+	return ("error", args[0]): malerror;
 };
 
 
 fn map(args: []MalType) (MalType | error) = {
 
-	let ls: []MalType = match(args[1]){
+	if(len(args) < 2)
+		return ("'map': too few arguments", args): syntax_error;
+
+	const ls: []MalType = match(args[1]){
 	case let l: list =>
 		yield l.data;
 	case let l: vector =>
 		yield l.data;
 	case =>
-		return ("expected list", args):syntaxError;
+		return ("list", args): type_error;
 	};
 
 	const length = len(ls);
 
-	let new = make_list(length);
+	const new = make_list(length);
 
 
 	for(let i: size = 0; i < len(ls); i += 1){
 
 		let argls: []MalType = [ls[i]];
-		new.data[i] = apply([args[0], &argls:list])?;
+		new.data[i] = apply([args[0], &argls: list])?;
 	};
 
 	return new;
@@ -618,25 +786,23 @@ fn map(args: []MalType) (MalType | error) = {
 fn apply(args: []MalType) (MalType | error) = {
 
 	if(len(args) < 2)
-		return ("to few args", args):syntaxError;
-
+		return ("'apply': too few arguments", args): syntax_error;
 
 	const last = args[len(args)-1];
 	const rest = args[1..len(args)-1];
 
-
-	const last:[]MalType = match(args[len(args)-1]){
+	const last: []MalType = match(args[len(args)-1]){
 	case let l: list =>
 		yield l.data;
 	case let l: vector =>
 		yield l.data;
 	case =>
-		return ("expected list", args):syntaxError;
+		return ("list", args): type_error;
 	};
 
-	let length: size = len(rest) + len(last);
+	const length: size = len(rest) + len(last);
 
-	let ls: []MalType = switch(length){
+	const ls: []MalType = switch(length){
 	case 0 =>
 		yield [];
 	case =>
@@ -649,25 +815,33 @@ fn apply(args: []MalType) (MalType | error) = {
 
 	match(args[0]){
 	case let func: function =>
-		let env = env_init(func.env);
+		let env = env_init(func.envi);
 		env_bind(env, func.args, ls);
 		return func.eval(func.body, env);
 	case let func: macro =>
-		let env = env_init(func.env);
+		let env = env_init(func.envi);
 		env_bind(env, func.args, ls);
 		return func.eval(func.body, env);
 	case let f: intrinsic =>
 		return f.eval(ls);
 	case =>
-		return ("expected function", args):syntaxError;
+		return ("function", args): type_error;
 	};
 };
 
 fn nilp(args: []MalType) (MalType | error) = {
+
+	if(len(args) == 0)
+		return ("'nilp': too few arguments", args): syntax_error;
+
 	return args[0] is nil;
 };
 
 fn symbolp(args: []MalType) (MalType | error) = {
+
+	if(len(args) == 0)
+		return ("'symbolp': too few arguments", args): syntax_error;
+
 	match(args[0]){
 	case let s: symbol =>
 	     if (!(strings::hasprefix(s, ":")))
@@ -678,9 +852,13 @@ fn symbolp(args: []MalType) (MalType | error) = {
 };
 
 fn keywordp(args: []MalType) (MalType | error) = {
+
+	if(len(args) == 0)
+		return ("'keywordp': too few arguments", args): syntax_error;
+
 	match(args[0]){
 	case let s: symbol =>
-	     if (strings::hasprefix(s, ":"))
+		if (strings::hasprefix(s, ":"))
 			return true;
 	case => void;
 	};
@@ -688,14 +866,27 @@ fn keywordp(args: []MalType) (MalType | error) = {
 };
 
 fn vectorp(args: []MalType) (MalType | error) = {
+
+	if(len(args) == 0)
+		return ("'vectorp': too few arguments", args): syntax_error;
+
 	return args[0] is vector;
 };
 
 fn sequentialp(args: []MalType) (MalType | error) = {
+
+	if(len(args) == 0)
+		return ("'sequentialp': too few arguments", args):
+			syntax_error;
+
 	return args[0] is (list | vector);
 };
 
 fn mapp(args: []MalType) (MalType | error) = {
+
+	if(len(args) == 0)
+		return ("'mapp': too few arguments", args): syntax_error;
+
 	return args[0] is hashmap;
 };
 
@@ -709,6 +900,10 @@ fn truep(args: []MalType) (MalType | error) = {
 };
 
 fn falsep(args: []MalType) (MalType | error) = {
+
+	if(len(args) == 0)
+		return ("'falsep': too few arguments", args): syntax_error;
+
 	match(args[0]){
 	case let b: bool =>
 		return !b;
@@ -722,20 +917,27 @@ fn malvector(args: []MalType) (MalType | error) = {
 };
 
 fn malsymbol(args: []MalType) (MalType | error) = {
+
+	if(len(args) == 0)
+		return ("'symbol': too few arguments", args): syntax_error;
+
 	let s: str = match(args[0]){
 	case let s: string =>
-		yield *(s: *str);
+		yield s.data;
 	case =>
-		return ("expected string", args):typeerror;
+		return ("string", args): type_error;
 	};
 	return make_symbol(s);
 };
 
 fn malkeyword(args: []MalType) (MalType | error) = {
+
+	if(len(args) == 0)
+		return ("'keyword': too few arguments", args): syntax_error;
+
 	match(args[0]){
 	case let s: string =>
-		let s: *str = s;
-		let name = strings::lpad(*s, ':', len(s) + 1);
+		let name = strings::lpad(s.data, ':', len(s.data) + 1);
 		defer free(name);
 		return make_symbol(name);
 	case let k: symbol =>
@@ -743,23 +945,24 @@ fn malkeyword(args: []MalType) (MalType | error) = {
 			return k;
 		return false;
 	case =>
-		return ("expected string", args):typeerror;
+		return ("string", args): type_error;
 	};
 };
 
 fn malhash_map(args: []MalType) (MalType | error) = {
+
 	let new = hm_init();
 
 	if (len(args) % 2 != 0)
-		return ("odd number of arguments", args):syntaxError;
+		return ("odd number of arguments", args): syntax_error;
 
 	for(let i: size = 0; i < len(args); i += 2){
 		match(args[i]){
 		case let s: (symbol | string) =>
 			hm_add(new, s, args[i+1]);
 		case =>
-			return ("expected symbol or string",
-				args):typeerror;
+			return ("symbol or string",
+				args): type_error;
 		};
 	};
 
@@ -767,23 +970,27 @@ fn malhash_map(args: []MalType) (MalType | error) = {
 };
 
 fn malhmget(args: []MalType) (MalType | error) = {
+
+	if(len(args) < 2)
+		return ("'get': too few arguments", args): syntax_error;
+
 	const hm = match(args[0]){
 	case let hm: hashmap =>
 		yield hm;
 	case nil => return nil;
 	case =>
-		return ("expected hashmap", args):typeerror;
+		return ("hashmap", args): type_error;
 	};
 
 	const key = match(args[1]){
 	case let hm: (string | symbol) =>
 		yield hm;
 	case =>
-		return ("expected symbol or string", args):typeerror;
+		return ("symbol or string", args): type_error;
 	};
 
 	match (hm_get(hm, key)){
-	case let e: undefinedKey =>
+	case let e: undefined_key =>
 		return nil;
 	case let v: MalType =>
 		return v;
@@ -791,18 +998,22 @@ fn malhmget(args: []MalType) (MalType | error) = {
 };
 
 fn containsp(args: []MalType) (MalType | error) = {
+
+	if(len(args) < 2)
+		return ("'containsp': too few arguments", args): syntax_error;
+
 	const hm = match(args[0]){
 	case let hm: hashmap =>
 		yield hm;
 	case =>
-		return ("expected hashmap", args):typeerror;
+		return ("hashmap", args): type_error;
 	};
 
 	const key = match(args[1]){
 	case let hm: (string | symbol) =>
 		yield hm;
 	case =>
-		return ("expected symbol or string", args):typeerror;
+		return ("symbol or string", args): type_error;
 	};
 
 	match(*hm_find(hm, key)){
@@ -813,11 +1024,14 @@ fn containsp(args: []MalType) (MalType | error) = {
 
 fn assoc(args: []MalType) (MalType | error) = {
 
+	if(len(args) < 1)
+		return ("'assoc': too few arguments", args): syntax_error;
+
 	let hm: hashmap = match(args[0]){
 	case let hm: hashmap =>
 		yield hm;
 	case =>
-		return ("expected hashmap", args):typeerror;
+		return ("hashmap", args): type_error;
 	};
 
 	let new: hashmap = hm_init();
@@ -855,8 +1069,8 @@ fn assoc(args: []MalType) (MalType | error) = {
 		case let s: (symbol | string) =>
 			hm_set(new, s, ls[i+1]);
 		case =>
-		     return ("expected symbol or string",
-			     args):typeerror;
+			return ("symbol or string",
+				args): type_error;
 		};
 	};
 
@@ -865,11 +1079,14 @@ fn assoc(args: []MalType) (MalType | error) = {
 
 fn dissoc(args: []MalType) (MalType | error) = {
 
+	if(len(args) < 1)
+		return ("'dissoc': too few arguments", args): syntax_error;
+
 	let hm: hashmap = match(args[0]){
 	case let hm: hashmap =>
 		yield hm;
 	case =>
-		return ("expected hashmap", args):typeerror;
+		return ("hashmap", args): type_error;
 	};
 
 	let new: hashmap = hm_init();
@@ -895,8 +1112,8 @@ fn dissoc(args: []MalType) (MalType | error) = {
 			case let s: (symbol | string) =>
 				yield s;
 			case =>
-				return ("expected symbol or string",
-					args):typeerror;
+				return ("symbol or string",
+					args): type_error;
 			};
 			if(keycmp(s, q[i].key)) break;
 			j += 1;
@@ -919,11 +1136,14 @@ fn dissoc(args: []MalType) (MalType | error) = {
 
 fn vals(args: []MalType) (MalType | error) = {
 
+	if(len(args) < 1)
+		return ("'vals': too few arguments", args): syntax_error;
+
 	let hm: hashmap = match(args[0]){
 	case let hm: hashmap =>
 		yield hm;
 	case =>
-		return ("expected hashmap", args):typeerror;
+		return ("hashmap", args): type_error;
 	};
 
 	let new: list = make_list(hm.count);
@@ -960,11 +1180,14 @@ fn vals(args: []MalType) (MalType | error) = {
 
 fn keys(args: []MalType) (MalType | error) = {
 
+	if(len(args) < 1)
+		return ("'keys': too few arguments", args): syntax_error;
+
 	let hm: hashmap = match(args[0]){
 	case let hm: hashmap =>
 		yield hm;
 	case =>
-		return ("expected hashmap", args):typeerror;
+		return ("hashmap", args): type_error;
 	};
 
 	let new: list = make_list(hm.count);
@@ -1000,11 +1223,15 @@ fn keys(args: []MalType) (MalType | error) = {
 };
 
 fn readline (args: []MalType) (MalType | error) = {
-	const prompt:str =  match(args[0]){
+
+	if(len(args) < 1)
+		return ("'readline': too few arguments", args): syntax_error;
+
+	const prompt: str =  match(args[0]){
 	case let p: string =>
-		yield *(p: *str);
+		yield p.data;
 	case =>
-		return ("expected string", args):typeerror;
+		return ("string", args): type_error;
 	};
 
 	fmt::printf(prompt)!;
@@ -1033,31 +1260,46 @@ fn time_ms (args: []MalType) (MalType | error) = {
 };
 
 fn stringp (args: []MalType) (MalType | error) = {
+
+	if(len(args) < 1)
+		return ("'stringp': too few arguments", args): syntax_error;
+
 	return args[0] is string;
 };
 
 fn numberp (args: []MalType) (MalType | error) = {
+
+	if(len(args) < 1)
+		return ("'numberp': too few arguments", args): syntax_error;
+
 	return args[0] is number;
 };
 
 fn fnp (args: []MalType) (MalType | error) = {
+
+	if(len(args) < 1)
+		return ("'fnp': too few arguments", args): syntax_error;
+
 	return args[0] is (function | intrinsic);
 };
 
 fn seq (args: []MalType) (MalType | error) = {
+
+	if(len(args) < 1)
+		return ("'seq': too few arguments", args): syntax_error;
+
 	match(args[0]){
 	case let s: string =>
-		let s: *str = s;
-		if(len(s) == 0) return nil;
+		if(len(s.data) == 0) return nil;
 
-		let new = make_list(len(*s));
+		let new = make_list(len(s.data));
 
-		let it = strings::iter(*s);
+		let it = strings::iter(s.data);
 
-		for(let i: size = 0; i < len(*s); i += 1){
+		for(let i: size = 0; i < len(s.data); i += 1){
 			match(strings::next(&it)){
 			case let rn: rune =>
-				let s: str = strings::fromutf8([rn:u8])!;
+				let s: str = strings::fromutf8([rn: u8])!;
 				new.data[i] = make_string(s);
 			case =>
 				break;
@@ -1079,6 +1321,9 @@ fn seq (args: []MalType) (MalType | error) = {
 
 fn conj (args: []MalType) (MalType | error) = {
 
+	if(len(args) < 1)
+		return ("'conj': too few arguments", args): syntax_error;
+
 	let old = args[1..];
 	let length = len(old);
 
@@ -1097,11 +1342,15 @@ fn conj (args: []MalType) (MalType | error) = {
 		let new = make_vec(length, ls.data);
 		new.data[len(ls.data)..] = old;
 		return new;
-	case => return ("expected list or vector", args):typeerror;
+	case => return ("list or vector", args): type_error;
 	};
 };
 
 fn meta (args: []MalType) (MalType | error) = {
+
+	if(len(args) < 1)
+		return ("'meta': too few arguments", args): syntax_error;
+
 	match(args[0]){
 	case let func: function =>
 		return func.meta;
@@ -1116,14 +1365,18 @@ fn meta (args: []MalType) (MalType | error) = {
 	case let v: vector =>
 		return v.meta;
 	case =>
-		return NotImplemented;
+		return not_implemented;
 	};
 };
 
 fn with_meta (args: []MalType) (MalType | error) = {
+
+	if(len(args) < 1)
+		return ("'with-meta': too few arguments", args): syntax_error;
+
 	match(args[0]){
 	case let func: function =>
-		let new = make_func(func.eval, func.env, func.args,
+		let new = make_func(func.eval, func.envi, func.args,
 				   func.body);
 		new.meta = args[1];
 		return new;
@@ -1132,7 +1385,7 @@ fn with_meta (args: []MalType) (MalType | error) = {
 		new.meta = args[1];
 		return new;
 	case let s: string =>
-		let new = make_string(*(s: *str));
+		let new = make_string(s.data);
 		new.meta = args[1];
 		return new;
 	case let f: intrinsic =>
@@ -1148,6 +1401,6 @@ fn with_meta (args: []MalType) (MalType | error) = {
 		new.meta = args[1];
 		return new;
 	case =>
-		return NotImplemented;
+		return not_implemented;
 	};
 };

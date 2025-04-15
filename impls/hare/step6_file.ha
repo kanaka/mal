@@ -1,9 +1,9 @@
-use fmt;
 use bufio;
-use os;
-use strings;
+use fmt;
 use io;
 use mal;
+use os;
+use strings;
 
 fn read (input: []u8) (mal::MalType | io::EOF | mal::error) = {
 	return mal::read_str(input);
@@ -42,7 +42,7 @@ fn eval (ast: mal::MalType, env: *mal::env) (mal::MalType | mal::error) = {
 for(true){
 
 	match(mal::env_get(env, "DEBUG-EVAL")){
-	case mal::undefinedSymbol => void;
+	case mal::undefined_symbol => void;
 	case mal::nil => void;
 	case =>
 		fmt::print("EVAL: ")!;
@@ -81,7 +81,7 @@ for(true){
 	case "def!" =>
 		if(len(ls.data) != 3)
 			return ("def! expects 2 arguments",
-				ls):mal::syntaxError;
+				ls): mal::syntax_error;
 
 		let val = eval(ls.data[2], env)?;
 		mal::env_set(env, ls.data[1] as mal::symbol, val);
@@ -90,7 +90,7 @@ for(true){
 	case "let*" =>
 		if(len(ls.data) != 3)
 			return ("let*: too few arguments",
-				ls):mal::syntaxError;
+				ls): mal::syntax_error;
 
 		let bindings: []mal::MalType = match(ls.data[1]){
 		case let b: mal::list =>
@@ -98,7 +98,7 @@ for(true){
 		case let b: mal::vector =>
 			yield b.data;
 		case =>
-			return ("let*", ls):mal::syntaxError;
+			return ("let*", ls): mal::syntax_error;
 		};
 
 		let let_env = mal::env_init(env);
@@ -121,7 +121,7 @@ for(true){
 	case "if" =>
 		if(len(ls.data) > 4 || len(ls.data) < 3)
 			return ("if expects 2 or 3 arguments",
-				ls):mal::syntaxError;
+				ls): mal::syntax_error;
 		match(eval(ls.data[1], env)?){
 		case mal::nil =>
 			if(len(ls.data) == 4){
@@ -175,11 +175,11 @@ for(true){
 		for(let arg .. ls.data[1..]){
 			append(args, eval(arg, env)?);
 		};
-		env = mal::env_init(func.env);
+		env = mal::env_init(func.envi);
 		mal::env_bind(env, func.args, args);
 		ast = func.body;
 		continue;
-	case => return ("not a function:", ls.data[0]):mal::syntaxError;
+	case => return ("not a function:", ls.data[0]): mal::syntax_error;
 	};
 };};
 
@@ -188,10 +188,10 @@ fn print (input: mal::MalType) void = {
 	fmt::print("\n")!;
 	};
 
-fn rep (input: []u8, env: *mal::env, printp:bool = true) void = {
+fn rep (input: []u8, env: *mal::env, printp: bool = true) void = {
 	let ast = match(read(input)){
 	case let e: mal::error =>
-		return mal::handle_error(os::stderr, e);
+		return mal::format_error(os::stderr, e);
 	case let form: mal::MalType =>
 		yield form;
 	case io::EOF =>
@@ -200,7 +200,7 @@ fn rep (input: []u8, env: *mal::env, printp:bool = true) void = {
 
 	let result = match(eval(ast, env)){
 	case let e: mal::error =>
-		return mal::handle_error(os::stderr, e);
+		return mal::format_error(os::stderr, e);
 	case let form: mal::MalType =>
 		yield form;
 	};
@@ -212,11 +212,16 @@ fn rep (input: []u8, env: *mal::env, printp:bool = true) void = {
 let repl_env: nullable *mal::env = null;
 
 fn do_eval(args: []mal::MalType) (mal::MalType | mal::error) = {
+
+	if(len(args) < 1)
+		return ("'do_eval': too few arguments", args):
+			mal::syntax_error;
+
 	const env = match(repl_env){
 	case let env: *mal::env =>
 		yield env;
 	case =>
-		return (void, "repl_env":mal::symbol):mal::undefinedSymbol;
+		return mal::not_implemented;
 	};
 	return eval(args[0], env);
 };
@@ -234,7 +239,7 @@ export fn main() void = {
 	mal::env_set(env, "eval", mal::make_intrinsic(&do_eval));
 	mal::load_namespace(mal::core, env)!;
 	let load_file = "(def! load-file (fn* (f) (eval (read-string
-(str \"(do \" (slurp f) \"\nnil)\")))))";
+		(str \"(do \" (slurp f) \"\nnil)\")))))";
 
 	rep(strings::toutf8(load_file), env, false);
 
@@ -250,7 +255,7 @@ export fn main() void = {
 
 	if (len(args) > 2){
 		for(let i: size = 2; i < len(args); i += 1){
-			argv.data[i-2] = &args[i]:mal::string;
+			argv.data[i-2] = &args[i]: mal::string;
 		};
 	};
 
@@ -258,7 +263,7 @@ export fn main() void = {
 
 	if(len(args) > 1){
 		let exec_str = strings::join("", "(load-file \"", args[1],
-					     "\")");
+			"\")");
 		rep(strings::toutf8(exec_str), env, false);
 		free(exec_str);
 		os::exit(0);

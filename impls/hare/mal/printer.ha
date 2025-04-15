@@ -25,26 +25,29 @@ export fn print_form(
 	case let b: bool =>
 		fmt::fprint(strbuf, b)!;
 	case let s: symbol =>
-		memio::concat(strbuf, s:str)!;
+		memio::concat(strbuf, s: str)!;
 	case let i: number =>
 		fmt::fprint(strbuf, i: int)!;
 	case let a: atom =>
-		print_list(strbuf, [make_symbol("atom"):MalType, *a],
-			   list_beg, print_readably);
+		print_list(strbuf, [make_symbol("atom"): MalType, *a],
+			list_beg, print_readably);
 	case let func: (intrinsic | function) =>
 		memio::concat(strbuf, "#<function>")!;
 	case => void;
 	};
 };
 
-fn print_string(strbuf: io::handle ,s: string, print_readable: bool) void = {
+fn print_string(
+	strbuf: io::handle,
+	s: string,
+	print_readable: bool
+) void = {
 
-	let s: *str = s;
-	let runes = strings::torunes(*s);
+	let runes = strings::torunes(s.data);
 
 
 	if(!print_readable){
-		memio::concat(strbuf, *s)!;
+		memio::concat(strbuf, s.data)!;
 	} else {
 		memio::appendrune(strbuf, '"')!;
 		for(let rn .. runes){
@@ -83,7 +86,7 @@ fn hm_print_rec(
 	strbuf: io::handle,
 	map: * nullable *hm_map,
 	entry: bool,
-	pp:bool
+	pp: bool
 ) void = {
 
 	match(*map){
@@ -104,7 +107,7 @@ fn hm_print_rec(
 };
 
 
-fn print_hash(strbuf: io::handle, hm: hashmap, pp:bool) void ={
+fn print_hash(strbuf: io::handle, hm: hashmap, pp: bool) void ={
 
 	const open = '{';
 	const close = '}';

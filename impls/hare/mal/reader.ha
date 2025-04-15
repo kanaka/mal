@@ -53,7 +53,7 @@ fn read_meta(tk: *tokenizer) (list | error) = {
 	case coll_end =>
 		return unbalanced;
 	case io::EOF =>
-		return unexpectedEOF;
+		return unexpected_eof;
 	};
 
 	const next_form = match(read_form(tk)?){
@@ -62,7 +62,7 @@ fn read_meta(tk: *tokenizer) (list | error) = {
 	case coll_end =>
 		return unbalanced;
 	case io::EOF =>
-		return unexpectedEOF;
+		return unexpected_eof;
 	};
 
 	return make_list(3, [make_symbol("with-meta"), next_form, meta]);
@@ -70,17 +70,17 @@ fn read_meta(tk: *tokenizer) (list | error) = {
 
 fn read_quote(tk: *tokenizer, t: quote_tk) (list | error) = {
 
-	const qs:symbol = match(t){
+	const qs: symbol = match(t){
 	case quote =>
-	     yield "quote";
+		yield "quote";
 	case unquote =>
-	     yield "unquote";
+		yield "unquote";
 	case quasiquote =>
-	     yield "quasiquote";
+		yield "quasiquote";
 	case unquote_splice =>
-	     yield "splice-unquote";
+		yield "splice-unquote";
 	case at =>
-	     yield "deref";
+		yield "deref";
 	};
 
 	const form: MalType = match(read_form(tk)?){
@@ -89,7 +89,7 @@ fn read_quote(tk: *tokenizer, t: quote_tk) (list | error) = {
 	case coll_end =>
 		return unbalanced;
 	case io::EOF =>
-		return unexpectedEOF;
+		return unexpected_eof;
 	};
 
 	return make_list(2, [make_symbol(qs), form]);
@@ -107,7 +107,7 @@ fn read_hashmap(tk: *tokenizer) (hashmap | error) = {
 		case let key: (string | symbol) =>
 			yield key;
 		case io::EOF =>
-			return unexpectedEOF;
+			return unexpected_eof;
 		};
 
 
@@ -117,7 +117,7 @@ fn read_hashmap(tk: *tokenizer) (hashmap | error) = {
 		case let form: MalType =>
 			yield form;
 		case io::EOF =>
-			return unexpectedEOF;
+			return unexpected_eof;
 		};
 
 		let d = hm_add(res, key, val);
@@ -156,7 +156,7 @@ fn read_collection(
 			append(res, form);
 			continue;
 		case io::EOF =>
-		     return unexpectedEOF;
+			return unexpected_eof;
 		};
 	};
 };
@@ -185,10 +185,10 @@ fn read_string(s: str) (string | error) = {
 	for (let i: size = 0; i < len(runes); i += 1) {
 		let rn = switch (runes[i]) {
 		case '\\' =>
-		     i += 1;
-		     yield scan_escape(runes[i]);
+			i += 1;
+			yield scan_escape(runes[i]);
 		case =>
-		     yield runes[i];
+			yield runes[i];
 		};
 		memio::appendrune(&strbuf, rn)!;
 	};
