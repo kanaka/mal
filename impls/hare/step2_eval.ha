@@ -11,33 +11,36 @@ fn read (input: []u8) (mal::MalType | io::EOF | mal::error) = {
 
 fn eval_list(ls: mal::list, env: mal::hashmap) mal::MalType = {
 
-	if(len(ls) == 0) return ls;
+	if(len(ls.data) == 0) return ls;
 
-	const func = match(eval(ls[0], env)){
+	const func = match(eval(ls.data[0], env)){
 	case let func: mal::intrinsic =>
 		yield func;
 	case => return ls;
 	};
 
-	for(let i:size = 1; i < len(ls); i += 1){
-		ls[i] = eval(ls[i], env);
+	for(let i: size = 1; i < len(ls.data); i += 1){
+		ls.data[i] = eval(ls.data[i], env);
 	};
 
-	return func.eval(ls[1..])!;
+	return func.eval(ls.data[1..])!;
 };
 
 
 fn eval_vec(vec: mal::vector, env: mal::hashmap) mal::vector ={
 
-	if(len(vec) == 0) return vec;
+	if(len(vec.data) == 0) return vec;
 
-	for(let i:size = 0; i < len(vec); i += 1){
-		vec[i] = eval(vec[i],env);
+	for(let i: size = 0; i < len(vec.data); i += 1){
+		vec.data[i] = eval(vec.data[i], env);
 	};
 	return vec;
 };
 
-fn eval_hash(map: * nullable *mal::hm_map, env: mal::hashmap) mal::hashmap = {
+fn eval_hash(
+	map: * nullable *mal::hm_map,
+	env: mal::hashmap
+) mal::hashmap = {
 
 	let res = mal::hm_init();
 

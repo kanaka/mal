@@ -80,7 +80,7 @@ fn nextrune(tk: *tokenizer) (rune | io::EOF) = {
 		return io::EOF;
 	};
 
-	let rn:rune = tk.buffer[tk.cursor]: rune;
+	let rn: rune = tk.buffer[tk.cursor]: rune;
 
 	tk.prev_rn = tk.loc;
 	tk.loc = tk.cursor;

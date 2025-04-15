@@ -11,13 +11,13 @@ fn read (input: []u8) (mal::MalType | io::EOF | mal::error) = {
 
 fn eval_let(
 	env: *mal::env,
-	bindings: mal::list,
+	bindings: []mal::MalType,
 	body: mal::MalType...
 ) (mal::MalType | mal::error) = {
 
 	let let_env = mal::env_init(env);
 	
-	for(let i:size = 0; i < len(bindings); i += 2){
+	for(let i: size = 0; i < len(bindings); i += 2){
 		mal::env_set(let_env, bindings[i] as mal::symbol,
 			     eval(bindings[i+1], let_env)?);
 	};
@@ -31,59 +31,59 @@ fn eval_let(
 
 fn eval_list(ls: mal::list, env: *mal::env) (mal::MalType | mal::error) = {
 
-	if(len(ls) == 0) return ls;
+	if(len(ls.data) == 0) return ls;
 
 	// handle special cases of 'let*' and 'def!' forms
-	match(ls[0]){
+	match(ls.data[0]){
 	case let sym: mal::symbol =>
 		if(sym == "def!"){
-			if(len(ls) != 3)
+			if(len(ls.data) != 3)
 				return ("def! expects 2 arguments",
 					ls): mal::syntaxError;
 
-			let val = eval(ls[2], env)?;
-			mal::env_set(env, ls[1] as mal::symbol, val);
+			let val = eval(ls.data[2], env)?;
+			mal::env_set(env, ls.data[1] as mal::symbol, val);
 			return val;
 
 		} else if(sym == "let*"){
-			if(len(ls) < 3)
+			if(len(ls.data) < 3)
 				return ("let*: too few arguments",
 					ls): mal::syntaxError;
 
-			let bindings: []mal::MalType = match(ls[1]){
+			let bindings: []mal::MalType = match(ls.data[1]){
 			case let b: mal::list =>
-				yield b;
+				yield b.data;
 			case let b: mal::vector =>
-				yield b;
+				yield b.data;
 			case =>
 			     return ("let*", ls):mal::syntaxError;
 			};
-			return eval_let(env, bindings, ls[2..]...);
+		return eval_let(env, bindings, ls.data[2..]...);
 		};
 	case => void;
 	};
 
-	const func = match(eval(ls[0], env)?){
+	const func = match(eval(ls.data[0], env)?){
 		case let func: mal::intrinsic =>
 			yield func;
 		case => return ls;
 	};
 
-	for(let i: size = 1; i < len(ls); i += 1){
-		ls[i] = eval(ls[i], env)?;
+	for(let i: size = 1; i < len(ls.data); i += 1){
+		ls.data[i] = eval(ls.data[i], env)?;
 	};
 
-	return func.eval(ls[1..]);
+	return func.eval(ls.data[1..]);
 };
 
 
 fn eval_vec(vec: mal::vector, env: *mal::env) (mal::vector | mal::error) ={
 
-	let res:mal::vector = mal::make_vec(len(vec));
+	let res: mal::vector = mal::make_vec(len(vec.data));
 
-	if(len(vec) == 0) return vec;
-	for(let i:size = 0; i < len(vec); i += 1){
-		res[i] = eval(vec[i],env)?;
+	if(len(vec.data) == 0) return vec;
+	for(let i: size = 0; i < len(vec.data); i += 1){
+		res.data[i] = eval(vec.data[i], env)?;
 	};
 	return res;
 };
@@ -97,7 +97,7 @@ fn eval_hash(
 
 	match(*map){
 	case null => void;
-	case let map:*mal::hm_map =>
+	case let map: *mal::hm_map =>
 		for(let child .. map.child){
 			eval_hash(&child, env)?;
 		};

@@ -6,33 +6,41 @@ use types;
 export type nil = void;
 export type symbol = str;
 export type number = i64;
-export type list = []MalType;
-export type vector = []MalType;
-
-export type string = *struct {
-		data: str,
-		meta: MalType,
-};
-
-export type collection = (list | vector);
 export type atom = *MalType;
 
+export type vector = *struct {
+	data: []MalType,
+	meta: MalType,
+};
+
+export type list = *struct {
+	data: []MalType,
+	meta: MalType,
+};
+
+export type string = *struct {
+	data: str,
+	meta: MalType,
+};
+
 export type intrinsic = *struct {
-	eval: *fn(list) (MalType | error),
+	eval: *fn([]MalType) (MalType | error),
 	meta: MalType,
 };
 
 export type function = *struct {
-	evaluator:  *fn(MalType, *env) (MalType | error),
+	eval:  *fn(MalType, *env) (MalType | error),
 	env: *env,
-	args: (list | vector),
+	args: []MalType,
 	body: MalType,
 	meta: MalType
 };
+
 export type macro = function;
-export type MalValue = (atom | bool | string | hashmap | ...collection | number |
-			symbol | nil);
-export type MalType = (...MalValue | macro | function | intrinsic);
+
+export type MalType = (macro | function | intrinsic | atom | bool |
+		       string | hashmap | list | vector | number |
+		       symbol | nil);
 
 // Any mal object that is supposed to persist should be created by one of these
 // functions. Any allocations done by other functions should be freed manually.
@@ -40,42 +48,58 @@ export type MalType = (...MalValue | macro | function | intrinsic);
 //
 // TODO: Make hashmaps and envs adhere to this.
 
-export fn make_intrinsic(func: *fn(list) (MalType | error)) intrinsic = {
+export fn make_intrinsic(
+	func: *fn([]MalType) (MalType | error)
+) intrinsic = {
+
 	let new = alloc(struct {
-		eval: *fn(list) (MalType | error) = func,
+		eval: *fn([]MalType) (MalType | error) = func,
 		meta: MalType = nil,
 	});
 	return new;
 };
 
-export fn make_func (evaluator:  *fn(MalType, *env) (MalType | error),
-		envi: *env, args: (list | vector), body: MalType)
-		function = {
+export fn make_func(
+	eval:  *fn(MalType, *env) (MalType | error),
+	envi: *env,
+	args: []MalType,
+	body: MalType
+) function = {
 
        return alloc(struct{
-		evaluator: *fn(MalType, *env) (MalType | error)  = evaluator,
+		eval: *fn(MalType, *env) (MalType | error)  = eval,
 		env: *env= envi,
-		args: (list | vector) = args,
+		args: []MalType = args,
 		body: MalType = body,
 		meta: MalType = nil });
 };
 
-export fn make_list(s: size, init: list = []) list = {
+export fn make_list(s: size, init: []MalType = []) list = {
 
-	if (s == 0) return [];
+	let new: list = alloc(struct {
+		data: []MalType = [],
+		meta: MalType = nil,
+	});
 
-	let new: list = alloc([nil...], s);
-	new[0..len(init)] = init;
+	if (s == 0) return new;
+
+	new.data = alloc([nil...], s);
+	new.data[0..len(init)] = init;
 
 	return new;
 };
 
-export fn make_vec(s: size, init: list = []) vector = {
+export fn make_vec(s: size, init: []MalType = []) vector = {
 
-	if (s == 0) return [];
+	let new: vector = alloc(struct {
+		data: []MalType = [],
+		meta: MalType = nil,
+	});
 
-	let new: vector = alloc([nil...], s);
-	new[0..len(init)] = init;
+	if (s == 0) return new;
+
+	new.data = alloc([nil...], s);
+	new.data[0..len(init)] = init;
 
 	return new;
 };
@@ -92,7 +116,7 @@ export fn make_symbol(name: str) symbol = {
 	};
 
 	match(hm_get(pool, name:symbol)){
-	case let s:symbol =>
+	case let s: symbol =>
 		return s;
 	case undefinedKey => void;
 	};
