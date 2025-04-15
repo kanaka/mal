@@ -7,14 +7,14 @@
 // lots of copying and that's a pretty heavy operation with this here
 // implementation.
 
-use hash::fnv;
 use fmt;
+use hash::fnv;
 use strings;
 
 export type hashmap = *struct {
 	meta: MalType,
 	count: size,
-	map: * nullable *hm_map,
+	map: *nullable *hm_map,
 };
 
 export type hm_map = struct {
@@ -27,16 +27,16 @@ fn keycmp(x: (symbol | string), y: (symbol | string)) bool = {
 
 	const kx: str = match(x){
 	case let k: symbol =>
-		yield k:str;
+		yield k: str;
 	case let k: string =>
-		yield *(k: *str);
+		yield k.data;
 	};
 
 	const ky: str = match(y){
 	case let k: symbol =>
-		yield k:str;
+		yield k: str;
 	case let k: string =>
-		yield *(k: *str);
+		yield k.data;
 	};
 
 	return kx == ky;
@@ -44,7 +44,7 @@ fn keycmp(x: (symbol | string), y: (symbol | string)) bool = {
 
 fn hm_find(hm: hashmap, key: (symbol | string)) * nullable *hm_map = {
 
-	let k: str = match(key){
+	const k: str = match(key){
 	case let k: symbol =>
 		yield k: str;
 	case let k: string =>
@@ -74,10 +74,13 @@ fn hm_find(hm: hashmap, key: (symbol | string)) * nullable *hm_map = {
 };
 
 export fn hm_init() hashmap = {
+
+	const new_map = alloc(null: nullable *hm_map);
+
 	return alloc(struct {
 		meta: MalType = nil,
-		count:size = 0,
-		map:* nullable *hm_map = alloc(null: nullable *hm_map)
+		count: size = 0,
+		map: *nullable *hm_map = new_map,
 	});
 };
 
@@ -91,9 +94,9 @@ fn hm_new_node(key: (symbol | string), val: MalType) *hm_map = {
 
 export fn hm_add(hm: hashmap, key: (symbol | string), elm: MalType) bool = {
 
-	let map = hm_find(hm, key);
+	const map = hm_find(hm, key);
 
-	match (*map){
+	match(*map){
 	case null =>
 		*map = hm_new_node(key, elm);
 		hm.count += 1;
@@ -105,7 +108,9 @@ export fn hm_add(hm: hashmap, key: (symbol | string), elm: MalType) bool = {
 };
 
 export fn hm_set(hm: hashmap, key: (symbol | string), elm: MalType) void = {
-	let map = hm_find(hm, key);
+
+	const map = hm_find(hm, key);
+
 	match(*map){
 	case null =>
 		*map = hm_new_node(key, elm);
@@ -116,15 +121,18 @@ export fn hm_set(hm: hashmap, key: (symbol | string), elm: MalType) void = {
 	};
 };
 
-export fn hm_get(hm: hashmap, key: (symbol | string)) (MalType | undefinedKey) = {
+export fn hm_get(
+	hm: hashmap,
+	key: (symbol | string)
+) (MalType | undefined_key) = {
 
-	let map = hm_find(hm, key);
-	
+	const map = hm_find(hm, key);
+
 	match(*map){
 	case null =>
-	     return (void, key):undefinedKey;
+		return ("hm_get", key): undefined_key;
 	case let m: *hm_map =>
-	     return m.val;
+		return m.val;
 	};
 };
 
@@ -133,10 +141,15 @@ fn hm_traverse(hm: hashmap, act: *fn(*hm_map, size) void) void = {
 	hm_traverse_rec(hm.map, hm.count, act);
 };
 
-fn hm_traverse_rec(map: * nullable *hm_map, count:size , act: *fn(*hm_map,size) void) void = {
+fn hm_traverse_rec(
+	map: *nullable *hm_map,
+	count: size ,
+	act: *fn(*hm_map,size) void
+) void = {
 
 	match(*map){
-	case null => return void;
+	case null =>
+		return void;
 	case let map: *hm_map =>
 		for(let child .. map.child){
 			hm_traverse_rec(&child, count - 1, act);

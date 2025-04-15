@@ -6,41 +6,41 @@ use fs;
 
 export type malerror = !(str, MalType);
 
-export type NotImplemented = !void;
-export type unexpectedEOF = !void;
+export type not_implemented = !void;
+export type unexpected_eof = !void;
 export type unbalanced = !void;
 
-export type undefinedKey = !(void, (symbol | string));
-export type undefinedSymbol = !(void, symbol);
-export type syntaxError = !(str, (MalType | []MalType));
-export type typeerror = !(str, (MalType | []MalType));
+export type undefined_key = !(str, (symbol | string));
+export type undefined_symbol = !(str, symbol);
+export type syntax_error = !(str, (MalType | []MalType));
+export type type_error = !(str, (MalType | []MalType));
 
-export type error = !(malerror | fs::error | io::error | unexpectedEOF |
-		      unbalanced | NotImplemented | undefinedSymbol |
-		      undefinedKey | syntaxError | typeerror);
+export type error = !(malerror | fs::error | io::error | unexpected_eof |
+	unbalanced | not_implemented | undefined_symbol | undefined_key |
+	syntax_error | type_error);
 
-export fn handle_error(strbuf: io::handle, e: error) void = {
+export fn format_error(strbuf: io::handle, e: error) void = {
 
 	match(e){
-	case let e: typeerror =>
-		fmt::fprint(strbuf, "Type Error: expected:", e.0, "got:")!;
+	case let e: type_error =>
+		fmt::fprint(strbuf, "Type Error: expected", e.0, "got:")!;
 		print_form(strbuf, e.1, false);
 		fmt::fprint(strbuf, "\n")!;
-	case let e: syntaxError =>
-		fmt::fprintln(strbuf, "Syntax Error", e.0)!;
+	case let e: syntax_error =>
+		fmt::fprintln(strbuf, "Syntax Error:", e.0)!;
 		print_form(strbuf, e.1, false);
 		fmt::fprint(strbuf, "\n")!;
-	case let e: undefinedSymbol =>
+	case let e: undefined_symbol =>
 		fmt::fprintf(strbuf, "'{}' not found", e.1)!;
 		fmt::print("\n")!;
-	case unexpectedEOF =>
+	case unexpected_eof =>
 		fmt::fprintln(strbuf, "Unexpected EOF!")!;
 	case let e: malerror =>
 		print_form(strbuf, e.1, false);
 		fmt::print("\n")!;
 	case unbalanced =>
 		fmt::fprintln(strbuf, "Unbalanced Delimiters")!;
-	case NotImplemented =>
+	case not_implemented =>
 		fmt::fprintln(strbuf, "not implemented")!;
 	case let e: io::error =>
 		fmt::fprintln(strbuf, io::strerror(e))!;

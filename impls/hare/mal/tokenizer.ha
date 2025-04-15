@@ -30,7 +30,7 @@ type quote_tk = ( unquote_splice | unquote | quote | quasiquote | at);
 type word = str;
 
 type token = (int | str | io::EOF | undefined | ...coll_beg | mal_meta |
-	      ...quote_tk | vec_beg | ...coll_end | comment | word);
+	...quote_tk | vec_beg | ...coll_end | comment | word);
 
 type tokenizer = struct {
 	buffer: []u8,
@@ -121,7 +121,7 @@ fn scan_string(tk: *tokenizer) (token | error) = {
 		case let rn: rune =>
 			yield rn;
 		case io::EOF =>
-			return unexpectedEOF;
+			return unexpected_eof;
 		};
 
 		switch(rn){
@@ -136,8 +136,8 @@ fn scan_string(tk: *tokenizer) (token | error) = {
 				break;
 			};
 		case =>
-		     esc = false;
-		     continue;
+			esc = false;
+			continue;
 		};
 	};
 
@@ -159,8 +159,8 @@ fn scan_comment(tk: *tokenizer) comment = {
 		};
 		switch(rn){
 		case '\n' =>
-		     end = tk.loc;
-		     break;
+			end = tk.loc;
+			break;
 		case => continue;
 		};
 
@@ -304,7 +304,7 @@ fn iswordrn(rn: rune) bool = {
 fn scan_quote(tk: *tokenizer) (token | error) = {
 	match(tokenizer_next(tk)?){
 	case at =>
-	     return unquote_splice;
+		return unquote_splice;
 	case let res: token =>
 		unget_token(tk, res);
 		return unquote;

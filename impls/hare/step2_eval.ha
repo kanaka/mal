@@ -1,9 +1,9 @@
-use fmt;
 use bufio;
-use os;
-use strings;
+use fmt;
 use io;
 use mal;
+use os;
+use strings;
 
 fn read (input: []u8) (mal::MalType | io::EOF | mal::error) = {
 	return mal::read_str(input)?;
@@ -90,11 +90,11 @@ fn print (input: mal::MalType) void = {
 fn rep (input: []u8, env: mal::hashmap) void = {
 	match (read(input)){
 	case let e: mal::error =>
-	     mal::handle_error(os::stderr, e);
+		mal::format_error(os::stderr, e);
 	case let form: mal::MalType =>
 		print(eval(form, env));
 	case io::EOF =>
-	     return void;
+		return void;
 	};
 };
 

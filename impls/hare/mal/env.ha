@@ -41,19 +41,17 @@ export fn env_set(env: *env, key: symbol, val: MalType) void = {
 	return void;
 };
 
-export fn env_get(envi: *env, key: symbol) (MalType | undefinedSymbol) = {
+export fn env_get(envi: *env, key: symbol) (MalType | undefined_symbol) = {
 
 	match(hm_get(envi.data, key)) {
-	case undefinedKey =>
+	case undefined_key =>
 		match(envi.outer){
 		case null =>
-			return (void, key):undefinedSymbol;
+			return ("env_get", key): undefined_symbol;
 		case let outer: *env =>
 			return env_get(outer, key);
 		};
 	case let result: MalType =>
 		return result;
 	};
-
-	// return hm_get(env.data, key);
 };

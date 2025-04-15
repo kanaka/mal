@@ -1,8 +1,8 @@
-use fmt;
 use bufio;
+use fmt;
+use io;
 use os;
 use strings;
-use io;
 
 fn read (input: []u8) []u8 = {
 	return input;

@@ -1,5 +1,3 @@
-use io;
-use fmt;
 use strings;
 use types;
 
@@ -29,18 +27,17 @@ export type intrinsic = *struct {
 };
 
 export type function = *struct {
-	eval:  *fn(MalType, *env) (MalType | error),
-	env: *env,
+	eval: *fn(MalType, *env) (MalType | error),
+	envi: *env,
 	args: []MalType,
 	body: MalType,
-	meta: MalType
+	meta: MalType,
 };
 
 export type macro = function;
 
 export type MalType = (macro | function | intrinsic | atom | bool |
-		       string | hashmap | list | vector | number |
-		       symbol | nil);
+	string | hashmap | list | vector | number | symbol | nil);
 
 // Any mal object that is supposed to persist should be created by one of these
 // functions. Any allocations done by other functions should be freed manually.
@@ -49,10 +46,10 @@ export type MalType = (macro | function | intrinsic | atom | bool |
 // TODO: Make hashmaps and envs adhere to this.
 
 export fn make_intrinsic(
-	func: *fn([]MalType) (MalType | error)
+	func: *fn([]MalType) (MalType | error),
 ) intrinsic = {
 
-	let new = alloc(struct {
+	const new = alloc(struct {
 		eval: *fn([]MalType) (MalType | error) = func,
 		meta: MalType = nil,
 	});
@@ -60,15 +57,15 @@ export fn make_intrinsic(
 };
 
 export fn make_func(
-	eval:  *fn(MalType, *env) (MalType | error),
+	eval: *fn(MalType, *env) (MalType | error),
 	envi: *env,
 	args: []MalType,
-	body: MalType
+	body: MalType,
 ) function = {
 
-       return alloc(struct{
+	return alloc(struct{
 		eval: *fn(MalType, *env) (MalType | error)  = eval,
-		env: *env= envi,
+		envi: *env= envi,
 		args: []MalType = args,
 		body: MalType = body,
 		meta: MalType = nil });
@@ -76,7 +73,7 @@ export fn make_func(
 
 export fn make_list(s: size, init: []MalType = []) list = {
 
-	let new: list = alloc(struct {
+	const new: list = alloc(struct {
 		data: []MalType = [],
 		meta: MalType = nil,
 	});
@@ -91,7 +88,7 @@ export fn make_list(s: size, init: []MalType = []) list = {
 
 export fn make_vec(s: size, init: []MalType = []) vector = {
 
-	let new: vector = alloc(struct {
+	const new: vector = alloc(struct {
 		data: []MalType = [],
 		meta: MalType = nil,
 	});
@@ -107,6 +104,7 @@ export fn make_vec(s: size, init: []MalType = []) vector = {
 export fn make_symbol(name: str) symbol = {
 
 	static let pool_ptr: nullable *hashmap = null;
+
 	let pool = match(pool_ptr){
 	case null =>
 		pool_ptr = alloc(hm_init());
@@ -115,21 +113,26 @@ export fn make_symbol(name: str) symbol = {
 		yield *pp;
 	};
 
-	match(hm_get(pool, name:symbol)){
+	match(hm_get(pool, name: symbol)){
 	case let s: symbol =>
 		return s;
-	case undefinedKey => void;
+	case undefined_key => void;
 	};
-	const new = strings::dup(name):symbol;
+
+	const new = strings::dup(name): symbol;
 	hm_add(pool, new, new);
+
 	return new;
 };
 
 export fn make_string(s: str) string = {
+
+	const new_str = strings::dup(s);
+
 	return alloc(struct {
-		data:str = strings::dup(s),
-		meta:MalType = nil,
-		});
+		data: str = new_str,
+		meta: MalType = nil,
+	});
 };
 
 export fn make_atom(ref: MalType) atom = {
@@ -138,7 +141,7 @@ export fn make_atom(ref: MalType) atom = {
 
 // check if two strings share the same buffer in memory
 // Does not check for substrings!
-export fn str_memeq(s1: str, s2: str) bool = {
+fn str_memeq(s1: str, s2: str) bool = {
 
 	const ts1 = &s1: *types::string;
 	const ts2 = &s2: *types::string;
