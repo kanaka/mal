@@ -77,11 +77,14 @@ export fn hm_init() hashmap = {
 
 	const new_map = alloc(null: nullable *hm_map);
 
-	return alloc(struct {
+	const new = alloc(struct {
 		meta: MalType = nil,
 		count: size = 0,
 		map: *nullable *hm_map = new_map,
 	});
+
+	append(gc.memory.hashs, new);
+	return new;
 };
 
 fn hm_new_node(key: (symbol | string), val: MalType) *hm_map = {
@@ -136,24 +139,20 @@ export fn hm_get(
 	};
 };
 
-fn hm_traverse(hm: hashmap, act: *fn(*hm_map, size) void) void = {
-
-	hm_traverse_rec(hm.map, hm.count, act);
+fn hm_free(hm: hashmap) void = {
+	hm_free_rec(hm.map);
+	free(hm);
 };
 
-fn hm_traverse_rec(
-	map: *nullable *hm_map,
-	count: size ,
-	act: *fn(*hm_map,size) void
-) void = {
+fn hm_free_rec(map: *nullable *hm_map,) void = {
 
 	match(*map){
 	case null =>
 		return void;
 	case let map: *hm_map =>
 		for(let child .. map.child){
-			hm_traverse_rec(&child, count - 1, act);
+			hm_free_rec(&child);
 		};
-		act(map, count);
+		free(map);
 	};
 };

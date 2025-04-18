@@ -368,6 +368,8 @@ fn rep (input: []u8, env: *mal::env, printp: bool = true) void = {
 	};
 
 	if(printp) print(result);
+
+	mal::run_gc(env);
 };
 
 let repl_env: nullable *mal::env = null;

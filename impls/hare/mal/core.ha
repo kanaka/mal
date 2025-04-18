@@ -715,7 +715,6 @@ fn first(args: []MalType) (MalType | error) = {
 	return ls[0];
 };
 
-
 fn rest(args: []MalType) (MalType | error) = {
 
 	if(len(args) == 0)
@@ -753,7 +752,6 @@ fn throw(args: []MalType) (MalType | error) ={
 
 	return ("error", args[0]): malerror;
 };
-
 
 fn map(args: []MalType) (MalType | error) = {
 
