@@ -41,9 +41,8 @@ export type MalType = (macro | function | intrinsic | atom | bool |
 
 // Any mal object that is supposed to persist should be created by one of these
 // functions. Any allocations done by other functions should be freed manually.
-// Hopefully this will make it easier to add garbage collection later.
 //
-// TODO: Make hashmaps and envs adhere to this.
+// Envs & Hashmaps are treated separately in their implementation files.
 
 export fn make_intrinsic(
 	func: *fn([]MalType) (MalType | error),
@@ -53,6 +52,8 @@ export fn make_intrinsic(
 		eval: *fn([]MalType) (MalType | error) = func,
 		meta: MalType = nil,
 	});
+
+	append(gc.memory.intrinsics, new);
 	return new;
 };
 
@@ -63,12 +64,26 @@ export fn make_func(
 	body: MalType,
 ) function = {
 
-	return alloc(struct{
+	let arg_list: []MalType = [];
+	if(len(args) > 0) {
+		arg_list = alloc([nil...], len(args));
+		arg_list[0..] = args;
+	};
+
+	const new = alloc(struct{
 		eval: *fn(MalType, *env) (MalType | error)  = eval,
 		envi: *env= envi,
-		args: []MalType = args,
+		args: []MalType = arg_list,
 		body: MalType = body,
 		meta: MalType = nil });
+
+	append(gc.memory.funcs, new);
+	return new;
+};
+
+fn free_func(f: function) void = {
+	free(f.args);
+	free(f);
 };
 
 export fn make_list(s: size, init: []MalType = []) list = {
@@ -83,7 +98,13 @@ export fn make_list(s: size, init: []MalType = []) list = {
 	new.data = alloc([nil...], s);
 	new.data[0..len(init)] = init;
 
+	append(gc.memory.lists, new);
 	return new;
+};
+
+fn free_list(l: list) void = {
+	free(l.data);
+	free(l);
 };
 
 export fn make_vec(s: size, init: []MalType = []) vector = {
@@ -98,29 +119,23 @@ export fn make_vec(s: size, init: []MalType = []) vector = {
 	new.data = alloc([nil...], s);
 	new.data[0..len(init)] = init;
 
+	append(gc.memory.vecs, new);
 	return new;
+};
+
+fn free_vec(v: vector) void = {
+	free(v.data);
+	free(v);
 };
 
 export fn make_symbol(name: str) symbol = {
 
-	static let pool_ptr: nullable *hashmap = null;
-
-	let pool = match(pool_ptr){
-	case null =>
-		pool_ptr = alloc(hm_init());
-		yield *(pool_ptr as *hashmap);
-	case let pp: *hashmap =>
-		yield *pp;
-	};
-
-	match(hm_get(pool, name: symbol)){
-	case let s: symbol =>
-		return s;
-	case undefined_key => void;
+	for(let s .. gc.memory.symbols){
+		if(s == name) return s;
 	};
 
 	const new = strings::dup(name): symbol;
-	hm_add(pool, new, new);
+	append(gc.memory.symbols, new);
 
 	return new;
 };
@@ -129,14 +144,25 @@ export fn make_string(s: str) string = {
 
 	const new_str = strings::dup(s);
 
-	return alloc(struct {
+	const new = alloc(struct {
 		data: str = new_str,
 		meta: MalType = nil,
 	});
+
+	append(gc.memory.strings, new);
+	return new;
+};
+
+fn free_string(s: string) void = {
+	free(s.data);
+	free(s);
 };
 
 export fn make_atom(ref: MalType) atom = {
-	return alloc(ref);
+
+	const new = alloc(ref);
+	append(gc.memory.atoms, new);
+	return new;
 };
 
 // check if two strings share the same buffer in memory

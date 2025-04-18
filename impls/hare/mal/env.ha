@@ -4,10 +4,13 @@ export type env = struct {
 };
 
 export fn env_init(outer: nullable * env = null) *env ={
-	return alloc(env {
+	const new = alloc(env {
 		outer = outer,
 		data = hm_init(),
 	});
+
+	append(gc.memory.envs, new);
+	return new;
 };
 
 export fn env_bind(
