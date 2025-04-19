@@ -526,7 +526,7 @@ fn atomp  (args: []MalType) (MalType | error) = {
 };
 
 fn atom_deref (args: []MalType) (MalType | error) = {
-	
+
 	if(len(args) == 0)
 		return ("'deref': too few arguments", args): syntax_error;
 
@@ -842,7 +842,7 @@ fn symbolp(args: []MalType) (MalType | error) = {
 
 	match(args[0]){
 	case let s: symbol =>
-	     if (!(strings::hasprefix(s, ":")))
+		if (!(strings::hasprefix(s, ":")))
 			return true;
 	case => void;
 	};
@@ -1032,34 +1032,9 @@ fn assoc(args: []MalType) (MalType | error) = {
 		return ("hashmap", args): type_error;
 	};
 
-	let new: hashmap = hm_init();
+	let new: hashmap = hm_copy(hm);
 
-	let q: []*hm_map = [];
-	defer free(q);
-
-	let map = match(*hm.map){
-	case null =>
-		void;
-	case let map: *hm_map =>
-		append(q, map);
-	};
-
-	for(let i: size = 0; i < len(q); i += 1){
-
-		hm_add(new, q[i].key, q[i].val);
-
-		for(let child .. q[i].child){
-			match(child){
-			case null =>
-				continue;
-			case let map: *hm_map =>
-				append(q, map);
-			};
-		};
-	};
-
-	assert(len(q) == hm.count);
-	assert(len(q) == new.count);
+	assert(hm.count == new.count);
 
 	let ls = args[1..];
 	for(let i: size = 0; i < len(ls); i += 2){
@@ -1087,47 +1062,8 @@ fn dissoc(args: []MalType) (MalType | error) = {
 		return ("hashmap", args): type_error;
 	};
 
-	let new: hashmap = hm_init();
-
-	let q: []*hm_map = [];
-	defer free(q);
-
-	let map = match(*hm.map){
-	case null =>
-		void;
-	case let map: *hm_map =>
-		append(q, map);
-	};
-
-
 	let ls = args[1..];
-
-	for(let i: size = 0; i < len(q); i += 1){
-
-		let j: size = 0;
-		for(j < len(ls)) {
-			let s = match(ls[j]){
-			case let s: (symbol | string) =>
-				yield s;
-			case =>
-				return ("symbol or string",
-					args): type_error;
-			};
-			if(keycmp(s, q[i].key)) break;
-			j += 1;
-		};
-
-		if(len(ls) == j) hm_add(new, q[i].key, q[i].val);
-
-		for(let child .. q[i].child){
-			match(child){
-			case null =>
-				continue;
-			case let map: *hm_map =>
-				append(q, map);
-			};
-		};
-	};
+	let new: hashmap = hm_copy(hm, ls: [](string | symbol));
 
 	return new;
 };
@@ -1144,36 +1080,7 @@ fn vals(args: []MalType) (MalType | error) = {
 		return ("hashmap", args): type_error;
 	};
 
-	let new: list = make_list(hm.count);
-
-	let q: []*hm_map = [];
-	defer free(q);
-
-	let map = match(*hm.map){
-	case null =>
-		void;
-	case let map: *hm_map =>
-		append(q, map);
-	};
-
-	for(let i: size = 0; i < len(q); i += 1){
-
-		new.data[i] = q[i].val;
-
-		for(let child .. q[i].child){
-			match(child){
-			case null =>
-				continue;
-			case let map: *hm_map =>
-				append(q, map);
-			};
-		};
-	};
-
-	assert(len(q) == hm.count);
-	assert(len(q) == len(new.data));
-
-	return new;
+	return hm_val_list(hm);
 };
 
 fn keys(args: []MalType) (MalType | error) = {
@@ -1188,36 +1095,7 @@ fn keys(args: []MalType) (MalType | error) = {
 		return ("hashmap", args): type_error;
 	};
 
-	let new: list = make_list(hm.count);
-
-	let q: []*hm_map = [];
-	defer free(q);
-
-	let map = match(*hm.map){
-	case null =>
-		void;
-	case let map: *hm_map =>
-		append(q, map);
-	};
-
-	for(let i: size = 0; i < len(q); i += 1){
-
-		new.data[i] = q[i].key;
-
-		for(let child .. q[i].child){
-			match(child){
-			case null =>
-				continue;
-			case let map: *hm_map =>
-				append(q, map);
-			};
-		};
-	};
-
-	assert(len(q) == hm.count);
-	assert(len(q) == len(new.data));
-
-	return new;
+	return hm_key_list(hm);
 };
 
 fn readline (args: []MalType) (MalType | error) = {
@@ -1225,7 +1103,7 @@ fn readline (args: []MalType) (MalType | error) = {
 	if(len(args) < 1)
 		return ("'readline': too few arguments", args): syntax_error;
 
-	const prompt: str =  match(args[0]){
+	const prompt: str = match(args[0]){
 	case let p: string =>
 		yield p.data;
 	case =>
@@ -1370,12 +1248,13 @@ fn meta (args: []MalType) (MalType | error) = {
 fn with_meta (args: []MalType) (MalType | error) = {
 
 	if(len(args) < 1)
-		return ("'with-meta': too few arguments", args): syntax_error;
+		return ("'with-meta': too few arguments", args):
+			syntax_error;
 
 	match(args[0]){
 	case let func: function =>
 		let new = make_func(func.eval, func.envi, func.args,
-				   func.body);
+			func.body);
 		new.meta = args[1];
 		return new;
 	case let hm: hashmap =>

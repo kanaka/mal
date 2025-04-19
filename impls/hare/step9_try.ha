@@ -21,24 +21,6 @@ fn eval_vec(vec: mal::vector, env: *mal::env) (mal::vector | mal::error) ={
 	return res;
 };
 
-fn eval_hash(
-	new: mal::hashmap,
-	map: * nullable *mal::hm_map,
-	env: *mal::env
-) (mal::hashmap | mal::error) = {
-
-	match(*map){
-	case null => void;
-	case let map: *mal::hm_map =>
-		for(let child .. map.child){
-			eval_hash(new, &child, env)?;
-		};
-	mal::hm_add(new, map.key, eval(map.val, env)?);
-	};
-
-	return new;
-};
-
 fn starts_with(ast: mal::MalType, sym: str) bool = {
 	match(ast){
 	case let ls: mal::list=>
@@ -129,7 +111,7 @@ fn eval (ast: mal::MalType, env: *mal::env) (mal::MalType | mal::error) = {
 		return eval_vec(vec, env)?;
 	case let hash: mal::hashmap =>
 		let res = mal::hm_init();
-		return eval_hash(res, hash.map, env)?;
+		return mal::eval_hash(res, hash.map, &eval, env)?;
 	case let ls: mal::list =>
 		yield ls;
 	case =>
