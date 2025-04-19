@@ -3,7 +3,6 @@ use fmt;
 use io;
 use mal;
 use os;
-use strings;
 
 fn read (input: []u8) (mal::MalType | io::EOF | mal::error) = {
 	return mal::read_str(input)?;
@@ -88,25 +87,6 @@ fn eval_vec(vec: mal::vector, env: *mal::env) (mal::vector | mal::error) ={
 	return res;
 };
 
-fn eval_hash(
-	map: * nullable *mal::hm_map,
-	env: *mal::env
-) (mal::hashmap | mal::error) = {
-
-	let res = mal::hm_init();
-
-	match(*map){
-	case null => void;
-	case let map: *mal::hm_map =>
-		for(let child .. map.child){
-			eval_hash(&child, env)?;
-		};
-	mal::hm_add(res, map.key, eval(map.val, env)?);
-	};
-
-	return res;
-};
-
 fn eval (ast: mal::MalType, env: *mal::env) (mal::MalType | mal::error) = {
 
 	match(mal::env_get(env, "DEBUG-EVAL")){
@@ -130,7 +110,8 @@ fn eval (ast: mal::MalType, env: *mal::env) (mal::MalType | mal::error) = {
 	case let vec: mal::vector =>
 		yield eval_vec(vec, env)?;
 	case let hash: mal::hashmap =>
-		yield eval_hash(hash.map, env)?;
+		let new = mal::hm_init();
+		yield mal::eval_hash(new, hash.map, &eval, env)?;
 	case let func: mal::intrinsic =>
 		yield func;
 	case => yield ast;

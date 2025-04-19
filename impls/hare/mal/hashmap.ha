@@ -7,9 +7,7 @@
 // lots of copying and that's a pretty heavy operation with this here
 // implementation.
 
-use fmt;
 use hash::fnv;
-use strings;
 
 export type hashmap = *struct {
 	meta: MalType,
@@ -73,7 +71,7 @@ fn hm_find(hm: hashmap, key: (symbol | string)) * nullable *hm_map = {
 	return map;
 };
 
-export fn hm_init() hashmap = {
+export fn hm_init(gcd: bool = true) hashmap = {
 
 	const new_map = alloc(null: nullable *hm_map);
 
@@ -83,7 +81,8 @@ export fn hm_init() hashmap = {
 		map: *nullable *hm_map = new_map,
 	});
 
-	append(gc.memory.hashs, new);
+	if(gcd) append(gc.memory.hashs, new);
+
 	return new;
 };
 
@@ -139,7 +138,112 @@ export fn hm_get(
 	};
 };
 
-fn hm_free(hm: hashmap) void = {
+export fn hm_val_list(hm: hashmap) list = {
+
+	let new: list = make_list(hm.count);
+
+	let q: []*hm_map = [];
+	defer free(q);
+
+	let map = match(*hm.map){
+	case null =>
+		void;
+	case let map: *hm_map =>
+		append(q, map);
+	};
+
+	for(let i: size = 0; i < len(q); i += 1){
+
+		new.data[i] = q[i].val;
+
+		for(let child .. q[i].child){
+			match(child){
+			case null =>
+				continue;
+			case let map: *hm_map =>
+				append(q, map);
+			};
+		};
+	};
+
+	assert(len(q) == hm.count);
+	assert(len(q) == len(new.data));
+
+	return new;
+};
+
+export fn hm_key_list(hm: hashmap) list = {
+
+	let new: list = make_list(hm.count);
+
+	let q: []*hm_map = [];
+	defer free(q);
+
+	let map = match(*hm.map){
+	case null =>
+		void;
+	case let map: *hm_map =>
+		append(q, map);
+	};
+
+	for(let i: size = 0; i < len(q); i += 1){
+
+		new.data[i] = q[i].key;
+
+		for(let child .. q[i].child){
+			match(child){
+			case null =>
+				continue;
+			case let map: *hm_map =>
+				append(q, map);
+			};
+		};
+	};
+
+	assert(len(q) == hm.count);
+	assert(len(q) == len(new.data));
+
+	return new;
+};
+
+export fn hm_copy(hm: hashmap, filter: [](string | symbol) = []) hashmap = {
+	const new = hm_init();
+	hm_copy_rec(hm.map, new, filter);
+	return new;
+};
+
+
+fn hm_filterp(key: (symbol | string), filter: [](symbol | string)) bool = {
+	for(let f .. filter) {
+		if(keycmp(key, f)) return true;
+
+	};
+	return false;
+};
+
+fn hm_copy_rec(
+	old: *nullable *hm_map,
+	new: hashmap,
+	filter: [](string | symbol)
+) void = {
+
+	const map = match(*old){
+	case null =>
+		return void;
+	case let map: *hm_map =>
+		yield map;
+	};
+
+	if(!hm_filterp(map.key, filter)){
+		hm_add(new, map.key, map.val);
+	};
+
+	for(let child .. map.child){
+		hm_copy_rec(&child, new, filter);
+	};
+};
+
+export fn hm_free(hm: hashmap) void = {
 	hm_free_rec(hm.map);
 	free(hm);
 };
@@ -155,4 +259,23 @@ fn hm_free_rec(map: *nullable *hm_map,) void = {
 		};
 		free(map);
 	};
+};
+
+export fn eval_hash(
+	new: hashmap,
+	map: *nullable *hm_map,
+	eval: *fn(MalType, *env) (MalType | error),
+	env: *env,
+) (hashmap | error) = {
+
+	match(*map){
+	case null => void;
+	case let map: *hm_map =>
+		for(let child .. map.child){
+			eval_hash(new, &child, eval, env)?;
+		};
+	hm_add(new, map.key, eval(map.val, env)?);
+	};
+
+	return new;
 };
