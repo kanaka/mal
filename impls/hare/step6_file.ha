@@ -259,7 +259,7 @@ export fn main() void = {
 		};
 	};
 
-	mal::env_set(env, mal::make_symbol("*ARGV*"), argv);
+	mal::env_set(env, "*ARGV*", argv);
 
 	if(len(args) > 1){
 		let exec_str = strings::join("", "(load-file \"", args[1],

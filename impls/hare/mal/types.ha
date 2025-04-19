@@ -130,6 +130,7 @@ fn free_vec(v: vector) void = {
 
 export fn make_symbol(name: str) symbol = {
 
+	// this is slow
 	for(let s .. gc.memory.symbols){
 		if(s == name) return s;
 	};

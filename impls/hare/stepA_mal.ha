@@ -107,12 +107,12 @@ fn eval (ast: mal::MalType, env: *mal::env) (mal::MalType | mal::error) = {
 
 	for(true){
 
-		match(mal::env_get(env, "DEBUG-EVAL")){
-		case mal::undefined_symbol => void;
-		case mal::nil => void;
-		case =>
-		     fmt::print("EVAL: ")!;
-		     mal::print_form(os::stdout, ast);
+	match(mal::env_get(env, "DEBUG-EVAL")){
+	case mal::undefined_symbol => void;
+	case mal::nil => void;
+	case =>
+		fmt::print("EVAL: ")!;
+		mal::print_form(os::stdout, ast);
 		fmt::print("\n")!;
 		mal::print_form(os::stdout, env.data);
 		fmt::print("\n")!;
@@ -399,8 +399,7 @@ export fn main() void = {
 		fmt::fatal("No repl environment initialized!");
 	};
 
-	mal::env_set(env, mal::make_symbol("*host-language*"),
-		     mal::make_string("hare"));
+	mal::env_set(env, "*host-language*", mal::make_string("hare"));
 	mal::env_set(env, "eval", mal::make_intrinsic(&do_eval));
 	mal::load_namespace(mal::core, env)!;
 
@@ -413,8 +412,8 @@ export fn main() void = {
 		(throw \"odd number of forms to cond\")) (cons 'cond
 		(rest (rest xs)))))))";
 
-	rep(strings::toutf8(cond), env, false);
 	rep(strings::toutf8(load_file), env, false);
+	rep(strings::toutf8(cond), env, false);
 
 	// handle command line arguments
 	const args = os::args;
@@ -433,7 +432,7 @@ export fn main() void = {
 		};
 	};
 
-	mal::env_set(env, mal::make_symbol("*ARGV*"), argv);
+	mal::env_set(env, "*ARGV*", argv);
 
 	if(len(args) > 1){
 		let exec_str = strings::join("", "(load-file \"", args[1],
