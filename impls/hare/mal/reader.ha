@@ -65,7 +65,7 @@ fn read_meta(tk: *tokenizer) (list | error) = {
 		return unexpected_eof;
 	};
 
-	return make_list(3, [make_symbol("with-meta"), next_form, meta]);
+	return make_list(3, ["with-meta": symbol, next_form, meta]);
 };
 
 fn read_quote(tk: *tokenizer, t: quote_tk) (list | error) = {
@@ -92,7 +92,7 @@ fn read_quote(tk: *tokenizer, t: quote_tk) (list | error) = {
 		return unexpected_eof;
 	};
 
-	return make_list(2, [make_symbol(qs), form]);
+	return make_list(2, [qs: symbol, form]);
 
 };
 

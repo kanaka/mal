@@ -19,7 +19,7 @@ export fn load_namespace(ns: namespace, env: *env) (void | error) = {
 		case =>
 			return ("MalType", nil): type_error;
 		};
-		env_set(env, make_symbol(e.0), v);
+		env_set(env, e.0: symbol, v);
 	};
 };
 

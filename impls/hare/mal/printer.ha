@@ -29,7 +29,7 @@ export fn print_form(
 	case let i: number =>
 		fmt::fprint(strbuf, i: int)!;
 	case let a: atom =>
-		print_list(strbuf, [make_symbol("atom"): MalType, *a],
+		print_list(strbuf, ["atom": symbol, *a],
 			list_beg, print_readably);
 	case let func: (intrinsic | function) =>
 		memio::concat(strbuf, "#<function>")!;
