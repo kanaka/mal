@@ -110,8 +110,7 @@ fn eval (ast: mal::MalType, env: *mal::env) (mal::MalType | mal::error) = {
 	case let vec: mal::vector =>
 		return eval_vec(vec, env)?;
 	case let hash: mal::hashmap =>
-		let res = mal::hm_init();
-		return mal::eval_hash(res, hash.map, &eval, env)?;
+		return mal::eval_hash(hash, &eval, env)?;
 	case let ls: mal::list =>
 		yield ls;
 	case =>

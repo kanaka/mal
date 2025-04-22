@@ -164,8 +164,7 @@ fn eval (ast: mal::MalType, env: *mal::env) (mal::MalType | mal::error) = {
 	case let vec: mal::vector =>
 		yield eval_vec(vec, env)?;
 	case let hash: mal::hashmap =>
-		let new = mal::hm_init();
-		yield mal::eval_hash(new, hash.map, &eval, env)?;
+		yield mal::eval_hash(hash, &eval, env)?;
 	case let func: mal::intrinsic =>
 		yield func;
 	case let func: mal::function =>

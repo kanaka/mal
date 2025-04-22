@@ -312,45 +312,6 @@ fn list_cmp (ls: []MalType, ls2: []MalType) bool = {
 	return true;
 };
 
-fn hash_cmp(hm1: hashmap, hm2:hashmap) bool = {
-
-	if(hm1.count != hm2.count) return false;
-
-	let q: []*hm_map= [];
-	defer free(q);
-
-	match(*hm1.map){
-	case null =>
-		if (*hm2.map is null) {
-			return true;
-		} else {
-			return false;
-		};
-	case let hm: *hm_map =>
-		append(q, hm);
-	};
-	for(let i: size = 0; i < len(q); i += 1){
-		match(hm_get(hm2, q[i].key)){
-		case nil =>
-			return false;
-		case let val: MalType =>
-			if(!(mal_eq([q[i].val, val]) as bool))
-				return false;
-		};
-		for(let child .. q[i].child){
-			match(child){
-			case null =>
-				continue;
-			case let map: *hm_map =>
-				append(q, map);
-			};
-		};
-	};
-
-	assert(len(q) == hm1.count);
-	return true;
-};
-
 fn mal_eq (args: []MalType) (MalType | error) = {
 
 	if(len(args) != 2)
@@ -1014,8 +975,8 @@ fn containsp(args: []MalType) (MalType | error) = {
 		return ("symbol or string", args): type_error;
 	};
 
-	match(*hm_find(hm, key)){
-	case null => return false;
+	match(hm_get(hm, key)){
+	case undefined_key => return false;
 	case => return true;
 	};
 };
@@ -1034,7 +995,7 @@ fn assoc(args: []MalType) (MalType | error) = {
 
 	let new: hashmap = hm_copy(hm);
 
-	assert(hm.count == new.count);
+	assert(len(hm.data) == len(new.data));
 
 	let ls = args[1..];
 	for(let i: size = 0; i < len(ls); i += 2){

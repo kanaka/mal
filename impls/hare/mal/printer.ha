@@ -82,38 +82,13 @@ fn print_string(
 
 };
 
-fn hm_print_rec(
-	strbuf: io::handle,
-	map: * nullable *hm_map,
-	entry: bool,
-	pp: bool
-) void = {
-
-	match(*map){
-	case null => return void;
-	case let map: *hm_map =>
-		for(let child .. map.child){
-			hm_print_rec(strbuf, &child, false, pp);
-		};
-
-		print_form(strbuf, map.key, pp);
-		fmt::fprint(strbuf, " ")!;
-		print_form(strbuf, map.val, pp);
-
-		if(!entry){
-			fmt::fprint(strbuf, " ")!;
-		};
-	};
-};
-
-
 fn print_hash(strbuf: io::handle, hm: hashmap, pp: bool) void ={
 
 	const open = '{';
 	const close = '}';
 
 	fmt::fprint(strbuf, open)!;
-	hm_print_rec(strbuf, hm.map, true, pp);
+	hm_print(strbuf, hm, pp);
 	fmt::fprint(strbuf, close)!;
 };
 
