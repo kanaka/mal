@@ -38,19 +38,14 @@ fn eval_vec(vec: mal::vector, env: mal::hashmap) mal::vector ={
 };
 
 fn eval_hash(
-	map: * nullable *mal::hm_map,
-	env: mal::hashmap
+	map: mal::hashmap,
+	env: mal::hashmap,
 ) mal::hashmap = {
 
 	let res = mal::hm_init();
 
-	match(*map){
-	case null => void;
-	case let map: *mal::hm_map =>
-		for(let child .. map.child){
-			eval_hash(&child, env);
-		};
-	mal::hm_add(res, map.key, eval(map.val, env));
+	for(let e .. map.data) {
+		mal::hm_add(res, e.key, eval(e.val, env));
 	};
 
 	return res;
@@ -72,7 +67,7 @@ fn eval (ast: mal::MalType, env: mal::hashmap) mal::MalType = {
 	case let vec: mal::vector =>
 		yield eval_vec(vec, env);
 	case let hash: mal::hashmap =>
-		yield eval_hash(hash.map, env);
+		yield eval_hash(hash, env);
 	case let func: mal::intrinsic =>
 		yield func;
 	case =>

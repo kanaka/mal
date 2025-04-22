@@ -1,27 +1,67 @@
 // The hashmap implmentation follows this idea:
 // https://nullprogram.com/blog/2023/09/30/
 
-// I decided for this implementation when creating the reader, because of the
-// ease of appending, no need for reallocations. In hindsight an array based
-// solution would have been a better fit for mal, because immutability means
-// lots of copying and that's a pretty heavy operation with this here
-// implementation.
-
+use io;
+use fmt;
 use hash::fnv;
 
 export type hashmap = *struct {
+	data: []hmap,
 	meta: MalType,
-	count: size,
-	map: *nullable *hm_map,
 };
 
-export type hm_map = struct {
+export type hmap = struct {
 	key: (symbol | string),
 	val: MalType,
-	child: [4]nullable *hm_map,
+	child: [4](size | void),
 };
 
-fn keycmp(x: (symbol | string), y: (symbol | string)) bool = {
+type pos = struct {
+	exists: bool,
+	index: size,
+	child: (size | void),
+};
+
+export fn hm_init(gcd: bool = true) hashmap = {
+	let new: hashmap = alloc(struct {
+		data: []hmap = [],
+		meta: MalType = nil,
+	});
+
+	if(gcd) append(gc.memory.hashs, new);
+
+	return new;
+};
+
+fn hm_free(hm: hashmap) void = {
+	free(hm.data);
+	free(hm);
+};
+
+fn new(
+	hm: hashmap,
+	p: pos,
+	k: (symbol | string),
+	v: MalType
+) void = {
+	const new = hmap {
+		key = k,
+		val = v,
+		child: [4](size | void) = [void...],
+	};
+
+	append(hm.data, new);
+
+	match(p.child) {
+	case void =>
+		return void;
+	case let i: size =>
+		hm.data[p.index].child[i] = len(hm.data) - 1;
+	};
+
+};
+
+export fn keycmp(x: (symbol | string), y: (symbol | string)) bool = {
 
 	const kx: str = match(x){
 	case let k: symbol =>
@@ -40,7 +80,9 @@ fn keycmp(x: (symbol | string), y: (symbol | string)) bool = {
 	return kx == ky;
 };
 
-fn hm_find(hm: hashmap, key: (symbol | string)) * nullable *hm_map = {
+fn hm_find(hm: hashmap, key: (symbol | string)) pos = {
+
+	let index: size = 0;
 
 	const k: str = match(key){
 	case let k: symbol =>
@@ -50,231 +92,177 @@ fn hm_find(hm: hashmap, key: (symbol | string)) * nullable *hm_map = {
 	};
 
 	let hash: u32 = fnv::string32(k);
-	let map = hm.map;
+
+	if(len(hm.data) == 0)
+		return pos {
+			exists = false,
+			index = 0,
+			child = void,
+		};
 
 	for(true){
-		let m = match(*map){
-		case null =>
-			break;
-		case let m: *hm_map =>
-			yield m;
+		if (keycmp(key, hm.data[index].key)){
+			return pos {
+				exists = true,
+				index = index,
+				child = void,
+			};
 		};
 
-		if (keycmp(key, m.key)){
-			break;
-		};
+		let c = hash >> 30;
 
-		map = &m.child[hash >> 30];
-		hash <<= 2;
+		match(hm.data[index].child[c]){
+		case void =>
+			return pos {
+				exists = false,
+				index = index,
+				child = c,
+		};
+		case let i: size =>
+			index = i;
+			hash <<= 2;
+			continue;
+		};
 	};
-
-	return map;
 };
 
-export fn hm_init(gcd: bool = true) hashmap = {
+export fn hm_set(
+	hm: hashmap,
+	key: (symbol | string),
+	val: MalType,
+) void = {
 
-	const new_map = alloc(null: nullable *hm_map);
+	let p: pos = hm_find(hm, key);
 
-	const new = alloc(struct {
-		meta: MalType = nil,
-		count: size = 0,
-		map: *nullable *hm_map = new_map,
-	});
-
-	if(gcd) append(gc.memory.hashs, new);
-
-	return new;
-};
-
-fn hm_new_node(key: (symbol | string), val: MalType) *hm_map = {
-	return alloc(hm_map{
-			key = key,
-			val = val,
-			child = [null ...],
-	});
-};
-
-export fn hm_add(hm: hashmap, key: (symbol | string), elm: MalType) bool = {
-
-	const map = hm_find(hm, key);
-
-	match(*map){
-	case null =>
-		*map = hm_new_node(key, elm);
-		hm.count += 1;
-		return true;
-	case =>
-		return false;
+	if(p.exists){
+		hm.data[p.index].val = val;
+	} else {
+		new(hm, p, key, val);
 	};
 
 };
 
-export fn hm_set(hm: hashmap, key: (symbol | string), elm: MalType) void = {
+export fn hm_add(
+	hm: hashmap,
+	key: (symbol | string),
+	val: MalType,
+) void = {
 
-	const map = hm_find(hm, key);
+	let p: pos = hm_find(hm, key);
 
-	match(*map){
-	case null =>
-		*map = hm_new_node(key, elm);
-		hm.count += 1;
-	case let map: *hm_map =>
-		map.key = key;
-		map.val = elm;
+	if(p.exists){
+		return void;
+	} else {
+		new(hm, p, key, val);
 	};
 };
 
 export fn hm_get(
 	hm: hashmap,
 	key: (symbol | string)
-) (MalType | undefined_key) = {
+) (MalType | error) = {
 
-	const map = hm_find(hm, key);
+	if(len(hm.data) == 0){
+		return ("hm_get 0", key):undefined_key;
+	};
 
-	match(*map){
-	case null =>
-		return ("hm_get", key): undefined_key;
-	case let m: *hm_map =>
-		return m.val;
+	let p: pos = hm_find(hm, key);
+
+	if(p.exists) {
+		return hm.data[p.index].val;
+	} else  {
+		return ("hm_get", key):undefined_key;
 	};
 };
 
-export fn hm_val_list(hm: hashmap) list = {
-
-	let new: list = make_list(hm.count);
-
-	let q: []*hm_map = [];
-	defer free(q);
-
-	let map = match(*hm.map){
-	case null =>
-		void;
-	case let map: *hm_map =>
-		append(q, map);
-	};
-
-	for(let i: size = 0; i < len(q); i += 1){
-
-		new.data[i] = q[i].val;
-
-		for(let child .. q[i].child){
-			match(child){
-			case null =>
-				continue;
-			case let map: *hm_map =>
-				append(q, map);
-			};
-		};
-	};
-
-	assert(len(q) == hm.count);
-	assert(len(q) == len(new.data));
-
-	return new;
-};
-
-export fn hm_key_list(hm: hashmap) list = {
-
-	let new: list = make_list(hm.count);
-
-	let q: []*hm_map = [];
-	defer free(q);
-
-	let map = match(*hm.map){
-	case null =>
-		void;
-	case let map: *hm_map =>
-		append(q, map);
-	};
-
-	for(let i: size = 0; i < len(q); i += 1){
-
-		new.data[i] = q[i].key;
-
-		for(let child .. q[i].child){
-			match(child){
-			case null =>
-				continue;
-			case let map: *hm_map =>
-				append(q, map);
-			};
-		};
-	};
-
-	assert(len(q) == hm.count);
-	assert(len(q) == len(new.data));
-
-	return new;
-};
-
-export fn hm_copy(hm: hashmap, filter: [](string | symbol) = []) hashmap = {
+fn hm_copy(hm: hashmap, filter: [](string | symbol) = []) hashmap = {
 	const new = hm_init();
-	hm_copy_rec(hm.map, new, filter);
+
+	if(len(filter) == 0){
+		for(let e .. hm.data) {
+			append(new.data, e);
+		};
+	} else {
+		for :map (let e .. hm.data) {
+			for(let f .. filter) {
+				if(keycmp(f, e.key))
+					continue :map;
+			};
+
+			hm_add(new, e.key, e.val);
+		};
+	};
+
 	return new;
 };
 
-
-fn hm_filterp(key: (symbol | string), filter: [](symbol | string)) bool = {
-	for(let f .. filter) {
-		if(keycmp(key, f)) return true;
-
-	};
-	return false;
-};
-
-fn hm_copy_rec(
-	old: *nullable *hm_map,
-	new: hashmap,
-	filter: [](string | symbol)
+fn hm_print(
+	strbuf: io::handle,
+	hm: hashmap,
+	pp: bool,
 ) void = {
+	for (let i: size = 0; i < len(hm.data); i += 1){
 
-	const map = match(*old){
-	case null =>
-		return void;
-	case let map: *hm_map =>
-		yield map;
-	};
+		let e = hm.data[i];
 
-	if(!hm_filterp(map.key, filter)){
-		hm_add(new, map.key, map.val);
-	};
-
-	for(let child .. map.child){
-		hm_copy_rec(&child, new, filter);
+		print_form(strbuf, e.key, pp);
+		fmt::fprint(strbuf, " ")!;
+		print_form(strbuf, e.val, pp);
+		if(!(i + 1 == len(hm.data))) fmt::fprint(strbuf, " ")!;
 	};
 };
 
-export fn hm_free(hm: hashmap) void = {
-	hm_free_rec(hm.map);
-	free(hm);
-};
 
-fn hm_free_rec(map: *nullable *hm_map,) void = {
+fn hash_cmp(hm1: hashmap, hm2: hashmap) bool = {
 
-	match(*map){
-	case null =>
-		return void;
-	case let map: *hm_map =>
-		for(let child .. map.child){
-			hm_free_rec(&child);
+	if(len(hm1.data) != len(hm2.data)){
+		return false;
+	};
+
+	for(let i: size = 0; i < len(hm1.data); i += 1) {
+		match(hm_get(hm2, hm1.data[i].key)){
+		case undefined_key =>
+			return false;
+		case let v: MalType =>
+		     if(!(mal_eq([hm1.data[i].val, v]) as bool))
+				return false;
 		};
-		free(map);
 	};
+
+	return true;
+};
+
+fn hm_val_list(hm: hashmap) list = {
+	const length = len(hm.data);
+	const new = make_list(length);
+
+	for(let i: size = 0; i < length; i += 1){
+		new.data[i] = hm.data[i].val;
+	};
+
+	return new;
+};
+
+fn hm_key_list(hm: hashmap) list = {
+	const length = len(hm.data);
+	const new = make_list(length);
+
+	for(let i: size = 0; i < length; i += 1){
+		new.data[i] = hm.data[i].key;
+	};
+	return new;
 };
 
 export fn eval_hash(
-	new: hashmap,
-	map: *nullable *hm_map,
+	hm: hashmap,
 	eval: *fn(MalType, *env) (MalType | error),
 	env: *env,
 ) (hashmap | error) = {
 
-	match(*map){
-	case null => void;
-	case let map: *hm_map =>
-		for(let child .. map.child){
-			eval_hash(new, &child, eval, env)?;
-		};
-	hm_add(new, map.key, eval(map.val, env)?);
+	const new = hm_init();
+
+	for(let e .. hm.data){
+		hm_add(new, e.key, eval(e.val, env)?);
 	};
 
 	return new;

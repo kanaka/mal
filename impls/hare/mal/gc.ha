@@ -40,20 +40,14 @@ fn finish_memory(memory: memory) void = {
 	free(memory.intrinsics);
 };
 
-fn mark_hash(map: *nullable *hm_map) void = {
+fn mark_hash(hm: hashmap) void = {
 
-	const map = match(*map){
-	case null =>
-		return void;
-	case let map: *hm_map =>
-		yield map;
-	};
+	append(gc.marked.hashs, hm);
+	mark(hm.meta);
 
-	mark(map.key);
-	mark(map.val);
-
-	for(let child .. map.child){
-		mark_hash(&child);
+	for(let v .. hm.data){
+		mark(v.key);
+		mark(v.val);
 	};
 };
 
@@ -64,8 +58,7 @@ fn mark_env(envi: *env) void = {
 	};
 
 	append(gc.marked.envs, envi);
-	append(gc.marked.hashs, envi.data);
-	mark_hash(envi.data.map);
+	mark(envi.data);
 
 	match(envi.outer){
 	case null => void;
@@ -126,9 +119,7 @@ fn mark (val: MalType) void = {
 		for(let x .. gc.marked.hashs){
 			if(x == h) return void;
 		};
-		append(gc.marked.hashs, h);
-		mark_hash(h.map);
-		mark(h.meta);
+		mark_hash(h);
 	case let s: symbol =>
 		for(let x .. gc.marked.symbols){
 			if(x == s) return void;
