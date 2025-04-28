@@ -130,13 +130,22 @@ fn free_vec(v: vector) void = {
 
 export fn make_symbol(name: str) symbol = {
 
-	// this is slow
-	for(let s .. gc.memory.symbols){
-		if(s == name) return s;
+	let hm: hashmap = match(gc.memory.symbols){
+	case void =>
+		gc.memory.symbols = hm_init(false);
+		yield gc.memory.symbols: hashmap;
+	case let hm: hashmap =>
+		yield hm;
+	};
+
+	match(hm_get(hm, name: symbol)) {
+	case undefined_key => void;
+	case let s: symbol =>
+		return s;
 	};
 
 	const new = strings::dup(name): symbol;
-	append(gc.memory.symbols, new);
+	hm_add(gc.memory.symbols: hashmap, new, new);
 
 	return new;
 };

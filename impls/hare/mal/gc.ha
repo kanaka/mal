@@ -3,7 +3,7 @@
 type memory = struct {
 	envs: []*env,
 	hashs: []hashmap,
-	symbols: []symbol,
+	symbols: (void | hashmap),
 	funcs: []function,
 	lists: []list,
 	vecs: []vector,
@@ -19,25 +19,53 @@ type garbage_collector = struct {
 
 let gc = garbage_collector {
 	marked = memory {
+		symbols = void,
 		funcs = [],
 		...
 	},
 	memory = memory {
+		symbols = void,
 		funcs = [],
 		...
 	},
 };
 
+fn reset_memory(memory: *memory) void = {
+
+	memory.envs = memory.envs[..0];
+	memory.hashs = memory.hashs[..0];
+	memory.funcs = memory.funcs[..0];
+	memory.lists = memory.lists[..0];
+	memory.vecs = memory.vecs[..0];
+	memory.strings = memory.strings[..0];
+	memory.atoms = memory.atoms[..0];
+	memory.intrinsics = memory.intrinsics[..0];
+
+	match(memory.symbols){
+	case let hm: hashmap =>
+		hm.data = hm.data[..0];
+	case void =>
+		void;
+	};
+};
+
 fn finish_memory(memory: memory) void = {
+
 	free(memory.envs);
 	free(memory.hashs);
-	free(memory.symbols);
 	free(memory.funcs);
 	free(memory.lists);
 	free(memory.vecs);
 	free(memory.strings);
 	free(memory.atoms);
 	free(memory.intrinsics);
+
+	match(memory.symbols){
+	case let hm: hashmap =>
+		hm_free(hm);
+	case void =>
+		void;
+	};
 };
 
 fn mark_hash(hm: hashmap) void = {
@@ -74,6 +102,12 @@ fn mark_col(col: []MalType) void = {
 };
 
 fn mark (val: MalType) void = {
+
+	match(gc.marked.symbols){
+	case void =>
+		gc.marked.symbols = hm_init(false);
+	case => void;
+	};
 
 	match(val){
 	case let v: vector =>
@@ -121,10 +155,11 @@ fn mark (val: MalType) void = {
 		};
 		mark_hash(h);
 	case let s: symbol =>
-		for(let x .. gc.marked.symbols){
-			if(x == s) return void;
+		match(hm_get(gc.marked.symbols: hashmap, s)){
+		case undefined_key =>
+			hm_add(gc.marked.symbols: hashmap, s, s);
+		case =>  void;
 		};
-		append(gc.marked.symbols, s);
 	case let s: string =>
 		for(let x .. gc.marked.strings){
 			if(x == s) return void;
@@ -143,83 +178,93 @@ fn mark (val: MalType) void = {
 
 fn sweep() void ={
 
-	// since we're only ever comparing pointers and never dereferencing here
-	// it should be ok to not call delete(gc.memory.<t>[i-1]) on the after
-	// freeing the value.
-	//
-	// This means doing anything with gc.memory after calling this function
-	// is extremely unsafe.
+	const marked_symbols = match(gc.marked.symbols){
+		case void =>
+		     gc.marked.symbols = hm_init(false);
+		yield gc.marked.symbols: hashmap;
+	case let hm: hashmap =>
+		yield hm;
+	};
 
-	for :sweep (let i: size = len(gc.memory.symbols); i > 0; i -= 1) {
-		for(let x .. gc.marked.symbols){
-			if(x == gc.memory.symbols[i-1]) continue :sweep;
-		};
-		free(gc.memory.symbols[i-1]);
+	const memory_symbols = match(gc.memory.symbols){
+	case void =>
+		gc.memory.symbols = hm_init(false);
+		yield gc.memory.symbols: hashmap;
+	case let hm: hashmap =>
+		yield hm;
 	};
-	for :sweep (let i: size = len(gc.memory.atoms); i > 0; i -= 1) {
+
+	for (let i: size = 0; len(memory_symbols.data) > i; i += 1) {
+		match(hm_get(marked_symbols, memory_symbols.data[i].key)){
+		case undefined_key =>
+			free(memory_symbols.data[i].key: symbol);
+		case =>
+			void;
+		};
+	};
+	for :sweep (let i: size = 0; len(gc.memory.atoms) > i; i += 1) {
 		for(let x .. gc.marked.atoms){
-			if(x == gc.memory.atoms[i-1]) continue :sweep;
+			if(x == gc.memory.atoms[i]) continue :sweep;
 		};
-		free(gc.memory.atoms[i-1]);
+		free(gc.memory.atoms[i]);
 	};
-	for :sweep (let i: size = len(gc.memory.strings); i > 0; i -= 1) {
+	for :sweep (let i: size = 0; len(gc.memory.strings) > i; i += 1) {
 		for(let x .. gc.marked.strings){
-			if(x == gc.memory.strings[i-1]) continue :sweep;
+			if(x == gc.memory.strings[i]) continue :sweep;
 		};
-		free_string(gc.memory.strings[i-1]);
+		free_string(gc.memory.strings[i]);
 	};
-	for :sweep (let i: size = len(gc.memory.hashs); i > 0; i -= 1) {
+	for :sweep (let i: size = 0; len(gc.memory.hashs) > i; i += 1) {
 		for(let x .. gc.marked.hashs){
-			if(x == gc.memory.hashs[i-1]) continue :sweep;
+			if(x == gc.memory.hashs[i]) continue :sweep;
 		};
-		hm_free(gc.memory.hashs[i-1]);
+		hm_free(gc.memory.hashs[i]);
 	};
-	for :sweep (let i: size = len(gc.memory.envs); i > 0; i -= 1) {
+	for :sweep (let i: size = 0; len(gc.memory.envs) > i; i += 1) {
 		for(let x .. gc.marked.envs){
-			if(x == gc.memory.envs[i-1]) continue :sweep;
+			if(x == gc.memory.envs[i]) continue :sweep;
 		};
-		free(gc.memory.envs[i-1]); //.data is collected as a hashmap
+		free(gc.memory.envs[i]); //.data is collected as a hashmap
 	};
-	for :sweep (let i: size = len(gc.memory.vecs); i > 0; i -= 1) {
+	for :sweep (let i: size = 0; len(gc.memory.vecs) > i; i += 1) {
 		for(let x .. gc.marked.vecs){
-			if(x == gc.memory.vecs[i-1]) continue :sweep;
+			if(x == gc.memory.vecs[i]) continue :sweep;
 		};
-		free_vec(gc.memory.vecs[i-1]);
+		free_vec(gc.memory.vecs[i]);
 	};
-	for :sweep (let i: size = len(gc.memory.lists); i > 0; i -= 1) {
+	for :sweep (let i: size = 0; len(gc.memory.lists) > i; i += 1) {
 		for(let x .. gc.marked.lists){
-			if(x == gc.memory.lists[i-1]) continue :sweep;
+			if(x == gc.memory.lists[i]) continue :sweep;
 		};
-		free_list(gc.memory.lists[i-1]);
+		free_list(gc.memory.lists[i]);
 	};
-	for :sweep (let i: size = len(gc.memory.funcs); i > 0; i -= 1) {
+	for :sweep (let i: size = 0; len(gc.memory.funcs) > i; i += 1) {
 		for(let x .. gc.marked.funcs){
-			if(x == gc.memory.funcs[i-1]) continue :sweep;
+			if(x == gc.memory.funcs[i]) continue :sweep;
 		};
-		free_func(gc.memory.funcs[i-1]);
+		free_func(gc.memory.funcs[i]);
 	};
-	for :sweep (let i: size = len(gc.memory.intrinsics); i > 0; i -= 1) {
+	for :sweep (let i: size = 0; len(gc.memory.intrinsics) > i; i += 1) {
 		for(let x .. gc.marked.intrinsics){
-			if(x == gc.memory.intrinsics[i-1]) continue :sweep;
+			if(x == gc.memory.intrinsics[i]) continue :sweep;
 		};
-		free(gc.memory.intrinsics[i-1]);
+		free(gc.memory.intrinsics[i]);
+	};
+
+	reset_memory(&gc.memory);
+
+	gc = garbage_collector {
+		marked = gc.memory,
+		memory = gc.marked,
 	};
 };
 
-// it doesn't make sense to call this with anything but the global repl_env.
+// it doesn't make sense to call this with anything but the global repl_env,
+// because as of this version there's no way to keep track of objects reachable
+// through the ast of the current evaluation and it's possible continuations.
 
 export fn run_gc(envi: *env) void = {
 
 	mark_env(envi);
 	sweep();
-	finish_memory(gc.memory);
-
-	gc = garbage_collector {
-		marked = memory {
-			funcs = [],
-			...
-		},
-		memory = gc.marked,
-	};
 };
-

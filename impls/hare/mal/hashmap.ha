@@ -212,7 +212,6 @@ fn hm_print(
 	};
 };
 
-
 fn hash_cmp(hm1: hashmap, hm2: hashmap) bool = {
 
 	if(len(hm1.data) != len(hm2.data)){
