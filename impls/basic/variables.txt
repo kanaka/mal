@@ -86,7 +86,7 @@ I   : STRING, REPLACE, SLICE, PR_MEMORY, PR_OBJECT, PR_MEMORY_VALUE
 J   : REPLACE, PR_MEMORY_VALUE
 U   : ALLOC, RELEASE, PR_STR temp
 V   : RELEASE, PR_STR_SEQ temp
-W   : SLICE, LAST, QUASIQUOTE, DO_HASH_MAP, DO_KEYS_VALS, step2-3 EVAL temp
+W   : SLICE, LAST, QUASIQUOTE, DO_HASH_MAP, DO_KEYS_VALS
 P   : PR_MEMORY_SUMMARY_SMALL
 RC  : RELEASE remaining number of elements to release
 RF  : reader reading from file flag
@@ -105,4 +105,3 @@ O
 
 Counting number of times each variable is assigned:
 	sed 's/:/\n /g' readline.in.bas types.in.bas reader.in.bas printer.in.bas env.in.bas core.in.bas stepA_mal.in.bas | grep "[A-Z][A-Z0-9]*[%$]*=" | sed 's/.*[^A-Z]\([A-Z][A-Z0-9]*[%$]*\)=.*/\1/g' | sort | uniq -c | sort -n
-
