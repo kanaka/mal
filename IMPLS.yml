@@ -9,6 +9,7 @@ IMPL:
   - {IMPL: c}
   - {IMPL: c.2}
   - {IMPL: cpp}
+  - {IMPL: cpp.2}
   - {IMPL: coffee}
   - {IMPL: cs}
   - {IMPL: chuck, NO_SELF_HOST_PERF: 1}  # perf OOM
