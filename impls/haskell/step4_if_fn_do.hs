@@ -100,13 +100,10 @@ eval env ast = do
 
 -- print
 
-mal_print :: MalVal -> IOThrows String
-mal_print = liftIO . Printer._pr_str True
+mal_print :: MalVal -> IO String
+mal_print = _pr_str True
 
 -- repl
-
-rep :: Env -> String -> IOThrows String
-rep env line = mal_print =<< eval env =<< mal_read line
 
 repl_loop :: Env -> IO ()
 repl_loop env = do
@@ -116,10 +113,10 @@ repl_loop env = do
         Just "" -> repl_loop env
         Just str -> do
             addHistory str
-            res <- runExceptT $ rep env str
+            res <- runExceptT $ eval env =<< mal_read str
             out <- case res of
-                Left mv -> (++) "Error: " <$> liftIO (Printer._pr_str True mv)
-                Right val -> return val
+                Left mv -> (++) "Error: " <$> mal_print mv
+                Right val -> mal_print val
             putStrLn out
             repl_loop env
 
@@ -139,8 +136,6 @@ defBuiltIn env (sym, f) =
 
 main :: IO ()
 main = do
-    load_history
-
     repl_env <- env_new Nothing
 
     -- core.hs: defined using Haskell
@@ -149,4 +144,5 @@ main = do
     -- core.mal: defined using the language itself
     re repl_env "(def! not (fn* (a) (if a false true)))"
 
+    load_history
     repl_loop repl_env
