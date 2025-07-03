@@ -66,8 +66,8 @@ eval env ast = do
 
 -- print
 
-mal_print :: MalVal -> IOThrows String
-mal_print = liftIO . Printer._pr_str True
+mal_print :: MalVal -> IO String
+mal_print = _pr_str True
 
 -- repl
 
@@ -87,9 +87,6 @@ divd :: Fn
 divd [MalNumber a, MalNumber b] = return $ MalNumber $ a `div` b
 divd _ = throwStr $ "illegal arguments to /"
 
-rep :: Env -> String -> IOThrows String
-rep env line = mal_print =<< eval env =<< mal_read line
-
 repl_loop :: Env -> IO ()
 repl_loop env = do
     line <- readline "user> "
@@ -98,10 +95,10 @@ repl_loop env = do
         Just "" -> repl_loop env
         Just str -> do
             addHistory str
-            res <- runExceptT $ rep env str
+            res <- runExceptT $ eval env =<< mal_read str
             out <- case res of
-                Left mv -> (++) "Error: " <$> liftIO (Printer._pr_str True mv)
-                Right val -> return val
+                Left mv -> (++) "Error: " <$> mal_print mv
+                Right val -> mal_print val
             putStrLn out
             repl_loop env
 
@@ -111,8 +108,6 @@ defBuiltIn env sym f =
 
 main :: IO ()
 main = do
-    load_history
-
     repl_env <- env_new Nothing
 
     defBuiltIn repl_env "+" add
@@ -120,4 +115,5 @@ main = do
     defBuiltIn repl_env "*" mult
     defBuiltIn repl_env "/" divd
 
+    load_history
     repl_loop repl_env

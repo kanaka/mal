@@ -1,5 +1,5 @@
 import System.Environment (getArgs)
-import Control.Monad.Except (liftIO, runExceptT)
+import Control.Monad.Except (catchError, liftIO, runExceptT)
 import Data.Foldable (foldlM, foldrM)
 
 import Readline (addHistory, readline, load_history)
@@ -72,14 +72,11 @@ apply_ast (MalSymbol "defmacro!") [MalSymbol a1, a2] env = do
 apply_ast (MalSymbol "defmacro!") _ _ = throwStr "invalid defmacro!"
 
 apply_ast (MalSymbol "try*") [a1] env = eval env a1
-apply_ast (MalSymbol "try*") [a1, MalSeq _ (Vect False) [MalSymbol "catch*", MalSymbol a21, a22]] env = do
-    res <- liftIO $ runExceptT $ eval env a1
-    case res of
-        Right val -> return val
-        Left exc -> do
-            try_env <- liftIO $ env_new $ Just env
-            liftIO $ env_set try_env a21 exc
-            eval try_env a22
+apply_ast (MalSymbol "try*") [a1, MalSeq _ (Vect False) [MalSymbol "catch*", MalSymbol a21, a22]] env =
+    catchError (eval env a1) $ \exc -> do
+        try_env <- liftIO $ env_new $ Just env
+        liftIO $ env_set try_env a21 exc
+        eval try_env a22
 apply_ast (MalSymbol "try*") _ _ = throwStr "invalid try*"
 
 apply_ast (MalSymbol "do") args env = foldlM (const $ eval env) Nil args
@@ -147,13 +144,10 @@ eval env ast = do
 
 -- print
 
-mal_print :: MalVal -> IOThrows String
-mal_print = liftIO . Printer._pr_str True
+mal_print :: MalVal -> IO String
+mal_print = _pr_str True
 
 -- repl
-
-rep :: Env -> String -> IOThrows String
-rep env line = mal_print =<< eval env =<< mal_read line
 
 repl_loop :: Env -> IO ()
 repl_loop env = do
@@ -163,10 +157,10 @@ repl_loop env = do
         Just "" -> repl_loop env
         Just str -> do
             addHistory str
-            res <- runExceptT $ rep env str
+            res <- runExceptT $ eval env =<< mal_read str
             out <- case res of
-                Left mv -> (++) "Error: " <$> liftIO (Printer._pr_str True mv)
-                Right val -> return val
+                Left mv -> (++) "Error: " <$> mal_print mv
+                Right val -> mal_print val
             putStrLn out
             repl_loop env
 
@@ -191,7 +185,6 @@ evalFn _ _ = throwStr "illegal call of eval"
 main :: IO ()
 main = do
     args <- getArgs
-    load_history
 
     repl_env <- env_new Nothing
 
@@ -212,4 +205,6 @@ main = do
         [] -> do
             env_set repl_env "*ARGV*" $ toList []
             re repl_env "(println (str \"Mal [\" *host-language* \"]\"))"
+
+            load_history
             repl_loop repl_env

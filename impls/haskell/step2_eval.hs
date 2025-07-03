@@ -1,16 +1,12 @@
 import Control.Monad.Except (liftIO, runExceptT)
-import qualified Data.Map as Map
+import qualified Data.Map.Strict as Map
 
 import Readline (addHistory, readline, load_history)
 import Types
 import Reader (read_str)
-import Printer (_pr_list, _pr_str)
+import Printer(_pr_list, _pr_str)
 
---
---  Set this to True for a trace of each call to Eval.
---
-traceEval :: Bool
-traceEval = False
+type Env = Map.Map String MalVal
 
 -- read
 
@@ -19,34 +15,32 @@ mal_read = read_str
 
 -- eval
 
-apply_ast :: MalVal -> [MalVal] -> IOThrows MalVal
-apply_ast first rest = do
-    evd <- eval first
+apply_ast :: MalVal -> [MalVal] -> Env -> IOThrows MalVal
+apply_ast first rest env = do
+    evd <- eval env first
     case evd of
-        MalFunction _ f -> f =<< mapM eval rest
+        MalFunction _ f -> f =<< mapM (eval env) rest
         _               -> throwStr . (++) "invalid apply: " =<< liftIO (_pr_list True " " $ first : rest)
 
-eval :: MalVal -> IOThrows MalVal
-eval ast = do
-    case traceEval of
-        True -> liftIO $ do
-            putStr "EVAL: "
-            putStrLn =<< _pr_str True ast
-        False -> pure ()
+eval :: Env -> MalVal -> IOThrows MalVal
+eval env ast = do
+    --  putStr "EVAL: "
+    --  putStrLn =<< mal_print ast
     case ast of
         MalSymbol sym -> do
-            case Map.lookup sym repl_env of
+            let maybeVal = Map.lookup sym env
+            case maybeVal of
                 Nothing  -> throwStr $ "'" ++ sym ++ "' not found"
                 Just val -> return val
-        MalSeq _ (Vect False) (a1 : as) -> apply_ast a1 as
-        MalSeq _ (Vect True)  xs        -> MalSeq (MetaData Nil) (Vect True) <$> mapM eval xs
-        MalHashMap _ xs                 -> MalHashMap (MetaData Nil) <$> mapM eval xs
+        MalSeq _ (Vect False) (a1 : as) -> apply_ast a1 as env
+        MalSeq _ (Vect True)  xs        -> MalSeq (MetaData Nil) (Vect True) <$> mapM (eval env) xs
+        MalHashMap _ xs                 -> MalHashMap (MetaData Nil) <$> mapM (eval env) xs
         _ -> return ast
 
 -- print
 
-mal_print :: MalVal -> IOThrows String
-mal_print = liftIO . Printer._pr_str True
+mal_print :: MalVal -> IO String
+mal_print = _pr_str True
 
 -- repl
 
@@ -66,35 +60,27 @@ divd :: Fn
 divd [MalNumber a, MalNumber b] = return $ MalNumber $ a `div` b
 divd _ = throwStr $ "illegal arguments to /"
 
-repl_env :: Map.Map String MalVal
-repl_env = Map.fromList [("+", _func add),
-                         ("-", _func sub),
-                         ("*", _func mult),
-                         ("/", _func divd)]
-
-rep :: String -> IOThrows String
-rep line = mal_print =<< eval =<< mal_read line
-
-repl_loop :: IO ()
-repl_loop = do
+repl_loop :: Env -> IO ()
+repl_loop env = do
     line <- readline "user> "
     case line of
         Nothing -> return ()
-        Just "" -> repl_loop
+        Just "" -> repl_loop env
         Just str -> do
             addHistory str
-            res <- runExceptT $ rep str
+            res <- runExceptT $ eval env =<< mal_read str
             out <- case res of
-                Left mv -> (++) "Error: " <$> liftIO (Printer._pr_str True mv)
-                Right val -> return val
+                Left mv -> (++) "Error: " <$> mal_print mv
+                Right val -> mal_print val
             putStrLn out
-            repl_loop
-
-_func :: Fn -> MalVal
-_func f = MalFunction (MetaData Nil) f
+            repl_loop env
 
 main :: IO ()
 main = do
-    load_history
+    let repl_env = Map.fromList [("+", MalFunction (MetaData Nil) add),
+                                 ("-", MalFunction (MetaData Nil) sub),
+                                 ("*", MalFunction (MetaData Nil) mult),
+                                 ("/", MalFunction (MetaData Nil) divd)]
 
-    repl_loop
+    load_history
+    repl_loop repl_env
