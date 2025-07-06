@@ -126,7 +126,7 @@ do_readline :: Fn
 do_readline [MalString prompt] = do
     maybeLine <- liftIO $ readline prompt
     case maybeLine of
-        Nothing -> throwStr "readline failed"
+        Nothing -> return Nil
         Just line -> return $ MalString line
 do_readline _ = throwStr "invalid arguments to readline"
 
