@@ -16,13 +16,19 @@
 
 (begin
 
-;; HACK: cyclone currently implements error the SICP way
 (cond-expand
+ ;; HACK: cyclone currently implements error the SICP way
  (cyclone
   (define (error-object? x) (and (pair? x) (string? (car x))))
   (define read-error? error-object?)
   (define error-object-message car)
   (define error-object-irritants cdr))
+ ;; HACK: https://debbugs.gnu.org/cgi/bugreport.cgi?bug=62464
+ (guile
+  (define %error-object-irritants error-object-irritants)
+  (set! error-object-irritants
+        (lambda (ex)
+          (or (%error-object-irritants ex) '()))))
  (else))
 
 (define (call-with-input-string string proc)
