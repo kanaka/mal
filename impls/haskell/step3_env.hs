@@ -4,7 +4,7 @@ import Readline (addHistory, readline, load_history)
 import Types
 import Reader (read_str)
 import Printer (_pr_list, _pr_str)
-import Env (Env, env_get, env_let, env_put, env_repl, env_set)
+import Env
 
 -- read
 
@@ -29,7 +29,7 @@ apply_ast (MalSymbol "def!") [MalSymbol a1, a2] env = do
 apply_ast (MalSymbol "def!") _ _ = throwStr "invalid def!"
 
 apply_ast (MalSymbol "let*") [MalSeq _ _ params, a2] env = do
-    let_env <- liftIO $ env_let env
+    let_env <- liftIO $ env_new $ Just env
     let_bind let_env params
     eval let_env a2
 apply_ast (MalSymbol "let*") _ _ = throwStr "invalid let*"
@@ -113,7 +113,7 @@ main :: IO ()
 main = do
     load_history
 
-    repl_env <- env_repl
+    repl_env <- env_new Nothing
 
     defBuiltIn repl_env "+" add
     defBuiltIn repl_env "-" sub
