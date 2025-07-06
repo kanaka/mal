@@ -1,4 +1,3 @@
-import System.IO (hFlush, stdout)
 import Control.Monad.Except (liftIO, runExceptT)
 import qualified Data.Map as Map
 
@@ -33,7 +32,6 @@ eval ast = do
         True -> liftIO $ do
             putStr "EVAL: "
             putStrLn =<< _pr_str True ast
-            hFlush stdout
         False -> pure ()
     case ast of
         MalSymbol sym -> do
@@ -90,7 +88,6 @@ repl_loop = do
                 Left mv -> (++) "Error: " <$> liftIO (Printer._pr_str True mv)
                 Right val -> return val
             putStrLn out
-            hFlush stdout
             repl_loop
 
 _func :: Fn -> MalVal
