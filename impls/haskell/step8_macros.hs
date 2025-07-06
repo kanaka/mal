@@ -157,13 +157,14 @@ repl_loop env = do
             hFlush stdout
             repl_loop env
 
---  Read and evaluate a line. Ignore successful results, but crash in
---  case of error. This is intended for the startup procedure.
+--  Read and evaluate a line.  Ignore successful results, else print
+--  an error message case of error.
+--  The error function seems appropriate, but has no effect.
 re :: Env -> String -> IO ()
 re repl_env line = do
     res <- runExceptT $ eval repl_env =<< mal_read line
     case res of
-        Left mv -> error . (++) "Startup failed: " <$> Printer._pr_str True mv
+        Left mv -> putStrLn . (++) "Startup failed: " =<< _pr_str True mv
         Right _ -> return ()
 
 defBuiltIn :: Env -> (String, Fn) -> IO ()
