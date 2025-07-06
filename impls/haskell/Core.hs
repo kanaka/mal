@@ -133,16 +133,10 @@ read_string _ = throwStr "invalid read-string"
 
 -- Numeric functions
 
-num_op :: String -> (Int -> Int -> Int) -> (String, Fn)
-num_op name op = (name, fn) where
+num_op :: String -> (Int -> Int -> a) -> (a -> MalVal) -> (String, Fn)
+num_op name op constructor = (name, fn) where
   fn :: Fn
-  fn [MalNumber a, MalNumber b] = return $ MalNumber $ op a b
-  fn _ = throwStr $ "illegal arguments to " ++ name
-
-cmp_op :: String -> (Int -> Int -> Bool) -> (String, Fn)
-cmp_op name op = (name, fn) where
-  fn :: Fn
-  fn [MalNumber a, MalNumber b] = return $ MalBoolean $ op a b
+  fn [MalNumber a, MalNumber b] = return $ constructor $ op a b
   fn _ = throwStr $ "illegal arguments to " ++ name
 
 time_ms :: Fn
@@ -351,14 +345,14 @@ ns = [
     ("read-string", read_string),
     ("slurp",       slurp),
 
-    (cmp_op "<"     (<)),
-    (cmp_op "<="    (<=)),
-    (cmp_op ">"     (>)),
-    (cmp_op ">="    (>=)),
-    (num_op "+"     (+)),
-    (num_op "-"     (-)),
-    (num_op "*"     (*)),
-    (num_op "/"     div),
+    num_op "<"  (<)  MalBoolean,
+    num_op "<=" (<=) MalBoolean,
+    num_op ">"  (>)  MalBoolean,
+    num_op ">=" (>=) MalBoolean,
+    num_op "+"  (+)  MalNumber,
+    num_op "-"  (-)  MalNumber,
+    num_op "*"  (*)  MalNumber,
+    num_op "/"  div  MalNumber,
     ("time-ms",     time_ms),
 
     ("list",        list),
