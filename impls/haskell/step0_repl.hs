@@ -1,5 +1,3 @@
-import System.IO (hFlush, stdout)
-
 import Readline (addHistory, readline, load_history)
 
 type MalVal = String
@@ -33,7 +31,6 @@ repl_loop = do
         Just str -> do
             addHistory str
             putStrLn $ rep str
-            hFlush stdout
             repl_loop
 
 main :: IO ()

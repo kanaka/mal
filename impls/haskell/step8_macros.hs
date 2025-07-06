@@ -1,4 +1,3 @@
-import System.IO (hFlush, stdout)
 import System.Environment (getArgs)
 import Control.Monad.Except (liftIO, runExceptT)
 import Data.Foldable (foldlM, foldrM)
@@ -119,7 +118,6 @@ eval env ast = do
             putStr "   "
             env_put env
             putStrLn ""
-            hFlush stdout
     case ast of
         MalSymbol sym -> do
             maybeVal <- liftIO $ env_get env sym
@@ -154,7 +152,6 @@ repl_loop env = do
                 Left mv -> (++) "Error: " <$> liftIO (Printer._pr_str True mv)
                 Right val -> return val
             putStrLn out
-            hFlush stdout
             repl_loop env
 
 --  Read and evaluate a line.  Ignore successful results, else print

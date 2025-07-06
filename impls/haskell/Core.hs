@@ -2,7 +2,6 @@ module Core
 ( ns )
 where
 
-import System.IO (hFlush, stdout)
 import Control.Monad.Except (throwError)
 import Control.Monad.Trans (liftIO)
 import qualified Data.Map.Strict as Map
@@ -109,13 +108,11 @@ str args = liftIO $ MalString <$> _pr_list False "" args
 prn :: Fn
 prn args = liftIO $ do
     putStrLn =<< _pr_list True " " args
-    hFlush stdout
     return Nil
 
 println :: Fn
 println args = liftIO $ do
     putStrLn =<< _pr_list False " " args
-    hFlush stdout
     return Nil
 
 slurp :: Fn

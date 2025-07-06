@@ -10,6 +10,7 @@ import qualified System.Console.Readline as RL
 
 import Control.Monad (when)
 import System.Directory (getHomeDirectory, doesFileExist)
+import System.IO (hFlush, stdout)
 import System.IO.Error (tryIOError)
 
 history_file :: IO String
@@ -26,7 +27,9 @@ load_history = do
         mapM_ RL.addHistory (lines content)
 
 readline :: String -> IO (Maybe String)
-readline = RL.readline
+readline prompt = do
+    hFlush stdout
+    RL.readline prompt
 
 addHistory :: String -> IO ()
 addHistory line = do

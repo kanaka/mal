@@ -1,4 +1,3 @@
-import System.IO (hFlush, stdout)
 import Control.Monad.Except (liftIO, runExceptT)
 
 import Readline (addHistory, readline, load_history)
@@ -39,7 +38,6 @@ repl_loop = do
                 Left mv -> (++) "Error: " <$> liftIO (Printer._pr_str True mv)
                 Right val -> return val
             putStrLn out
-            hFlush stdout
             repl_loop
 
 main :: IO ()

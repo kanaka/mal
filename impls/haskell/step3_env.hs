@@ -1,4 +1,3 @@
-import System.IO (hFlush, stdout)
 import Control.Monad.Except (liftIO, runExceptT)
 
 import Readline (addHistory, readline, load_history)
@@ -54,7 +53,6 @@ eval env ast = do
             putStr "   "
             env_put env
             putStrLn ""
-            hFlush stdout
     case ast of
         MalSymbol sym -> do
             maybeVal <- liftIO $ env_get env sym
@@ -105,7 +103,6 @@ repl_loop env = do
                 Left mv -> (++) "Error: " <$> liftIO (Printer._pr_str True mv)
                 Right val -> return val
             putStrLn out
-            hFlush stdout
             repl_loop env
 
 defBuiltIn :: Env -> String -> Fn -> IO ()
