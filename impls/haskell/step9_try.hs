@@ -6,7 +6,7 @@ import Readline (addHistory, readline, load_history)
 import Types
 import Reader (read_str)
 import Printer(_pr_list, _pr_str)
-import Env (Env, env_apply, env_get, env_let, env_put, env_repl, env_set)
+import Env
 import Core (ns)
 
 -- read
@@ -50,7 +50,7 @@ apply_ast (MalSymbol "def!") [MalSymbol a1, a2] env = do
 apply_ast (MalSymbol "def!") _ _ = throwStr "invalid def!"
 
 apply_ast (MalSymbol "let*") [MalSeq _ _ params, a2] env = do
-    let_env <- liftIO $ env_let env
+    let_env <- liftIO $ env_new $ Just env
     let_bind let_env params
     eval let_env a2
 apply_ast (MalSymbol "let*") _ _ = throwStr "invalid let*"
@@ -72,13 +72,14 @@ apply_ast (MalSymbol "defmacro!") [MalSymbol a1, a2] env = do
 apply_ast (MalSymbol "defmacro!") _ _ = throwStr "invalid defmacro!"
 
 apply_ast (MalSymbol "try*") [a1] env = eval env a1
-apply_ast (MalSymbol "try*") [a1, MalSeq _ (Vect False) [MalSymbol "catch*", a21, a22]] env = do
+apply_ast (MalSymbol "try*") [a1, MalSeq _ (Vect False) [MalSymbol "catch*", MalSymbol a21, a22]] env = do
     res <- liftIO $ runExceptT $ eval env a1
     case res of
         Right val -> return val
-        Left exc -> case env_apply env [a21] [exc] of
-            Just try_env -> eval try_env a22
-            Nothing    -> throwStr "invalid catch*"
+        Left exc -> do
+            try_env <- liftIO $ env_new $ Just env
+            liftIO $ env_set try_env a21 exc
+            eval try_env a22
 apply_ast (MalSymbol "try*") _ _ = throwStr "invalid try*"
 
 apply_ast (MalSymbol "do") args env = foldlM (const $ eval env) Nil args
@@ -100,12 +101,17 @@ apply_ast (MalSymbol "if") _ _ = throwStr "invalid if"
 apply_ast (MalSymbol "fn*") [MalSeq _ _ params, ast] env = return $ MalFunction (MetaData Nil) fn where
     fn :: [MalVal] -> IOThrows MalVal
     fn args = do
-        case env_apply env params args of
-            Just fn_env -> eval fn_env ast
-            Nothing -> do
+        fn_env <- liftIO $ env_new $ Just env
+        let loop [] [] = eval fn_env ast
+            loop [MalSymbol "&", k] vs = loop [k] [toList vs]
+            loop (MalSymbol k : ks) (v : vs) = do
+                liftIO $ env_set fn_env k v
+                loop ks vs
+            loop _ _ = do
                 p <- liftIO $ _pr_list True " " params
                 a <- liftIO $ _pr_list True " " args
                 throwStr $ "actual parameters: " ++ a ++ " do not match signature: " ++ p
+        loop params args
 apply_ast (MalSymbol "fn*") _ _ = throwStr "invalid fn*"
 
 apply_ast first rest env = do
@@ -187,7 +193,7 @@ main = do
     args <- getArgs
     load_history
 
-    repl_env <- env_repl
+    repl_env <- env_new Nothing
 
     -- core.hs: defined using Haskell
     mapM_ (defBuiltIn repl_env) Core.ns
