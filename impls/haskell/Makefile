@@ -1,21 +1,22 @@
-SRCS = step0_repl.hs step1_read_print.hs step2_eval.hs step3_env.hs \
-       step4_if_fn_do.hs step5_tco.hs step6_file.hs step7_quote.hs \
-       step8_macros.hs step9_try.hs stepA_mal.hs
-OTHER_SRCS = Readline.hs Types.hs Reader.hs Printer.hs Env.hs Core.hs
-BINS = $(SRCS:%.hs=%)
-ghc_flags = -Wall
+BINS4 = step4_if_fn_do step5_tco step6_file step7_quote step8_macros \
+  step9_try stepA_mal
+BINS3 = step3_env $(BINS4)
+BINS1 = step1_read_print step2_eval $(BINS3)
+BINS = step0_repl $(BINS1)
+ghc_flags = -Wall -Wextra
+LDLIBS = -lreadline
 
 #####################
 
 all: $(BINS)
 
-dist: mal
+$(BINS): %: %.hs
+	ghc ${ghc_flags} --make $< $(LDLIBS) -o $@
 
-mal: $(word $(words $(BINS)),$(BINS))
-	cp $< $@
-
-$(BINS): %: %.hs $(OTHER_SRCS)
-	ghc ${ghc_flags} --make $< -o $@
+$(BINS1): Types.hs Reader.hs Printer.hs
+$(BINS3): Env.hs
+$(BINS4): Core.hs
+$(BINS): Readline.hs
 
 clean:
-	rm -f $(BINS) mal *.hi *.o
+	rm -f $(BINS) *.hi *.o
