@@ -23,21 +23,32 @@ data MalVal = Nil
             | MalSymbol   String
             | MalKeyword  String
             | MalSeq      MetaData Vect [MalVal]
-            | MalHashMap  MetaData (Map.Map String MalVal)
+            | MalHashMap  MetaData (Map.Map MapKey MalVal)
             | MalAtom     MetaData (IORef MalVal)
             | MalFunction MetaData Fn
             | MalMacro    Fn
 
 --  Stored into maps to distinguish keywords and symbols.
-encodeKey :: MalVal -> Maybe String
-encodeKey (MalString  s) = pure $ 't' : s
-encodeKey (MalKeyword s) = pure $ 'e' : s
-encodeKey _              = Nothing
+--  MapKey is not exported, other modules use encodeKey or kv2map.
+data MapKey = MapKeyKeyword String | MapKeyString String
+instance Eq MapKey where
+    MapKeyString  a == MapKeyString  b = a == b
+    MapKeyKeyword a == MapKeyKeyword b = a == b
+    _               == _               = False
+instance Ord MapKey where
+    compare (MapKeyString  a) (MapKeyString  b) = compare a b
+    compare (MapKeyKeyword a) (MapKeyKeyword b) = compare a b
+    compare (MapKeyKeyword _) (MapKeyString  _) = LT
+    compare (MapKeyString  _) (MapKeyKeyword _) = GT
 
-decodeKey :: String -> MalVal
-decodeKey ('t' : k) = MalString k
-decodeKey ('e' : k) = MalKeyword k
-decodeKey _         = error "internal error in Types.decodeKey"
+encodeKey :: MalVal -> IOThrows MapKey
+encodeKey (MalString  key) = pure $ MapKeyString  key
+encodeKey (MalKeyword key) = pure $ MapKeyKeyword key
+encodeKey _ = throwStr "map keys must be keywords or strings"
+
+decodeKey :: MapKey -> MalVal
+decodeKey (MapKeyString  k) = MalString  k
+decodeKey (MapKeyKeyword k) = MalKeyword k
 
 instance Eq MalVal where
     Nil              == Nil              = True
@@ -63,11 +74,11 @@ throwStr = throwError . MalString
 toList :: [MalVal] -> MalVal
 toList = MalSeq (MetaData Nil) (Vect False)
 
-kv2map :: Map.Map String MalVal -> [MalVal] -> Maybe MalVal
+--  Use Maybe because Core throws while Reader fails.
+kv2map :: Map.Map MapKey MalVal -> [MalVal] -> Maybe MalVal
 kv2map start forms = MalHashMap (MetaData Nil) <$> assoc1 start forms where
-  assoc1 :: Map.Map String MalVal -> [MalVal] -> Maybe (Map.Map String MalVal)
-  assoc1 acc (k : v : kvs) = do
-    encoded <- encodeKey k
-    assoc1 (Map.insert encoded v acc) kvs
+  assoc1 :: Map.Map MapKey MalVal -> [MalVal] -> Maybe (Map.Map MapKey MalVal)
+  assoc1 acc (MalKeyword s : v : kvs) = assoc1 (Map.insert (MapKeyKeyword s) v acc) kvs
+  assoc1 acc (MalString  s : v : kvs) = assoc1 (Map.insert (MapKeyString  s) v acc) kvs
   assoc1 acc [] = Just acc
-  assoc1 _ [_] = Nothing
+  assoc1 _ _ = Nothing
