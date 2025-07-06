@@ -5,7 +5,6 @@ where
 import Control.Monad.Except (throwError)
 import Control.Monad.Trans (liftIO)
 import qualified Data.Map.Strict as Map
-import Data.Foldable (foldlM)
 import Data.Time.Clock.POSIX (getPOSIXTime)
 import Data.IORef (newIORef, readIORef, writeIORef)
 
@@ -167,30 +166,22 @@ assoc (MalHashMap _ hm : kvs) = case kv2map hm kvs of
         Nothing    -> throwStr "invalid assoc"
 assoc _ = throwStr "invalid call to assoc"
 
-remover :: Map.Map String MalVal -> MalVal -> IOThrows (Map.Map String MalVal)
-remover acc key = case encodeKey key of
-    Nothing      -> throwStr "invalid dissoc"
-    Just encoded -> return $ Map.delete encoded acc
-
 dissoc :: Fn
-dissoc (MalHashMap _ hm : ks) = MalHashMap (MetaData Nil) <$> foldlM remover hm ks
+dissoc (MalHashMap _ hm : ks) = MalHashMap (MetaData Nil) . foldl
+    (flip Map.delete) hm <$> mapM encodeKey ks
 dissoc _ = throwStr "invalid call to dissoc"
 
 get :: Fn
-get [MalHashMap _ hm, k] = case encodeKey k of
-    Nothing  -> throwStr "invalid call to get"
-    Just key -> case Map.lookup key hm of
-        Just mv -> return mv
-        Nothing -> return Nil
-get [Nil, MalString _] = return Nil
+get [MalHashMap _ hm, k] = orNil . flip Map.lookup hm <$> encodeKey k
+  where
+    orNil (Just v) = v
+    orNil Nothing  = Nil
+get [Nil, k] = const Nil <$> encodeKey k
 get _ = throwStr "invalid call to get"
 
 contains_Q :: Fn
-contains_Q [MalHashMap _ hm, k] = case encodeKey k of
-  Just key -> return $ MalBoolean $ Map.member key  hm
-  Nothing  -> throwStr "invalid call to contains?"
-contains_Q [Nil, MalString _] = return $ MalBoolean False
-contains_Q [Nil, MalSymbol _] = return $ MalBoolean False
+contains_Q [MalHashMap _ m, k] = MalBoolean . flip Map.member m <$> encodeKey k
+contains_Q [Nil, k] = MalBoolean . const False <$> encodeKey k
 contains_Q _ = throwStr "invalid call to contains?"
 
 keys :: Fn
