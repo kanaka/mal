@@ -2,11 +2,9 @@ module Core
 ( ns )
 where
 
-import System.IO (hFlush, stdout)
 import Control.Monad.Except (throwError)
 import Control.Monad.Trans (liftIO)
 import qualified Data.Map.Strict as Map
-import Data.Foldable (foldlM)
 import Data.Time.Clock.POSIX (getPOSIXTime)
 import Data.IORef (newIORef, readIORef, writeIORef)
 
@@ -109,13 +107,11 @@ str args = liftIO $ MalString <$> _pr_list False "" args
 prn :: Fn
 prn args = liftIO $ do
     putStrLn =<< _pr_list True " " args
-    hFlush stdout
     return Nil
 
 println :: Fn
 println args = liftIO $ do
     putStrLn =<< _pr_list False " " args
-    hFlush stdout
     return Nil
 
 slurp :: Fn
@@ -126,7 +122,7 @@ do_readline :: Fn
 do_readline [MalString prompt] = do
     maybeLine <- liftIO $ readline prompt
     case maybeLine of
-        Nothing -> throwStr "readline failed"
+        Nothing -> return Nil
         Just line -> return $ MalString line
 do_readline _ = throwStr "invalid arguments to readline"
 
@@ -136,16 +132,10 @@ read_string _ = throwStr "invalid read-string"
 
 -- Numeric functions
 
-num_op :: String -> (Int -> Int -> Int) -> (String, Fn)
-num_op name op = (name, fn) where
+num_op :: String -> (Int -> Int -> a) -> (a -> MalVal) -> (String, Fn)
+num_op name op constructor = (name, fn) where
   fn :: Fn
-  fn [MalNumber a, MalNumber b] = return $ MalNumber $ op a b
-  fn _ = throwStr $ "illegal arguments to " ++ name
-
-cmp_op :: String -> (Int -> Int -> Bool) -> (String, Fn)
-cmp_op name op = (name, fn) where
-  fn :: Fn
-  fn [MalNumber a, MalNumber b] = return $ MalBoolean $ op a b
+  fn [MalNumber a, MalNumber b] = return $ constructor $ op a b
   fn _ = throwStr $ "illegal arguments to " ++ name
 
 time_ms :: Fn
@@ -176,30 +166,22 @@ assoc (MalHashMap _ hm : kvs) = case kv2map hm kvs of
         Nothing    -> throwStr "invalid assoc"
 assoc _ = throwStr "invalid call to assoc"
 
-remover :: Map.Map String MalVal -> MalVal -> IOThrows (Map.Map String MalVal)
-remover acc key = case encodeKey key of
-    Nothing      -> throwStr "invalid dissoc"
-    Just encoded -> return $ Map.delete encoded acc
-
 dissoc :: Fn
-dissoc (MalHashMap _ hm : ks) = MalHashMap (MetaData Nil) <$> foldlM remover hm ks
+dissoc (MalHashMap _ hm : ks) = MalHashMap (MetaData Nil) . foldl
+    (flip Map.delete) hm <$> mapM encodeKey ks
 dissoc _ = throwStr "invalid call to dissoc"
 
 get :: Fn
-get [MalHashMap _ hm, k] = case encodeKey k of
-    Nothing  -> throwStr "invalid call to get"
-    Just key -> case Map.lookup key hm of
-        Just mv -> return mv
-        Nothing -> return Nil
-get [Nil, MalString _] = return Nil
+get [MalHashMap _ hm, k] = orNil . flip Map.lookup hm <$> encodeKey k
+  where
+    orNil (Just v) = v
+    orNil Nothing  = Nil
+get [Nil, k] = const Nil <$> encodeKey k
 get _ = throwStr "invalid call to get"
 
 contains_Q :: Fn
-contains_Q [MalHashMap _ hm, k] = case encodeKey k of
-  Just key -> return $ MalBoolean $ Map.member key  hm
-  Nothing  -> throwStr "invalid call to contains?"
-contains_Q [Nil, MalString _] = return $ MalBoolean False
-contains_Q [Nil, MalSymbol _] = return $ MalBoolean False
+contains_Q [MalHashMap _ m, k] = MalBoolean . flip Map.member m <$> encodeKey k
+contains_Q [Nil, k] = MalBoolean . const False <$> encodeKey k
 contains_Q _ = throwStr "invalid call to contains?"
 
 keys :: Fn
@@ -354,14 +336,14 @@ ns = [
     ("read-string", read_string),
     ("slurp",       slurp),
 
-    (cmp_op "<"     (<)),
-    (cmp_op "<="    (<=)),
-    (cmp_op ">"     (>)),
-    (cmp_op ">="    (>=)),
-    (num_op "+"     (+)),
-    (num_op "-"     (-)),
-    (num_op "*"     (*)),
-    (num_op "/"     div),
+    num_op "<"  (<)  MalBoolean,
+    num_op "<=" (<=) MalBoolean,
+    num_op ">"  (>)  MalBoolean,
+    num_op ">=" (>=) MalBoolean,
+    num_op "+"  (+)  MalNumber,
+    num_op "-"  (-)  MalNumber,
+    num_op "*"  (*)  MalNumber,
+    num_op "/"  div  MalNumber,
     ("time-ms",     time_ms),
 
     ("list",        list),

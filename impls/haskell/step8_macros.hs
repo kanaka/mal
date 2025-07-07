@@ -1,4 +1,3 @@
-import System.IO (hFlush, stdout)
 import System.Environment (getArgs)
 import Control.Monad.Except (liftIO, runExceptT)
 import Data.Foldable (foldlM, foldrM)
@@ -7,7 +6,7 @@ import Readline (addHistory, readline, load_history)
 import Types
 import Reader (read_str)
 import Printer(_pr_list, _pr_str)
-import Env (Env, env_apply, env_get, env_let, env_put, env_repl, env_set)
+import Env
 import Core (ns)
 
 -- read
@@ -51,7 +50,7 @@ apply_ast (MalSymbol "def!") [MalSymbol a1, a2] env = do
 apply_ast (MalSymbol "def!") _ _ = throwStr "invalid def!"
 
 apply_ast (MalSymbol "let*") [MalSeq _ _ params, a2] env = do
-    let_env <- liftIO $ env_let env
+    let_env <- liftIO $ env_new $ Just env
     let_bind let_env params
     eval let_env a2
 apply_ast (MalSymbol "let*") _ _ = throwStr "invalid let*"
@@ -91,12 +90,17 @@ apply_ast (MalSymbol "if") _ _ = throwStr "invalid if"
 apply_ast (MalSymbol "fn*") [MalSeq _ _ params, ast] env = return $ MalFunction (MetaData Nil) fn where
     fn :: [MalVal] -> IOThrows MalVal
     fn args = do
-        case env_apply env params args of
-            Just fn_env -> eval fn_env ast
-            Nothing -> do
+        fn_env <- liftIO $ env_new $ Just env
+        let loop [] [] = eval fn_env ast
+            loop [MalSymbol "&", k] vs = loop [k] [toList vs]
+            loop (MalSymbol k : ks) (v : vs) = do
+                liftIO $ env_set fn_env k v
+                loop ks vs
+            loop _ _ = do
                 p <- liftIO $ _pr_list True " " params
                 a <- liftIO $ _pr_list True " " args
                 throwStr $ "actual parameters: " ++ a ++ " do not match signature: " ++ p
+        loop params args
 apply_ast (MalSymbol "fn*") _ _ = throwStr "invalid fn*"
 
 apply_ast first rest env = do
@@ -119,7 +123,6 @@ eval env ast = do
             putStr "   "
             env_put env
             putStrLn ""
-            hFlush stdout
     case ast of
         MalSymbol sym -> do
             maybeVal <- liftIO $ env_get env sym
@@ -133,13 +136,10 @@ eval env ast = do
 
 -- print
 
-mal_print :: MalVal -> IOThrows String
-mal_print = liftIO . Printer._pr_str True
+mal_print :: MalVal -> IO String
+mal_print = _pr_str True
 
 -- repl
-
-rep :: Env -> String -> IOThrows String
-rep env line = mal_print =<< eval env =<< mal_read line
 
 repl_loop :: Env -> IO ()
 repl_loop env = do
@@ -149,21 +149,21 @@ repl_loop env = do
         Just "" -> repl_loop env
         Just str -> do
             addHistory str
-            res <- runExceptT $ rep env str
+            res <- runExceptT $ eval env =<< mal_read str
             out <- case res of
-                Left mv -> (++) "Error: " <$> liftIO (Printer._pr_str True mv)
-                Right val -> return val
+                Left mv -> (++) "Error: " <$> mal_print mv
+                Right val -> mal_print val
             putStrLn out
-            hFlush stdout
             repl_loop env
 
---  Read and evaluate a line. Ignore successful results, but crash in
---  case of error. This is intended for the startup procedure.
+--  Read and evaluate a line.  Ignore successful results, else print
+--  an error message case of error.
+--  The error function seems appropriate, but has no effect.
 re :: Env -> String -> IO ()
 re repl_env line = do
     res <- runExceptT $ eval repl_env =<< mal_read line
     case res of
-        Left mv -> error . (++) "Startup failed: " <$> Printer._pr_str True mv
+        Left mv -> putStrLn . (++) "Startup failed: " =<< _pr_str True mv
         Right _ -> return ()
 
 defBuiltIn :: Env -> (String, Fn) -> IO ()
@@ -177,9 +177,8 @@ evalFn _ _ = throwStr "illegal call of eval"
 main :: IO ()
 main = do
     args <- getArgs
-    load_history
 
-    repl_env <- env_repl
+    repl_env <- env_new Nothing
 
     -- core.hs: defined using Haskell
     mapM_ (defBuiltIn repl_env) Core.ns
@@ -196,4 +195,6 @@ main = do
             re repl_env $ "(load-file \"" ++ script ++ "\")"
         [] -> do
             env_set repl_env "*ARGV*" $ toList []
+
+            load_history
             repl_loop repl_env

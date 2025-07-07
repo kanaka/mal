@@ -1,5 +1,3 @@
-import System.IO (hFlush, stdout)
-
 import Readline (addHistory, readline, load_history)
 
 type MalVal = String
@@ -21,9 +19,6 @@ mal_print = id
 
 -- repl
 
-rep :: String -> String
-rep = mal_print . eval . mal_read
-
 repl_loop :: IO ()
 repl_loop = do
     line <- readline "user> "
@@ -32,12 +27,11 @@ repl_loop = do
         Just "" -> repl_loop
         Just str -> do
             addHistory str
-            putStrLn $ rep str
-            hFlush stdout
+            let out = mal_print $ eval $ mal_read str
+            putStrLn out
             repl_loop
 
 main :: IO ()
 main = do
     load_history
-
     repl_loop

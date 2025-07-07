@@ -304,6 +304,10 @@
 ;; Testing keywords as hash-map keys
 (get {:abc 123} :abc)
 ;=>123
+(get { "abc" 1 } :abc)
+;=>nil
+(get { :abc 1 } "abc")
+;=>nil
 (contains? {:abc 123} :abc)
 ;=>true
 (contains? {:abcd 123} :abc)

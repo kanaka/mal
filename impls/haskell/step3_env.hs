@@ -1,11 +1,10 @@
-import System.IO (hFlush, stdout)
 import Control.Monad.Except (liftIO, runExceptT)
 
 import Readline (addHistory, readline, load_history)
 import Types
 import Reader (read_str)
 import Printer (_pr_list, _pr_str)
-import Env (Env, env_get, env_let, env_put, env_repl, env_set)
+import Env
 
 -- read
 
@@ -30,7 +29,7 @@ apply_ast (MalSymbol "def!") [MalSymbol a1, a2] env = do
 apply_ast (MalSymbol "def!") _ _ = throwStr "invalid def!"
 
 apply_ast (MalSymbol "let*") [MalSeq _ _ params, a2] env = do
-    let_env <- liftIO $ env_let env
+    let_env <- liftIO $ env_new $ Just env
     let_bind let_env params
     eval let_env a2
 apply_ast (MalSymbol "let*") _ _ = throwStr "invalid let*"
@@ -54,7 +53,6 @@ eval env ast = do
             putStr "   "
             env_put env
             putStrLn ""
-            hFlush stdout
     case ast of
         MalSymbol sym -> do
             maybeVal <- liftIO $ env_get env sym
@@ -68,8 +66,8 @@ eval env ast = do
 
 -- print
 
-mal_print :: MalVal -> IOThrows String
-mal_print = liftIO . Printer._pr_str True
+mal_print :: MalVal -> IO String
+mal_print = _pr_str True
 
 -- repl
 
@@ -89,9 +87,6 @@ divd :: Fn
 divd [MalNumber a, MalNumber b] = return $ MalNumber $ a `div` b
 divd _ = throwStr $ "illegal arguments to /"
 
-rep :: Env -> String -> IOThrows String
-rep env line = mal_print =<< eval env =<< mal_read line
-
 repl_loop :: Env -> IO ()
 repl_loop env = do
     line <- readline "user> "
@@ -100,12 +95,11 @@ repl_loop env = do
         Just "" -> repl_loop env
         Just str -> do
             addHistory str
-            res <- runExceptT $ rep env str
+            res <- runExceptT $ eval env =<< mal_read str
             out <- case res of
-                Left mv -> (++) "Error: " <$> liftIO (Printer._pr_str True mv)
-                Right val -> return val
+                Left mv -> (++) "Error: " <$> mal_print mv
+                Right val -> mal_print val
             putStrLn out
-            hFlush stdout
             repl_loop env
 
 defBuiltIn :: Env -> String -> Fn -> IO ()
@@ -114,13 +108,12 @@ defBuiltIn env sym f =
 
 main :: IO ()
 main = do
-    load_history
-
-    repl_env <- env_repl
+    repl_env <- env_new Nothing
 
     defBuiltIn repl_env "+" add
     defBuiltIn repl_env "-" sub
     defBuiltIn repl_env "*" mult
     defBuiltIn repl_env "/" divd
 
+    load_history
     repl_loop repl_env
