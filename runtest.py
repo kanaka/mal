@@ -298,7 +298,9 @@ while t.next():
         break
 
     if t.msg != None:
-        log(t.msg)
+        # omit blank test lines unless verbose
+        if verbose or t.msg:
+            log(t.msg)
         continue
 
     if t.form == None: continue
