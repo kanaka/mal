@@ -27,8 +27,9 @@ def built_in(name: str) -> Callable[[PythonCall], None]:
             try:
                 return old_f(args)
             except Error as exc:
-                exc.add_note('The ' + name + ' core function received ['
-                             + pr_seq(args) + ' ] as arguments.')
+                if hasattr(exc, "add_note"):
+                    exc.add_note('The ' + name + ' core function received ['
+                                 + pr_seq(args) + ' ] as arguments.')
                 raise
 
         ns[name] = Fn(new_f)
