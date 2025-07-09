@@ -13,6 +13,7 @@ import pty, array, fcntl, termios
 
 IS_PY_3 = sys.version_info[0] == 3
 
+verbose = 0
 debug_file = None
 log_file = None
 
@@ -21,18 +22,24 @@ def debug(data):
         debug_file.write(data)
         debug_file.flush()
 
-def log(data, end='\n'):
+def log(data, verbosity=0, end='\n'):
     if log_file:
         log_file.write(data + end)
         log_file.flush()
-    print(data, end=end)
-    sys.stdout.flush()
+    if verbose >= verbosity:
+        print(data, end=end)
+        sys.stdout.flush()
+
+def vlog(data, end='\n'): log(data, verbosity=1, end=end)
+def vvlog(data, end='\n'): log(data, verbosity=2, end=end)
 
 sep = "\n"
 rundir = None
 
 parser = argparse.ArgumentParser(
         description="Run a test file against a Mal implementation")
+parser.add_argument('-v', '--verbose', action='count', default=0,
+        help="verbose output; repeat to increase verbosity")
 parser.add_argument('--rundir',
         help="change to the directory before running tests")
 parser.add_argument('--start-timeout', default=10, type=int,
@@ -128,7 +135,7 @@ class Runner():
                 # Perform newline cleanup
                 self.buf += new_data.replace("\r", "")
                 if self.buf.endswith('\x1b[6n'):
-                    log("Handling cursor query")
+                    vvlog("Handling ASCII cursor query")
                     self.stdin.write(b"\x1b[1;1R")
                     self.buf = ""
                     continue
@@ -225,6 +232,7 @@ class TestReader:
         return self.form
 
 args = parser.parse_args(sys.argv[1:])
+verbose = args.verbose
 # Workaround argparse issue with two '--' on command line
 if sys.argv.count('--') > 0:
     args.mal_cmd = sys.argv[sys.argv.index('--')+1:]
@@ -243,12 +251,15 @@ def assert_prompt(runner, prompts, timeout):
     header = runner.read_to_prompt(prompts, timeout=timeout)
     if not header == None:
         if header:
-            log("Started with:\n%s" % header)
+            vvlog("Started with:\n%s" % header)
     else:
         log("Did not receive one of following prompt(s): %s" % repr(prompts))
         log("    Got      : %s" % repr(r.buf))
         sys.exit(1)
 
+def elide(s, max = 79):
+    """Replace middle of a long string with '...' so length is <= max."""
+    return s if len(s) <= max else s[:(max-3)//2] + "..." + s[-((max-2)//2):]
 
 # Wait for the initial prompt
 try:
@@ -289,13 +300,16 @@ while t.next():
 
     if t.form == None: continue
 
-    log("TEST: %s -> [%s,%s]" % (repr(t.form), repr(t.out), t.ret), end='')
 
     # The repeated form is to get around an occasional OS X issue
     # where the form is repeated.
     # https://github.com/kanaka/mal/issues/30
     expects = [".*%s%s%s" % (sep, t.out, re.escape(t.ret)),
                ".*%s.*%s%s%s" % (sep, sep, t.out, re.escape(t.ret))]
+
+    test_msg = "TEST (line %d): %s -> %s" % (
+            t.line_num, repr(t.form), repr(expects[0]))
+    vlog(test_msg, end='')
 
     r.writeline(t.form)
     try:
@@ -304,30 +318,31 @@ while t.next():
                                 timeout=args.test_timeout)
         #print "%s,%s,%s" % (idx, repr(p.before), repr(p.after))
         if (res == None):
-            log(" -> TIMEOUT (line %d)" % t.line_num)
+            if verbose == 0: log(test_msg, end='')
+            log(" -> TIMEOUT")
             raise TestTimeout("TIMEOUT (line %d)" % t.line_num)
         elif (t.ret == "" and t.out == ""):
-            log(" -> SUCCESS (result ignored)")
+            vlog(" -> SUCCESS (result ignored)")
             pass_cnt += 1
         elif (re.search(expects[0], res, re.S) or
                 re.search(expects[1], res, re.S)):
-            log(" -> SUCCESS")
+            vlog(" -> SUCCESS")
             pass_cnt += 1
         else:
             if t.soft and not args.hard:
-                log(" -> SOFT FAIL (line %d):" % t.line_num)
+                vlog(" -> SOFT FAIL:")
                 soft_fail_cnt += 1
                 fail_type = "SOFT "
             else:
-                log(" -> FAIL (line %d):" % t.line_num)
+                vlog(" -> FAIL:")
                 fail_cnt += 1
                 fail_type = ""
-            log("    Expected : %s" % repr(expects[0]))
-            log("    Got      : %s" % repr(res))
-            failed_test = """%sFAILED TEST (line %d): %s -> [%s,%s]:
-    Expected : %s
-    Got      : %s""" % (fail_type, t.line_num, t.form, repr(t.out),
-                        t.ret, repr(expects[0]), repr(res))
+            expected = "    Expected : %s" % repr(expects[0])
+            got = "    Got      : %s" % repr(res)
+            vvlog(expected)
+            vlog(got if verbose >= 2 else elide(got))
+            failed_test = "%sFAILED %s:\n%s\n%s" % (
+                    fail_type, test_msg, expected, got)
             failures.append(failed_test)
     except:
         _, exc, _ = sys.exc_info()
