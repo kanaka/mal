@@ -14,7 +14,7 @@ end
 def qq_loop(ast)
   acc = List.new []
   ast.reverse_each do |elt|
-    if elt in List and elt in :"splice-unquote", quoted
+    if elt in List[:"splice-unquote", quoted]
       acc = List.new [:concat, quoted, acc]
     else
       acc = List.new [:cons, quasiquote(elt), acc]
@@ -24,9 +24,9 @@ def qq_loop(ast)
 end
 
 def quasiquote(ast)
-  return case ast
+  case ast
   when List
-    if ast in :unquote, quoted
+    if ast in List[:unquote, quoted]   # ← fixed pattern
       quoted
     else
       qq_loop(ast)
