@@ -1,4 +1,4 @@
-readline = require "./node_readline"
+readline = require "./node_readline.coffee"
 types = require "./types.coffee"
 reader = require "./reader.coffee"
 printer = require "./printer.coffee"

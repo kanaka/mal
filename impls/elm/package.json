@@ -4,7 +4,7 @@
   "description": "",
   "main": "bootstrap.js",
   "dependencies": {
-    "ffi-napi": "4.0.3"
+    "koffi": "^2.12.1"
   },
   "devDependencies": {
     "elm": "^0.19.1"
