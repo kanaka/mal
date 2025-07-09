@@ -1,9 +1,9 @@
-import { _equal_Q, _clone, _keyword, _keyword_Q } from './types'
-import { _list_Q, Vector, _assoc_BANG, Atom } from './types'
-import { pr_str } from './printer'
-import rl from './node_readline'
+import { _equal_Q, _clone, _keyword, _keyword_Q } from './types.mjs'
+import { _list_Q, Vector, _assoc_BANG, Atom } from './types.mjs'
+import { pr_str } from './printer.mjs'
+import rl from './node_readline.mjs'
 const readline = rl.readline
-import { read_str } from './reader'
+import { read_str } from './reader.mjs'
 import { readFileSync } from 'fs'
 
 function _error(e) { throw new Error(e) }

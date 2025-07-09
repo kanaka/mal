@@ -1,4 +1,4 @@
-import { _list_Q, _keyword_Q, Vector, Atom } from './types'
+import { _list_Q, _keyword_Q, Vector, Atom } from './types.mjs'
 
 export function pr_str(obj, print_readably) {
     if (typeof print_readably === 'undefined') { print_readably = true }

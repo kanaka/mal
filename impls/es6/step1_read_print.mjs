@@ -1,7 +1,7 @@
-import rl from './node_readline.js'
+import rl from './node_readline.mjs'
 const readline = rl.readline
-import { BlankException, read_str } from './reader'
-import { pr_str } from './printer'
+import { BlankException, read_str } from './reader.mjs'
+import { pr_str } from './printer.mjs'
 
 // read
 const READ = str => read_str(str)

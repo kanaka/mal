@@ -1,10 +1,10 @@
-import rl from './node_readline.js'
+import rl from './node_readline.mjs'
 const readline = rl.readline
-import { _clone, _list_Q, _malfunc, _malfunc_Q, Vector } from './types'
-import { BlankException, read_str } from './reader'
-import { pr_str } from './printer'
-import { new_env, env_set, env_get } from './env'
-import { core_ns } from './core'
+import { _clone, _list_Q, _malfunc, _malfunc_Q, Vector } from './types.mjs'
+import { BlankException, read_str } from './reader.mjs'
+import { pr_str } from './printer.mjs'
+import { new_env, env_set, env_get } from './env.mjs'
+import { core_ns } from './core.mjs'
 
 // read
 const READ = str => read_str(str)

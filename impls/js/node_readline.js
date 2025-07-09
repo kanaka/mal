@@ -1,17 +1,23 @@
 // IMPORTANT: choose one
-var RL_LIB = "libreadline";  // NOTE: libreadline is GPL
-//var RL_LIB = "libedit";
+var RL_LIB = "libreadline.so.8";  // NOTE: libreadline is GPL
+//var RL_LIB = "libedit.so.2";
 
 var HISTORY_FILE = require('path').join(process.env.HOME, '.mal-history');
 
 var rlwrap = {}; // namespace for this module in web context
 
-var ffi = require('ffi-napi'),
-    fs = require('fs');
+const koffi = require('koffi');
+const fs = require('fs');
 
-var rllib = ffi.Library(RL_LIB, {
-    'readline':    [ 'string', [ 'string' ] ],
-    'add_history': [ 'int',    [ 'string' ] ]});
+let rllib;
+try {
+    rllib = koffi.load(RL_LIB);
+} catch (e) {
+    console.error('ERROR loading RL_LIB:', RL_LIB, e);
+    throw e;
+}
+const readlineFunc = rllib.func('char *readline(char *)');
+const addHistoryFunc = rllib.func('int add_history(char *)');
 
 var rl_history_loaded = false;
 
@@ -27,13 +33,13 @@ exports.readline = rlwrap.readline = function(prompt) {
         // Max of 2000 lines
         lines = lines.slice(Math.max(lines.length - 2000, 0));
         for (var i=0; i<lines.length; i++) {
-            if (lines[i]) { rllib.add_history(lines[i]); }
+            if (lines[i]) { addHistoryFunc(lines[i]); }
         }
     }
 
-    var line = rllib.readline(prompt);
+    var line = readlineFunc(prompt);
     if (line) {
-        rllib.add_history(line);
+        addHistoryFunc(line);
         try {
             fs.appendFileSync(HISTORY_FILE, line + "\n");
         } catch (exc) {
@@ -43,4 +49,5 @@ exports.readline = rlwrap.readline = function(prompt) {
 
     return line;
 };
+//module.exports = { readline };
 var readline = exports;

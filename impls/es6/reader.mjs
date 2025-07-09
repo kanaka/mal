@@ -1,4 +1,4 @@
-import { _keyword, _assoc_BANG, Vector } from './types';
+import { _keyword, _assoc_BANG, Vector } from './types.mjs';
 
 export class BlankException extends Error {}
 

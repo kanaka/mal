@@ -1,4 +1,4 @@
-import rl from './node_readline.js'
+import rl from './node_readline.mjs'
 const readline = rl.readline
 
 // read

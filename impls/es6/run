@@ -1,2 +1,2 @@
 #!/bin/bash
-exec node -r esm $(dirname $0)/${STEP:-stepA_mal}.mjs "${@}"
+exec node $(dirname $0)/${STEP:-stepA_mal}.mjs "${@}"
