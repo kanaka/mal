@@ -53,9 +53,11 @@ parser.add_argument('--no-pty', action='store_true',
 parser.add_argument('--log-file', type=str,
         help="Write messages to the named file in addition the screen")
 parser.add_argument('--debug-file', type=str,
-        help="Write all test interaction the named file")
+        help="Write all test interactions to the named file")
 parser.add_argument('--hard', action='store_true',
         help="Turn soft tests (soft, deferrable, optional) into hard failures")
+parser.add_argument('--continue-after-fail', action='store_true',
+        help="Run all tests in a test file even if there are failures")
 
 # Control whether deferrable and optional tests are executed
 parser.add_argument('--deferrable', dest='deferrable', action='store_true',
@@ -276,6 +278,7 @@ if args.pre_eval:
     r.writeline(args.pre_eval)
     assert_prompt(r, ['[^\\s()<>]+> '], args.test_timeout)
 
+total_test_cnt = 0
 test_cnt = 0
 pass_cnt = 0
 fail_cnt = 0
@@ -300,6 +303,10 @@ while t.next():
 
     if t.form == None: continue
 
+    total_test_cnt += 1
+    if not args.continue_after_fail:
+        if fail_cnt > 0:
+            continue
 
     # The repeated form is to get around an occasional OS X issue
     # where the form is repeated.
@@ -360,9 +367,10 @@ TEST RESULTS (for %s):
   %3d: soft failing tests
   %3d: failing tests
   %3d: passing tests
-  %3d: total tests
-""" % (args.test_file, soft_fail_cnt, fail_cnt,
-        pass_cnt, test_cnt)
+  %3d: executed tests
+  %3d: total tests in the file (%d skipped)
+""" % (args.test_file, soft_fail_cnt, fail_cnt, pass_cnt, test_cnt,
+        total_test_cnt, total_test_cnt - test_cnt)
 log(results)
 
 debug("\n") # add some separate to debug log

@@ -26,6 +26,7 @@ mode_val=${!mode_var}
 
 log_prefix="${ACTION}${REGRESS:+-regress}-${IMPL}${mode_val:+-${mode_val}}${MAL_IMPL:+-${MAL_IMPL}}"
 TEST_OPTS="${TEST_OPTS} -vv --debug-file ../../${log_prefix}.debug"
+TEST_OPTS="${TEST_OPTS} --continue-after-fail"
 
 step_summary() {
     echo "${*}"
