@@ -1,4 +1,4 @@
-FROM ubuntu:20.04
+FROM ubuntu:24.04
 MAINTAINER Joel Martin <github@martintribe.org>
 
 ##########################################################
@@ -23,7 +23,6 @@ RUN apt-get -y install cargo \
   librust-fnv-dev \
   librust-itertools-dev \
   librust-lazy-static-dev \
-  librust-rustyline-dev \
   rust-clippy rustfmt
 
 ENV CARGO_HOME /mal
