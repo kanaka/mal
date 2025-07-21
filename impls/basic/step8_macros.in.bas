@@ -422,38 +422,59 @@ SUB EVAL
       GOTO EVAL_RETURN
 
     EVAL_INVOKE:
-      CALL EVAL_AST
 
-      REM if error, return f/args for release by caller
+      REM evaluate A0
+      GOSUB PUSH_A
+      A=A0:CALL EVAL
+      GOSUB POP_A
       IF ER<>-2 THEN GOTO EVAL_RETURN
 
-      REM push f/args for release after call
+      REM set F, push it in the stack for release after call
       GOSUB PUSH_R
-
-      AR=Z%(R+1): REM rest
-      F=Z%(R+2)
+      F=R
 
       GOSUB TYPE_F
       T=T-8
       IF 0<T THEN ON T GOTO EVAL_DO_FUNCTION,EVAL_DO_MAL_FUNCTION
 
-      REM if error, pop and return f/args for release by caller
+      REM if error, pop and return f for release by caller
       GOSUB POP_R
       ER=-1:E$="apply of non-function":GOTO EVAL_RETURN
 
       EVAL_DO_FUNCTION:
         REM regular function
+
+        REM Evaluate the arguments
+        A=Z%(A+1):CALL EVAL_AST
+        IF ER<>-2 THEN GOSUB POP_Q:AY=Q:GOSUB RELEASE:GOTO EVAL_RETURN
+
+        REM set F and AR, push AR (after F) in the stack for release after call
+        GOSUB PEEK_Q:F=Q
+        GOSUB PUSH_R
+        AR=R
+
         IF Z%(F+1)<65 THEN GOSUB DO_FUNCTION:GOTO EVAL_DO_FUNCTION_SKIP
         REM for recur functions (apply, map, swap!), use GOTO
         IF Z%(F+1)>64 THEN CALL DO_TCO_FUNCTION
         EVAL_DO_FUNCTION_SKIP:
 
         REM pop and release f/args
+        GOSUB POP_Q:AY=Q:GOSUB RELEASE
         GOSUB POP_Q:AY=Q
         GOSUB RELEASE
         GOTO EVAL_RETURN
 
       EVAL_DO_MAL_FUNCTION:
+
+        REM Evaluate the arguments
+        A=Z%(A+1):CALL EVAL_AST
+        IF ER<>-2 THEN GOSUB POP_Q:AY=Q:GOSUB RELEASE:GOTO EVAL_RETURN
+
+        REM set F and AR, push AR (after F) in the stack for release after call
+        GOSUB PEEK_Q:F=Q
+        GOSUB PUSH_R
+        AR=R
+
         Q=E:GOSUB PUSH_Q: REM save the current environment for release
 
         REM create new environ using env and params stored in function
@@ -472,9 +493,9 @@ SUB EVAL
         REM actually returns (LV+1)
         LV=LV+1:GOSUB PEND_A_LV:LV=LV-1
 
-        REM pop and release f/args
-        GOSUB POP_Q:AY=Q
-        GOSUB RELEASE
+        REM pop f/args, do not release (?)
+        GOSUB POP_Q
+        GOSUB POP_Q
 
         REM A set above
         E=R:GOTO EVAL_TCO_RECUR: REM TCO loop
