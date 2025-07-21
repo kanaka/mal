@@ -6,55 +6,43 @@
 
 #define PROMPT_STRING "user> "
 
-
-char* READ(char* str) {
-
-  return str;
-}
-
-char* EVAL(char* str) {
+const char* READ(const char* str) {
 
   return str;
 }
 
-void PRINT(char* str) {
+const char* EVAL(const char* str) {
+
+  return str;
+}
+
+void PRINT(const char* str) {
 
   printf("%s\n", str);
 }
 
-void rep(char* str) {
+void rep(const char* str) {
 
   PRINT(EVAL(READ(str)));
 }
 
+int main(int, char**) {
 
-int main(int argc, char** argv) {
+    char* input;
+    while((input = readline(PROMPT_STRING))) {
 
-  /* Greeting message */
-  puts("Make-a-lisp version 0.0.1\n");
-  puts("Press Ctrl+d to exit\n");
+      /* print prompt and get input*/
+      /* readline allocates memory for input */
+      /* Check for EOF (Ctrl-D) */
+      /* add input to history */
+      add_history(input);
 
-  while (1) {
+      /* call Read-Eval-Print */
+      rep(input);
 
-    /* print prompt and get input*/
-    /* readline allocates memory for input */
-    char* input = readline(PROMPT_STRING);
-
-    /* Check for EOF (Ctrl-D) */
-    if (!input) {
-      printf("\n");
-      return 0;
+      /* have to release the memory used by readline */
+      free(input);
     }
-
-    /* add input to history */
-    add_history(input);
-
-    /* call Read-Eval-Print */
-    rep(input);
-
-    /* have to release the memory used by readline */
-    free(input);
-  }
-
-  return 0;
+    printf("\n");
+  return EXIT_SUCCESS;
 }

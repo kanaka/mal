@@ -2,14 +2,23 @@
 #define _MAL_HASHMAP_H
 
 #include "../linked_list/linked_list.h"
+#include "../../types.h"
 
 /* a hashmap is just a list with alternating key/value pairs */
+//  Keys are strings or keywords.
+//  Each key appears only once.
 typedef list hashmap;
 
-hashmap hashmap_make(char* keystring, gptr data_ptr);
-hashmap hashmap_put(hashmap map, char* keystring, gptr data_ptr);
-gptr hashmap_get(hashmap map, char* keystring);
-gptr hashmap_getf(hashmap map, char* keystring, char*(*fn)(gptr));
-hashmap hashmap_updatef(hashmap map, char* keystring, gptr value, char*(*fn)(gptr));
+hashmap hashmap_put(hashmap, MalType, MalType);
+// Check the key type
+// Remove duplicates.
+
+MalType hashmap_get(hashmap, MalType);
+
+MalType map_assoc(hashmap, list);
+// Deliberately reverse the bindings so that the last key takes
+// precedence.  Remove duplicates.
+
+MalType mal_hash_map(list args);
 
 #endif

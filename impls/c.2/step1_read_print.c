@@ -10,54 +10,45 @@
 
 #define PROMPT_STRING "user> "
 
-MalType* READ(char* str) {
+MalType READ(const char* str) {
 
   return read_str(str);
 }
 
-MalType* EVAL(MalType* val) {
+MalType EVAL(MalType val) {
 
   return val;
 }
 
-void PRINT(MalType* val) {
+void PRINT(MalType val) {
 
-  char* output = pr_str(val, READABLY);
-  printf("%s\n", output);
+  printf("%M\n", val);
 }
 
-void rep(char* str) {
+void rep(const char* str) {
 
   PRINT(EVAL(READ(str)));
 }
 
-int main(int argc, char** argv) {
+int main(int, char**) {
 
-  /* Greeting message */
-  puts("Make-a-lisp version 0.0.2\n");
-  puts("Press Ctrl+d to exit\n");
+  printer_init();
 
-  while (1) {
+    char* input;
+    while((input = readline(PROMPT_STRING))) {
 
-    /* print prompt and get input*/
-    /* readline allocates memory for input */
-    char* input = readline(PROMPT_STRING);
+      /* print prompt and get input*/
+      /* readline allocates memory for input */
+      /* Check for EOF (Ctrl-D) */
+      /* add input to history */
+      add_history(input);
 
-    /* Check for EOF (Ctrl-D) */
-    if (!input) {
-      printf("\n");
-      return 0;
+      /* call Read-Eval-Print */
+      rep(input);
+
+      /* have to release the memory used by readline */
+      free(input);
     }
-
-    /* add input to history */
-    add_history(input);
-
-    /* call Read-Eval-Print */
-    rep(input);
-
-    /* have to release the memory used by readline */
-    free(input);
-  }
-
-  return 0;
+    printf("\n");
+  return EXIT_SUCCESS;
 }

@@ -1,21 +1,16 @@
 #ifndef _MAL_ENV_H
 #define _MAL_ENV_H
 
-#include "libs/linked_list/linked_list.h"
-#include "libs/hashmap/hashmap.h"
 #include "types.h"
 
-typedef struct Env_s Env;
+//  types.h defines Env as struct Env_s.
 
-struct Env_s {
+Env* env_make(const Env* outer);
 
-  struct Env_s* outer;
-  hashmap data;
+void env_set(Env* current, const char* symbol, MalType value);
+/* can be called at most max times. */
 
-};
-
-Env* env_make(Env* outer, list binds, list exprs, MalType* variadic_symbol);
-void env_set(Env* current, char* symbol, MalType* value);
-MalType* env_get(Env* current, char* symbol);
+MalType env_get(const Env* current, const char* symbol);
+/* Returns NULL if the symbol is not found. */
 
 #endif
