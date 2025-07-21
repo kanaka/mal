@@ -6,11 +6,11 @@ public class MalDissoc extends MalSubr
         MalObject.slice(args, 1) @=> MalObject ks[];
 
         MalObject result[0];
-        int cachedKeys[0];
+        string cachedKeys[0];
 
         for( 0 => int i; i < ks.size(); i++ )
         {
-            true => cachedKeys[ks[i].stringValue];
+            ks[i].type => cachedKeys[ks[i].stringValue];
         }
 
         for( 0 => int i; i < map.size(); 2 +=> i )
@@ -18,7 +18,8 @@ public class MalDissoc extends MalSubr
             map[i] @=> MalObject key;
             map[i+1] @=> MalObject value;
 
-            if( !cachedKeys[key.stringValue] )
+            if (   cachedKeys[key.stringValue] == null
+                || cachedKeys[key.stringValue] != key.type )
             {
                 result << key;
                 result << value;
