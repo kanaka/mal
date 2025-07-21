@@ -446,3 +446,39 @@
 (bar {:foo 3})
 ;=>{:foo 3}
 ;; shouldn't give an error
+
+;; Keywords and strings must be distinct map keys.
+(get {"abc" 1} :abc)
+;=>nil
+(get {:abc 1} "abc")
+;=>nil
+(contains? {"abc" 1} :abc)
+;=>false
+(contains? {:abc 1} "abc")
+;=>false
+(dissoc {"abc" 1 :abc 1} :abc)
+;=>{"abc" 1}
+(dissoc {"abc" 1 :abc 1} "abc")
+;=>{:abc 1}
+
+;; Map updates must not create duplicate keys.
+{:a 1 :a 2}
+;=>{:a 2}
+(keys {:a 1 :a 2})
+;=>(:a)
+(hash-map :a 1 :a 2)
+;=>{:a 2}
+(keys (hash-map :a 1 :a 2))
+;=>(:a)
+(assoc {:a 1} :a 2)
+;=>{:a 2}
+(keys (assoc {:a 1} :a 2))
+;=>(:a)
+
+;; Assoc must not mutate the original map.
+(def! hm7 {:a 1})
+;=>{:a 1}
+(assoc hm7 :a 2)
+;=>{:a 2}
+(get hm7 :a)
+;=>1
