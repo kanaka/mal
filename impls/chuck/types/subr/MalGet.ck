@@ -20,7 +20,7 @@ public class MalGet extends MalSubr
             map[i] @=> mapKey;
             map[i+1] @=> mapValue;
 
-            if( keyName == mapKey.stringValue )
+            if( keyName == mapKey.stringValue && args[1].type == mapKey.type )
             {
                 true => isKeyPresent;
             }

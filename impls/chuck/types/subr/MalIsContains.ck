@@ -14,7 +14,7 @@ public class MalIsContains extends MalSubr
         {
             map[i] @=> mapKey;
 
-            if( keyName == mapKey.stringValue )
+            if( keyName == mapKey.stringValue && args[1].type == mapKey.type )
             {
                 true => isKeyPresent;
             }
