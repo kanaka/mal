@@ -19,11 +19,14 @@ function core_eq_sub(lhs, rhs,    i, len)
 	} else if (lhs ~ /^\{/ && rhs ~ /^\{/) {
 		lhs = substr(lhs, 2)
 		rhs = substr(rhs, 2)
-		if (length(types_heap[lhs]) != length(types_heap[rhs])) {
+		if ( length(types_heap[lhs]) - ("meta" in types_heap[lhs]) != \
+			length(types_heap[rhs]) - ("meta" in types_heap[rhs]) )
+		{
 			return 0
 		}
 		for (i in types_heap[lhs]) {
-			if (types_heap[lhs][i] ~ /^["':+#([{?&$%]/ &&
+			if ( i != "meta" &&
+				types_heap[lhs][i] ~ /^["':+#([{?&$%]/ &&
 				!core_eq_sub(types_heap[lhs][i], types_heap[rhs][i])) {
 				return 0
 			}
