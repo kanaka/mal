@@ -1,18 +1,26 @@
-#include <stdio.h>
 #include <string.h>
-#include <gc.h>
 
 #include "hashmap.h"
+#include "../../printer.h"
 
-hashmap hashmap_make(char* keystring, gptr data_ptr) {
+hashmap search(hashmap map, MalType keystring);
 
-  list map = list_make(data_ptr);
-  map = list_push(map, keystring);
+hashmap hashmap_put(hashmap map, MalType keystring, MalType data_ptr) {
 
-  return map;
-}
-
-hashmap hashmap_put(hashmap map, char* keystring, gptr data_ptr) {
+  const hashmap position = search(map, keystring);
+  if(position) {
+    //  Remove the key from map.
+    //  Recreate the part before the removed key, reuse the rest.
+    hashmap p = map;
+    map = position->next->next;
+    while(p != position) {
+      MalType k = p->data;
+      p = p->next;
+      map = list_push(map, p->data);
+      map = list_push(map, k);
+      p = p->next;
+    }
+  }
 
   map = list_push(map, data_ptr);
   map = list_push(map, keystring);
@@ -20,74 +28,43 @@ hashmap hashmap_put(hashmap map, char* keystring, gptr data_ptr) {
   return map;
 }
 
-gptr hashmap_get(hashmap map, char* keystring) {
-
-  /* handle empty case */
-  if (!map) {
-    return NULL;
-  }
-
-  list lst = map;
+hashmap search(hashmap lst, MalType keystring) {
 
   while(lst) {
 
-    if (strcmp(keystring, (char*)lst->data) == 0) {
-        return (lst->next)->data; /* return next item in list which is the value */
-      }
-      else {
-        lst = (lst->next)->next; /* skip the next item in the list to get to the next key */
-      }
-  }
-  return NULL; /* not found */
-}
-
-
-gptr hashmap_getf(hashmap map, char* keystring, char*(*fn)(gptr)) {
-
-  /* handle empty case */
-  if (!map) {
-    return NULL;
-  }
-
-  list lst = map;
-
-  while(lst) {
-
-    /* apply fn to the data to get a string */
-    char* item = fn(lst->data);
-
-    if (strcmp(keystring, item) == 0) {
-        return (lst->next)->data; /* return next item in list which is the value */
-      }
-      else {
-        lst = (lst->next)->next; /* skip the next item in the list to get to the next key */
-      }
-  }
-  return NULL; /* not found */
-}
-
-hashmap hashmap_updatef(hashmap map, char* keystring, gptr value, char*(*fn)(gptr)) {
-
-  /* handle empty case */
-  if (!map) {
-    return NULL;
-  }
-
-  list lst = map;
-
-  while(lst) {
-
-    /* apply fn to the data to get a string */
-    char* item = fn(lst->data);
-
-    if (strcmp(keystring, item) == 0) {
-      (lst->next)->data = value; /* update the next item in list which is the value */
-      return map; /* update made */
+    MalType val = lst->data;
+    if((keystring->type == val->type)
+       && (strcmp(keystring->value.mal_string, val->value.mal_string) == 0)) {
+      return lst;
     }
     else {
       lst = (lst->next)->next; /* skip the next item in the list to get to the next key */
     }
   }
+  return NULL; /* not found */
+}
 
-  return NULL; /* no update */
+MalType hashmap_get(hashmap map, MalType keystring) {
+
+  hashmap result = search(map, keystring);
+  return result ? result->next->data : NULL;
+}
+
+MalType map_assoc(hashmap map, list args) {
+
+  while(args) {
+    MalType val = args->data;
+    if (!is_keyword(val) && !is_string(val))
+      return bad_type(val, "a keyword or string");
+    args = args->next;
+    if(!args)
+      return make_error_fmt("odd number in map bindings, expected key/value pairs");
+    map = hashmap_put(map, val, args->data);
+    args = args->next;
+  }
+  return make_hashmap(map);
+}
+
+MalType mal_hash_map(list args) {
+  return map_assoc(NULL, args);
 }

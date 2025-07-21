@@ -1,15 +1,24 @@
 #ifndef _PRINTER_H
 #define _PRINTER_H
 
-#include <stdarg.h>
 #include "types.h"
 
-#define UNREADABLY 0
-#define READABLY 1
+// This function must be called during startup.
+void printer_init();
+// It adds the following conversion specifiers (requires GNU libc).
+//   %M  for MalType
+//   ('#' means unreadably).
+//   %N  for list    ('#' means unreadably, ' ' requires space separators).
 
-char* pr_str(MalType* mal_val, int readably);
-char* pr_str_list(list lst, int readably, char* start_delimiter, char* end_delimiter, char* separator);
-char* escape_string(char* str);
-char* snprintfbuf(long initial_size, char* fmt, ...);
+// Both accept the '#' modifier, for which requires the strings to be
+// escaped/unreadably.
+
+// %N accepts the ' ' modifier, which requires that values are
+// %separated by spaces instead of directly concatenated.
+
+//  Similar to asprintf, except that
+//    the memory is allocated with GC_MALLOC instead of malloc,
+//    errors crash the program instead of being reported.
+const char* mal_printf(const char* fmt, ...);
 
 #endif

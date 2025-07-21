@@ -1,22 +1,17 @@
 #ifndef _MAL_CORE_H
 #define _MAL_CORE_H
 
-#include "libs/hashmap/hashmap.h"
 #include "types.h"
 
-typedef struct ns_s ns;
+typedef const struct ns_s* ns;
 
 struct ns_s {
 
-  hashmap mappings;
+  const char* key;
+  function_t value;
 
 };
 
-ns* ns_make_core();
-MalType* as_str(list args, int readably, char* separator);
-MalType* print(list args, int readably, char* separator);
-char* get_fn(gptr data);
-MalType* equal_lists(MalType* lst1, MalType* lst2);
-MalType* equal_hashmaps(MalType* map1, MalType* map2);
+void ns_make_core(ns* core, size_t* size);
 
 #endif

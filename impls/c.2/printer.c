@@ -1,255 +1,247 @@
+#include <assert.h>
+#include <printf.h>
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+
 #include <gc.h>
 
+#include "libs/linked_list/linked_list.h"
 #include "printer.h"
 
 #define PRINT_NIL "nil"
 #define PRINT_TRUE "true"
 #define PRINT_FALSE "false"
 
-#define INTEGER_BUFFER_SIZE 16
-#define SYMBOL_BUFFER_SIZE 32
-#define FUNCTION_BUFFER_SIZE 256
-#define STRING_BUFFER_SIZE 256
-#define LIST_BUFFER_SIZE 1024
+int pr_str(FILE *stream, MalType val, bool readably);
+int escape_string(FILE *stream, const char* str);
+int pr_str_list(FILE* stream, list lst, bool readably, bool spaced);
+int pr_list(FILE* stream, list lst, const char* start, const char* stop,
+            bool readably);
+int closure(FILE* stream, MalClosure closure, bool readably,
+            const char* kind);
 
-char* pr_str(MalType* val, int readably) {
-
-  if (!val) {
-    return "";
+// Execute count once.
+#define ADD(count) {  \
+    int more = count; \
+    if(more < 0)      \
+      return more;    \
+    written += more;  \
   }
+
+int wrap(FILE* stream, MalType val, bool readably, const char* start,
+         const char* stop) {
+
+  int written = 0;
+  ADD(fprintf(stream, start));
+  ADD(pr_str(stream, val, readably));
+  ADD(fprintf(stream, stop));
+  return written;
+}
+
+int pr_str(FILE *stream, MalType val, bool readably) {
 
   switch(val->type) {
 
   case MALTYPE_SYMBOL:
 
-    return snprintfbuf(SYMBOL_BUFFER_SIZE, "%s", val->value.mal_symbol);
-    break;
+    return fprintf(stream, "%s", val->value.mal_string);
 
   case MALTYPE_KEYWORD:
 
-    return snprintfbuf(SYMBOL_BUFFER_SIZE, ":%s", val->value.mal_keyword);
-    break;
+    return fprintf(stream, ":%s", val->value.mal_string);
 
   case MALTYPE_INTEGER:
 
-    return snprintfbuf(SYMBOL_BUFFER_SIZE, "%ld", val->value.mal_integer);
-    break;
+    return fprintf(stream, "%ld", val->value.mal_integer);
 
   case MALTYPE_FLOAT:
 
-    return snprintfbuf(SYMBOL_BUFFER_SIZE, "%lf", val->value.mal_float);
-    break;
+    return fprintf(stream, "%lf", val->value.mal_float);
 
   case MALTYPE_STRING:
 
     if (readably) {
-      return snprintfbuf(STRING_BUFFER_SIZE, "%s", escape_string(val->value.mal_string));
+      return escape_string(stream, val->value.mal_string);
     }
     else {
-      return snprintfbuf(STRING_BUFFER_SIZE, "%s",val->value.mal_string);
+      return fprintf(stream, "%s", val->value.mal_string);
     }
-    break;
 
   case MALTYPE_TRUE:
 
-    return PRINT_TRUE;
-    break;
+    return fprintf(stream, PRINT_TRUE);
 
   case MALTYPE_FALSE:
 
-    return PRINT_FALSE;
-    break;
+    return fprintf(stream, PRINT_FALSE);
 
   case MALTYPE_NIL:
 
-    return PRINT_NIL;
-    break;
+    return fprintf(stream, PRINT_NIL);
 
   case MALTYPE_LIST:
 
-    return pr_str_list(val->value.mal_list, readably, "(", ")", " ");
-    break;
+    return pr_list(stream, val->value.mal_list, "(", ")", readably);
 
   case MALTYPE_VECTOR:
 
-    return pr_str_list(val->value.mal_list, readably, "[", "]", " ");
-    break;
+    return pr_list(stream, val->value.mal_list, "[", "]", readably);
 
   case MALTYPE_HASHMAP:
 
-    return pr_str_list(val->value.mal_list, readably, "{", "}", " ");
-    break;
+    return pr_list(stream, val->value.mal_list, "{", "}", readably);
 
   case MALTYPE_FUNCTION:
 
-    return snprintfbuf(FUNCTION_BUFFER_SIZE, "#<function::native@%p>", val->value.mal_function);
-    break;
+    return fprintf(stream, "#<function::native>");
 
   case MALTYPE_CLOSURE:
-    {
-      MalType* definition = (val->value.mal_closure)->definition;
-      MalType* parameters = (val->value.mal_closure)->parameters;
-      MalType* more_symbol = (val->value.mal_closure)->more_symbol;
 
-      list lst = parameters->value.mal_list;
+    return closure(stream, val->value.mal_closure, readably, "closure");
 
-      if (more_symbol) {
-        lst = list_reverse(lst);
-        lst = list_push(lst, make_symbol(snprintfbuf(STRING_BUFFER_SIZE, "%s%s", "&", more_symbol->value.mal_symbol)));
-        lst = list_reverse(lst);
-      }
+  case MALTYPE_MACRO:
 
-      if (val->is_macro) {
-        return snprintfbuf(FUNCTION_BUFFER_SIZE, "#<function::macro: (fn* %s %s))", \
-                           pr_str(make_list(lst), UNREADABLY), pr_str(definition, UNREADABLY));
-      }
-      else {
-        return snprintfbuf(FUNCTION_BUFFER_SIZE, "#<function::closure: (fn* %s %s))", \
-                           pr_str(make_list(lst), UNREADABLY), pr_str(definition, UNREADABLY));
-      }
-    }
-  break;
+    return closure(stream, val->value.mal_closure, readably, "macro");
 
   case MALTYPE_ATOM:
 
-    return snprintfbuf(STRING_BUFFER_SIZE, "(atom %s)", pr_str(val->value.mal_atom, readably));
-    break;
+    return wrap(stream, *val->value.mal_atom, readably, "(atom ", ")");
 
   case MALTYPE_ERROR:
 
-    return snprintfbuf(STRING_BUFFER_SIZE, "Uncaught error: %s", pr_str(val->value.mal_error, UNREADABLY));
-    break;
+    return wrap(stream, val->value.mal_error, readably, "Uncaught error: ", "");
 
-  default:
-    /* can't happen unless a new MalType is added */
-    return "Printer error: unknown type\n";
-    break;
   }
+  // Silent 'control reaches end of non-void function'.
+  // It is a false positive thanks to -Wswitch.
+  return -1;
+}
+
+int closure(FILE* stream, MalClosure closure, bool readably,
+            const char* kind) {
+  int written = 0;
+  ADD(fprintf(stream, "#<function::%s: (fn* (", kind));
+  if(closure->param_len) {
+    size_t i = 0;
+    while(true) {
+      ADD(fprintf(stream, "%s", closure->parameters[i]));
+      i++;
+      if(closure->param_len <= i)
+        break;
+      ADD(fprintf(stream, " "));
+    }
+  }
+  if(closure->more_symbol) {
+    if(closure->param_len)
+      ADD(fprintf(stream, " "));
+    ADD(fprintf(stream, "& %s", closure->more_symbol));
+  }
+  ADD(fprintf(stream, ") "));
+  ADD(pr_str(stream, closure->definition, readably));
+  ADD(fprintf(stream, ")>"));
+  return written;
 }
 
 
-char* pr_str_list(list lst, int readably, char* start_delimiter, char* end_delimiter, char* separator) {
+int pr_str_list(FILE* stream, list lst, bool readably, bool spaced) {
 
-  char* list_buffer = GC_MALLOC(sizeof(*list_buffer) * LIST_BUFFER_SIZE);
-  long buffer_length = LIST_BUFFER_SIZE;
-
-  /* add the start delimiter */
-  list_buffer = strcpy(list_buffer, start_delimiter);
-
-  long len = strlen(start_delimiter);
-  long count = len;
-
-  while (lst) {
-
-    /* concatenate next element */
-    MalType* data = lst->data;
-    char* str = pr_str(data, readably);
-
-    len = strlen(str);
-    count += len;
-
-    if (count >= buffer_length) {
-      buffer_length += (count + 1);
-      list_buffer = GC_REALLOC(list_buffer, buffer_length);
-    }
-
-    strncat(list_buffer, str, len);
-    lst = lst->next;
-
-    if (lst) {
-      len = strlen(separator);
-      count += len;
-
-      if (count >= buffer_length) {
-        buffer_length += (count + 1);
-        list_buffer = GC_REALLOC(list_buffer, buffer_length);
-      }
-      /* add the separator */
-      strncat(list_buffer, separator, len);
+  int written = 0;
+  if(lst != NULL) {
+    while(true) {
+      ADD(pr_str(stream, lst->data, readably));
+      lst = lst->next;
+      if(lst == NULL)
+        break;
+      if(spaced)
+        ADD(fprintf(stream, " "));
     }
   }
+  return written;
+}
 
-  if (count >= buffer_length) {
-    len = strlen(end_delimiter);
-    count += len;
+int pr_list(FILE* stream, list lst, const char* start, const char* stop,
+            bool readably) {
 
-    buffer_length += (count + 1);
-    list_buffer = GC_REALLOC(list_buffer, buffer_length);
-  }
+  int written = 0;
+  ADD(fprintf(stream, start));
+  ADD(pr_str_list(stream, lst, readably, true));
 
   /* add the end delimiter */
-  strncat(list_buffer, end_delimiter, len);
+  ADD(fprintf(stream, stop));
 
-  return list_buffer;
+  return written;
 }
 
 
-char* escape_string(char* str) {
+int escape_string(FILE *stream, const char* str) {
 
-  long buffer_length = 2*(strlen(str) + 1) ; /* allocate a reasonable initial buffer size */
-  char* buffer = GC_MALLOC(sizeof(*buffer) * buffer_length);
+  int written = 0;
 
-  strcpy(buffer,"\"");
+  ADD(fprintf(stream, "\""));
 
-  char* curr = str;
+  const char* curr = str;
   while(*curr != '\0') {
 
     switch (*curr) {
 
-    case '"':
-      strcat(buffer, "\\\"");
-      break;
-
-    case '\\':
-      strcat(buffer, "\\\\");
-      break;
-
     case 0x0A:
-      strcat(buffer, "\\n");
+
+      ADD(fprintf(stream, "\\n"));
       break;
+
+    case '"':
+    case '\\':
+      ADD(fprintf(stream, "\\"));
+      // fall through
 
     default:
-      strncat(buffer, curr, 1);
+      ADD(fprintf(stream, "%c", *curr));
     }
     curr++;
-
-    /* check for overflow and increase buffer size */
-    if ((curr - str) >= buffer_length) {
-      buffer_length *= 2;
-      buffer = GC_REALLOC(buffer, sizeof(*buffer) * buffer_length);
-    }
   }
-
-  strcat(buffer, "\"");
-
-  /* trim the buffer to the size of the actual escaped string */
-  buffer_length = strlen(buffer);
-  buffer = GC_REALLOC(buffer, sizeof(*buffer) * buffer_length + 1);
-
-  return buffer;
+  ADD(fprintf(stream, "\""));
+  return written;
 }
 
-char* snprintfbuf(long initial_size, char* fmt, ...) {
-  /* this is just a wrapper for the *printf family that ensures the
-     string is long enough to hold the contents */
+int print_M(FILE *stream, const struct printf_info *i, const void *const *a) {
+
+  return pr_str(stream, *((const MalType*)(*a)), !i->alt);
+}
+
+int print_L(FILE *stream, const struct printf_info *i, const void *const *a) {
+
+  return pr_str_list(stream, *((const list *) (a[0])), !i->alt, i->space);
+}
+
+int one_arg(const struct printf_info*, size_t n, int *argtypes, int *size) {
+
+  if(n < 1)
+    return -1;
+
+  argtypes[0] = PA_POINTER;
+  *size = sizeof(MalType);
+  return 1;
+}
+
+void printer_init() {
+
+  assert(!register_printf_specifier('N', print_L, one_arg));
+  assert(!register_printf_specifier('M', print_M, one_arg));
+}
+
+const char* mal_printf(const char* fmt, ...) {
 
   va_list argptr;
-  va_start(argptr, fmt);
 
-  char* buffer = GC_MALLOC(sizeof(*buffer) * initial_size);
-  long n = vsnprintf(buffer, initial_size, fmt, argptr);
+  va_start(argptr, fmt);
+  int n = vsnprintf(NULL, 0, fmt, argptr);
+  assert(0 <= n);
   va_end(argptr);
 
-  if (n > initial_size) {
-    va_start(argptr, fmt);
+  char* buffer = GC_MALLOC(n + 1);
 
-    buffer = GC_REALLOC(buffer, sizeof(*buffer) * n);
-    vsnprintf(buffer, n, fmt, argptr);
+  va_start(argptr, fmt);
+  assert(n == vsnprintf(buffer, n + 1, fmt, argptr));
+  va_end(argptr);
 
-    va_end(argptr);
-  }
   return buffer;
 }
