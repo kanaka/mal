@@ -260,9 +260,13 @@ package body core is
   end procedure fn_vector_q;
 
   procedure fn_hash_map(args: inout mal_val_ptr; result: out mal_val_ptr; err: out mal_val_ptr) is
+    variable new_map: mal_val_ptr;
   begin
-    args.val_type := mal_hashmap;
-    result := args;
+    new_empty_hashmap(new_map);
+    for i in 0 to args.seq_val'length / 2 - 1 loop
+      hashmap_put(new_map, args.seq_val(2*i), args.seq_val(2*i+1));
+    end loop;
+    result := new_map;
   end procedure fn_hash_map;
 
   procedure fn_map_q(args: inout mal_val_ptr; result: out mal_val_ptr; err: out mal_val_ptr) is
