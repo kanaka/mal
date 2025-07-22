@@ -273,6 +273,22 @@ package body reader is
     new_seq_obj(list_type, seq, result);
   end procedure read_sequence;
 
+  procedure read_map(r: inout reader_class; result: out mal_val_ptr; err: out mal_val_ptr) is
+    variable sub_seq, sub_err, new_map: mal_val_ptr;
+  begin
+    read_sequence(mal_hashmap, "}", r, sub_seq, sub_err);
+    if sub_err = null then
+      new_empty_hashmap(new_map);
+      for i in 0 to sub_seq.seq_val'length / 2 - 1 loop
+        hashmap_put(new_map, sub_seq.seq_val(2*i), sub_seq.seq_val(2*i + 1));
+      end loop;
+      result := new_map;
+    else
+      err := sub_err;
+      result := null;
+    end if;
+  end procedure read_map;
+
   procedure reader_macro(r: inout reader_class; result: out mal_val_ptr; err: out mal_val_ptr; sym_name: in string) is
     variable token, sym_line: line;
     variable seq: mal_seq_ptr;
@@ -343,7 +359,7 @@ package body reader is
       when ')' => new_string("unexcepted ')'", err);
       when '[' => read_sequence(mal_vector, "]", r, result, err);
       when ']' => new_string("unexcepted ']'", err);
-      when '{' => read_sequence(mal_hashmap, "}", r, result, err);
+      when '{' => read_map(r, result, err);
       when '}' => new_string("unexcepted '}'", err);
       when others => read_atom(r, result, err);
     end case;
