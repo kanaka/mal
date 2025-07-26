@@ -572,7 +572,7 @@ groovy ./stepX_YYY.groovy
 
 ### Hare
 
-The hare implementation was tested against Hare 0.24.2.
+The hare implementation was tested against Hare 0.25.2.
 
 ```
 cd impls/hare

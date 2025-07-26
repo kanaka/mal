@@ -7,9 +7,9 @@ export fn env_init(outer: nullable * env = null) *env ={
 	const new = alloc(env {
 		outer = outer,
 		data = hm_init(),
-	});
+	})!;
 
-	append(gc.memory.envs, new);
+	append(gc.memory.envs, new)!;
 	return new;
 };
 

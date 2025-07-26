@@ -70,7 +70,7 @@ fn finish_memory(memory: memory) void = {
 
 fn mark_hash(hm: hashmap) void = {
 
-	append(gc.marked.hashs, hm);
+	append(gc.marked.hashs, hm)!;
 	mark(hm.meta);
 
 	for(let v .. hm.data){
@@ -85,7 +85,7 @@ fn mark_env(envi: *env) void = {
 		if(e == envi) return void;
 	};
 
-	append(gc.marked.envs, envi);
+	append(gc.marked.envs, envi)!;
 	mark(envi.data);
 
 	match(envi.outer){
@@ -114,21 +114,21 @@ fn mark (val: MalType) void = {
 		for(let x .. gc.marked.vecs){
 			if(x == v) return void;
 		};
-		append(gc.marked.vecs, v);
+		append(gc.marked.vecs, v)!;
 		mark_col(v.data);
 		mark(v.meta);
 	case let l: list =>
 		for(let x .. gc.marked.lists){
 			if(x == l) return void;
 		};
-		append(gc.marked.lists, l);
+		append(gc.marked.lists, l)!;
 		mark_col(l.data);
 		mark(l.meta);
 	case  let f: function =>
 		for(let x .. gc.marked.funcs){
 			if(x == f) return void;
 		};
-		append(gc.marked.funcs, f);
+		append(gc.marked.funcs, f)!;
 		mark(f.meta);
 		mark(f.body);
 		mark_col(f.args);
@@ -137,14 +137,14 @@ fn mark (val: MalType) void = {
 		for(let x .. gc.marked.intrinsics){
 			if(x == i) return void;
 		};
-		append(gc.marked.intrinsics, i);
+		append(gc.marked.intrinsics, i)!;
 		mark(i.meta);
 	case let m: macro =>
 		let m = m:function;
 		for(let x .. gc.marked.funcs){
 			if(x == m) return void;
 		};
-		append(gc.marked.funcs, m);
+		append(gc.marked.funcs, m)!;
 		mark(m.meta);
 		mark(m.body);
 		mark_col(m.args);
@@ -164,13 +164,13 @@ fn mark (val: MalType) void = {
 		for(let x .. gc.marked.strings){
 			if(x == s) return void;
 		};
-		append(gc.marked.strings, s);
+		append(gc.marked.strings, s)!;
 		mark(s.meta);
 	case let a: atom =>
 		for(let x .. gc.marked.atoms){
 			if(x == a) return void;
 		};
-		append(gc.marked.atoms, a);
+		append(gc.marked.atoms, a)!;
 		mark(*a);
 	case => void;
 	};

@@ -43,7 +43,7 @@ fn print_string(
 	print_readable: bool
 ) void = {
 
-	let runes = strings::torunes(s.data);
+	let runes = strings::torunes(s.data)!;
 
 
 	if(!print_readable){
