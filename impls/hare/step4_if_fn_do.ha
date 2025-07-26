@@ -112,14 +112,14 @@ fn eval_list(ls: mal::list, env: *mal::env) (mal::MalType | mal::error) = {
 		let args: []mal::MalType = [];
 		defer free(args);
 		for(let arg .. ls.data[1..]){
-			append(args, eval(arg, env)?);
+			append(args, eval(arg, env)?)!;
 		};
 		return func.eval(args);
 	case let func: mal::function =>
 		let args: []mal::MalType = [];
 		defer free(args);
 		for(let arg .. ls.data[1..]){
-			append(args, eval(arg, env)?);
+			append(args, eval(arg, env)?)!;
 		};
 		let local = mal::env_init(func.envi);
 		mal::env_bind(local, func.args, args);

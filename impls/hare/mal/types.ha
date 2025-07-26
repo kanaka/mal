@@ -51,9 +51,9 @@ export fn make_intrinsic(
 	const new = alloc(struct {
 		eval: *fn([]MalType) (MalType | error) = func,
 		meta: MalType = nil,
-	});
+	})!;
 
-	append(gc.memory.intrinsics, new);
+	append(gc.memory.intrinsics, new)!;
 	return new;
 };
 
@@ -66,7 +66,7 @@ export fn make_func(
 
 	let arg_list: []MalType = [];
 	if(len(args) > 0) {
-		arg_list = alloc([nil...], len(args));
+		arg_list = alloc([nil...], len(args))!;
 		arg_list[0..] = args;
 	};
 
@@ -75,9 +75,9 @@ export fn make_func(
 		envi: *env= envi,
 		args: []MalType = arg_list,
 		body: MalType = body,
-		meta: MalType = nil });
+		meta: MalType = nil })!;
 
-	append(gc.memory.funcs, new);
+	append(gc.memory.funcs, new)!;
 	return new;
 };
 
@@ -91,14 +91,14 @@ export fn make_list(s: size, init: []MalType = []) list = {
 	const new: list = alloc(struct {
 		data: []MalType = [],
 		meta: MalType = nil,
-	});
+	})!;
 
 	if (s == 0) return new;
 
-	new.data = alloc([nil...], s);
+	new.data = alloc([nil...], s)!;
 	new.data[0..len(init)] = init;
 
-	append(gc.memory.lists, new);
+	append(gc.memory.lists, new)!;
 	return new;
 };
 
@@ -112,14 +112,14 @@ export fn make_vec(s: size, init: []MalType = []) vector = {
 	const new: vector = alloc(struct {
 		data: []MalType = [],
 		meta: MalType = nil,
-	});
+	})!;
 
 	if (s == 0) return new;
 
-	new.data = alloc([nil...], s);
+	new.data = alloc([nil...], s)!;
 	new.data[0..len(init)] = init;
 
-	append(gc.memory.vecs, new);
+	append(gc.memory.vecs, new)!;
 	return new;
 };
 
@@ -144,7 +144,7 @@ export fn make_symbol(name: str) symbol = {
 		return s;
 	};
 
-	const new = strings::dup(name): symbol;
+	const new = strings::dup(name)!: symbol;
 	hm_add(gc.memory.symbols: hashmap, new, new);
 
 	return new;
@@ -152,14 +152,14 @@ export fn make_symbol(name: str) symbol = {
 
 export fn make_string(s: str) string = {
 
-	const new_str = strings::dup(s);
+	const new_str = strings::dup(s)!;
 
 	const new = alloc(struct {
 		data: str = new_str,
 		meta: MalType = nil,
-	});
+	})!;
 
-	append(gc.memory.strings, new);
+	append(gc.memory.strings, new)!;
 	return new;
 };
 
@@ -170,8 +170,8 @@ fn free_string(s: string) void = {
 
 export fn make_atom(ref: MalType) atom = {
 
-	const new = alloc(ref);
-	append(gc.memory.atoms, new);
+	const new = alloc(ref)!;
+	append(gc.memory.atoms, new)!;
 	return new;
 };
 

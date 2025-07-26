@@ -153,7 +153,7 @@ fn read_collection(
 		case  hash_end =>
 			return unbalanced;
 		case let form: MalType =>
-			append(res, form);
+			append(res, form)!;
 			continue;
 		case io::EOF =>
 			return unexpected_eof;
@@ -180,7 +180,7 @@ fn read_string(s: str) (string | error) = {
 
 	let strbuf = memio::dynamic();
 	defer io::close(&strbuf)!;
-	let runes = strings::torunes(s);
+	let runes = strings::torunes(s)!;
 
 	for (let i: size = 0; i < len(runes); i += 1) {
 		let rn = switch (runes[i]) {

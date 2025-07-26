@@ -217,13 +217,13 @@ for(true){
 		let args: []mal::MalType = [];
 		defer free(args);
 		for(let arg .. ls.data[1..]){
-			append(args, eval(arg, env)?);
+			append(args, eval(arg, env)?)!;
 		};
 		return func.eval(args);
 	case let func: mal::function =>
 		let args: []mal::MalType = [];
 		for(let arg .. ls.data[1..]){
-			append(args, eval(arg, env)?);
+			append(args, eval(arg, env)?)!;
 		};
 		env = mal::env_init(func.envi);
 		mal::env_bind(env, func.args, args);
@@ -315,7 +315,7 @@ export fn main() void = {
 
 	if(len(args) > 1){
 		let exec_str = strings::join("", "(load-file \"", args[1],
-			"\")");
+			"\")")!;
 		rep(strings::toutf8(exec_str), env, false);
 		free(exec_str);
 		os::exit(0);
