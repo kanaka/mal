@@ -1,0 +1,30 @@
+!YS-v0
+use readline: :all
+use reader: :all
+use printer: :all
+
+# read
+READ =: read-str
+
+# eval
+EVAL =: identity
+
+# print
+PRINT =: \(prStr(_ true))
+
+# repl
+defn rep(strng):
+  strng:READ:EVAL:PRINT
+
+# repl loop
+defn repl-loop(line=''):
+  when line:
+    when line != '':
+      try:
+        say: rep(line)
+        catch exc:
+          say: "Uncaught exception: $exc"
+    repl-loop: readline('mal-user> ')
+
+# main
+defn main(): repl-loop()

@@ -1,0 +1,118 @@
+!YS-v0
+ns: reader
+
+# XXX ys bug workaround
+declare:
+  tokenize read-form read-list read-quote read-weird read-atom read-with-meta
+
+tokens =: atom()
+
+re-tokenize =: !:qr: |
+  (?x)
+  [\s,]*
+  (
+    ~@ |
+    [\[\]{}()'`~^@] |
+    "(?:\\.|[^\\"])*"? |
+    ;.* |
+    [^\s\[\]{}()'"`,;]*
+  )
+
+re-string =: !:qr: |
+  (?x)
+  "
+    (?:
+      \\. |
+      [^\\"]
+    )*
+  "
+
+defn read-str(string):
+  reset tokens: tokenize(string)
+  =>: read-form()
+
+defn tokenize(string):
+  remove empty?:
+    map second:
+      re-seq re-tokenize: string
+
+defn peek():
+  first: tokens.@
+
+defn next():
+  token =: peek()
+  swap tokens: rest
+  =>: token
+
+defn read-form():
+  token =: peek()
+  condp eq token:
+    '(': read-list(list ')')
+    '[': read-list(vector ']')
+    '{': read-list(hash-map '}')
+    "'": read-quote('quote')
+    '@': read-quote('deref')
+    '`': read-weird('quasiquote')
+    '~': read-weird('unquote')
+    '~@': read-weird('splice-unquote')
+    '^': read-with-meta()
+    else: read-atom()
+
+defn read-list(type end):
+  next:
+  apply type:
+    loop list []:
+      token =: peek()
+      when-not token:
+        die: "Reached end of input in 'read_list'"
+      if token != end:
+        recur: list.conj(read-form())
+        when next(): list
+
+defn read-quote(type):
+  when next():
+    list: type:symbol read-form()
+
+# Clojure officially calls these 'weird'!:
+#   https://clojure.org/guides/weird_characters
+#
+# We box these as a {name value} map in a set wrapper.
+# Mal doesn't define sets, so this is unambiguous.
+defn read-weird(type):
+  when next():
+    set: +[{ type read-form() }]
+
+defn read-with-meta():
+  when next():
+    meta =: read-form()
+    form =: read-form()
+    list with-meta:q: form meta
+
+re-dq =: !clj '#"\\\""'
+re-nl =: !clj '#"\\n"'
+re-bs =: !clj '#"\\\\"'
+defn read-atom():
+  atom =: next()
+  condp re-find atom:
+    /^nil$/: nil
+    /^true$/: true
+    /^false$/: false
+    /^"/:
+      if atom =~ re-string:
+        then:
+          say: atom
+          str =: atom.subs(1 atom.#.--)
+          str:
+            .replace(re-dq '"')
+            .replace(re-nl "\n")
+            .replace(re-bs "\\")
+        else:
+          die: "Reached end of input looking for '\"'"
+    /^:\w/:
+      atom.subs(1):keyword
+    /^-?\d/:
+      atom:to-num
+    /^(?:\w|[-+*\/<>=&])/:
+      atom:symbol
+    else:
+      die: "Unknown atom '$atom'"
