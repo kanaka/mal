@@ -522,7 +522,7 @@ functionality to the evaluator (`EVAL`).
 Compare the pseudocode for step 1 and step 2 to get a basic idea of
 the changes that will be made during this step:
 ```
-diff -u ../process/step1_read_print.txt ../process/step2_eval.txt
+diff -u ../../process/step1_read_print.txt ../../process/step2_eval.txt
 ```
 
 * Copy `step1_read_print.qx` to `step2_eval.qx`.
@@ -623,7 +623,7 @@ chain).
 Compare the pseudocode for step 2 and step 3 to get a basic idea of
 the changes that will be made during this step:
 ```
-diff -u ../process/step2_eval.txt ../process/step3_env.txt
+diff -u ../../process/step2_eval.txt ../../process/step3_env.txt
 ```
 
 * Copy `step2_eval.qx` to `step3_env.qx`.
@@ -741,7 +741,7 @@ In some Lisps, this special form is named "lambda".
 Compare the pseudocode for step 3 and step 4 to get a basic idea of
 the changes that will be made during this step:
 ```
-diff -u ../process/step3_env.txt ../process/step4_if_fn_do.txt
+diff -u ../../process/step3_env.txt ../../process/step4_if_fn_do.txt
 ```
 
 * Copy `step3_env.qx` to `step4_if_fn_do.qx`.
@@ -892,7 +892,7 @@ iteration.
 Compare the pseudocode for step 4 and step 5 to get a basic idea of
 the changes that will be made during this step:
 ```
-diff -u ../process/step4_if_fn_do.txt ../process/step5_tco.txt
+diff -u ../../process/step4_if_fn_do.txt ../../process/step5_tco.txt
 ```
 
 * Copy `step4_if_fn_do.qx` to `step5_tco.qx`.
@@ -982,7 +982,7 @@ holding off on that you will need to go back and do so.
 Compare the pseudocode for step 5 and step 6 to get a basic idea of
 the changes that will be made during this step:
 ```
-diff -u ../process/step5_tco.txt ../process/step6_file.txt
+diff -u ../../process/step5_tco.txt ../../process/step6_file.txt
 ```
 
 * Copy `step5_tco.qx` to `step6_file.qx`.
@@ -1154,7 +1154,7 @@ manifest when it is used together with macros (in the next step).
 Compare the pseudocode for step 6 and step 7 to get a basic idea of
 the changes that will be made during this step:
 ```
-diff -u ../process/step6_file.txt ../process/step7_quote.txt
+diff -u ../../process/step6_file.txt ../../process/step7_quote.txt
 ```
 
 * Copy `step6_file.qx` to `step7_quote.qx`.
@@ -1298,7 +1298,7 @@ the mal language itself.
 Compare the pseudocode for step 7 and step 8 to get a basic idea of
 the changes that will be made during this step:
 ```
-diff -u ../process/step7_quote.txt ../process/step8_macros.txt
+diff -u ../../process/step7_quote.txt ../../process/step8_macros.txt
 ```
 
 * Copy `step7_quote.qx` to `step8_macros.qx`.
@@ -1417,7 +1417,7 @@ functional programming pedigree of your implementation by adding the
 Compare the pseudocode for step 8 and step 9 to get a basic idea of
 the changes that will be made during this step:
 ```
-diff -u ../process/step8_macros.txt ../process/step9_try.txt
+diff -u ../../process/step8_macros.txt ../../process/step9_try.txt
 ```
 
 * Copy `step8_macros.qx` to `step9_try.qx`.
@@ -1574,7 +1574,7 @@ implementation to self-host.
 Compare the pseudocode for step 9 and step A to get a basic idea of
 the changes that will be made during this step:
 ```
-diff -u ../process/step9_try.txt ../process/stepA_mal.txt
+diff -u ../../process/step9_try.txt ../../process/stepA_mal.txt
 ```
 
 * Copy `step9_try.qx` to `stepA_mal.qx`.
