@@ -1,0 +1,54 @@
+!YS-v0
+ns: ys-core
+
+core-ns =: qw(
+  * + - / < <= '=' > >=
+  apply assoc atom atom?
+  concat conj cons contains? count
+  deref dissoc empty? false? first fn?
+  get hash-map keys keyword keyword?
+  list list? macro? map map? meta
+  nil? nth number? pr-str println prn
+  read-string reset! rest
+  seq sequential? slurp str string? swap!
+  symbol symbol? throw time-ms true?
+  vals vec vector vector? with-meta
+  )
+#   read-string readline reset! rest
+
+each sym core-ns:
+  try:
+    do:
+      sym =: sym:symbol
+      fun =: sym:resolve:var-get
+      intern NS: sym fun
+    catch e: nil
+
+defn atom?(): nil
+defn macro?(): nil
+defn time-ms(): nil
+
+defn readline(prompt):
+  print: prompt
+  =>: read-line()
+
+defn pr-str(*values):
+  joins:
+    each value values:
+      printer/prStr(value true)
+
+defn list?(value):
+  clojure::core/list?(value) ||
+  ( value:type:str ==
+    'class clojure.lang.PersistentVector$ChunkedSeq' )
+
+defn str(*values):
+  join:
+    each value values:
+      printer/prStr(value false)
+
+defn println(*values):
+  say:
+    joins:
+      each value values:
+        printer/prStr(value false)

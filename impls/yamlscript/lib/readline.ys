@@ -1,0 +1,6 @@
+!YS-v0
+ns: readline
+
+defn readline(prompt):
+  print: prompt
+  =>: read-line()
