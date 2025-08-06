@@ -284,6 +284,7 @@ pass_cnt = 0
 fail_cnt = 0
 soft_fail_cnt = 0
 failures = []
+fail_type = ""
 
 class TestTimeout(Exception):
     pass
@@ -306,6 +307,8 @@ while t.next():
     if t.form == None: continue
 
     total_test_cnt += 1
+    if fail_type == "TIMED OUT":
+        continue  # repl is stuck
     if not args.continue_after_fail:
         if fail_cnt > 0:
             continue
@@ -326,38 +329,39 @@ while t.next():
         res = r.read_to_prompt(['\r\n[^\\s()<>]+> ', '\n[^\\s()<>]+> '],
                                 timeout=args.test_timeout)
         #print "%s,%s,%s" % (idx, repr(p.before), repr(p.after))
-        if (res == None):
-            if verbose == 0: log(test_msg, end='')
-            log(" -> TIMEOUT")
-            raise TestTimeout("TIMEOUT (line %d)" % t.line_num)
-        elif (t.ret == "" and t.out == ""):
+        if (t.ret == "" and t.out == ""):
             vlog(" -> SUCCESS (result ignored)")
             pass_cnt += 1
-        elif (re.search(expects[0], res, re.S) or
+        elif res and (re.search(expects[0], res, re.S) or
                 re.search(expects[1], res, re.S)):
             vlog(" -> SUCCESS")
             pass_cnt += 1
         else:
-            if t.soft and not args.hard:
+            if (res == None):
+                if verbose == 0: log(test_msg, end='')
+                log(" -> TIMED OUT")
+                fail_cnt += 1
+                fail_type = "TIMED OUT"
+            elif t.soft and not args.hard:
                 vlog(" -> SOFT FAIL:")
                 soft_fail_cnt += 1
-                fail_type = "SOFT "
+                fail_type = "SOFT FAILED"
             else:
                 vlog(" -> FAIL:")
                 fail_cnt += 1
-                fail_type = ""
+                fail_type = "FAILED"
             expected = "    Expected : %s" % repr(expects[0])
-            got = "    Got      : %s" % repr(res)
+            got = "    Got      : %s" % repr(res or "")
             vvlog(expected)
             vlog(got if verbose >= 2 else elide(got))
-            failed_test = "%sFAILED %s:\n%s\n%s" % (
+            failed_test = "%s %s:\n%s\n%s" % (
                     fail_type, test_msg, expected, got)
             failures.append(failed_test)
     except:
         _, exc, _ = sys.exc_info()
         log("\nException: %s" % repr(exc))
         log("Output before exception:\n%s" % r.buf)
-        sys.exit(1)
+        break
 
 if len(failures) > 0:
     log("\nFAILURES:")
