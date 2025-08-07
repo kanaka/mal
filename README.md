@@ -52,6 +52,7 @@ FAQ](docs/FAQ.md) where I attempt to answer some common questions.
 | [Bash 4](#bash-4) | [Joel Martin](https://github.com/kanaka)  |
 | [BASIC](#basic-c64-and-qbasic) (C64 &amp; QBasic) | [Joel Martin](https://github.com/kanaka) |
 | [BBC BASIC V](#bbc-basic-v) | [Ben Harris](https://github.com/bjh21) |
+| [BQN](#bqn) | [Hannu Hartikainen](https://github.com/dancek)  |
 | [C](#c) | [Joel Martin](https://github.com/kanaka)  |
 | [C #2](#c2) | [Duncan Watts](https://github.com/fungiblecog)  |
 | [C++](#c-1) | [Stephen Thirlwall](https://github.com/sdt) |
@@ -295,6 +296,17 @@ Or in ARM BBC BASIC V under RISC OS 3 or later:
 *Dir bbc-basic.riscos
 *Run setup
 *Run stepX_YYY
+```
+
+### BQN
+
+The BQN implementation requires [CBQN](https://github.com/dzaima/CBQN) as the non-standard system values `•_while_`, `•GetLine` and `•term.OutRaw` are used. Removing them would be easy, though -- they're just for convenience and REPL usability.
+
+There are no releases of CBQN at the time of writing, but any version from mid 2022 should work. Specifically, commit `88f6585` is known to work.
+
+```
+cd impls/bqn
+./run
 ```
 
 ### C
