@@ -2,8 +2,8 @@
 #define _MAL_TYPES_H
 
 #include <stdbool.h>
-#include <stddef.h>
 
+// The order must match the one in printer.c.
 enum mal_type_t {
   MALTYPE_SYMBOL   = 1 <<  0,
   MALTYPE_KEYWORD  = 1 <<  1,
@@ -18,44 +18,24 @@ enum mal_type_t {
   MALTYPE_HASHMAP  = 1 << 10,
   MALTYPE_FUNCTION = 1 << 11,
   MALTYPE_CLOSURE  = 1 << 12,
-  MALTYPE_ERROR    = 1 << 13,
-  MALTYPE_ATOM     = 1 << 14,
-  MALTYPE_MACRO    = 1 << 15,
+  MALTYPE_ATOM     = 1 << 13,
+  MALTYPE_MACRO    = 1 << 14,
 };
 
 typedef const struct MalType_s* MalType;
 typedef const struct MalClosure_s* MalClosure;
-typedef struct pair_s* list;
+typedef struct pair_s* list; // mutable for appends
 typedef MalType(*function_t)(list);
 typedef struct Env_s Env;
-
-union MalType_u {
-
-    long mal_integer;
-    double mal_float;
-    const char* mal_string;
-    list mal_list;
-    /* vector mal_vector;  TODO: implement a real vector */
-    /* hashmap mal_hashmap; TODO: implement a real hashmap */
-    function_t mal_function;
-    MalClosure mal_closure;
-    MalType* mal_atom;
-    MalType mal_error;
-
-};
-struct MalType_s {
-  enum mal_type_t type;
-  MalType metadata;
-  union MalType_u value;
-};
+typedef const struct map* hashmap;
+typedef const struct vector* vector_t;
 
 struct MalClosure_s {
 
   const Env* env;
-  size_t param_len;
-  const char** parameters;
-  const char* more_symbol;
-  MalType definition;
+  list fnstar_args; // (parameters body)
+  // parameters is a list or vector of symbols
+  // If "&" is present, it stands right before the last symbol.
 
 };
 
@@ -65,77 +45,74 @@ MalType make_float(double value);
 MalType make_keyword(const char* value);
 MalType make_string(const char* value);
 MalType make_list(list value);
-MalType make_vector(list value);
-MalType make_hashmap(list value);
+MalType make_list_m(list value, MalType meta);
+MalType make_vector(vector_t value);
+MalType make_vector_m(vector_t value, MalType meta);
+MalType make_hashmap(hashmap value);
+MalType make_hashmap_m(hashmap value, MalType meta);
 MalType make_true();
 MalType make_false();
 MalType make_nil();
 MalType make_atom(MalType value);
-#define make_error_fmt(fmt, ...)                                        \
-  wrap_error(make_string(mal_printf("%s: " fmt, __func__, ## __VA_ARGS__)));
-MalType wrap_error(MalType value);;
+MalType make_function_m(function_t value, MalType meta);
 MalType make_function(function_t value);
-MalType make_closure(const Env* env, size_t param_len,
-                     const char** parameters,
-                     MalType definition, const char* more_symbol);
-MalType make_macro(MalClosure value);
-MalType with_meta(MalType data, MalType meta);
+MalType make_closure_m(const Env* env, list fnstar_args, MalType meta);
+MalType make_closure(const Env* env, list fnstar_args);
+MalType make_macro(const Env* env, list fnstar_args);
 
-int is_sequential(MalType val);
-int is_list(MalType val);
-int is_vector(MalType val);
-int is_hashmap(MalType val);
+// A NULL result means that the type differs, except for lists.
+int is_list(MalType val, list*);
+vector_t is_vector(MalType val);
+hashmap is_hashmap(MalType val);
 int is_nil(MalType val);
-int is_string(MalType val);
+const char* is_string(MalType val);
 int is_false(MalType val);
-int is_symbol(MalType val);
-int is_keyword(MalType val);
-int is_error(MalType val);
-int is_callable(MalType val);
-int is_function(MalType val);
-int is_closure(MalType val);
-int is_macro(MalType val);
+const char* is_symbol(MalType val);
+const char* is_keyword(MalType val);
+function_t is_function(MalType val);
+MalClosure is_closure(MalType val);
+MalClosure is_macro(MalType val);
+int is_integer(MalType val, long*);
+int is_float(MalType val, double*);
+MalType* is_atom(MalType val);
+int is_true(MalType val);
 
 
-//  Return an exception if the list is empty.
-//  Else, return the first element and move it forward.
-//  Mutates the argument.
-#define eat_argument(args)                        \
-  ({                                              \
-    if(!(args))                                   \
-      return make_error_fmt("too_few_arguments"); \
-    MalType _tmp = args->data;                    \
-    args = args->next;                            \
-    _tmp;                                         \
-  })
+enum mal_type_t type(MalType);
+MalType meta(MalType);      // Returns nil for types without metadata.
+size_t get_hash(MalType); // Crashes for types without hash.
 
-#define check_empty(lst)                                            \
-  if(lst)                                                           \
-    return make_error_fmt("unexpected trailing arguments: % N", lst);
+// These parts could be implemented outside types, but improve
+// readability in core, hashmap and steps.
 
-#define bad_type(form, expected)                                        \
-  make_error_fmt("expected %s, got: %M", expected, form);
+// This also improves efficiency because
+// a lost of allocations of the same symbol are avoided
+// amost symbol comparisons in EVAL will only need the precomputed hash.
+bool equal_forms(MalType, MalType);
+extern MalType SYMBOL_AMPERSAND;
+extern MalType SYMBOL_CATCH;
+extern MalType SYMBOL_CONCAT;
+extern MalType SYMBOL_CONS;
+extern MalType SYMBOL_DEBUG_EVAL;
+extern MalType SYMBOL_DEF;
+extern MalType SYMBOL_DEFMACRO;
+extern MalType SYMBOL_DEREF;
+extern MalType SYMBOL_DO;
+extern MalType SYMBOL_FN;
+extern MalType SYMBOL_IF;
+extern MalType SYMBOL_LET;
+extern MalType SYMBOL_QUASIQUOTE;
+extern MalType SYMBOL_QUOTE;
+extern MalType SYMBOL_SPLICE_UNQUOTE;
+extern MalType SYMBOL_TRY;
+extern MalType SYMBOL_UNQUOTE;
+extern MalType SYMBOL_VEC;
+extern MalType SYMBOL_WITH_META;
 
-#define check_type(form, mask, expected)                   \
-  if(form->type & ~(mask)) return bad_type(form, expected)
+void types_init();
 
-//  Beware that this evaluates the argument twice.
-#define as_string(f)                                                 \
-  ({ check_type(f, MALTYPE_STRING,  "a string");   f->value.mal_string;  })
-#define as_symbol(f)                                                  \
-  ({ check_type(f, MALTYPE_SYMBOL,  "a symbol");   f->value.mal_string;  })
-#define as_list(f)                                                    \
-  ({ check_type(f, MALTYPE_LIST,    "a list");     f->value.mal_list;    })
-#define as_map(f)                                                     \
-  ({ check_type(f, MALTYPE_HASHMAP, "a map");      f->value.mal_list   ; })
-#define as_closure(f)                                                 \
-  ({ check_type(f, MALTYPE_CLOSURE, "a closure");  f->value.mal_closure; })
-#define as_integer(f)                                                 \
-  ({ check_type(f, MALTYPE_INTEGER, "an integer"); f->value.mal_integer; })
-#define as_atom(f)                                                    \
-  ({ check_type(f, MALTYPE_ATOM,    "an atom");    f->value.mal_atom;    })
-#define as_sequence(f)                                                \
-  ({ check_type(f, MALTYPE_LIST | MALTYPE_VECTOR, "a sequence");      \
-    f->value.mal_list; })
+//  Evil trick for FFI.
+//  Should at least be const void*.
+void* mal_type_value_address(MalType);
 
 #endif

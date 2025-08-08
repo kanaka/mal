@@ -7,10 +7,12 @@
 
 Env* env_make(const Env* outer);
 
-void env_set(Env* current, const char* symbol, MalType value);
-/* can be called at most max times. */
+void env_set(Env* current, MalType symbol, MalType value);
 
-MalType env_get(const Env* current, const char* symbol);
+MalType env_get(const Env* current, MalType symbol);
 /* Returns NULL if the symbol is not found. */
+
+hashmap env_as_map(const Env* current);
+// For debugging.
 
 #endif

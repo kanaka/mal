@@ -3,10 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/time.h>
-#include <math.h>
 
-#include <editline/readline.h>
-#include <editline/history.h>
 #include <gc.h>
 
 /* only needed for ffi */
@@ -15,19 +12,20 @@
 #include <ffi.h>
 #endif
 
-#include "libs/hashmap/hashmap.h"
+#include "hashmap.h"
 #include "core.h"
 #include "printer.h"
 #include "reader.h"
+#include "error.h"
+#include "linked_list.h"
+#include "readline.h"
+#include "vector.h"
 
 /* forward references to main file */
 MalType apply(MalType fn, list args);
 
 // Helper functions
 
-bool equal_lists(list, list);
-bool equal_hashmaps(list, list);
-bool equal_forms(MalType, MalType);
 MalType make_boolean(bool);
 
 /* core ns functions */
@@ -77,8 +75,10 @@ MalType mal_symbol(list);
 MalType mal_keyword(list);
 
 MalType mal_vec(list);
+MalType mal_vector(list);
 MalType mal_vector_questionmark(list);
 MalType mal_sequential_questionmark(list);
+MalType mal_hash_map(list);
 MalType mal_map_questionmark(list);
 MalType mal_assoc(list);
 MalType mal_dissoc(list);
@@ -168,7 +168,7 @@ struct ns_s THE_CORE_NS[] = {
   { "symbol", mal_symbol },
   { "keyword", mal_keyword },
   { "vec", mal_vec },
-  { "vector", make_vector },
+  { "vector", mal_vector },
   { "hash-map", mal_hash_map },
 
   /* hash-maps */
@@ -203,28 +203,20 @@ void ns_make_core(ns* core, size_t* size) {
 
 #define generic_arithmetic(name, op, iconst, fconst)                   \
   MalType name(list args) {                                            \
-    MalType a1 = eat_argument(args);                                   \
-    MalType a2 = eat_argument(args);                                   \
-    check_empty(args);                                                 \
-    switch(a1->type) {                                                 \
-    case MALTYPE_INTEGER:                                              \
-      switch(a2->type) {                                               \
-      case MALTYPE_INTEGER:                                            \
-        return iconst(a1->value.mal_integer op a2->value.mal_integer); \
-      case MALTYPE_FLOAT:                                              \
-        return fconst(a1->value.mal_integer op a2->value.mal_float);   \
-      default: return bad_type(a2, "a number");                        \
-      }                                                                \
-    case MALTYPE_FLOAT:                                                \
-      switch(a2->type) {                                               \
-      case MALTYPE_INTEGER:                                            \
-        return fconst(a1->value.mal_float   op a2->value.mal_integer); \
-      case MALTYPE_FLOAT:                                              \
-        return fconst(a1->value.mal_float   op a2->value.mal_float);   \
-      default: return bad_type(a2, "a number");                        \
-      }                                                                \
-    default: return bad_type(a1, "a number");                          \
+    explode2(#op, args, a1, a2);                                       \
+    long i1, i2;                                                       \
+    double f1, f2;                                                     \
+    if (is_integer(a1, &i1)) {                                         \
+      if (is_integer(a2, &i2)) return iconst(i1 op i2);                \
+      if (is_float  (a2, &f2)) return fconst(i1 op f2);                \
+      bad_type(#op, MALTYPE_INTEGER | MALTYPE_FLOAT, a2);              \
     }                                                                  \
+    if (is_float(a1, &f1)) {                                           \
+      if (is_integer(a2, &i2)) return iconst(f1 op i2);                \
+      if (is_float  (a2, &f2)) return fconst(f1 op f2);                \
+      bad_type(#op, MALTYPE_INTEGER | MALTYPE_FLOAT, a2);              \
+    }                                                                  \
+    bad_type(#op, MALTYPE_INTEGER | MALTYPE_FLOAT, a1);                \
   }
 generic_arithmetic(mal_add,                  +,  make_integer, make_float)
 generic_arithmetic(mal_sub,                  -,  make_integer, make_float)
@@ -236,86 +228,46 @@ generic_arithmetic(mal_greaterthan,          >,  make_boolean, make_boolean)
 generic_arithmetic(mal_greaterthanorequalto, >=, make_boolean, make_boolean)
 
 #define generic_type_predicate(name, mask)   \
-  MalType name(list args) {                  \
-    MalType val = eat_argument(args);        \
-    check_empty(args);                       \
-    return make_boolean(val->type & (mask)); \
+  MalType mal_##name##_questionmark(list args) { \
+    explode1(#name "?", args, val);          \
+    return make_boolean(type(val) & (mask)); \
   }
-generic_type_predicate(mal_list_questionmark, MALTYPE_LIST)
-generic_type_predicate(mal_atom_questionmark, MALTYPE_ATOM)
-generic_type_predicate(mal_nil_questionmark, MALTYPE_NIL)
-generic_type_predicate(mal_true_questionmark, MALTYPE_TRUE)
-generic_type_predicate(mal_false_questionmark, MALTYPE_FALSE)
-generic_type_predicate(mal_symbol_questionmark, MALTYPE_SYMBOL)
-generic_type_predicate(mal_keyword_questionmark, MALTYPE_KEYWORD)
-generic_type_predicate(mal_vector_questionmark, MALTYPE_VECTOR)
-generic_type_predicate(mal_sequential_questionmark, MALTYPE_LIST | MALTYPE_VECTOR)
-generic_type_predicate(mal_map_questionmark, MALTYPE_HASHMAP)
-generic_type_predicate(mal_string_questionmark, MALTYPE_STRING)
-generic_type_predicate(mal_number_questionmark, MALTYPE_FLOAT | MALTYPE_INTEGER)
-generic_type_predicate(mal_fn_questionmark, MALTYPE_CLOSURE | MALTYPE_FUNCTION)
-generic_type_predicate(mal_macro_questionmark, MALTYPE_MACRO)
+generic_type_predicate(list, MALTYPE_LIST)
+generic_type_predicate(atom, MALTYPE_ATOM)
+generic_type_predicate(nil, MALTYPE_NIL)
+generic_type_predicate(true, MALTYPE_TRUE)
+generic_type_predicate(false, MALTYPE_FALSE)
+generic_type_predicate(symbol, MALTYPE_SYMBOL)
+generic_type_predicate(keyword, MALTYPE_KEYWORD)
+generic_type_predicate(vector, MALTYPE_VECTOR)
+generic_type_predicate(sequential, MALTYPE_LIST | MALTYPE_VECTOR)
+generic_type_predicate(map, MALTYPE_HASHMAP)
+generic_type_predicate(string, MALTYPE_STRING)
+generic_type_predicate(number, MALTYPE_FLOAT | MALTYPE_INTEGER)
+generic_type_predicate(fn, MALTYPE_CLOSURE | MALTYPE_FUNCTION)
+generic_type_predicate(macro, MALTYPE_MACRO)
 
 MalType mal_equals(list args) {
   /* Accepts any type of arguments */
 
-  MalType first_val = eat_argument(args);
-  MalType second_val = eat_argument(args);
-  check_empty(args);
+  explode2("=", args, first_val, second_val);
   return make_boolean(equal_forms(first_val, second_val));
-}
-
-bool equal_forms(MalType first_val, MalType second_val) {
-
-    switch(first_val->type) {
-
-    case MALTYPE_LIST:
-    case MALTYPE_VECTOR:
-
-      return (second_val->type & (MALTYPE_LIST | MALTYPE_VECTOR))
-        && equal_lists(first_val->value.mal_list, second_val->value.mal_list);
-
-    case MALTYPE_INTEGER:
-
-      return (second_val->type == MALTYPE_INTEGER)
-        && (first_val->value.mal_integer == second_val->value.mal_integer);
-
-    case MALTYPE_FLOAT:
-
-      return (second_val->type == MALTYPE_FLOAT)
-        && (first_val->value.mal_float == second_val->value.mal_float);
-
-    case MALTYPE_SYMBOL:
-    case MALTYPE_STRING:
-    case MALTYPE_KEYWORD:
-      return (first_val->type == second_val->type)
-        && !strcmp(first_val->value.mal_string, second_val->value.mal_string);
-
-    case MALTYPE_HASHMAP:
-      return (second_val->type == MALTYPE_HASHMAP)
-        && equal_hashmaps(first_val->value.mal_list, second_val->value.mal_list);
-
-    case MALTYPE_TRUE:
-    case MALTYPE_FALSE:
-    case MALTYPE_NIL:
-
-      return first_val == second_val;
-
-    default:
-
-      return false;
-    }
 }
 
 MalType mal_nth(list args) {
 
-  MalType lst = eat_argument(args);
-  MalType n = eat_argument(args);
-  check_empty(args);
+  explode2("nth", args, lst, n);
 
-  list l = as_sequence(lst);
-  long idx = as_integer(n);
-  if(0 <= idx) {
+  vector_t v;
+  list l;
+  long idx;
+  if (!is_integer(n, &idx)) {
+    bad_type("nth", MALTYPE_INTEGER, n);
+  }
+  if(idx < 0) {
+    make_error("'nth': negative index: %d", idx);
+  }
+  if (is_list(lst, &l)) {
     while(l) {
       if(!idx)
         return l->data;
@@ -323,22 +275,31 @@ MalType mal_nth(list args) {
       idx--;
     }
   }
-  return make_error_fmt("index %M out of bounds for: %M", n, lst);
+  else if ((v = is_vector(lst))) {
+    if (idx < v->count) {
+      return v->nth[idx];
+    }
+  } else {
+    bad_type("nth", MALTYPE_LIST | MALTYPE_VECTOR, lst);
+  }
+  make_error("'nth': index %M out of bounds for: %M", n, lst);
 }
 
 MalType mal_first(list args) {
 
-  MalType lst = eat_argument(args);
-  check_empty(args);
+  explode1("first", args, lst);
 
+  list result;
+  vector_t v;
   if(is_nil(lst)) {
     return make_nil();
   }
-  else if(!is_sequential(lst)) {
-    return bad_type(lst, "a list, vector or nil");
+  else if ((v = is_vector(lst))) {
+    return v->count ? v->nth[0] : make_nil();
   }
-
-  list result = lst->value.mal_list;
+  else if (!is_list(lst, &result)) {
+    bad_type("first", MALTYPE_LIST | MALTYPE_VECTOR | MALTYPE_NIL, lst);
+  }
 
   if (result) {
     return result->data;
@@ -350,17 +311,23 @@ MalType mal_first(list args) {
 
 MalType mal_rest(list args) {
 
-  MalType lst = eat_argument(args);
-  check_empty(args);
+  explode1("rest", args, lst);
 
+  list result = NULL;
+  vector_t v;
   if(is_nil(lst)) {
     return make_list(NULL);
   }
-  else if(!is_sequential(lst)) {
-    return bad_type(lst, "a list, vector or nil");
+  else if ((v = is_vector(lst))) {
+    for (int i = v->count - 1; 0 < i; i--) {
+      result = list_push(result, v->nth[i]);
+    }
+    return make_list(result);
+  }
+  else if (!is_list(lst, &result)) {
+    bad_type("rest", MALTYPE_LIST | MALTYPE_VECTOR | MALTYPE_NIL, lst);
   }
 
-  list result = lst->value.mal_list;
   if (result) {
     result = result->next;
   }
@@ -370,19 +337,23 @@ MalType mal_rest(list args) {
 
 MalType mal_cons(list args) {
 
-  MalType a1 = eat_argument(args);
-  MalType lst = eat_argument(args);
-  check_empty(args);
+  explode2("cons", args, a1, lst);
 
-  if (is_sequential(lst)) {
-    return make_list(list_push(lst->value.mal_list, a1));
+  list result = NULL;
+  vector_t v;
+  if ((v = is_vector(lst))) {
+    for (int i = v->count - 1; -1 < i; i--) {
+      result = list_push(result, v->nth[i]);
+    }
+  }
+  else if (is_list(lst, &result)) {
   }
   else if (is_nil(lst)) {
-    return make_list(list_push(NULL, a1));
   }
   else {
-    return bad_type(lst, "a list, vector or nil");
+    bad_type("cons", MALTYPE_LIST | MALTYPE_VECTOR | MALTYPE_NIL, lst);
   }
+  return make_list(list_push(result, a1));
 }
 
 MalType mal_concat(list args) {
@@ -399,15 +370,15 @@ MalType mal_concat(list args) {
     if (is_nil(val)) {
     }
     /* concatenate lists and vectors */
-    else if (is_sequential(val)) {
-      for(list lst=val->value.mal_list; lst; lst=lst->next) {
-        *new_list_last = list_push(NULL, lst->data);
+    else if (type(val) & (MALTYPE_LIST | MALTYPE_VECTOR)) {
+      for (seq_cursor lst = seq_iter(val); seq_cont(val, lst); lst = seq_next(val, lst)) {
+        *new_list_last = list_push(NULL, seq_item(val, lst));
         new_list_last = &(*new_list_last)->next;
       }
     }
     /* raise an error for any non-sequence types */
     else {
-      return bad_type(val, "a list, vector or nil");
+      bad_type("concat", MALTYPE_NIL | MALTYPE_LIST | MALTYPE_VECTOR, val);
     }
     args = args->next;
   }
@@ -416,66 +387,86 @@ MalType mal_concat(list args) {
 
 MalType mal_count(list args) {
 
-  MalType val = eat_argument(args);
-  check_empty(args);
+  explode1("count", args, val);
 
+  vector_t v;
+  list mal_list;
   if(is_nil(val)) {
     return make_integer(0);
   }
-  else if (!is_sequential(val)) {
-    return bad_type(val, "a list, vector or nil");
+  else if ((v = is_vector(val))) {
+    return make_integer(v->count);
   }
-  return make_integer(list_count(val->value.mal_list));
+  else if (!is_list(val, &mal_list)) {
+    bad_type("count", MALTYPE_LIST | MALTYPE_NIL | MALTYPE_VECTOR, val);
+  }
+  return make_integer(list_count(mal_list));
 }
 
 MalType mal_empty_questionmark(list args) {
 
-  MalType val = eat_argument(args);
-  check_empty(args);
+  explode1("empty?", args, val);
 
-  return make_boolean(!as_sequence(val));
+  vector_t v;
+  list l;
+  if ((v = is_vector(val))) {
+    return make_boolean(!v->count);
+  }
+  else if (is_list(val, &l)) {
+    return make_boolean(!l);
+  }
+  else {
+    bad_type("empty?", MALTYPE_LIST | MALTYPE_VECTOR, val);
+  }
 }
 
 MalType mal_pr_str(list args) {
   /* Accepts any number and type of arguments */
-  return make_string(mal_printf("% N", args));
+  return make_string(mal_printf("%N", args));
 }
 
 MalType mal_str(list args) {
   /* Accepts any number and type of arguments */
-  return make_string(mal_printf("%#N", args));
+  return make_string(mal_printf("%# N", args));
 }
 
 MalType mal_prn(list args) {
   /* Accepts any number and type of arguments */
-  printf("% N\n", args);
+  printf("%N\n", args);
   return make_nil();
 }
 
 MalType mal_println(list args) {
   /* Accepts any number and type of arguments */
-  printf("% #N\n", args);
+  printf("%#N\n", args);
   return make_nil();
 }
 
 MalType mal_read_string(list args) {
 
-  MalType val = eat_argument(args);
-  check_empty(args);
-  return read_str(as_string(val));
+  explode1("read-string", args, val);
+
+  const char* s = is_string(val);
+  if (!s) {
+    bad_type("read-string", MALTYPE_STRING, val);
+  }
+  return read_str(s);
+  // Implicit error propagation
 }
 
 MalType mal_slurp(list args) {
 
-  MalType a1 = eat_argument(args);
-  check_empty(args);
+  explode1("slurp", args, a1);
 
-  const char* filename = as_string(a1);
+  const char* filename = is_string(a1);
+  if (!filename) {
+    bad_type("slurp", MALTYPE_STRING, a1);
+  }
 
   FILE* file = fopen(filename, "rb");
 
   if (!file){
-    return make_error_fmt("file not found '%s'", filename);
+    make_error("'slurp': file not found '%s'", filename);
   }
 
   fseek(file, 0, SEEK_END);
@@ -483,42 +474,53 @@ MalType mal_slurp(list args) {
   fseek(file, 0, SEEK_SET);
 
   char* buffer = (char*)GC_MALLOC(sizeof(*buffer) * file_length + 1);
-  if (file_length != fread(buffer, sizeof(*buffer), file_length, file)) {
-    return make_error_fmt("failed to read file '%s'", filename);
-  }
-
+  size_t read = fread(buffer, sizeof(*buffer), file_length, file);
+  // close before raising an exception
   fclose(file);
+  if (file_length != read) {
+    make_error("'slurp': failed to read file '%s'", filename);
+  }
 
   buffer[file_length] = '\0';
   return make_string(buffer);
 }
 
 MalType mal_atom(list args) {
-  MalType val = eat_argument(args);
-  check_empty(args);
+  explode1("atom", args, val);
   return make_atom(val);
 }
 MalType mal_deref(list args) {
-  MalType val = eat_argument(args);
-  check_empty(args);
-  return *as_atom(val);
+  explode1("deref", args, val);
+  MalType* atm = is_atom(val);
+  if (!atm) {
+    bad_type("deref", MALTYPE_ATOM, val);
+  }
+  return *atm;
 }
 MalType mal_reset_bang(list args) {
-  MalType a1 = eat_argument(args);
-  MalType a2 = eat_argument(args);
-  check_empty(args);
-  *as_atom(a1) = a2;
+  explode2("reset!", args, a1, a2);
+  MalType* atm = is_atom(a1);
+  if (!atm) {
+    bad_type("reset!", MALTYPE_ATOM, a1);
+  }
+  *atm = a2;
   return a2;
 }
 MalType mal_swap_bang(list args) {
-  MalType a1 = eat_argument(args);
-  MalType fn = eat_argument(args);
-  MalType* atm = as_atom(a1);
-  list fn_args = list_push(args, *atm);
+  if (!args || !args->next) {
+    bad_arg_count("swap!", "at least two arguments", args);
+  }
+  MalType* atm = is_atom(args->data);
+  if (!atm) {
+    bad_type("swap!", MALTYPE_ATOM, args->data);
+  }
+  MalType fn = args->next->data;
+  check_type("swap!", MALTYPE_CLOSURE | MALTYPE_FUNCTION | MALTYPE_MACRO, fn);
+  list fn_args = list_push(args->next->next, *atm);
   MalType result = apply(fn, fn_args);
 
-  if (is_error(result)) {
-    return result;
+  if (mal_error) {
+    return NULL;
   }
   else {
     *atm = result;
@@ -527,21 +529,23 @@ MalType mal_swap_bang(list args) {
 }
 
 MalType mal_throw(list args) {
-  MalType val = eat_argument(args);
-  check_empty(args);
+  explode1("throw", args, a1);
 
   /* re-throw an existing exception */
-  assert(!is_error(val));
+  assert(!mal_error);
   /* create a new exception */
-    return wrap_error(val);
+  mal_error = a1;
+  return NULL;
 }
 
 MalType mal_apply(list args) {
 
-  MalType func = eat_argument(args);
-  if(!args) {
-    return make_error_fmt("expected at least two arguments");
+  if (!args || !args->next) {
+    bad_arg_count("apply", "at least two arguments", args);
   }
+  MalType func = args->data;
+  check_type("apply", MALTYPE_CLOSURE | MALTYPE_FUNCTION | MALTYPE_MACRO, func);
+  args = args->next;
 
   /* assemble loose arguments */
   list lst = NULL;
@@ -554,97 +558,138 @@ MalType mal_apply(list args) {
 
   MalType final = args->data;
 
-  *lst_last = as_sequence(final);
+  vector_t v = is_vector(final);
+  //  Append the elements of the final sequence,
+  //  efficiently if it is a list.
+  if (v) {
+    for(int i = v->count- 1; 0 <= i; i--) {
+      *lst_last = list_push(*lst_last, v->nth[i]);
+    }
+  }
+  else if (!is_list(final, lst_last)) {
+    bad_type("swap!", MALTYPE_LIST | MALTYPE_VECTOR, final);
+  }
 
   return apply(func, lst);
+  // Implicit error propagation
 }
 
 MalType mal_map(list args) {
 
-  MalType func = eat_argument(args);
-  MalType arg = eat_argument(args);
-  check_empty(args);
+  explode2("map", args, func, arg);
 
-  if (!is_callable(func)) {
+  check_type("map", MALTYPE_CLOSURE | MALTYPE_FUNCTION | MALTYPE_MACRO, func);
     //  This check is not redundant when arg is empty.
-    return bad_type(func, "a closure, function or macro");
-  }
 
-  list arg_list = as_sequence(arg);
+  check_type("map", MALTYPE_LIST | MALTYPE_VECTOR, arg);
+  seq_cursor arg_list = seq_iter(arg);
   list result_list = NULL;
   list* result_list_last = &result_list;
 
-  while(arg_list) {
+  while(seq_cont(arg, arg_list)) {
 
-    MalType result = apply(func, list_push(NULL, arg_list->data));
+    MalType result = apply(func, list_push(NULL, seq_item(arg, arg_list)));
 
     /* early return if error */
-    if (is_error(result)) {
-      return result;
+    if (mal_error) {
+      return NULL;
     }
     else {
       *result_list_last = list_push(NULL, result);
       result_list_last = &(*result_list_last)->next;
 
     }
-    arg_list = arg_list->next;
+    arg_list = seq_next(arg, arg_list);
   }
   return make_list(result_list);
 }
 
 MalType mal_symbol(list args) {
-  MalType val = eat_argument(args);
-  check_empty(args);
+  explode1("symbol", args, val);
 
-  return make_symbol(as_string(val));
+  const char* s = is_string(val);
+  if (!s) {
+    bad_type("symbol", MALTYPE_STRING, val);
+  }
+  return make_symbol(s);
 }
 
 MalType mal_keyword(list args) {
 
-  MalType val = eat_argument(args);
-  check_empty(args);
+  explode1("keyword", args, val);
 
-  if (!is_string(val) && !is_keyword(val)) {
-    return bad_type(val, "a keyword or string");
+  const char* s;
+  if ((s = is_string (val))) {
+    return make_keyword(s);
+  }
+  else if ((s = is_keyword(val))) {
+    return val;
   }
   else {
-    return make_keyword(val->value.mal_string);
+    bad_type("keyword", MALTYPE_KEYWORD | MALTYPE_STRING, val);
   }
+}
+
+MalType mal_vector(list args) {
+  /* Accepts any number and type of arguments */
+  int capacity= list_count(args);
+  struct vector* v = vector_new(capacity);
+  while (args) {
+    vector_append(&capacity, &v, args->data);
+    args = args->next;
+  }
+  return make_vector(v);
 }
 
 MalType mal_vec(list args) {
 
   /* Accepts a single argument */
 
-  MalType val = eat_argument(args);
-  check_empty(args);
+  explode1("vec", args, val);
 
-  if(!is_vector(val) && !is_list(val)) {
-    return bad_type(val, "a list or vector");
+  list l;
+  vector_t v;
+  if ((v = is_vector(val))) {
+    return val;
   }
+  else if (is_list ( val, &l)) {
+    return mal_vector(l);
+  }
+  else {
+    bad_type("vec", MALTYPE_LIST | MALTYPE_VECTOR, val);
+  }
+}
 
-  MalType new_val = make_vector(val->value.mal_list);
+MalType map_assoc_mutate(const char* context, struct map* new_lst, list args) {
+  for (list a = args; a ; a = a->next->next) {
+    check_type(context, MALTYPE_KEYWORD | MALTYPE_STRING, a->data);
+    if (!a->next) {
+      bad_arg_count("assoc", "an even count of key/value pairs", args);
+    }
+    new_lst = hashmap_put(new_lst, a->data, a->next->data);
+  }
+  return make_hashmap(new_lst);
+}
 
-  return new_val;
+MalType mal_hash_map(list args) {
+  return map_assoc_mutate("hash-map", map_empty(), args);
 }
 
 MalType mal_get(list args) {
-  /* TODO: implement a proper hashmap */
 
-  MalType map = eat_argument(args);
-  MalType key = eat_argument(args);
-  check_empty(args);
+  explode2("get", args, map, key);
 
-  check_type(key, MALTYPE_KEYWORD | MALTYPE_STRING, "a keyword or string");
+  check_type("get", MALTYPE_KEYWORD | MALTYPE_STRING, key);
 
+  hashmap mal_list;
   if(is_nil(map)) {
     return make_nil();
   }
-  else if(!is_hashmap(map)) {
-    return bad_type(map, "a map or nil");
+  else if(!(mal_list = is_hashmap(map))) {
+    bad_type("get", MALTYPE_HASHMAP | MALTYPE_NIL, map);
   }
 
-  MalType result = hashmap_get(map->value.mal_list, key);
+  MalType result = hashmap_get(mal_list, key);
 
   if (!result) {
     return make_nil();
@@ -655,105 +700,102 @@ MalType mal_get(list args) {
 
 MalType mal_contains_questionmark(list args) {
 
-  MalType map = eat_argument(args);
-  MalType key = eat_argument(args);
-  check_empty(args);
+  explode2("contains?", args, map, key);
 
-  check_type(key, MALTYPE_KEYWORD | MALTYPE_STRING, "a keyword or string");
+  check_type("contains?", MALTYPE_KEYWORD | MALTYPE_STRING, key);
 
+  hashmap mal_list;
   if(is_nil(map)) {
     return make_nil();
   }
-  if (!is_hashmap(map)) {
-    return bad_type(map, "a map or nil");
+  if (!(mal_list = is_hashmap(map))) {
+    bad_type("contains?", MALTYPE_HASHMAP | MALTYPE_NIL, map);
   }
 
-  MalType result = hashmap_get(map->value.mal_list, key);
+  MalType result = hashmap_get(mal_list, key);
 
-  if (!result) {
-    return make_false();
-  }
-  else {
-    return make_true();
-  }
+  return make_boolean(result);
 }
 
 MalType mal_assoc(list args) {
-  MalType map = eat_argument(args);
-  return map_assoc(as_map(map), args);
+  if (!args) {
+    bad_arg_count("assoc", "at least one argument", args);
+  }
+  MalType map = args->data;
+  hashmap m = is_hashmap(map);
+  if (!m) {
+    bad_type("assoc", MALTYPE_HASHMAP, map);
+  }
+  return map_assoc_mutate("assoc", map_copy(m), args->next);
 }
 
 MalType mal_dissoc(list args) {
 
-  MalType map = eat_argument(args);
-  for(list p=args; p; p=p->next) {
-    check_type(p->data, MALTYPE_KEYWORD | MALTYPE_STRING,
-               "a keyword or string");
+  if (!args) {
+    bad_arg_count("dissoc", "at least one argument", args);
   }
+  MalType map = args->data;
+  hashmap m = is_hashmap(map);
+  if (!m) {
+    bad_type("dissoc", MALTYPE_HASHMAP, map);
+  }
+  struct map* new_list = map_copy(m);
 
-  list source_list = as_map(map);
-  list new_list = NULL;
-
-  while(source_list) {
+  args = args->next;
 
     list dis_args = args;
-    long dis = 0;
-
 
     while(dis_args) {
 
-      if(equal_forms(source_list->data, dis_args->data)) {
-        dis = 1;
-        break;
-      }
+      check_type("dissoc", MALTYPE_KEYWORD | MALTYPE_STRING, dis_args->data);
+      map_dissoc_mutate(new_list, dis_args->data);
       dis_args = dis_args->next;
     }
-
-    if (!dis) {
-      new_list = list_push(new_list, source_list->next->data);
-      new_list = list_push(new_list, source_list->data);
-    }
-    source_list = source_list->next->next;
-  }
 
   return make_hashmap(new_list);
 }
 
 
- MalType mal_keys(list args) {
+MalType mal_keys(list args) {
 
-  MalType map = eat_argument(args);
-  check_empty(args);
+  explode1("keys", args, map);
 
-  list lst = as_map(map);
+  hashmap m = is_hashmap(map);
+  if (!m) {
+    bad_type("keys", MALTYPE_HASHMAP, map);
+  }
+  map_cursor lst = map_iter(m);
 
   list result = NULL;
-  while(lst) {
+  while(map_cont(m, lst)) {
 
-    result = list_push(result, lst->data);
-    lst = lst->next->next;
+      result = list_push(result, map_key(m, lst));
+      lst = map_next(m, lst);
   }
   return make_list(result);
 }
 
 MalType mal_vals(list args) {
 
-  MalType map = eat_argument(args);
-  check_empty(args);
+  explode1("vals", args, map);
 
-  list lst = as_map(map);
+  hashmap m = is_hashmap(map);
+  if (!m) {
+    bad_type("vals", MALTYPE_HASHMAP, map);
+  }
+  map_cursor lst = map_iter(m);
 
   list result = NULL;
-  while(lst) {
+  while(map_cont(m, lst)) {
 
-    result = list_push(result, lst->next->data);
-    lst=lst->next->next;
+    result = list_push(result, map_val(m, lst));
+    lst = map_next(m, lst);
   }
   return make_list(result);
 }
 
 MalType mal_time_ms(list args) {
-  check_empty(args);
+  explode0("time-ms", args);
 
   struct timeval tv;
   gettimeofday(&tv, NULL);
@@ -765,13 +807,16 @@ MalType mal_time_ms(list args) {
 
 MalType mal_conj(list args) {
 
-  MalType lst = eat_argument(args);
+  if (!args) {
+    bad_arg_count("conj", "at least one argument", args);
+  }
+  MalType lst = args->data;
 
-  list rest = args;
+  list rest = args->next;
 
-  if (is_list(lst)) {
-
-    list new_lst = lst->value.mal_list;
+  vector_t src;
+  list new_lst;
+  if (is_list(lst, &new_lst)) {
 
     while(rest) {
       new_lst = list_push(new_lst, rest->data);
@@ -779,110 +824,105 @@ MalType mal_conj(list args) {
     }
     return make_list(new_lst);
   }
-  else if(is_vector(lst)) {
+  else if ((src = is_vector(lst))) {
 
-    list new_lst = NULL;
-    list* new_lst_last = &new_lst;
-    for(list v=lst->value.mal_list; v; v=v->next) {
-      *new_lst_last = list_push(NULL, v->data);
-      new_lst_last = &(*new_lst_last)->next;
+    int capacity = src->count + list_count(rest);
+    struct vector* new_vec = vector_new(capacity);
+
+    for (int i = 0; i <= src->count - 1; i++) {
+      vector_append(&capacity, &new_vec, src->nth[i]);
     }
-    *new_lst_last = rest;
-    return make_vector(new_lst);
+
+    while(rest) {
+      vector_append(&capacity, &new_vec, rest->data);
+      rest = rest->next;
+    }
+    return make_vector(new_vec);
   }
   else {
-    return bad_type(lst, "a list or vector");
+    bad_type("conj", MALTYPE_LIST | MALTYPE_VECTOR, lst);
   }
 }
 
 MalType mal_seq(list args) {
 
-  MalType val = eat_argument(args);
-  check_empty(args);
+  explode1("seq", args, val);
 
-  if (is_sequential(val)) {
+  vector_t v;
+  list lst = NULL;
+  const char* ch;
 
-    /* empty list or vector */
-    if (!val->value.mal_list) {
-      return make_nil();
-    }
-    else {
-      return make_list(val->value.mal_list);
-    }
+  if (is_list(val, &lst)) {
+    return lst ? val : make_nil();
   }
-  else if (is_string(val)) {
-
-    const char* ch = val->value.mal_string;
+  else if ((ch = is_string(val))) {
 
     /* empty string */
     if (*ch == '\0') {
       return make_nil();
     }
     else {
-
-      list lst = NULL;
-      list* lst_last = &lst;
-
-      while(*ch != '\0') {
+      for (int i = strlen(ch) - 1; -1 < i; i--) {
         char* new_ch = GC_MALLOC(2);
-        new_ch[0] = *ch;
+        new_ch[0] = ch[i];
         new_ch[1] = 0;
 
-        *lst_last = list_push(NULL, make_string(new_ch));
-        lst_last = &(*lst_last)->next;
-        ch++;
+        lst = list_push(lst, make_string(new_ch));
       }
       return make_list(lst);
     }
+  }
+  else if ((v = is_vector(val))) {
+    for (int i = v->count - 1; 0 <= i; i--) {
+      lst = list_push(lst, v->nth[i]);
+    }
+    return lst ? make_list(lst) : make_nil();
   }
   else if (is_nil(val)) {
     return make_nil();
   }
   else {
-    return bad_type(val, "nil, a list, vector or string");
+    bad_type("seq", MALTYPE_LIST | MALTYPE_VECTOR | MALTYPE_NIL | MALTYPE_STRING, val);
   }
 }
 
 MalType mal_meta(list args) {
 
-  MalType val = eat_argument(args);
-  check_empty(args);
+  explode1("meta", args, val);
 
-  if (!is_sequential(val) && !is_hashmap(val) && !is_callable(val)) {
-    return bad_type(val, "a sequence, map or callable");
-  }
-    return val->metadata;
+  return meta(val);
 }
 
 MalType mal_with_meta(list args) {
 
-  MalType val = eat_argument(args);
-  MalType metadata = eat_argument(args);
-  check_empty(args);
+  explode2("with-meta", args, val, metadata);
 
-  if (!is_sequential(val) && !is_hashmap(val) && !is_callable(val)) {
-    return bad_type(val, "a sequence, map or callable");
-  }
-
-  MalType new_val = with_meta(val, metadata);
-
-  return new_val;
+  list l;
+  if (is_list(val, &l)) return make_list_m(l, metadata);
+  vector_t v = is_vector(val);
+  if (v) return make_vector_m(v, metadata);
+  hashmap m = is_hashmap(val);
+  if (m) return make_hashmap_m(m, metadata);
+  function_t f = is_function(val);
+  if (f) return make_function_m(f, metadata);
+  MalClosure c = is_closure(val);
+  if (c) return make_closure_m(c->env, c->fnstar_args, metadata);
+  bad_type("with-meta",
+           MALTYPE_LIST | MALTYPE_VECTOR | MALTYPE_HASHMAP | MALTYPE_FUNCTION | MALTYPE_CLOSURE,
+           val);
 }
 
 MalType mal_readline(list args) {
-  MalType a1 = eat_argument(args);
-  check_empty(args);
+  explode1("readline", args, prompt);
 
-  char* str = readline(as_string(a1));
+  const char* prompt_str = is_string(prompt);
+  if (!prompt_str) {
+    bad_type("readline", MALTYPE_STRING, prompt);
+  }
+  const char* str = readline_gc(prompt_str);
   if(!str)
     return make_nil();
-  add_history(str);
-  /* Copy the input into an area managed by libgc. */
-  size_t n = strlen(str) + 1;
-  char* result = GC_MALLOC(n);
-  memcpy(result, str, n);
-  free(str);
-  return make_string(result);
+  return make_string(str);
 }
 
 
@@ -892,218 +932,150 @@ inline MalType make_boolean(bool x) {
   return x ? make_true() : make_false();
 }
 
-bool equal_lists(list first, list second) {
-
-  while(first != NULL) {
-    if(second == NULL || !equal_forms(first->data, second->data))
-      return false;
-    first = first->next;
-    second = second->next;
-  }
-  return second == NULL;
-}
-
-bool equal_hashmaps(list first, list second) {
-
-  //  Check that the lists have the same count.
-  if(list_count(first) != list_count(second))
-    return false;
-  while(first) {
-    MalType val = hashmap_get(second, first->data);
-    first = first->next;
-    if(!val || !equal_forms(first->data, val)) {
-      return false;
-    }
-    first = first->next;
-  }
-  return true;
-}
-
 
 #ifdef WITH_FFI
+struct {
+  const char*     c_type;
+  enum mal_type_t mal_type;
+  ffi_type*       ffit;
+} core_ffi_translations[] = {
+  { "void",    MALTYPE_NIL,     &ffi_type_void },
+  { "string",  MALTYPE_STRING,  &ffi_type_pointer },
+  { "char*",   MALTYPE_STRING,  &ffi_type_pointer },
+  { "char *",  MALTYPE_STRING,  &ffi_type_pointer },
+  { "integer", MALTYPE_INTEGER, &ffi_type_sint64 },
+  { "int64",   MALTYPE_INTEGER, &ffi_type_sint64 },
+  { "int32",   MALTYPE_INTEGER, &ffi_type_sint32 },
+  { "double",  MALTYPE_FLOAT,   &ffi_type_double },
+  { "float",   MALTYPE_FLOAT,   &ffi_type_float },
+};
+int core_ffi_find(const char *type) {
+  // Negative if not found
+  int i = sizeof(core_ffi_translations) / sizeof(*core_ffi_translations) - 1;
+  while ((0 <= i) && strcmp(core_ffi_translations[i].c_type, type)) {
+    i--;
+  }
+  return i;
+}
 MalType mal_dot(list args) {
 
   /* (. "lib" "return type" "function" "arg1 type" "arg 1" ...) */
 
-  MalType lib_name = eat_argument(args);
-
-  const char* lib_name_str = NULL;
-  if (is_string(lib_name)) {
-    lib_name_str = lib_name->value.mal_string;
-  }
-  else if (!is_nil(lib_name)) {
-    return bad_type(lib_name, "a string or nil");
+  list a;
+  if (!args || !(a = args->next) || !a->next) {
+    bad_arg_count(".", "at least three arguments", args);
   }
 
-  MalType return_type = eat_argument(args);
-
-  const char* return_type_str = as_string(return_type);
-
-  MalType fn_name = eat_argument(args);
-
-  const char* fn_name_str = as_string(fn_name);
-
-  int args_count = list_count(args);
-
-  if (args_count % 2 == 1) {
-    return make_error_fmt("expected even number of argument types and values");
+  const char* lib_name = is_string(args->data);
+  if (!lib_name && !is_nil(args->data)) {
+    bad_type(".", MALTYPE_STRING | MALTYPE_NIL, args->data);
   }
 
-  list arg_types_list = NULL;
-  list* arg_types_list_last = &arg_types_list;
-  list arg_vals_list = NULL;
-  list* arg_vals_list_last = &arg_vals_list;
+  const char* return_type_str = is_string(a->data);
+  if (!return_type_str) {
+    bad_type(".", MALTYPE_STRING, a->data);
+  }
+  int return_type = core_ffi_find(return_type_str);
+  if (return_type < 0) {
+    make_error("'ffi': return type not supported '%s'", return_type_str);
+  }
 
-  while(args) {
+  a = a->next;
 
-    MalType val_type = (MalType)args->data;
-    args = args->next;
-    MalType val = eat_argument(args);  // check that the argument is present
+  const char* fn_name = is_string(a->data);
+  if (!fn_name) {
+    bad_type(".", MALTYPE_STRING, a->data);
+  }
 
-    as_string(val_type);        // Just for the type check.
+  a = a->next;
 
-    *arg_types_list_last = list_push(NULL, val_type);
-    arg_types_list_last = &(*arg_types_list_last)->next;
-    *arg_vals_list_last = list_push(NULL, val);
-    arg_vals_list_last = &(*arg_vals_list_last)->next;
+  int       arg_count = 0;
+  ffi_type* arg_types[20];
+  void*     arg_vals [20];
+  while (a) {
+    if (20 <= arg_count) {
+      bad_arg_count(".", "less than 20 C arguments", args);
+    }
+    const char* val_type = is_string(a->data);
+    if (!val_type) {
+      bad_type(".", MALTYPE_STRING, a->data);
+    }
+    int val_type_index = core_ffi_find(val_type);
+    if (val_type_index < 0) {
+      make_error("'ffi': type not recognised '%s'", val_type);
+    }
+    arg_types[arg_count] = core_ffi_translations[val_type_index].ffit;
+
+    a = a->next;
+
+    if (!a) {
+      bad_arg_count(".", "an even number of argument types and values", args);
+    }
+    arg_vals[arg_count] = mal_type_value_address(a->data);
+
+    a = a->next;
+    arg_count++;
   }
 
   /* open a shared library dynamically and get hold of a function */
-  void* lib_handle = dlopen(lib_name_str, RTLD_LAZY);
+  void* lib_handle = dlopen(lib_name, RTLD_LAZY);
 
   if (!lib_handle) {
-    return make_error_fmt("%s", dlerror());
+    make_error("'ffi': reports: %s", dlerror());
   }
 
-  void* fn = dlsym(lib_handle, fn_name_str);
+  void* fn = dlsym(lib_handle, fn_name);
 
-  char* error;
-  if ((error = dlerror()) != NULL) {
-    return make_error_fmt("dlsym could not get handle to function '%s': %s",
-          fn_name_str, error);
+  const char* error = dlerror();
+  if (error) {
+    make_error("'ffi': dlsym could not get handle to function '%s': %s", fn_name, error);
   }
 
   /* use libffi to call function */
-
+  /* perform the call */
   ffi_cif cif;
-  ffi_type* ret_type;
-  ffi_type* arg_types[20];
-  void* arg_vals[20];
-  ffi_status status;
-  ffi_type* ffi_get_type(const char *type, MalType* err);
-
-  MalType mal_err = make_nil();
+  ffi_status status = ffi_prep_cif(&cif, FFI_DEFAULT_ABI, arg_count,
+                                   core_ffi_translations[return_type].ffit,
+                                   arg_types);
+  if (status != FFI_OK) {
+    make_error("'ffi': call to ffi_prep_cif failed with code: %d", status);
+  }
 
   /* set return type */
-  MalType make_type(const char *type);
-  MalType immutable_retval = make_type(return_type_str);
-  struct MalType_s* retval = GC_MALLOC(sizeof(*retval));
-  *retval = *immutable_retval;;
-
-  ret_type = ffi_get_type(return_type_str, &mal_err);
-  if(is_error(mal_err)) { return mal_err; }
-
-  int arg_count = list_count(arg_types_list);
-
-  /* Set the argument types and values */
-  for (int i = 0; i < arg_count; i++) {
-
-    MalType val_type = (MalType)arg_types_list->data;
-    arg_types[i] = ffi_get_type(as_string(val_type), &mal_err);
-    if (is_error(mal_err)) { return mal_err; }
-
-    MalType val = (MalType)arg_vals_list->data;
-    arg_vals[i] = (void*)(&(val->value));
-
-    arg_types_list = arg_types_list->next;
-    arg_vals_list = arg_vals_list->next;
+  MalType result;
+  switch (core_ffi_translations[return_type].mal_type) {
+  case MALTYPE_NIL: {
+    char retval;
+    ffi_call(&cif, FFI_FN(fn), &retval, arg_vals);
+    result = make_nil();
+    break;
   }
-
-  /* perform the call */
-  status = ffi_prep_cif(&cif, FFI_DEFAULT_ABI, arg_count, ret_type, arg_types);
-
-  if (status != FFI_OK) {
-    return make_error_fmt("call to ffi_prep_cif failed with code: %d", status);
+  case MALTYPE_STRING: {
+    char* retval;
+    ffi_call(&cif, FFI_FN(fn), &retval, arg_vals);
+    result = make_string(retval);
+    break;
   }
-
-  ffi_call(&cif, FFI_FN(fn), &retval->value, arg_vals);
+  case MALTYPE_INTEGER: {
+    long retval;
+    ffi_call(&cif, FFI_FN(fn), &retval, arg_vals);
+    result = make_integer(retval);
+    break;
+  }
+  case MALTYPE_FLOAT: {
+    double retval;
+    ffi_call(&cif, FFI_FN(fn), &retval, arg_vals);
+    result = make_float(retval);
+    break;
+  }
+  default:
+    assert(false);
+  }
 
   /* close the library */
   dlclose(lib_handle);
 
-  if (ret_type == &ffi_type_void) {
-    return make_nil();
-  } else {
-    return retval;
-  }
+  return result;
 }
 
-/* helper function for ffi */
-ffi_type* ffi_get_type(const char *type, MalType* err) {
-
-  if ((strcmp("void", type) == 0)) {
-
-    return &ffi_type_void;
-  }
-  else if ((strcmp("string", type) == 0) ||
-           (strcmp("char*", type) == 0) ||
-           (strcmp("char *", type) == 0)) {
-
-    return &ffi_type_pointer;
-  }
-  else if ((strcmp("integer", type) == 0) ||
-           (strcmp("int64", type) == 0)) {
-
-    return &ffi_type_sint64;
-  }
-  else if ((strcmp("int32", type) == 0)) {
-
-    return &ffi_type_sint32;
-  }
-  else if (strcmp("double", type) == 0) {
-
-    return &ffi_type_double;
-  }
-  else if (strcmp("float", type) == 0) {
-    return &ffi_type_float;
-  }
-  else {
-    *err = make_error_fmt("type not recognised '%s'", type);
-    return NULL;
-  }
-}
-
-/* helper function for ffi */
-MalType make_type(const char *type) {
-
-  if ((strcmp("void", type) == 0)) {
-
-    return make_nil();
-  }
-  else if ((strcmp("string", type) == 0) ||
-           (strcmp("char*", type) == 0) ||
-           (strcmp("char *", type) == 0)) {
-
-    return make_string("");
-  }
-  else if ((strcmp("integer", type) == 0) ||
-           (strcmp("int64", type) == 0)) {
-
-    return make_integer(0);
-  }
-  else if ((strcmp("int32", type) == 0)) {
-    return make_integer(0);
-  }
-  else if (strcmp("double", type) == 0) {
-
-    return make_float(0);
-  }
-  else if (strcmp("float", type) == 0) {
-
-    return make_float(0);
-  }
-  else {
-    return make_error_fmt("type not supported '%s'", type);
-  }
-}
 #endif

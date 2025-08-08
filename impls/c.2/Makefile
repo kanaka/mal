@@ -1,10 +1,44 @@
 CC = gcc
 
-# Optimization is not required but enables some more warnings.
-CFLAGS = -std=c99 -g -Wall -Wextra -O1
+CFLAGS = -std=c99 -g -Wall -Wextra -fanalyzer
 
 # The code defines new format specifiers.
 CPPFLAGS = -Wno-format
+
+ifdef debug_reader
+  CPPFLAGS += -DDEBUG_READER
+endif
+ifdef debug_hash
+  CPPFLAGS += -DDEBUG_HASH
+endif
+ifdef debug_hashmap
+  CPPFLAGS += -DDEBUG_HASHMAP
+endif
+ifdef debug_hash_collisions
+  CPPFLAGS += -DDEBUG_HASH_COLLISIONS
+endif
+ifndef no_fast
+  CFLAGS  += -flto -O3 -DNDEBUG
+  LDFLAGS += -flto
+endif
+ifdef profilie
+  CFLAGS  += -pg
+  LDFLAGS += -pg
+endif
+ifdef readline
+  pkgconfig_modules += readline
+  CFLAGS += -DUSE_READLINE
+else
+  pkgconfig_modules += libedit
+endif
+ifndef no_ffi
+  pkgconfig_modules += libffi
+  CFLAGS += -DWITH_FFI
+endif
+
+pkgconfig_modules += bdw-gc
+CFLAGS += $(shell pkg-config --cflags $(pkgconfig_modules))
+LDLIBS += $(shell pkg-config --libs   $(pkgconfig_modules))
 
 S0 = step0_repl
 S1 = step1_read_print
@@ -23,29 +57,18 @@ S3+ := $(S3) $(S4+)
 S1+ := $(S1) $(S2) $(S3+)
 S0+ := $(S0) $(S1+)
 
-VPATH = libs/hashmap libs/linked_list
-
 all: $(S0+)
 
 # GCC could create temporary objects files, but separate recipes for
 # .o objects give faster build cycles when debugging.
-
-$(S0+): LDLIBS += -ledit
-
-$(S1+): hashmap.o linked_list.o printer.o reader.o types.o
-$(S1+): LDLIBS += -lgc
-
+$(S0+): readline.o
+$(S1+): error.o hashmap.o linked_list.o printer.o reader.o types.o vector.o
 $(S3+): env.o
-
-# ffi is only used by stepA, but we want the same core.o for all steps.
-# Anyway, the --as-needed linker option is active by default.
 $(S4+): core.o
-$(S4+): LDLIBS += -ldl -lffi
-core.o: CPPFLAGS += -DWITH_FFI
 
 include deps
 deps:
-	gcc -MM -MF- *.c > $@
+	$(CC) -MM -MF- *.c > $@
 
 clean:
 	rm -f $(S0+) *.o deps

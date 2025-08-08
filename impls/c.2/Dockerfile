@@ -23,4 +23,4 @@ WORKDIR /mal
 RUN apt-get -y install gcc
 
 # Libraries needed for the C impl
-RUN apt-get -y install libffi-dev libgc-dev libedit-dev
+RUN apt-get -y install libffi-dev libgc-dev libedit-dev pkgconf
