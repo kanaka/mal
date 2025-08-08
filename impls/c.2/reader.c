@@ -6,22 +6,22 @@
 
 #include <gc.h>
 
-#include "libs/hashmap/hashmap.h"
+#include "hashmap.h"
 #include "printer.h"
 #include "reader.h"
+#include "linked_list.h"
+#include "vector.h"
+#include "error.h"
 
 #define SYMBOL_NIL "nil"
 #define SYMBOL_TRUE "true"
 #define SYMBOL_FALSE "false"
-#define SYMBOL_QUOTE "quote"
-#define SYMBOL_QUASIQUOTE "quasiquote"
-#define SYMBOL_UNQUOTE  "unquote"
-#define SYMBOL_SPLICE_UNQUOTE "splice-unquote"
-#define SYMBOL_DEREF "deref"
-#define SYMBOL_WITH_META "with-meta"
 
-#define DEBUG(...)
-// #define DEBUG(fmt, ...) printf("READER: %s \"%s\": " fmt "\n", __func__, *reader, ## __VA_ARGS__)
+#ifdef DEBUG_READER
+#  define DEBUG(fmt, ...) printf("READER: %s \"%s\": " fmt "\n", __func__, *reader, ## __VA_ARGS__)
+#else
+#  define DEBUG(...)
+#endif
 
 typedef const char** Reader;
 
@@ -30,10 +30,11 @@ MalType read_with_meta(Reader reader);
 MalType read_string(Reader reader);
 MalType read_number(Reader reader);
 const char* read_symbol (Reader reader);
-MalType read_matched_delimiters(Reader reader, char start_delimiter,
-                                char end_delimiter, function_t constructor);
+MalType read_list(Reader reader);
+MalType read_vector(Reader reader);
+MalType read_map(Reader reader);
 void skip_spaces(Reader reader);
-MalType make_symbol_list(Reader reader, const char* symbol_name);
+MalType make_symbol_list(Reader reader, MalType symbol_name);
 
 void skip_spaces(Reader reader) {
 
@@ -54,10 +55,10 @@ void skip_spaces(Reader reader) {
 MalType read_str(const char* source) {
 
   MalType result = read_form(&source);
-  if(is_error(result)) return result;
+  if(mal_error) return NULL;
   skip_spaces(&source);
   if(*source)
-    return make_error_fmt("trailing characters (after %M): %s",
+    make_error("reader: trailing characters (after %M): %s",
                           result, source);
   return result;
 }
@@ -67,7 +68,7 @@ const char* read_symbol (Reader reader) {
   DEBUG();
 
   const char* start = *reader;
-  while(true) {
+  while(!isspace(**reader)) {
     switch(**reader) {
     case 0:
       return start;
@@ -87,8 +88,6 @@ const char* read_symbol (Reader reader) {
     case ';':
       goto finished;
     default:
-      if(isspace(**reader))
-        goto finished;
       (*reader)++;
     }
   }
@@ -106,17 +105,20 @@ MalType read_form(Reader reader) {
   skip_spaces(reader);
   switch (**reader) {
   case 0:
-    return make_error_fmt("input string is empty");
+    make_error("reader: input string is empty");
   case '[':
-    return read_matched_delimiters(reader, '[', ']', make_vector);
+    return read_vector(reader);
+    // Implicit error propagation
   case '{':
-    return read_matched_delimiters(reader, '{', '}', mal_hash_map);
+    return read_map(reader);
+    // Implicit error propagation
   case '(':
-    return read_matched_delimiters(reader, '(', ')', make_list);
+    return read_list(reader);
+    // Implicit error propagation
   case ']':
   case '}':
   case ')':
-    return make_error_fmt("unmatched '%c'", **reader);
+    make_error("reader: unmatched '%c'", **reader);
   case '\'':
     return make_symbol_list(reader, SYMBOL_QUOTE);
   case '@':
@@ -125,6 +127,7 @@ MalType read_form(Reader reader) {
     return make_symbol_list(reader, SYMBOL_QUASIQUOTE);
   case '^':
     return read_with_meta(reader);
+    // Implicit error propagation
   case '~':
     if(*(*reader + 1) == '@') {
       (*reader)++;
@@ -133,6 +136,7 @@ MalType read_form(Reader reader) {
     return make_symbol_list(reader, SYMBOL_UNQUOTE);
   case '"':
     return read_string(reader);
+    // Implicit error propagation
   case '0':
   case '1':
   case '2':
@@ -208,11 +212,11 @@ MalType read_with_meta(Reader reader) {
           (*reader)++;
 
           /* grab the components of the list */
-          MalType symbol = make_symbol(SYMBOL_WITH_META);
+          MalType symbol = SYMBOL_WITH_META;
           MalType first_form = read_form(reader);
-          if(is_error(first_form)) return first_form;
+          if(mal_error) return NULL;
           MalType second_form = read_form(reader);
-          if(is_error(second_form)) return second_form;
+          if(mal_error) return NULL;
 
           /* push the symbol and the following forms onto a list */
           list lst = NULL;
@@ -223,35 +227,83 @@ MalType read_with_meta(Reader reader) {
           return make_list(lst);
  }
 
-MalType read_matched_delimiters(Reader reader, char start_delimiter,
-                                char end_delimiter, function_t constructor) {
-/* TODO: separate implementation of hashmap and vector */
+MalType read_list(Reader reader) {
 
   (*reader)++;
   list lst = NULL;
   list* lst_last = &lst;
 
     while(true) {
-      DEBUG("searching '%c', already read: % N", end_delimiter, lst);
+      DEBUG("searching ')', already read: %N", lst);
       skip_spaces(reader);
 
       if(!**reader) {
         /* unbalanced parentheses */
-        return make_error_fmt("unbalanced '%c'", start_delimiter);
+        make_error("reader: unbalanced '('");
       }
 
-      if(**reader == end_delimiter)
+      if(**reader == ')')
         break;
       MalType val = read_form(reader);
-      if(is_error(val)) return val;
+      if(mal_error) return NULL;
       *lst_last = list_push(NULL, val);
       lst_last = &(*lst_last)->next;
     }
   (*reader)++;
-  return constructor(lst);
+  return make_list(lst);
 }
 
-MalType make_symbol_list(Reader reader, const char* symbol_name) {
+MalType read_vector(Reader reader) {
+  (*reader)++;
+  int capacity = 10;
+  struct vector* v = vector_new(10);
+  while(true) {
+    DEBUG("searching ']'");
+    skip_spaces(reader);
+    if (!**reader) {
+      make_error("reader: unbalanced '['");
+    }
+    if (**reader == ']')
+      break;
+    MalType val = read_form(reader);
+    if (mal_error) return NULL;
+    vector_append(&capacity, &v, val);
+  }
+  (*reader)++;
+  return make_vector(v);
+}
+
+MalType read_map(Reader reader) {
+  (*reader)++;
+  struct map* map = map_empty();
+  while(true) {
+    DEBUG("searching '}' or key");
+    skip_spaces(reader);
+    if (!**reader) {
+      make_error("reader: unbalanced '{'");
+    }
+    if (**reader == '}')
+      break;
+    MalType key = read_form(reader);
+    if (mal_error) return NULL;
+    check_type("reading map literal", MALTYPE_KEYWORD | MALTYPE_STRING, key);
+    DEBUG("searching map value for %M", key);
+    skip_spaces(reader);
+    if (!**reader) {
+      make_error("reader: unbalanced '{'");
+    }
+    if (**reader == '}') {
+      make_error("reader: odd count of bindings in map litteral");
+    }
+    MalType value = read_form(reader);
+    if (mal_error) return NULL;
+    map = hashmap_put(map, key, value);
+  }
+  (*reader)++;
+  return make_hashmap(map);
+}
+
+MalType make_symbol_list(Reader reader, MalType symbol) {
 
   DEBUG();
 
@@ -260,9 +312,9 @@ MalType make_symbol_list(Reader reader, const char* symbol_name) {
 
   /* push the symbol and the following form onto the list */
   MalType form = read_form(reader);
-  if(is_error(form)) return form;
+  if(mal_error) return NULL;
   lst = list_push(lst, form);
-  lst = list_push(lst, make_symbol(symbol_name));
+  lst = list_push(lst, symbol);
 
   return make_list(lst);
 }
@@ -277,19 +329,19 @@ MalType read_string(Reader reader) {
   //  Compute the length.
   for(const char* p=*reader; *p!='"'; p++) {
     if(!*p)
-      return make_error_fmt("unbalanced '\"'");
+      make_error("reader: unbalanced '\"'");
     if(*p == '\\') {
       p++;
       switch(*p) {
       case 0:
-        return make_error_fmt("incomplete \\ escape sequence");
+        make_error("reader: incomplete \\ escape sequence");
       case '\\':
       case 'n':
       case '"':
         break;
 
       default:
-        return make_error_fmt("invalid escape sequence '\\%c'", *p);
+        make_error("reader: incomplete escape sequence '\\%c'", *p);
       }
     }
     count++;

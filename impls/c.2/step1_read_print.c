@@ -1,23 +1,23 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include <editline/readline.h>
-#include <editline/history.h>
-
 #include "types.h"
 #include "reader.h"
 #include "printer.h"
+#include "error.h"
+#include "readline.h"
 
 #define PROMPT_STRING "user> "
 
 MalType READ(const char* str) {
 
   return read_str(str);
+  // Implicit error propagation
 }
 
-MalType EVAL(MalType val) {
+MalType EVAL(MalType ast) {
 
-  return val;
+  return ast;
 }
 
 void PRINT(MalType val) {
@@ -27,28 +27,31 @@ void PRINT(MalType val) {
 
 void rep(const char* str) {
 
-  PRINT(EVAL(READ(str)));
+  MalType a = READ(str);
+  if (!mal_error) {
+    PRINT(EVAL(a));
+    return;
+  }
+  MalType e = mal_error;
+  mal_error = NULL; // before printing
+  printf("Uncaught error: %M\n", e);
 }
 
-int main(int, char**) {
+int main() {
 
+  types_init();
   printer_init();
 
-    char* input;
-    while((input = readline(PROMPT_STRING))) {
+    const char* input;
+    while((input = readline_gc(PROMPT_STRING))) {
 
       /* print prompt and get input*/
-      /* readline allocates memory for input */
       /* Check for EOF (Ctrl-D) */
-      /* add input to history */
-      add_history(input);
 
       /* call Read-Eval-Print */
       rep(input);
-
-      /* have to release the memory used by readline */
-      free(input);
     }
     printf("\n");
+
   return EXIT_SUCCESS;
 }

@@ -1,73 +1,75 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
+#include <assert.h>
 
-#include <gc.h>
-#include <editline/readline.h>
-#include <editline/history.h>
-
-#include "libs/linked_list/linked_list.h"
+#include "linked_list.h"
 #include "types.h"
 #include "reader.h"
 #include "printer.h"
 #include "env.h"
 #include "core.h"
-
-#define SYMBOL_DEFBANG "def!"
-#define SYMBOL_LETSTAR "let*"
-#define SYMBOL_DO "do"
-#define SYMBOL_IF "if"
-#define SYMBOL_FNSTAR "fn*"
-#define SYMBOL_QUOTE "quote"
-#define SYMBOL_QUASIQUOTE "quasiquote"
-#define SYMBOL_UNQUOTE "unquote"
-#define SYMBOL_SPLICE_UNQUOTE "splice-unquote"
-#define SYMBOL_DEFMACROBANG "defmacro!"
-#define SYMBOL_TRYSTAR "try*"
-#define SYMBOL_CATCHSTAR "catch*"
+#include "error.h"
+#include "hashmap.h"
+#include "readline.h"
+#include "vector.h"
 
 #define PROMPT_STRING "user> "
 
 MalType apply(MalType, list); // For the apply phase and core apply/map/swap.
-MalType evaluate_list(list*, list, Env*);
-// Store the result into the first argument and return NULL
-// If an error occurs, it is returned.
-MalType evaluate_vector(list, Env*);
-MalType evaluate_hashmap(list, Env*);
+list evaluate_list(list, Env*);
+MalType evaluate_vector(vector_t, Env*);
+MalType evaluate_hashmap(hashmap lst, Env* env);
 MalType eval_defbang(list, Env*);
 MalType eval_letstar(list, Env**); // TCO
-MalType eval_if(list, Env**); // TCO unless the environment is set to NULL.
+MalType eval_if(list, Env*); // TCO (even for nil)
 MalType eval_fnstar(list, const Env*);
 MalType eval_do(list, Env*); // TCO in the same env
 MalType eval_quote(list);
 MalType eval_quasiquote(list);
 MalType quasiquote(MalType);
-MalType quasiquote_vector(list);
+MalType quasiquote_vector(vector_t);
 MalType quasiquote_list(list);
+MalType quasiquote_folder(MalType first, MalType qq_rest);
 MalType eval_defmacrobang(list, Env*);
 MalType eval_try(list, Env**); // TCO unless the environment is set to NULL.
 
 MalType READ(const char* str) {
 
   return read_str(str);
+  // Implicit error propagation
 }
 
-MalType env_apply(MalClosure closure, list args, Env** env) {
+Env* env_apply(MalClosure closure, list args) {
   //  Return the closure definition and update env if all went OK,
   //  else return an error.
   Env* fn_env = env_make(closure->env);
-  for(size_t i=0; i<closure->param_len; i++) {
-    env_set(fn_env, closure->parameters[i], eat_argument(args));
+  MalType params = closure->fnstar_args->data;
+
+  assert(type(params) & (MALTYPE_LIST | MALTYPE_VECTOR));
+  seq_cursor c = seq_iter(params);
+  list a = args;
+  while (true) {
+    if (!seq_cont(params, c)) {
+      if (a) {
+        make_error("'apply': expected [%M], got [%N]", params, args);
+      }
+      break;
+    }
+    MalType parameter = seq_item(params, c);
+    if (equal_forms(parameter, SYMBOL_AMPERSAND)) {
+      c = seq_next(params, c);
+      assert(seq_cont(params, c));
+      env_set(fn_env, seq_item(params, c), make_list(a));
+      break;
+    }
+    if (!a) {
+      make_error("'apply': expected [%M], got [%N]", params, args);
+    }
+    env_set(fn_env, parameter, a->data);
+    c = seq_next(params, c);
+    a = a->next;
   }
-  /* set the 'more' symbol if there is one */
-  if (closure->more_symbol) {
-    env_set(fn_env, closure->more_symbol, make_list(args));
-  }
-  else {
-    check_empty(args);
-  }
-  *env = fn_env;
-  return closure->definition;
+  return fn_env;
 }
 
 MalType EVAL(MalType ast, Env* env) {
@@ -75,31 +77,33 @@ MalType EVAL(MalType ast, Env* env) {
   /* Use goto to jump here rather than calling eval for tail-call elimination */
  TCE_entry_point:
 
-  MalType dbgeval = env_get(env, "DEBUG-EVAL");
-  if (dbgeval && ! is_false(dbgeval) && ! is_nil(dbgeval))
-    printf("EVAL: %M\n", ast);
+  MalType dbgeval = env_get(env, SYMBOL_DEBUG_EVAL);
+  if (dbgeval && (type(dbgeval) & ~(MALTYPE_FALSE | MALTYPE_NIL)))
+    printf("EVAL: %50M env: %H\n", ast, env_as_map(env));
 
-  if (is_symbol(ast)) {
-    MalType symbol_value = env_get(env, ast->value.mal_string);
+  if (type(ast) == MALTYPE_SYMBOL) {
+    MalType symbol_value = env_get(env, ast);
     if (symbol_value)
       return symbol_value;
     else
-      // make_error would prefix with EVAL: and break some tests
-      return wrap_error(make_string(mal_printf("'%M' not found", ast)));
+      make_error("'%M' not found", ast);
   }
 
-  if (is_vector(ast)) {
-    return evaluate_vector(ast->value.mal_list, env);
+  vector_t vec;
+  if ((vec = is_vector(ast))) {
+    return evaluate_vector(vec, env);
+    // Implicit error propagation
   }
 
-  if (is_hashmap(ast)) {
-    return evaluate_hashmap(ast->value.mal_list, env);
+  hashmap map;
+  if ((map = is_hashmap(ast))) {
+    return evaluate_hashmap(map, env);
+    // Implicit error propagation
   }
 
   /* not a list */
-  if (!is_list(ast)) { return ast; }
-
-  list lst = ast->value.mal_list;
+  list lst;
+  if (!is_list(ast, &lst)) { return ast; }
 
   /* empty list */
   if(lst == NULL) { return ast; }
@@ -108,88 +112,90 @@ MalType EVAL(MalType ast, Env* env) {
   MalType first = lst->data;
   lst = lst->next;
 
-  if(is_symbol(first)) {
-    const char* symbol = first->value.mal_string;
-
     /* handle special symbols first */
-    if (strcmp(symbol, SYMBOL_DEFBANG) == 0) {
+    if (equal_forms(first, SYMBOL_DEF)) {
       return eval_defbang(lst, env);
+      // Implicit error propagation
     }
-    else if (strcmp(symbol, SYMBOL_LETSTAR) == 0) {
+    else if (equal_forms(first, SYMBOL_LET)) {
 
       /* TCE - modify ast and env directly and jump back to eval */
       ast = eval_letstar(lst, &env);
 
-      if (is_error(ast)) { return ast; }
+      if (mal_error) { return NULL; }
       goto TCE_entry_point;
     }
-    else if (strcmp(symbol, SYMBOL_IF) == 0) {
+    else if (equal_forms(first, SYMBOL_IF)) {
 
       /* TCE - modify ast directly and jump back to eval */
-      ast = eval_if(lst, &env);
+      ast = eval_if(lst, env);
 
-      if (is_error(ast)) { return ast; }
-      if(env) goto TCE_entry_point; else return ast;
+      if (mal_error) { return NULL; }
+      goto TCE_entry_point;
     }
-    else if (strcmp(symbol, SYMBOL_FNSTAR) == 0) {
+    else if (equal_forms(first, SYMBOL_FN)) {
       return eval_fnstar(lst, env);
+      // Implicit error propagation
     }
-    else if (strcmp(symbol, SYMBOL_DO) == 0) {
+    else if (equal_forms(first, SYMBOL_DO)) {
 
       /* TCE - modify ast and env directly and jump back to eval */
       ast = eval_do(lst, env);
 
-      if (is_error(ast)) { return ast; }
+      if (mal_error) { return NULL; }
       goto TCE_entry_point;
     }
-    else if (strcmp(symbol, SYMBOL_QUOTE) == 0) {
+    else if (equal_forms(first, SYMBOL_QUOTE)) {
       return eval_quote(lst);
+      // Implicit error propagation
     }
-    else if (strcmp(symbol, SYMBOL_QUASIQUOTE) == 0) {
+    else if (equal_forms(first, SYMBOL_QUASIQUOTE)) {
 
       ast = eval_quasiquote(lst);
 
-      if (is_error(ast)) { return ast; }
+      if (mal_error) { return NULL; }
       goto TCE_entry_point;
     }
-    else if (strcmp(symbol, SYMBOL_DEFMACROBANG) == 0) {
+    else if (equal_forms(first, SYMBOL_DEFMACRO)) {
       return eval_defmacrobang(lst, env);
+      // Implicit error propagation
     }
-    else if (strcmp(symbol, SYMBOL_TRYSTAR) == 0) {
+    else if (equal_forms(first, SYMBOL_TRY)) {
 
       /* TCE - modify ast and env directly and jump back to eval */
       ast = eval_try(lst, &env);
-      if(is_error(ast)) return ast;
+      if (mal_error) return NULL;
 
       if(!env) { return ast; }
       goto TCE_entry_point;
     }
-  }
+
   /* first element is not a special symbol */
   MalType func = EVAL(first, env);
-  if (is_error(func)) { return func; }
-  if(func->type == MALTYPE_MACRO) {
+  if (mal_error) { return NULL; }
+  check_type("apply phase", MALTYPE_CLOSURE | MALTYPE_FUNCTION | MALTYPE_MACRO, func);
+  if (type(func) == MALTYPE_MACRO) {
     ast = apply(func, lst);
-    if (is_error(ast)) { return ast; }
+    if (mal_error) { return NULL; }
     goto TCE_entry_point;
   }
   //  Evaluate the arguments
-  list evlst;
-  MalType error = evaluate_list(&evlst, lst, env);
-  if(error) return error;
+  list evlst = evaluate_list(lst, env);
+  if (mal_error) return NULL;
 
   /* apply the first element of the list to the arguments */
-  if (is_closure(func)) {
-
-      MalClosure closure = func->value.mal_closure;
+  MalClosure closure;
+  if ((closure = is_closure(func))) {
 
       /* TCE - modify ast and env directly and jump back to eval */
-      ast = env_apply(closure, evlst, &env);
+      ast = closure->fnstar_args->next->data;
+      env = env_apply(closure, evlst);
 
-      if (is_error(ast)) { return ast; }
+      if (mal_error) return NULL;
       goto TCE_entry_point;
   }
   return apply(func, evlst);
+  // Implicit error propagation
 }
 
 void PRINT(MalType val) {
@@ -199,34 +205,50 @@ void PRINT(MalType val) {
 
 void rep(const char* str, Env* env) {
 
-  PRINT(EVAL(READ(str), env));
+  MalType a = READ(str);
+  if (!mal_error) {
+    MalType b = EVAL(a, env);
+    if (!mal_error) {
+      PRINT(b);
+      return;
+    }
+  }
+  MalType e = mal_error;
+  mal_error = NULL; // before printing
+  printf("Uncaught error: %M\n", e);
 }
 
 //  Variant reporting errors during startup.
 void re(const char *str, Env* env) {
-  MalType result = EVAL(READ(str), env);
-  if(is_error(result)) {
+    MalType a = READ(str);
+    if (!mal_error) {
+      EVAL(a, env);
+      if (!mal_error) {
+        return;
+      }
+    }
+    MalType result = mal_error;
+    mal_error = NULL; // before printing
     printf("Error during startup: %M\n", result);
     exit(EXIT_FAILURE);
-  }
 }
 
 /* declare as global so it can be accessed by mal_eval */
-Env* global_env;
+Env* repl_env;
 
 MalType mal_eval(list args) {
 
-  MalType ast = eat_argument(args);
-  check_empty(args);
-  return EVAL(ast, global_env);
+  explode1("eval", args, ast);
+  return EVAL(ast, repl_env);
+  // Implicit error propagation
 }
 
 int main(int argc, char** argv) {
 
+  types_init();
   printer_init();
 
-  Env* repl_env = env_make(NULL);
-  global_env = repl_env;
+  repl_env = env_make(NULL);
 
   ns core;
   size_t core_size;
@@ -234,10 +256,10 @@ int main(int argc, char** argv) {
   while(core_size--) {
     const char* symbol = core[core_size].key;
     function_t function = core[core_size].value;
-    env_set(repl_env, symbol, make_function(function));
+    env_set(repl_env, make_symbol(symbol), make_function(function));
   }
 
-  env_set(repl_env, "eval", make_function(mal_eval));
+  env_set(repl_env, make_symbol("eval"), make_function(mal_eval));
 
   /* add functions written in mal - not using rep as it prints the result */
   re("(def! not (fn* (a) (if a false true)))", repl_env);
@@ -249,8 +271,8 @@ int main(int argc, char** argv) {
   while(1 < --argc) {
     lst = list_push(lst, make_string(argv[argc]));
   }
-  env_set(repl_env, "*ARGV*", make_list(lst));
-  env_set(repl_env, "*host-language*", make_string("c.2"));
+  env_set(repl_env, make_symbol("*ARGV*"), make_list(lst));
+  env_set(repl_env, make_symbol("*host-language*"), make_string("c.2"));
 
   /* run in script mode if a filename is given */
   if (argc) {
@@ -265,20 +287,14 @@ int main(int argc, char** argv) {
     /* Greeting message */
     re("(println (str \"Mal [\" *host-language* \"]\"))", repl_env);
 
-    char* input;
-    while((input = readline(PROMPT_STRING))) {
+    const char* input;
+    while((input = readline_gc(PROMPT_STRING))) {
 
       /* print prompt and get input*/
-      /* readline allocates memory for input */
       /* Check for EOF (Ctrl-D) */
-      /* add input to history */
-      add_history(input);
 
       /* call Read-Eval-Print */
       rep(input, repl_env);
-
-      /* have to release the memory used by readline */
-      free(input);
     }
     printf("\n");
   }
@@ -287,78 +303,87 @@ int main(int argc, char** argv) {
 
 MalType eval_defbang(list lst, Env* env) {
 
-  MalType defbang_symbol = eat_argument(lst);
-  MalType defbang_value = eat_argument(lst);
-  check_empty(lst);
+  explode2("def!", lst, defbang_symbol, defbang_value);
 
   MalType result = EVAL(defbang_value, env);
-  if (!is_error(result)){
-    env_set(env, as_symbol(defbang_symbol), result);
+  if (mal_error) {
+    return NULL;
   }
+  check_type("def!", MALTYPE_SYMBOL, defbang_symbol);
+  env_set(env, defbang_symbol, result);
   return result;
 }
 
 MalType eval_letstar(list lst, Env** env) {
 
-  MalType bindings = eat_argument(lst);
-  MalType forms = eat_argument(lst);
-  check_empty(lst);
+  explode2("let*", lst, bindings, forms);
 
-  list bindings_list = as_sequence(bindings);
+  check_type("let*", MALTYPE_LIST | MALTYPE_VECTOR, bindings);
+
+  seq_cursor bindings_list = seq_iter(bindings);
   Env* letstar_env = env_make(*env);
 
   /* evaluate the bindings */
-  while(bindings_list) {
+  while(seq_cont(bindings, bindings_list)) {
 
-    MalType symbol = bindings_list->data;
-    bindings_list = bindings_list->next;
-    if(!bindings_list) {
-      return make_error_fmt("expected an even number of binding pairs, got: %M",
+    MalType symbol = seq_item(bindings, bindings_list);
+    bindings_list = seq_next(bindings, bindings_list);
+    if(!seq_cont(bindings, bindings_list)) {
+      bad_arg_count("let*", "an even number of binding pairs",
                             bindings);
     }
-    MalType value = EVAL(bindings_list->data, letstar_env);
+    MalType value = EVAL(seq_item(bindings, bindings_list), letstar_env);
 
     /* early return from error */
-    if (is_error(value)) {
-      return value;
+    if (mal_error) {
+      return NULL;
     }
 
-    env_set(letstar_env, as_symbol(symbol), value);
-    bindings_list = bindings_list->next;
+    check_type("let*", MALTYPE_SYMBOL, symbol);
+    env_set(letstar_env, symbol, value);
+    bindings_list = seq_next(bindings, bindings_list);
   }
 
   *env = letstar_env;
   return forms;
 }
 
-MalType eval_if(list lst, Env** env) {
+MalType eval_if(list lst, Env* env) {
 
-  MalType raw_condition = eat_argument(lst);
-  MalType then_form = eat_argument(lst);
+  if (!lst) {
+    bad_arg_count("if", "two or three arguments", lst);
+  }
+  MalType raw_condition = lst->data;
+  list l1 = lst->next;
+  if (!l1) {
+    bad_arg_count("if", "two or three arguments", lst);
+  }
+  MalType then_form = l1->data;
+  list l2 = l1->next;
   MalType else_form;
-  if(lst) {
-    else_form = lst->data;
-    lst = lst->next;
-    check_empty(lst);
+  if (l2) {
+    else_form = l2->data;
+    if (l2->next) {
+      bad_arg_count("if", "two or three arguments", lst);
+    }
   }
   else {
     else_form = NULL;
   }
 
-  MalType condition = EVAL(raw_condition, *env);
+  MalType condition = EVAL(raw_condition, env);
 
-  if (is_error(condition)) {
-    return condition;
+  if (mal_error) {
+    return NULL;
   }
 
-  if (is_false(condition) || is_nil(condition)) {
+  if (type(condition) & (MALTYPE_FALSE | MALTYPE_NIL)) {
 
     /* check whether false branch is present */
     if(else_form) {
       return else_form;
     }
     else {
-      *env = NULL;              // prevent TCO
       return make_nil();
     }
 
@@ -377,11 +402,11 @@ MalType eval_do(list lst, Env* env) {
   /* evaluate all but the last form */
   while (lst->next) {
 
-    MalType val = EVAL(lst->data, env);
+    EVAL(lst->data, env);
 
     /* return error early */
-    if (is_error(val)) {
-      return val;
+    if (mal_error) {
+      return NULL;
     }
     lst = lst->next;
   }
@@ -391,48 +416,48 @@ MalType eval_do(list lst, Env* env) {
 
 MalType eval_quote(list lst) {
 
-  MalType form = eat_argument(lst);
-  check_empty(lst);
+  explode1("quote", lst, form);
   return form;
 }
 
 MalType eval_quasiquote(list lst) {
-  MalType form = eat_argument(lst);
-  check_empty(lst);
+  explode1("quasiquote", lst, form);
   return quasiquote(form);
+  // Implicit error propagation.
 }
 
 MalType quasiquote(MalType ast) {
 
   /* argument to quasiquote is a vector: (quasiquote [first rest]) */
-  if (is_vector(ast)) {
+  list lst;
+  vector_t vec;
+  if ((vec = is_vector(ast))) {
 
-    return quasiquote_vector(ast->value.mal_list);
+    return quasiquote_vector(vec);
+    // Implicit error propagation
   }
 
   /* argument to quasiquote is a list: (quasiquote (first rest)) */
-  else if (is_list(ast)){
+  else if (is_list(ast, &lst)){
 
-    list lst = ast->value.mal_list;
     if(lst) {
       MalType first = lst->data;
-      if(is_symbol(first)
-         && !strcmp(first->value.mal_string, SYMBOL_UNQUOTE)) {
+      if(equal_forms(first, SYMBOL_UNQUOTE)) {
         lst = lst->next;
-        MalType unquoted = eat_argument(lst);
-        check_empty(lst);
+        explode1("unquote", lst, unquoted);
         return unquoted;
       }
     }
     return quasiquote_list(lst);
+    // Implicit error propagation
   }
   /* argument to quasiquote is not self-evaluating and isn't sequential: (quasiquote val)
      => (quote val) */
-  else if(is_hashmap(ast) || is_symbol(ast)) {
+  else if(type(ast) & (MALTYPE_HASHMAP | MALTYPE_SYMBOL)) {
 
     list lst = NULL;
     lst = list_push(lst, ast);
-    lst = list_push(lst, make_symbol("quote"));
+    lst = list_push(lst, SYMBOL_QUOTE);
     return make_list(lst);
   }
   /* argument to quasiquote is self-evaluating: (quasiquote val)
@@ -442,19 +467,19 @@ MalType quasiquote(MalType ast) {
   }
 }
 
-MalType quasiquote_vector(list args) {
+MalType quasiquote_vector(vector_t vec) {
 
-  MalType result = quasiquote_list(args);
+  MalType result = make_list(NULL);
+  for(int i = vec->count - 1; -1 < i; i--) {
+    result = quasiquote_folder(vec->nth[i], result);
+    if (mal_error) return NULL;
+  }
 
-  if (is_error(result)) {
-    return result;
-  } else {
     list lst = NULL;
     lst = list_push(lst, result);
-    lst = list_push(lst, make_symbol("vec"));
+    lst = list_push(lst, SYMBOL_VEC);
 
     return make_list(lst);
-  }
 }
 
 MalType quasiquote_list(list args) {
@@ -468,73 +493,88 @@ MalType quasiquote_list(list args) {
     MalType first = args->data;
 
     MalType qq_rest = quasiquote_list(args->next);
-    if(is_error(qq_rest)) return qq_rest;
+    if(mal_error) return NULL;
+
+    return quasiquote_folder(first, qq_rest);
+    // Implicit error propagation.
+}
+
+MalType quasiquote_folder(MalType first, MalType qq_rest) {
 
     /* handle splice-unquote: (quasiquote ((splice-unquote first-second) rest))
        => (concat first-second (quasiquote rest)) */
-    if(is_list(first)) {
-      list lst = first->value.mal_list;
+    list lst;
+    if(is_list(first, &lst)) {
       if(lst) {
         MalType lst_first = lst->data;
-        if(is_symbol(lst_first)
-           && !strcmp(lst_first->value.mal_string, SYMBOL_SPLICE_UNQUOTE)) {
+        if (equal_forms(lst_first, SYMBOL_SPLICE_UNQUOTE)) {
           lst = lst->next;
-          MalType unquoted = eat_argument(lst);
-          check_empty(lst);
+          explode1("splice-unquote", lst, unquoted);
           return make_list(list_push(list_push(list_push(NULL, qq_rest),
                                                unquoted),
-                                     make_symbol("concat")));
+                                     SYMBOL_CONCAT));
         }
       }
     }
     MalType qqted = quasiquote(first);
-    if(is_error(qqted)) return qqted;
+    if(mal_error) return NULL;
     return make_list(list_push(list_push(list_push(NULL, qq_rest),
-                                         quasiquote(first)),
-                               make_symbol("cons")));
+                                         qqted),
+                               SYMBOL_CONS));
 }
 
 MalType eval_defmacrobang(list lst, Env* env) {
 
-  MalType defbang_symbol = eat_argument(lst);
-  MalType defbang_value = eat_argument(lst);
-  check_empty(lst);
+  explode2("defmacro!", lst, defbang_symbol, defbang_value);
 
   MalType result = EVAL(defbang_value, env);
 
-  if (!is_error(result)) {
-    result = make_macro(as_closure(result));
-    env_set(env, as_symbol(defbang_symbol), result);
+  if (mal_error) return NULL;
+
+  MalClosure closure = is_closure(result);
+  if (!closure) {
+    bad_type("defmacro!", MALTYPE_CLOSURE, result);
   }
+  result = make_macro(closure->env, closure->fnstar_args);
+  check_type("defmacro!", MALTYPE_SYMBOL, defbang_symbol);
+  env_set(env, defbang_symbol, result);
   return result;
 }
 
 MalType eval_try(list lst, Env** env) {
 
-  MalType try_clause = eat_argument(lst);
+  if (!lst) {
+    bad_arg_count("try*", "one or two arguments", lst);
+  }
 
-  if(!lst) {
+  MalType try_clause = lst->data;
+
+  list l = lst->next;
+  if (!l) {
     /* no catch* clause */
     return try_clause;
   }
 
-  MalType catch_clause = lst->data;
-  lst = lst->next;
-  check_empty(lst);
+  MalType catch_clause = l->data;
+  if (l->next) {
+    bad_arg_count("try*", "one or two arguments", lst);
+  }
 
   /* process catch* clause */
-  list catch_list = as_list(catch_clause);
-  MalType catch_symbol = eat_argument(catch_list);
-  if(strcmp(as_symbol(catch_symbol), SYMBOL_CATCHSTAR)) {
-    return make_error_fmt("catch clause %M is missing catch* symbol",
+  check_type("try*", MALTYPE_LIST, catch_clause);
+  list catch_list;
+  if (!is_list(catch_clause, &catch_list)) {
+    bad_type("try*", MALTYPE_LIST, catch_clause);
+  }
+  explode3("try*(catch clause)", catch_list, catch_symbol, a2, handler);
+  if (!equal_forms(catch_symbol, SYMBOL_CATCH)) {
+    make_error("'try*': catch* clause is missing catch* symbol: %M",
                           catch_clause);
   }
-  MalType a2 = eat_argument(catch_list);
-  MalType handler = eat_argument(catch_list);
-  check_empty(catch_list);
+  check_type("try*", MALTYPE_SYMBOL, a2);
 
   MalType try_result = EVAL(try_clause, *env);
-  if(!is_error(try_result)) {
+  if(!mal_error) {
     *env = NULL;                // prevent TCO
     return try_result;
   }
@@ -542,127 +582,111 @@ MalType eval_try(list lst, Env** env) {
   /* bind the symbol to the exception */
   Env* catch_env = env_make(*env);
   env_set(catch_env,
-          as_symbol(a2),
-          try_result->value.mal_error);
+          a2, mal_error);
+  mal_error = NULL;
   *env = catch_env;
 
   return handler;
 }
 
-MalType evaluate_list(list* evlst, list lst, Env* env) {
+list evaluate_list(list lst, Env* env) {
 
-  *evlst = NULL;
-  list* evlst_last = evlst;
+  list evlst = NULL;
+  list* evlst_last = &evlst;
   while (lst) {
 
     MalType val = EVAL(lst->data, env);
 
-    if (is_error(val)) {
-      return val;
+    if (mal_error) {
+      return NULL;
     }
 
     *evlst_last = list_push(NULL, val);
     evlst_last = &(*evlst_last)->next;
     lst = lst->next;
   }
-  return NULL;
+  return evlst;
 }
 
-MalType evaluate_vector(list lst, Env* env) {
-  /* TODO: implement a real vector */
-  list evlst;
-  MalType error = evaluate_list(&evlst, lst, env);
-  if(error) return error;
+MalType evaluate_vector(vector_t lst, Env* env) {
+  int capacity = lst->count;
+  struct vector* evlst = vector_new(capacity);
+  for(int i = 0; i <= lst->count - 1; i++) {
+    MalType new = EVAL(lst->nth[i], env);
+    if (mal_error) return NULL;
+    vector_append(&capacity, &evlst, new);
+  }
   return make_vector(evlst);
 }
 
-MalType evaluate_hashmap(list lst, Env* env) {
-  /* TODO: implement a real hashmap */
-  list evlst;
-  MalType error = evaluate_list(&evlst, lst, env);
-  if(error) return error;
+MalType evaluate_hashmap(hashmap lst, Env* env) {
+  // map_empty() would be OK, but we know the size in advance and can
+  // spare inefficient reallocations.
+  struct map* evlst = map_copy(lst);
+  for (map_cursor c = map_iter(lst); map_cont(lst, c); c = map_next(lst, c)) {
+    MalType new = EVAL(map_val(lst, c), env);
+    if (mal_error) return false;
+    evlst = hashmap_put(evlst, map_key(lst, c), new);
+  }
   return make_hashmap(evlst);
 }
 
 MalType eval_fnstar(list lst, const Env* env) {
 
-  MalType a1 = eat_argument(lst);
-  MalType definition = eat_argument(lst);
-  check_empty(lst);
-  list args = as_sequence(a1);
-  size_t param_len = 0;
-  const char** parameters = GC_MALLOC(list_count(args)*sizeof(char*));
-  const char* more_symbol = NULL;
+  if (!lst || !lst->next || lst->next->next) {
+    bad_arg_count("fn*", "two parameters", lst);
+  }
+  MalType parameters = lst->data;
+  check_type("fn*", MALTYPE_LIST | MALTYPE_VECTOR, parameters);
 
-  while (args) {
+  for (seq_cursor c = seq_iter(parameters);
+       seq_cont(parameters, c);
+       c = seq_next(parameters, c)) {
 
-    MalType val = args->data;
+    MalType val = seq_item(parameters, c);
 
-    const char* val_sym = as_symbol(val);
+    if (!is_symbol(val)) {
+      bad_type("fn*", MALTYPE_SYMBOL, val);
+    }
 
-    if(val_sym[0] == '&') {
-
-      /* & is found but there is no symbol */
-      if (val_sym[1] == '\0') {
-        if(!args->next) {
-          return make_error_fmt("missing symbol after '&' in argument list");
-        }
+    if (equal_forms(val, SYMBOL_AMPERSAND)) {
+      c = seq_next(parameters, c);
+      if (!val) {
+        make_error("'fn*': no symbol after &: '%N'", lst);
+      }
+      val = seq_item(parameters, c);
       /* & is found and there is a single symbol after */
-        else if(!args->next->next) {
-          more_symbol = as_symbol(args->next->data);
-          break;
-        }
+      check_type("fn*", MALTYPE_SYMBOL, val);
       /* & is found and there extra symbols after */
-        else {
-          return make_error_fmt("unexpected symbol after '& %M' in argument list: '%M'",
-                                args->next->data, args->next->next->data);
-        }
+      c = seq_next(parameters, c);
+      if (seq_cont(parameters, c)) {
+        make_error("'fn*': extra symbols after &: '%N'", lst);
       }
-      /* & is found as part of the symbol and no other symbols */
-      else if(!args->next) {
-        more_symbol = val_sym + 1;
-        break;
-      }
-      /* & is found as part of the symbol but there are other symbols after */
-      else {
-        return make_error_fmt("unexpected symbol after '%s' in argument list: '%M'",
-                              val_sym, args->next->data);
-      }
+      break;
     }
-
-    /* & is not found - add the symbol to the regular argument list */
-    else {
-
-      for(size_t i=0; i<param_len; i++) {
-        if(!strcmp(val_sym, parameters[i])) {
-          return make_error_fmt("duplicate symbol in argument list: '%s'",
-                                parameters[i]);
-        }
-      }
-      parameters[param_len++] = val_sym;
-    }
-    args = args->next;
   }
 
-  return make_closure(env, param_len, parameters, definition, more_symbol);
+  return make_closure(env, lst);
 }
 
 /* used by core functions but not EVAL as doesn't do TCE */
 MalType apply(MalType fn, list args) {
 
-  if (is_function(fn)) {
+  function_t fun_ptr;
+  if ((fun_ptr = is_function(fn))) {
 
-    MalType(*fun_ptr)(list) = fn->value.mal_function;
     return (*fun_ptr)(args);
-  }
-  else if(is_closure(fn) || is_macro(fn)) {
-
-    Env* env;
-    MalType ast = env_apply(fn->value.mal_closure, args, &env);
-    if(is_error(ast)) return ast;
-    return EVAL(ast, env);
+    // Implicit error propagation
   }
   else {
-    return bad_type(fn, "a function, closure or macro");
+
+    MalClosure closure = is_closure(fn);
+    if (!closure) closure = is_macro(fn);
+    assert(closure);
+    MalType ast = closure->fnstar_args->next->data;
+    Env* env = env_apply(closure, args);
+    if (mal_error) return NULL;
+    return EVAL(ast, env);
+    // Implicit error propagation
   }
 }
