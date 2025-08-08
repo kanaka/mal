@@ -1,49 +1,39 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
+#include <assert.h>
 
-#include <gc.h>
-#include <editline/readline.h>
-#include <editline/history.h>
-
-#include "libs/linked_list/linked_list.h"
+#include "linked_list.h"
 #include "types.h"
 #include "reader.h"
 #include "printer.h"
+#include "error.h"
+#include "hashmap.h"
+#include "readline.h"
+#include "vector.h"
 
 #define PROMPT_STRING "user> "
 
-MalType apply(MalType, list);
-MalType evaluate_list(list*, list, list);
-// Store the result into the first argument and return NULL
-// If an error occurs, it is returned.
-MalType evaluate_vector(list, list);
-MalType evaluate_hashmap(list, list);
+MalType apply(MalType, list); // For the apply phase and core apply/map/swap.
+list evaluate_list(list, hashmap);
+MalType evaluate_vector(vector_t, hashmap);
+MalType evaluate_hashmap(hashmap, hashmap);
 
-#define generic_arithmetic(name, op, iconst, fconst)                   \
-  MalType name(list args) {                                            \
-    MalType a1 = eat_argument(args);                                   \
-    MalType a2 = eat_argument(args);                                   \
-    check_empty(args);                                                 \
-    switch(a1->type) {                                                 \
-    case MALTYPE_INTEGER:                                              \
-      switch(a2->type) {                                               \
-      case MALTYPE_INTEGER:                                            \
-        return iconst(a1->value.mal_integer op a2->value.mal_integer); \
-      case MALTYPE_FLOAT:                                              \
-        return fconst(a1->value.mal_integer op a2->value.mal_float);   \
-      default: return bad_type(a2, "a number");                        \
-      }                                                                \
-    case MALTYPE_FLOAT:                                                \
-      switch(a2->type) {                                               \
-      case MALTYPE_INTEGER:                                            \
-        return fconst(a1->value.mal_float   op a2->value.mal_integer); \
-      case MALTYPE_FLOAT:                                              \
-        return fconst(a1->value.mal_float   op a2->value.mal_float);   \
-      default: return bad_type(a2, "a number");                        \
-      }                                                                \
-    default: return bad_type(a1, "a number");                          \
-    }                                                                  \
+#define generic_arithmetic(name, op, iconst, fconst)      \
+  MalType name(list args) {                               \
+    explode2(#op, args, a1, a2);                          \
+    long i1, i2;                                          \
+    double f1, f2;                                        \
+    if (is_integer(a1, &i1)) {                            \
+      if (is_integer(a2, &i2)) return iconst(i1 op i2);   \
+      if (is_float  (a2, &f2)) return fconst(i1 op f2);   \
+      bad_type(#op, MALTYPE_INTEGER | MALTYPE_FLOAT, a2); \
+    }                                                     \
+    if (is_float(a1, &f1)) {                              \
+      if (is_integer(a2, &i2)) return iconst(f1 op i2);   \
+      if (is_float  (a2, &f2)) return fconst(f1 op f2);   \
+      bad_type(#op, MALTYPE_INTEGER | MALTYPE_FLOAT, a2); \
+    }                                                     \
+    bad_type(#op, MALTYPE_INTEGER | MALTYPE_FLOAT, a1);   \
   }
 generic_arithmetic(mal_add, +, make_integer, make_float)
 generic_arithmetic(mal_sub, -, make_integer, make_float)
@@ -53,34 +43,36 @@ generic_arithmetic(mal_div, /, make_integer, make_float)
 MalType READ(const char* str) {
 
   return read_str(str);
+  // Implicit error propagation
 }
 
-MalType EVAL(MalType ast, list env) {
+MalType EVAL(MalType ast, hashmap env) {
 
   /* printf("EVAL: %M\n", ast); */
 
-  if (is_symbol(ast)) {
-    for(list l=env; l; l=l->next->next) {
-      if(!strcmp(l->data->value.mal_string, ast->value.mal_string)) {
-        return l->next->data;
-      }
-    }
-    // make_error would prefix with EVAL: and break some tests
-    return wrap_error(make_string(mal_printf("'%M' not found", ast)));
+  if (type(ast) == MALTYPE_SYMBOL) {
+    MalType symbol_value = hashmap_get(env, ast);
+    if (symbol_value)
+      return symbol_value;
+    else
+      make_error("'%M' not found", ast);
   }
 
-  if (is_vector(ast)) {
-    return evaluate_vector(ast->value.mal_list, env);
+  vector_t vec;
+  if ((vec = is_vector(ast))) {
+    return evaluate_vector(vec, env);
+    // Implicit error propagation
   }
 
-  if (is_hashmap(ast)) {
-    return evaluate_hashmap(ast->value.mal_list, env);
+  hashmap map;
+  if ((map = is_hashmap(ast))) {
+    return evaluate_hashmap(map, env);
+    // Implicit error propagation
   }
 
   /* not a list */
-  if (!is_list(ast)) { return ast; }
-
-  list lst = ast->value.mal_list;
+  list lst;
+  if (!is_list(ast, &lst)) { return ast; }
 
   /* empty list */
   if(lst == NULL) { return ast; }
@@ -90,14 +82,15 @@ MalType EVAL(MalType ast, list env) {
   lst = lst->next;
 
   MalType func = EVAL(first, env);
-  if (is_error(func)) { return func; }
+  if (mal_error) { return NULL; }
+  check_type("apply phase", MALTYPE_FUNCTION, func);
   //  Evaluate the arguments
-  list evlst;
-  MalType error = evaluate_list(&evlst, lst, env);
-  if(error) return error;
+  list evlst = evaluate_list(lst, env);
+  if (mal_error) return NULL;
 
   /* apply the first element of the list to the arguments */
   return apply(func, evlst);
+  // Implicit error propagation
 }
 
 void PRINT(MalType val) {
@@ -105,85 +98,94 @@ void PRINT(MalType val) {
   printf("%M\n", val);
 }
 
-void rep(const char* str, list env) {
+void rep(const char* str, hashmap env) {
 
-  PRINT(EVAL(READ(str), env));
+  MalType a = READ(str);
+  if (!mal_error) {
+    MalType b = EVAL(a, env);
+    if (!mal_error) {
+      PRINT(b);
+      return;
+    }
+  }
+  MalType e = mal_error;
+  mal_error = NULL; // before printing
+  printf("Uncaught error: %M\n", e);
 }
 
-int main(int, char**) {
+int main() {
 
+  types_init();
   printer_init();
 
-  list repl_env = NULL;
-  repl_env = list_push(repl_env, make_function(mal_add));
-  repl_env = list_push(repl_env, make_symbol("+"));
-  repl_env = list_push(repl_env, make_function(mal_sub));
-  repl_env = list_push(repl_env, make_symbol("-"));
-  repl_env = list_push(repl_env, make_function(mal_mul));
-  repl_env = list_push(repl_env, make_symbol("*"));
-  repl_env = list_push(repl_env, make_function(mal_div));
-  repl_env = list_push(repl_env, make_symbol("/"));
+  struct map* repl_env = map_empty();
 
-    char* input;
-    while((input = readline(PROMPT_STRING))) {
+  repl_env = hashmap_put(repl_env, make_symbol("+"), make_function(mal_add));
+  repl_env = hashmap_put(repl_env, make_symbol("-"), make_function(mal_sub));
+  repl_env = hashmap_put(repl_env, make_symbol("*"), make_function(mal_mul));
+  repl_env = hashmap_put(repl_env, make_symbol("/"), make_function(mal_div));
+
+    const char* input;
+    while((input = readline_gc(PROMPT_STRING))) {
 
       /* print prompt and get input*/
-      /* readline allocates memory for input */
       /* Check for EOF (Ctrl-D) */
-      /* add input to history */
-      add_history(input);
 
       /* call Read-Eval-Print */
       rep(input, repl_env);
-
-      /* have to release the memory used by readline */
-      free(input);
     }
     printf("\n");
+
   return EXIT_SUCCESS;
 }
-MalType evaluate_list(list* evlst, list lst, list env) {
 
-  *evlst = NULL;
-  list* evlst_last = evlst;
+list evaluate_list(list lst, hashmap env) {
+
+  list evlst = NULL;
+  list* evlst_last = &evlst;
   while (lst) {
 
     MalType val = EVAL(lst->data, env);
 
-    if (is_error(val)) {
-      return val;
+    if (mal_error) {
+      return NULL;
     }
 
     *evlst_last = list_push(NULL, val);
     evlst_last = &(*evlst_last)->next;
     lst = lst->next;
   }
-  return NULL;
+  return evlst;
 }
 
-MalType evaluate_vector(list lst, list env) {
-  /* TODO: implement a real vector */
-  list evlst;
-  MalType error = evaluate_list(&evlst, lst, env);
-  if(error) return error;
+MalType evaluate_vector(vector_t lst, hashmap env) {
+  int capacity = lst->count;
+  struct vector* evlst = vector_new(capacity);
+  for(int i = 0; i <= lst->count - 1; i++) {
+    MalType new = EVAL(lst->nth[i], env);
+    if (mal_error) return NULL;
+    vector_append(&capacity, &evlst, new);
+  }
   return make_vector(evlst);
 }
 
-MalType evaluate_hashmap(list lst, list env) {
-  /* TODO: implement a real hashmap */
-  list evlst;
-  MalType error = evaluate_list(&evlst, lst, env);
-  if(error) return error;
+MalType evaluate_hashmap(hashmap lst, hashmap env) {
+  // map_empty() would be OK, but we know the size in advance and can
+  // spare inefficient reallocations.
+  struct map* evlst = map_copy(lst);
+  for (map_cursor c = map_iter(lst); map_cont(lst, c); c = map_next(lst, c)) {
+    MalType new = EVAL(map_val(lst, c), env);
+    if (mal_error) return false;
+    evlst = hashmap_put(evlst, map_key(lst, c), new);
+  }
   return make_hashmap(evlst);
 }
 
 MalType apply(MalType fn, list args) {
-  if (is_function(fn)) {
 
-    MalType(*fun_ptr)(list) = fn->value.mal_function;
+  function_t fun_ptr = is_function(fn);
+  assert(fun_ptr);
+
     return (*fun_ptr)(args);
-  }
-  else {
-    return bad_type(fn, "a function");
-  }
+    // Implicit error propagation
 }

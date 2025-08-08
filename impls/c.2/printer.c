@@ -4,20 +4,17 @@
 
 #include <gc.h>
 
-#include "libs/linked_list/linked_list.h"
+#include "linked_list.h"
 #include "printer.h"
+#include "hashmap.h"
+#include "vector.h"
 
 #define PRINT_NIL "nil"
 #define PRINT_TRUE "true"
 #define PRINT_FALSE "false"
 
-int pr_str(FILE *stream, MalType val, bool readably);
 int escape_string(FILE *stream, const char* str);
-int pr_str_list(FILE* stream, list lst, bool readably, bool spaced);
-int pr_list(FILE* stream, list lst, const char* start, const char* stop,
-            bool readably);
-int closure(FILE* stream, MalClosure closure, bool readably,
-            const char* kind);
+int pr_str_vector(FILE* stream, const struct printf_info *i, vector_t v);
 
 // Execute count once.
 #define ADD(count) {  \
@@ -27,147 +24,139 @@ int closure(FILE* stream, MalClosure closure, bool readably,
     written += more;  \
   }
 
-int wrap(FILE* stream, MalType val, bool readably, const char* start,
-         const char* stop) {
+int print_M(FILE *stream, const struct printf_info *i, const void *const *a) {
+  MalType val = *((const MalType*)(*a));
 
   int written = 0;
-  ADD(fprintf(stream, start));
-  ADD(pr_str(stream, val, readably));
-  ADD(fprintf(stream, stop));
-  return written;
-}
 
-int pr_str(FILE *stream, MalType val, bool readably) {
-
-  switch(val->type) {
+  switch(type(val)) {
 
   case MALTYPE_SYMBOL:
 
-    return fprintf(stream, "%s", val->value.mal_string);
+    ADD(fprintf(stream, "%s", is_symbol(val)));
+    break;
 
   case MALTYPE_KEYWORD:
 
-    return fprintf(stream, ":%s", val->value.mal_string);
+    ADD(fprintf(stream, ":%s", is_keyword(val)));
+    break;
 
   case MALTYPE_INTEGER:
-
-    return fprintf(stream, "%ld", val->value.mal_integer);
-
+    {
+      long mal_integer;
+      is_integer(val, &mal_integer);
+      ADD(fprintf(stream, "%ld", mal_integer));
+      break;
+    }
   case MALTYPE_FLOAT:
-
-    return fprintf(stream, "%lf", val->value.mal_float);
-
+    {
+      double mal_float;
+      is_float(val, &mal_float);
+      ADD(fprintf(stream, "%lf", mal_float));
+      break;
+    }
   case MALTYPE_STRING:
 
-    if (readably) {
-      return escape_string(stream, val->value.mal_string);
+    if (!i->alt) {
+      ADD(escape_string(stream, is_string(val)));
     }
     else {
-      return fprintf(stream, "%s", val->value.mal_string);
+      ADD(fprintf(stream, "%s", is_string(val)));
     }
+    break;
 
   case MALTYPE_TRUE:
 
-    return fprintf(stream, PRINT_TRUE);
+    ADD(fprintf(stream, PRINT_TRUE));
+    break;
 
   case MALTYPE_FALSE:
 
-    return fprintf(stream, PRINT_FALSE);
+    ADD(fprintf(stream, PRINT_FALSE));
+    break;
 
   case MALTYPE_NIL:
 
-    return fprintf(stream, PRINT_NIL);
+    ADD(fprintf(stream, PRINT_NIL));
+    break;
 
   case MALTYPE_LIST:
-
-    return pr_list(stream, val->value.mal_list, "(", ")", readably);
-
+    {
+      list mal_list;
+      is_list(val, &mal_list);
+      ADD(fprintf(stream, i->alt ? "(%#N)" : "(%N)", mal_list));
+      break;
+    }
   case MALTYPE_VECTOR:
 
-    return pr_list(stream, val->value.mal_list, "[", "]", readably);
+    ADD(pr_str_vector(stream, i, is_vector(val)));
+    break;
 
   case MALTYPE_HASHMAP:
 
-    return pr_list(stream, val->value.mal_list, "{", "}", readably);
+    ADD(fprintf(stream, i->alt ? "{%#H}" : "{%H}", is_hashmap(val)));
+    break;
 
   case MALTYPE_FUNCTION:
 
-    return fprintf(stream, "#<function::native>");
+    ADD(fprintf(stream, "#<core>"));
+    break;
 
   case MALTYPE_CLOSURE:
 
-    return closure(stream, val->value.mal_closure, readably, "closure");
+    ADD(fprintf(stream, i->alt ? "#<fn* %#N>" : "#<fn* %N>",
+                is_closure(val)->fnstar_args));
+    break;
 
   case MALTYPE_MACRO:
 
-    return closure(stream, val->value.mal_closure, readably, "macro");
+    ADD(fprintf(stream, i->alt ? "#<macro %#N>" : "#<macro %N>",
+                is_macro(val)->fnstar_args));
+    break;
 
   case MALTYPE_ATOM:
 
-    return wrap(stream, *val->value.mal_atom, readably, "(atom ", ")");
-
-  case MALTYPE_ERROR:
-
-    return wrap(stream, val->value.mal_error, readably, "Uncaught error: ", "");
+    ADD(fprintf(stream, i->alt ? "(atom %#M)" : "(atom %M)", *is_atom(val)));
 
   }
-  // Silent 'control reaches end of non-void function'.
-  // It is a false positive thanks to -Wswitch.
-  return -1;
-}
 
-int closure(FILE* stream, MalClosure closure, bool readably,
-            const char* kind) {
-  int written = 0;
-  ADD(fprintf(stream, "#<function::%s: (fn* (", kind));
-  if(closure->param_len) {
-    size_t i = 0;
-    while(true) {
-      ADD(fprintf(stream, "%s", closure->parameters[i]));
-      i++;
-      if(closure->param_len <= i)
-        break;
-      ADD(fprintf(stream, " "));
-    }
-  }
-  if(closure->more_symbol) {
-    if(closure->param_len)
-      ADD(fprintf(stream, " "));
-    ADD(fprintf(stream, "& %s", closure->more_symbol));
-  }
-  ADD(fprintf(stream, ") "));
-  ADD(pr_str(stream, closure->definition, readably));
-  ADD(fprintf(stream, ")>"));
-  return written;
-}
-
-
-int pr_str_list(FILE* stream, list lst, bool readably, bool spaced) {
-
-  int written = 0;
-  if(lst != NULL) {
-    while(true) {
-      ADD(pr_str(stream, lst->data, readably));
-      lst = lst->next;
-      if(lst == NULL)
-        break;
-      if(spaced)
-        ADD(fprintf(stream, " "));
-    }
+  if (written < i->width) {
+    ADD(fprintf(stream, "%*s", i->width - written, ""));
   }
   return written;
 }
 
-int pr_list(FILE* stream, list lst, const char* start, const char* stop,
-            bool readably) {
+
+int print_L(FILE* stream, const struct printf_info *i, const void *const *a) {
 
   int written = 0;
-  ADD(fprintf(stream, start));
-  ADD(pr_str_list(stream, lst, readably, true));
+  for (list lst = *((const list*)(*a)); lst;  lst = lst->next) {
+    ADD(fprintf(stream, i->alt ? "%s%#M" : "%s%M",
+                !i->space && written ? " " : "", lst->data));
+  }
+  return written;
+}
 
-  /* add the end delimiter */
-  ADD(fprintf(stream, stop));
+int pr_str_vector(FILE* stream, const struct printf_info *i, vector_t v) {
+  int written = 0;
+  ADD(fprintf(stream, "["));
+  for (int j = 0; j < v->count; j++) {
+    ADD(fprintf(stream,
+                i->alt ? "%s%#M" : "%s%M",
+                j ? " " : "",
+                v->nth[j]));
+  }
+  ADD(fprintf(stream, "]"));
+  return written;
+}
 
+int pr_str_map(FILE* stream, const struct printf_info *i, const void *const *a) {
+  hashmap map = *((const hashmap*)(*a));
+  int written = 0;
+  for (map_cursor c = map_iter(map); map_cont(map, c); c = map_next(map, c)) {
+    ADD(fprintf(stream, i->alt ? "%s%#M %#M" : "%s%M %M", written ? " " : "",
+                map_key(map, c), map_val(map, c)));
+  }
   return written;
 }
 
@@ -202,30 +191,70 @@ int escape_string(FILE *stream, const char* str) {
   return written;
 }
 
-int print_M(FILE *stream, const struct printf_info *i, const void *const *a) {
+// The order must match the one in types.c.
+const char* print_T_table[] = {
+  "a symbol",
+  "a keyword",
+  "an integer",
+  "a float",
+  "a string",
+  "true",
+  "false",
+  "nil",
+  "a list",
+  "a vector",
+  "a map",
+  "a function",
+  "a closure",
+  "an atom",
+  "a macro",
+};
 
-  return pr_str(stream, *((const MalType*)(*a)), !i->alt);
+int print_T(FILE *stream, const struct printf_info *, const void *const *a) {
+  enum mal_type_t mask = *((const enum mal_type_t*)(*a));
+  assert(0 < mask);
+  int written = 0;
+  const char** p = print_T_table;
+  while (mask) {
+    assert(p < print_T_table + sizeof(print_T_table) / sizeof(*print_T_table));
+    if (mask & 1) {
+      ADD(fprintf(stream, "%s%s", written ? " or " : "", *p));
+    }
+    p++;
+    mask >>= 1;
+  }
+  return written;
 }
 
-int print_L(FILE *stream, const struct printf_info *i, const void *const *a) {
-
-  return pr_str_list(stream, *((const list *) (a[0])), !i->alt, i->space);
-}
-
-int one_arg(const struct printf_info*, size_t n, int *argtypes, int *size) {
-
-  if(n < 1)
-    return -1;
-
-  argtypes[0] = PA_POINTER;
-  *size = sizeof(MalType);
-  return 1;
-}
+#define generic_arg(specifier, type)                       \
+  int arg_##specifier(const struct printf_info*,           \
+                      size_t n,int *argtypes, int *size) { \
+    if(n < 1) return -1;                                   \
+    argtypes[0] = PA_POINTER;                              \
+    *size = sizeof(type);                                  \
+    return 1;                                              \
+  }
+generic_arg(M, MalType);
+generic_arg(N, list);
+generic_arg(T, enum mal_type_t);
+generic_arg(H, hashmap);
 
 void printer_init() {
 
-  assert(!register_printf_specifier('N', print_L, one_arg));
-  assert(!register_printf_specifier('M', print_M, one_arg));
+  int ret1 = register_printf_specifier('N', print_L, arg_N);
+  int ret2 = register_printf_specifier('M', print_M, arg_M);
+  int ret3 = register_printf_specifier('T', print_T, arg_T);
+  int ret4 = register_printf_specifier('H', pr_str_map, arg_H);
+  assert(!ret1);
+  assert(!ret2);
+  assert(!ret3);
+  assert(!ret4);
+#ifdef NDEBUG
+  (void)ret1;
+  (void)ret2;
+  (void)ret3;
+  (void)ret4;
+#endif
 }
 
 const char* mal_printf(const char* fmt, ...) {
@@ -240,7 +269,11 @@ const char* mal_printf(const char* fmt, ...) {
   char* buffer = GC_MALLOC(n + 1);
 
   va_start(argptr, fmt);
-  assert(n == vsnprintf(buffer, n + 1, fmt, argptr));
+  int again = vsnprintf(buffer, n + 1, fmt, argptr);
+  assert(n == again);
+#ifdef NDEBUG
+  (void)again;
+#endif
   va_end(argptr);
 
   return buffer;
