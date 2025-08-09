@@ -40,7 +40,7 @@ struct map {
   size_t size;
   struct bucket {
     MalType key;
-    MalType value;
+    void*   value;
   } buckets[];
 };
 
@@ -102,7 +102,7 @@ size_t search(hashmap map, MalType key) {
   return index;
 }
 
-void put(struct map* map, MalType key, MalType value) {
+void put(struct map* map, MalType key, void* value) {
   size_t i = search(map, key);
   if (!map->buckets[i].key) {
     map->used++;
@@ -112,7 +112,8 @@ void put(struct map* map, MalType key, MalType value) {
   map->buckets[i].value = value;
 }
 
-struct map* hashmap_put(struct map* map, MalType key, MalType value) {
+struct map* hashmap_put(struct map* map, MalType key, void* value) {
+  assert(value);
   if (map->size <= 2 * (map->used + 1)) {
     // Reallocate.
     size_t size = map->size * GROW_FACTOR;
@@ -130,7 +131,7 @@ struct map* hashmap_put(struct map* map, MalType key, MalType value) {
   return map;
 }
 
-inline MalType hashmap_get(hashmap map, MalType key) {
+inline void* hashmap_get(hashmap map, MalType key) {
   return map->buckets[search(map, key)].value; // may be null
 }
 
@@ -168,7 +169,7 @@ inline MalType map_key(hashmap map, map_cursor position) {
   return map->buckets[position].key;
 }
 
-inline MalType map_val(hashmap map, map_cursor position) {
+inline void* map_val(hashmap map, map_cursor position) {
   assert(position < map->size);
   assert(map->buckets[position].key);
   assert(map->buckets[position].value);

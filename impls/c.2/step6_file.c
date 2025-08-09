@@ -19,11 +19,14 @@ MalType apply(MalType, list); // For the apply phase and core apply/map/swap.
 list evaluate_list(list, Env*);
 MalType evaluate_vector(vector_t, Env*);
 MalType evaluate_hashmap(hashmap lst, Env* env);
-MalType eval_defbang(list, Env*);
-MalType eval_letstar(list, Env**); // TCO
-MalType eval_if(list, Env*); // TCO (even for nil)
-MalType eval_fnstar(list, const Env*);
-MalType eval_do(list, Env*); // TCO in the same env
+MalType eval_defbang(list, Env**);
+MalType eval_letstar(list, Env**);
+MalType eval_if(list, Env**);
+MalType eval_fnstar(list, Env**);
+MalType eval_do(list, Env**);
+
+typedef MalType (*special_t)(list, Env**);
+struct map* specials;
 
 MalType READ(const char* str) {
 
@@ -43,7 +46,7 @@ Env* env_apply(MalClosure closure, list args) {
   while (true) {
     if (!seq_cont(params, c)) {
       if (a) {
-        make_error("'apply': expected [%M], got [%N]", params, args);
+        make_error("'apply': expected %M, got [%N]", params, args);
       }
       break;
     }
@@ -55,7 +58,7 @@ Env* env_apply(MalClosure closure, list args) {
       break;
     }
     if (!a) {
-      make_error("'apply': expected [%M], got [%N]", params, args);
+      make_error("'apply': expected %M, got [%N]", params, args);
     }
     env_set(fn_env, parameter, a->data);
     c = seq_next(params, c);
@@ -105,38 +108,16 @@ MalType EVAL(MalType ast, Env* env) {
   lst = lst->next;
 
     /* handle special symbols first */
-    if (equal_forms(first, SYMBOL_DEF)) {
-      return eval_defbang(lst, env);
-      // Implicit error propagation
-    }
-    else if (equal_forms(first, SYMBOL_LET)) {
+  if (type(first) & MALTYPE_SYMBOL) {
+    special_t special = hashmap_get(specials, first);
+    if (special) {
+      ast = special(lst, &env);
+      if (mal_error) return NULL;
 
-      /* TCE - modify ast and env directly and jump back to eval */
-      ast = eval_letstar(lst, &env);
-
-      if (mal_error) { return NULL; }
+      if(!env) { return ast; }
       goto TCE_entry_point;
     }
-    else if (equal_forms(first, SYMBOL_IF)) {
-
-      /* TCE - modify ast directly and jump back to eval */
-      ast = eval_if(lst, env);
-
-      if (mal_error) { return NULL; }
-      goto TCE_entry_point;
-    }
-    else if (equal_forms(first, SYMBOL_FN)) {
-      return eval_fnstar(lst, env);
-      // Implicit error propagation
-    }
-    else if (equal_forms(first, SYMBOL_DO)) {
-
-      /* TCE - modify ast and env directly and jump back to eval */
-      ast = eval_do(lst, env);
-
-      if (mal_error) { return NULL; }
-      goto TCE_entry_point;
-    }
+  }
 
   /* first element is not a special symbol */
   MalType func = EVAL(first, env);
@@ -211,6 +192,13 @@ int main(int argc, char** argv) {
   types_init();
   printer_init();
 
+  specials = map_empty();
+  specials = hashmap_put(specials, SYMBOL_DEF,        eval_defbang);
+  specials = hashmap_put(specials, SYMBOL_LET,        eval_letstar);
+  specials = hashmap_put(specials, SYMBOL_IF,         eval_if);
+  specials = hashmap_put(specials, SYMBOL_FN,         eval_fnstar);
+  specials = hashmap_put(specials, SYMBOL_DO,         eval_do);
+
   repl_env = env_make(NULL);
 
   ns core;
@@ -259,16 +247,17 @@ int main(int argc, char** argv) {
   return EXIT_SUCCESS;
 }
 
-MalType eval_defbang(list lst, Env* env) {
+MalType eval_defbang(list lst, Env** env) {
 
   explode2("def!", lst, defbang_symbol, defbang_value);
 
-  MalType result = EVAL(defbang_value, env);
+  MalType result = EVAL(defbang_value, *env);
   if (mal_error) {
     return NULL;
   }
   check_type("def!", MALTYPE_SYMBOL, defbang_symbol);
-  env_set(env, defbang_symbol, result);
+  env_set(*env, defbang_symbol, result);
+  *env = NULL; // no TCO
   return result;
 }
 
@@ -306,7 +295,7 @@ MalType eval_letstar(list lst, Env** env) {
   return forms;
 }
 
-MalType eval_if(list lst, Env* env) {
+MalType eval_if(list lst, Env** env) {
 
   if (!lst) {
     bad_arg_count("if", "two or three arguments", lst);
@@ -329,7 +318,7 @@ MalType eval_if(list lst, Env* env) {
     else_form = NULL;
   }
 
-  MalType condition = EVAL(raw_condition, env);
+  MalType condition = EVAL(raw_condition, *env);
 
   if (mal_error) {
     return NULL;
@@ -342,6 +331,7 @@ MalType eval_if(list lst, Env* env) {
       return else_form;
     }
     else {
+      *env = NULL; // no TCO
       return make_nil();
     }
 
@@ -350,7 +340,7 @@ MalType eval_if(list lst, Env* env) {
   }
 }
 
-MalType eval_do(list lst, Env* env) {
+MalType eval_do(list lst, Env** env) {
 
   /* handle empty 'do' */
   if (!lst) {
@@ -360,7 +350,7 @@ MalType eval_do(list lst, Env* env) {
   /* evaluate all but the last form */
   while (lst->next) {
 
-    EVAL(lst->data, env);
+    EVAL(lst->data, *env);
 
     /* return error early */
     if (mal_error) {
@@ -415,7 +405,7 @@ MalType evaluate_hashmap(hashmap lst, Env* env) {
   return make_hashmap(evlst);
 }
 
-MalType eval_fnstar(list lst, const Env* env) {
+MalType eval_fnstar(list lst, Env** env) {
 
   if (!lst || !lst->next || lst->next->next) {
     bad_arg_count("fn*", "two parameters", lst);
@@ -449,8 +439,9 @@ MalType eval_fnstar(list lst, const Env* env) {
       break;
     }
   }
-
-  return make_closure(env, lst);
+  Env* fn_env = *env;
+  *env = NULL; // no TCO
+  return make_closure(fn_env, lst);
 }
 
 /* used by core functions but not EVAL as doesn't do TCE */
