@@ -1,0 +1,13 @@
+make -Cimpls/c.2/ clean
+make -Cimpls/c.2/ no_fast=1
+make test^c.2 HARD=1 REGRESS=1
+make test^mal HARD=1 MAL_IMPL=c.2
+
+make -Cimpls/c.2/ clean
+make -Cimpls/c.2/
+make perf^c.2
+
+make -Cimpls/c.2/ clean
+make -Cimpls/c.2/ stepA_mal profile=1
+make perf^c.2
+(cd impls/c.2/ && gprof stepA_mal | less)

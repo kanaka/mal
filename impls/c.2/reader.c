@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <assert.h>
 
 #include <gc.h>
 
@@ -95,6 +96,7 @@ const char* read_symbol (Reader reader) {
   size_t len = *reader - start;
   char* result = GC_MALLOC(len + 1);
   strncpy(result, start, len);
+  assert(!result[len]);
   return result;
 }
 
@@ -177,7 +179,7 @@ MalType read_number(Reader reader) {
   // (followed by a digit).
   (*reader)++;
 
-  int has_decimal_point = 0;
+  bool has_decimal_point = false;
 
   while(true) {
     if(**reader == '.') {
@@ -255,8 +257,8 @@ MalType read_list(Reader reader) {
 
 MalType read_vector(Reader reader) {
   (*reader)++;
-  int capacity = 10;
-  struct vector* v = vector_new(10);
+  size_t capacity = 10;
+  struct vector* v = vector_new(capacity);
   while(true) {
     DEBUG("searching ']'");
     skip_spaces(reader);

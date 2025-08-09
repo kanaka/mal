@@ -61,21 +61,21 @@ MalType make_closure(const Env* env, list fnstar_args);
 MalType make_macro(const Env* env, list fnstar_args);
 
 // A NULL result means that the type differs, except for lists.
-int is_list(MalType val, list*);
+bool is_list(MalType val, list*);
 vector_t is_vector(MalType val);
 hashmap is_hashmap(MalType val);
-int is_nil(MalType val);
+bool is_nil(MalType val);
 const char* is_string(MalType val);
-int is_false(MalType val);
+bool is_false(MalType val);
 const char* is_symbol(MalType val);
 const char* is_keyword(MalType val);
 function_t is_function(MalType val);
 MalClosure is_closure(MalType val);
 MalClosure is_macro(MalType val);
-int is_integer(MalType val, long*);
-int is_float(MalType val, double*);
+bool is_integer(MalType val, long*);
+bool is_float(MalType val, double*);
 MalType* is_atom(MalType val);
-int is_true(MalType val);
+bool is_true(MalType val);
 
 
 enum mal_type_t type(MalType);

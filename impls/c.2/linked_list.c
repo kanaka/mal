@@ -11,9 +11,9 @@ list list_push(list lst, MalType data_ptr) {
   return new_head;
 }
 
-int list_count(list lst) {
+size_t list_count(list lst) {
 
-  int counter = 0;
+  size_t counter = 0;
 
   while(lst) {
 
