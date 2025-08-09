@@ -22,7 +22,7 @@ enum mal_type_t {
   MALTYPE_MACRO    = 1 << 14,
 };
 
-typedef const struct MalType_s* MalType;
+typedef struct MalType_s* MalType;
 typedef const struct MalClosure_s* MalClosure;
 typedef struct pair_s* list; // mutable for appends
 typedef MalType(*function_t)(list);

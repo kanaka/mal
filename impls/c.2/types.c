@@ -44,7 +44,7 @@ struct MalType_s {
       struct MalClosure_s c;
       MalType meta;
     } mal_closure;
-    MalType* mal_atom;          // This pointer allows mutability.
+    MalType mal_atom;
   } value;
 };
 
@@ -78,6 +78,8 @@ MalType make_float(double value) {
   return mal_val;
 }
 
+#define NO_HASH_YET (size_t)(-1)
+
 size_t hash(const char* s) {
 # ifdef DEBUG_HASH
   printf("HASH %s\n", s);
@@ -101,7 +103,7 @@ inline const char* is_string(MalType val) {
 }
 MalType make_string(const char*  value) {
   struct MalType_s* mal_val = GC_MALLOC(sizeof(*mal_val));
-  *mal_val = (struct MalType_s){MALTYPE_STRING, {.mal_string={value, hash(value)}}};
+  *mal_val = (struct MalType_s){MALTYPE_STRING, {.mal_string={value, NO_HASH_YET}}};
   return mal_val;
 }
 
@@ -110,7 +112,7 @@ inline const char* is_keyword(MalType val) {
 }
 MalType make_keyword(const char*  value) {
   struct MalType_s* mal_val = GC_MALLOC(sizeof(*mal_val));
-  *mal_val = (struct MalType_s){MALTYPE_KEYWORD, {.mal_string={value, hash(value)}}};
+  *mal_val = (struct MalType_s){MALTYPE_KEYWORD, {.mal_string={value, NO_HASH_YET}}};
   return mal_val;
 }
 
@@ -119,7 +121,7 @@ inline const char* is_symbol(MalType val) {
 }
 MalType make_symbol(const char*  value) {
   struct MalType_s* mal_val = GC_MALLOC(sizeof(*mal_val));
-  *mal_val = (struct MalType_s){MALTYPE_SYMBOL, {.mal_string={value, hash(value)}}};
+  *mal_val = (struct MalType_s){MALTYPE_SYMBOL, {.mal_string={value, NO_HASH_YET}}};
   return mal_val;
 }
 
@@ -195,13 +197,11 @@ MalType make_macro(const Env* env, list fnstar_args) {
 }
 
 inline MalType* is_atom(MalType val) {
-  return val->type & MALTYPE_ATOM ? val->value.mal_atom : NULL;
+  return val->type & MALTYPE_ATOM ? &val->value.mal_atom : NULL;
 }
 MalType make_atom(MalType value) {
-  MalType* mal_atom = GC_MALLOC(sizeof(*mal_atom));
-  *mal_atom = value;
   struct MalType_s* mal_val = GC_MALLOC(sizeof(*mal_val));
-  *mal_val = (struct MalType_s){MALTYPE_ATOM, {.mal_atom=mal_atom}};
+  *mal_val = (struct MalType_s){MALTYPE_ATOM, {.mal_atom=value}};
   return mal_val;
 }
 
@@ -222,6 +222,9 @@ inline enum mal_type_t type(MalType val) {
 
 inline size_t get_hash(MalType form) {
   assert(form->type & (MALTYPE_KEYWORD | MALTYPE_STRING | MALTYPE_SYMBOL));
+  if(form->value.mal_string.hash == NO_HASH_YET) {
+    form->value.mal_string.hash = hash(form->value.mal_string.s);
+  }
   return form->value.mal_string.hash;
 }
 
@@ -262,7 +265,8 @@ bool equal_forms(MalType first, MalType second) {
   if (first->type != second->type) return false;
 
   if (first->type & (MALTYPE_KEYWORD | MALTYPE_STRING | MALTYPE_SYMBOL)) {
-    return (first->value.mal_string.hash == second->value.mal_string.hash)
+    // via get_hash because the hash may not be computed yet.
+    return get_hash(first) == get_hash(second)
       && !strcmp(first->value.mal_string.s, second->value.mal_string.s);
   }
 
