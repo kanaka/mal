@@ -25,6 +25,9 @@ MalType eval_if(list, Env*);
 MalType eval_fnstar(list, const Env*);
 MalType eval_do(list, Env*);
 
+typedef MalType (*special_t)(list, Env*);
+struct map* specials;
+
 MalType READ(const char* str) {
 
   return read_str(str);
@@ -43,7 +46,7 @@ Env* env_apply(MalClosure closure, list args) {
   while (true) {
     if (!seq_cont(params, c)) {
       if (a) {
-        make_error("'apply': expected [%M], got [%N]", params, args);
+        make_error("'apply': expected %M, got [%N]", params, args);
       }
       break;
     }
@@ -55,7 +58,7 @@ Env* env_apply(MalClosure closure, list args) {
       break;
     }
     if (!a) {
-      make_error("'apply': expected [%M], got [%N]", params, args);
+      make_error("'apply': expected %M, got [%N]", params, args);
     }
     env_set(fn_env, parameter, a->data);
     c = seq_next(params, c);
@@ -102,26 +105,12 @@ MalType EVAL(MalType ast, Env* env) {
   lst = lst->next;
 
     /* handle special symbols first */
-    if (equal_forms(first, SYMBOL_DEF)) {
-      return eval_defbang(lst, env);
-      // Implicit error propagation
+  if (type(first) & MALTYPE_SYMBOL) {
+    special_t special = hashmap_get(specials, first);
+    if (special) {
+      return special(lst, env);
     }
-    else if (equal_forms(first, SYMBOL_LET)) {
-      return eval_letstar(lst, env);
-      // Implicit error propagation
-    }
-    else if (equal_forms(first, SYMBOL_IF)) {
-      return eval_if(lst, env);
-      // Implicit error propagation
-    }
-    else if (equal_forms(first, SYMBOL_FN)) {
-      return eval_fnstar(lst, env);
-      // Implicit error propagation
-    }
-    else if (equal_forms(first, SYMBOL_DO)) {
-      return eval_do(lst, env);
-      // Implicit error propagation
-    }
+  }
 
   /* first element is not a special symbol */
   MalType func = EVAL(first, env);
@@ -182,6 +171,13 @@ int main() {
 
   types_init();
   printer_init();
+
+  specials = map_empty();
+  specials = hashmap_put(specials, SYMBOL_DEF,        eval_defbang);
+  specials = hashmap_put(specials, SYMBOL_LET,        eval_letstar);
+  specials = hashmap_put(specials, SYMBOL_IF,         eval_if);
+  specials = hashmap_put(specials, SYMBOL_FN,         eval_fnstar);
+  specials = hashmap_put(specials, SYMBOL_DO,         eval_do);
 
   Env* repl_env = env_make(NULL);
 
