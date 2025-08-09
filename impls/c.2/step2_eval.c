@@ -159,13 +159,14 @@ list evaluate_list(list lst, hashmap env) {
 }
 
 MalType evaluate_vector(vector_t lst, hashmap env) {
-  int capacity = lst->count;
+  size_t capacity = lst->count;
   struct vector* evlst = vector_new(capacity);
-  for(int i = 0; i <= lst->count - 1; i++) {
+  for (size_t i = 0; i < capacity; i++) {
     MalType new = EVAL(lst->nth[i], env);
     if (mal_error) return NULL;
     vector_append(&capacity, &evlst, new);
   }
+  assert(evlst->count == capacity);
   return make_vector(evlst);
 }
 

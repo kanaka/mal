@@ -7,14 +7,14 @@
 // typedef const struct vector* vector_t;
 
 struct vector {
-  int count;
+  size_t count;
   MalType nth[];
 };
 
-struct vector* vector_new(int capacity);
+struct vector* vector_new(size_t capacity);
 //  The capacity first additions cause no reallocation.
 
-void vector_append(int* capacity, struct vector** v, MalType new_item);
+void vector_append(size_t* capacity, struct vector** v, MalType new_item);
 
 // Convenient way to iterate either on a list or a vector.
 // The same (unmodified) container must be be provided to each
@@ -22,7 +22,7 @@ void vector_append(int* capacity, struct vector** v, MalType new_item);
 // It must be a list or a vector.
 typedef union seq_cursor {
   list l;
-  int i;
+  size_t i;
 } seq_cursor;
 seq_cursor seq_iter(MalType);
 bool seq_cont(MalType, seq_cursor);

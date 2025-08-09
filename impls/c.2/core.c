@@ -276,7 +276,7 @@ MalType mal_nth(list args) {
     }
   }
   else if ((v = is_vector(lst))) {
-    if (idx < v->count) {
+    if ((size_t)idx < v->count) {
       return v->nth[idx];
     }
   } else {
@@ -319,7 +319,7 @@ MalType mal_rest(list args) {
     return make_list(NULL);
   }
   else if ((v = is_vector(lst))) {
-    for (int i = v->count - 1; 0 < i; i--) {
+    for (size_t i = v->count; 1 < i--; ) {
       result = list_push(result, v->nth[i]);
     }
     return make_list(result);
@@ -342,7 +342,7 @@ MalType mal_cons(list args) {
   list result = NULL;
   vector_t v;
   if ((v = is_vector(lst))) {
-    for (int i = v->count - 1; -1 < i; i--) {
+    for (size_t i = v->count; i--; ) {
       result = list_push(result, v->nth[i]);
     }
   }
@@ -400,7 +400,7 @@ MalType mal_count(list args) {
   else if (!is_list(val, &mal_list)) {
     bad_type("count", MALTYPE_LIST | MALTYPE_NIL | MALTYPE_VECTOR, val);
   }
-  return make_integer(list_count(mal_list));
+  return make_integer((long)list_count(mal_list));
 }
 
 MalType mal_empty_questionmark(list args) {
@@ -562,7 +562,7 @@ MalType mal_apply(list args) {
   //  Append the elements of the final sequence,
   //  efficiently if it is a list.
   if (v) {
-    for(int i = v->count- 1; 0 <= i; i--) {
+    for (size_t i = v->count; i--; ) {
       *lst_last = list_push(*lst_last, v->nth[i]);
     }
   }
@@ -632,12 +632,13 @@ MalType mal_keyword(list args) {
 
 MalType mal_vector(list args) {
   /* Accepts any number and type of arguments */
-  int capacity= list_count(args);
+  size_t capacity = list_count(args);
   struct vector* v = vector_new(capacity);
   while (args) {
     vector_append(&capacity, &v, args->data);
     args = args->next;
   }
+  assert(v->count == capacity);
   return make_vector(v);
 }
 
@@ -826,10 +827,10 @@ MalType mal_conj(list args) {
   }
   else if ((src = is_vector(lst))) {
 
-    int capacity = src->count + list_count(rest);
+    size_t capacity = src->count + list_count(rest);
     struct vector* new_vec = vector_new(capacity);
 
-    for (int i = 0; i <= src->count - 1; i++) {
+    for (size_t i = 0; i < src->count; i++) {
       vector_append(&capacity, &new_vec, src->nth[i]);
     }
 
@@ -837,6 +838,7 @@ MalType mal_conj(list args) {
       vector_append(&capacity, &new_vec, rest->data);
       rest = rest->next;
     }
+    assert(new_vec->count == capacity);
     return make_vector(new_vec);
   }
   else {
@@ -862,10 +864,10 @@ MalType mal_seq(list args) {
       return make_nil();
     }
     else {
-      for (int i = strlen(ch) - 1; -1 < i; i--) {
+      for (size_t i = strlen(ch); i--; ) {
         char* new_ch = GC_MALLOC(2);
-        new_ch[0] = ch[i];
-        new_ch[1] = 0;
+        *new_ch = ch[i];
+        assert(!new_ch[1]);
 
         lst = list_push(lst, make_string(new_ch));
       }
@@ -873,7 +875,7 @@ MalType mal_seq(list args) {
     }
   }
   else if ((v = is_vector(val))) {
-    for (int i = v->count - 1; 0 <= i; i--) {
+    for (size_t i = v->count; i--; ) {
       lst = list_push(lst, v->nth[i]);
     }
     return lst ? make_list(lst) : make_nil();
@@ -949,13 +951,15 @@ struct {
   { "double",  MALTYPE_FLOAT,   &ffi_type_double },
   { "float",   MALTYPE_FLOAT,   &ffi_type_float },
 };
-int core_ffi_find(const char *type) {
-  // Negative if not found
-  int i = sizeof(core_ffi_translations) / sizeof(*core_ffi_translations) - 1;
-  while ((0 <= i) && strcmp(core_ffi_translations[i].c_type, type)) {
-    i--;
+size_t core_ffi_find(const char *type) {
+  for (size_t i = 0;
+       i < sizeof(core_ffi_translations) / sizeof(*core_ffi_translations);
+       i++) {
+    if (!strcmp(core_ffi_translations[i].c_type, type)) {
+      return i;
+    }
   }
-  return i;
+  make_error("'ffi': unknown type '%s'", type);
 }
 MalType mal_dot(list args) {
 
@@ -975,10 +979,8 @@ MalType mal_dot(list args) {
   if (!return_type_str) {
     bad_type(".", MALTYPE_STRING, a->data);
   }
-  int return_type = core_ffi_find(return_type_str);
-  if (return_type < 0) {
-    make_error("'ffi': return type not supported '%s'", return_type_str);
-  }
+  size_t return_type = core_ffi_find(return_type_str);
+  if (mal_error) return NULL;
 
   a = a->next;
 
@@ -1000,10 +1002,8 @@ MalType mal_dot(list args) {
     if (!val_type) {
       bad_type(".", MALTYPE_STRING, a->data);
     }
-    int val_type_index = core_ffi_find(val_type);
-    if (val_type_index < 0) {
-      make_error("'ffi': type not recognised '%s'", val_type);
-    }
+    size_t val_type_index = core_ffi_find(val_type);
+    if (mal_error) return NULL;
     arg_types[arg_count] = core_ffi_translations[val_type_index].ffit;
 
     a = a->next;

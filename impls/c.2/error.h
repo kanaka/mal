@@ -7,7 +7,7 @@ extern MalType mal_error;
 
 #define make_error(...) {                             \
     mal_error = make_string(mal_printf(__VA_ARGS__)); \
-    return NULL;                                      \
+    return 0;                                         \
   }
 
 #define bad_type(context, mask, form)                     \

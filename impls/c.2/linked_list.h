@@ -14,6 +14,6 @@ struct pair_s {
 
 /* interface */
 list list_push(list lst, MalType data_ptr);
-int list_count(list lst);
+size_t list_count(list lst);
 
 #endif
