@@ -122,42 +122,6 @@ SUB QQ_FOLDR
 QQ_FOLDR_DONE:
 END SUB
 
-REM MACROEXPAND(A, E) -> A:
-SUB MACROEXPAND
-  GOSUB PUSH_A
-
-  MACROEXPAND_LOOP:
-    REM list?
-    GOSUB TYPE_A
-    IF T<>6 THEN GOTO MACROEXPAND_DONE
-    REM non-empty?
-    IF Z%(A+1)=0 THEN GOTO MACROEXPAND_DONE
-    B=Z%(A+2)
-    REM symbol? in first position
-    IF (Z%(B)AND 31)<>5 THEN GOTO MACROEXPAND_DONE
-    REM defined in environment?
-    B$=S$(Z%(B+1)):CALL ENV_GET
-    IF R3=0 THEN GOTO MACROEXPAND_DONE
-    B=R
-    REM macro?
-    IF (Z%(B)AND 31)<>11 THEN GOTO MACROEXPAND_DONE
-
-    GOSUB INC_REF_R
-    F=B:AR=Z%(A+1):CALL APPLY
-    A=R
-
-    GOSUB PEEK_Q:AY=Q
-    REM if previous A was not the first A into macroexpand (i.e. an
-    REM intermediate form) then free it
-    IF A<>AY THEN GOSUB PEND_A_LV
-
-    IF ER<>-2 THEN GOTO MACROEXPAND_DONE
-    GOTO MACROEXPAND_LOOP
-
-  MACROEXPAND_DONE:
-    GOSUB POP_Q: REM pop original A
-END SUB
-
 REM EVAL_AST(A, E) -> R
 SUB EVAL_AST
   REM push A and E on the stack
@@ -233,8 +197,6 @@ SUB EVAL
 
   IF ER<>-2 THEN GOTO EVAL_RETURN
 
-  EVAL_NOT_LIST:
-
   B$="DEBUG-EVAL":CALL ENV_GET
   IF R3=0 OR R=0 OR R=2 THEN GOTO DEBUG_EVAL_DONE
     AZ=A:B=1:GOSUB PR_STR
@@ -262,10 +224,6 @@ SUB EVAL
     GOTO EVAL_RETURN
 
   APPLY_LIST:
-    CALL MACROEXPAND
-
-    GOSUB LIST_Q
-    IF R<>1 THEN GOTO EVAL_NOT_LIST
 
     GOSUB EMPTY_Q
     IF R THEN R=A:GOSUB INC_REF_R:GOTO EVAL_RETURN
@@ -422,38 +380,68 @@ SUB EVAL
       GOTO EVAL_RETURN
 
     EVAL_INVOKE:
-      CALL EVAL_AST
 
-      REM if error, return f/args for release by caller
+      REM evaluate A0
+      GOSUB PUSH_A
+      A=A0:CALL EVAL
+      GOSUB POP_A
       IF ER<>-2 THEN GOTO EVAL_RETURN
 
-      REM push f/args for release after call
+      REM set F, push it in the stack for release after call
       GOSUB PUSH_R
-
-      AR=Z%(R+1): REM rest
-      F=Z%(R+2)
+      F=R
 
       GOSUB TYPE_F
       T=T-8
-      IF 0<T THEN ON T GOTO EVAL_DO_FUNCTION,EVAL_DO_MAL_FUNCTION
+      IF 0<T THEN ON T GOTO EVAL_DO_FUNCTION,EVAL_DO_MAL_FUNCTION,EVAL_MACRO
 
-      REM if error, pop and return f/args for release by caller
+      REM if error, pop and return f for release by caller
       GOSUB POP_R
       ER=-1:E$="apply of non-function":GOTO EVAL_RETURN
 
+      EVAL_MACRO:
+        REM Apply F to the unevaluated rest of A, then free the memory for F.
+        AR=Z%(A+1):CALL APPLY
+        GOSUB POP_Q:AY=Q:GOSUB RELEASE
+        IF ER<>-2 THEN GOTO EVAL_RETURN
+
+        REM Evaluate the result of this macro expansion.
+        A=R:GOTO EVAL_TCO_RECUR: REM TCO loop
+
       EVAL_DO_FUNCTION:
         REM regular function
+
+        REM Evaluate the arguments
+        A=Z%(A+1):CALL EVAL_AST
+        IF ER<>-2 THEN GOSUB POP_Q:AY=Q:GOSUB RELEASE:GOTO EVAL_RETURN
+
+        REM set F and AR, push AR (after F) in the stack for release after call
+        GOSUB PEEK_Q:F=Q
+        GOSUB PUSH_R
+        AR=R
+
         IF Z%(F+1)<65 THEN GOSUB DO_FUNCTION:GOTO EVAL_DO_FUNCTION_SKIP
         REM for recur functions (apply, map, swap!), use GOTO
         IF Z%(F+1)>64 THEN CALL DO_TCO_FUNCTION
         EVAL_DO_FUNCTION_SKIP:
 
         REM pop and release f/args
+        GOSUB POP_Q:AY=Q:GOSUB RELEASE
         GOSUB POP_Q:AY=Q
         GOSUB RELEASE
         GOTO EVAL_RETURN
 
       EVAL_DO_MAL_FUNCTION:
+
+        REM Evaluate the arguments
+        A=Z%(A+1):CALL EVAL_AST
+        IF ER<>-2 THEN GOSUB POP_Q:AY=Q:GOSUB RELEASE:GOTO EVAL_RETURN
+
+        REM set F and AR, push AR (after F) in the stack for release after call
+        GOSUB PEEK_Q:F=Q
+        GOSUB PUSH_R
+        AR=R
+
         Q=E:GOSUB PUSH_Q: REM save the current environment for release
 
         REM create new environ using env and params stored in function
@@ -472,9 +460,9 @@ SUB EVAL
         REM actually returns (LV+1)
         LV=LV+1:GOSUB PEND_A_LV:LV=LV-1
 
-        REM pop and release f/args
-        GOSUB POP_Q:AY=Q
-        GOSUB RELEASE
+        REM pop f/args, do not release (?)
+        GOSUB POP_Q
+        GOSUB POP_Q
 
         REM A set above
         E=R:GOTO EVAL_TCO_RECUR: REM TCO loop
