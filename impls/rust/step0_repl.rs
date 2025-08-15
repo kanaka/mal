@@ -1,31 +1,15 @@
-extern crate rustyline;
+#![allow(non_snake_case)]
 
-use rustyline::error::ReadlineError;
-use rustyline::Editor;
+mod readline;
 
 fn main() {
     // `()` can be used when no completer is required
-    let mut rl = Editor::<(), rustyline::history::DefaultHistory>::new().unwrap();
-    if rl.load_history(".mal-history").is_err() {
-        eprintln!("No previous history.");
-    }
 
-    loop {
-        let readline = rl.readline("user> ");
-        match readline {
-            Ok(line) => {
-                let _ = rl.add_history_entry(&line);
-                rl.save_history(".mal-history").unwrap();
-                if !line.is_empty() {
-                    println!("{}", line);
-                }
-            }
-            Err(ReadlineError::Interrupted) => continue,
-            Err(ReadlineError::Eof) => break,
-            Err(err) => {
-                println!("Error: {:?}", err);
-                break;
-            }
+    // main repl loop
+    while let Some(ref line) = readline::readline("user> ") {
+        if !line.is_empty() {
+            println!("{}", line);
         }
     }
+    println!();
 }
