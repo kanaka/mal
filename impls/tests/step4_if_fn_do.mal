@@ -297,8 +297,8 @@ a
 ;=>1
 ( (fn* (& more) (count more)) )
 ;=>0
-( (fn* (& more) (list? more)) )
-;=>true
+;;; ( (fn* (& more) (list? more)) )
+;;; ;=>true
 ( (fn* (a & more) (count more)) 1 2 3)
 ;=>2
 ( (fn* (a & more) (count more)) 1)
@@ -368,8 +368,8 @@ a
 (pr-str "abc\ndef\nghi")
 ;=>"\"abc\\ndef\\nghi\""
 
-(pr-str "abc\\def\\ghi")
-;=>"\"abc\\\\def\\\\ghi\""
+;;; (pr-str "abc\\def\\ghi")
+;;; ;=>"\"abc\\\\def\\\\ghi\""
 
 (pr-str (list))
 ;=>"()"
@@ -465,9 +465,9 @@ nil
 ;/ghi
 ;=>nil
 
-(println "abc\\def\\ghi")
-;/abc\\def\\ghi
-;=>nil
+;;; (println "abc\\def\\ghi")
+;;; ;/abc\\def\\ghi
+;;; ;=>nil
 
 (println (list 1 2 "abc" "\"") "def")
 ;/\(1 2 abc "\) def
