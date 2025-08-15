@@ -1,51 +1,51 @@
-#[macro_use]
-extern crate lazy_static;
+#![allow(non_snake_case)]
+
 extern crate fnv;
 extern crate itertools;
 extern crate regex;
 
-extern crate rustyline;
-use rustyline::error::ReadlineError;
-use rustyline::Editor;
-
+mod readline;
 #[macro_use]
 #[allow(dead_code)]
 mod types;
-use crate::types::format_error;
-mod printer;
-mod reader;
-// TODO: figure out a way to avoid including env
+use crate::types::{MalRet, MalVal};
 #[allow(dead_code)]
 mod env;
+mod printer;
+mod reader;
+
+// read
+fn read(str: &str) -> MalRet {
+    reader::read_str(str)
+}
+
+// eval
+fn eval(ast: MalVal) -> MalRet {
+    Ok(ast)
+}
+
+// print
+fn print(ast: MalVal) -> String {
+    ast.pr_str(true)
+}
+
+fn rep(str: &str) -> Result<String, MalVal> {
+    let ast = read(str)?;
+    let exp = eval(ast)?;
+    Ok(print(exp))
+}
 
 fn main() {
     // `()` can be used when no completer is required
-    let mut rl = Editor::<(), rustyline::history::DefaultHistory>::new().unwrap();
-    if rl.load_history(".mal-history").is_err() {
-        eprintln!("No previous history.");
-    }
 
-    loop {
-        let readline = rl.readline("user> ");
-        match readline {
-            Ok(line) => {
-                let _ = rl.add_history_entry(&line);
-                rl.save_history(".mal-history").unwrap();
-                if !line.is_empty() {
-                    match reader::read_str(&line) {
-                        Ok(mv) => {
-                            println!("{}", mv.pr_str(true));
-                        }
-                        Err(e) => println!("Error: {}", format_error(e)),
-                    }
-                }
-            }
-            Err(ReadlineError::Interrupted) => continue,
-            Err(ReadlineError::Eof) => break,
-            Err(err) => {
-                println!("Error: {:?}", err);
-                break;
+    // main repl loop
+    while let Some(ref line) = readline::readline("user> ") {
+        if !line.is_empty() {
+            match rep(line) {
+                Ok(ref out) => println!("{}", out),
+                Err(ref e) => println!("Error: {}", e.pr_str(true)),
             }
         }
     }
+    println!();
 }
