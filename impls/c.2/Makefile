@@ -21,7 +21,7 @@ ifndef no_fast
   CFLAGS  += -flto -O3 -DNDEBUG
   LDFLAGS += -flto
 endif
-ifdef profilie
+ifdef profile
   CFLAGS  += -pg
   LDFLAGS += -pg
 endif
@@ -71,6 +71,6 @@ deps:
 	$(CC) -MM -MF- *.c > $@
 
 clean:
-	rm -f $(S0+) *.o deps
+	rm -f $(S0+) *.o deps gmon.out
 
 .PHONY: all clean

@@ -21,6 +21,9 @@ MalType evaluate_hashmap(hashmap lst, Env* env);
 MalType eval_defbang(list, Env*);
 MalType eval_letstar(list, Env*);
 
+typedef MalType (*special_t)(list, Env*);
+struct map* specials;
+
 #define generic_arithmetic(name, op, iconst, fconst)      \
   MalType name(list args) {                               \
     explode2(#op, args, a1, a2);                          \
@@ -87,14 +90,12 @@ MalType EVAL(MalType ast, Env* env) {
   lst = lst->next;
 
     /* handle special symbols first */
-    if (equal_forms(first, SYMBOL_DEF)) {
-      return eval_defbang(lst, env);
-      // Implicit error propagation
+  if (type(first) & MALTYPE_SYMBOL) {
+    special_t special = hashmap_get(specials, first);
+    if (special) {
+      return special(lst, env);
     }
-    else if (equal_forms(first, SYMBOL_LET)) {
-      return eval_letstar(lst, env);
-      // Implicit error propagation
-    }
+  }
 
   /* first element is not a special symbol */
   MalType func = EVAL(first, env);
@@ -133,6 +134,10 @@ int main() {
 
   types_init();
   printer_init();
+
+  specials = map_empty();
+  specials = hashmap_put(specials, SYMBOL_DEF,        eval_defbang);
+  specials = hashmap_put(specials, SYMBOL_LET,        eval_letstar);
 
   Env* repl_env = env_make(NULL);
 
@@ -221,13 +226,14 @@ list evaluate_list(list lst, Env* env) {
 }
 
 MalType evaluate_vector(vector_t lst, Env* env) {
-  int capacity = lst->count;
+  size_t capacity = lst->count;
   struct vector* evlst = vector_new(capacity);
-  for(int i = 0; i <= lst->count - 1; i++) {
+  for (size_t i = 0; i < capacity; i++) {
     MalType new = EVAL(lst->nth[i], env);
     if (mal_error) return NULL;
     vector_append(&capacity, &evlst, new);
   }
+  assert(evlst->count == capacity);
   return make_vector(evlst);
 }
 

@@ -30,7 +30,7 @@ struct MalType_s {
     } mal_list;
     struct {
       vector_t v;
-      MalType  meta;;
+      MalType  meta;
     } mal_vector;
     struct {
       hashmap m;
@@ -44,7 +44,7 @@ struct MalType_s {
       struct MalClosure_s c;
       MalType meta;
     } mal_closure;
-    MalType* mal_atom;          // This pointer allows mutability.
+    MalType mal_atom;
   } value;
 };
 
@@ -52,12 +52,12 @@ struct MalType_s THE_NIL = { MALTYPE_NIL, {0}};
 struct MalType_s THE_TRUE = { MALTYPE_TRUE, {0}};
 struct MalType_s THE_FALSE = { MALTYPE_FALSE, {0}};
 
-int is_nil(MalType val) { return val == &THE_NIL; }
-int is_false(MalType val) { return val == &THE_FALSE; }
-int is_true(MalType val) { return val == &THE_TRUE; }
+bool is_nil(MalType val) { return val == &THE_NIL; }
+bool is_false(MalType val) { return val == &THE_FALSE; }
+bool is_true(MalType val) { return val == &THE_TRUE; }
 
-inline int is_integer(MalType val, long* result) {
-  int ok = val->type & MALTYPE_INTEGER;
+inline bool is_integer(MalType val, long* result) {
+  bool ok = val->type & MALTYPE_INTEGER;
   if (ok) *result = val->value.mal_integer;
   return ok;
 }
@@ -67,8 +67,8 @@ MalType make_integer(long value) {
   return mal_val;
 }
 
-inline int is_float(MalType val, double* result) {
-  int ok = val->type & MALTYPE_FLOAT;
+inline bool is_float(MalType val, double* result) {
+  bool ok = val->type & MALTYPE_FLOAT;
   if (ok) *result = val->value.mal_float;
   return ok;
 }
@@ -77,6 +77,8 @@ MalType make_float(double value) {
   *mal_val = (struct MalType_s){MALTYPE_FLOAT, {.mal_float=value}};
   return mal_val;
 }
+
+#define NO_HASH_YET (size_t)(-1)
 
 size_t hash(const char* s) {
 # ifdef DEBUG_HASH
@@ -99,32 +101,32 @@ size_t hash(const char* s) {
 inline const char* is_string(MalType val) {
   return val->type & MALTYPE_STRING ? val->value.mal_string.s : NULL;
 }
-MalType make_string(const char*  value) {
+MalType make_string(const char* value) {
   struct MalType_s* mal_val = GC_MALLOC(sizeof(*mal_val));
-  *mal_val = (struct MalType_s){MALTYPE_STRING, {.mal_string={value, hash(value)}}};
+  *mal_val = (struct MalType_s){MALTYPE_STRING, {.mal_string={value, NO_HASH_YET}}};
   return mal_val;
 }
 
 inline const char* is_keyword(MalType val) {
   return val->type & MALTYPE_KEYWORD ? val->value.mal_string.s : NULL;
 }
-MalType make_keyword(const char*  value) {
+MalType make_keyword(const char* value) {
   struct MalType_s* mal_val = GC_MALLOC(sizeof(*mal_val));
-  *mal_val = (struct MalType_s){MALTYPE_KEYWORD, {.mal_string={value, hash(value)}}};
+  *mal_val = (struct MalType_s){MALTYPE_KEYWORD, {.mal_string={value, NO_HASH_YET}}};
   return mal_val;
 }
 
 inline const char* is_symbol(MalType val) {
   return val->type & MALTYPE_SYMBOL ? val->value.mal_string.s : NULL;
 }
-MalType make_symbol(const char*  value) {
+MalType make_symbol(const char* value) {
   struct MalType_s* mal_val = GC_MALLOC(sizeof(*mal_val));
-  *mal_val = (struct MalType_s){MALTYPE_SYMBOL, {.mal_string={value, hash(value)}}};
+  *mal_val = (struct MalType_s){MALTYPE_SYMBOL, {.mal_string={value, NO_HASH_YET}}};
   return mal_val;
 }
 
-inline int is_list(MalType val, list* result) {
-  int ok = val->type & MALTYPE_LIST;
+inline bool is_list(MalType val, list* result) {
+  bool ok = val->type & MALTYPE_LIST;
   if (ok) *result = val->value.mal_list.l;
   return ok;
 }
@@ -195,13 +197,11 @@ MalType make_macro(const Env* env, list fnstar_args) {
 }
 
 inline MalType* is_atom(MalType val) {
-  return val->type & MALTYPE_ATOM ? val->value.mal_atom : NULL;
+  return val->type & MALTYPE_ATOM ? &val->value.mal_atom : NULL;
 }
 MalType make_atom(MalType value) {
-  MalType* mal_atom = GC_MALLOC(sizeof(*mal_atom));
-  *mal_atom = value;
   struct MalType_s* mal_val = GC_MALLOC(sizeof(*mal_val));
-  *mal_val = (struct MalType_s){MALTYPE_ATOM, {.mal_atom=mal_atom}};
+  *mal_val = (struct MalType_s){MALTYPE_ATOM, {.mal_atom=value}};
   return mal_val;
 }
 
@@ -222,6 +222,9 @@ inline enum mal_type_t type(MalType val) {
 
 inline size_t get_hash(MalType form) {
   assert(form->type & (MALTYPE_KEYWORD | MALTYPE_STRING | MALTYPE_SYMBOL));
+  if(form->value.mal_string.hash == NO_HASH_YET) {
+    form->value.mal_string.hash = hash(form->value.mal_string.s);
+  }
   return form->value.mal_string.hash;
 }
 
@@ -262,7 +265,8 @@ bool equal_forms(MalType first, MalType second) {
   if (first->type != second->type) return false;
 
   if (first->type & (MALTYPE_KEYWORD | MALTYPE_STRING | MALTYPE_SYMBOL)) {
-    return (first->value.mal_string.hash == second->value.mal_string.hash)
+    // via get_hash because the hash may not be computed yet.
+    return get_hash(first) == get_hash(second)
       && !strcmp(first->value.mal_string.s, second->value.mal_string.s);
   }
 

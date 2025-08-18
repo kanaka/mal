@@ -140,7 +140,7 @@ int print_L(FILE* stream, const struct printf_info *i, const void *const *a) {
 int pr_str_vector(FILE* stream, const struct printf_info *i, vector_t v) {
   int written = 0;
   ADD(fprintf(stream, "["));
-  for (int j = 0; j < v->count; j++) {
+  for (size_t j = 0; j < v->count; j++) {
     ADD(fprintf(stream,
                 i->alt ? "%s%#M" : "%s%M",
                 j ? " " : "",
@@ -269,7 +269,7 @@ const char* mal_printf(const char* fmt, ...) {
   char* buffer = GC_MALLOC(n + 1);
 
   va_start(argptr, fmt);
-  int again = vsnprintf(buffer, n + 1, fmt, argptr);
+  int again = vsnprintf(buffer, n+1, fmt, argptr);
   assert(n == again);
 #ifdef NDEBUG
   (void)again;
