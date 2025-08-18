@@ -1,18 +1,18 @@
 use std::fs::File;
 use std::io::Read;
 use std::rc::Rc;
-use std::sync::Mutex;
 use std::time::{SystemTime, UNIX_EPOCH};
-
-extern crate rustyline;
-use rustyline::error::ReadlineError;
-use rustyline::Editor;
 
 use crate::printer::pr_seq;
 use crate::reader::read_str;
-use crate::types::MalErr::ErrMalVal;
-use crate::types::MalVal::{Atom, Bool, Func, Hash, Int, List, MalFunc, Nil, Str, Sym, Vector};
-use crate::types::{MalArgs, MalRet, MalVal, _assoc, _dissoc, atom, error, func, hash_map};
+use crate::types::MalVal::{
+    Atom, Bool, Func, Hash, Int, Kwd, List, MalFunc, Nil, Str, Sym, Vector,
+};
+use crate::types::{
+    list, FuncStruct, MalArgs, MalRet, MalVal, _assoc, error, func, hash_map, unwrap_map_key,
+    vector, wrap_map_key,
+};
+use readline;
 
 macro_rules! fn_t_int_int {
     ($ret:ident, $fn:expr) => {{
@@ -51,32 +51,10 @@ fn symbol(a: MalArgs) -> MalRet {
     }
 }
 
-fn readline(a: MalArgs) -> MalRet {
-    lazy_static! {
-        static ref RL: Mutex<Editor<(), rustyline::history::DefaultHistory>>
-          = Mutex::new(Editor::<(), rustyline::history::DefaultHistory>::new().unwrap());
-    }
-    //let mut rl = Editor::<()>::new();
-
-    match a[0] {
-        Str(ref p) => {
-            //match rl.readline(p) {
-            match RL.lock().unwrap().readline(p) {
-                Ok(mut line) => {
-                    // Remove any trailing \n or \r\n
-                    if line.ends_with('\n') {
-                        line.pop();
-                        if line.ends_with('\r') {
-                            line.pop();
-                        }
-                    }
-                    Ok(Str(line))
-                }
-                Err(ReadlineError::Eof) => Ok(Nil),
-                Err(e) => error(&format!("{:?}", e)),
-            }
-        }
-        _ => error("readline: prompt is not Str"),
+fn readline(p: &str) -> MalRet {
+    match readline::readline(p) {
+        Some(s) => Ok(Str(s)),
+        None => Ok(Nil),
     }
 }
 
@@ -99,9 +77,9 @@ fn time_ms(_a: MalArgs) -> MalRet {
 }
 
 fn get(a: MalArgs) -> MalRet {
-    match (a[0].clone(), a[1].clone()) {
-        (Nil, _) => Ok(Nil),
-        (Hash(ref hm, _), Str(ref s)) => match hm.get(s) {
+    match a[0] {
+        Nil => Ok(Nil),
+        Hash(ref hm, _) => match hm.get(&wrap_map_key(&a[1])?) {
             Some(mv) => Ok(mv.clone()),
             None => Ok(Nil),
         },
@@ -118,45 +96,52 @@ fn assoc(a: MalArgs) -> MalRet {
 
 fn dissoc(a: MalArgs) -> MalRet {
     match a[0] {
-        Hash(ref hm, _) => _dissoc((**hm).clone(), a[1..].to_vec()),
+        Hash(ref hm, _) => {
+            let mut new_hm = (**hm).clone();
+            for k in a[1..].iter() {
+                let _ = new_hm.remove(&wrap_map_key(k)?);
+            }
+            Ok(Hash(Rc::new(new_hm), Rc::new(Nil)))
+        }
         _ => error("dissoc on non-Hash Map"),
     }
 }
 
 fn contains_q(a: MalArgs) -> MalRet {
-    match (a[0].clone(), a[1].clone()) {
-        (Hash(ref hm, _), Str(ref s)) => Ok(Bool(hm.contains_key(s))),
+    match a[0] {
+        Hash(ref hm, _) => Ok(Bool(hm.contains_key(&wrap_map_key(&a[1])?))),
         _ => error("illegal get args"),
     }
 }
 
 fn keys(a: MalArgs) -> MalRet {
     match a[0] {
-        Hash(ref hm, _) => Ok(list!(hm.keys().map(|k| { Str(k.to_string()) }).collect())),
+        Hash(ref hm, _) => Ok(list(hm.keys().map(|k| unwrap_map_key(k)).collect())),
         _ => error("keys requires Hash Map"),
     }
 }
 
 fn vals(a: MalArgs) -> MalRet {
     match a[0] {
-        Hash(ref hm, _) => Ok(list!(hm.values().cloned().collect())),
-        _ => error("keys requires Hash Map"),
+        Hash(ref hm, _) => Ok(list(hm.values().cloned().collect())),
+        _ => error("vals requires Hash Map"),
     }
 }
 
 fn vec(a: MalArgs) -> MalRet {
     match a[0] {
-        List(ref v, _) | Vector(ref v, _) => Ok(vector!(v.to_vec())),
+        List(ref v, _) => Ok(Vector(v.clone(), Rc::new(Nil))),
+        Vector(_, _) => Ok(a[0].clone()),
         _ => error("non-seq passed to vec"),
     }
 }
 
 fn cons(a: MalArgs) -> MalRet {
-    match a[1].clone() {
+    match &a[1] {
         List(v, _) | Vector(v, _) => {
             let mut new_v = vec![a[0].clone()];
-            new_v.extend_from_slice(&v);
-            Ok(list!(new_v.to_vec()))
+            new_v.extend_from_slice(v);
+            Ok(list(new_v))
         }
         _ => error("cons expects seq as second arg"),
     }
@@ -170,40 +155,31 @@ fn concat(a: MalArgs) -> MalRet {
             _ => return error("non-seq passed to concat"),
         }
     }
-    Ok(list!(new_v.to_vec()))
+    Ok(list(new_v))
 }
 
 fn nth(a: MalArgs) -> MalRet {
-    match (a[0].clone(), a[1].clone()) {
-        (List(seq, _), Int(idx)) | (Vector(seq, _), Int(idx)) => {
-            if seq.len() <= idx as usize {
-                return error("nth: index out of range");
-            }
-            Ok(seq[idx as usize].clone())
-        }
+    match (&a[0], &a[1]) {
+        (List(seq, _) | Vector(seq, _), Int(idx)) => match seq.get(*idx as usize) {
+            Some(result) => Ok(result.clone()),
+            None => error("nth: index out of range"),
+        },
         _ => error("invalid args to nth"),
     }
 }
 
 fn first(a: MalArgs) -> MalRet {
-    match a[0].clone() {
-        List(ref seq, _) | Vector(ref seq, _) if seq.len() == 0 => Ok(Nil),
-        List(ref seq, _) | Vector(ref seq, _) => Ok(seq[0].clone()),
-        Nil => Ok(Nil),
+    match a[0] {
+        List(ref seq, _) | Vector(ref seq, _) if seq.len() > 0 => Ok(seq[0].clone()),
+        List(_, _) | Vector(_, _) | Nil => Ok(Nil),
         _ => error("invalid args to first"),
     }
 }
 
 fn rest(a: MalArgs) -> MalRet {
-    match a[0].clone() {
-        List(ref seq, _) | Vector(ref seq, _) => {
-            if seq.len() > 1 {
-                Ok(list!(seq[1..].to_vec()))
-            } else {
-                Ok(list![])
-            }
-        }
-        Nil => Ok(list![]),
+    match a[0] {
+        List(ref seq, _) | Vector(ref seq, _) if seq.len() > 1 => Ok(list(seq[1..].to_vec())),
+        List(_, _) | Vector(_, _) | Nil => Ok(list!()),
         _ => error("invalid args to first"),
     }
 }
@@ -227,7 +203,7 @@ fn map(a: MalArgs) -> MalRet {
             for mv in v.iter() {
                 res.push(a[0].apply(vec![mv.clone()])?)
             }
-            Ok(list!(res))
+            Ok(list(res))
         }
         _ => error("map called with non-seq"),
     }
@@ -236,57 +212,132 @@ fn map(a: MalArgs) -> MalRet {
 fn conj(a: MalArgs) -> MalRet {
     match a[0] {
         List(ref v, _) => {
-            let sl = a[1..]
-                .iter()
-                .rev()
-                .cloned()
-                .collect::<Vec<MalVal>>();
-            Ok(list!([&sl[..], v].concat()))
+            let sl = a[1..].iter().rev().cloned().collect::<Vec<MalVal>>();
+            Ok(list([&sl[..], v].concat()))
         }
-        Vector(ref v, _) => Ok(vector!([v, &a[1..]].concat())),
+        Vector(ref v, _) => Ok(vector([v, &a[1..]].concat())),
         _ => error("conj: called with non-seq"),
     }
 }
 
 fn seq(a: MalArgs) -> MalRet {
     match a[0] {
-        List(ref v, _) | Vector(ref v, _) if v.len() == 0 => Ok(Nil),
-        List(ref v, _) | Vector(ref v, _) => Ok(list!(v.to_vec())),
-        Str(ref s) if s.is_empty() => Ok(Nil),
-        Str(ref s) if !a[0].keyword_q() => {
-            Ok(list!(s.chars().map(|c| { Str(c.to_string()) }).collect()))
-        }
-        Nil => Ok(Nil),
+        ref l @ List(ref v, _) if v.len() > 0 => Ok(l.clone()),
+        Vector(ref v, _) if v.len() > 0 => Ok(list(v.to_vec())),
+        Str(ref s) if !s.is_empty() => Ok(list(s.chars().map(|c| Str(c.to_string())).collect())),
+        List(_, _) | Vector(_, _) | Str(_) | Nil => Ok(Nil),
         _ => error("seq: called with non-seq"),
+    }
+}
+
+fn keyword(a: MalArgs) -> MalRet {
+    match a[0] {
+        Kwd(_) => Ok(a[0].clone()),
+        Str(ref s) => Ok(Kwd(String::from(s))),
+        _ => error("invalid type for keyword"),
+    }
+}
+
+pub fn empty_q(a: MalArgs) -> MalRet {
+    match a[0] {
+        List(ref l, _) | Vector(ref l, _) => Ok(Bool(l.len() == 0)),
+        Nil => Ok(Bool(true)),
+        _ => error("invalid type for empty?"),
+    }
+}
+
+pub fn count(a: MalArgs) -> MalRet {
+    match a[0] {
+        List(ref l, _) | Vector(ref l, _) => Ok(Int(l.len() as i64)),
+        Nil => Ok(Int(0)),
+        _ => error("invalid type for count"),
+    }
+}
+
+pub fn atom(a: MalArgs) -> MalRet {
+    Ok(Atom(Rc::new(std::cell::RefCell::new(a[0].clone()))))
+}
+
+pub fn deref(a: MalArgs) -> MalRet {
+    match a[0] {
+        Atom(ref a) => Ok(a.borrow().clone()),
+        _ => error("attempt to deref a non-Atom"),
+    }
+}
+
+pub fn reset_bang(a: MalArgs) -> MalRet {
+    match a[0] {
+        Atom(ref atm) => {
+            *atm.borrow_mut() = a[1].clone();
+            Ok(a[1].clone())
+        }
+        _ => error("attempt to reset! a non-Atom"),
+    }
+}
+
+pub fn swap_bang(a: MalArgs) -> MalRet {
+    match a[0] {
+        Atom(ref atm) => {
+            let mut fargs = a[2..].to_vec();
+            fargs.insert(0, atm.borrow().clone());
+            let result = a[1].apply(fargs)?;
+            *atm.borrow_mut() = result.clone();
+            Ok(result)
+        }
+        _ => error("attempt to swap! a non-Atom"),
+    }
+}
+
+pub fn get_meta(a: MalArgs) -> MalRet {
+    match a[0] {
+        List(_, ref meta) | Vector(_, ref meta) | Hash(_, ref meta) => Ok((**meta).clone()),
+        Func(_, ref meta) => Ok((**meta).clone()),
+        MalFunc(FuncStruct { ref meta, .. }) => Ok((**meta).clone()),
+        _ => error("meta not supported by type"),
+    }
+}
+
+pub fn with_meta(a: MalArgs) -> MalRet {
+    let m = Rc::new(a[1].clone());
+    match a[0] {
+        List(ref l, _) => Ok(List(l.clone(), m)),
+        Vector(ref l, _) => Ok(Vector(l.clone(), m)),
+        Hash(ref l, _) => Ok(Hash(l.clone(), m)),
+        Func(ref l, _) => Ok(Func(*l, m)),
+        MalFunc(ref f @ FuncStruct { .. }) => Ok(MalFunc(FuncStruct {
+            meta: m,
+            ..f.clone()
+        })),
+        _ => error("with-meta not supported by type"),
     }
 }
 
 pub fn ns() -> Vec<(&'static str, MalVal)> {
     vec![
         ("=", func(|a| Ok(Bool(a[0] == a[1])))),
-        ("throw", func(|a| Err(ErrMalVal(a[0].clone())))),
+        ("throw", func(|a| Err(a[0].clone()))),
         ("nil?", func(fn_is_type!(Nil))),
         ("true?", func(fn_is_type!(Bool(true)))),
         ("false?", func(fn_is_type!(Bool(false)))),
         ("symbol", func(symbol)),
         ("symbol?", func(fn_is_type!(Sym(_)))),
-        (
-            "string?",
-            func(fn_is_type!(Str(ref s) if !s.starts_with('\u{29e}'))),
-        ),
-        ("keyword", func(|a| a[0].keyword())),
-        (
-            "keyword?",
-            func(fn_is_type!(Str(ref s) if s.starts_with('\u{29e}'))),
-        ),
+        ("string?", func(fn_is_type!(Str(_)))),
+        ("keyword", func(keyword)),
+        ("keyword?", func(fn_is_type!(Kwd(_)))),
         ("number?", func(fn_is_type!(Int(_)))),
         (
             "fn?",
-            func(fn_is_type!(MalFunc{is_macro,..} if !is_macro,Func(_,_))),
+            func(fn_is_type!(
+                MalFunc(FuncStruct {
+                    is_macro: false,
+                    ..
+                }),
+                Func(_, _)
+            )),
         ),
         (
             "macro?",
-            func(fn_is_type!(MalFunc{is_macro,..} if is_macro)),
+            func(fn_is_type!(MalFunc(FuncStruct { is_macro: true, .. }))),
         ),
         ("pr-str", func(|a| Ok(Str(pr_seq(&a, true, "", "", " "))))),
         ("str", func(|a| Ok(Str(pr_seq(&a, false, "", "", ""))))),
@@ -305,7 +356,7 @@ pub fn ns() -> Vec<(&'static str, MalVal)> {
             }),
         ),
         ("read-string", func(fn_str!(read_str))),
-        ("readline", func(readline)),
+        ("readline", func(fn_str!(readline))),
         ("slurp", func(fn_str!(slurp))),
         ("<", func(fn_t_int_int!(Bool, |i, j| { i < j }))),
         ("<=", func(fn_t_int_int!(Bool, |i, j| { i <= j }))),
@@ -317,9 +368,9 @@ pub fn ns() -> Vec<(&'static str, MalVal)> {
         ("/", func(fn_t_int_int!(Int, |i, j| { i / j }))),
         ("time-ms", func(time_ms)),
         ("sequential?", func(fn_is_type!(List(_, _), Vector(_, _)))),
-        ("list", func(|a| Ok(list!(a.to_vec())))),
+        ("list", func(|a| Ok(list(a)))),
         ("list?", func(fn_is_type!(List(_, _)))),
-        ("vector", func(|a| Ok(vector!(a.to_vec())))),
+        ("vector", func(|a| Ok(vector(a)))),
         ("vector?", func(fn_is_type!(Vector(_, _)))),
         ("hash-map", func(hash_map)),
         ("map?", func(fn_is_type!(Hash(_, _)))),
@@ -332,21 +383,21 @@ pub fn ns() -> Vec<(&'static str, MalVal)> {
         ("vec", func(vec)),
         ("cons", func(cons)),
         ("concat", func(concat)),
-        ("empty?", func(|a| a[0].empty_q())),
+        ("empty?", func(empty_q)),
         ("nth", func(nth)),
         ("first", func(first)),
         ("rest", func(rest)),
-        ("count", func(|a| a[0].count())),
+        ("count", func(count)),
         ("apply", func(apply)),
         ("map", func(map)),
         ("conj", func(conj)),
         ("seq", func(seq)),
-        ("meta", func(|a| a[0].get_meta())),
-        ("with-meta", func(|a| a[0].clone().with_meta(&a[1]))),
-        ("atom", func(|a| Ok(atom(&a[0])))),
+        ("meta", func(get_meta)),
+        ("with-meta", func(with_meta)),
+        ("atom", func(atom)),
         ("atom?", func(fn_is_type!(Atom(_)))),
-        ("deref", func(|a| a[0].deref())),
-        ("reset!", func(|a| a[0].reset_bang(&a[1]))),
-        ("swap!", func(|a| a[0].swap_bang(&a[1..].to_vec()))),
+        ("deref", func(deref)),
+        ("reset!", func(reset_bang)),
+        ("swap!", func(swap_bang)),
     ]
 }

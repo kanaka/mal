@@ -3,13 +3,12 @@ use std::rc::Rc;
 //use std::collections::HashMap;
 use fnv::FnvHashMap;
 
-use crate::types::MalErr::ErrString;
-use crate::types::MalVal::{List, Nil, Sym, Vector};
-use crate::types::{error, MalErr, MalRet, MalVal};
+use crate::types::MalVal::{List, Sym, Vector};
+use crate::types::{error, list, MalRet, MalVal};
 
 pub struct EnvStruct {
     data: RefCell<FnvHashMap<String, MalVal>>,
-    pub outer: Option<Env>,
+    outer: Option<Env>,
 }
 
 pub type Env = Rc<EnvStruct>;
@@ -25,14 +24,14 @@ pub fn env_new(outer: Option<Env>) -> Env {
 }
 
 // TODO: mbinds and exprs as & types
-pub fn env_bind(outer: Option<Env>, mbinds: &MalVal, exprs: Vec<MalVal>) -> Result<Env, MalErr> {
-    let env = env_new(outer);
+pub fn env_bind(outer: Env, mbinds: &MalVal, exprs: Vec<MalVal>) -> Result<Env, MalVal> {
+    let env = env_new(Some(outer));
     match mbinds {
         List(binds, _) | Vector(binds, _) => {
             for (i, b) in binds.iter().enumerate() {
                 match b {
                     Sym(s) if s == "&" => {
-                        env_set(&env, &binds[i + 1], list!(exprs[i..].to_vec()))?;
+                        env_set(&env, &binds[i + 1], list(exprs[i..].to_vec()))?;
                         break;
                     }
                     _ => {
@@ -42,7 +41,7 @@ pub fn env_bind(outer: Option<Env>, mbinds: &MalVal, exprs: Vec<MalVal>) -> Resu
             }
             Ok(env)
         }
-        _ => Err(ErrString("env_bind binds not List/Vector".to_string())),
+        _ => error("env_bind binds not List/Vector"),
     }
 }
 
@@ -57,14 +56,6 @@ pub fn env_get(env: &Env, key: &str) -> Option<MalVal> {
             return None;
         }
     }
-}
-
-pub fn env_find_repl(env: &Env) -> Env {
-    let mut mut_env = env;
-    while let Some(outer) = &mut_env.outer {
-        mut_env = outer;
-    }
-    mut_env.clone()
 }
 
 pub fn env_set(env: &Env, key: &MalVal, val: MalVal) -> MalRet {

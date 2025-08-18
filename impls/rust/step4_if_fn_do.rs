@@ -1,28 +1,43 @@
+#![allow(non_snake_case)]
+
 use std::rc::Rc;
 //use std::collections::HashMap;
 use fnv::FnvHashMap;
 use itertools::Itertools;
 
-#[macro_use]
-extern crate lazy_static;
 extern crate fnv;
 extern crate itertools;
 extern crate regex;
 
-extern crate rustyline;
-use rustyline::error::ReadlineError;
-use rustyline::Editor;
-
+mod readline;
 #[macro_use]
 mod types;
-use crate::types::MalVal::{Bool, Hash, List, MalFunc, Nil, Sym, Vector};
-use crate::types::{error, format_error, MalArgs, MalErr, MalRet, MalVal};
+use crate::types::MalVal::{Bool, Func, Hash, List, MalFunc, Nil, Sym, Vector};
+use crate::types::{error, vector, FuncStruct, MalArgs, MalRet, MalVal};
 mod env;
 mod printer;
 mod reader;
-use crate::env::{env_get, env_new, env_set, env_sets, Env};
+use crate::env::{env_bind, env_get, env_new, env_set, env_sets, Env};
 #[macro_use]
 mod core;
+
+impl MalVal {
+    pub fn apply(&self, args: MalArgs) -> MalRet {
+        match self {
+            Func(f, _) => f(args),
+            MalFunc(FuncStruct {
+                ref ast,
+                ref env,
+                ref params,
+                ..
+            }) => {
+                let fn_env = &env_bind(env.clone(), params, args)?;
+                eval(ast, fn_env)
+            }
+            _ => error("attempt to call non-function"),
+        }
+    }
+}
 
 // read
 fn read(str: &str) -> MalRet {
@@ -38,14 +53,14 @@ fn eval(ast: &MalVal, env: &Env) -> MalRet {
     match ast {
         Sym(s) => match env_get(env, s) {
             Some(r) => Ok(r),
-            None => error (&format!("'{}' not found", s)),
-        }
+            None => error(&format!("'{}' not found", s)),
+        },
         Vector(v, _) => {
             let mut lst: MalArgs = vec![];
             for a in v.iter() {
                 lst.push(eval(a, env)?);
             }
-            Ok(vector!(lst))
+            Ok(vector(lst))
         }
         Hash(hm, _) => {
             let mut new_hm: FnvHashMap<String, MalVal> = FnvHashMap::default();
@@ -60,9 +75,7 @@ fn eval(ast: &MalVal, env: &Env) -> MalRet {
             }
             let a0 = &l[0];
             match a0 {
-                Sym(a0sym) if a0sym == "def!" => {
-                    env_set(env, &l[1], eval(&l[2], env)?)
-                }
+                Sym(a0sym) if a0sym == "def!" => env_set(env, &l[1], eval(&l[2], env)?),
                 Sym(a0sym) if a0sym == "let*" => {
                     let let_env = &env_new(Some(env.clone()));
                     let (a1, a2) = (&l[1], &l[2]);
@@ -96,14 +109,13 @@ fn eval(ast: &MalVal, env: &Env) -> MalRet {
                 }
                 Sym(a0sym) if a0sym == "fn*" => {
                     let (a1, a2) = (l[1].clone(), l[2].clone());
-                    Ok(MalFunc {
-                        eval,
+                    Ok(MalFunc(FuncStruct {
                         ast: Rc::new(a2),
                         env: env.clone(),
                         params: Rc::new(a1),
                         is_macro: false,
                         meta: Rc::new(Nil),
-                    })
+                    }))
                 }
                 _ => {
                     let f = eval(a0, env)?;
@@ -112,7 +124,7 @@ fn eval(ast: &MalVal, env: &Env) -> MalRet {
                         args.push(eval(&l[i], env)?);
                     }
                     f.apply(args)
-                },
+                }
             }
         }
         _ => Ok(ast.clone()),
@@ -124,7 +136,7 @@ fn print(ast: &MalVal) -> String {
     ast.pr_str(true)
 }
 
-fn rep(str: &str, env: &Env) -> Result<String, MalErr> {
+fn rep(str: &str, env: &Env) -> Result<String, MalVal> {
     let ast = read(str)?;
     let exp = eval(&ast, env)?;
     Ok(print(&exp))
@@ -141,10 +153,6 @@ fn re(str: &str, env: &Env) {
 
 fn main() {
     // `()` can be used when no completer is required
-    let mut rl = Editor::<(), rustyline::history::DefaultHistory>::new().unwrap();
-    if rl.load_history(".mal-history").is_err() {
-        eprintln!("No previous history.");
-    }
 
     // core.rs: defined using rust
     let repl_env = env_new(None);
@@ -156,25 +164,13 @@ fn main() {
     re("(def! not (fn* (a) (if a false true)))", &repl_env);
 
     // main repl loop
-    loop {
-        let readline = rl.readline("user> ");
-        match readline {
-            Ok(line) => {
-                let _ = rl.add_history_entry(&line);
-                rl.save_history(".mal-history").unwrap();
-                if !line.is_empty() {
-                    match rep(&line, &repl_env) {
-                        Ok(out) => println!("{}", out),
-                        Err(e) => println!("Error: {}", format_error(e)),
-                    }
-                }
-            }
-            Err(ReadlineError::Interrupted) => continue,
-            Err(ReadlineError::Eof) => break,
-            Err(err) => {
-                println!("Error: {:?}", err);
-                break;
+    while let Some(ref line) = readline::readline("user> ") {
+        if !line.is_empty() {
+            match rep(line, &repl_env) {
+                Ok(ref out) => println!("{}", out),
+                Err(ref e) => println!("Error: {}", e.pr_str(true)),
             }
         }
     }
+    println!();
 }
