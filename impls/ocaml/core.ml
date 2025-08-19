@@ -11,6 +11,16 @@ let num_fun t f = Types.fn
 let mk_int x = T.Int x
 let mk_bool x = T.Bool x
 
+let rec mal_equal a b = match (a, b) with
+  | (T.List   { T.value = xs }, T.List   { T.value = ys })
+  | (T.List   { T.value = xs }, T.Vector { T.value = ys })
+  | (T.Vector { T.value = xs }, T.List   { T.value = ys })
+  | (T.Vector { T.value = xs }, T.Vector { T.value = ys })
+      -> List.equal mal_equal xs ys
+  | (T.Map { T.value = xs }, T.Map { T.value = ys })
+    -> Types.MalMap.equal mal_equal xs ys
+  | _ -> a = b
+
 let seq = function
   | T.List   { T.value = xs } -> xs
   | T.Vector { T.value = xs } -> xs
@@ -87,7 +97,7 @@ let init env = begin
                 | _ -> T.Int 0));
   Env.set env "="
     (Types.fn (function
-                | [a; b] -> T.Bool (Types.mal_equal a b)
+                | [a; b] -> T.Bool (mal_equal a b)
                 | _ -> T.Bool false));
 
   Env.set env "pr-str"
