@@ -4,13 +4,12 @@ let repl_env = Env.make (Some Core.ns)
 
 let rec quasiquote ast =
   match ast with
-    | T.List   { T.value = [T.Symbol "unquote"; ast] } -> ast
-    | T.List {T.value = xs} -> List.fold_right qq_folder xs (Types.list [])
-    | T.Vector {T.value = xs} -> Types.list [T.Symbol "vec";
-                                             List.fold_right qq_folder xs (Types.list [])]
-    | T.Map    _ -> Types.list [T.Symbol "quote"; ast]
-    | T.Symbol _ -> Types.list [T.Symbol "quote"; ast]
+    | T.List { T.value = [T.Symbol "unquote"; x] } -> x
+    | T.List { T.value = xs } -> qq_list xs
+    | T.Vector { T.value = xs } -> Types.list [T.Symbol "vec"; qq_list xs]
+    | T.Map _ | T.Symbol _ -> Types.list [T.Symbol "quote"; ast]
     | _ -> ast
+and qq_list xs = List.fold_right qq_folder xs (Types.list [])
 and qq_folder elt acc =
   match elt with
     | T.List {T.value = [T.Symbol "splice-unquote"; x]} -> Types.list [T.Symbol "concat"; x; acc]
@@ -18,9 +17,7 @@ and qq_folder elt acc =
 
 let rec eval env ast =
   (match Env.get env "DEBUG-EVAL" with
-    | None                -> ()
-    | Some T.Nil          -> ()
-    | Some (T.Bool false) -> ()
+    | None | Some T.Nil | Some (T.Bool false) -> ()
     | Some _              ->
       output_string stderr ("EVAL: " ^ (Printer.pr_str ast true) ^ "\n");
       flush stderr);
@@ -95,7 +92,7 @@ let rec eval env ast =
            let value = match exn with
              | Types.MalExn value -> value
              | Invalid_argument msg -> T.String msg
-             | e -> (T.String (Printexc.to_string e)) in
+             | e -> T.String (Printexc.to_string e) in
            let sub_env = Env.make (Some env) in
            Env.set sub_env local value;
            eval sub_env handler)
@@ -109,9 +106,9 @@ let rec eval env ast =
 let read str = Reader.read_str str
 let print exp = Printer.pr_str exp true
 let rep str env = print (eval env (read str))
+let re str = ignore (eval repl_env (read str))
 
-let rec main =
-  try
+let main =
     Core.init Core.ns;
     Env.set repl_env "*ARGV*"
             (Types.list (if Array.length Sys.argv > 1
@@ -120,35 +117,26 @@ let rec main =
     Env.set repl_env "eval"
             (Types.fn (function [ast] -> eval repl_env ast | _ -> T.Nil));
 
-    ignore (rep "(def! *host-language* \"ocaml\")" repl_env);
-    ignore (rep "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \"\nnil)\")))))" repl_env);
-    ignore (rep "(def! not (fn* (a) (if a false true)))" repl_env);
-    ignore (rep "(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))" repl_env);
+    re "(def! *host-language* \"ocaml\")";
+    re "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \"\nnil)\")))))";
+    re "(def! not (fn* (a) (if a false true)))";
+    re "(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))";
 
     if Array.length Sys.argv > 1 then
-      try
-        ignore (rep ("(load-file \"" ^ Sys.argv.(1) ^ "\")") repl_env);
-      with
-        | Types.MalExn exc ->
-           output_string stderr ("Exception: " ^ (print exc) ^ "\n");
-           flush stderr
+      re (Format.asprintf "(load-file \"%s\")" Sys.argv.(1))
     else begin
-        ignore (rep "(println (str \"Mal [\" *host-language* \"]\"))" repl_env);
+      re "(println (str \"Mal [\" *host-language* \"]\"))";
+      try
         while true do
-          print_string "user> ";
+          Format.printf "user> %!";
           let line = read_line () in
           try
-            print_endline (rep line repl_env);
-          with End_of_file -> ()
+            Format.printf "%s\n" (rep line repl_env);
+          with
              | Types.MalExn exc ->
-                output_string stderr ("Exception: " ^ (print exc) ^ "\n");
-                flush stderr
-             | Invalid_argument x ->
-                output_string stderr ("Invalid_argument exception: " ^ x ^ "\n");
-                flush stderr
+                Format.printf "mal exception: %s\n" (print exc)
              | e ->
-                output_string stderr ((Printexc.to_string e) ^ "\n");
-                flush stderr
+                Format.printf "ocaml exception: %s\n" (Printexc.to_string e)
         done
+      with End_of_file -> Format.printf "\n"
       end
-  with End_of_file -> ()

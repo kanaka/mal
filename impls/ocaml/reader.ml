@@ -32,9 +32,7 @@ let unescape_string token =
          (function | "\\n" -> "\n" | x -> String.sub x 1 1)
          without_quotes
   else
-    (output_string stderr ("expected '\"', got EOF\n");
-     flush stderr;
-     raise End_of_file)
+    raise (Invalid_argument "expected '\"', got EOF")
 
 let read_atom token =
   match token with
@@ -55,9 +53,7 @@ let read_atom token =
 
 let rec read_list eol list_reader =
   match list_reader.tokens with
-    | [] -> output_string stderr ("expected '" ^ eol ^ "', got EOF\n");
-            flush stderr;
-            raise End_of_file;
+    | [] -> raise (Invalid_argument (Format.asprintf "expected '%s', got EOF" eol))
     | token :: tokens ->
       if Str.string_match (Str.regexp eol) token 0 then
         {list_form = list_reader.list_form; tokens = tokens}
@@ -74,7 +70,7 @@ and read_quote sym tokens =
      tokens = reader.tokens}
 and read_form all_tokens =
   match all_tokens with
-    | [] -> raise End_of_file;
+    | [] -> raise (Invalid_argument "no form found in the given string")
     | token :: tokens ->
       match token with
         | "'"  -> read_quote "quote" tokens
