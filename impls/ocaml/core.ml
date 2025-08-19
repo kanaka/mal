@@ -135,7 +135,14 @@ let init env = begin
   Env.set env "read-string"
     (Types.fn (function [T.String x] -> Reader.read_str x | _ -> T.Nil));
   Env.set env "slurp"
-    (Types.fn (function [T.String x] -> T.String (Reader.slurp x) | _ -> T.Nil));
+    (Types.fn (function
+      | [T.String x] ->
+         let chan = open_in x in
+         let b = Buffer.create 27 in
+         Buffer.add_channel b chan (in_channel_length chan) ;
+         close_in chan ;
+         T.String (Buffer.contents b)
+      | _ -> T.Nil));
 
   Env.set env "cons"
     (Types.fn (function [x; xs] -> Types.list (x :: (seq xs)) | _ -> T.Nil));
