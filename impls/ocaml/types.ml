@@ -31,10 +31,6 @@ and MalMap
 
 exception MalExn of Types.t
 
-let to_bool x = match x with
-  | Types.Nil | Types.Bool false -> false
-  | _ -> true
-
 type mal_type = MalValue.t
 
 let list   x = Types.List   { Types.value = x; meta = Types.Nil }
