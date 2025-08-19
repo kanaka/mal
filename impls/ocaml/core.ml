@@ -218,13 +218,14 @@ let init env = begin
                 | _ -> T.Nil));
   Env.set env "readline"
     (Types.fn (function
-                | [T.String x] -> print_string x; T.String (read_line ())
+                | [T.String x] -> Format.printf "%s%!" x;
+                                  T.String (read_line ())
                 | _ -> T.String (read_line ())));
 
   Env.set env "map?"
     (Types.fn (function [T.Map _] -> T.Bool true | _ -> T.Bool false));
   Env.set env "hash-map"
-    (Types.fn (function xs -> Types.list_into_map Types.MalMap.empty xs));
+    (Types.fn (Types.list_into_map Types.MalMap.empty));
   Env.set env "assoc" (Types.fn assoc);
   Env.set env "dissoc" (Types.fn dissoc);
   Env.set env "get"
