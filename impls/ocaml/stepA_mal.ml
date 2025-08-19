@@ -25,16 +25,8 @@ let rec eval env ast =
     | T.Symbol s -> (match Env.get env s with
          | Some v -> v
          | None   -> raise (Invalid_argument ("'" ^ s ^ "' not found")))
-    | T.Vector { T.value = xs; T.meta = meta }
-      -> T.Vector { T.value = List.map (eval env) xs;
-                    T.meta = meta }
-    | T.Map { T.value = xs; T.meta = meta }
-      -> T.Map {T.meta = meta;
-                T.value = (Types.MalMap.fold
-                             (fun k v m
-                              -> Types.MalMap.add k (eval env v) m)
-                             xs
-                             Types.MalMap.empty)}
+    | T.Vector { T.value = xs } -> Types.vector (List.map (eval env) xs);
+    | T.Map { T.value = xs } -> Types.map (Types.MalMap.map (eval env) xs)
     | T.List { T.value = [T.Symbol "def!"; T.Symbol key; expr] } ->
         let value = eval env expr in
           Env.set env key value; value
