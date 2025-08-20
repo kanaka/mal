@@ -19,8 +19,7 @@ let rec eval env ast =
   (match Env.get env "DEBUG-EVAL" with
     | None | Some T.Nil | Some (T.Bool false) -> ()
     | Some _              ->
-      output_string stderr ("EVAL: " ^ (Printer.pr_str ast true) ^ "\n");
-      flush stderr);
+       Format.printf "EVAL: %a\n" (Printer.pr_str true) ast);
   match ast with
     | T.Symbol s -> (match Env.get env s with
          | Some v -> v
@@ -96,8 +95,7 @@ let rec eval env ast =
     | _ -> ast
 
 let read str = Reader.read_str str
-let print exp = Printer.pr_str exp true
-let rep str env = print (eval env (read str))
+let print = Printer.pr_str true
 let re str = ignore (eval repl_env (read str))
 
 let main =
@@ -123,10 +121,10 @@ let main =
           Format.printf "user> %!";
           let line = read_line () in
           try
-            Format.printf "%s\n" (rep line repl_env);
+            Format.printf "%a\n" print (eval repl_env (read line))
           with
              | Types.MalExn exc ->
-                Format.printf "mal exception: %s\n" (print exc)
+                Format.printf "mal exception: %a\n" print exc
              | e ->
                 Format.printf "ocaml exception: %s\n" (Printexc.to_string e)
         done
