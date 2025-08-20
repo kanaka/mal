@@ -118,9 +118,19 @@ let init env = begin
   Env.set env "compare"
     (Types.fn (function [a; b] -> T.Int (compare a b) | _ -> T.Nil));
   Env.set env "with-meta"
-    (Types.fn (function [a; b] -> Reader.with_meta a b | _ -> T.Nil));
+    (Types.fn (function
+      | [T.List   v; m] -> T.List   { v with T.meta = m }
+      | [T.Map    v; m] -> T.Map    { v with T.meta = m }
+      | [T.Vector v; m] -> T.Vector { v with T.meta = m }
+      | [T.Fn     v; m] -> T.Fn     { v with   meta = m }
+      | _ -> T.Nil));
   Env.set env "meta"
-    (Types.fn (function [x] -> Printer.meta x | _ -> T.Nil));
+    (Types.fn (function
+      | [T.List   { T.meta = meta }] -> meta
+      | [T.Map    { T.meta = meta }] -> meta
+      | [T.Vector { T.meta = meta }] -> meta
+      | [T.Fn     {   meta = meta }] -> meta
+      | _ -> T.Nil));
 
   Env.set env "read-string"
     (Types.fn (function [T.String x] -> Reader.read_str x | _ -> T.Nil));
@@ -172,14 +182,11 @@ let init env = begin
     (Types.fn (function [T.Int _] -> T.Bool true | _ -> T.Bool false));
   Env.set env "fn?"
     (Types.fn (function
-                | [T.Fn { T.meta = T.Map { T.value = meta } }]
-                  -> mk_bool (not (Types.MalMap.mem kw_macro meta && Types.to_bool (Types.MalMap.find kw_macro meta)))
-                | [T.Fn _] -> T.Bool true
+                | [T.Fn { macro = false } ] -> T.Bool true
                 | _ -> T.Bool false));
   Env.set env "macro?"
     (Types.fn (function
-                | [T.Fn { T.meta = T.Map { T.value = meta } }]
-                  -> mk_bool (Types.MalMap.mem kw_macro meta && Types.to_bool (Types.MalMap.find kw_macro meta))
+                | [T.Fn { macro = true }] -> T.Bool true
                 | _ -> T.Bool false));
   Env.set env "nil?"
     (Types.fn (function [T.Nil] -> T.Bool true | _ -> T.Bool false));
@@ -191,7 +198,7 @@ let init env = begin
     (Types.fn (function [T.List _] | [T.Vector _] -> T.Bool true | _ -> T.Bool false));
   Env.set env "apply"
     (Types.fn (function
-                | (T.Fn { T.value = f } :: apply_args) ->
+                | (T.Fn { value = f } :: apply_args) ->
                    (match List.rev apply_args with
                     | last_arg :: rev_args ->
                        f ((List.rev rev_args) @ (seq last_arg))
@@ -199,7 +206,7 @@ let init env = begin
                 | _ -> raise (Invalid_argument "First arg to apply must be a fn")));
   Env.set env "map"
     (Types.fn (function
-                | [T.Fn { T.value = f }; xs] ->
+                | [T.Fn { value = f }; xs] ->
                    Types.list (List.map (fun x -> f [x]) (seq xs))
                 | _ -> T.Nil));
   Env.set env "readline"
@@ -244,7 +251,7 @@ let init env = begin
   Env.set env "reset!"
           (Types.fn (function [T.Atom x; v] -> x := v; v | _ -> T.Nil));
   Env.set env "swap!"
-          (Types.fn (function T.Atom x :: T.Fn { T.value = f } :: args
+          (Types.fn (function T.Atom x :: T.Fn { value = f } :: args
                               -> let v = f (!x :: args) in x := v; v | _ -> T.Nil));
 
   Env.set env "time-ms"

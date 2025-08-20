@@ -43,8 +43,8 @@ let rec eval ast env =
           Env.set env key value; value
     | T.List { T.value = [T.Symbol "defmacro!"; T.Symbol key; expr] } ->
        (match (eval expr env) with
-          | T.Fn { T.value = f; T.meta = meta } ->
-             let fn = T.Fn { T.value = f; meta = Core.assoc [meta; Core.kw_macro; (T.Bool true)]}
+          | T.Fn ({ macro = false } as f) ->
+             let fn = T.Fn { f with macro = true }
              in Env.set env key fn; fn
           | _ -> raise (Invalid_argument "defmacro! value must be a fn"))
     | T.List { T.value = [T.Symbol "let*"; (T.Vector { T.value = bindings }); body] }
@@ -99,11 +99,8 @@ let rec eval ast env =
            eval handler sub_env)
     | T.List { T.value = (a0 :: args) } ->
       (match eval a0 env with
-         | T.Fn { T.value = f; T.meta = T.Map { T.value = meta } } ->
-             if Types.MalMap.mem Core.kw_macro meta && Types.to_bool (Types.MalMap.find Core.kw_macro meta)
-             then eval (f args) env
-             else f (List.map (fun x -> eval x env) args)
-         | T.Fn { T.value = f } -> f (List.map (fun x -> eval x env) args)
+         | T.Fn { value = f; macro = true } -> eval (f args) env
+         | T.Fn { value = f } -> f (List.map (fun x -> eval x env) args)
          | _ -> raise (Invalid_argument "Cannot invoke non-function"))
     | _ -> ast
 

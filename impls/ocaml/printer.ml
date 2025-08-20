@@ -1,13 +1,5 @@
 module T = Types.Types
 
-let meta obj =
-  match obj with
-    | T.List   { T.meta = meta } -> meta
-    | T.Map    { T.meta = meta } -> meta
-    | T.Vector { T.meta = meta } -> meta
-    | T.Fn     { T.meta = meta } -> meta
-    | _ -> T.Nil
-
 let rec pr_str mal_obj print_readably =
   let r = print_readably in
     match mal_obj with

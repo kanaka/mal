@@ -11,7 +11,7 @@ module rec Types
     | Nil
     | Bool of bool
     | String of string
-    | Fn of (t list -> t) with_meta
+    | Fn of { value : (t list -> t); meta : t; macro : bool }
     | Atom of t ref
   end = Types
 
@@ -40,7 +40,7 @@ type mal_type = MalValue.t
 let list   x = Types.List   { Types.value = x; meta = Types.Nil }
 let map    x = Types.Map    { Types.value = x; meta = Types.Nil }
 let vector x = Types.Vector { Types.value = x; meta = Types.Nil }
-let fn     f = Types.Fn     { Types.value = f; meta = Types.Nil }
+let fn f = Types.Fn { macro = false; value = f; meta = Types.Nil }
 
 let rec list_into_map target source =
   match source with
