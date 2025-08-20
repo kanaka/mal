@@ -37,11 +37,7 @@ let mal_seq = function
   | _ ->  T.Nil
 
 let rec assoc = function
-  | c :: k :: v :: (_ :: _ as xs) -> assoc ((assoc [c; k; v]) :: xs)
-  | [T.Nil; k; v] -> Types.map (Types.MalMap.add k v Types.MalMap.empty)
-  | [T.Map { T.value = m; T.meta = meta }; k; v]
-    -> T.Map { T.value = (Types.MalMap.add k v m);
-               T.meta = meta }
+  | T.Map { T.value = m } :: xs -> Types.list_into_map m xs
   | _ -> T.Nil
 
 let rec dissoc = function
