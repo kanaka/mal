@@ -91,17 +91,17 @@ let init env = begin
 
   Env.set env "pr-str"
     (Types.fn (function xs ->
-      T.String (String.concat " " (List.map (fun s -> Printer.pr_str s true) xs))));
+      T.String (Format.asprintf "%a" (Printer.pr_list true true) xs)));
   Env.set env "str"
     (Types.fn (function xs ->
-      T.String (String.concat "" (List.map (fun s -> Printer.pr_str s false) xs))));
+      T.String (Format.asprintf "%a" (Printer.pr_list false false) xs)));
   Env.set env "prn"
     (Types.fn (function xs ->
-      print_endline (String.concat " " (List.map (fun s -> Printer.pr_str s true) xs));
+      Format.printf "%a\n" (Printer.pr_list true true) xs;
       T.Nil));
   Env.set env "println"
     (Types.fn (function xs ->
-      print_endline (String.concat " " (List.map (fun s -> Printer.pr_str s false) xs));
+      Format.printf "%a\n" (Printer.pr_list false true) xs;
       T.Nil));
 
   Env.set env "compare"

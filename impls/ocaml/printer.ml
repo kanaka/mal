@@ -1,29 +1,39 @@
+open Format
+
 module T = Types.Types
 
-let rec pr_str mal_obj print_readably =
-  let r = print_readably in
+(* Compile the regex once and for all *)
+let _pr_escape_re = Str.regexp "\\([\"\\\n]\\)"
+let _pr_escape_chunk out = function
+  | Str.Text s     -> fprintf out "%s" s
+  | Str.Delim "\n" -> fprintf out "\\n"
+  | Str.Delim s    -> fprintf out "\\%s" s
+let _pr_escape_string out s =
+  List.iter (_pr_escape_chunk out) (Str.full_split _pr_escape_re s)
+
+let rec pr_str readably out mal_obj =
     match mal_obj with
-      | T.Int i -> string_of_int i
-      | T.Symbol s -> s
-      | T.Keyword s -> ":" ^ s
-      | T.Nil -> "nil"
-      | T.Bool true -> "true"
-      | T.Bool false -> "false"
-      | T.String s ->
-          if r
-          then  "\"" ^ (Reader.gsub (Str.regexp "\\([\"\\\n]\\)")
-                                    (function
-                                      | "\n" -> "\\n"
-                                      | x -> "\\" ^ x)
-                                    s) ^ "\""
-          else s
+      | T.Int i -> fprintf out "%i" i
+      | T.Keyword s -> fprintf out ":%s" s
+      | T.Nil -> fprintf out "nil"
+      | T.Bool b -> fprintf out "%B" b
+      | T.String s when readably -> fprintf out "\"%a\"" _pr_escape_string s
+      | T.String s | T.Symbol s  -> fprintf out "%s" s
       | T.List { T.value = xs } ->
-          "(" ^ (String.concat " " (List.map (fun s -> pr_str s r) xs)) ^ ")"
+         fprintf out "(%a)" (pr_list readably true) xs
       | T.Vector { T.value = xs } ->
-          "[" ^ (String.concat " " (List.map (fun s -> pr_str s r) xs)) ^ "]"
+         fprintf out "[%a]" (pr_list readably true) xs
       | T.Map { T.value = xs } ->
-         "{" ^ (Types.MalMap.fold (fun k v s -> s ^ (if s = "" then "" else " ") ^ (pr_str k r)
-                                                ^ " " ^ (pr_str v r)) xs "")
-         ^ "}"
-      | T.Fn f -> "#<fn>"
-      | T.Atom x -> "(atom " ^ (pr_str !x r) ^ ")"
+         fprintf out "{%a}" (_pr_map readably) xs
+      | T.Fn _ -> fprintf out "#<fn>"
+      | T.Atom x -> fprintf out "(atom %a)" (pr_str readably) !x
+and pr_list readably spaced out =
+  List.iter (
+    let sep = ref "" in fun x ->
+      fprintf out "%s%a" !sep (pr_str readably) x;
+      if spaced && !sep == "" then sep := " " else ())
+and _pr_map readably out =
+  Types.MalMap.iter (
+    let sep = ref "" in fun k v ->
+      fprintf out "%s%a %a" !sep (pr_str readably) k (pr_str readably) v;
+      if !sep == "" then sep := " " else ())
