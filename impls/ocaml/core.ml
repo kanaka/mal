@@ -41,10 +41,8 @@ let rec assoc = function
   | _ -> T.Nil
 
 let rec dissoc = function
-  | c :: x :: (_ :: _ as xs) -> dissoc ((dissoc [c; x]) :: xs)
-  | [T.Map { T.value = m; T.meta = meta }; k]
-    -> T.Map { T.value = (Types.MalMap.remove k m);
-               T.meta = meta }
+  | T.Map { T.value = m } :: xs ->
+     Types.map (List.fold_left (fun k m -> Types.MalMap.remove m k) m xs)
   | _ -> T.Nil
 
 let rec conj = function
