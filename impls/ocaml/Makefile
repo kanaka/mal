@@ -4,6 +4,8 @@ STEPS = step0_repl.ml step1_read_print.ml step2_eval.ml step3_env.ml \
 MODULES = types.ml reader.ml printer.ml env.ml core.ml
 LIBS = str.cmxa unix.cmxa
 MAL_LIB = mal_lib.cmxa
+# Apparently necessary with caml 5.0:
+OPTIONS = -I +str -I +unix
 
 STEP_BINS = $(STEPS:%.ml=%)
 LAST_STEP_BIN = $(word $(words $(STEP_BINS)),$(STEP_BINS))
@@ -22,10 +24,10 @@ repl:
 	rlwrap ocaml $(LIBS:%.cmxa=%.cma) $(MODULES:%.ml=%.cmo)
 
 $(MAL_LIB): $(MODULES)
-	ocamlopt -a $(MODULES) -o $@
+	ocamlopt -a $(MODULES) -o $@ $(OPTIONS)
 
 $(STEP_BINS): %: %.ml $(MAL_LIB)
-	ocamlopt $(LIBS) $(MAL_LIB) $< -o $@
+	ocamlopt $(LIBS) $(MAL_LIB) $< -o $@ $(OPTIONS)
 
 clean:
 	rm -f $(STEP_BINS) mal mal_lib.* *.cmo *.cmx *.cmi *.o

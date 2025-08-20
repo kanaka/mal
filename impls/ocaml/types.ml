@@ -22,7 +22,7 @@ and MalValue
   end
   = struct
     type t = Types.t
-    let compare = Pervasives.compare
+    let compare = compare
   end
 
 and MalMap
