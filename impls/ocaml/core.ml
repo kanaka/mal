@@ -24,8 +24,6 @@ let rec mal_equal a b = match (a, b) with
 let seq = function
   | T.List   { T.value = xs } -> xs
   | T.Vector { T.value = xs } -> xs
-  | T.Map    { T.value = xs } ->
-     Types.MalMap.fold (fun k v list -> k :: v :: list) xs []
   | _ -> []
 
 let mal_seq = function
@@ -55,9 +53,6 @@ let rec dissoc = function
 
 let rec conj = function
   | c :: x :: (_ :: _ as xs) -> conj ((conj [c; x]) :: xs)
-  | [T.Map { T.value = c; T.meta = meta }; T.Vector { T.value = [k; v] }]
-    -> T.Map { T.value = (Types.MalMap.add k v c);
-               T.meta = meta }
   | [T.List { T.value = c; T.meta = meta }; x ]
     -> T.List { T.value = x :: c;
                 T.meta = meta }
