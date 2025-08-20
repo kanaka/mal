@@ -1,4 +1,4 @@
-FROM ubuntu:24.04
+FROM ubuntu:25.04
 MAINTAINER Joel Martin <github@martintribe.org>
 
 ##########################################################
@@ -19,4 +19,4 @@ WORKDIR /mal
 # Specific implementation requirements
 ##########################################################
 
-RUN apt-get -y install ocaml-batteries-included
+RUN apt-get -y install ocaml

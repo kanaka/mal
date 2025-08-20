@@ -11,11 +11,19 @@ let num_fun t f = Types.fn
 let mk_int x = T.Int x
 let mk_bool x = T.Bool x
 
+let rec mal_equal a b = match (a, b) with
+  | (T.List   { T.value = xs }, T.List   { T.value = ys })
+  | (T.List   { T.value = xs }, T.Vector { T.value = ys })
+  | (T.Vector { T.value = xs }, T.List   { T.value = ys })
+  | (T.Vector { T.value = xs }, T.Vector { T.value = ys })
+      -> List.equal mal_equal xs ys
+  | (T.Map { T.value = xs }, T.Map { T.value = ys })
+    -> Types.MalMap.equal mal_equal xs ys
+  | _ -> a = b
+
 let seq = function
   | T.List   { T.value = xs } -> xs
   | T.Vector { T.value = xs } -> xs
-  | T.Map    { T.value = xs } ->
-     Types.MalMap.fold (fun k v list -> k :: v :: list) xs []
   | _ -> []
 
 let mal_seq = function
@@ -29,25 +37,16 @@ let mal_seq = function
   | _ ->  T.Nil
 
 let rec assoc = function
-  | c :: k :: v :: (_ :: _ as xs) -> assoc ((assoc [c; k; v]) :: xs)
-  | [T.Nil; k; v] -> Types.map (Types.MalMap.add k v Types.MalMap.empty)
-  | [T.Map { T.value = m; T.meta = meta }; k; v]
-    -> T.Map { T.value = (Types.MalMap.add k v m);
-               T.meta = meta }
+  | T.Map { T.value = m } :: xs -> Types.list_into_map m xs
   | _ -> T.Nil
 
 let rec dissoc = function
-  | c :: x :: (_ :: _ as xs) -> dissoc ((dissoc [c; x]) :: xs)
-  | [T.Map { T.value = m; T.meta = meta }; k]
-    -> T.Map { T.value = (Types.MalMap.remove k m);
-               T.meta = meta }
+  | T.Map { T.value = m } :: xs ->
+     Types.map (List.fold_left (fun k m -> Types.MalMap.remove m k) m xs)
   | _ -> T.Nil
 
 let rec conj = function
   | c :: x :: (_ :: _ as xs) -> conj ((conj [c; x]) :: xs)
-  | [T.Map { T.value = c; T.meta = meta }; T.Vector { T.value = [k; v] }]
-    -> T.Map { T.value = (Types.MalMap.add k v c);
-               T.meta = meta }
   | [T.List { T.value = c; T.meta = meta }; x ]
     -> T.List { T.value = x :: c;
                 T.meta = meta }
@@ -87,35 +86,52 @@ let init env = begin
                 | _ -> T.Int 0));
   Env.set env "="
     (Types.fn (function
-                | [a; b] -> T.Bool (Types.mal_equal a b)
+                | [a; b] -> T.Bool (mal_equal a b)
                 | _ -> T.Bool false));
 
   Env.set env "pr-str"
     (Types.fn (function xs ->
-      T.String (String.concat " " (List.map (fun s -> Printer.pr_str s true) xs))));
+      T.String (Format.asprintf "%a" (Printer.pr_list true true) xs)));
   Env.set env "str"
     (Types.fn (function xs ->
-      T.String (String.concat "" (List.map (fun s -> Printer.pr_str s false) xs))));
+      T.String (Format.asprintf "%a" (Printer.pr_list false false) xs)));
   Env.set env "prn"
     (Types.fn (function xs ->
-      print_endline (String.concat " " (List.map (fun s -> Printer.pr_str s true) xs));
+      Format.printf "%a\n" (Printer.pr_list true true) xs;
       T.Nil));
   Env.set env "println"
     (Types.fn (function xs ->
-      print_endline (String.concat " " (List.map (fun s -> Printer.pr_str s false) xs));
+      Format.printf "%a\n" (Printer.pr_list false true) xs;
       T.Nil));
 
   Env.set env "compare"
     (Types.fn (function [a; b] -> T.Int (compare a b) | _ -> T.Nil));
   Env.set env "with-meta"
-    (Types.fn (function [a; b] -> Reader.with_meta a b | _ -> T.Nil));
+    (Types.fn (function
+      | [T.List   v; m] -> T.List   { v with T.meta = m }
+      | [T.Map    v; m] -> T.Map    { v with T.meta = m }
+      | [T.Vector v; m] -> T.Vector { v with T.meta = m }
+      | [T.Fn     v; m] -> T.Fn     { v with   meta = m }
+      | _ -> T.Nil));
   Env.set env "meta"
-    (Types.fn (function [x] -> Printer.meta x | _ -> T.Nil));
+    (Types.fn (function
+      | [T.List   { T.meta = meta }] -> meta
+      | [T.Map    { T.meta = meta }] -> meta
+      | [T.Vector { T.meta = meta }] -> meta
+      | [T.Fn     {   meta = meta }] -> meta
+      | _ -> T.Nil));
 
   Env.set env "read-string"
     (Types.fn (function [T.String x] -> Reader.read_str x | _ -> T.Nil));
   Env.set env "slurp"
-    (Types.fn (function [T.String x] -> T.String (Reader.slurp x) | _ -> T.Nil));
+    (Types.fn (function
+      | [T.String x] ->
+         let chan = open_in x in
+         let b = Buffer.create 27 in
+         Buffer.add_channel b chan (in_channel_length chan) ;
+         close_in chan ;
+         T.String (Buffer.contents b)
+      | _ -> T.Nil));
 
   Env.set env "cons"
     (Types.fn (function [x; xs] -> Types.list (x :: (seq xs)) | _ -> T.Nil));
@@ -162,14 +178,11 @@ let init env = begin
     (Types.fn (function [T.Int _] -> T.Bool true | _ -> T.Bool false));
   Env.set env "fn?"
     (Types.fn (function
-                | [T.Fn { T.meta = T.Map { T.value = meta } }]
-                  -> mk_bool (not (Types.MalMap.mem kw_macro meta && Types.to_bool (Types.MalMap.find kw_macro meta)))
-                | [T.Fn _] -> T.Bool true
+                | [T.Fn { macro = false } ] -> T.Bool true
                 | _ -> T.Bool false));
   Env.set env "macro?"
     (Types.fn (function
-                | [T.Fn { T.meta = T.Map { T.value = meta } }]
-                  -> mk_bool (Types.MalMap.mem kw_macro meta && Types.to_bool (Types.MalMap.find kw_macro meta))
+                | [T.Fn { macro = true }] -> T.Bool true
                 | _ -> T.Bool false));
   Env.set env "nil?"
     (Types.fn (function [T.Nil] -> T.Bool true | _ -> T.Bool false));
@@ -181,7 +194,7 @@ let init env = begin
     (Types.fn (function [T.List _] | [T.Vector _] -> T.Bool true | _ -> T.Bool false));
   Env.set env "apply"
     (Types.fn (function
-                | (T.Fn { T.value = f } :: apply_args) ->
+                | (T.Fn { value = f } :: apply_args) ->
                    (match List.rev apply_args with
                     | last_arg :: rev_args ->
                        f ((List.rev rev_args) @ (seq last_arg))
@@ -189,18 +202,19 @@ let init env = begin
                 | _ -> raise (Invalid_argument "First arg to apply must be a fn")));
   Env.set env "map"
     (Types.fn (function
-                | [T.Fn { T.value = f }; xs] ->
+                | [T.Fn { value = f }; xs] ->
                    Types.list (List.map (fun x -> f [x]) (seq xs))
                 | _ -> T.Nil));
   Env.set env "readline"
     (Types.fn (function
-                | [T.String x] -> print_string x; T.String (read_line ())
+                | [T.String x] -> Format.printf "%s%!" x;
+                                  T.String (read_line ())
                 | _ -> T.String (read_line ())));
 
   Env.set env "map?"
     (Types.fn (function [T.Map _] -> T.Bool true | _ -> T.Bool false));
   Env.set env "hash-map"
-    (Types.fn (function xs -> Types.list_into_map Types.MalMap.empty xs));
+    (Types.fn (Types.list_into_map Types.MalMap.empty));
   Env.set env "assoc" (Types.fn assoc);
   Env.set env "dissoc" (Types.fn dissoc);
   Env.set env "get"
@@ -234,7 +248,7 @@ let init env = begin
   Env.set env "reset!"
           (Types.fn (function [T.Atom x; v] -> x := v; v | _ -> T.Nil));
   Env.set env "swap!"
-          (Types.fn (function T.Atom x :: T.Fn { T.value = f } :: args
+          (Types.fn (function T.Atom x :: T.Fn { value = f } :: args
                               -> let v = f (!x :: args) in x := v; v | _ -> T.Nil));
 
   Env.set env "time-ms"

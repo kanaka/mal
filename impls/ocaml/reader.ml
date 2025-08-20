@@ -1,13 +1,6 @@
 module T = Types.Types
         (* ^file ^module *)
 
-let slurp filename =
-  let chan = open_in filename in
-  let b = Buffer.create 27 in
-  Buffer.add_channel b chan (in_channel_length chan) ;
-  close_in chan ;
-  Buffer.contents b
-
 let find_re re str =
   List.map (function | Str.Delim x -> x | Str.Text x -> "impossible!")
     (List.filter (function | Str.Delim x -> true | Str.Text x -> false)
@@ -39,9 +32,7 @@ let unescape_string token =
          (function | "\\n" -> "\n" | x -> String.sub x 1 1)
          without_quotes
   else
-    (output_string stderr ("expected '\"', got EOF\n");
-     flush stderr;
-     raise End_of_file)
+    raise (Invalid_argument "expected '\"', got EOF")
 
 let read_atom token =
   match token with
@@ -60,19 +51,9 @@ let read_atom token =
       | ':' -> T.Keyword (Str.replace_first (Str.regexp "^:") "" token)
       | _ -> T.Symbol token
 
-let with_meta obj meta =
-  match obj with
-    | T.List   { T.value = v } -> T.List   { T.value = v; T.meta = meta }
-    | T.Map    { T.value = v } -> T.Map    { T.value = v; T.meta = meta }
-    | T.Vector { T.value = v } -> T.Vector { T.value = v; T.meta = meta }
-    | T.Fn     { T.value = v } -> T.Fn     { T.value = v; T.meta = meta }
-    | _ -> raise (Invalid_argument "metadata not supported on this type")
-
 let rec read_list eol list_reader =
   match list_reader.tokens with
-    | [] -> output_string stderr ("expected '" ^ eol ^ "', got EOF\n");
-            flush stderr;
-            raise End_of_file;
+    | [] -> raise (Invalid_argument (Format.asprintf "expected '%s', got EOF" eol))
     | token :: tokens ->
       if Str.string_match (Str.regexp eol) token 0 then
         {list_form = list_reader.list_form; tokens = tokens}
@@ -89,7 +70,7 @@ and read_quote sym tokens =
      tokens = reader.tokens}
 and read_form all_tokens =
   match all_tokens with
-    | [] -> raise End_of_file;
+    | [] -> raise (Invalid_argument "no form found in the given string")
     | token :: tokens ->
       match token with
         | "'"  -> read_quote "quote" tokens
@@ -100,8 +81,7 @@ and read_form all_tokens =
         | "^"  ->
            let meta = read_form tokens in
            let value = read_form meta.tokens in
-             {(*form = with_meta value.form meta.form;*)
-              form = Types.list [T.Symbol "with-meta"; value.form; meta.form];
+             {form = Types.list [T.Symbol "with-meta"; value.form; meta.form];
               tokens = value.tokens}
         | "(" ->
            let list_reader = read_list ")" {list_form = []; tokens = tokens} in

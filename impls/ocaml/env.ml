@@ -13,7 +13,7 @@ let set env key value =
 
 let rec get env key =
   match Data.find_opt key !(env.data) with
-    | Some value -> Some value
+    | Some _ as v -> v
     | None       -> match env.outer with
       | Some outer -> get outer key
       | None       -> None
