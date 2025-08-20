@@ -60,14 +60,6 @@ let read_atom token =
       | ':' -> T.Keyword (Str.replace_first (Str.regexp "^:") "" token)
       | _ -> T.Symbol token
 
-let with_meta obj meta =
-  match obj with
-    | T.List   { T.value = v } -> T.List   { T.value = v; T.meta = meta }
-    | T.Map    { T.value = v } -> T.Map    { T.value = v; T.meta = meta }
-    | T.Vector { T.value = v } -> T.Vector { T.value = v; T.meta = meta }
-    | T.Fn     { T.value = v } -> T.Fn     { T.value = v; T.meta = meta }
-    | _ -> raise (Invalid_argument "metadata not supported on this type")
-
 let rec read_list eol list_reader =
   match list_reader.tokens with
     | [] -> output_string stderr ("expected '" ^ eol ^ "', got EOF\n");
@@ -100,8 +92,7 @@ and read_form all_tokens =
         | "^"  ->
            let meta = read_form tokens in
            let value = read_form meta.tokens in
-             {(*form = with_meta value.form meta.form;*)
-              form = Types.list [T.Symbol "with-meta"; value.form; meta.form];
+             {form = Types.list [T.Symbol "with-meta"; value.form; meta.form];
               tokens = value.tokens}
         | "(" ->
            let list_reader = read_list ")" {list_form = []; tokens = tokens} in
