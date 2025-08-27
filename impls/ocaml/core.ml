@@ -28,12 +28,9 @@ let seq = function
   | _ -> []
 
 let mal_seq = function
-  | [ T.Nil ] -> T.Nil
-  | [ T.List { T.value = [] } ] | [ T.Vector { T.value = [] } ] -> T.Nil
-  | [ (T.List _ as lst) ] -> lst
-  | [ T.Vector { T.value = xs } ] -> Types.list xs
-  | [ T.String "" ] -> T.Nil
-  | [ T.String s ] ->
+  | [ (T.List { T.value = xs } as lst) ] when not (List.is_empty xs) -> lst
+  | [ T.Vector { T.value = xs } ] when not (List.is_empty xs) -> Types.list xs
+  | [ T.String s ] when 0 < String.length s ->
       Types.list (List.map (fun x -> T.String x) (Str.split (Str.regexp "") s))
   | _ -> T.Nil
 
