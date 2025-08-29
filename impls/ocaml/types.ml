@@ -1,6 +1,6 @@
-module rec Types
-  : sig
+module rec Types : sig
   type 'a with_meta = { value : 'a; meta : t }
+
   and t =
     | List of t list with_meta
     | Vector of t list with_meta
@@ -11,35 +11,36 @@ module rec Types
     | Nil
     | Bool of bool
     | String of string
-    | Fn of { value : (t list -> t); meta : t; macro : bool }
+    | Fn of { value : t list -> t; meta : t; macro : bool }
     | Atom of t ref
-  end = Types
+end =
+  Types
 
-and MalValue
-  : sig
-    type t = Types.t
-    val compare : t -> t -> int
-  end
-  = struct
-    type t = Types.t
-    let compare = compare
-  end
+and MalValue : sig
+  type t = Types.t
 
-and MalMap
-  : Map.S with type key = MalValue.t
-  = Map.Make(MalValue)
+  val compare : t -> t -> int
+end = struct
+  type t = Types.t
+
+  let compare = compare
+end
+
+and MalMap : (Map.S with type key = MalValue.t) = Map.Make (MalValue)
 
 exception MalExn of Types.t
 
 type mal_type = MalValue.t
 
-let list   x = Types.List   { Types.value = x; meta = Types.Nil }
-let map    x = Types.Map    { Types.value = x; meta = Types.Nil }
+let list x = Types.List { Types.value = x; meta = Types.Nil }
+let map x = Types.Map { Types.value = x; meta = Types.Nil }
 let vector x = Types.Vector { Types.value = x; meta = Types.Nil }
 let fn f = Types.Fn { macro = false; value = f; meta = Types.Nil }
 
 let rec list_into_map target source =
   match source with
-    | k :: v :: more -> list_into_map (MalMap.add k v target) more
-    | [] -> map target
-    | _ :: [] -> raise (Invalid_argument "Literal maps must contain an even number of forms")
+  | k :: v :: more -> list_into_map (MalMap.add k v target) more
+  | [] -> map target
+  | _ :: [] ->
+      raise
+        (Invalid_argument "Literal maps must contain an even number of forms")

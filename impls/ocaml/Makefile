@@ -32,4 +32,6 @@ $(STEP_BINS): %: %.ml $(MAL_LIB)
 clean:
 	rm -f $(STEP_BINS) mal mal_lib.* *.cmo *.cmx *.cmi *.o
 
-.PHONY: all repl clean
+format:
+	ocamlformat --inplace --enable-outside-detected-project *.ml
+.PHONY: all repl clean format
