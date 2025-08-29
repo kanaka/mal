@@ -4,77 +4,85 @@ let repl_env = Env.make (Some Core.ns)
 
 let rec eval env ast =
   (match Env.get env "DEBUG-EVAL" with
-    | None | Some T.Nil | Some (T.Bool false) -> ()
-    | Some _              ->
-       Format.printf "EVAL: %a\n" (Printer.pr_str true) ast);
+  | None | Some T.Nil | Some (T.Bool false) -> ()
+  | Some _ -> Format.printf "EVAL: %a\n" (Printer.pr_str true) ast);
   match ast with
-    | T.Symbol s -> (match Env.get env s with
-         | Some v -> v
-         | None   -> raise (Invalid_argument ("'" ^ s ^ "' not found")))
-    | T.Vector { T.value = xs } -> Types.vector (List.map (eval env) xs);
-    | T.Map { T.value = xs } -> Types.map (Types.MalMap.map (eval env) xs)
-    | T.List { T.value = [T.Symbol "def!"; T.Symbol key; expr] } ->
-        let value = eval env expr in
-          Env.set env key value; value
-    | T.List { T.value = [T.Symbol "let*"; (T.Vector { T.value = bindings }); body] }
-    | T.List { T.value = [T.Symbol "let*"; (T.List   { T.value = bindings }); body] } ->
-        (let sub_env = Env.make (Some env) in
-          let rec bind_pairs = (function
-            | T.Symbol sym :: expr :: more ->
-                Env.set sub_env sym (eval sub_env expr);
-                bind_pairs more
-            | _ :: _ :: _ -> raise (Invalid_argument "let* keys must be symbols")
-            | _::[] -> raise (Invalid_argument "let* bindings must be an even number of forms")
-            | [] -> ())
-            in bind_pairs bindings;
-          eval sub_env body)
-    | T.List { T.value = (T.Symbol "do" :: body) } ->
-        List.fold_left (fun _ -> eval env) T.Nil body
-    | T.List { T.value = [T.Symbol "if"; test; then_expr; else_expr] } ->
-       eval env (match eval env test with | T.Nil | T.Bool false -> else_expr
-                                          | _ -> then_expr)
-    | T.List { T.value = [T.Symbol "if"; test; then_expr] } ->
-       (match eval env test  with | T.Nil | T.Bool false -> T.Nil
-                                  | _ -> eval env then_expr)
-    | T.List { T.value = [T.Symbol "fn*"; T.Vector { T.value = arg_names }; expr] }
-    | T.List { T.value = [T.Symbol "fn*"; T.List   { T.value = arg_names }; expr] } ->
-        Types.fn
-          (function args ->
-            let sub_env = Env.make (Some env) in
-              let rec bind_args a b =
-                (match a, b with
-                  | [T.Symbol "&"; T.Symbol name], args -> Env.set sub_env name (Types.list args);
-                  | (T.Symbol name :: names), (arg :: args) ->
-                      Env.set sub_env name arg;
-                      bind_args names args;
-                  | [], [] -> ()
-                  | _ -> raise (Invalid_argument "Bad param count in fn call"))
-              in bind_args arg_names args;
-              eval sub_env expr)
-    | T.List { T.value = (a0 :: args) } ->
-      (match eval env a0 with
-         | T.Fn { value = f } -> f (List.map (eval env) args)
-         | _ -> raise (Invalid_argument "Cannot invoke non-function"))
-    | _ -> ast
+  | T.Symbol s -> (
+      match Env.get env s with
+      | Some v -> v
+      | None -> raise (Invalid_argument ("'" ^ s ^ "' not found")))
+  | T.Vector { T.value = xs } -> Types.vector (List.map (eval env) xs)
+  | T.Map { T.value = xs } -> Types.map (Types.MalMap.map (eval env) xs)
+  | T.List { T.value = [ T.Symbol "def!"; T.Symbol key; expr ] } ->
+      let value = eval env expr in
+      Env.set env key value;
+      value
+  | T.List
+      { T.value = [ T.Symbol "let*"; T.Vector { T.value = bindings }; body ] }
+  | T.List
+      { T.value = [ T.Symbol "let*"; T.List { T.value = bindings }; body ] } ->
+      let sub_env = Env.make (Some env) in
+      let rec bind_pairs = function
+        | T.Symbol sym :: expr :: more ->
+            Env.set sub_env sym (eval sub_env expr);
+            bind_pairs more
+        | _ :: _ :: _ -> raise (Invalid_argument "let* keys must be symbols")
+        | _ :: [] ->
+            raise
+              (Invalid_argument "let* bindings must be an even number of forms")
+        | [] -> ()
+      in
+      bind_pairs bindings;
+      eval sub_env body
+  | T.List { T.value = T.Symbol "do" :: body } ->
+      List.fold_left (fun _ -> eval env) T.Nil body
+  | T.List { T.value = [ T.Symbol "if"; test; then_expr; else_expr ] } ->
+      eval env
+        (match eval env test with
+        | T.Nil | T.Bool false -> else_expr
+        | _ -> then_expr)
+  | T.List { T.value = [ T.Symbol "if"; test; then_expr ] } -> (
+      match eval env test with
+      | T.Nil | T.Bool false -> T.Nil
+      | _ -> eval env then_expr)
+  | T.List
+      { T.value = [ T.Symbol "fn*"; T.Vector { T.value = arg_names }; expr ] }
+  | T.List
+      { T.value = [ T.Symbol "fn*"; T.List { T.value = arg_names }; expr ] } ->
+      Types.fn (function args ->
+          let sub_env = Env.make (Some env) in
+          let rec bind_args a b =
+            match (a, b) with
+            | [ T.Symbol "&"; T.Symbol name ], args ->
+                Env.set sub_env name (Types.list args)
+            | T.Symbol name :: names, arg :: args ->
+                Env.set sub_env name arg;
+                bind_args names args
+            | [], [] -> ()
+            | _ -> raise (Invalid_argument "Bad param count in fn call")
+          in
+          bind_args arg_names args;
+          eval sub_env expr)
+  | T.List { T.value = a0 :: args } -> (
+      match eval env a0 with
+      | T.Fn { value = f } -> f (List.map (eval env) args)
+      | _ -> raise (Invalid_argument "Cannot invoke non-function"))
+  | _ -> ast
 
 let read str = Reader.read_str str
 let print = Printer.pr_str true
 let re str = ignore (eval repl_env (read str))
 
 let main =
-    Core.init Core.ns;
-    re "(def! not (fn* (a) (if a false true)))";
+  Core.init Core.ns;
+  re "(def! not (fn* (a) (if a false true)))";
 
-      try
-        while true do
-          Format.printf "user> %!";
-          let line = read_line () in
-          try
-            Format.printf "%a\n" print (eval repl_env (read line))
-          with
-             | Types.MalExn exc ->
-                Format.printf "mal exception: %a\n" print exc
-             | e ->
-                Format.printf "ocaml exception: %s\n" (Printexc.to_string e)
-        done
-      with End_of_file -> Format.printf "\n"
+  try
+    while true do
+      Format.printf "user> %!";
+      let line = read_line () in
+      try Format.printf "%a\n" print (eval repl_env (read line)) with
+      | Types.MalExn exc -> Format.printf "mal exception: %a\n" print exc
+      | e -> Format.printf "ocaml exception: %s\n" (Printexc.to_string e)
+    done
+  with End_of_file -> Format.printf "\n"
