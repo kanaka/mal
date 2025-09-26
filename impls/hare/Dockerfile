@@ -1,4 +1,4 @@
-FROM ubuntu:25.04
+FROM debian:testing
 MAINTAINER Lou Woell <lou@reptitions.de>
 LABEL org.opencontainers.image.source=https://github.com/kanaka/mal
 LABEL org.opencontainers.image.description="mal test container: hare"

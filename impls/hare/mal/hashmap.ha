@@ -26,9 +26,9 @@ export fn hm_init(gcd: bool = true) hashmap = {
 	let new: hashmap = alloc(struct {
 		data: []hmap = [],
 		meta: MalType = nil,
-	});
+	})!;
 
-	if(gcd) append(gc.memory.hashs, new);
+	if(gcd) append(gc.memory.hashs, new)!;
 
 	return new;
 };
@@ -50,7 +50,7 @@ fn new(
 		child: [4](size | void) = [void...],
 	};
 
-	append(hm.data, new);
+	append(hm.data, new)!;
 
 	match(p.child) {
 	case void =>
@@ -180,7 +180,7 @@ fn hm_copy(hm: hashmap, filter: [](string | symbol) = []) hashmap = {
 
 	if(len(filter) == 0){
 		for(let e .. hm.data) {
-			append(new.data, e);
+			append(new.data, e)!;
 		};
 	} else {
 		for :map (let e .. hm.data) {

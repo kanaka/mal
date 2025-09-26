@@ -765,7 +765,7 @@ fn apply(args: []MalType) (MalType | error) = {
 	case 0 =>
 		yield [];
 	case =>
-		yield alloc([nil...], length);
+		yield alloc([nil...], length)!;
 	};
 	defer free(ls);
 
@@ -896,7 +896,7 @@ fn malkeyword(args: []MalType) (MalType | error) = {
 
 	match(args[0]){
 	case let s: string =>
-		let name = strings::lpad(s.data, ':', len(s.data) + 1);
+		let name = strings::lpad(s.data, ':', len(s.data) + 1)!;
 		defer free(name);
 		return make_symbol(name);
 	case let k: symbol =>
