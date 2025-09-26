@@ -139,6 +139,7 @@ FAQ](docs/FAQ.md) where I attempt to answer some common questions.
 | [WebAssembly](#webassembly-wasm) (wasm) | [Joel Martin](https://github.com/kanaka) |
 | [Wren](#wren) | [Dov Murik](https://github.com/dubek) |
 | [XSLT](#xslt) | [Ali MohammadPur](https://github.com/alimpfard) |
+| [YAMLScript](#yamlscript) | [Ingy döt Net](https://github.com/ingydotnet) |
 | [Yorick](#yorick) | [Dov Murik](https://github.com/dubek) |
 | [Zig](#zig) | [Josh Tobin](https://github.com/rjtobin) |
 
@@ -1295,6 +1296,20 @@ The Wren implementation of mal was tested on Wren 0.2.0.
 cd impls/wren
 wren ./stepX_YYY.wren
 ```
+
+### YS (YAMLScript)
+
+The YS (YAMLScript) implementation of mal was tested on YS 0.2.2.
+
+```
+cd impls/yamlscript
+make test
+```
+
+The Makefile will install `ys` locally so there are no prerequisites.
+
+> Note: [The YS language owes its origin to the "mal" project](
+> https://yamlscript.org/blog/2025-07-24/why-ys-chose-clojure/#how-to-make-a-lisp)!
 
 ### Yorick
 
