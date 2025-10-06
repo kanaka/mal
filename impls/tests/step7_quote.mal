@@ -158,6 +158,12 @@ b
 (concat [1 2])
 ;=>(1 2)
 
+;; Testing for core fns instead of special forms
+(let* [x cons] (x 1 '(2 3)))
+;=>(1 2 3)
+(let* [x concat] (x '(1) '(2)))
+;=>(1 2)
+
 ;>>> optional=True
 ;;
 ;; -------- Optional Functionality --------
@@ -298,3 +304,7 @@ a
 ;/EVAL: \(cons 1 \(concat c \(cons 3 \(\)\)\)\).*\n\(1 1 "b" "d" 3\)
 (let* (DEBUG-EVAL true) `[])
 ;/EVAL: \(vec \(\)\).*\n\[\]
+
+;; Testing for core fn instead of special-form
+(let* [a vec] (a '(1 2 3)))
+;=>[1 2 3]

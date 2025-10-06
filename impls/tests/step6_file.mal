@@ -153,6 +153,23 @@
 (let* (b 12) (do (eval (read-string "(def! aa 7)")) aa ))
 ;=>7
 
+;;
+;; Testing for core fns instead of special forms
+(let* [x read-string] (x "(+ 2 3)"))
+;=>(+ 2 3)
+(let* [x slurp] (x "../tests/test.txt"))
+;=>"A line of text\n"
+(let* [x atom] (x 7))
+;=>(atom 7)
+(let* [x atom?] (x (atom 1)))
+;=>true
+(let* [x deref] (x (atom 7)))
+;=>7
+(let* [x reset!] (x (atom 7) 8))
+;=>8
+ (let* [x swap!] (x (atom 6) (fn* (y) (+ y 1))))
+;=>7
+
 ;>>> soft=True
 ;>>> optional=True
 ;;
