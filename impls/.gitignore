@@ -36,6 +36,8 @@ old
 ada/obj/
 awk/mal.awk
 bash/mal.sh
+cc/*.a
+cc/.deps
 clojure/mal.jar
 clojure/target
 clojure/.lein-repl-history
