@@ -1,7 +1,6 @@
 .DS_Store
 .bash_history
 .cache
-.cargo
 .config
 .mal-history
 .mal_history
@@ -9,6 +8,7 @@
 .lein
 .local
 .m2
+.m3
 .ivy2
 .sbt
 .npm
