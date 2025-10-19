@@ -112,6 +112,7 @@ IMPL:
   #- {IMPL: wasm, wasm_MODE: wace_libc, NO_SELF_HOST_PERF: 1}  # Hangs on GH Actions
   - {IMPL: wren}
   - {IMPL: xslt, NO_SELF_HOST: 1}  # step1 fail: "Too many nested template ..."
+  - {IMPL: yamlscript}
   - {IMPL: yorick}
   - {IMPL: zig}
 

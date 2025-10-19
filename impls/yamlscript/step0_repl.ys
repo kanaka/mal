@@ -1,0 +1,25 @@
+!YS-v0
+use readline: :all
+
+# read
+READ =: identity
+
+# eval
+EVAL =: identity
+
+# print
+PRINT =: identity
+
+# repl
+defn rep(strng):
+  strng:READ:EVAL:PRINT
+
+# repl loop
+defn repl-loop(line=''):
+  when line:
+    when line != '':
+      say: rep(line)
+    repl-loop: readline('mal-user> ')
+
+# main
+defn main(*): repl-loop()

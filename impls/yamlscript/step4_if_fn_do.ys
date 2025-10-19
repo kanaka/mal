@@ -1,0 +1,108 @@
+!YS-v0
+use readline: :all
+use reader: :all
+use printer: :all
+use env: :all
+use ys-core:
+
+# EVAL extends this stack trace when propagating exceptions.
+# If the exception reaches the REPL loop, the full trace is printed.
+trace =: atom('')
+
+# read
+READ =: read-str
+
+# eval
+defn LET(env binds form):
+  if binds:empty?:
+    EVAL: form env
+    if (binds.# >= 2) && binds.0:symbol?:
+      then:
+        env-set env binds.0:str: EVAL(binds.1 env)
+        LET env: binds:rest:rest form
+      else: die("invalid binds")
+
+defn EVAL(ast env):
+  when env-get-or-nil(env 'DEBUG-EVAL'):
+    say: +"EVAL:" prStr(ast true) prStr(env-as-map(env) true)
+  try:
+    condf ast:
+      symbol?: env-get(env ast:str)
+      vector?:
+        ast.map(\(EVAL(_ env))):vec
+      map?:
+        apply hash-map: ast:seq:flatten.map(\(EVAL _ env))
+      list?:
+        if ast:empty?:
+          list:
+          else:
+            a0 =: ast:first
+            condp eq a0:
+              symbol('def!'):
+                if (ast.# == 3) && ast.1:symbol?:
+                  then:
+                    val =: EVAL(ast.2 env)
+                    env-set env: ast.1:str val
+                    =>: val
+                  else:
+                    die: 'bad arguents'
+              symbol('let*'):
+                if (ast.# == 3) && ast.1:sequential?:
+                  LET new-env(env): ast.1 ast.2
+                  die: 'bad arguents'
+              symbol('do'):
+                if ast.# >= 2:
+                  nth: ast:rest.map(\(EVAL(_ env))) (ast.# - 2)
+                  die: 'bad argument count'
+              symbol('if'):
+                if 3 <= ast.# <= 4:
+                  if EVAL(ast.1 env):
+                    EVAL: ast.2 env
+                    when ast.# == 4:
+                      EVAL: ast.3 env
+                  die: 'bad argument count'
+              symbol('fn*'):
+                if (ast.# == 3) && sequential?(ast.1):
+                  fn(*args): EVAL(ast.2 new-env(env ast.1 args))
+                  die: "bad arguments"
+              else:
+                f =: EVAL(a0 env)
+                args =: ast:rest
+                if f:fn?:
+                  apply f: args.map(\(EVAL(_ env))):vec
+                  die: 'can only apply functions'
+      set?: die("EVAL($ast) not yet supported")
+      else: ast
+    catch exc:
+      reset trace: "\n  in mal EVAL: $ast"
+      die: exc
+
+# print
+PRINT =: \(prStr(_ true))
+
+repl-env =: new-env()
+
+defn rep(strng):
+  strng:READ.EVAL(repl-env):PRINT
+
+# ys-core.mal: defined directly using mal
+mapv _ ys-core/core-ns:
+  fn(sym):
+    env-set repl-env sym:
+      eval-string: "ys-core/$sym"
+
+# core.mal: defined using the new language itself
+rep: "(def! not (fn* [a] (if a false true)))"
+
+# repl loop
+defn repl-loop(line=''):
+  when line:
+    when line != '':
+      try:
+        say: rep(line)
+        catch exc:
+          say: "Uncaught exception: $exc"
+    repl-loop: readline('mal-user> ')
+
+# main
+defn main(): repl-loop()

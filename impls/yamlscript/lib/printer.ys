@@ -1,0 +1,33 @@
+!YS-v0
+ns: printer
+
+escapes =:
+  hash-map:
+    \\newline '\n'
+    \\" "\\\""
+    \\\ "\\\\"
+
+defn prStr(ast readable=false):
+  prStr+ =: \(prStr(_ readable))
+  condf ast:
+    nil?: 'nil'
+    string?:
+      if readable:
+        str('"' ast.str/escape(escapes) '"')
+        str(ast)
+    list?:
+      "($(joins(ast.map(prStr+))))"
+    vector?:
+      "[$(joins(ast.map(prStr+)))]"
+    map?:
+      "{$(joins(ast:seq:flatten.map(prStr+)))}"
+    set?:
+      type value =: ast:first:seq:first
+      condp eq type:
+        'quasiquote':
+          "(quasiquote $prStr(value readable))"
+        'unquote':
+          "(unquote $prStr(value readable))"
+        'splice-unquote':
+          "(splice-unquote $prStr(value readable))"
+    else: str(ast)
