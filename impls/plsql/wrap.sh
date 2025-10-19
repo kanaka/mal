@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 RL_HISTORY_FILE=${HOME}/.mal-history
 SKIP_INIT="${SKIP_INIT:-}"

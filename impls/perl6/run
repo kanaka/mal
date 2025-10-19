@@ -1,2 +1,2 @@
-#!/bin/bash
+#!/usr/bin/env bash
 exec perl6 $(dirname $0)/${STEP:-stepA_mal}.pl "${@}"

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Reference: https://docs.travis-ci.com/user/triggering-builds/
 

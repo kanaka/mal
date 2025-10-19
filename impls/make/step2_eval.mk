@@ -9,7 +9,7 @@ include $(_TOP_DIR)reader.mk
 include $(_TOP_DIR)printer.mk
 include $(_TOP_DIR)core.mk
 
-SHELL := /bin/bash
+SHELL := /usr/bin/env bash
 EVAL_DEBUG ?=
 
 # READ: read and parse input

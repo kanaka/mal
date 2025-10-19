@@ -1,2 +1,2 @@
-#!/bin/bash
+#!/usr/bin/env bash
 exec mono $(dirname $0)/${STEP:-stepA_mal}.exe ${RAW:+--raw} "${@}"

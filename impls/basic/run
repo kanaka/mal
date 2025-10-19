@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 cd $(dirname $0)
 (echo "(def! -*ARGS*- (list $(for a in "${@}"; do echo -n " \"${a}\""; done)))") > .args.mal
 case ${basic_MODE:-cbm} in

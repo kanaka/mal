@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 CP=$(gradle -q --console plain printClasspath)
 

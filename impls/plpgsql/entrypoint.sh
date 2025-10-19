@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 POSTGRES_SUDO_USER=${POSTGRES_SUDO_USER:-postgres}
 
