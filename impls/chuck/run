@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 regex_chugin=${REGEX_CHUGIN:-/usr/local/lib/chuck/1.5.2.5/RegEx.chug}
 if [[ ! -f "$regex_chugin" ]]; then
     echo "Set \$REGEX_CHUGIN to the absolute path of RegEx.chug"; exit 1

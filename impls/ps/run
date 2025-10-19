@@ -1,2 +1,2 @@
-#!/bin/bash
+#!/usr/bin/env bash
 exec gs -q -I$(dirname $0) -dNOSAFER -dNODISPLAY -- $(dirname $0)/${STEP:-stepA_mal}.ps "${@}"

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 export PATH=$PATH:$(dirname $0)/node_modules/.bin
 STEP=${STEP:-stepA_mal}
 if [ "${clojure_MODE}" = "cljs" ]; then

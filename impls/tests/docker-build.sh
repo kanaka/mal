@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 IMAGE_NAME=${IMAGE_NAME:-mal-test-ubuntu-utopic}
 GIT_TOP=$(git rev-parse --show-toplevel)

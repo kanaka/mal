@@ -7,7 +7,7 @@ include $(_TOP_DIR)util.mk
 include $(_TOP_DIR)reader.mk
 include $(_TOP_DIR)printer.mk
 
-SHELL := /bin/bash
+SHELL := /usr/bin/env bash
 
 # READ: read and parse input
 define READ

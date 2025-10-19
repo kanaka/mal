@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 case ${haxe_MODE:-neko} in
     neko)   exec neko    $(dirname $0)/${STEP:-stepA_mal}.n   "${@}" ;;
     python) exec python3 $(dirname $0)/${STEP:-stepA_mal}.py  "${@}" ;;

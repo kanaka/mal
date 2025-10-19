@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # ghdl doesn't allow passing command-line arguments to the VHDL program.  To
 # circumvent that, we write the command-line arguments as lines in

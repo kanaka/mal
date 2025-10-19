@@ -118,12 +118,12 @@ quux_STEP_TO_PROG = impls/quux/$($(1)).qx
   the interpreter is named "quux"):
 
 ```
-#!/bin/bash
+#!/usr/bin/env bash
 exec $(dirname $0)/${STEP:-stepA_mal} "${@}"
 ```
 
 ```
-#!/bin/bash
+#!/usr/bin/env bash
 exec quux $(dirname $0)/${STEP:-stepA_mal}.qx "${@}"
 ```
 

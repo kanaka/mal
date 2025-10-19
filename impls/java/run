@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 args=""
 if [ "$#" -gt 0 ]; then
     args="-Dexec.args='$1'"

@@ -5,7 +5,7 @@ _TOP_DIR := $(dir $(lastword $(MAKEFILE_LIST)))
 include $(_TOP_DIR)readline.mk
 include $(_TOP_DIR)util.mk
 
-SHELL := /bin/bash
+SHELL := /usr/bin/env bash
 
 define READ
 $1

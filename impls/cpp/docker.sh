@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 IMAGE_NAME=mal-cpp
 CONTAINER_NAME=mal-cpp-running

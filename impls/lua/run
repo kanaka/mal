@@ -1,2 +1,2 @@
-#!/bin/bash
+#!/usr/bin/env bash
 exec lua $(dirname $0)/${STEP:-stepA_mal}.lua "${@}"

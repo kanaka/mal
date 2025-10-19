@@ -1,2 +1,2 @@
-#!/bin/bash
+#!/usr/bin/env bash
 exec bash $(dirname $0)/${STEP:-stepA_mal}.sh "${@}"
