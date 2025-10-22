@@ -1,0 +1,2 @@
+#!/bin/bash
+exec dotnet run --project ${STEP:-stepA_mal}.csproj "${@}"
